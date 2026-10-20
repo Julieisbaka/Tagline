@@ -164,6 +164,9 @@ const delay = (ms) => new Promise((r) => setTimeout(r, ms));
         await click('.settings button', 'Done');
         await createFolder('Literal Folder');
         assert.ok(await fs.stat(path.join(vault, 'Literal Folder')));
+        // With the setting off, the explorer shows on-disk underscores verbatim.
+        await wait("[...document.querySelectorAll('.tree-label')].some(e => e.textContent === 'Old_Folder')");
+        await wait("[...document.querySelectorAll('.tree-label')].some(e => e.textContent === 'New_Folder')");
         // Disabling model autoload survives in the main-process config.
         if (process.env.TAGLINE_MODEL_CACHE) {
           await js('window.api.setModelAutoload(true)');
