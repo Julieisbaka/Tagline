@@ -9,6 +9,7 @@ contextBridge.exposeInMainWorld('api', {
   },
   readFont: () => ipcRenderer.invoke('fonts:read'),
   importFont: () => ipcRenderer.invoke('fonts:import'),
+  activateFont: () => ipcRenderer.invoke('fonts:activate'),
   setModelAutoload: (enabled) => ipcRenderer.invoke('embeddings:autoload', enabled),
   getLastVault: () => ipcRenderer.invoke('vault:getLast'),
   chooseVault: () => ipcRenderer.invoke('vault:choose'),

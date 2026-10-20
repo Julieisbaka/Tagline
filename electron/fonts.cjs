@@ -5,6 +5,7 @@ function registerFonts({ app, ipcMain, dialog, getWindow }) {
   const folder = path.join(app.getPath('userData'), 'fonts');
   const file = path.join(folder, 'custom-font.json');
   const types = { '.woff2': 'font/woff2', '.woff': 'font/woff', '.ttf': 'font/ttf', '.otf': 'font/otf' };
+  let pendingFont = null;
   const read = async () => {
     try {
       const saved = JSON.parse(await fs.readFile(file, 'utf8'));
@@ -16,6 +17,12 @@ function registerFonts({ app, ipcMain, dialog, getWindow }) {
     }
   };
   ipcMain.handle('fonts:read', read);
+  ipcMain.handle('fonts:activate', async () => {
+    if (!pendingFont) throw new Error('Import a font before activating it.');
+    await fs.mkdir(folder, { recursive: true });
+    await fs.writeFile(file, JSON.stringify(pendingFont));
+    pendingFont = null;
+  });
   ipcMain.handle('fonts:import', async () => {
     const result = await dialog.showOpenDialog(getWindow(), {
       title: 'Import font', properties: ['openFile'],
@@ -32,8 +39,7 @@ function registerFonts({ app, ipcMain, dialog, getWindow }) {
       throw new Error('Invalid font file.');
     }
     const mime = types[path.extname(source).toLowerCase()];
-    await fs.mkdir(folder, { recursive: true });
-    await fs.writeFile(file, JSON.stringify({ mime, data: data.toString('base64') }));
+    pendingFont = { mime, data: data.toString('base64') };
     return { name: path.basename(source), data: `data:${mime};base64,${data.toString('base64')}` };
   });
 }

@@ -45,7 +45,8 @@ const delay = (ms) => new Promise((r) => setTimeout(r, ms));
       wc.on('console-message', (event) => { if (event.level === 'error') console.error('Renderer:', event.message); });
       const wait = async (code) => {
         for (let i = 0; i < 120; i++) { if (await js(code)) return; await delay(100); }
-        throw new Error('Timed out: ' + code);
+        throw new Error('Timed out: ' + code + '\nFonts: ' + JSON.stringify(await js(
+          "[...document.fonts].map(f => ({ family: f.family, status: f.status }))")));
       };
       const click = (selector, text) => js(`(() => {
         const el = [...document.querySelectorAll(${JSON.stringify(selector)})].find(e => e.textContent.trim() === ${JSON.stringify(text)});
@@ -116,12 +117,12 @@ const delay = (ms) => new Promise((r) => setTimeout(r, ms));
         await input('[data-setting=searchMaxResults]', '1');
         await click('.advanced-settings button', 'Import font file');
         await wait("JSON.parse(localStorage.getItem('tagline-settings')).importedFont > 0");
-        await wait("[...document.fonts].some(f => f.family === 'Tagline Custom' && f.status === 'loaded')");
+        await wait("[...document.fonts].some(f => f.family.replaceAll('\"', '') === 'Tagline Custom' && f.status === 'loaded')");
         const fontData = await js('window.api.readFont()');
         assert.ok(fontData.startsWith('data:font/ttf;base64,'));
         assert.equal(await js("getComputedStyle(document.querySelector('.visual-document')).fontFamily"), '"Tagline Custom"');
         await new Promise((resolve) => { wc.once('did-finish-load', resolve); wc.reload(); });
-        await wait("[...document.fonts].some(f => f.family === 'Tagline Custom' && f.status === 'loaded')");
+        await wait("[...document.fonts].some(f => f.family.replaceAll('\"', '') === 'Tagline Custom' && f.status === 'loaded')");
         await wait("!!document.querySelector('.visual-document')");
         await settings();
         assert.equal(await js("JSON.parse(localStorage.getItem('tagline-settings')).visualCacheEntries"), 0);

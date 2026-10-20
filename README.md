@@ -22,6 +22,22 @@ user-data folder; the old folder is left untouched.
 
 The app icon source is `build/icon.svg`. Run `npm run icons` after editing it to
 regenerate `build/icon.png` and the multi-size Windows `build/icon.ico`.
+The generator also produces `build/icon.icns` for macOS distribution.
+
+## macOS integration
+
+The source app and npm scripts are cross-platform. On macOS the app uses an inset
+title bar with native traffic lights and a draggable header, a Dock icon, native
+About/Settings/Services/Hide/Quit and Window menus, and File menu actions.
+Use **Cmd** instead of Ctrl for application/editor shortcuts and Cmd-click for
+opening links/results in another tab. Function-key formatting may require Fn on
+Mac keyboards. Closing the last window leaves the app running; clicking its Dock
+icon reopens it. Pandoc detection checks both Apple Silicon and Intel Homebrew paths.
+Custom fonts and credentials use Electron's platform facilities (Keychain on macOS).
+An old encrypted token may need to be re-entered if the OS app identity changes.
+
+**Real macOS runtime testing has not been performed:** this workspace is Windows-only.
+The included ICNS is an asset, not a signed/notarized `.app` installer.
 
 ## Features
 
@@ -62,10 +78,54 @@ frontmatter, raw HTML, footnotes, images, or custom fenced blocks are shown in
 source mode with a notice rather than silently discarding those structures.
 
 Parsed Tiptap documents are cached by exact Markdown content, including across
-mode switches and tab changes. The in-memory LRU cache is bounded to 16 entries
-and 4 million combined source/JSON characters; changed source text is reparsed.
+mode switches and tab changes. The in-memory LRU cache defaults to 16 entries
+and 4 million combined source/JSON characters; change either limit under
+**Settings > Performance and search**. Zero entries disables caching. Reducing
+limits evicts existing entries immediately; changed source text is reparsed.
 Unchanged parent updates do not rerender the memoized visual document, and toolbar
 state subscribes only to formatting-state changes rather than every transaction.
+
+## Embedded HTML, citations, and fonts
+
+Embedded HTML is preserved verbatim in source mode and rendered in Read mode and
+exports. This includes structures such as `<details><summary>`, `<sup>`, `<sub>`,
+`<ruby>`, and HTML tables. Notes containing HTML deliberately use source editing,
+not Tiptap, to avoid destructive round trips. Scripts, event handlers, forms,
+embedded frames/objects, CSS blocks and inline styles are not supported; rendered
+HTML is sanitized. Exports omit images and other resource-loading elements.
+Pandoc converts the sanitized HTML into its document model; not every HTML element
+has an equivalent in every output format (for example, collapsible details flatten).
+
+Choose **Create citation** in the note header, command palette or File menu.
+Supply an author and four-digit year, plus optional title, publication, HTTP(S) URL
+and access date. Copy the generated Markdown or insert it into either editor:
+`**Smith 2024** — "Title", Publication, ...`.
+Estimated read time includes highlights **plus the author/year lead of bold citation
+lines**, not the full publication/URL. Existing `**Smith 24 — full citation**`
+lines are supported too; estimates use the written words, not spoken expansion of years.
+
+In **Settings > Fonts and folder paths**, enter one installed font-family name,
+or import a trusted `.ttf`, `.otf`, `.woff`, or `.woff2` file (up to 20 MB).
+Imported font data is stored in the app profile, not the vault; it persists across
+launches. Fonts apply to source, visual and reading text, not code snippets or UI.
+Reset font restores the system font.
+
+## Portable folder paths
+
+**Use underscores for spaces in folder paths** is enabled by default. New folder
+components use underscores on disk, while filenames are unchanged. Existing
+folder components retain their paths until an explicit migration. The file
+explorer displays folder underscores as spaces, regardless of this preference.
+Disable the setting to create/rename folders with literal spaces.
+
+Existing space-containing folders trigger a warning with a Settings shortcut.
+**Auto migrate folders** is explicit and requires confirmation: back up your vault
+first. It renames nested folders deepest-first, updates wikilinks (including in
+moved notes), open tabs and the speech-document setting. Conflicts abort before
+migration; filesystem failures stop the batch and surface an error, so inspect
+remaining folders before retrying. External links/bookmarks outside Tagline are
+not migrated. Modern Windows/macOS support spaces; this is a portability convention,
+not an operating-system requirement.
 
 ## Flow shortcuts and context menus
 
@@ -169,8 +229,11 @@ keyless Hugging Face model downloads. The selected model is
 `Xenova/all-MiniLM-L6-v2` (quantized, about 23 MB). Download failures, authorization
 errors, and offline cache misses are reported. Model downloads require internet;
 once cached, loading and inference can work offline.
+Disable **Automatically load downloaded model at startup** to defer loading until
+you use Load model or perform a semantic search. This main-process setting persists
+across launches; turning it off does not unload an already-running model.
 
-Tokens are encrypted using Electron `safeStorage` (Windows OS encryption), never
+Tokens are encrypted using Electron `safeStorage` (OS credential encryption), never
 saved in localStorage or the vault, and never returned through the settings API.
 If OS encryption is unavailable, token storage is refused; keyless access is
 still available. Remove a token in Settings to restore keyless downloading.
@@ -181,6 +244,12 @@ and press Enter or **Search by meaning**. Full-text search remains available
 without a model. Semantic mode supports `tag:` filters and ranks the best passage
 per note; its cosine scores are similarity measurements, not confidence levels.
 Clicking a passage opens source mode at its corresponding line.
+Semantic ranking uses cosine similarity with small exact-term/title-coverage
+boosts to break close matches; displayed scores remain raw cosine similarity.
+Full-text search uses BM25-style length normalization and term saturation,
+title/heading and phrase boosts, accent folding, deterministic ties, quoted
+phrases and tag filters. **Maximum search results** (1–1000, default 200) applies
+to both modes after ranking, rather than truncating files before scoring.
 
 Only model artifacts are downloaded from Hugging Face: **note contents and search
 queries are not uploaded**. CPU inference runs in a worker thread. Models and
@@ -198,14 +267,14 @@ npm run test:semantic # public model download + local ranking and cache invalida
 npm run test:features # flows, context menus, themes, locales, cache, HTML export and import IPC
 npm run test:speech   # send-card buttons (source and visual) and opening the speech doc
 npm run test:migration # Debate Vault -> Tagline profile migration, including the encrypted token
+npm run test:improvements # HTML, citations, fonts, limits, explicit folder migration and native menu IPC
 ```
 
 The semantic test downloads/caches the public model under
 `~/.tagline-test-models`, or `TAGLINE_MODEL_CACHE` if set. Setting that variable
 for the Electron test also exercises real CPU inference through IPC.
 
-Real Pandoc conversions have not been tested in this environment because Pandoc
-is not installed. Detection, argument construction, and conversion-failure
-handling are tested; real-format export validation is deferred.
-Pandoc import IPC, preview, save, and failure handling are tested with a stubbed
-converter; real DOCX/ODT/RTF/EPUB conversion fidelity is likewise not certified.
+Real HTML -> DOCX -> Markdown conversion is tested when Pandoc is installed,
+including embedded HTML text. Import IPC, preview, save, and failure handling
+are also tested with a stubbed converter. Full fidelity across all Pandoc formats
+and real macOS operation are not certified.

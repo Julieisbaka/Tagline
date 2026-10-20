@@ -32,6 +32,7 @@ export default function AdvancedSettings({ settings, update, migrationCount = 0,
         if (!font) return;
         const face = new FontFace('Tagline Font Validation', `url("${font.data}")`);
         await face.load();
+        await window.api.activateFont();
         update({ importedFont: Date.now() });
       })}>{t('Import font file')}</button>
       <button onClick={() => update({ fontFamily: '', importedFont: false })}>{t('Reset font')}</button>
