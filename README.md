@@ -213,8 +213,9 @@ contrast-certified.
 Settings > Language switches English, Spanish, and French immediately. Translations
 are keyed by English messages in [src/locales](./src/locales); interpolation and
 catalog parity are tested. This changes application UI, not users' notes, file
-names, debate speech abbreviations, or sample evidence. Native OS dialogs/menus
-follow the operating system language. Pandoc/OS/model diagnostic messages remain
+names, debate speech abbreviations, or sample evidence. Native OS dialogs and
+standard menu roles follow the operating system language; custom native menu
+labels remain English. Pandoc/OS/model diagnostic messages remain
 in their original language. The bundled English MiniLM model is unchanged;
 translated UI does not make semantic search multilingual.
 

@@ -1,12 +1,29 @@
+if (!process.versions.electron) {
+  const { spawnSync } = require('node:child_process');
+  const fs = require('node:fs');
+  const path = require('node:path');
+  const root = fs.mkdtempSync(path.join(require('node:os').tmpdir(), 'tagline-improvements-'));
+  try {
+    const result = spawnSync(require('electron'), [__filename], {
+      env: { ...process.env, TAGLINE_IMPROVEMENTS_ROOT: root }, stdio: 'inherit', timeout: 120000,
+    });
+    if (result.error) throw result.error;
+    process.exitCode = result.status ?? 1;
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true, maxRetries: 20, retryDelay: 100 });
+  }
+  return;
+}
+
 const { app, dialog } = require('electron');
 const fs = require('node:fs/promises');
 const path = require('node:path');
-const os = require('node:os');
 const assert = require('node:assert/strict');
 const delay = (ms) => new Promise((r) => setTimeout(r, ms));
 
 (async () => {
-  const root = await fs.mkdtemp(path.join(os.tmpdir(), 'tagline-improvements-'));
+  const root = process.env.TAGLINE_IMPROVEMENTS_ROOT;
+  if (!root) throw new Error('Run this test through Node or npm run test:improvements.');
   const vault = path.join(root, 'vault');
   const profile = path.join(root, 'profile');
   await fs.mkdir(path.join(vault, 'Old Folder', 'Sub Folder'), { recursive: true });
@@ -31,13 +48,6 @@ const delay = (ms) => new Promise((r) => setTimeout(r, ms));
     : process.platform === 'darwin' ? '/System/Library/Fonts/Supplemental/Arial.ttf'
       : '/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf';
   dialog.showOpenDialog = async () => ({ canceled: false, filePaths: [font] });
-  const cleanup = async () => {
-    for (let i = 0; i < 20; i++) {
-      try { await fs.rm(root, { recursive: true, force: true }); return; }
-      catch (e) { if (i === 19) throw e; await delay(100); }
-    }
-  };
-
   app.on('browser-window-created', (_event, win) => {
     win.webContents.once('did-finish-load', async () => {
       const wc = win.webContents;
@@ -140,19 +150,36 @@ const delay = (ms) => new Promise((r) => setTimeout(r, ms));
         assert.ok(await js("[...document.querySelectorAll('.tree-label')].some(e => e.textContent === 'Old Folder')"));
         assert.equal(await js("[...document.querySelectorAll('.tree-label')].some(e => e.textContent.includes('Old_Folder'))"), false);
         await click('.settings button', 'Done');
+        const createFolder = async (name) => {
+          await js("document.querySelector('.sidebar-header [title=\"New folder\"]').click()");
+          await wait("!!document.querySelector('.dialog input')");
+          await input('.dialog input', name);
+          await click('.dialog button', 'OK');
+          await wait(`!![...document.querySelectorAll('.tree-label')].find(e => e.textContent === ${JSON.stringify(name)})`);
+        };
+        await createFolder('New Folder');
+        assert.ok(await fs.stat(path.join(vault, 'New_Folder')));
+        await settings();
+        await js("document.querySelector('[data-setting=underscoreFolders]').click()");
+        await click('.settings button', 'Done');
+        await createFolder('Literal Folder');
+        assert.ok(await fs.stat(path.join(vault, 'Literal Folder')));
+        // Disabling model autoload survives in the main-process config.
+        if (process.env.TAGLINE_MODEL_CACHE) {
+          await js('window.api.setModelAutoload(true)');
+          assert.equal((await js('window.api.embeddingStatus()')).ready, true);
+          await js('window.api.setModelAutoload(false)');
+        }
+        assert.equal(JSON.parse(await fs.readFile(path.join(profile, 'config.json'), 'utf8')).modelAutoload, false);
         // Cmd-compatible menu IPC reaches the same UI on all platforms.
         wc.send('menu:command', 'openSearch');
         await wait("!!document.querySelector('.modal.search')");
         await input('.search .palette-input', 'tag');
         assert.equal(await js("document.querySelectorAll('.search-result').length"), 1);
         console.log('PASS: safe embedded HTML/export, visual citation insertion/read time, settings limits, fonts, folder migration, menu IPC.');
-        win.destroy();
-        await cleanup();
         app.exit(0);
       } catch (e) {
         console.error('FAIL:', e.stack || e);
-        win.destroy();
-        await cleanup();
         app.exit(1);
       }
     });

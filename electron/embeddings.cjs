@@ -36,7 +36,8 @@ function registerEmbeddings({ app, ipcMain, safeStorage, getVaultRoot, readConfi
     }
     tokenConfigured = true;
     if (!safeStorage.isEncryptionAvailable()) throw new Error('OS credential encryption is unavailable.');
-    return safeStorage.decryptString(encrypted);
+    try { return safeStorage.decryptString(encrypted); }
+    catch (e) { throw new Error(`Cannot decrypt the saved token. Re-enter or remove it in Settings. ${e.message}`); }
   }
 
   function ensureWorker() {

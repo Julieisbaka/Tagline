@@ -16,7 +16,7 @@ let win;
 let vaultRoot = null;
 
 // The app was renamed from "Debate Vault" to "Tagline"; carry the old profile over on first launch.
-// "Local State" holds the key that safeStorage uses, so the saved Hugging Face token keeps working.
+// On Windows, "Local State" carries safeStorage's key; other platforms may require token re-entry.
 function migrateLegacyProfile() {
   const current = app.getPath('userData');
   const legacy = path.join(app.getPath('appData'), 'debate-vault');
@@ -217,10 +217,12 @@ function createWindow() {
     return { action: 'deny' };
   });
   win.webContents.on('will-navigate', (e, url) => {
-    if (!url.startsWith('http://localhost:5173') && !url.startsWith('file://')) {
-      e.preventDefault();
-      if (/^https?:/i.test(url)) shell.openExternal(url);
-    }
+    const destination = new URL(url);
+    const current = new URL(win.webContents.getURL());
+    if (destination.origin === current.origin && destination.pathname === current.pathname) return;
+    e.preventDefault();
+    if (/^https?:/i.test(url)) shell.openExternal(url);
+    else console.warn('Blocked navigation outside the application document:', url);
   });
 
   if (isDev) {
