@@ -370,7 +370,8 @@ export default function App() {
     <div className={`app${window.api.platform === 'darwin' ? ' mac-app' : ''}`}>
       {window.api.platform === 'darwin' && <div className="mac-titlebar">Tagline</div>}
       <Ribbon ctx={ctx} showLeft={showLeft} />
-      {showLeft && <Sidebar vault={v.vault} tree={v.tree} activePath={activePath} actions={actions} />}
+      {showLeft && <Sidebar vault={v.vault} tree={v.tree} activePath={activePath} actions={actions}
+        spacedFolders={settings.underscoreFolders} />}
       <main className="main">
         {settings.underscoreFolders && migrationPlan(v.tree).length > 0 && <div className="editor-notice" role="status">
           {t('Some folders contain spaces. Migration is optional.')}

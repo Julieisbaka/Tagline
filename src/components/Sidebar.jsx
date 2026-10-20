@@ -34,7 +34,7 @@ function ContextMenu({ menu, onClose, actions }) {
   );
 }
 
-export default function Sidebar({ vault, tree, activePath, actions }) {
+export default function Sidebar({ vault, tree, activePath, actions, spacedFolders = false }) {
   const { t } = useI18n();
   const [menu, setMenu] = useState(null);
   const activeDir = activePath ? dirName(activePath) : '';
@@ -68,6 +68,7 @@ export default function Sidebar({ vault, tree, activePath, actions }) {
         onOpen={actions.open}
         onContext={(e, node) => setMenu({ x: e.clientX, y: e.clientY, node })}
         onDropMove={onDropMove}
+        spaced={spacedFolders}
       />
       <div className="sidebar-footer" title={vault.root}>
         <button className="vault-switch" onClick={actions.switchVault}>

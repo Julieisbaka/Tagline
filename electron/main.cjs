@@ -234,6 +234,7 @@ function createWindow() {
 }
 
 function buildMenu() {
+  const isMac = process.platform === 'darwin';
   const command = (name) => () => {
     if (!win || win.isDestroyed()) {
       createWindow();
@@ -253,11 +254,12 @@ function buildMenu() {
     {
       label: 'File', submenu: [
         { label: 'Open Vault...', click: command('switchVault') },
-        { label: 'New Note', accelerator: 'CmdOrCtrl+N', click: command('newNote') },
+        // The renderer handles Ctrl+N/W on Windows and Linux; registering them there would fire twice.
+        { label: 'New Note', accelerator: 'CmdOrCtrl+N', registerAccelerator: isMac, click: command('newNote') },
         { label: 'Create Citation...', click: command('createCitation') },
         { label: 'Import Document...', click: command('importDocument') },
         { type: 'separator' },
-        { label: 'Close Tab', accelerator: 'CmdOrCtrl+W', click: command('closeTab') },
+        { label: 'Close Tab', accelerator: 'CmdOrCtrl+W', registerAccelerator: isMac, click: command('closeTab') },
       ],
     },
     {

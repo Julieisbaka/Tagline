@@ -32,7 +32,7 @@ function registerDocuments({ ipcMain, dialog, getWindow, readConfig }) {
       throw new Error('Invalid theme.');
     }
     const result = await dialog.showSaveDialog(getWindow(), {
-      title: 'Export theme',       defaultPath: 'tagline-theme.json', filters: [{ name: 'JSON', extensions: ['json'] }],
+      title: 'Export theme', defaultPath: 'tagline-theme.json', filters: [{ name: 'JSON', extensions: ['json'] }],
     });
     if (result.canceled) return { canceled: true };
     await fs.writeFile(result.filePath, JSON.stringify(theme, null, 2) + '\n', 'utf8');

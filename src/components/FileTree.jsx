@@ -3,7 +3,9 @@ import { isFlow } from '../lib/vault.js';
 import Icon from './Icon.jsx';
 import { useI18n } from '../lib/i18n.js';
 
-function TreeNode({ node, depth, activePath, expanded, toggle, onOpen, onContext, onDropMove }) {
+function TreeNode({ node, depth, activePath, expanded, toggle, onOpen, onContext, onDropMove, spaced }) {
+  // Folder underscores are an on-disk detail; show them as spaces only when the setting creates them.
+  const show = (name) => (spaced ? name.replace(/_/g, ' ') : name);
   const isFolder = node.type === 'folder';
   const open = expanded.has(node.path);
   const [dragOver, setDragOver] = useState(false);
@@ -37,7 +39,7 @@ function TreeNode({ node, depth, activePath, expanded, toggle, onOpen, onContext
           e.preventDefault();
           onContext(e, node);
         }}
-        title={isFolder ? node.path.replace(/_/g, ' ') : node.path.split('/').map((s, i, a) => i < a.length - 1 ? s.replace(/_/g, ' ') : s).join('/')}
+        title={node.path.split('/').map((s, i, a) => isFolder || i < a.length - 1 ? show(s) : s).join('/')}
         {...dropProps}
       >
         {isFolder ? (
@@ -45,7 +47,7 @@ function TreeNode({ node, depth, activePath, expanded, toggle, onOpen, onContext
         ) : (
           <Icon name={isFlow(node.path) ? 'flow' : 'file'} size={12} />
         )}
-        <span className="tree-label">{(isFolder ? node.name.replace(/_/g, ' ') : node.name).replace(/\.md$/i, '')}</span>
+        <span className="tree-label">{(isFolder ? show(node.name) : node.name).replace(/\.md$/i, '')}</span>
       </div>
       {isFolder &&
         open &&
@@ -60,13 +62,14 @@ function TreeNode({ node, depth, activePath, expanded, toggle, onOpen, onContext
             onOpen={onOpen}
             onContext={onContext}
             onDropMove={onDropMove}
+            spaced={spaced}
           />
         ))}
     </div>
   );
 }
 
-export default function FileTree({ tree, activePath, onOpen, onContext, onDropMove }) {
+export default function FileTree({ tree, activePath, onOpen, onContext, onDropMove, spaced = false }) {
   const { t } = useI18n();
   const [expanded, setExpanded] = useState(() => new Set(JSON.parse(localStorage.getItem('expanded') || '[]')));
   const toggle = (p) => {
@@ -104,6 +107,7 @@ export default function FileTree({ tree, activePath, onOpen, onContext, onDropMo
           onOpen={onOpen}
           onContext={onContext}
           onDropMove={onDropMove}
+          spaced={spaced}
         />
       ))}
       {tree.length === 0 && <div className="empty-hint">{t('No notes yet. Create one with the buttons above.')}</div>}
