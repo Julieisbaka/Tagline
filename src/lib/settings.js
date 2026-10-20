@@ -1,0 +1,69 @@
+import { useCallback, useEffect, useLayoutEffect, useState } from 'react';
+import { applyTheme, getTheme } from './themes.js';
+import { setLanguage } from './i18n.js';
+import { configureVisualCache } from './visualCache.js';
+
+const DEFAULTS = {
+  wpm: 250,
+  speechDoc: 'Speech Docs/Speech.md',
+  fontSize: 16,
+  format: 'policy',
+  readableWidth: true,
+  theme: 'dark',
+  editorMode: 'visual',
+  focusNewFlowRow: true,
+  language: 'en',
+  customTheme: null,
+  visualCacheEntries: 16,
+  visualCacheCharacters: 4_000_000,
+  searchMaxResults: 200,
+  underscoreFolders: true,
+  fontFamily: '',
+  importedFont: false,
+};
+
+const KEY = 'tagline-settings';
+const LEGACY_KEY = 'debate-vault-settings';
+
+function load() {
+  try {
+    const saved = localStorage.getItem(KEY) ?? localStorage.getItem(LEGACY_KEY);
+    return { ...DEFAULTS, ...JSON.parse(saved || '{}') };
+  } catch {
+    return { ...DEFAULTS };
+  }
+}
+
+export function useSettings() {
+  const [settings, setSettings] = useState(load);
+  useLayoutEffect(() => {
+    applyTheme(getTheme(settings.theme, settings.customTheme));
+    setLanguage(settings.language);
+  }, [settings.theme, settings.customTheme, settings.language]);
+  useLayoutEffect(() => {
+    configureVisualCache(settings.visualCacheEntries, settings.visualCacheCharacters);
+  }, [settings.visualCacheEntries, settings.visualCacheCharacters]);
+  useLayoutEffect(() => {
+    const root = document.documentElement;
+    root.style.setProperty('--font-text', settings.importedFont ? '"Tagline Custom"' :
+      settings.fontFamily.trim() ? `${JSON.stringify(settings.fontFamily.trim())}, system-ui, sans-serif` : 'system-ui, sans-serif');
+  }, [settings.fontFamily, settings.importedFont]);
+  useEffect(() => {
+    if (!settings.importedFont) return;
+    let disposed = false;
+    let face;
+    window.api.readFont().then(async (data) => {
+      if (!data) throw new Error('The imported font is missing. Import it again in Settings.');
+      face = new FontFace('Tagline Custom', `url("${data}")`);
+      await face.load();
+      if (!disposed) document.fonts.add(face);
+    }).catch((e) => window.dispatchEvent(new CustomEvent('app-error', { detail: e.message })));
+    return () => { disposed = true; if (face) document.fonts.delete(face); };
+  }, [settings.importedFont]);
+  useEffect(() => {
+    localStorage.setItem(KEY, JSON.stringify(settings));
+    document.documentElement.style.setProperty('--editor-font-size', `${settings.fontSize}px`);
+  }, [settings]);
+  const update = useCallback((patch) => setSettings((s) => ({ ...s, ...patch })), []);
+  return [settings, update];
+}

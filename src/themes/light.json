@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "id": "light",
+  "name": "Light",
+  "mode": "light",
+  "colors": {
+    "bg": "#ffffff", "bg-secondary": "#f6f6f6", "bg-elevated": "#ffffff",
+    "bg-hover": "#ececec", "border": "#dddddd", "text": "#2e3338",
+    "text-strong": "#111111", "text-muted": "#6b6f75", "text-faint": "#70747a",
+    "accent": "#6b4fd8", "accent-text": "#ffffff", "accent-dim": "#6b4fd826",
+    "selection": "#6b4fd838", "highlight-bg": "#b7f5a0", "highlight-text": "#111111",
+    "code": "#b55a1d", "h1": "#111111", "h2": "#5b3fc4",
+    "h3": "#1f6fb5", "h4": "#9a6700", "aff": "#1f6fd1", "neg": "#d23b3b",
+    "aff-bg": "#1f6fd10f", "neg-bg": "#d23b3b0f", "danger": "#c62828",
+    "warning": "#805800", "shadow": "#00000040", "backdrop": "#00000073"
+  }
+}

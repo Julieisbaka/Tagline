@@ -1,0 +1,162 @@
+import { useEffect, useRef, useState } from 'react';
+import { formatDuration } from '../lib/card.js';
+import { useI18n } from '../lib/i18n.js';
+
+export const FORMATS = {
+  policy: {
+    label: 'High school policy (8-3-5)',
+    prep: 8,
+    speeches: [
+      ['1AC', 8], ['CX', 3], ['1NC', 8], ['CX', 3], ['2AC', 8], ['CX', 3],
+      ['2NC', 8], ['CX', 3], ['1NR', 5], ['1AR', 5], ['2NR', 5], ['2AR', 5],
+    ],
+  },
+  college: {
+    label: 'College policy (9-3-6)',
+    prep: 10,
+    speeches: [
+      ['1AC', 9], ['CX', 3], ['1NC', 9], ['CX', 3], ['2AC', 9], ['CX', 3],
+      ['2NC', 9], ['CX', 3], ['1NR', 6], ['1AR', 6], ['2NR', 6], ['2AR', 6],
+    ],
+  },
+};
+
+function beep() {
+  try {
+    const ctx = new AudioContext();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.frequency.value = 880;
+    gain.gain.setValueAtTime(0.2, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.8);
+    osc.connect(gain).connect(ctx.destination);
+    osc.start();
+    osc.stop(ctx.currentTime + 0.8);
+  } catch {
+    /* audio unavailable */
+  }
+}
+
+// A countdown that keeps accurate time using wall-clock deltas.
+function useCountdown(initial) {
+  const [remaining, setRemaining] = useState(initial);
+  const [running, setRunning] = useState(false);
+  const last = useRef(0);
+
+  useEffect(() => {
+    if (!running) return undefined;
+    last.current = performance.now();
+    const id = setInterval(() => {
+      const now = performance.now();
+      const dt = (now - last.current) / 1000;
+      last.current = now;
+      setRemaining((r) => {
+        const next = r - dt;
+        if (next <= 0) {
+          setRunning(false);
+          beep();
+          return 0;
+        }
+        return next;
+      });
+    }, 200);
+    return () => clearInterval(id);
+  }, [running]);
+
+  return {
+    remaining,
+    running,
+    toggle: () => setRunning((r) => !r && remaining > 0),
+    stop: () => setRunning(false),
+    reset: (v) => {
+      setRunning(false);
+      setRemaining(v);
+    },
+  };
+}
+
+export default function Timer({ format, onFormatChange }) {
+  const { t } = useI18n();
+  const fmt = FORMATS[format] || FORMATS.policy;
+  const [speech, setSpeech] = useState(0);
+  const main = useCountdown(fmt.speeches[0][1] * 60);
+  const aff = useCountdown(fmt.prep * 60);
+  const neg = useCountdown(fmt.prep * 60);
+
+  const selectSpeech = (i) => {
+    setSpeech(i);
+    main.reset(fmt.speeches[i][1] * 60);
+  };
+
+  const changeFormat = (f) => {
+    onFormatChange(f);
+    const next = FORMATS[f];
+    setSpeech(0);
+    main.reset(next.speeches[0][1] * 60);
+    aff.reset(next.prep * 60);
+    neg.reset(next.prep * 60);
+  };
+
+  const startPrep = (which) => {
+    main.stop();
+    (which === 'aff' ? neg : aff).stop();
+    (which === 'aff' ? aff : neg).toggle();
+  };
+
+  const low = main.remaining <= 30 && main.remaining > 0;
+
+  return (
+    <div className="timer">
+      <select value={format} onChange={(e) => changeFormat(e.target.value)}>
+        {Object.entries(FORMATS).map(([k, v]) => (
+          <option key={k} value={k}>
+            {t(v.label)}
+          </option>
+        ))}
+      </select>
+
+      <div className="timer-speeches">
+        {fmt.speeches.map(([name], i) => (
+          <button key={i} className={`speech-btn${i === speech ? ' active' : ''}`} onClick={() => selectSpeech(i)}>
+            {name}
+          </button>
+        ))}
+      </div>
+
+      <div className={`timer-display${low ? ' low' : ''}${main.remaining === 0 ? ' done' : ''}`}>
+        {formatDuration(main.remaining)}
+      </div>
+      <div className="timer-controls">
+        <button
+          className="primary"
+          onClick={() => {
+            aff.stop();
+            neg.stop();
+            main.toggle();
+          }}
+        >
+          {t(main.running ? 'Pause' : 'Start')}
+        </button>
+        <button onClick={() => main.reset(fmt.speeches[speech][1] * 60)}>{t('Reset')}</button>
+        <button onClick={() => speech < fmt.speeches.length - 1 && selectSpeech(speech + 1)}>{t('Next')}</button>
+      </div>
+
+      <h4>{t('Prep time')}</h4>
+      <div className="prep-row">
+        {[
+          ['aff', 'Aff', aff],
+          ['neg', 'Neg', neg],
+        ].map(([key, label, timer]) => (
+          <div key={key} className={`prep-box side-${key}${timer.running ? ' running' : ''}`}>
+            <div className="prep-label">{t(label)}</div>
+            <div className="prep-time">{formatDuration(timer.remaining)}</div>
+            <button onClick={() => startPrep(key)}>{t(timer.running ? 'Pause' : 'Start')}</button>
+            <button className="link-btn" onClick={() => timer.reset(fmt.prep * 60)}>
+              {t('reset')}
+            </button>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}

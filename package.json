@@ -1,0 +1,52 @@
+{
+  "name": "tagline",
+  "productName": "Tagline",
+  "version": "0.0.1",
+  "description": "Obsidian-style knowledge vault for policy debaters",
+  "main": "electron/main.cjs",
+  "scripts": {
+    "dev": "concurrently -k \"vite\" \"wait-on tcp:5173 && electron . --dev\"",
+    "build": "vite build",
+    "start": "vite build && electron .",
+    "test": "node --test tests/core.test.cjs tests/features.test.cjs tests/improvements.test.cjs",
+    "test:electron": "vite build && electron tests/electron-smoke.cjs",
+    "test:semantic": "node tests/semantic-smoke.cjs",
+    "test:features": "vite build && electron tests/features-smoke.cjs",
+    "icons": "electron scripts/generate-icons.cjs",
+    "test:speech": "vite build && electron tests/speech-smoke.cjs",
+    "test:migration": "vite build && node tests/migration-smoke.cjs",
+    "test:improvements": "vite build && electron tests/improvements-smoke.cjs"
+  },
+  "license": "MIT",
+  "dependencies": {
+    "@codemirror/autocomplete": "^6.20.4",
+    "@codemirror/commands": "^6.11.1",
+    "@codemirror/lang-markdown": "^6.5.2",
+    "@codemirror/language": "^6.13.1",
+    "@codemirror/language-data": "^6.5.2",
+    "@codemirror/state": "^6.7.6",
+    "@codemirror/view": "^6.43.15",
+    "@lezer/highlight": "^1.2.5",
+    "@uiw/react-codemirror": "^4.25.12",
+    "@tiptap/react": "^3.0.0",
+    "@tiptap/core": "^3.0.0",
+    "@tiptap/starter-kit": "^3.0.0",
+    "@tiptap/markdown": "^3.0.0",
+    "@tiptap/extension-highlight": "^3.0.0",
+    "@tiptap/extension-table": "^3.0.0",
+    "@tiptap/extension-task-list": "^3.0.0",
+    "@tiptap/extension-task-item": "^3.0.0",
+    "@huggingface/transformers": "^4.3.1",
+    "dompurify": "^3.4.17",
+    "marked": "^18.1.1",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^6.1.2",
+    "concurrently": "^10.0.6",
+    "electron": "^44.9.2",
+    "vite": "^8.3.4",
+    "wait-on": "^9.5.1"
+  }
+}

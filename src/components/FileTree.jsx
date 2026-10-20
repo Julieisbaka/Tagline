@@ -1,0 +1,112 @@
+import { useState } from 'react';
+import { isFlow } from '../lib/vault.js';
+import Icon from './Icon.jsx';
+import { useI18n } from '../lib/i18n.js';
+
+function TreeNode({ node, depth, activePath, expanded, toggle, onOpen, onContext, onDropMove }) {
+  const isFolder = node.type === 'folder';
+  const open = expanded.has(node.path);
+  const [dragOver, setDragOver] = useState(false);
+
+  const dropProps = isFolder
+    ? {
+        onDragOver: (e) => {
+          e.preventDefault();
+          setDragOver(true);
+        },
+        onDragLeave: () => setDragOver(false),
+        onDrop: (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          setDragOver(false);
+          const from = e.dataTransfer.getData('text/vault-path');
+          if (from) onDropMove(from, node.path);
+        },
+      }
+    : {};
+
+  return (
+    <div>
+      <div
+        className={`tree-item${activePath === node.path ? ' active' : ''}${dragOver ? ' drag-over' : ''}`}
+        style={{ paddingLeft: 8 + depth * 14 }}
+        draggable
+        onDragStart={(e) => e.dataTransfer.setData('text/vault-path', node.path)}
+        onClick={(e) => (isFolder ? toggle(node.path) : onOpen(node.path, e.ctrlKey || e.metaKey))}
+        onContextMenu={(e) => {
+          e.preventDefault();
+          onContext(e, node);
+        }}
+        title={isFolder ? node.path.replace(/_/g, ' ') : node.path.split('/').map((s, i, a) => i < a.length - 1 ? s.replace(/_/g, ' ') : s).join('/')}
+        {...dropProps}
+      >
+        {isFolder ? (
+          <Icon name={open ? 'chevron-down' : 'chevron-right'} size={12} />
+        ) : (
+          <Icon name={isFlow(node.path) ? 'flow' : 'file'} size={12} />
+        )}
+        <span className="tree-label">{(isFolder ? node.name.replace(/_/g, ' ') : node.name).replace(/\.md$/i, '')}</span>
+      </div>
+      {isFolder &&
+        open &&
+        node.children.map((c) => (
+          <TreeNode
+            key={c.path}
+            node={c}
+            depth={depth + 1}
+            activePath={activePath}
+            expanded={expanded}
+            toggle={toggle}
+            onOpen={onOpen}
+            onContext={onContext}
+            onDropMove={onDropMove}
+          />
+        ))}
+    </div>
+  );
+}
+
+export default function FileTree({ tree, activePath, onOpen, onContext, onDropMove }) {
+  const { t } = useI18n();
+  const [expanded, setExpanded] = useState(() => new Set(JSON.parse(localStorage.getItem('expanded') || '[]')));
+  const toggle = (p) => {
+    setExpanded((prev) => {
+      const next = new Set(prev);
+      next.has(p) ? next.delete(p) : next.add(p);
+      localStorage.setItem('expanded', JSON.stringify([...next]));
+      return next;
+    });
+  };
+
+  return (
+    <div
+      className="file-tree"
+      onContextMenu={(e) => {
+        if (e.target === e.currentTarget) {
+          e.preventDefault();
+          onContext(e, { type: 'folder', path: '', name: 'root' });
+        }
+      }}
+      onDragOver={(e) => e.preventDefault()}
+      onDrop={(e) => {
+        const from = e.dataTransfer.getData('text/vault-path');
+        if (from) onDropMove(from, '');
+      }}
+    >
+      {tree.map((n) => (
+        <TreeNode
+          key={n.path}
+          node={n}
+          depth={0}
+          activePath={activePath}
+          expanded={expanded}
+          toggle={toggle}
+          onOpen={onOpen}
+          onContext={onContext}
+          onDropMove={onDropMove}
+        />
+      ))}
+      {tree.length === 0 && <div className="empty-hint">{t('No notes yet. Create one with the buttons above.')}</div>}
+    </div>
+  );
+}
