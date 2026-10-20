@@ -2,7 +2,7 @@
 
 ![Tagline icon](build/icon.png)
 
-Version 0.0.1. An Obsidian-style desktop app for policy debaters, built with Electron + React,
+An Obsidian-style desktop app for policy debaters, built with Electron + React,
 Tiptap for visual editing, and CodeMirror for source editing.
 Your vault is a plain folder of markdown (`.md`) and flow (`.flow`) files.
 
@@ -16,14 +16,6 @@ npm start       # production build, then launch Electron
 
 On first launch choose **Open folder as vault** or **Create sample vault**.
 
-Tagline was previously called Debate Vault. On first launch it copies settings, the
-saved Hugging Face token, and the downloaded model from the old `debate-vault`
-user-data folder; the old folder is left untouched.
-
-The app icon source is `build/icon.svg`. Run `npm run icons` after editing it to
-regenerate `build/icon.png` and the multi-size Windows `build/icon.ico`.
-The generator also produces `build/icon.icns` for macOS distribution.
-
 ## macOS integration
 
 The source app and npm scripts are cross-platform. On macOS the app uses an inset
@@ -35,9 +27,6 @@ Mac keyboards. Closing the last window leaves the app running; clicking its Dock
 icon reopens it. Pandoc detection checks both Apple Silicon and Intel Homebrew paths.
 Custom fonts and credentials use Electron's platform facilities (Keychain on macOS).
 An old encrypted token may need to be re-entered if the OS app identity changes.
-
-**Real macOS runtime testing has not been performed:** this workspace is Windows-only.
-The included ICNS is an asset, not a signed/notarized `.app` installer.
 
 ## Features
 
@@ -101,7 +90,7 @@ Supply an author and four-digit year, plus optional title, publication, HTTP(S) 
 and access date. Copy the generated Markdown or insert it into either editor:
 `**Smith 2024** — "Title", Publication, ...`.
 Estimated read time includes highlights **plus the author/year lead of bold citation
-lines**, not the full publication/URL. Existing `**Smith 24 — full citation**`
+lines**. Existing `**Smith 24 — full citation**` 
 lines are supported too; estimates use the written words, not spoken expansion of years.
 
 In **Settings > Fonts and folder paths**, enter one installed font-family name,
@@ -204,8 +193,7 @@ and files above 64 KB are rejected visibly. Importing another custom theme
 replaces the previous custom theme; the selection and colors persist locally.
 Tokens are listed in [src/lib/themes.js](./src/lib/themes.js) and the built-ins:
 backgrounds, text, border, accent/accent text, selection, highlights, headings,
-aff/neg colors, warning, danger, shadow, and backdrop. No executable theme plugins
-or arbitrary CSS are loaded. A TODO in the API tracks future custom-CSS support.
+aff/neg colors, warning, danger, shadow, and backdrop.
 
 High-contrast themes have tests verifying at least 7:1 text contrast on major UI
 surfaces, plus visible focus indicators. Custom themes are not automatically
@@ -217,8 +205,7 @@ catalog parity are tested. This changes application UI, not users' notes, file
 names, debate speech abbreviations, or sample evidence. Native OS dialogs and
 standard menu roles follow the operating system language; custom native menu
 labels remain English. Pandoc/OS/model diagnostic messages remain
-in their original language. The bundled English MiniLM model is unchanged;
-translated UI does not make semantic search multilingual.
+in their original language. Translated UI does not make semantic search multilingual.
 
 ## Hugging Face embeddings and semantic search
 
@@ -276,7 +263,4 @@ The semantic test downloads/caches the public model under
 `~/.tagline-test-models`, or `TAGLINE_MODEL_CACHE` if set. Setting that variable
 for the Electron test also exercises real CPU inference through IPC.
 
-Real HTML -> DOCX -> Markdown conversion is tested when Pandoc is installed,
-including embedded HTML text. Import IPC, preview, save, and failure handling
-are also tested with a stubbed converter. Full fidelity across all Pandoc formats
-and real macOS operation are not certified.
+Full fidelity across all Pandoc formats and real macOS operation are not certified.
