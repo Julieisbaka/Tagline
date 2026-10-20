@@ -1,9 +1,9 @@
-import { useEditor, useEditorState, EditorContent } from '@tiptap/react';
+import { EditorContent, useEditor, useEditorState } from '@tiptap/react';
 import { memo, useEffect, useMemo, useRef, useState } from 'react';
-import { visualExtensions, visualSelection } from '../lib/visualExtensions.js';
+import { useI18n } from '../lib/i18n.js';
 import { slugify } from '../lib/markdown.js';
 import { cachedDocument, cacheDocument } from '../lib/visualCache.js';
-import { useI18n } from '../lib/i18n.js';
+import { visualExtensions, visualSelection } from '../lib/visualExtensions.js';
 
 export default function VisualEditor({ value, onChange, onOpenLink, onSendCard, onSection, noteNames, visualRef, jump }) {
   const live = useRef({});
@@ -107,9 +107,11 @@ function VisualDocument({ value, noteNames, visualRef, jump, live }) {
     if (!linkTarget?.trim()) return;
     const m = /^([^\]|#]+)(?:#([^\]|]*))?(?:\|([^\]]*))?$/.exec(linkTarget.trim());
     if (!m) return setError(t('Use Note, Note#Heading, or Note|Label for a wiki link.'));
-    editor.chain().focus().insertContent({ type: 'wikiLink', attrs: {
-      target: m[1], heading: m[2] || '', alias: m[3] || '', embed: false,
-    } }).run();
+    editor.chain().focus().insertContent({
+      type: 'wikiLink', attrs: {
+        target: m[1], heading: m[2] || '', alias: m[3] || '', embed: false,
+      }
+    }).run();
     setLinkTarget(null);
   };
   return (

@@ -5,7 +5,10 @@
   --editor-font-size: 16px;
 }
 
-.mac-app { padding-top: 38px; }
+.mac-app {
+  padding-top: 38px;
+}
+
 .mac-titlebar {
   position: fixed;
   inset: 0 0 auto;
@@ -17,7 +20,11 @@
   -webkit-app-region: drag;
   user-select: none;
 }
-.citation-preview { white-space: pre-wrap; overflow-wrap: anywhere; }
+
+.citation-preview {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
 
 * {
   box-sizing: border-box;

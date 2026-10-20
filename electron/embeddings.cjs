@@ -127,7 +127,7 @@ function registerEmbeddings({ app, ipcMain, safeStorage, getVaultRoot, readConfi
     const vault = getVaultRoot();
     if (!vault) throw new Error('Open a vault first.');
     if (typeof query !== 'string' || !query.trim() || !documents || Array.isArray(documents) ||
-        !Number.isInteger(maxResults) || maxResults < 1 || maxResults > 1000) {
+      !Number.isInteger(maxResults) || maxResults < 1 || maxResults > 1000) {
       throw new Error('Invalid semantic search request.');
     }
     for (const [file, content] of Object.entries(documents)) {

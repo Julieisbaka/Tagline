@@ -1,7 +1,7 @@
 import { useLayoutEffect, useMemo, useRef, useState } from 'react';
-import Icon from './Icon.jsx';
-import ContextMenu from './ContextMenu.jsx';
 import { useI18n } from '../lib/i18n.js';
+import ContextMenu from './ContextMenu.jsx';
+import Icon from './Icon.jsx';
 
 const AFF = new Set(['1AC', '2AC', '1AR', '2AR', 'AC', 'AR']);
 const PRESETS = {

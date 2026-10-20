@@ -1,10 +1,10 @@
 import { Extension, Node, mergeAttributes, nodeInputRule } from '@tiptap/core';
-import StarterKit from '@tiptap/starter-kit';
-import { Markdown } from '@tiptap/markdown';
 import Highlight from '@tiptap/extension-highlight';
 import { TableKit } from '@tiptap/extension-table';
-import TaskList from '@tiptap/extension-task-list';
 import TaskItem from '@tiptap/extension-task-item';
+import TaskList from '@tiptap/extension-task-list';
+import { Markdown } from '@tiptap/markdown';
+import StarterKit from '@tiptap/starter-kit';
 
 export const WikiLink = Node.create({
   name: 'wikiLink',

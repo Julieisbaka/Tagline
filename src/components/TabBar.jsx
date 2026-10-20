@@ -1,8 +1,8 @@
-import Icon from './Icon.jsx';
-import { baseName, isFlow } from '../lib/vault.js';
 import { useState } from 'react';
-import ContextMenu from './ContextMenu.jsx';
 import { useI18n } from '../lib/i18n.js';
+import { baseName, isFlow } from '../lib/vault.js';
+import ContextMenu from './ContextMenu.jsx';
+import Icon from './Icon.jsx';
 
 export default function TabBar({ tabs, activeId, onActivate, onClose, onCloseOthers, onFileAction }) {
   const { t: tr } = useI18n();
@@ -23,14 +23,16 @@ export default function TabBar({ tabs, activeId, onActivate, onClose, onCloseOth
           onAuxClick={(e) => e.button === 1 && onClose(t.id)}
           onContextMenu={(e) => {
             e.preventDefault();
-            setMenu({ x: e.clientX, y: e.clientY, items: [
-              { label: 'Close tab', run: () => onClose(t.id) },
-              { label: 'Close other tabs', run: () => onCloseOthers(t.id) },
-              ...(t.kind === 'file' ? [
-                { label: 'Rename…', run: () => onFileAction('rename', t.path) },
-                { label: 'Reveal in file explorer', run: () => onFileAction('reveal', t.path) },
-              ] : []),
-            ] });
+            setMenu({
+              x: e.clientX, y: e.clientY, items: [
+                { label: 'Close tab', run: () => onClose(t.id) },
+                { label: 'Close other tabs', run: () => onCloseOthers(t.id) },
+                ...(t.kind === 'file' ? [
+                  { label: 'Rename…', run: () => onFileAction('rename', t.path) },
+                  { label: 'Reveal in file explorer', run: () => onFileAction('reveal', t.path) },
+                ] : []),
+              ]
+            });
           }}
           title={t.path || tr('Graph view')}
         >

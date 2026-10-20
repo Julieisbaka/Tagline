@@ -115,8 +115,9 @@ Reset font restores the system font.
 **Use underscores for spaces in folder paths** is enabled by default. New folder
 components use underscores on disk, while filenames are unchanged. Existing
 folder components retain their paths until an explicit migration. The file
-explorer displays folder underscores as spaces, regardless of this preference.
-Disable the setting to create/rename folders with literal spaces.
+explorer displays folder underscores as spaces while this setting is enabled.
+Disable the setting to create/rename folders with literal spaces; the explorer
+then shows folder names exactly as they are on disk.
 
 Existing space-containing folders trigger a warning with a Settings shortcut.
 **Auto migrate folders** is explicit and requires confirmation: back up your vault

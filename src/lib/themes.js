@@ -8,8 +8,8 @@ export const COLOR_TOKENS = Object.freeze(Object.keys(dark.colors));
 
 export function validateTheme(value) {
   if (!value || value.version !== 1 || typeof value.name !== 'string' ||
-      !value.name.trim() || value.name.length > 80 || !['dark', 'light'].includes(value.mode) ||
-      !value.colors || typeof value.colors !== 'object' || Array.isArray(value.colors)) {
+    !value.name.trim() || value.name.length > 80 || !['dark', 'light'].includes(value.mode) ||
+    !value.colors || typeof value.colors !== 'object' || Array.isArray(value.colors)) {
     throw new Error('Invalid theme. Expected version 1, name, mode, and colors.');
   }
   for (const [key, color] of Object.entries(value.colors)) {

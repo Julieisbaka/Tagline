@@ -207,7 +207,7 @@ function createWindow() {
     if (!params.isEditable && !params.selectionText) return;
     const template = params.isEditable
       ? [{ role: 'undo' }, { role: 'redo' }, { type: 'separator' },
-        { role: 'cut' }, { role: 'copy' }, { role: 'paste' }, { role: 'selectAll' }]
+      { role: 'cut' }, { role: 'copy' }, { role: 'paste' }, { role: 'selectAll' }]
       : [{ role: 'copy' }, { role: 'selectAll' }];
     Menu.buildFromTemplate(template).popup({ window: win });
   });

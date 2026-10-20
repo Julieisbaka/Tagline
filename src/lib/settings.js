@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useLayoutEffect, useState } from 'react';
-import { applyTheme, getTheme } from './themes.js';
 import { setLanguage } from './i18n.js';
+import { applyTheme, getTheme } from './themes.js';
 import { configureVisualCache } from './visualCache.js';
 
 const DEFAULTS = {

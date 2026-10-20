@@ -1,5 +1,5 @@
-import Icon from './Icon.jsx';
 import { useI18n } from '../lib/i18n.js';
+import Icon from './Icon.jsx';
 
 export default function Ribbon({ ctx, showLeft }) {
   const { t } = useI18n();

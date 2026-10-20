@@ -1,7 +1,7 @@
 import { useState } from 'react';
+import { useI18n } from '../lib/i18n.js';
 import { isFlow } from '../lib/vault.js';
 import Icon from './Icon.jsx';
-import { useI18n } from '../lib/i18n.js';
 
 function TreeNode({ node, depth, activePath, expanded, toggle, onOpen, onContext, onDropMove, spaced }) {
   // Folder underscores are an on-disk detail; show them as spaces only when the setting creates them.
@@ -12,19 +12,19 @@ function TreeNode({ node, depth, activePath, expanded, toggle, onOpen, onContext
 
   const dropProps = isFolder
     ? {
-        onDragOver: (e) => {
-          e.preventDefault();
-          setDragOver(true);
-        },
-        onDragLeave: () => setDragOver(false),
-        onDrop: (e) => {
-          e.preventDefault();
-          e.stopPropagation();
-          setDragOver(false);
-          const from = e.dataTransfer.getData('text/vault-path');
-          if (from) onDropMove(from, node.path);
-        },
-      }
+      onDragOver: (e) => {
+        e.preventDefault();
+        setDragOver(true);
+      },
+      onDragLeave: () => setDragOver(false),
+      onDrop: (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        setDragOver(false);
+        const from = e.dataTransfer.getData('text/vault-path');
+        if (from) onDropMove(from, node.path);
+      },
+    }
     : {};
 
   return (

@@ -1,10 +1,10 @@
-import { useMemo, useRef } from 'react';
-import CodeMirror from '@uiw/react-codemirror';
+import { autocompletion } from '@codemirror/autocomplete';
 import { markdown, markdownLanguage } from '@codemirror/lang-markdown';
 import { languages } from '@codemirror/language-data';
-import { autocompletion } from '@codemirror/autocomplete';
-import { EditorView, keymap } from '@codemirror/view';
 import { Prec } from '@codemirror/state';
+import { EditorView, keymap } from '@codemirror/view';
+import CodeMirror from '@uiw/react-codemirror';
+import { useMemo, useRef } from 'react';
 import {
   clearFormatting,
   debateDecorations,

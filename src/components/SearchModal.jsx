@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { baseName, isMarkdown } from '../lib/vault.js';
 import { useI18n } from '../lib/i18n.js';
 import { searchVault } from '../lib/search.js';
+import { baseName, isMarkdown } from '../lib/vault.js';
 
 // Full-text search. Supports "tag:name" to filter by tag and quoted phrases.
 export default function SearchModal({ contents, index, initialQuery = '', maxResults = 200, onOpen, onClose }) {

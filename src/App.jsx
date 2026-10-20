@@ -273,7 +273,12 @@ export default function App() {
   };
   const ctxRef = useRef(ctx);
   ctxRef.current = ctx;
-  useEffect(() => window.api.onMenuCommand((command) => ctxRef.current[command]?.()), []);
+  const vaultRef = useRef(v.vault);
+  vaultRef.current = v.vault;
+  useEffect(() => window.api.onMenuCommand((command) => {
+    const vaultless = ['switchVault', 'openSettings', 'createCitation'];
+    if (vaultRef.current || vaultless.includes(command)) ctxRef.current[command]?.();
+  }), []);
 
   useEffect(() => {
     const onKey = (e) => {

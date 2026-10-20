@@ -1,33 +1,33 @@
 import { useState } from 'react';
-import FileTree from './FileTree.jsx';
-import Icon from './Icon.jsx';
+import { useI18n } from '../lib/i18n.js';
 import { dirName, joinPath } from '../lib/vault.js';
 import Menu from './ContextMenu.jsx';
-import { useI18n } from '../lib/i18n.js';
+import FileTree from './FileTree.jsx';
+import Icon from './Icon.jsx';
 
 function ContextMenu({ menu, onClose, actions }) {
   const { node } = menu;
   const isFolder = node.type === 'folder';
   const items = isFolder
     ? [
-        ['New note', () => actions.newNote(node.path)],
-        ['New flow', () => actions.newFlow(node.path)],
-        ['New folder', () => actions.newFolder(node.path)],
-        ...(node.path
-          ? [
-              ['Rename…', () => actions.rename(node)],
-              ['Reveal in file explorer', () => actions.reveal(node.path)],
-              ['Delete', () => actions.remove(node)],
-            ]
-          : []),
-      ]
+      ['New note', () => actions.newNote(node.path)],
+      ['New flow', () => actions.newFlow(node.path)],
+      ['New folder', () => actions.newFolder(node.path)],
+      ...(node.path
+        ? [
+          ['Rename…', () => actions.rename(node)],
+          ['Reveal in file explorer', () => actions.reveal(node.path)],
+          ['Delete', () => actions.remove(node)],
+        ]
+        : []),
+    ]
     : [
-        ['Open in new tab', () => actions.open(node.path, true)],
-        ['Rename…', () => actions.rename(node)],
-        ...(node.path.endsWith('.md') ? [['Set as speech doc', () => actions.setSpeechDoc(node.path)]] : []),
-        ['Reveal in file explorer', () => actions.reveal(node.path)],
-        ['Delete', () => actions.remove(node)],
-      ];
+      ['Open in new tab', () => actions.open(node.path, true)],
+      ['Rename…', () => actions.rename(node)],
+      ...(node.path.endsWith('.md') ? [['Set as speech doc', () => actions.setSpeechDoc(node.path)]] : []),
+      ['Reveal in file explorer', () => actions.reveal(node.path)],
+      ['Delete', () => actions.remove(node)],
+    ];
   return (
     <Menu x={menu.x} y={menu.y} onClose={onClose}
       items={items.map(([label, run]) => ({ label, run, danger: label === 'Delete' }))} />

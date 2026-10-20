@@ -10,7 +10,7 @@ export function setHeading(level) {
     const changes = [];
     const seen = new Set();
     for (const range of state.selection.ranges) {
-      for (let pos = range.from; pos <= range.to; ) {
+      for (let pos = range.from; pos <= range.to;) {
         const line = state.doc.lineAt(pos);
         if (!seen.has(line.number)) {
           seen.add(line.number);

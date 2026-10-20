@@ -9,7 +9,7 @@ export function createCitation({ author, year, title = '', publication = '', url
     link = parsed.href.replace(/[()]/g, (c) => encodeURIComponent(c));
   }
   const details = [title && `"${escape(title)}"`, publication && escape(publication),
-    link && `[${escape(url)}](${link})`, accessed && `Accessed ${escape(accessed)}`].filter(Boolean);
+  link && `[${escape(url)}](${link})`, accessed && `Accessed ${escape(accessed)}`].filter(Boolean);
   return `**${escape(author)} ${year}**${details.length ? ' — ' + details.join(', ') : ''}`;
 }
 

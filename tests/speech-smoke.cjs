@@ -69,7 +69,7 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
         console.error('FAIL:', e.stack || e);
         app.exit(1);
       } finally {
-        await fs.rm(temp, { recursive: true, force: true }).catch(() => {});
+        await fs.rm(temp, { recursive: true, force: true }).catch(() => { });
       }
     });
   });

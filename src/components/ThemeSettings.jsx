@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { BUILTIN_THEMES, getTheme, validateTheme } from '../lib/themes.js';
 import { LANGUAGES, useI18n } from '../lib/i18n.js';
+import { BUILTIN_THEMES, getTheme, validateTheme } from '../lib/themes.js';
 
 export default function ThemeSettings({ settings, update }) {
   const { t } = useI18n();

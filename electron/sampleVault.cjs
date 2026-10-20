@@ -64,9 +64,9 @@ The United States federal government should substantially increase its investmen
 
 ## Advantage 1 – Grid Resilience
 ${card('Grid attacks are rising – the status quo can\'t keep up', 'Example 24 – Jane Example, Fictional Energy Institute, "Placeholder Grid Study", 2024',
-  'This is example text. ++Attacks on the grid have increased++ substantially, and ==utilities lack the resources== to ++defend against sophisticated actors++ without ==federal investment==.')}
+    'This is example text. ++Attacks on the grid have increased++ substantially, and ==utilities lack the resources== to ++defend against sophisticated actors++ without ==federal investment==.')}
 ${card('Federal action is key', 'Sample 23 – John Sample, Imaginary Policy Review, 2023',
-  'Placeholder evidence. ==Only the federal government== can ++coordinate the thousands of utilities++ that ==make up the grid.==')}
+      'Placeholder evidence. ==Only the federal government== can ++coordinate the thousands of utilities++ that ==make up the grid.==')}
 
 See also: [[AT - States CP]], [[DA - Politics]]
 `,
@@ -76,9 +76,9 @@ See also: [[AT - States CP]], [[DA - Politics]]
 
 ## 1NC Shell
 ${card('Uniqueness – the bill passes now', 'Hypothetical 24 – Fake Reporter, Pretend News, 2024',
-  'Example text. ++Leadership is confident++ the ==bill will pass== this session.')}
+    'Example text. ++Leadership is confident++ the ==bill will pass== this session.')}
 ${card('Link – the plan drains political capital', 'Invented 24 – Some Analyst, Mock Journal, 2024',
-  'Example text. ==Fights over grid spending== would ++consume the capital++ needed ==for the bill.==')}
+      'Example text. ==Fights over grid spending== would ++consume the capital++ needed ==for the bill.==')}
 
 Answers: [[AT - Politics]] (not written yet – click to create it)
 `,
@@ -90,7 +90,7 @@ Answers: [[AT - Politics]] (not written yet – click to create it)
 The fifty states and all relevant territories should substantially increase their investment in electric grid cybersecurity.
 
 ${card('States solve', 'Model 22 – A. Model, Example Federalism Quarterly, 2022',
-  'Example text. ==States have successfully== ++led on grid security++ in the past.')}
+    'Example text. ==States have successfully== ++led on grid security++ in the past.')}
 
 Answered by: [[AT - States CP]]
 `,
@@ -100,7 +100,7 @@ Answered by: [[AT - States CP]]
 
 ## Link
 ${card('Securitizing infrastructure entrenches capital', 'Theorist 20 – P. Theorist, Example Critical Review, 2020',
-  'Example text. ++Framing the grid as a security problem++ ==reinforces market logics.==')}
+    'Example text. ++Framing the grid as a security problem++ ==reinforces market logics.==')}
 
 ## Alternative
 Reject the 1AC in favor of a historical-materialist analysis.
@@ -132,7 +132,7 @@ Fairness and education.
 3. **50-state fiat is a voting issue** #theory
 
 ${card('States can\'t coordinate', 'Example 21 – Q. Example, Sample Law Review, 2021',
-  'Example text. ++State efforts are fragmented++ and ==leave gaps attackers exploit.==')}
+    'Example text. ++State efforts are fragmented++ and ==leave gaps attackers exploit.==')}
 `,
 
   'Templates/Card.md': `#### Tag

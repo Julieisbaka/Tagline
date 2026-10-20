@@ -33,7 +33,7 @@ test('Pandoc uses literal arguments and reports failed conversion', async (t) =>
     const child = new EventEmitter();
     child.stdin = new PassThrough();
     child.stderr = new PassThrough();
-    child.kill = () => {};
+    child.kill = () => { };
     child.stdin.on('finish', () => {
       if (exitCode) child.stderr.write('PDF engine is missing');
       setImmediate(() => child.emit('close', exitCode));
@@ -42,8 +42,10 @@ test('Pandoc uses literal arguments and reports failed conversion', async (t) =>
   });
   // Require after installing the spawn mock; no real Pandoc is needed.
   const { convert } = require('../electron/pandoc.cjs');
-  const input = { executable: 'C:\\Program Files\\Pandoc\\pandoc.exe', html: '<h1>Card</h1>',
-    format: 'docx', outputPath: 'C:\\exports\\test & title.docx', title: 'test & title' };
+  const input = {
+    executable: 'C:\\Program Files\\Pandoc\\pandoc.exe', html: '<h1>Card</h1>',
+    format: 'docx', outputPath: 'C:\\exports\\test & title.docx', title: 'test & title'
+  };
   assert.deepEqual(await convert(input), { warnings: '' });
   assert.equal(call.options.shell, false);
   assert.ok(call.args.includes('--sandbox'));

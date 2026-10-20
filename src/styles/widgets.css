@@ -47,7 +47,7 @@
   background: var(--accent-dim);
 }
 
-.palette-item > span:first-child {
+.palette-item>span:first-child {
   flex: 1;
 }
 
@@ -203,10 +203,23 @@
   background: var(--bg-hover);
 }
 
-.outline-item.level-1 { color: var(--h1); font-weight: 700; }
-.outline-item.level-2 { color: var(--h2); font-weight: 600; }
-.outline-item.level-3 { color: var(--h3); }
-.outline-item.level-4 { color: var(--h4); }
+.outline-item.level-1 {
+  color: var(--h1);
+  font-weight: 700;
+}
+
+.outline-item.level-2 {
+  color: var(--h2);
+  font-weight: 600;
+}
+
+.outline-item.level-3 {
+  color: var(--h3);
+}
+
+.outline-item.level-4 {
+  color: var(--h4);
+}
 
 .tag-row {
   display: flex;
@@ -275,7 +288,9 @@
 }
 
 @keyframes blink {
-  50% { opacity: 0.3; }
+  50% {
+    opacity: 0.3;
+  }
 }
 
 .timer-controls {
@@ -300,9 +315,17 @@
   gap: 4px;
 }
 
-.prep-box.side-aff { border-top: 3px solid var(--aff); }
-.prep-box.side-neg { border-top: 3px solid var(--neg); }
-.prep-box.running { background: var(--accent-dim); }
+.prep-box.side-aff {
+  border-top: 3px solid var(--aff);
+}
+
+.prep-box.side-neg {
+  border-top: 3px solid var(--neg);
+}
+
+.prep-box.running {
+  background: var(--accent-dim);
+}
 
 .prep-label {
   font-weight: 600;
@@ -400,10 +423,21 @@
   padding: 6px 8px;
 }
 
-.flow-grid th.side-aff input { color: var(--aff); }
-.flow-grid th.side-neg input { color: var(--neg); }
-.flow-grid td.side-aff { background: var(--aff-bg); }
-.flow-grid td.side-neg { background: var(--neg-bg); }
+.flow-grid th.side-aff input {
+  color: var(--aff);
+}
+
+.flow-grid th.side-neg input {
+  color: var(--neg);
+}
+
+.flow-grid td.side-aff {
+  background: var(--aff-bg);
+}
+
+.flow-grid td.side-neg {
+  background: var(--neg-bg);
+}
 
 .flow-grid textarea {
   width: 100%;
@@ -419,8 +453,13 @@
   display: block;
 }
 
-.flow-grid td.side-aff textarea { color: var(--aff); }
-.flow-grid td.side-neg textarea { color: var(--neg); }
+.flow-grid td.side-aff textarea {
+  color: var(--aff);
+}
+
+.flow-grid td.side-neg textarea {
+  color: var(--neg);
+}
 
 .flow-grid textarea:focus {
   background: var(--accent-dim);

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
-import { renderMarkdown } from '../lib/markdown.js';
 import { useI18n } from '../lib/i18n.js';
+import { renderMarkdown } from '../lib/markdown.js';
 
 const FORMATS = [
   ['docx', 'Word (.docx)'], ['odt', 'OpenDocument (.odt)'], ['rtf', 'Rich text (.rtf)'],

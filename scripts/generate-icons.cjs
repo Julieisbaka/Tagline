@@ -75,7 +75,7 @@ app.whenReady().then(async () => {
     await fs.writeFile(path.join(BUILD, 'icon.png'), (await render(512)).png);
     const chunks = [];
     for (const [type, size] of [['icp4', 16], ['icp5', 32], ['icp6', 64], ['ic07', 128],
-      ['ic08', 256], ['ic09', 512], ['ic10', 1024]]) {
+    ['ic08', 256], ['ic09', 512], ['ic10', 1024]]) {
       const png = (await render(size)).png;
       const chunk = Buffer.alloc(8);
       chunk.write(type, 0, 'ascii');

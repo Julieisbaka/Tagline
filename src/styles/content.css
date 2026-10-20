@@ -21,7 +21,9 @@
   padding: 0 4px;
 }
 
-.markdown-body { font-family: var(--font-text); }
+.markdown-body {
+  font-family: var(--font-text);
+}
 
 /* Reading view */
 .preview {
@@ -64,7 +66,7 @@
   margin-bottom: 0.2em;
 }
 
-.markdown-body h4 + p strong:first-child {
+.markdown-body h4+p strong:first-child {
   color: var(--text-strong);
 }
 
@@ -183,13 +185,13 @@
 }
 
 /* Keep the cite (bold first line of a card) visible in highlighted-only mode. */
-.preview.highlight-only p:has(mark) > strong:first-child {
+.preview.highlight-only p:has(mark)>strong:first-child {
   display: block;
   font-size: calc(var(--editor-font-size) * 0.85);
   color: var(--text-muted);
 }
 
-.preview.highlight-only h4 + p:not(:has(mark)) {
+.preview.highlight-only h4+p:not(:has(mark)) {
   font-size: 0.8em;
   color: var(--text-muted);
 }

@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { useI18n } from '../lib/i18n.js';
 import { fuzzyScore } from '../lib/vault.js';
+import AdvancedSettings from './AdvancedSettings.jsx';
 import IntegrationSettings from './IntegrationSettings.jsx';
 import ThemeSettings from './ThemeSettings.jsx';
-import AdvancedSettings from './AdvancedSettings.jsx';
-import { useI18n } from '../lib/i18n.js';
 
 // Generic fuzzy-filtered list modal used for quick switcher, commands, templates.
 export function Palette({ items, placeholder, onSelect, onClose, onCreate, createLabel }) {
