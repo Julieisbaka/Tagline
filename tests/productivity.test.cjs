@@ -33,6 +33,29 @@ test('citation URLs reject local networks, credentials and non-web schemes', asy
   await assert.rejects(extractCitation('http://127.0.0.1'), /private network/);
 });
 
+test('citation URL rules extract fields for common sites without fetching', () => {
+  const { parseUrl } = require('../electron/citationMetadata.cjs');
+  const cases = [
+    ['https://www.theguardian.com/environment/2023/jun/14/carbon-tax-plan-explained', { year: '2023', title: 'Carbon tax plan explained', publication: 'The Guardian' }],
+    ['https://www.reuters.com/world/us/senate-passes-aid-bill-2024-02-13/', { year: '2024', title: 'Senate passes aid bill', publication: 'Reuters' }],
+    ['https://en.wikipedia.org/wiki/Nuclear_deterrence', { year: '', title: 'Nuclear deterrence', publication: 'Wikipedia' }],
+    ['https://arxiv.org/abs/2106.09685', { year: '2021', title: '', publication: 'arXiv' }],
+    ['https://www.congress.gov/bill/118th-congress/house-bill/2/text', { year: '', title: 'House Bill 2 (118th Congress)', publication: 'Congress.gov' }],
+    ['https://doi.org/10.1038/s41586-020-2649-2', { year: '', title: 'doi:10.1038/s41586-020-2649-2', publication: '' }],
+    ['https://www.foreignaffairs.com/articles/china/2022-08-01/taiwan-strategy', { year: '2022', title: 'Taiwan strategy', publication: 'Foreign Affairs' }],
+  ];
+  for (const [url, expected] of cases) {
+    const { year, title, publication } = parseUrl(url);
+    assert.deepEqual({ year, title, publication }, expected, url);
+  }
+  // Unknown sites do not guess titles from arbitrary slugs.
+  assert.equal(parseUrl('https://example.com/some-random-page').title, '');
+  // Page metadata wins over URL-derived values.
+  const page = parseMetadata('<meta property="og:title" content="Real headline">', 'https://www.theguardian.com/world/2023/jun/14/slug-title');
+  assert.equal(page.title, 'Real headline');
+  assert.equal(page.year, '2023');
+});
+
 test('citation transport pins public DNS results and handles redirects, errors and size limits', async () => {
   const fs = require('node:fs');
   const path = require('node:path');
@@ -74,6 +97,10 @@ test('citation transport pins public DNS results and handles redirects, errors a
   await assert.rejects(extract(), /private network/);
   route = 'denied';
   await assert.rejects(extract(), /HTTP 403/);
+  // Known sites fall back to URL rules when the publisher blocks the request.
+  const blocked = await module.exports.extractCitation('https://www.nytimes.com/2024/03/05/us/politics/border-deal-vote.html');
+  assert.deepEqual({ ...blocked }, { author: '', title: 'Border deal vote', year: '2024',
+    publication: 'The New York Times', url: 'https://www.nytimes.com/2024/03/05/us/politics/border-deal-vote.html' });
   route = 'large';
   await assert.rejects(extract(), /too large/);
 });

@@ -130,7 +130,11 @@ Or paste an article URL and select **Autofill from URL**. Tagline downloads only
 that public page, reads article JSON-LD and common author/title/date metadata, and
 fills empty fields without overwriting your edits. Publisher-name and dated-URL
 rules cover Reuters, AP, BBC, The New York Times, The Washington Post, The Guardian,
-Nature, Science, Brookings, and Pew Research. Unknown sites still use standard
+Nature, Science, Brookings, and Pew Research. URL rules also read the year and
+headline slug from CNN, NPR, Politico, The Atlantic, Foreign Affairs, RAND, CFR and
+Fox News URLs, Wikipedia article titles, arXiv IDs, DOI links and Congress.gov bills.
+If a known site blocks the download (paywall/bot check), these URL-only fields are
+still filled. Page metadata always takes priority over URL guesses. Unknown sites still use standard
 metadata. Always review extracted details: missing metadata, paywalls, login pages,
 and JavaScript-only articles may require manual entry. Pages are not executed.
 Requests have time/size/redirect limits and reject local/private network addresses.
