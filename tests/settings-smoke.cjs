@@ -135,7 +135,7 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
         assert.equal(preferences.preload, undefined);
         assert.equal(await remote.executeJavaScript("document.body.dataset.rendered"), 'yes');
         assert.equal(await remote.executeJavaScript("typeof window.api + ',' + typeof require"), 'undefined,undefined');
-        await remote.executeJavaScript("document.querySelector('#next').click()");
+        await remote.executeJavaScript("document.querySelector('#next').click()", true);
         await wait("document.querySelector('.website-status')?.textContent.endsWith('/two')");
         await wait("!document.querySelector('.website-toolbar button').disabled");
         await button('.website-toolbar button', 'Back');
@@ -145,7 +145,8 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
         win.setSize(1200, 800);
         await delay(200);
         const surfaceWidth = await js("document.querySelector('.website-surface').getBoundingClientRect().width");
-        assert.ok(Math.abs(websiteView.getBounds().width - surfaceWidth) <= 1);
+        assert.ok(Math.abs(websiteView.getBounds().width - surfaceWidth * wc.getZoomFactor()) <= 1,
+          `Website bounds ${JSON.stringify(websiteView.getBounds())}, surface ${surfaceWidth}, zoom ${wc.getZoomFactor()}, content ${win.getContentSize()}`);
         await button('.website-toolbar button', 'Open in browser');
         assert.equal(externalUrls.pop(), website.replace('/one', '/two'));
         await input('[aria-label="Website address"]', 'file:///C:/Windows/win.ini');

@@ -23,10 +23,13 @@ export default function WebsiteView({ url, onClose }) {
     };
     const report = (e) => setError(e.message);
     window.api.openWebsite(url, rectangle()).catch(report);
-    const observer = new ResizeObserver(() => window.api.resizeWebsite(rectangle()).catch(report));
+    const resize = () => window.api.resizeWebsite(rectangle()).catch(report);
+    const observer = new ResizeObserver(resize);
     observer.observe(surface.current);
+    window.addEventListener('resize', resize);
     return () => {
       observer.disconnect();
+      window.removeEventListener('resize', resize);
       unsubscribe();
       window.api.closeWebsite().catch((e) =>
         window.dispatchEvent(new CustomEvent('app-error', { detail: e.message })));

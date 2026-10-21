@@ -14,13 +14,17 @@ function registerBrowser({ ipcMain, shell, getWindow }) {
   let error = '';
   let downloadHandler;
   let browserSession;
+  let resizeHandler;
   const close = () => {
     if (!view) return;
     const previous = view;
     view = null;
     if (downloadHandler) browserSession.removeListener('will-download', downloadHandler);
     const window = getWindow();
-    if (window && !window.isDestroyed()) window.contentView.removeChildView(previous);
+    if (window && !window.isDestroyed()) {
+      window.removeListener('resize', resizeHandler);
+      window.contentView.removeChildView(previous);
+    }
     if (!previous.webContents.isDestroyed()) previous.webContents.close();
   };
   const state = () => {
@@ -93,6 +97,14 @@ function registerBrowser({ ipcMain, shell, getWindow }) {
     });
     getWindow().contentView.addChildView(view);
     view.setBounds(box);
+    // Native resize events also work while Chromium has throttled the app's layout observers.
+    resizeHandler = () => {
+      if (!view) return;
+      const [width, height] = getWindow().getContentSize();
+      const current = view.getBounds();
+      view.setBounds({ ...current, width: Math.max(1, width - current.x), height: Math.max(1, height - current.y) });
+    };
+    getWindow().on('resize', resizeHandler);
     await navigate(target);
   });
   handle('browser:bounds', (rectangle) => { if (view) view.setBounds(bounds(rectangle)); });
