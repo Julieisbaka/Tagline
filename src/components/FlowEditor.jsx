@@ -2,6 +2,7 @@ import { useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useI18n } from '../lib/i18n.js';
 import ContextMenu from './ContextMenu.jsx';
 import Icon from './Icon.jsx';
+import { binding, displayBinding, matchesBinding } from '../lib/keybindings.js';
 
 const AFF = new Set(['1AC', '2AC', '1AR', '2AR', 'AC', 'AR']);
 const PRESETS = {
@@ -18,7 +19,7 @@ export const EMPTY_FLOW = JSON.stringify(
 
 const sideOf = (col) => (AFF.has(col.split(' ')[0].toUpperCase()) ? 'aff' : 'neg');
 
-export default function FlowEditor({ content, onChange, focusNewFlowRow = true }) {
+export default function FlowEditor({ content, onChange, focusNewFlowRow = true, keybindings }) {
   const { t } = useI18n();
   const [active, setActive] = useState(0);
   const [renaming, setRenaming] = useState(null);
@@ -204,7 +205,7 @@ export default function FlowEditor({ content, onChange, focusNewFlowRow = true }
                       placeholder="…"
                       onChange={(e) => setCell(r, c, e.target.value)}
                       onKeyDown={(e) => {
-                        if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+                        if (matchesBinding(e, binding('flow-row', keybindings))) {
                           e.preventDefault();
                           addRow(r, c);
                         }
@@ -222,7 +223,7 @@ export default function FlowEditor({ content, onChange, focusNewFlowRow = true }
           </tbody>
         </table>
         <button className="flow-add-row" onClick={() => addRow()}>
-          {t('+ Add argument row')} <span className="hint">{t('(Ctrl+Enter in a cell)')}</span>
+          {t('+ Add argument row')} <span className="hint">{displayBinding(binding('flow-row', keybindings))}</span>
         </button>
       </div>
       {menu && <ContextMenu {...menu} onClose={() => setMenu(null)} />}

@@ -4,14 +4,15 @@ import { useI18n } from '../lib/i18n.js';
 import { slugify } from '../lib/markdown.js';
 import { cachedDocument, cacheDocument } from '../lib/visualCache.js';
 import { visualExtensions, visualSelection } from '../lib/visualExtensions.js';
+import { binding, displayBinding, KEYBINDINGS, matchesBinding } from '../lib/keybindings.js';
 
-export default function VisualEditor({ value, onChange, onOpenLink, onSendCard, onSection, noteNames, visualRef, jump }) {
+export default function VisualEditor({ value, onChange, onOpenLink, onSendCard, onSection, noteNames, visualRef, jump, keybindings }) {
   const live = useRef({});
-  live.current = { onChange, onOpenLink, onSendCard, onSection };
-  return <MemoizedDocument value={value} noteNames={noteNames} visualRef={visualRef} jump={jump} live={live} />;
+  live.current = { onChange, onOpenLink, onSendCard, onSection, keybindings };
+  return <MemoizedDocument value={value} noteNames={noteNames} visualRef={visualRef} jump={jump} live={live} keybindings={keybindings} />;
 }
 
-function VisualDocument({ value, noteNames, visualRef, jump, live }) {
+function VisualDocument({ value, noteNames, visualRef, jump, live, keybindings }) {
   const { t } = useI18n();
   const lastMarkdown = useRef(value);
   const lastProp = useRef(value);
@@ -50,11 +51,25 @@ function VisualDocument({ value, noteNames, visualRef, jump, live }) {
         return false;
       },
       handleKeyDown(view, event) {
-        if ((event.ctrlKey || event.metaKey) && event.shiftKey && event.key.toLowerCase() === 's') {
+        if (event.isComposing) return false;
+        const command = KEYBINDINGS.find((item) => item.scope === 'editor' &&
+          matchesBinding(event, binding(item.id, live.current.keybindings)));
+        if (command) {
           event.preventDefault();
-          live.current.onSendCard();
+          const ed = visualRef.current;
+          const cmd = ed.commands;
+          const heading = ['pocket', 'hat', 'block', 'tag'].indexOf(command.id);
+          if (heading >= 0) cmd.toggleHeading({ level: heading + 1 });
+          else if (['bold', 'cite'].includes(command.id)) cmd.toggleBold();
+          else if (command.id === 'italic') cmd.toggleItalic();
+          else if (['underline', 'underline-alt'].includes(command.id)) cmd.toggleUnderline();
+          else if (command.id === 'emphasis') ed.chain().toggleBold().toggleUnderline().run();
+          else if (command.id === 'highlight') cmd.toggleHighlight();
+          else if (command.id === 'clear-format') cmd.unsetAllMarks();
           return true;
         }
+        // Suppress old primary bindings after remapping or removing them.
+        if (KEYBINDINGS.some((item) => item.scope === 'editor' && matchesBinding(event, item.key))) return true;
         return false;
       },
     },

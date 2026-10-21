@@ -5,6 +5,7 @@ import { Prec } from '@codemirror/state';
 import { EditorView, keymap } from '@codemirror/view';
 import CodeMirror from '@uiw/react-codemirror';
 import { useMemo, useRef } from 'react';
+import { binding, editorBinding, KEYBINDINGS } from '../lib/keybindings.js';
 import {
   clearFormatting,
   debateDecorations,
@@ -14,7 +15,7 @@ import {
   toggleWrap,
 } from '../lib/editorExtensions.js';
 
-export default function Editor({ value, onChange, noteNames, onOpenLink, onSendCard, onCursor, viewRef }) {
+export default function Editor({ value, onChange, noteNames, onOpenLink, onSendCard, onCursor, viewRef, keybindings }) {
   // Keep callbacks in a ref so extensions stay stable across renders.
   const cb = useRef({});
   cb.current = { noteNames, onOpenLink, onSendCard, onCursor };
@@ -38,24 +39,16 @@ export default function Editor({ value, onChange, noteNames, onOpenLink, onSendC
       return true;
     };
 
-    const debateKeys = Prec.highest(
-      keymap.of([
-        { key: 'F4', run: setHeading(1) },
-        { key: 'F5', run: setHeading(2) },
-        { key: 'F6', run: setHeading(3) },
-        { key: 'F7', run: setHeading(4) },
-        { key: 'F8', run: toggleWrap('**') },
-        { key: 'F9', run: toggleWrap('++') },
-        { key: 'F10', run: toggleWrap('**++', '++**') },
-        { key: 'F11', run: toggleWrap('==') },
-        { key: 'F12', run: clearFormatting },
-        { key: 'Mod-b', run: toggleWrap('**') },
-        { key: 'Mod-i', run: toggleWrap('*') },
-        { key: 'Mod-u', run: toggleWrap('++') },
-        { key: 'Mod-Shift-h', run: toggleWrap('==') },
-        { key: 'Mod-Shift-s', run: sendCard },
-      ]),
-    );
+    const actions = {
+      pocket: setHeading(1), hat: setHeading(2), block: setHeading(3), tag: setHeading(4),
+      cite: toggleWrap('**'), bold: toggleWrap('**'), italic: toggleWrap('*'),
+      underline: toggleWrap('++'), 'underline-alt': toggleWrap('++'),
+      emphasis: toggleWrap('**++', '++**'), highlight: toggleWrap('=='), 'clear-format': clearFormatting,
+    };
+    const debateKeys = Prec.highest(keymap.of(KEYBINDINGS.filter((item) =>
+      item.scope === 'editor' && binding(item.id, keybindings)).map((item) => ({
+      key: editorBinding(binding(item.id, keybindings)), run: actions[item.id],
+    }))));
 
     return [
       markdown({ base: markdownLanguage, codeLanguages: languages }),
@@ -79,7 +72,7 @@ export default function Editor({ value, onChange, noteNames, onOpenLink, onSendC
         if (u.selectionSet || u.docChanged) cb.current.onCursor?.(u.state.selection.main.head);
       }),
     ];
-  }, []);
+  }, [keybindings]);
 
   return (
     <CodeMirror

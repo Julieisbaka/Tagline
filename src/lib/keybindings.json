@@ -1,0 +1,174 @@
+[
+  {
+    "id": "switcher",
+    "label": "Quick switcher",
+    "action": "openSwitcher",
+    "scope": "app",
+    "key": "Mod+O"
+  },
+  {
+    "id": "commands",
+    "label": "Command palette",
+    "action": "openCommands",
+    "scope": "app",
+    "key": "Mod+P"
+  },
+  {
+    "id": "search",
+    "label": "Search vault",
+    "action": "openSearch",
+    "scope": "app",
+    "key": "Mod+Shift+F"
+  },
+  {
+    "id": "new-note",
+    "label": "Create new note",
+    "action": "newNote",
+    "scope": "app",
+    "key": "Mod+N"
+  },
+  {
+    "id": "new-flow",
+    "label": "Create new flow",
+    "action": "newFlow",
+    "scope": "app",
+    "key": ""
+  },
+  {
+    "id": "graph",
+    "label": "Open graph view",
+    "action": "openGraph",
+    "scope": "app",
+    "key": "Mod+G"
+  },
+  {
+    "id": "settings",
+    "label": "Open settings",
+    "action": "openSettings",
+    "scope": "app",
+    "key": "Mod+,"
+  },
+  {
+    "id": "citation",
+    "label": "Create citation",
+    "action": "createCitation",
+    "scope": "app",
+    "key": ""
+  },
+  {
+    "id": "toggle-mode",
+    "label": "Toggle reading / editing view",
+    "action": "toggleMode",
+    "scope": "app",
+    "key": "Mod+E",
+    "note": true
+  },
+  {
+    "id": "highlight-only",
+    "label": "Toggle highlighted-only reading",
+    "action": "toggleHighlightOnly",
+    "scope": "app",
+    "key": "Mod+Shift+H",
+    "note": true
+  },
+  {
+    "id": "send-card",
+    "label": "Send card to speech doc",
+    "action": "sendCard",
+    "scope": "app",
+    "key": "Mod+Shift+S",
+    "note": true
+  },
+  {
+    "id": "close-tab",
+    "label": "Close current tab",
+    "action": "closeTab",
+    "scope": "app",
+    "key": "Mod+W"
+  },
+  {
+    "id": "next-tab",
+    "label": "Next tab",
+    "action": "nextTab",
+    "scope": "app",
+    "key": "Ctrl+Tab"
+  },
+  {
+    "id": "pocket",
+    "label": "Pocket (H1)",
+    "scope": "editor",
+    "key": "F4"
+  },
+  {
+    "id": "hat",
+    "label": "Hat (H2)",
+    "scope": "editor",
+    "key": "F5"
+  },
+  {
+    "id": "block",
+    "label": "Block (H3)",
+    "scope": "editor",
+    "key": "F6"
+  },
+  {
+    "id": "tag",
+    "label": "Tag (H4)",
+    "scope": "editor",
+    "key": "F7"
+  },
+  {
+    "id": "cite",
+    "label": "Cite / Bold",
+    "scope": "editor",
+    "key": "F8"
+  },
+  {
+    "id": "underline",
+    "label": "Underline",
+    "scope": "editor",
+    "key": "F9"
+  },
+  {
+    "id": "emphasis",
+    "label": "Emphasis",
+    "scope": "editor",
+    "key": "F10"
+  },
+  {
+    "id": "highlight",
+    "label": "Highlight",
+    "scope": "editor",
+    "key": "F11"
+  },
+  {
+    "id": "clear-format",
+    "label": "Clear formatting",
+    "scope": "editor",
+    "key": "F12"
+  },
+  {
+    "id": "bold",
+    "label": "Bold",
+    "scope": "editor",
+    "key": "Mod+B"
+  },
+  {
+    "id": "italic",
+    "label": "Italic",
+    "scope": "editor",
+    "key": "Mod+I"
+  },
+  {
+    "id": "underline-alt",
+    "label": "Underline (alternate)",
+    "scope": "editor",
+    "key": "Mod+U"
+  },
+  {
+    "id": "flow-row",
+    "label": "Insert flow row below",
+    "scope": "flow",
+    "key": "Mod+Enter"
+  }
+]

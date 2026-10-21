@@ -2,6 +2,7 @@ const { contextBridge, ipcRenderer } = require('electron');
 
 contextBridge.exposeInMainWorld('api', {
   platform: process.platform,
+  extractCitation: (url) => ipcRenderer.invoke('citation:extract', url),
   onMenuCommand: (callback) => {
     const listener = (_e, command) => callback(command);
     ipcRenderer.on('menu:command', listener);

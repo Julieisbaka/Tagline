@@ -20,6 +20,7 @@ const DEFAULTS = {
   underscoreFolders: true,
   fontFamily: '',
   importedFont: false,
+  keybindings: {},
 };
 
 const KEY = 'tagline-settings';

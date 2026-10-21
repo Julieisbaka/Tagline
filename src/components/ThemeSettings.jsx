@@ -37,7 +37,8 @@ export default function ThemeSettings({ settings, update }) {
         </select>
       </label>
       <label className="setting-row"><span>{t('Import JSON theme')}</span>
-        <input type="file" accept=".json,application/json" onChange={importTheme} />
+        <input className="theme-file-input" type="file" accept=".json,application/json"
+          aria-label={t('Import JSON theme')} onChange={importTheme} />
       </label>
       <button onClick={exportTheme}>{t('Export current theme')}</button>
       {error && <p className="error-text" role="alert">{error}</p>}

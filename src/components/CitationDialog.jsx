@@ -10,6 +10,24 @@ export default function CitationDialog({ onInsert, onClose }) {
   });
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
+  const [loading, setLoading] = useState(false);
+  const extract = async () => {
+    setLoading(true); setError(''); setMessage('');
+    const original = { ...values };
+    try {
+      const fields = await window.api.extractCitation(original.url);
+      setValues((current) => {
+        if (current.url !== original.url) return current;
+        const next = { ...current };
+        for (const key of ['author', 'year', 'title', 'publication']) {
+          if (!current[key].trim() && current[key] === original[key] && fields[key]) next[key] = fields[key];
+        }
+        return next;
+      });
+      setMessage(t('Available fields extracted. Review the citation before using it; existing fields were kept.'));
+    } catch (error) { setError(t(error.message)); }
+    finally { setLoading(false); }
+  };
   let citation = '';
   try { citation = createCitation(values); } catch { /* Display validation errors on submission, not while typing. */ }
   const perform = async (copy) => {
@@ -24,6 +42,14 @@ export default function CitationDialog({ onInsert, onClose }) {
     <form className="modal dialog citation-dialog" onMouseDown={(e) => e.stopPropagation()}
       onSubmit={(e) => { e.preventDefault(); perform(false); }}>
       <h3>{t('Create citation')}</h3>
+      <p>{t('Paste an article URL to fill empty fields, then review the details.')}</p>
+      <div className="citation-url">
+        <input aria-label={t('Article URL')} placeholder="https://..." value={values.url}
+          onChange={(e) => setValues({ ...values, url: e.target.value })} />
+        <button type="button" disabled={loading || !values.url.trim()} onClick={extract}>
+          {t(loading ? 'Extracting...' : 'Autofill from URL')}
+        </button>
+      </div>
       {Object.entries({
         author: 'Author', year: 'Year', title: 'Title', publication: 'Publication',
         url: 'URL', accessed: 'Access date'

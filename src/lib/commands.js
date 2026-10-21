@@ -1,8 +1,9 @@
 import { translate } from './i18n.js';
+import { binding, displayBinding } from './keybindings.js';
 
 // Command palette entries. `ctx` provides the actions implemented in App.
-export function buildCommands(ctx) {
-  const c = (id, label, run, hotkey) => ({ id, label: translate(label), run, hotkey });
+export function buildCommands(ctx, overrides = {}) {
+  const c = (id, label, run) => ({ id, label: translate(label), run, hotkey: displayBinding(binding(id, overrides)) });
   const list = [
     c('switcher', 'Quick switcher: open file', ctx.openSwitcher, 'Ctrl+O'),
     c('search', 'Search vault', ctx.openSearch, 'Ctrl+Shift+F'),

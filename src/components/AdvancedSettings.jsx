@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useI18n } from '../lib/i18n.js';
 
-export default function AdvancedSettings({ settings, update }) {
+export default function AdvancedSettings({ settings, update, section = 'all' }) {
   const { t } = useI18n();
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
@@ -17,11 +17,14 @@ export default function AdvancedSettings({ settings, update }) {
     try { await action(); } catch (e) { setError(e.message); } finally { setBusy(false); }
   };
   return <section className="advanced-settings">
+    {(section === 'all' || section === 'performance') && <>
     <h4>{t('Performance and search')}</h4>
     {number('Visual cache maximum entries (0 disables)', 'visualCacheEntries', 256)}
     {number('Visual cache maximum characters', 'visualCacheCharacters', 100_000_000)}
     {number('Maximum search results', 'searchMaxResults', 1000)}
-    <h4>{t('Fonts and folder paths')}</h4>
+    </>}
+    {(section === 'all' || section === 'fonts') && <>
+    <h4>{t('Custom fonts')}</h4>
     <label className="setting-row"><span>{t('Installed font family')}</span>
       <input value={settings.fontFamily} onChange={(e) => update({ fontFamily: e.target.value, importedFont: false })}
         placeholder="Georgia" />
@@ -38,10 +41,14 @@ export default function AdvancedSettings({ settings, update }) {
       <button onClick={() => update({ fontFamily: '', importedFont: false })}>{t('Reset font')}</button>
     </div>
     <p>{t('Custom fonts apply to note text. Import only fonts you trust and are licensed to use.')}</p>
+    </>}
+    {(section === 'all' || section === 'files') && <>
+    <h4>{t('Folder paths')}</h4>
     <label className="setting-row"><span>{t('Use underscores for spaces in folder paths')}</span>
       <input type="checkbox" data-setting="underscoreFolders" checked={settings.underscoreFolders}
         onChange={(e) => update({ underscoreFolders: e.target.checked })} />
     </label>
+    </>}
     {error && <p role="alert" className="error-text">{error}</p>}
   </section>;
 }

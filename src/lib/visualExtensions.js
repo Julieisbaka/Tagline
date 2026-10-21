@@ -1,4 +1,4 @@
-import { Extension, Node, mergeAttributes, nodeInputRule } from '@tiptap/core';
+import { Node, mergeAttributes, nodeInputRule } from '@tiptap/core';
 import Highlight from '@tiptap/extension-highlight';
 import { TableKit } from '@tiptap/extension-table';
 import TaskItem from '@tiptap/extension-task-item';
@@ -57,29 +57,11 @@ export const WikiLink = Node.create({
   },
 });
 
-const DebateShortcuts = Extension.create({
-  name: 'debateShortcuts',
-  addKeyboardShortcuts() {
-    const cmd = this.editor.commands;
-    return {
-      F4: () => cmd.toggleHeading({ level: 1 }),
-      F5: () => cmd.toggleHeading({ level: 2 }),
-      F6: () => cmd.toggleHeading({ level: 3 }),
-      F7: () => cmd.toggleHeading({ level: 4 }),
-      F8: () => cmd.toggleBold(),
-      F9: () => cmd.toggleUnderline(),
-      F10: () => this.editor.chain().toggleBold().toggleUnderline().run(),
-      F11: () => cmd.toggleHighlight(),
-      F12: () => cmd.unsetAllMarks(),
-    };
-  },
-});
-
 export function visualExtensions() {
   return [
     StarterKit.configure({ link: { openOnClick: false }, trailingNode: false }),
     Highlight, TableKit, TaskList, TaskItem.configure({ nested: true }), WikiLink,
-    Markdown.configure({ markedOptions: { gfm: true, breaks: true } }), DebateShortcuts,
+    Markdown.configure({ markedOptions: { gfm: true, breaks: true } }),
   ];
 }
 

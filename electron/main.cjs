@@ -7,6 +7,7 @@ const { registerPandoc } = require('./pandoc.cjs');
 const { registerEmbeddings } = require('./embeddings.cjs');
 const { registerDocuments } = require('./documents.cjs');
 const { registerFonts } = require('./fonts.cjs');
+const { extractCitation } = require('./citationMetadata.cjs');
 
 const isDev = process.argv.includes('--dev');
 const configPath = () => path.join(app.getPath('userData'), 'config.json');
@@ -85,6 +86,7 @@ async function openVault(dir) {
 }
 
 function registerIpc() {
+  ipcMain.handle('citation:extract', (_event, url) => extractCitation(url));
   ipcMain.handle('vault:getLast', async () => {
     const { lastVault } = readConfig();
     if (lastVault && fssync.existsSync(lastVault)) return openVault(lastVault);

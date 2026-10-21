@@ -3,6 +3,7 @@ import { useVault } from './lib/useVault.js';
 import { useTabs } from './lib/useTabs.js';
 import { useSettings } from './lib/settings.js';
 import { buildCommands, fillTemplate } from './lib/commands.js';
+import { binding, displayBinding, KEYBINDINGS, matchesBinding } from './lib/keybindings.js';
 import { getSectionAt } from './lib/card.js';
 import { slugify } from './lib/markdown.js';
 import { baseName, dirName, flattenTree, isMarkdown, joinPath, outline, resolveLink } from './lib/vault.js';
@@ -260,37 +261,28 @@ export default function App() {
     const vaultless = ['switchVault', 'openSettings', 'createCitation'];
     if (vaultRef.current || vaultless.includes(command)) ctxRef.current[command]?.();
   }), []);
+  useEffect(() => {
+    window.api.setKeybindings(settings.keybindings).catch((error) => notify(error.message));
+  }, [settings.keybindings, notify]);
 
   useEffect(() => {
     const onKey = (e) => {
-      if (e.defaultPrevented || !v.vault) return;
-      const mod = e.ctrlKey || e.metaKey;
-      if (!mod) return;
-      const k = e.key.toLowerCase();
-      if (e.shiftKey && k === 's' && e.target.closest?.('.cm-editor, .visual-editor')) return;
+      if (e.defaultPrevented || e.isComposing || modal) return;
       const c = ctxRef.current;
-      const map = {
-        o: c.openSwitcher,
-        p: c.openCommands,
-        n: c.newNote,
-        g: c.openGraph,
-        e: c.hasNote && c.toggleMode,
-        w: c.closeTab,
-        ',': c.openSettings,
-      };
-      const shiftMap = { f: c.openSearch, h: c.hasNote && c.toggleHighlightOnly, s: c.hasNote && c.sendCard };
-      const fn = e.shiftKey ? shiftMap[k] : k === 'tab' ? c.nextTab : map[k];
-      if (fn) {
+      const command = KEYBINDINGS.find((item) => item.scope === 'app' &&
+        matchesBinding(e, binding(item.id, settings.keybindings)));
+      if (command && (!command.note || c.hasNote) &&
+        (v.vault || ['settings', 'citation'].includes(command.id))) {
         e.preventDefault();
-        fn();
+        c[command.action]?.();
       }
     };
     // App navigation takes precedence over editor-specific shortcuts (e.g. Tiptap's Ctrl+E).
     window.addEventListener('keydown', onKey, true);
     return () => window.removeEventListener('keydown', onKey, true);
-  }, [v.vault]);
+  }, [v.vault, settings.keybindings, modal]);
 
-  const commands = buildCommands(ctx);
+  const commands = buildCommands(ctx, settings.keybindings);
   ctx.openCommands = () => setModal({ type: 'palette', placeholder: t('Type a command…'), items: commands, onSelect: (cmd) => cmd.run() });
   ctx.nextTab = () => {
     const i = tabs.tabs.findIndex((t) => t.id === tabs.activeId);
@@ -313,10 +305,10 @@ export default function App() {
       return (
         <div className="empty-workspace">
           <h2>{t('No file is open')}</h2>
-          <button className="link-btn" onClick={ctx.newNote}>{t('Create new note')} (Ctrl+N)</button>
-          <button className="link-btn" onClick={ctx.openSwitcher}>{t('Go to file')} (Ctrl+O)</button>
-          <button className="link-btn" onClick={ctx.openGraph}>{t('Open graph view')} (Ctrl+G)</button>
-          <button className="link-btn" onClick={ctx.openCommands}>{t('Command palette')} (Ctrl+P)</button>
+          <button className="link-btn" onClick={ctx.newNote}>{t('Create new note')} {displayBinding(binding('new-note', settings.keybindings))}</button>
+          <button className="link-btn" onClick={ctx.openSwitcher}>{t('Go to file')} {displayBinding(binding('switcher', settings.keybindings))}</button>
+          <button className="link-btn" onClick={ctx.openGraph}>{t('Open graph view')} {displayBinding(binding('graph', settings.keybindings))}</button>
+          <button className="link-btn" onClick={ctx.openCommands}>{t('Command palette')} {displayBinding(binding('commands', settings.keybindings))}</button>
           <button className="link-btn" onClick={ctx.importDocument}>{t('Import document with Pandoc')}</button>
         </div>
       );

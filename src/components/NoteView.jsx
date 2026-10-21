@@ -104,7 +104,7 @@ export default function NoteView({
           <input className="note-title" value={title} onChange={(e) => setTitle(e.target.value)} onBlur={commitTitle}
             onKeyDown={(e) => e.key === 'Enter' && e.target.blur()} />
         </div>
-        <FlowEditor content={content} onChange={onChange} focusNewFlowRow={settings.focusNewFlowRow} />
+        <FlowEditor content={content} onChange={onChange} focusNewFlowRow={settings.focusNewFlowRow} keybindings={settings.keybindings} />
       </div>
     );
   }
@@ -161,6 +161,7 @@ export default function NoteView({
       <div className={`note-body${settings.readableWidth ? ' readable' : ''}`}>
         {sourceMode ? (
           <Editor
+            keybindings={settings.keybindings}
             value={content}
             onChange={onChange}
             noteNames={noteNames}
@@ -171,6 +172,7 @@ export default function NoteView({
           />
         ) : mode === 'visual' ? (
           <VisualEditor value={content} onChange={onChange} onOpenLink={onOpenLink}
+            keybindings={settings.keybindings}
             onSendCard={sendCurrent} onSection={setVisualSection} noteNames={noteNames} visualRef={visualRef}
             jump={jump?.path === path ? jump : null} />
         ) : (
