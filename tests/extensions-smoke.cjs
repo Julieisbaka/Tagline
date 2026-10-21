@@ -97,6 +97,7 @@ tagline.commands.register('escape', async () => {
       };
       try {
         await wait(`document.querySelectorAll('iframe[data-extension]').length === 2`, 'extension frames');
+        await delay(11000); await js(`window.dispatchEvent(new KeyboardEvent('keydown', { key: ',', ctrlKey: true, bubbles: true }))`); await delay(300); await js(`document.querySelector('[data-section="extensions"]').click()`); await delay(300); console.log('DEBUG', await js(`document.querySelector('.extension-list')?.textContent`), await js(`document.querySelectorAll('iframe').length`));
         assert.equal(await js(`document.querySelector('iframe[data-extension="demo"]').getAttribute('sandbox')`), 'allow-scripts');
 
         assert.deepEqual(await js(`[...document.querySelectorAll('.tree-item')].map((el) => el.textContent.trim()).sort()`), ['Card', 'Round']);

@@ -4,65 +4,9 @@ import { KEYBINDINGS, reservedBinding, validBinding } from './keybindings.js';
 
 // Extension code runs in an opaque-origin iframe (sandbox="allow-scripts" without allow-same-origin):
 // it cannot reach window.api, the DOM, app storage or the network (CSP connect-src 'none').
-// Everything it can do goes through the permission-checked message bridge below.
-const BOOTSTRAP = `<!doctype html><meta http-equiv="Content-Security-Policy"
-content="default-src 'none'; script-src 'unsafe-inline' 'unsafe-eval'"><script>
-(() => {
-  const pending = new Map();
-  const handlers = new Map();
-  let next = 0;
-  let started = false;
-  const send = (message) => parent.postMessage(message, '*');
-  const describe = (error) => String((error && error.message) || error);
-  const call = (method, ...args) => new Promise((resolve, reject) => {
-    const id = ++next;
-    pending.set(id, { resolve, reject });
-    send({ type: 'call', id, method, args });
-  });
-  const tagline = Object.freeze({
-    commands: Object.freeze({
-      register(id, handler) {
-        if (typeof handler !== 'function') throw new TypeError('Command handler must be a function.');
-        handlers.set(id, handler);
-        return call('commands.register', id);
-      },
-    }),
-    editor: Object.freeze({
-      getActiveNote: () => call('editor.getActiveNote'),
-      insertText: (text) => call('editor.insertText', text),
-    }),
-    vault: Object.freeze({
-      list: () => call('vault.list'),
-      read: (path) => call('vault.read', path),
-      write: (path, content) => call('vault.write', path, content),
-    }),
-    storage: Object.freeze({
-      get: (key) => call('storage.get', key),
-      set: (key, value) => call('storage.set', key, value),
-    }),
-    notify: (message) => call('notify', message),
-  });
-  addEventListener('message', async (event) => {
-    if (event.source !== parent || !event.data) return;
-    const data = event.data;
-    if (data.type === 'start' && !started) {
-      started = true;
-      try {
-        const AsyncFunction = Object.getPrototypeOf(async function () {}).constructor;
-        await new AsyncFunction('tagline', '"use strict";\\n' + data.source)(tagline);
-        send({ type: 'ready' });
-      } catch (error) { send({ type: 'failed', message: describe(error) }); }
-    } else if (data.type === 'result' && pending.has(data.id)) {
-      const { resolve, reject } = pending.get(data.id);
-      pending.delete(data.id);
-      if (data.error) reject(new Error(data.error)); else resolve(data.value);
-    } else if (data.type === 'command') {
-      try { await handlers.get(data.command)?.(); }
-      catch (error) { send({ type: 'error', message: describe(error) }); }
-    }
-  });
-})();
-</script>`;
+// Everything it can do goes through the permission-checked message bridge below. The bootstrap that
+// defines the `tagline` global lives in public/extension-sandbox.html.
+const SANDBOX_URL = 'extension-sandbox.html';
 
 const MAX_TEXT = 5_000_000;
 const MAX_STORAGE = 100_000;
@@ -89,7 +33,7 @@ export class ExtensionHost {
     this.frame.setAttribute('aria-hidden', 'true');
     this.frame.dataset.extension = this.manifest.id;
     this.frame.style.display = 'none';
-    this.frame.srcdoc = BOOTSTRAP;
+    this.frame.src = new URL(SANDBOX_URL, document.baseURI).href;
     return new Promise((resolve, reject) => {
       const timer = setTimeout(() => { this.dispose(); reject(new Error('Extension did not start within 10 seconds.')); }, timeout);
       this.settle = (error) => {

@@ -1,0 +1,61 @@
+<!doctype html>
+<!-- Extension sandbox page. src/lib/extensions.js loads it in an iframe with sandbox="allow-scripts" (opaque origin).
+     It is a separate page rather than srcdoc so it gets this policy instead of inheriting the app CSP. -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline' 'unsafe-eval'">
+<script>
+(() => {
+  const pending = new Map();
+  const handlers = new Map();
+  let next = 0;
+  let started = false;
+  const send = (message) => parent.postMessage(message, '*');
+  const describe = (error) => String((error && error.message) || error);
+  const call = (method, ...args) => new Promise((resolve, reject) => {
+    const id = ++next;
+    pending.set(id, { resolve, reject });
+    send({ type: 'call', id, method, args });
+  });
+  const tagline = Object.freeze({
+    commands: Object.freeze({
+      register(id, handler) {
+        if (typeof handler !== 'function') throw new TypeError('Command handler must be a function.');
+        handlers.set(id, handler);
+        return call('commands.register', id);
+      },
+    }),
+    editor: Object.freeze({
+      getActiveNote: () => call('editor.getActiveNote'),
+      insertText: (text) => call('editor.insertText', text),
+    }),
+    vault: Object.freeze({
+      list: () => call('vault.list'),
+      read: (path) => call('vault.read', path),
+      write: (path, content) => call('vault.write', path, content),
+    }),
+    storage: Object.freeze({
+      get: (key) => call('storage.get', key),
+      set: (key, value) => call('storage.set', key, value),
+    }),
+    notify: (message) => call('notify', message),
+  });
+  addEventListener('message', async (event) => {
+    if (event.source !== parent || !event.data) return;
+    const data = event.data;
+    if (data.type === 'start' && !started) {
+      started = true;
+      try {
+        const AsyncFunction = Object.getPrototypeOf(async function () {}).constructor;
+        await new AsyncFunction('tagline', '"use strict";\n' + data.source)(tagline);
+        send({ type: 'ready' });
+      } catch (error) { send({ type: 'failed', message: describe(error) }); }
+    } else if (data.type === 'result' && pending.has(data.id)) {
+      const { resolve, reject } = pending.get(data.id);
+      pending.delete(data.id);
+      if (data.error) reject(new Error(data.error)); else resolve(data.value);
+    } else if (data.type === 'command') {
+      try { await handlers.get(data.command)?.(); }
+      catch (error) { send({ type: 'error', message: describe(error) }); }
+    }
+  });
+})();
+</script>
