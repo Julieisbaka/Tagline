@@ -77,7 +77,7 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
       try {
         await wait("document.querySelectorAll('.tree-item').length === 3");
         assert.equal(await js("document.querySelectorAll('[title=\"Settings (Ctrl+,)\"], [title=\"Settings\"]').length"), 1);
-        await click('.tree-item', 'Round.flow');
+        await click('.tree-item', 'Round');
         await wait("!!document.querySelector('.flow-grid textarea')");
         const addKey = async (row, col) => {
           await js(`document.querySelector('[data-row="${row}"][data-column="${col}"]').focus()`);
