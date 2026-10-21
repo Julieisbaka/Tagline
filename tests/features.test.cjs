@@ -69,6 +69,16 @@ test('embedded browser accepts web URLs without enabling local or privileged sch
   }
 });
 
+test('embedded browser presents a standard Chrome user agent and builds archive links', () => {
+  const { browserUserAgent, archiveUrl } = require('../electron/browser.cjs');
+  const agent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) tagline/0.1.0 '
+    + 'Chrome/140.0.0.0 Electron/45.0.0 Safari/537.36';
+  assert.equal(browserUserAgent(agent),
+    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36');
+  assert.equal(archiveUrl('https://example.com/a?b=1'), 'https://web.archive.org/web/https://example.com/a?b=1');
+  assert.throws(() => archiveUrl('file:///C:/secret'));
+});
+
 test('Pandoc import chooses an explicit reader, passes literal paths, and surfaces errors', async (t) => {
   let captured;
   let fail = false;

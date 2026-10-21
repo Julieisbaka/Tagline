@@ -222,7 +222,7 @@ guarantee that every embedded HTML element retains its original behavior.
 
 HTTP/HTTPS links open in an embedded website view by default. Turn off
 **Settings > Integrations > Open websites inside Tagline** to use the system
-browser instead. The view includes an address bar, back/forward, reload, close,
+browser instead. The view includes an address bar, back/forward, reload, close, **Archived copy**,
 and **Open in browser** controls.
 
 Sites render with JavaScript and use a separate persistent cookie/session store,
@@ -231,9 +231,16 @@ app preload, vault, or extension-bridge access. Device permissions and downloads
 are blocked; use the external browser for downloads or unsupported login flows.
 Non-HTTP(S) navigation and embedded credentials in URLs are rejected.
 
-The browser does not bypass paywalls, CAPTCHAs, or anti-bot protections, spoof
-clients, or grant access to subscription content. Some websites reject embedded
-browsers; use **Open in browser** when needed. Browsing does not change the
+Access helpers:
+
+- The view identifies itself as standard Chrome (the `Electron/…` and `tagline/…`
+  user-agent tokens are removed), so sites that reject Electron clients load normally.
+- Sign in with your own subscriptions; the persistent session keeps you signed in.
+- **Archived copy** opens the page's Wayback Machine snapshot, which helps with
+  dead links and pages that won't load directly.
+
+Tagline does not circumvent paywalls or solve CAPTCHA/anti-bot challenges, and it
+does not impersonate search-engine crawlers. Browsing does not change the
 citation creator's URL-extraction rules.
 
 ## Settings reference
