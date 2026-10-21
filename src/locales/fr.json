@@ -244,11 +244,6 @@
   "Reset font": "Réinitialiser la police",
   "Custom fonts apply to note text. Import only fonts you trust and are licensed to use.": "Les polices s’appliquent au texte des notes. Importez uniquement des polices fiables que vous avez le droit d’utiliser.",
   "Use underscores for spaces in folder paths": "Remplacer les espaces par des tirets bas dans les chemins de dossiers",
-  "{count} existing folders contain spaces. They will not change until you migrate them. Back up your vault first.": "{count} dossiers existants contiennent des espaces. Ils ne changeront pas avant leur migration. Sauvegardez votre coffre d’abord.",
-  "Rename folders and update wikilinks? Back up your vault before continuing.": "Renommer les dossiers et mettre à jour les liens wiki ? Sauvegardez votre coffre avant de continuer.",
-  "Auto migrate folders": "Migrer les dossiers automatiquement",
-  "Folder migration would overwrite an existing path: {path}": "La migration écraserait un chemin existant : {path}",
-  "Folder migration stopped. Check the error and remaining folders before retrying.": "La migration s’est arrêtée. Vérifiez l’erreur et les dossiers restants avant de réessayer.",
   "Create citation": "Créer une citation",
   "Author": "Auteur",
   "Year": "Année",
@@ -262,7 +257,5 @@
   "Enter an author and a four-digit year.": "Saisissez un auteur et une année à quatre chiffres.",
   "Use an HTTP or HTTPS citation URL.": "Utilisez une URL HTTP ou HTTPS pour la citation.",
   "Open a note in an editing mode to insert a citation.": "Ouvrez une note en mode édition pour insérer une citation.",
-  "The editor is not ready.": "L’éditeur n’est pas prêt.",
-  "Some folders contain spaces. Migration is optional.": "Certains dossiers contiennent des espaces. La migration est facultative.",
-  "Review folder paths": "Vérifier les chemins de dossiers"
+  "The editor is not ready.": "L’éditeur n’est pas prêt."
 }

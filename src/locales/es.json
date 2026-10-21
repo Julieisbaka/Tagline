@@ -244,11 +244,6 @@
   "Reset font": "Restablecer fuente",
   "Custom fonts apply to note text. Import only fonts you trust and are licensed to use.": "Las fuentes se aplican al texto de las notas. Importa solo fuentes fiables que tengas permiso para usar.",
   "Use underscores for spaces in folder paths": "Usar guiones bajos en lugar de espacios en las rutas de carpetas",
-  "{count} existing folders contain spaces. They will not change until you migrate them. Back up your vault first.": "{count} carpetas existentes contienen espacios. No cambiarán hasta que las migres. Haz una copia de seguridad primero.",
-  "Rename folders and update wikilinks? Back up your vault before continuing.": "¿Renombrar carpetas y actualizar los wikienlaces? Haz una copia de seguridad antes de continuar.",
-  "Auto migrate folders": "Migrar carpetas automáticamente",
-  "Folder migration would overwrite an existing path: {path}": "La migración sobrescribiría una ruta existente: {path}",
-  "Folder migration stopped. Check the error and remaining folders before retrying.": "La migración se detuvo. Revisa el error y las carpetas restantes antes de reintentar.",
   "Create citation": "Crear cita",
   "Author": "Autor",
   "Year": "Año",
@@ -262,7 +257,5 @@
   "Enter an author and a four-digit year.": "Introduce un autor y un año de cuatro cifras.",
   "Use an HTTP or HTTPS citation URL.": "Usa una URL de cita HTTP o HTTPS.",
   "Open a note in an editing mode to insert a citation.": "Abre una nota en modo de edición para insertar una cita.",
-  "The editor is not ready.": "El editor no está listo.",
-  "Some folders contain spaces. Migration is optional.": "Algunas carpetas contienen espacios. La migración es opcional.",
-  "Review folder paths": "Revisar rutas de carpetas"
+  "The editor is not ready.": "El editor no está listo."
 }

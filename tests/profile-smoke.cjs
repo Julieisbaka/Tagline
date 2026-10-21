@@ -1,0 +1,68 @@
+const fs = require('node:fs');
+const path = require('node:path');
+const assert = require('node:assert/strict');
+
+if (!process.versions.electron) {
+  const { spawnSync } = require('node:child_process');
+  const root = fs.mkdtempSync(path.join(require('node:os').tmpdir(), 'tagline-profile-'));
+  try {
+    const result = spawnSync(require('electron'), [__filename], {
+      env: { ...process.env, TAGLINE_PROFILE_ROOT: root }, stdio: 'inherit', timeout: 60000,
+    });
+    if (result.error) throw result.error;
+    process.exitCode = result.status ?? 1;
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true, maxRetries: 20, retryDelay: 100 });
+  }
+  return;
+}
+
+const { app } = require('electron');
+const root = process.env.TAGLINE_PROFILE_ROOT;
+if (!root) throw new Error('Run this test through Node or npm run test:profile.');
+const legacy = path.join(root, 'debate-vault');
+const profile = path.join(root, 'Tagline');
+const vault = path.join(root, 'vault');
+fs.mkdirSync(vault, { recursive: true });
+fs.mkdirSync(path.join(legacy, 'semantic-search'), { recursive: true });
+const config = JSON.stringify({ lastVault: vault, modelAutoload: false });
+fs.writeFileSync(path.join(legacy, 'config.json'), config);
+fs.writeFileSync(path.join(legacy, 'semantic-search', 'huggingface-token.bin'), 'old-profile-only');
+app.setPath('appData', root);
+app.setPath('userData', profile);
+
+app.on('browser-window-created', (_event, win) => {
+  win.webContents.once('did-finish-load', async () => {
+    const js = (code) => win.webContents.executeJavaScript(code);
+    const wait = async (code) => {
+      for (let i = 0; i < 100; i++) {
+        if (await js(code)) return;
+        await new Promise((resolve) => setTimeout(resolve, 100));
+      }
+      throw new Error('Timed out: ' + code);
+    };
+    try {
+      assert.equal(await js('window.api.getLastVault()'), null);
+      assert.equal(fs.existsSync(path.join(profile, 'config.json')), false);
+      assert.equal(fs.existsSync(path.join(profile, 'semantic-search')), false);
+      assert.equal(fs.readFileSync(path.join(legacy, 'config.json'), 'utf8'), config);
+      assert.equal(fs.readFileSync(path.join(legacy, 'semantic-search', 'huggingface-token.bin'), 'utf8'), 'old-profile-only');
+      await js("localStorage.removeItem('tagline-settings'); localStorage.setItem('debate-vault-settings', JSON.stringify({ wpm: 499, fontFamily: 'Legacy Font' }))");
+      await new Promise((resolve) => {
+        win.webContents.once('did-finish-load', resolve);
+        win.webContents.reload();
+      });
+      await wait("!!localStorage.getItem('tagline-settings')");
+      const settings = await js("JSON.parse(localStorage.getItem('tagline-settings'))");
+      assert.equal(settings.wpm, 250);
+      assert.equal(settings.fontFamily, '');
+      assert.equal(await js("JSON.parse(localStorage.getItem('debate-vault-settings')).wpm"), 499);
+      console.log('PASS: old profiles, credentials and settings are ignored and left untouched.');
+      app.exit(0);
+    } catch (e) {
+      console.error('FAIL:', e.stack || e);
+      app.exit(1);
+    }
+  });
+});
+require('../electron/main.cjs');

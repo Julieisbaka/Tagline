@@ -23,11 +23,10 @@ const DEFAULTS = {
 };
 
 const KEY = 'tagline-settings';
-const LEGACY_KEY = 'debate-vault-settings';
 
 function load() {
   try {
-    const saved = localStorage.getItem(KEY) ?? localStorage.getItem(LEGACY_KEY);
+    const saved = localStorage.getItem(KEY);
     return { ...DEFAULTS, ...JSON.parse(saved || '{}') };
   } catch {
     return { ...DEFAULTS };

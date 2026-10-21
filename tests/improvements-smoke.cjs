@@ -139,34 +139,37 @@ const delay = (ms) => new Promise((r) => setTimeout(r, ms));
         assert.equal(await js("JSON.parse(localStorage.getItem('tagline-settings')).searchMaxResults"), 1);
         await click('.advanced-settings button', 'Reset font');
 
-        // An explicit migration, not just enabling the checkbox, renames existing folders.
-        assert.ok(await fs.stat(path.join(vault, 'Old Folder')));
-        await js("void (window.confirm = () => true)");
-        await click('.advanced-settings button', 'Auto migrate folders');
-        await wait("![...document.querySelectorAll('.advanced-settings button')].some(b => b.textContent === 'Auto migrate folders')");
+        // Existing folders and links remain unchanged; no migration action is offered.
+        assert.equal(await js("[...document.querySelectorAll('.advanced-settings button')].some(b => b.textContent === 'Auto migrate folders')"), false);
         const links = await fs.readFile(path.join(vault, 'Links.md'), 'utf8');
-        assert.match(links, /\[\[Old_Folder\/Sub_Folder\/Nested#Nested\|alias\]\]/);
-        assert.ok(await fs.stat(path.join(vault, 'Old_Folder', 'Sub_Folder', 'Nested.md')));
+        assert.equal(links, '[[Old Folder/Sub Folder/Nested#Nested|alias]]');
+        assert.ok(await fs.stat(path.join(vault, 'Old Folder', 'Sub Folder', 'Nested.md')));
         assert.ok(await js("[...document.querySelectorAll('.tree-label')].some(e => e.textContent === 'Old Folder')"));
         assert.equal(await js("[...document.querySelectorAll('.tree-label')].some(e => e.textContent.includes('Old_Folder'))"), false);
         await click('.settings button', 'Done');
-        const createFolder = async (name) => {
+        const createFolder = async (name, displayed = name) => {
           await js("document.querySelector('.sidebar-header [title=\"New folder\"]').click()");
           await wait("!!document.querySelector('.dialog input')");
           await input('.dialog input', name);
           await click('.dialog button', 'OK');
-          await wait(`!![...document.querySelectorAll('.tree-label')].find(e => e.textContent === ${JSON.stringify(name)})`);
+          await wait(`!![...document.querySelectorAll('.tree-label')].find(e => e.textContent === ${JSON.stringify(displayed)})`);
         };
         await createFolder('New Folder');
         assert.ok(await fs.stat(path.join(vault, 'New_Folder')));
+        await createFolder('New Folder', 'New Folder 1');
+        assert.ok(await fs.stat(path.join(vault, 'New_Folder_1')));
         await settings();
         await js("document.querySelector('[data-setting=underscoreFolders]').click()");
         await click('.settings button', 'Done');
         await createFolder('Literal Folder');
         assert.ok(await fs.stat(path.join(vault, 'Literal Folder')));
+        await createFolder('Literal Folder', 'Literal Folder 1');
+        assert.ok(await fs.stat(path.join(vault, 'Literal Folder 1')));
         // With the setting off, the explorer shows on-disk underscores verbatim.
-        await wait("[...document.querySelectorAll('.tree-label')].some(e => e.textContent === 'Old_Folder')");
+        await wait("[...document.querySelectorAll('.tree-label')].some(e => e.textContent === 'Old Folder')");
         await wait("[...document.querySelectorAll('.tree-label')].some(e => e.textContent === 'New_Folder')");
+        assert.ok(await fs.stat(path.join(vault, 'Old Folder', 'Sub Folder', 'Nested.md')));
+        assert.equal(await fs.readFile(path.join(vault, 'Links.md'), 'utf8'), links);
         // Disabling model autoload survives in the main-process config.
         if (process.env.TAGLINE_MODEL_CACHE) {
           await js('window.api.setModelAutoload(true)');
@@ -179,7 +182,7 @@ const delay = (ms) => new Promise((r) => setTimeout(r, ms));
         await wait("!!document.querySelector('.modal.search')");
         await input('.search .palette-input', 'tag');
         assert.equal(await js("document.querySelectorAll('.search-result').length"), 1);
-        console.log('PASS: safe embedded HTML/export, visual citation insertion/read time, settings limits, fonts, folder migration, menu IPC.');
+        console.log('PASS: safe embedded HTML/export, visual citation insertion/read time, settings limits, fonts, unchanged existing folders, menu IPC.');
         app.exit(0);
       } catch (e) {
         console.error('FAIL:', e.stack || e);

@@ -16,9 +16,8 @@ npm start       # production build, then launch Electron
 
 On first launch choose **Open folder as vault** or **Create sample vault**.
 
-Tagline was previously called Debate Vault. On first launch it copies settings, the
-saved Hugging Face token, and the downloaded model from the old `debate-vault`
-user-data folder; the old folder is left untouched.
+This pre-release uses only the current Tagline profile and settings. Old Debate
+Vault profiles, credentials, models, and settings are not imported or modified.
 
 The app icon source is `build/icon.svg`. Run `npm run icons` after editing it to
 regenerate `build/icon.png` and the multi-size Windows `build/icon.ico`.
@@ -32,7 +31,10 @@ About/Settings/Services/Hide/Quit and Window menus, and File menu actions.
 Use **Cmd** instead of Ctrl for application/editor shortcuts and Cmd-click for
 opening links/results in another tab. Function-key formatting may require Fn on
 Mac keyboards. Closing the last window leaves the app running; clicking its Dock
-icon reopens it. Pandoc detection checks both Apple Silicon and Intel Homebrew paths.
+icon reopens it. Cmd+W closes a tab; Cmd+Shift+W closes the window without quitting.
+Pandoc detection checks both Apple Silicon and Intel Homebrew paths, and Finder/Dock
+launches add Homebrew and MacTeX (`/Library/TeX/texbin`) to PATH so PDF export finds
+its LaTeX engine.
 Custom fonts and credentials use Electron's platform facilities (Keychain on macOS).
 An old encrypted token may need to be re-entered if the OS app identity changes.
 
@@ -70,7 +72,7 @@ formatting hotkeys. Visual mode also has formatting buttons and an insert-link
 field; Ctrl+click a wiki link to follow it. Selection/card sending and template
 insertion work in both editors.
 
-Markdown is still the source of truth. Merely opening visual mode does not save
+Markdown is the source of truth. Merely opening visual mode does not save
 or rewrite a note. Editing visually normalizes Markdown whitespace and mark
 ordering, while preserving supported headings, tables, task lists, wiki links
 (including aliases/headings), bold, underlining, and highlights. Notes containing
@@ -109,24 +111,6 @@ or import a trusted `.ttf`, `.otf`, `.woff`, or `.woff2` file (up to 20 MB).
 Imported font data is stored in the app profile, not the vault; it persists across
 launches. Fonts apply to source, visual and reading text, not code snippets or UI.
 Reset font restores the system font.
-
-## Portable folder paths
-
-**Use underscores for spaces in folder paths** is enabled by default. New folder
-components use underscores on disk, while filenames are unchanged. Existing
-folder components retain their paths until an explicit migration. The file
-explorer displays folder underscores as spaces while this setting is enabled.
-Disable the setting to create/rename folders with literal spaces; the explorer
-then shows folder names exactly as they are on disk.
-
-Existing space-containing folders trigger a warning with a Settings shortcut.
-**Auto migrate folders** is explicit and requires confirmation: back up your vault
-first. It renames nested folders deepest-first, updates wikilinks (including in
-moved notes), open tabs and the speech-document setting. Conflicts abort before
-migration; filesystem failures stop the batch and surface an error, so inspect
-remaining folders before retrying. External links/bookmarks outside Tagline are
-not migrated. Modern Windows/macOS support spaces; this is a portability convention,
-not an operating-system requirement.
 
 ## Flow shortcuts and context menus
 
@@ -250,7 +234,9 @@ Semantic ranking uses cosine similarity with small exact-term/title-coverage
 boosts to break close matches; displayed scores remain raw cosine similarity.
 Full-text search uses BM25-style length normalization and term saturation,
 title/heading and phrase boosts, accent folding, deterministic ties, quoted
-phrases and tag filters. **Maximum search results** (1–1000, default 200) applies
+phrases and tag filters. Exact words rank above substring-only matches; repeated
+query terms and repeated headings do not multiply their boosts. Normalized document
+fields and token counts are computed once per search. **Maximum search results** (1–1000, default 200) applies
 to both modes after ranking, rather than truncating files before scoring.
 
 Only model artifacts are downloaded from Hugging Face: **note contents and search
@@ -268,8 +254,8 @@ npm run test:electron # real Electron visual/source round trips and integration 
 npm run test:semantic # public model download + local ranking and cache invalidation
 npm run test:features # flows, context menus, themes, locales, cache, HTML export and import IPC
 npm run test:speech   # send-card buttons (source and visual) and opening the speech doc
-npm run test:migration # Debate Vault -> Tagline profile migration, including the encrypted token
-npm run test:improvements # HTML, citations, fonts, limits, explicit folder migration and native menu IPC
+npm run test:profile   # old profiles, credentials and settings are ignored and left untouched
+npm run test:improvements # HTML, citations, fonts, limits, unchanged existing folders and native menu IPC
 ```
 
 The semantic test downloads/caches the public model under

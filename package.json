@@ -14,7 +14,7 @@
     "test:features": "vite build && electron tests/features-smoke.cjs",
     "icons": "electron scripts/generate-icons.cjs",
     "test:speech": "vite build && electron tests/speech-smoke.cjs",
-    "test:migration": "vite build && node tests/migration-smoke.cjs",
+    "test:profile": "vite build && node tests/profile-smoke.cjs",
     "test:improvements": "vite build && node tests/improvements-smoke.cjs"
   },
   "license": "MIT",

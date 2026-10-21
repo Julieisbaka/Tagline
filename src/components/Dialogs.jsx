@@ -122,7 +122,7 @@ export function PromptDialog({ title, initial = '', onSubmit, onClose }) {
   );
 }
 
-export function SettingsDialog({ settings, update, onClose, migrationCount, onMigrate }) {
+export function SettingsDialog({ settings, update, onClose }) {
   const { t } = useI18n();
   const field = (label, key, type = 'text', extra = {}) => (
     <label className="setting-row">
@@ -163,7 +163,7 @@ export function SettingsDialog({ settings, update, onClose, migrationCount, onMi
           />
         </label>
         <IntegrationSettings />
-        <AdvancedSettings settings={settings} update={update} migrationCount={migrationCount} onMigrate={onMigrate} />
+        <AdvancedSettings settings={settings} update={update} />
         <div className="dialog-buttons">
           <button className="primary" onClick={onClose}>
             {t('Done')}

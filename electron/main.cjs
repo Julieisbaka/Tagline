@@ -15,25 +15,13 @@ const NOTE_EXTS = ['.md', '.flow'];
 let win;
 let vaultRoot = null;
 
-// The app was renamed from "Debate Vault" to "Tagline"; carry the old profile over on first launch.
-// On Windows, "Local State" carries safeStorage's key; other platforms may require token re-entry.
-function migrateLegacyProfile() {
-  const current = app.getPath('userData');
-  const legacy = path.join(app.getPath('appData'), 'debate-vault');
-  if (path.resolve(current) === path.resolve(legacy) || !fssync.existsSync(legacy)) return;
-  if (['config.json', 'Local Storage'].some((item) => fssync.existsSync(path.join(current, item)))) return;
-  for (const item of ['config.json', 'Local State', 'Local Storage', 'semantic-search']) {
-    const from = path.join(legacy, item);
-    if (!fssync.existsSync(from)) continue;
-    try {
-      fssync.cpSync(from, path.join(current, item), { recursive: true });
-    } catch (e) {
-      console.error(`Could not migrate ${item} from the Debate Vault profile:`, e);
-    }
-  }
-}
-migrateLegacyProfile();
 if (process.platform === 'win32') app.setAppUserModelId('app.tagline');
+// Apps launched from Finder/Dock get a minimal PATH; add Homebrew and MacTeX so Pandoc and its PDF engines resolve.
+if (process.platform === 'darwin') {
+  const current = (process.env.PATH || '').split(':').filter(Boolean);
+  const extra = ['/opt/homebrew/bin', '/usr/local/bin', '/Library/TeX/texbin'].filter((p) => !current.includes(p));
+  process.env.PATH = [...current, ...extra].join(':');
+}
 
 function readConfig() {
   try {
@@ -80,12 +68,12 @@ async function walk(dir, base = '') {
   return out;
 }
 
-function uniquePath(rel) {
-  const ext = path.extname(rel);
+function uniquePath(rel, folder = false, underscoreFolders = false) {
+  const ext = folder ? '' : path.extname(rel);
   const stem = rel.slice(0, rel.length - ext.length);
   let candidate = rel;
   let i = 1;
-  while (fssync.existsSync(resolveInVault(candidate))) candidate = `${stem} ${i++}${ext}`;
+  while (fssync.existsSync(resolveInVault(candidate))) candidate = `${stem}${underscoreFolders ? '_' : ' '}${i++}${ext}`;
   return candidate;
 }
 
@@ -158,8 +146,9 @@ function registerIpc() {
     return toPosix(finalRel);
   });
 
-  ipcMain.handle('fs:mkdir', async (_e, rel) => {
-    const finalRel = uniquePath(rel);
+  ipcMain.handle('fs:mkdir', async (_e, rel, underscoreFolders) => {
+    if (typeof underscoreFolders !== 'boolean') throw new Error('Invalid folder path preference.');
+    const finalRel = uniquePath(rel, true, underscoreFolders);
     await fs.mkdir(resolveInVault(finalRel), { recursive: true });
     return toPosix(finalRel);
   });
@@ -260,6 +249,7 @@ function buildMenu() {
         { label: 'Import Document...', click: command('importDocument') },
         { type: 'separator' },
         { label: 'Close Tab', accelerator: 'CmdOrCtrl+W', registerAccelerator: isMac, click: command('closeTab') },
+        ...(isMac ? [{ label: 'Close Window', role: 'close', accelerator: 'Cmd+Shift+W' }] : []),
       ],
     },
     {

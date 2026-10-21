@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useI18n } from '../lib/i18n.js';
 
-export default function AdvancedSettings({ settings, update, migrationCount = 0, onMigrate }) {
+export default function AdvancedSettings({ settings, update }) {
   const { t } = useI18n();
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
@@ -42,13 +42,6 @@ export default function AdvancedSettings({ settings, update, migrationCount = 0,
       <input type="checkbox" data-setting="underscoreFolders" checked={settings.underscoreFolders}
         onChange={(e) => update({ underscoreFolders: e.target.checked })} />
     </label>
-    {settings.underscoreFolders && migrationCount > 0 && <div role="status">
-      <p>{t('{count} existing folders contain spaces. They will not change until you migrate them. Back up your vault first.',
-        { count: migrationCount })}</p>
-      <button disabled={busy} onClick={() => {
-        if (window.confirm(t('Rename folders and update wikilinks? Back up your vault before continuing.'))) run(onMigrate);
-      }}>{t('Auto migrate folders')}</button>
-    </div>}
     {error && <p role="alert" className="error-text">{error}</p>}
   </section>;
 }

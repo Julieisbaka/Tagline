@@ -95,7 +95,7 @@ export function useVault(underscoreFolders = true) {
   const createFolder = useCallback(
     async (path) => {
       try {
-        const p = await api.mkdir(normalize(path, true));
+        const p = await api.mkdir(normalize(path, true), underscoreFolders);
         await reload();
         return p;
       } catch (e) {
@@ -108,8 +108,8 @@ export function useVault(underscoreFolders = true) {
 
   // Renames a file or folder and rewrites [[links]] to renamed markdown files.
   const rename = useCallback(
-    async (from, to, exact = false) => {
-      if (!exact) to = normalize(to, directories.includes(from));
+    async (from, to) => {
+      to = normalize(to, directories.includes(from));
       if (from === to) return to;
       await flush();
       try {

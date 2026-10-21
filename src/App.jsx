@@ -15,7 +15,6 @@ import SearchModal from './components/SearchModal.jsx';
 import ExportDialog from './components/ExportDialog.jsx';
 import ImportDialog from './components/ImportDialog.jsx';
 import CitationDialog from './components/CitationDialog.jsx';
-import { folderPaths, migrationPlan } from './lib/folderPaths.js';
 import { useI18n } from './lib/i18n.js';
 import { visualBlocker, visualSelection } from './lib/visualExtensions.js';
 import Welcome from './components/Welcome.jsx';
@@ -115,24 +114,6 @@ export default function App() {
     tabs.renamePath(from, result);
     if (settings.speechDoc === from || settings.speechDoc.startsWith(from + '/')) {
       updateSettings({ speechDoc: result + settings.speechDoc.slice(from.length) });
-    }
-  };
-  const migrateFolders = async () => {
-    const plan = migrationPlan(v.tree);
-    const occupied = new Set([...folderPaths(v.tree), ...paths].map((p) => p.toLowerCase()));
-    for (const { to } of plan) {
-      if (occupied.has(to.toLowerCase())) throw new Error(t('Folder migration would overwrite an existing path: {path}', { path: to }));
-      occupied.add(to.toLowerCase());
-    }
-    let speechDoc = settings.speechDoc;
-    for (const { from, to } of plan) {
-      const result = await v.rename(from, to, true);
-      if (!result) throw new Error(t('Folder migration stopped. Check the error and remaining folders before retrying.'));
-      tabs.renamePath(from, result);
-      if (speechDoc.startsWith(from + '/')) {
-        speechDoc = result + speechDoc.slice(from.length);
-        updateSettings({ speechDoc });
-      }
     }
   };
 
@@ -317,8 +298,7 @@ export default function App() {
     if (next) tabs.setActiveId(next.id);
   };
 
-  const settingsDialog = <SettingsDialog settings={settings} update={updateSettings}
-    migrationCount={migrationPlan(v.tree).length} onMigrate={migrateFolders} onClose={() => setModal(null)} />;
+  const settingsDialog = <SettingsDialog settings={settings} update={updateSettings} onClose={() => setModal(null)} />;
   if (!v.vault) return <>
     {window.api.platform === 'darwin' && <div className="mac-titlebar">Tagline</div>}
     <Welcome onOpen={v.chooseVault} onSample={v.createSample} error={v.error} />
@@ -378,10 +358,6 @@ export default function App() {
       {showLeft && <Sidebar vault={v.vault} tree={v.tree} activePath={activePath} actions={actions}
         spacedFolders={settings.underscoreFolders} />}
       <main className="main">
-        {settings.underscoreFolders && migrationPlan(v.tree).length > 0 && <div className="editor-notice" role="status">
-          {t('Some folders contain spaces. Migration is optional.')}
-          {' '}<button onClick={ctx.openSettings}>{t('Review folder paths')}</button>
-        </div>}
         <TabBar tabs={tabs.tabs} activeId={tabs.activeId} onActivate={tabs.setActiveId} onClose={tabs.close}
           onCloseOthers={tabs.closeOthers} onFileAction={(action, path) => action === 'rename'
             ? actions.rename({ type: 'file', path, name: path.split('/').pop() }) : v.reveal(path)} />

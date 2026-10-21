@@ -19,7 +19,7 @@ contextBridge.exposeInMainWorld('api', {
   read: (p) => ipcRenderer.invoke('fs:read', p),
   write: (p, c) => ipcRenderer.invoke('fs:write', p, c),
   create: (p, c) => ipcRenderer.invoke('fs:create', p, c),
-  mkdir: (p) => ipcRenderer.invoke('fs:mkdir', p),
+  mkdir: (p, underscoreFolders) => ipcRenderer.invoke('fs:mkdir', p, underscoreFolders),
   rename: (a, b) => ipcRenderer.invoke('fs:rename', a, b),
   remove: (p) => ipcRenderer.invoke('fs:delete', p),
   reveal: (p) => ipcRenderer.invoke('shell:reveal', p),
