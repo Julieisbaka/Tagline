@@ -94,7 +94,7 @@ tagline.commands.register('escape', async () => {
             set.call(input, ${JSON.stringify(label)}); input.dispatchEvent(new Event('input', { bubbles: true })); })()`);
           await delay(100);
           const found = await js(`[...document.querySelectorAll('.palette-list > *')].some((el) => el.textContent.includes(${JSON.stringify(label)}))`);
-          await js(`document.querySelector('.palette input').dispatchEvent(new KeyboardEvent('keydown', { key: ${JSON.stringify('${found ? "Enter" : "Escape"}')}, bubbles: true }))`.replace('${found ? "Enter" : "Escape"}', found ? 'Enter' : 'Escape'));
+          await js(`document.querySelector('.palette input').dispatchEvent(new KeyboardEvent('keydown', { key: '${found ? 'Enter' : 'Escape'}', bubbles: true }))`);
           await delay(200);
           if (found) return;
         }
