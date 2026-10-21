@@ -148,15 +148,16 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
         await click('.export-dialog button', 'Close');
         // Real themes all apply through the same token API, and locale changes update live.
         await settings();
+        await js("document.querySelector('[data-section=appearance]').click()");
         for (const id of ['light', 'high-contrast-dark', 'high-contrast-light', 'dark']) {
           await select('[data-setting="theme"]', id);
           assert.equal(await js("document.documentElement.dataset.theme"), id);
         }
         await select('[data-setting="language"]', 'es');
         assert.equal(await js("document.documentElement.lang"), 'es');
-        assert.equal(await js("document.querySelector('.settings h3').textContent"), 'Configuración');
+        assert.equal(await js("document.querySelector('.settings-header h2').textContent"), 'Apariencia');
         await select('[data-setting="language"]', 'fr');
-        assert.equal(await js("document.querySelector('.settings h3').textContent"), 'Paramètres');
+        assert.equal(await js("document.querySelector('.settings-header h2').textContent"), 'Apparence');
         if (process.env.TAGLINE_FEATURE_SCREENSHOT) {
           await select('[data-setting="theme"]', 'high-contrast-light');
           win.show();

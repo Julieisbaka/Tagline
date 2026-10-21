@@ -44,7 +44,7 @@ export default function CitationDialog({ onInsert, onClose }) {
       <h3>{t('Create citation')}</h3>
       <p>{t('Paste an article URL to fill empty fields, then review the details.')}</p>
       <div className="citation-url">
-        <input aria-label={t('Article URL')} placeholder="https://..." value={values.url}
+        <input name="url" type="url" aria-label={t('Article URL')} placeholder="https://..." value={values.url} disabled={loading}
           onChange={(e) => setValues({ ...values, url: e.target.value })} />
         <button type="button" disabled={loading || !values.url.trim()} onClick={extract}>
           {t(loading ? 'Extracting...' : 'Autofill from URL')}
@@ -52,7 +52,7 @@ export default function CitationDialog({ onInsert, onClose }) {
       </div>
       {Object.entries({
         author: 'Author', year: 'Year', title: 'Title', publication: 'Publication',
-        url: 'URL', accessed: 'Access date'
+        accessed: 'Access date'
       }).map(([key, label]) => <label className="setting-row" key={key}>
         <span>{t(label)}</span>
         <input name={key} value={values[key]} autoFocus={key === 'author'}

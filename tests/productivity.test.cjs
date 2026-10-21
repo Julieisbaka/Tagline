@@ -33,9 +33,54 @@ test('citation URLs reject local networks, credentials and non-web schemes', asy
   await assert.rejects(extractCitation('http://127.0.0.1'), /private network/);
 });
 
+test('citation transport pins public DNS results and handles redirects, errors and size limits', async () => {
+  const fs = require('node:fs');
+  const path = require('node:path');
+  const vm = require('node:vm');
+  const { EventEmitter } = require('node:events');
+  let address = '93.184.215.14';
+  let route = 'success';
+  const module = { exports: {} };
+  const client = { get(url, options, callback) {
+    const request = new EventEmitter();
+    request.destroy = (error) => { request.emit('error', error); request.emit('close'); };
+    process.nextTick(() => options.lookup(url.hostname, { all: true }, (error, addresses) => {
+      if (error) return request.destroy(error);
+      assert.equal(addresses[0].address, address);
+      const response = new EventEmitter();
+      response.statusCode = route === 'redirect' ? 302 : route === 'denied' ? 403 : 200;
+      response.headers = { 'content-type': 'text/html', location: 'http://127.0.0.1/private' };
+      response.resume = () => request.emit('close');
+      callback(response);
+      if (response.statusCode !== 200) return;
+      response.emit('data', Buffer.from(route === 'large' ? 'a'.repeat(2_000_001) :
+        '<meta name="author" content="A Writer"><meta property="og:title" content="Example story">'));
+      response.emit('end');
+      request.emit('close');
+    }));
+    return request;
+  } };
+  vm.runInNewContext(fs.readFileSync(path.join(__dirname, '..', 'electron', 'citationMetadata.cjs'), 'utf8'), {
+    module, URL, Buffer, setTimeout, clearTimeout,
+    require: (name) => ['node:http', 'node:https'].includes(name) ? client
+      : name === 'node:dns' ? { lookup: (_host, _options, cb) => cb(null, [{ address, family: 4 }]) } : require(name),
+  });
+  const extract = () => module.exports.extractCitation('https://example.com/article');
+  assert.equal((await extract()).author, 'A Writer');
+  address = '127.0.0.1';
+  await assert.rejects(extract(), /private network/);
+  address = '93.184.215.14';
+  route = 'redirect';
+  await assert.rejects(extract(), /private network/);
+  route = 'denied';
+  await assert.rejects(extract(), /HTTP 403/);
+  route = 'large';
+  await assert.rejects(extract(), /too large/);
+});
+
 test('configurable shortcuts support platform modifiers, conflicts, clearing and editor syntax', async () => {
   global.window = { api: { platform: 'win32' } };
-  const { binding, displayBinding, matchesBinding, bindingConflict, editorBinding, eventBinding } =
+  const { binding, displayBinding, matchesBinding, bindingConflict, editorBinding, eventBinding, reservedBinding, validBinding } =
     await import('../src/lib/keybindings.js');
   assert.equal(binding('new-note'), 'Mod+N');
   assert.equal(binding('new-note', { 'new-note': '' }), '');
@@ -49,6 +94,10 @@ test('configurable shortcuts support platform modifiers, conflicts, clearing and
   assert.equal(bindingConflict('new-note', '', {}), null);
   assert.equal(editorBinding('Mod+Shift+N'), 'Mod-Shift-n');
   assert.equal(eventBinding({ key: 'Control' }, 'win32'), '');
+  assert.equal(validBinding('Mod+Shift+L'), true);
+  assert.equal(validBinding('Mod++'), false);
+  assert.equal(reservedBinding('Mod+C'), true);
+  assert.equal(reservedBinding('Mod+Shift+L'), false);
 });
 
 test('intermediate empty highlight delimiters do not crash read-time statistics', async () => {

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { binding, bindingConflict, displayBinding, eventBinding, KEYBINDINGS } from '../lib/keybindings.js';
+import { binding, bindingConflict, displayBinding, eventBinding, KEYBINDINGS, reservedBinding, validBinding } from '../lib/keybindings.js';
 import { useI18n } from '../lib/i18n.js';
 
 export default function KeybindingSettings({ settings, update }) {
@@ -8,6 +8,10 @@ export default function KeybindingSettings({ settings, update }) {
   const [error, setError] = useState('');
   const overrides = settings.keybindings;
   const save = (id, key) => {
+    if (key && (!validBinding(key) || reservedBinding(key))) {
+      setError(t('This shortcut is unsupported or reserved for standard system commands.'));
+      return;
+    }
     const conflict = bindingConflict(id, key, overrides);
     if (conflict) { setError(t('Shortcut already assigned to: {command}', { command: t(conflict.label) })); return; }
     setError('');

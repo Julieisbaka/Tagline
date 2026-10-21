@@ -309,5 +309,6 @@
   "Article URL": "URL de l’article",
   "Autofill from URL": "Remplir depuis l’URL",
   "Extracting...": "Extraction...",
-  "Available fields extracted. Review the citation before using it; existing fields were kept.": "Champs disponibles extraits. Vérifiez la citation avant utilisation ; les champs existants ont été conservés."
+  "Available fields extracted. Review the citation before using it; existing fields were kept.": "Champs disponibles extraits. Vérifiez la citation avant utilisation ; les champs existants ont été conservés.",
+  "This shortcut is unsupported or reserved for standard system commands.": "Ce raccourci n’est pas pris en charge ou est réservé aux commandes du système."
 }

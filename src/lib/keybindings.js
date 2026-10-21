@@ -3,6 +3,12 @@ import definitions from './keybindings.json' with { type: 'json' };
 export const KEYBINDINGS = definitions;
 export const binding = (id, overrides = {}) => overrides[id] ?? definitions.find((item) => item.id === id)?.key ?? '';
 export const displayBinding = (key, platform = window.api.platform) => key.replace(/\bMod\b/g, platform === 'darwin' ? 'Cmd' : 'Ctrl');
+export const validBinding = (key) => /^(?:(?:Mod|Ctrl|Meta|Alt|Shift)\+)*(?:[A-Z0-9,.;/[\]'=\\`-]|F(?:[1-9]|1\d|2[0-4])|Enter|Tab|Space|Arrow(?:Up|Down|Left|Right)|Home|End|PageUp|PageDown|Escape)$/.test(key);
+export function reservedBinding(key) {
+  return ['Mod+A', 'Mod+C', 'Mod+X', 'Mod+V', 'Mod+Shift+V', 'Mod+Z', 'Mod+Shift+Z',
+    'Mod+Y', 'Mod+Q', 'Mod+M', 'Mod+H', 'Mod+Alt+H', 'Mod+Shift+W', 'Mod+Shift+I',
+    'Mod+R', 'Mod+Shift+R', 'Mod+0', 'Mod+-', 'Mod+=', 'Alt+F4', 'Mod+Space'].includes(key);
+}
 
 export function eventBinding(event, platform = window.api.platform) {
   if (['Control', 'Meta', 'Alt', 'Shift', 'Dead', 'Unidentified'].includes(event.key)) return '';
@@ -14,6 +20,7 @@ export function eventBinding(event, platform = window.api.platform) {
   if (event.shiftKey) modifiers.push('Shift');
   let key = event.key === ' ' ? 'Space' : event.key.length === 1 ? event.key.toUpperCase() : event.key;
   if (event.altKey && /^Key[A-Z]$/.test(event.code)) key = event.code.slice(3);
+  if ((event.ctrlKey || event.metaKey) && /^Digit[0-9]$/.test(event.code)) key = event.code.slice(5);
   return [...modifiers, key].join('+');
 }
 

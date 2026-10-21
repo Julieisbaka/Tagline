@@ -10,6 +10,7 @@ Your vault is a plain folder of markdown (`.md`) and flow (`.flow`) files.
 npm install
 npm run dev     # Vite dev server + Electron with hot reload
 npm start       # production build, then launch Electron
+npm run package # build an installer/image for the current operating system
 ```
 
 On first launch choose **Open folder as vault** or **Create sample vault**.
@@ -32,6 +33,38 @@ launches add Homebrew and MacTeX (`/Library/TeX/texbin`) to PATH so PDF export f
 its LaTeX engine.
 Custom fonts and credentials use Electron's platform facilities (Keychain on macOS).
 
+## Settings and keyboard shortcuts
+
+Settings is organized into **General**, **Appearance**, **Performance and search**,
+**Files and folders**, **Integrations**, and **Keyboard shortcuts**. Changes save
+automatically on this device. Theme file pickers use the current app theme.
+
+In **Keyboard shortcuts**, select a command's shortcut and press its replacement.
+Use Ctrl on Windows/Linux and Cmd on macOS (saved as the portable `Mod` modifier).
+Escape cancels recording; Delete/Backspace or **Clear** removes a shortcut.
+Conflicting application/editor shortcuts are rejected with an explanation.
+**Reset all shortcuts** restores defaults. Navigation, card formatting in both
+editors, sending cards, and flow-row insertion use the same saved configuration.
+Menu labels, command-palette hints, and editor tooltips follow your bindings.
+Standard OS editing shortcuts (copy/paste, undo/redo, etc.) remain native.
+Common system shortcuts are reserved rather than reassigned.
+The shortcuts below are defaults.
+
+## Opening flow files from the operating system
+
+Packaged builds declare `.flow` file associations using electron-builder:
+Windows NSIS installers, macOS apps, and Linux desktop metadata. Run
+`npm run package` on the target OS; running the source app does not install file
+associations. Windows/macOS may require user approval to make Tagline the default:
+choose **Open with > Tagline**; on macOS use **Get Info > Open with > Change All**.
+Tagline does not overwrite an existing user-selected default.
+
+Launching Tagline with an absolute `.flow` path, double-clicking an associated file,
+or using Finder's Open With opens the file in Tagline. Subsequent opens reuse the
+running instance. Files inside the current vault keep that vault; otherwise,
+Tagline saves pending edits and opens the file's containing folder as the vault.
+The file and folder names are not rewritten.
+
 ## Features
 
 - File explorer (drag to move, right-click menu), tabs, quick switcher (Ctrl+O), command palette (Ctrl+P)
@@ -47,7 +80,7 @@ Custom fonts and credentials use Electron's platform facilities (Keychain on mac
 - Speech timer + aff/neg prep timers (HS 8-3-5 or college 9-3-6)
 - Templates: any markdown in a `Templates/` folder (`{{date}}`, `{{time}}`, `{{title}}` placeholders)
 - JSON-based dark, light, high-contrast dark, and high-contrast light themes; custom color themes
-- English, Spanish, and French UI (Settings > Language)
+- English, Spanish, and French UI (Settings > Appearance > Language)
 - Built-in standalone HTML export, plus optional Pandoc document import/export
 - Context menus for files, tabs, flow cells/columns/sheets, and native text-editing commands
 
@@ -93,11 +126,19 @@ Choose **Create citation** in the note header, command palette or File menu.
 Supply an author and four-digit year, plus optional title, publication, HTTP(S) URL
 and access date. Copy the generated Markdown or insert it into either editor:
 `**Smith 2024** — "Title", Publication, ...`.
+Or paste an article URL and select **Autofill from URL**. Tagline downloads only
+that public page, reads article JSON-LD and common author/title/date metadata, and
+fills empty fields without overwriting your edits. Publisher-name and dated-URL
+rules cover Reuters, AP, BBC, The New York Times, The Washington Post, The Guardian,
+Nature, Science, Brookings, and Pew Research. Unknown sites still use standard
+metadata. Always review extracted details: missing metadata, paywalls, login pages,
+and JavaScript-only articles may require manual entry. Pages are not executed.
+Requests have time/size/redirect limits and reject local/private network addresses.
 Estimated read time includes highlights **plus the author/year lead of bold citation
 lines**, not the full publication/URL. Existing `**Smith 24 — full citation**`
 lines are supported too; estimates use the written words, not spoken expansion of years.
 
-In **Settings > Fonts and folder paths**, enter one installed font-family name,
+In **Settings > Appearance**, enter one installed font-family name,
 or import a trusted `.ttf`, `.otf`, `.woff`, or `.woff2` file (up to 20 MB).
 Imported font data is stored in the app profile, not the vault; it persists across
 launches. Fonts apply to source, visual and reading text, not code snippets or UI.
@@ -106,8 +147,8 @@ Reset font restores the system font.
 ## Flow shortcuts and context menus
 
 Ctrl+Enter (Cmd+Enter on macOS) inserts an argument row below the current row and
-focuses the new cell in the **same speech column**. Disable **Settings > Focus new
-flow row after Ctrl+Enter** to keep focus in the old cell. Clicking the add-row
+focuses the new cell in the **same speech column**. Disable **Settings > General >
+Focus new flow rows** to keep focus in the old cell. Clicking the add-row
 button does not steal focus.
 
 Right-click cells to insert a row, clear a cell, or remove a row; column headers
@@ -118,7 +159,7 @@ undo/redo and clipboard menus. The single settings button remains in the ribbon.
 
 ## Built-in HTML and optional Pandoc export
 
-Install Pandoc yourself and put it on PATH, or use **Settings > Locate Pandoc**.
+Install Pandoc yourself and put it on PATH, or use **Settings > Integrations > Locate Pandoc**.
 The app also checks standard Windows installation directories. No Pandoc binary
 is bundled or downloaded. Use **Export** on a note or **Export note**
 in the command palette, then choose a format and destination.
@@ -247,6 +288,7 @@ npm run test:features # flows, context menus, themes, locales, cache, HTML expor
 npm run test:speech   # send-card buttons (source and visual) and opening the speech doc
 npm run test:profile   # old profiles, credentials and settings are ignored and left untouched
 npm run test:improvements # HTML, citations, fonts, limits, unchanged existing folders and native menu IPC
+npm run test:productivity # citation autofill, settings, shortcut persistence/editors and OS flow opening
 ```
 
 The semantic test downloads/caches the public model under

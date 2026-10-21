@@ -83,7 +83,10 @@ export function useVault(underscoreFolders = true) {
       const value = pending.current[path];
       delete pending.current[path];
       delete timers.current[path];
-      if (value !== undefined) api.write(path, value).catch(report);
+      if (value !== undefined) api.write(path, value).catch((error) => {
+        if (pending.current[path] === undefined && contentsRef.current[path] === value) pending.current[path] = value;
+        report(error);
+      });
     }, SAVE_DELAY);
   }, []);
 
@@ -120,7 +123,7 @@ export function useVault(underscoreFolders = true) {
     async (from, to) => {
       to = normalize(to, directories.includes(from));
       if (from === to) return to;
-      await flush();
+      if (!await flush()) return null;
       try {
         const all = contentsRef.current;
         const paths = Object.keys(all);

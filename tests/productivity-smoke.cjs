@@ -13,7 +13,7 @@ if (!process.versions.electron) {
   return;
 }
 
-const { app } = require('electron');
+const { app, ipcMain } = require('electron');
 const fs = require('node:fs/promises');
 const path = require('node:path');
 const assert = require('node:assert/strict');
@@ -63,6 +63,28 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
         await js("window.addEventListener('error', e => console.error(e.error?.stack || e.message))");
         await wait("!!document.querySelector('.flow-grid') || !!document.querySelector('.flow-editor textarea')");
         assert.equal(await js("document.querySelector('.note-title').value"), 'Cold');
+        await click('.tree-item', 'Card');
+        await wait("!!document.querySelector('.visual-document')");
+        ipcMain.removeHandler('citation:extract');
+        ipcMain.handle('citation:extract', (_event, url) => {
+          assert.equal(url, 'https://www.reuters.com/world/story-2024-01-20/');
+          return require('../electron/citationMetadata.cjs').parseMetadata(
+            '<meta name="author" content="Extracted Author"><meta property="og:title" content="Example story">', url);
+        });
+        await click('.note-actions button', 'Create citation');
+        await js(`(() => {
+          for (const [selector,value] of [['[name=author]','Manual Author'],['[aria-label="Article URL"]','https://www.reuters.com/world/story-2024-01-20/']]) {
+            const el=document.querySelector(selector);
+            Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value').set.call(el,value);
+            el.dispatchEvent(new Event('input',{bubbles:true}));
+          }
+        })()`);
+        await click('.citation-dialog button', 'Autofill from URL');
+        await wait("document.querySelector('[name=title]').value === 'Example story'");
+        assert.equal(await js("document.querySelector('[name=author]').value"), 'Manual Author');
+        assert.equal(await js("document.querySelector('[name=year]').value"), '2024');
+        assert.equal(await js("document.querySelector('[name=publication]').value"), 'Reuters');
+        await click('.citation-dialog button', 'Cancel');
         await js("document.querySelector('.ribbon button:last-child').click()");
         await click('.settings-sidebar button', 'Appearance');
         const layout = await js(`(() => { const el=document.querySelector('.settings'); const r=el.getBoundingClientRect();
@@ -72,15 +94,18 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
         assert.equal(layout.overflow, false);
         assert.equal(layout.fileButton, 'solid');
         await click('.settings-sidebar button', 'Keyboard shortcuts');
-        await js("document.querySelector('[data-binding=highlight]').click(); document.querySelector('[data-binding=highlight]').focus()");
+        await js("document.querySelector('[data-binding=highlight]').focus(); document.querySelector('[data-binding=highlight]').click()");
         await key('L', [primary, 'shift']);
         await wait("JSON.parse(localStorage.getItem('tagline-settings')).keybindings.highlight === 'Mod+Shift+L'");
         // Conflicts are surfaced instead of creating two commands for one key.
-        await js("document.querySelector('[data-binding=highlight]').click(); document.querySelector('[data-binding=highlight]').focus()");
+        await js("document.querySelector('[data-binding=highlight]').focus(); document.querySelector('[data-binding=highlight]').click()");
         await key('O', [primary]);
         assert.match(await js("document.querySelector('.keybinding-settings [role=alert]').textContent"), /already assigned/);
         await key('Escape');
         assert.equal(await js("!!document.querySelector('.settings')"), true);
+        await js("document.querySelector('[data-binding=flow-row]').focus(); document.querySelector('[data-binding=flow-row]').click()");
+        await key('Enter', [primary, 'shift']);
+        await wait("JSON.parse(localStorage.getItem('tagline-settings')).keybindings['flow-row'] === 'Mod+Shift+Enter'");
         await click('.settings button', 'Done');
         await click('.tree-item', 'Card');
         await wait("!!document.querySelector('.visual-document')");
@@ -102,7 +127,7 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
         // Main-process menu labels update and removing a key survives a renderer reload.
         await js("document.querySelector('.ribbon button:last-child').click()");
         await click('.settings-sidebar button', 'Keyboard shortcuts');
-        await js("document.querySelector('[data-binding=new-note]').click(); document.querySelector('[data-binding=new-note]').focus()");
+        await js("document.querySelector('[data-binding=new-note]').focus(); document.querySelector('[data-binding=new-note]').click()");
         await key('Delete');
         await wait("JSON.parse(localStorage.getItem('tagline-settings')).keybindings['new-note'] === ''");
         await click('.settings button', 'Done');
@@ -119,10 +144,15 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
         });
         await wait("document.querySelector('.note-title')?.value === 'Warm'");
         await exit;
+        await js("document.querySelector('.flow-grid textarea').focus()");
+        await key('Enter', [primary]);
+        assert.equal(await js("document.querySelectorAll('.flow-grid textarea').length"), 2);
+        await key('Enter', [primary, 'shift']);
+        await wait("document.querySelectorAll('.flow-grid textarea').length === 4");
         // Finder open-file delivery reuses the existing vault and window.
         app.emit('open-file', { preventDefault() {} }, cold);
         await wait("document.querySelector('.note-title')?.value === 'Cold'");
-        console.log('PASS: settings layout/file styling, shortcut recording/conflicts/persistence, both editors, cold .flow launch, real second-instance handoff and Finder event.');
+        console.log('PASS: citation autofill/preservation, settings layout/file styling, shortcut recording/conflicts/persistence, both editors, cold .flow launch, real second-instance handoff and Finder event.');
         app.exit(0);
       } catch (error) { console.error('FAIL:', error.stack); app.exit(1); }
     });

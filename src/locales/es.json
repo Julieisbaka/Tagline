@@ -309,5 +309,6 @@
   "Article URL": "URL del artículo",
   "Autofill from URL": "Completar desde URL",
   "Extracting...": "Extrayendo...",
-  "Available fields extracted. Review the citation before using it; existing fields were kept.": "Campos disponibles extraídos. Revisa la cita antes de usarla; los campos existentes se conservaron."
+  "Available fields extracted. Review the citation before using it; existing fields were kept.": "Campos disponibles extraídos. Revisa la cita antes de usarla; los campos existentes se conservaron.",
+  "This shortcut is unsupported or reserved for standard system commands.": "Este atajo no es compatible o está reservado para comandos del sistema."
 }
