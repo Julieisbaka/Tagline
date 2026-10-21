@@ -86,18 +86,22 @@ tagline.commands.register('escape', async () => {
       };
       const toast = async (pattern) => wait(`/${pattern}/.test(document.querySelector('.toast')?.textContent || '')`, `toast ${pattern}`);
       const palette = async (label) => {
-        await js(`window.dispatchEvent(new KeyboardEvent('keydown', { key: 'p', ctrlKey: ${process.platform !== 'darwin'}, metaKey: ${process.platform === 'darwin'}, bubbles: true }))`);
-        await wait(`!!document.querySelector('.palette input')`, 'palette');
-        await js(`(() => { const input = document.querySelector('.palette input');
-          const set = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set;
-          set.call(input, ${JSON.stringify(label)}); input.dispatchEvent(new Event('input', { bubbles: true })); })()`);
-        await delay(100);
-        await js(`document.querySelector('.palette input').dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }))`);
-        await delay(200);
+        for (let attempt = 0; attempt < 50; attempt++) {
+          await js(`window.dispatchEvent(new KeyboardEvent('keydown', { key: 'p', ctrlKey: ${process.platform !== 'darwin'}, metaKey: ${process.platform === 'darwin'}, bubbles: true }))`);
+          await wait(`!!document.querySelector('.palette input')`, 'palette');
+          await js(`(() => { const input = document.querySelector('.palette input');
+            const set = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set;
+            set.call(input, ${JSON.stringify(label)}); input.dispatchEvent(new Event('input', { bubbles: true })); })()`);
+          await delay(100);
+          const found = await js(`[...document.querySelectorAll('.palette-list > *')].some((el) => el.textContent.includes(${JSON.stringify(label)}))`);
+          await js(`document.querySelector('.palette input').dispatchEvent(new KeyboardEvent('keydown', { key: ${JSON.stringify('${found ? "Enter" : "Escape"}')}, bubbles: true }))`.replace('${found ? "Enter" : "Escape"}', found ? 'Enter' : 'Escape'));
+          await delay(200);
+          if (found) return;
+        }
+        throw new Error('Command never appeared: ' + label);
       };
       try {
         await wait(`document.querySelectorAll('iframe[data-extension]').length === 2`, 'extension frames');
-        await delay(11000); await js(`window.dispatchEvent(new KeyboardEvent('keydown', { key: ',', ctrlKey: true, bubbles: true }))`); await delay(300); await js(`document.querySelector('[data-section="extensions"]').click()`); await delay(300); console.log('DEBUG', await js(`document.querySelector('.extension-list')?.textContent`), await js(`document.querySelectorAll('iframe').length`));
         assert.equal(await js(`document.querySelector('iframe[data-extension="demo"]').getAttribute('sandbox')`), 'allow-scripts');
 
         assert.deepEqual(await js(`[...document.querySelectorAll('.tree-item')].map((el) => el.textContent.trim()).sort()`), ['Card', 'Round']);
