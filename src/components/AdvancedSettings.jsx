@@ -48,6 +48,11 @@ export default function AdvancedSettings({ settings, update, section = 'all' }) 
       <input type="checkbox" data-setting="underscoreFolders" checked={settings.underscoreFolders}
         onChange={(e) => update({ underscoreFolders: e.target.checked })} />
     </label>
+    <h4>{t('File names')}</h4>
+    <label className="setting-row"><span>{t('Hide .flow file extension')}</span>
+      <input type="checkbox" data-setting="hideFlowExtension" checked={settings.hideFlowExtension}
+        onChange={(e) => update({ hideFlowExtension: e.target.checked })} />
+    </label>
     </>}
     {error && <p role="alert" className="error-text">{error}</p>}
   </section>;

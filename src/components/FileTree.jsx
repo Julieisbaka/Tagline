@@ -1,9 +1,9 @@
 import { useState } from 'react';
 import { useI18n } from '../lib/i18n.js';
-import { isFlow } from '../lib/vault.js';
+import { displayName, isFlow } from '../lib/vault.js';
 import Icon from './Icon.jsx';
 
-function TreeNode({ node, depth, activePath, expanded, toggle, onOpen, onContext, onDropMove, spaced }) {
+function TreeNode({ node, depth, activePath, expanded, toggle, onOpen, onContext, onDropMove, spaced, hideFlowExtension }) {
   // Folder underscores are an on-disk detail; show them as spaces only when the setting creates them.
   const show = (name) => (spaced ? name.replace(/_/g, ' ') : name);
   const isFolder = node.type === 'folder';
@@ -47,7 +47,7 @@ function TreeNode({ node, depth, activePath, expanded, toggle, onOpen, onContext
         ) : (
           <Icon name={isFlow(node.path) ? 'flow' : 'file'} size={12} />
         )}
-        <span className="tree-label">{(isFolder ? show(node.name) : node.name).replace(/\.md$/i, '')}</span>
+        <span className="tree-label">{isFolder ? show(node.name) : displayName(node.path, hideFlowExtension)}</span>
       </div>
       {isFolder &&
         open &&
@@ -63,13 +63,14 @@ function TreeNode({ node, depth, activePath, expanded, toggle, onOpen, onContext
             onContext={onContext}
             onDropMove={onDropMove}
             spaced={spaced}
+            hideFlowExtension={hideFlowExtension}
           />
         ))}
     </div>
   );
 }
 
-export default function FileTree({ tree, activePath, onOpen, onContext, onDropMove, spaced = false }) {
+export default function FileTree({ tree, activePath, onOpen, onContext, onDropMove, spaced = false, hideFlowExtension = true }) {
   const { t } = useI18n();
   const [expanded, setExpanded] = useState(() => new Set(JSON.parse(localStorage.getItem('expanded') || '[]')));
   const toggle = (p) => {
@@ -108,6 +109,7 @@ export default function FileTree({ tree, activePath, onOpen, onContext, onDropMo
           onContext={onContext}
           onDropMove={onDropMove}
           spaced={spaced}
+          hideFlowExtension={hideFlowExtension}
         />
       ))}
       {tree.length === 0 && <div className="empty-hint">{t('No notes yet. Create one with the buttons above.')}</div>}

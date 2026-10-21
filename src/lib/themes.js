@@ -1,7 +1,7 @@
-import dark from '../themes/dark.json';
-import light from '../themes/light.json';
-import contrastDark from '../themes/high-contrast-dark.json';
-import contrastLight from '../themes/high-contrast-light.json';
+import dark from '../themes/dark.json' with { type: 'json' };
+import light from '../themes/light.json' with { type: 'json' };
+import contrastDark from '../themes/high-contrast-dark.json' with { type: 'json' };
+import contrastLight from '../themes/high-contrast-light.json' with { type: 'json' };
 
 export const BUILTIN_THEMES = [dark, light, contrastDark, contrastLight];
 export const COLOR_TOKENS = Object.freeze(Object.keys(dark.colors));
@@ -27,9 +27,18 @@ export function validateTheme(value) {
 
 export function getTheme(id, customTheme) {
   if (id === 'custom') return validateTheme(customTheme);
-  const theme = BUILTIN_THEMES.find((t) => t.id === id);
+  const theme = BUILTIN_THEMES.find((t) => t.id === id) || extensionThemeList.find((t) => t.id === id);
+  // Extension themes load asynchronously (or may be disabled); keep the saved choice and show dark meanwhile.
+  if (!theme && id?.startsWith('ext:')) return dark;
   if (!theme) throw new Error(`Unknown theme: ${id}`);
   return theme;
+}
+
+let extensionThemeList = [];
+export const extensionThemes = () => extensionThemeList;
+export function registerExtensionThemes(themes) {
+  extensionThemeList = themes;
+  window.dispatchEvent(new Event('extensionthemes'));
 }
 
 export function applyTheme(theme) {

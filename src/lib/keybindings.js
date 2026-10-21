@@ -1,7 +1,8 @@
 import definitions from './keybindings.json' with { type: 'json' };
 
 export const KEYBINDINGS = definitions;
-export const binding = (id, overrides = {}) => overrides[id] ?? definitions.find((item) => item.id === id)?.key ?? '';
+export const binding = (id, overrides = {}, extra = []) => overrides[id] ??
+  [...definitions, ...extra].find((item) => item.id === id)?.key ?? '';
 export const displayBinding = (key, platform = window.api.platform) => key.replace(/\bMod\b/g, platform === 'darwin' ? 'Cmd' : 'Ctrl');
 export const validBinding = (key) => /^(?:(?:Mod|Ctrl|Meta|Alt|Shift)\+)*(?:[A-Z0-9,.;/[\]'=\\`-]|F(?:[1-9]|1\d|2[0-4])|Enter|Tab|Space|Arrow(?:Up|Down|Left|Right)|Home|End|PageUp|PageDown|Escape)$/.test(key);
 export function reservedBinding(key) {
@@ -31,12 +32,14 @@ export function matchesBinding(event, shortcut, platform = window.api.platform) 
   return normalize(eventBinding(event, platform)) === normalize(shortcut);
 }
 
-export function bindingConflict(id, key, overrides) {
+// `extra` holds extension command definitions, which always use the app scope.
+export function bindingConflict(id, key, overrides, extra = []) {
   if (!key) return null;
-  const target = definitions.find((item) => item.id === id);
-  return definitions.find((item) => item.id !== id &&
+  const all = [...definitions, ...extra];
+  const target = all.find((item) => item.id === id);
+  return all.find((item) => item.id !== id &&
     (item.scope === target.scope || item.scope === 'app' || target.scope === 'app') &&
-    displayBinding(binding(item.id, overrides)) === displayBinding(key));
+    displayBinding(binding(item.id, overrides, extra)) === displayBinding(key));
 }
 
 export function editorBinding(key) {

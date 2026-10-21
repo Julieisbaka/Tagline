@@ -188,7 +188,7 @@ test('macOS desktop wiring provides native window controls, menus and Dock react
       if (name === 'electron') return electron;
       if (name.startsWith('./')) {
         if (name === './sampleVault.cjs') return { SAMPLE_VAULT: {} };
-        return Object.fromEntries(['registerPandoc', 'registerEmbeddings', 'registerDocuments', 'registerFonts', 'registerFlowFiles']
+        return Object.fromEntries(['registerPandoc', 'registerEmbeddings', 'registerDocuments', 'registerFonts', 'registerFlowFiles', 'registerExtensions']
           .map((key) => [key, () => true]));
       }
       return require(name);

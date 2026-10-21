@@ -1,0 +1,258 @@
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { registerExtensionThemes, validateTheme } from './themes.js';
+import { KEYBINDINGS, reservedBinding, validBinding } from './keybindings.js';
+
+// Extension code runs in an opaque-origin iframe (sandbox="allow-scripts" without allow-same-origin):
+// it cannot reach window.api, the DOM, app storage or the network (CSP connect-src 'none').
+// Everything it can do goes through the permission-checked message bridge below.
+const BOOTSTRAP = `<!doctype html><meta http-equiv="Content-Security-Policy"
+content="default-src 'none'; script-src 'unsafe-inline' 'unsafe-eval'"><script>
+(() => {
+  const pending = new Map();
+  const handlers = new Map();
+  let next = 0;
+  let started = false;
+  const send = (message) => parent.postMessage(message, '*');
+  const describe = (error) => String((error && error.message) || error);
+  const call = (method, ...args) => new Promise((resolve, reject) => {
+    const id = ++next;
+    pending.set(id, { resolve, reject });
+    send({ type: 'call', id, method, args });
+  });
+  const tagline = Object.freeze({
+    commands: Object.freeze({
+      register(id, handler) {
+        if (typeof handler !== 'function') throw new TypeError('Command handler must be a function.');
+        handlers.set(id, handler);
+        return call('commands.register', id);
+      },
+    }),
+    editor: Object.freeze({
+      getActiveNote: () => call('editor.getActiveNote'),
+      insertText: (text) => call('editor.insertText', text),
+    }),
+    vault: Object.freeze({
+      list: () => call('vault.list'),
+      read: (path) => call('vault.read', path),
+      write: (path, content) => call('vault.write', path, content),
+    }),
+    storage: Object.freeze({
+      get: (key) => call('storage.get', key),
+      set: (key, value) => call('storage.set', key, value),
+    }),
+    notify: (message) => call('notify', message),
+  });
+  addEventListener('message', async (event) => {
+    if (event.source !== parent || !event.data) return;
+    const data = event.data;
+    if (data.type === 'start' && !started) {
+      started = true;
+      try {
+        const AsyncFunction = Object.getPrototypeOf(async function () {}).constructor;
+        await new AsyncFunction('tagline', '"use strict";\\n' + data.source)(tagline);
+        send({ type: 'ready' });
+      } catch (error) { send({ type: 'failed', message: describe(error) }); }
+    } else if (data.type === 'result' && pending.has(data.id)) {
+      const { resolve, reject } = pending.get(data.id);
+      pending.delete(data.id);
+      if (data.error) reject(new Error(data.error)); else resolve(data.value);
+    } else if (data.type === 'command') {
+      try { await handlers.get(data.command)?.(); }
+      catch (error) { send({ type: 'error', message: describe(error) }); }
+    }
+  });
+})();
+</script>`;
+
+const MAX_TEXT = 5_000_000;
+const MAX_STORAGE = 100_000;
+
+export const extensionCommandId = (extensionId, commandId) => `ext:${extensionId}.${commandId}`;
+
+function requireText(value, label, max = MAX_TEXT) {
+  if (typeof value !== 'string' || value.length > max) throw new Error(`${label} must be text up to ${max} characters.`);
+  return value;
+}
+
+export class ExtensionHost {
+  constructor(manifest, source, bridge) {
+    this.manifest = manifest;
+    this.source = source;
+    this.bridge = bridge;
+    this.registered = new Set();
+    this.onMessage = this.onMessage.bind(this);
+  }
+
+  start(timeout = 10000) {
+    this.frame = document.createElement('iframe');
+    this.frame.setAttribute('sandbox', 'allow-scripts');
+    this.frame.setAttribute('aria-hidden', 'true');
+    this.frame.dataset.extension = this.manifest.id;
+    this.frame.style.display = 'none';
+    this.frame.srcdoc = BOOTSTRAP;
+    return new Promise((resolve, reject) => {
+      const timer = setTimeout(() => { this.dispose(); reject(new Error('Extension did not start within 10 seconds.')); }, timeout);
+      this.settle = (error) => {
+        clearTimeout(timer);
+        this.settle = null;
+        if (error) { this.dispose(); reject(error); } else resolve();
+      };
+      window.addEventListener('message', this.onMessage);
+      this.frame.addEventListener('load', () => this.frame?.contentWindow.postMessage({ type: 'start', source: this.source }, '*'), { once: true });
+      document.body.append(this.frame);
+    });
+  }
+
+  require(permission) {
+    if (!this.manifest.permissions.includes(permission)) {
+      throw new Error(`Permission "${permission}" is not declared in the manifest.`);
+    }
+  }
+
+  async handle(method, args) {
+    const b = this.bridge;
+    switch (method) {
+      case 'commands.register': {
+        const [id] = args;
+        if (!this.manifest.contributes.commands.some((c) => c.id === id)) {
+          throw new Error(`Command "${id}" is not declared in contributes.commands.`);
+        }
+        this.registered.add(id);
+        return true;
+      }
+      case 'notify':
+        b.notify(`${this.manifest.name}: ${requireText(args[0], 'Message', 500)}`);
+        return true;
+      case 'editor.getActiveNote': this.require('editor'); return b.getActiveNote();
+      case 'editor.insertText': this.require('editor'); await b.insertText(requireText(args[0], 'Text')); return true;
+      case 'vault.list': this.require('vault:read'); return b.list();
+      case 'vault.read': this.require('vault:read'); return b.read(requireText(args[0], 'Path', 1000));
+      case 'vault.write':
+        this.require('vault:write');
+        return b.write(requireText(args[0], 'Path', 1000), requireText(args[1], 'Content'));
+      case 'storage.get': return this.storage()[requireText(args[0], 'Key', 200)] ?? null;
+      case 'storage.set': {
+        const data = { ...this.storage(), [requireText(args[0], 'Key', 200)]: args[1] };
+        if (args[1] === undefined || args[1] === null) delete data[args[0]];
+        const text = JSON.stringify(data);
+        if (text.length > MAX_STORAGE) throw new Error('Extension storage is limited to 100 KB.');
+        localStorage.setItem(`tagline-extension:${this.manifest.id}`, text);
+        return true;
+      }
+      default: throw new Error(`Unknown API method: ${method}`);
+    }
+  }
+
+  storage() {
+    try { return JSON.parse(localStorage.getItem(`tagline-extension:${this.manifest.id}`) || '{}'); } catch { return {}; }
+  }
+
+  async onMessage(event) {
+    if (!this.frame || event.source !== this.frame.contentWindow || !event.data) return;
+    const data = event.data;
+    if (data.type === 'ready') this.settle?.();
+    else if (data.type === 'failed') {
+      const error = new Error(String(data.message));
+      if (this.settle) this.settle(error); else this.bridge.notify(`${this.manifest.name}: ${error.message}`);
+    } else if (data.type === 'error') this.bridge.notify(`${this.manifest.name}: ${String(data.message).slice(0, 500)}`);
+    else if (data.type === 'call') {
+      let reply;
+      try {
+        reply = { type: 'result', id: data.id, value: await this.handle(data.method, Array.isArray(data.args) ? data.args : []) };
+      } catch (error) { reply = { type: 'result', id: data.id, error: error.message }; }
+      this.frame?.contentWindow?.postMessage(reply, '*');
+    }
+  }
+
+  run(commandId) {
+    if (!this.registered.has(commandId)) throw new Error(`${this.manifest.name} has not registered "${commandId}".`);
+    this.frame.contentWindow.postMessage({ type: 'command', command: commandId }, '*');
+  }
+
+  dispose() {
+    window.removeEventListener('message', this.onMessage);
+    this.frame?.remove();
+    this.frame = null;
+  }
+}
+
+// Default keys that are malformed, reserved, or already used by a built-in or earlier extension are dropped;
+// users can still assign them explicitly in Settings > Keyboard shortcuts.
+export function usableDefaultKey(key, taken = []) {
+  if (!key || !validBinding(key) || reservedBinding(key)) return '';
+  const used = [...KEYBINDINGS, ...taken].map((item) => item.key);
+  return used.includes(key) ? '' : key;
+}
+
+// Loads enabled extensions, exposes their commands/themes, and tears hosts down on reload/unmount.
+export function useExtensions({ bridgeRef, notify }) {
+  const [extensions, setExtensions] = useState([]);
+  const [commands, setCommands] = useState([]);
+  const hosts = useRef(new Map());
+  const generation = useRef(0);
+
+  const reload = useCallback(async () => {
+    const current = ++generation.current;
+    hosts.current.forEach((host) => host.dispose());
+    hosts.current = new Map();
+    const bridge = {
+      notify: (message) => notify(message),
+      getActiveNote: () => bridgeRef.current.getActiveNote(),
+      insertText: (text) => bridgeRef.current.insertText(text),
+      list: () => bridgeRef.current.list(),
+      read: (path) => bridgeRef.current.read(path),
+      write: (path, content) => bridgeRef.current.write(path, content),
+    };
+    let list;
+    try { list = await window.api.listExtensions(); }
+    catch (error) { notify(error.message); return; }
+    const themes = [];
+    const nextCommands = [];
+    const loaded = await Promise.all(list.map(async (item) => {
+      if (item.error || !item.enabled) return item;
+      try {
+        const { source, themes: files } = await window.api.loadExtension(item.id);
+        files.forEach((theme, index) => themes.push({
+          ...validateTheme(theme), id: `ext:${item.id}:${index}`, extension: item.name,
+        }));
+        if (source) {
+          const host = new ExtensionHost(item, source, bridge);
+          await host.start();
+          if (current !== generation.current) { host.dispose(); return item; }
+          hosts.current.set(item.id, host);
+          for (const command of item.contributes.commands) {
+            nextCommands.push({
+              id: extensionCommandId(item.id, command.id), label: `${item.name}: ${command.title}`,
+              action: null, scope: 'app', key: usableDefaultKey(command.key, nextCommands), extensionId: item.id, command: command.id,
+            });
+          }
+        }
+        return item;
+      } catch (error) {
+        return { ...item, error: error.message };
+      }
+    }));
+    if (current !== generation.current) return;
+    registerExtensionThemes(themes);
+    setExtensions(loaded);
+    setCommands(nextCommands);
+  }, [bridgeRef, notify]);
+
+  useEffect(() => {
+    reload();
+    const active = hosts;
+    return () => { generation.current++; active.current.forEach((host) => host.dispose()); };
+  }, [reload]);
+
+  const run = useCallback((item) => {
+    try { hosts.current.get(item.extensionId)?.run(item.command); }
+    catch (error) { notify(error.message); }
+  }, [notify]);
+
+  const setEnabled = useCallback(async (id, enabled) => {
+    await window.api.setExtensionEnabled(id, enabled);
+    await reload();
+  }, [reload]);
+
+  return { extensions, commands, run, reload, setEnabled };
+}

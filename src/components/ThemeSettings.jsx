@@ -1,10 +1,16 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { LANGUAGES, useI18n } from '../lib/i18n.js';
-import { BUILTIN_THEMES, getTheme, validateTheme } from '../lib/themes.js';
+import { BUILTIN_THEMES, extensionThemes, getTheme, validateTheme } from '../lib/themes.js';
 
 export default function ThemeSettings({ settings, update }) {
   const { t } = useI18n();
   const [error, setError] = useState('');
+  const [contributed, setContributed] = useState(extensionThemes);
+  useEffect(() => {
+    const refresh = () => setContributed(extensionThemes());
+    window.addEventListener('extensionthemes', refresh);
+    return () => window.removeEventListener('extensionthemes', refresh);
+  }, []);
   const importTheme = async (e) => {
     const file = e.target.files[0];
     e.target.value = '';
@@ -33,6 +39,9 @@ export default function ThemeSettings({ settings, update }) {
       <label className="setting-row"><span>{t('Theme')}</span>
         <select data-setting="theme" aria-label={t('Theme')} value={settings.theme} onChange={(e) => update({ theme: e.target.value })}>
           {BUILTIN_THEMES.map((theme) => <option key={theme.id} value={theme.id}>{t(theme.name)}</option>)}
+          {contributed.map((theme) => <option key={theme.id} value={theme.id}>{`${theme.name} (${theme.extension})`}</option>)}
+          {settings.theme.startsWith('ext:') && !contributed.some((theme) => theme.id === settings.theme) &&
+            <option value={settings.theme}>{t('Unavailable extension theme')}</option>}
           {settings.customTheme && <option value="custom">{settings.customTheme.name}</option>}
         </select>
       </label>

@@ -183,6 +183,19 @@
 }
 .settings-footer span { color: var(--text-muted); font-size: 11px; }
 .settings :focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+.dialog.settings:focus, .dialog.settings:focus-visible { outline: none; }
+.settings .error-text { color: var(--danger); }
+.settings-actions { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0; }
+.settings .settings-empty { padding: 14px; border: 1px dashed var(--border); border-radius: 8px; text-align: center; }
+.extension-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.extension-card { border: 1px solid var(--border); border-radius: 8px; padding: 12px 14px; background: var(--bg-elevated); }
+.extension-card p { margin: 8px 0 0; }
+.extension-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.extension-head strong { font-size: 13px; }
+.extension-version, .extension-author { margin-left: 8px; font-size: 11px; color: var(--text-muted); }
+.extension-toggle { display: flex; align-items: center; gap: 8px; font-size: 12px; }
+.extension-toggle input { width: 18px; height: 18px; accent-color: var(--accent); }
+.extension-permissions { margin: 8px 0 0; padding-left: 18px; font-size: 12px; color: var(--text-muted); }
 .settings .theme-file-input { max-width: 250px; font-size: 11px; }
 .theme-file-input::file-selector-button {
   font: inherit; color: var(--text); background: var(--bg-elevated);

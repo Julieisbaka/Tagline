@@ -17,7 +17,8 @@
     "test:speech": "vite build && electron tests/speech-smoke.cjs",
     "test:profile": "vite build && node tests/profile-smoke.cjs",
     "test:improvements": "vite build && node tests/improvements-smoke.cjs",
-    "test:productivity": "vite build && node tests/productivity-smoke.cjs"
+    "test:productivity": "vite build && node tests/productivity-smoke.cjs",
+    "test:extensions": "vite build && node tests/extensions-smoke.cjs"
   },
   "license": "MIT",
   "build": {

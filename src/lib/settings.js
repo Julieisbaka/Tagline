@@ -18,6 +18,7 @@ const DEFAULTS = {
   visualCacheCharacters: 4_000_000,
   searchMaxResults: 200,
   underscoreFolders: true,
+  hideFlowExtension: true,
   fontFamily: '',
   importedFont: false,
   keybindings: {},
@@ -36,10 +37,16 @@ function load() {
 
 export function useSettings() {
   const [settings, setSettings] = useState(load);
+  const [themeRevision, setThemeRevision] = useState(0);
+  useEffect(() => {
+    const onThemes = () => setThemeRevision((n) => n + 1);
+    window.addEventListener('extensionthemes', onThemes);
+    return () => window.removeEventListener('extensionthemes', onThemes);
+  }, []);
   useLayoutEffect(() => {
     applyTheme(getTheme(settings.theme, settings.customTheme));
     setLanguage(settings.language);
-  }, [settings.theme, settings.customTheme, settings.language]);
+  }, [settings.theme, settings.customTheme, settings.language, themeRevision]);
   useLayoutEffect(() => {
     configureVisualCache(settings.visualCacheEntries, settings.visualCacheCharacters);
   }, [settings.visualCacheEntries, settings.visualCacheCharacters]);

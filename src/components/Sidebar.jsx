@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useI18n } from '../lib/i18n.js';
-import { dirName, joinPath } from '../lib/vault.js';
+import { dirName, isMarkdown, joinPath } from '../lib/vault.js';
 import Menu from './ContextMenu.jsx';
 import FileTree from './FileTree.jsx';
 import Icon from './Icon.jsx';
@@ -24,7 +24,7 @@ function ContextMenu({ menu, onClose, actions }) {
     : [
       ['Open in new tab', () => actions.open(node.path, true)],
       ['Rename…', () => actions.rename(node)],
-      ...(node.path.endsWith('.md') ? [['Set as speech doc', () => actions.setSpeechDoc(node.path)]] : []),
+      ...(isMarkdown(node.path) ? [['Set as speech doc', () => actions.setSpeechDoc(node.path)]] : []),
       ['Reveal in file explorer', () => actions.reveal(node.path)],
       ['Delete', () => actions.remove(node)],
     ];
@@ -34,7 +34,7 @@ function ContextMenu({ menu, onClose, actions }) {
   );
 }
 
-export default function Sidebar({ vault, tree, activePath, actions, spacedFolders = false }) {
+export default function Sidebar({ vault, tree, activePath, actions, spacedFolders = false, hideFlowExtension = true }) {
   const { t } = useI18n();
   const [menu, setMenu] = useState(null);
   const activeDir = activePath ? dirName(activePath) : '';
@@ -49,16 +49,16 @@ export default function Sidebar({ vault, tree, activePath, actions, spacedFolder
   return (
     <aside className="sidebar">
       <div className="sidebar-header">
-        <button className="icon-btn" title={t('New note')} onClick={() => actions.newNote(activeDir)}>
+        <button className="icon-btn" title={t('New note')} aria-label={t('New note')} onClick={() => actions.newNote(activeDir)}>
           <Icon name="file-plus" />
         </button>
-        <button className="icon-btn" title={t('New flow')} onClick={() => actions.newFlow(activeDir)}>
+        <button className="icon-btn" title={t('New flow')} aria-label={t('New flow')} onClick={() => actions.newFlow(activeDir)}>
           <Icon name="flow" />
         </button>
-        <button className="icon-btn" title={t('New folder')} onClick={() => actions.newFolder(activeDir)}>
+        <button className="icon-btn" title={t('New folder')} aria-label={t('New folder')} onClick={() => actions.newFolder(activeDir)}>
           <Icon name="folder-plus" />
         </button>
-        <button className="icon-btn" title={t('Refresh')} onClick={actions.reload}>
+        <button className="icon-btn" title={t('Refresh')} aria-label={t('Refresh')} onClick={actions.reload}>
           <Icon name="refresh" />
         </button>
       </div>
@@ -69,6 +69,7 @@ export default function Sidebar({ vault, tree, activePath, actions, spacedFolder
         onContext={(e, node) => setMenu({ x: e.clientX, y: e.clientY, node })}
         onDropMove={onDropMove}
         spaced={spacedFolders}
+        hideFlowExtension={hideFlowExtension}
       />
       <div className="sidebar-footer" title={vault.root}>
         <button className="vault-switch" onClick={actions.switchVault}>

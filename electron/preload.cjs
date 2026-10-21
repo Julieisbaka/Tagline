@@ -16,6 +16,10 @@ contextBridge.exposeInMainWorld('api', {
     ipcRenderer.on('menu:command', listener);
     return () => ipcRenderer.removeListener('menu:command', listener);
   },
+  listExtensions: () => ipcRenderer.invoke('extensions:list'),
+  loadExtension: (id) => ipcRenderer.invoke('extensions:load', id),
+  setExtensionEnabled: (id, enabled) => ipcRenderer.invoke('extensions:setEnabled', id, enabled),
+  openExtensionsFolder: () => ipcRenderer.invoke('extensions:openFolder'),
   readFont: () => ipcRenderer.invoke('fonts:read'),
   importFont: () => ipcRenderer.invoke('fonts:import'),
   activateFont: () => ipcRenderer.invoke('fonts:activate'),

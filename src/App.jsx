@@ -1,4 +1,4 @@
-﻿import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useVault } from './lib/useVault.js';
 import { useTabs } from './lib/useTabs.js';
 import { useSettings } from './lib/settings.js';
@@ -6,7 +6,7 @@ import { buildCommands, fillTemplate } from './lib/commands.js';
 import { binding, displayBinding, KEYBINDINGS, matchesBinding } from './lib/keybindings.js';
 import { getSectionAt } from './lib/card.js';
 import { slugify } from './lib/markdown.js';
-import { baseName, dirName, flattenTree, isMarkdown, joinPath, outline, resolveLink } from './lib/vault.js';
+import { baseName, dirName, displayName, flattenTree, isMarkdown, joinPath, outline, resolveLink } from './lib/vault.js';
 import Sidebar, { renameTarget } from './components/Sidebar.jsx';
 import TabBar from './components/TabBar.jsx';
 import NoteView from './components/NoteView.jsx';
@@ -18,6 +18,7 @@ import ImportDialog from './components/ImportDialog.jsx';
 import CitationDialog from './components/CitationDialog.jsx';
 import { useI18n } from './lib/i18n.js';
 import { visualBlocker, visualSelection } from './lib/visualExtensions.js';
+import { useExtensions } from './lib/extensions.js';
 import Welcome from './components/Welcome.jsx';
 import Ribbon from './components/Ribbon.jsx';
 import { EMPTY_FLOW } from './components/FlowEditor.jsx';
@@ -148,18 +149,48 @@ export default function App() {
     }
   };
 
-  const insertCitation = async (text) => {
-    if (!activePath || !isMarkdown(activePath) || mode === 'read') {
-      throw new Error(t('Open a note in an editing mode to insert a citation.'));
-    }
+  const insertAtCursor = async (text, message = 'Open a note in an editing mode to insert text.') => {
+    if (!activePath || !isMarkdown(activePath) || mode === 'read') throw new Error(t(message));
     if (mode === 'visual' && !sourceFallback && visualRef.current) {
-      visualRef.current.chain().focus().insertContent(text + '\n\n', { contentType: 'markdown' }).run();
+      visualRef.current.chain().focus().insertContent(text, { contentType: 'markdown' }).run();
     } else if (editorRef.current) {
       const view = editorRef.current;
-      view.dispatch(view.state.replaceSelection(text + '\n\n'));
+      view.dispatch(view.state.replaceSelection(text));
       view.focus();
     } else throw new Error(t('The editor is not ready.'));
   };
+  const insertCitation = (text) => insertAtCursor(text + '\n\n', 'Open a note in an editing mode to insert a citation.');
+
+  // Everything extensions can touch goes through this object; see docs/extension-api.md.
+  const extensionBridge = useRef(null);
+  extensionBridge.current = {
+    getActiveNote: () => {
+      if (!activePath) return null;
+      let selection = '';
+      if (mode === 'visual' && !sourceFallback && visualRef.current) {
+        const { from, to } = visualRef.current.state.selection;
+        selection = visualRef.current.state.doc.textBetween(from, to, '\n');
+      } else if (mode !== 'read' && editorRef.current) {
+        const { from, to } = editorRef.current.state.selection.main;
+        selection = editorRef.current.state.sliceDoc(from, to);
+      }
+      return { path: activePath, content: activeContent ?? '', selection, mode };
+    },
+    insertText: (text) => insertAtCursor(text),
+    list: () => paths,
+    read: (path) => {
+      if (v.contents[path] === undefined) throw new Error(`Note not found: ${path}`);
+      return v.contents[path];
+    },
+    write: async (path, content) => {
+      if (!/\.(md|flow)$/i.test(path)) throw new Error('Extensions can only write .md and .flow files.');
+      if (v.contents[path] !== undefined) { v.updateContent(path, content); return path; }
+      const created = await v.createFile(path, content);
+      if (!created) throw new Error(`Could not create ${path}.`);
+      return created;
+    },
+  };
+  const ext = useExtensions({ bridgeRef: extensionBridge, notify });
 
   const createAndOpen = async (path, content) => {
     const p = await v.createFile(path, content);
@@ -295,6 +326,8 @@ export default function App() {
   ctxRef.current = ctx;
   const vaultRef = useRef(v.vault);
   vaultRef.current = v.vault;
+  const extRef = useRef(ext);
+  extRef.current = ext;
   useEffect(() => window.api.onMenuCommand((command) => {
     const vaultless = ['switchVault', 'openSettings', 'createCitation'];
     if (vaultRef.current || vaultless.includes(command)) ctxRef.current[command]?.();
@@ -313,6 +346,15 @@ export default function App() {
         (v.vault || ['settings', 'citation'].includes(command.id))) {
         e.preventDefault();
         c[command.action]?.();
+        return;
+      }
+      if (command) return;
+      // Built-in shortcuts win over extension defaults that happen to collide.
+      const contributed = v.vault && extRef.current.commands.find((item) =>
+        matchesBinding(e, binding(item.id, settings.keybindings, extRef.current.commands)));
+      if (contributed) {
+        e.preventDefault();
+        extRef.current.run(contributed);
       }
     };
     // App navigation takes precedence over editor-specific shortcuts (e.g. Tiptap's Ctrl+E).
@@ -320,7 +362,10 @@ export default function App() {
     return () => window.removeEventListener('keydown', onKey, true);
   }, [v.vault, settings.keybindings, modal]);
 
-  const commands = buildCommands(ctx, settings.keybindings);
+  const commands = [...buildCommands(ctx, settings.keybindings), ...ext.commands.map((item) => ({
+    id: item.id, label: item.label, run: () => ext.run(item),
+    hotkey: displayBinding(binding(item.id, settings.keybindings, ext.commands)),
+  }))];
   ctx.openCommands = () => setModal({ type: 'palette', placeholder: t('Type a command…'), items: commands, onSelect: (cmd) => cmd.run() });
   ctx.nextTab = () => {
     const i = tabs.tabs.findIndex((t) => t.id === tabs.activeId);
@@ -328,7 +373,8 @@ export default function App() {
     if (next) tabs.setActiveId(next.id);
   };
 
-  const settingsDialog = <SettingsDialog settings={settings} update={updateSettings} onClose={() => setModal(null)} />;
+  const settingsDialog = <SettingsDialog settings={settings} update={updateSettings} extensions={ext}
+    onClose={() => setModal(null)} />;
   if (!v.vault) return <>
     {window.api.platform === 'darwin' && <div className="mac-titlebar">Tagline</div>}
     <Welcome onOpen={v.chooseVault} onSample={v.createSample} error={v.error} />
@@ -386,10 +432,10 @@ export default function App() {
       {window.api.platform === 'darwin' && <div className="mac-titlebar">Tagline</div>}
       <Ribbon ctx={ctx} showLeft={showLeft} keybindings={settings.keybindings} />
       {showLeft && <Sidebar vault={v.vault} tree={v.tree} activePath={activePath} actions={actions}
-        spacedFolders={settings.underscoreFolders} />}
+        spacedFolders={settings.underscoreFolders} hideFlowExtension={settings.hideFlowExtension} />}
       <main className="main">
         <TabBar tabs={tabs.tabs} activeId={tabs.activeId} onActivate={tabs.setActiveId} onClose={tabs.close}
-          onCloseOthers={tabs.closeOthers} onFileAction={(action, path) => action === 'rename'
+          onCloseOthers={tabs.closeOthers} hideFlowExtension={settings.hideFlowExtension} onFileAction={(action, path) => action === 'rename'
             ? actions.rename({ type: 'file', path, name: path.split('/').pop() }) : v.reveal(path)} />
         <div className="workspace">{renderWorkspace()}</div>
         <footer className="status-bar">
@@ -421,7 +467,7 @@ export default function App() {
       {modal?.type === 'switcher' && (
         <Palette
           placeholder={t('Find or create a note…')}
-          items={paths.map((p) => ({ id: p, label: baseName(p), detail: dirName(p), path: p }))}
+          items={paths.map((p) => ({ id: p, label: displayName(p, settings.hideFlowExtension), detail: dirName(p), path: p }))}
           onSelect={(it, e) => open(it.path, e?.ctrlKey || e?.metaKey)}
           onCreate={(name) => createAndOpen(`${name.replace(/[\\:*?"<>|]/g, '-')}.md`, `# ${baseName(name)}\n\n`)}
           createLabel={t('Create note')}

@@ -176,3 +176,68 @@ test('OS flow opens handle cold starts, second instances, macOS events and vault
     assert.equal(quit, true);
   } finally { await fs.rm(root, { recursive: true, force: true }); }
 });
+
+test('extension manifests validate ids, permissions, commands and contained file paths', async () => {
+  const path = require('node:path');
+  const fs = require('node:fs/promises');
+  const os = require('node:os');
+  const { validateManifest, registerExtensions } = require('../electron/extensions.cjs');
+  const root = path.join(os.tmpdir(), 'tagline-ext');
+  const base = { manifestVersion: 1, id: 'word-tools', name: 'Word tools', version: '1.0.0' };
+  const ok = validateManifest({ ...base, main: 'main.js', permissions: ['editor', 'editor'],
+    contributes: { commands: [{ id: 'count', title: ' Count ', key: 'Mod+Alt+K' }], themes: ['themes/a.json'] } }, root);
+  assert.deepEqual(ok.permissions, ['editor']);
+  assert.deepEqual(ok.contributes.commands, [{ id: 'count', title: 'Count', key: 'Mod+Alt+K' }]);
+  assert.throws(() => validateManifest({ ...base, manifestVersion: 2 }, root), /manifestVersion/);
+  assert.throws(() => validateManifest({ ...base, id: 'Bad_Id' }, root), /id must be/);
+  assert.throws(() => validateManifest({ ...base, permissions: ['network'] }, root), /permissions/);
+  assert.throws(() => validateManifest({ ...base, contributes: { commands: [{ id: 'go', title: 'Go' }] } }, root), /main script/);
+  assert.throws(() => validateManifest({ ...base, main: '../escape.js' }, root), /escapes/);
+  assert.throws(() => validateManifest({ ...base, main: path.resolve(root, 'abs.js') }, root), /relative/);
+  assert.throws(() => validateManifest({ ...base, contributes: { themes: ['theme.css'] } }, root), /relative \.json/);
+  assert.throws(() => validateManifest({ ...base, main: 'a.js', contributes: { commands: [{ id: 'go', title: 'Go' }, { id: 'go', title: 'Again' }] } }, root), /unique/);
+
+  const userData = await fs.mkdtemp(path.join(os.tmpdir(), 'tagline-ext-test-'));
+  const write = async (folder, manifest, files = {}) => {
+    await fs.mkdir(path.join(userData, 'extensions', folder), { recursive: true });
+    await fs.writeFile(path.join(userData, 'extensions', folder, 'manifest.json'), JSON.stringify(manifest));
+    for (const [name, text] of Object.entries(files)) await fs.writeFile(path.join(userData, 'extensions', folder, name), text);
+  };
+  await write('a', { ...base, main: 'main.js', contributes: { commands: [{ id: 'count', title: 'Count' }] } }, { 'main.js': 'void 0;' });
+  await write('b', base);
+  await write('c', { ...base, id: 'broken' }, {});
+  await fs.writeFile(path.join(userData, 'extensions', 'c', 'manifest.json'), '{ not json');
+  let config = {};
+  const handlers = {};
+  registerExtensions({
+    app: { getPath: () => userData }, shell: { openPath: async () => '' },
+    ipcMain: { handle: (name, fn) => { handlers[name] = fn; } },
+    readConfig: () => config, writeConfig: (patch) => { config = { ...config, ...patch }; },
+  });
+  const list = await handlers['extensions:list']();
+  assert.equal(list.length, 3);
+  assert.equal(list.some((item) => 'root' in item), false);
+  assert.match(list.find((item) => item.folder === 'b').error, /Duplicate/);
+  assert.equal(list.find((item) => item.folder === 'c').id, null);
+  await assert.rejects(handlers['extensions:load'](null, 'word-tools'), /disabled/);
+  await assert.rejects(handlers['extensions:setEnabled'](null, '../x', true), /Invalid/);
+  await handlers['extensions:setEnabled'](null, 'word-tools', true);
+  assert.deepEqual(config.enabledExtensions, ['word-tools']);
+  assert.deepEqual(await handlers['extensions:load'](null, 'word-tools'), { source: 'void 0;', themes: [] });
+  await fs.rm(userData, { recursive: true, force: true });
+});
+
+test('extension default shortcuts never shadow built-ins and .flow labels follow the setting', async () => {
+  global.window = { api: { platform: 'win32' }, addEventListener() {}, dispatchEvent() {} };
+  const { usableDefaultKey, extensionCommandId } = await import('../src/lib/extensions.js');
+  const { displayName } = await import('../src/lib/vault.js');
+  assert.equal(extensionCommandId('word-tools', 'count'), 'ext:word-tools.count');
+  assert.equal(usableDefaultKey('Mod+Alt+K'), 'Mod+Alt+K');
+  assert.equal(usableDefaultKey('Mod+N'), '');
+  assert.equal(usableDefaultKey('Mod+C'), '');
+  assert.equal(usableDefaultKey('Mod++'), '');
+  assert.equal(usableDefaultKey('Mod+Alt+K', [{ key: 'Mod+Alt+K' }]), '');
+  assert.equal(displayName('Rounds/Round 1.flow'), 'Round 1');
+  assert.equal(displayName('Rounds/Round 1.flow', false), 'Round 1.flow');
+  assert.equal(displayName('Cases/Aff.md', false), 'Aff');
+});

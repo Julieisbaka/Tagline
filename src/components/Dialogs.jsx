@@ -4,6 +4,7 @@ import { fuzzyScore } from '../lib/vault.js';
 import AdvancedSettings from './AdvancedSettings.jsx';
 import IntegrationSettings from './IntegrationSettings.jsx';
 import ThemeSettings from './ThemeSettings.jsx';
+import ExtensionSettings from './ExtensionSettings.jsx';
 import KeybindingSettings from './KeybindingSettings.jsx';
 
 // Generic fuzzy-filtered list modal used for quick switcher, commands, templates.
@@ -123,13 +124,13 @@ export function PromptDialog({ title, initial = '', onSubmit, onClose }) {
   );
 }
 
-export function SettingsDialog({ settings, update, onClose }) {
+export function SettingsDialog({ settings, update, onClose, extensions }) {
   const { t } = useI18n();
   const [section, setSection] = useState('general');
   const shell = useRef(null);
   const previousFocus = useRef(document.activeElement);
   useEffect(() => {
-    shell.current?.querySelector('[data-section="general"]')?.focus();
+    shell.current?.focus();
     return () => previousFocus.current?.focus();
   }, []);
   const sections = [
@@ -139,6 +140,7 @@ export function SettingsDialog({ settings, update, onClose }) {
     ['files', 'Files and folders', 'Portable paths and file associations'],
     ['integrations', 'Integrations', 'Document conversion and local models'],
     ['shortcuts', 'Keyboard shortcuts', 'Your commands, your keys'],
+    ['extensions', 'Extensions', 'Sandboxed commands and themes from your extensions folder'],
   ];
   const field = (label, key, type = 'text', extra = {}) => (
     <label className="setting-row">
@@ -157,7 +159,7 @@ export function SettingsDialog({ settings, update, onClose }) {
   return (
     <div className="modal-backdrop settings-backdrop" onMouseDown={onClose}>
       <div className="modal dialog settings" role="dialog" aria-modal="true" aria-labelledby="settings-title"
-        ref={shell} onMouseDown={(e) => e.stopPropagation()} onKeyDown={(e) => {
+        ref={shell} tabIndex={-1} onMouseDown={(e) => e.stopPropagation()} onKeyDown={(e) => {
           if (e.key === 'Escape' && !e.defaultPrevented) { e.preventDefault(); onClose(); }
           if (e.key !== 'Tab') return;
           const controls = [...shell.current.querySelectorAll('button, input, select, textarea, [tabindex="0"]')]
@@ -224,7 +226,10 @@ export function SettingsDialog({ settings, update, onClose }) {
         <IntegrationSettings />
         </section>
         <section hidden={section !== 'shortcuts'} className="settings-panel">
-          <KeybindingSettings settings={settings} update={update} />
+          <KeybindingSettings settings={settings} update={update} extra={extensions?.commands || []} />
+        </section>
+        <section hidden={section !== 'extensions'} className="settings-panel">
+          {extensions && <ExtensionSettings extensions={extensions} />}
         </section>
           </div>
           <footer className="settings-footer"><span>{t('Settings are saved on this device')}</span>

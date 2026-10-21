@@ -1,10 +1,10 @@
 import { useState } from 'react';
 import { useI18n } from '../lib/i18n.js';
-import { baseName, isFlow } from '../lib/vault.js';
+import { displayName, isFlow } from '../lib/vault.js';
 import ContextMenu from './ContextMenu.jsx';
 import Icon from './Icon.jsx';
 
-export default function TabBar({ tabs, activeId, onActivate, onClose, onCloseOthers, onFileAction }) {
+export default function TabBar({ tabs, activeId, onActivate, onClose, onCloseOthers, onFileAction, hideFlowExtension = true }) {
   const { t: tr } = useI18n();
   const [menu, setMenu] = useState(null);
   return (
@@ -37,7 +37,7 @@ export default function TabBar({ tabs, activeId, onActivate, onClose, onCloseOth
           title={t.path || tr('Graph view')}
         >
           <Icon name={t.kind === 'graph' ? 'graph' : isFlow(t.path) ? 'flow' : 'file'} size={12} />
-          <span className="tab-label">{t.kind === 'graph' ? tr('Graph view') : baseName(t.path)}</span>
+          <span className="tab-label">{t.kind === 'graph' ? tr('Graph view') : displayName(t.path, hideFlowExtension)}</span>
           <button
             className="tab-close"
             aria-label={tr('Close tab')}

@@ -7,6 +7,7 @@ const { registerPandoc } = require('./pandoc.cjs');
 const { registerEmbeddings } = require('./embeddings.cjs');
 const { registerDocuments } = require('./documents.cjs');
 const { registerFonts } = require('./fonts.cjs');
+const { registerExtensions } = require('./extensions.cjs');
 const { extractCitation } = require('./citationMetadata.cjs');
 const { registerFlowFiles } = require('./flowFiles.cjs');
 const keyDefinitions = require('../src/lib/keybindings.json');
@@ -97,7 +98,8 @@ function registerIpc() {
   ipcMain.handle('citation:extract', (_event, url) => extractCitation(url));
   ipcMain.handle('keybindings:set', (_event, overrides) => {
     if (!overrides || typeof overrides !== 'object' || Array.isArray(overrides) ||
-      Object.entries(overrides).some(([id, key]) => !keyDefinitions.some((item) => item.id === id) ||
+      Object.entries(overrides).some(([id, key]) => !(keyDefinitions.some((item) => item.id === id) ||
+        /^ext:[a-z0-9][a-z0-9-]{1,63}\.[a-z0-9][a-z0-9-]{1,63}$/.test(id)) ||
         typeof key !== 'string' || (key !== '' && !/^(?:(?:Mod|Ctrl|Meta|Alt|Shift)\+)*(?:[A-Z0-9,.;/[\]'=\\`-]|F(?:[1-9]|1\d|2[0-4])|Enter|Tab|Space|Arrow(?:Up|Down|Left|Right)|Home|End|PageUp|PageDown|Escape)$/.test(key)))) {
       throw new Error('Invalid keyboard shortcut settings.');
     }
@@ -306,6 +308,7 @@ if (primary) app.whenReady().then(() => {
   registerPandoc({ ipcMain, dialog, getWindow: () => win, readConfig, writeConfig });
   registerDocuments({ ipcMain, dialog, getWindow: () => win, readConfig });
   registerFonts({ app, ipcMain, dialog, getWindow: () => win });
+  registerExtensions({ app, ipcMain, shell, readConfig, writeConfig });
   registerEmbeddings({ app, ipcMain, safeStorage, getVaultRoot: () => vaultRoot, readConfig, writeConfig });
   createWindow();
   app.on('activate', () => {
