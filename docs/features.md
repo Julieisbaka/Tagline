@@ -26,6 +26,8 @@ With workspace persistence disabled, current tabs remain open, but switching
 vaults or restarting does not restore them. Previously saved workspaces remain
 untouched; enabling persistence again restores the saved workspace for that
 vault rather than saving the temporary tabs over it.
+If that vault has no saved workspace yet, enabling persistence keeps its current
+tabs and starts saving them.
 
 With missing-tab cleanup disabled, externally removed notes keep their tabs and
 show a missing-file notice with reload/close actions. Restoring the file and

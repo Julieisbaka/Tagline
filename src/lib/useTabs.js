@@ -24,8 +24,13 @@ export function useTabs(vaultRoot, persist = true) {
     }
     try {
       const saved = JSON.parse(localStorage.getItem(storageKey) || 'null');
-      setTabs(saved?.tabs || []);
-      setActiveId(saved?.activeId || null);
+      if (saved) {
+        setTabs(saved.tabs || []);
+        setActiveId(saved.activeId || null);
+      } else if (previousVault.current !== storageKey) {
+        setTabs([]);
+        setActiveId(null);
+      }
     } catch {
       setTabs([]);
       setActiveId(null);
