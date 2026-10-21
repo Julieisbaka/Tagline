@@ -231,7 +231,7 @@ export function SettingsDialog({ settings, update, onClose, extensions }) {
           <input type="checkbox" data-setting="embedWebsites" checked={settings.embedWebsites}
             onChange={(e) => update({ embedWebsites: e.target.checked })} />
         </label>
-        <p>{t('Websites use an isolated browser session with JavaScript and sign-in support. Paywalls and anti-bot protections are not bypassed. Disable this to use your default browser.')}</p>
+        <p>{t('Websites use a separate signed-in session and identify as standard Chrome. Disable this to use your default browser.')}</p>
         <IntegrationSettings />
         </section>
         <section hidden={section !== 'shortcuts'} className="settings-panel">
