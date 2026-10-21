@@ -43,6 +43,8 @@ export default function WebsiteView({ url, onClose }) {
       <button type="button" onClick={() => run('reload')}>{t('Reload')}</button>
       <input aria-label={t('Website address')} type="url" required value={address} onChange={(e) => setAddress(e.target.value)} />
       <button type="submit">{t('Go')}</button>
+      <button type="button" onClick={() => run('archive', state.url || url)}
+        title={t('Open the Wayback Machine snapshot of this page')}>{t('Archived copy')}</button>
       <button type="button" onClick={() => run('external', state.url || url)}>{t('Open in browser')}</button>
       <button type="button" onClick={onClose} aria-label={t('Close website')}>&times;</button>
     </form>

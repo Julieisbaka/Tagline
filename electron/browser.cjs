@@ -9,6 +9,17 @@ function webUrl(value) {
   return url.href;
 }
 
+// Many sites reject Electron's default user agent outright. Present the plain Chromium/Chrome identity this
+// view actually is; this does not spoof crawlers or solve CAPTCHA/anti-bot challenges.
+function browserUserAgent(agent) {
+  return agent.replace(/\s(?:Electron|tagline)\/\S+/gi, '');
+}
+
+// Wayback Machine snapshot of a page, for dead links or pages that are hard to load directly.
+function archiveUrl(value) {
+  return `https://web.archive.org/web/${webUrl(value)}`;
+}
+
 function registerBrowser({ ipcMain, shell, getWindow }) {
   let view;
   let error = '';
@@ -70,6 +81,8 @@ function registerBrowser({ ipcMain, shell, getWindow }) {
       partition: 'persist:tagline-web', webSecurity: true,
     } });
     const wc = view.webContents;
+    wc.session.setUserAgent(browserUserAgent(wc.session.getUserAgent()));
+    wc.setUserAgent(browserUserAgent(wc.getUserAgent()));
     wc.session.setPermissionRequestHandler((_contents, _permission, callback) => callback(false));
     wc.session.setPermissionCheckHandler(() => false);
     wc.session.setDevicePermissionHandler(() => false);
@@ -118,6 +131,7 @@ function registerBrowser({ ipcMain, shell, getWindow }) {
     if (!view) throw new Error('No website is open.');
     const wc = view.webContents;
     if (action === 'navigate') return navigate(url);
+    if (action === 'archive') return navigate(archiveUrl(url));
     if (action === 'back' && wc.navigationHistory.canGoBack()) wc.navigationHistory.goBack();
     else if (action === 'forward' && wc.navigationHistory.canGoForward()) wc.navigationHistory.goForward();
     else if (action === 'reload') { error = ''; wc.reload(); }
@@ -126,4 +140,4 @@ function registerBrowser({ ipcMain, shell, getWindow }) {
   return close;
 }
 
-module.exports = { registerBrowser, webUrl };
+module.exports = { registerBrowser, webUrl, browserUserAgent, archiveUrl };
