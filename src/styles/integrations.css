@@ -90,6 +90,8 @@
   font-size: 12px;
 }
 
+.modal-backdrop.settings-backdrop { align-items: center; padding: 24px; }
+
 .dialog.settings {
   width: min(960px, calc(100vw - 48px));
   height: min(760px, calc(100vh - 64px));

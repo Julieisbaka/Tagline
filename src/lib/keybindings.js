@@ -1,4 +1,4 @@
-import definitions from './keybindings.json';
+import definitions from './keybindings.json' with { type: 'json' };
 
 export const KEYBINDINGS = definitions;
 export const binding = (id, overrides = {}) => overrides[id] ?? definitions.find((item) => item.id === id)?.key ?? '';

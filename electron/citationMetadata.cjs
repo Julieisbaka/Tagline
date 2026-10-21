@@ -115,7 +115,8 @@ function parseMetadata(html, address) {
   const host = url.hostname.replace(/^www\./, '');
   const site = Object.entries(SITES).find(([domain]) => host === domain || host.endsWith('.' + domain));
   const date = text(article.datePublished) || get('article:published_time', 'citation_publication_date', 'date', 'datepublished', 'pubdate');
-  const year = date.match(/\b(?:19|20)\d{2}\b/)?.[0] || url.pathname.match(/\/((?:19|20)\d{2})(?:\/|-)/)?.[1] || '';
+  const year = date.match(/\b(?:19|20)\d{2}\b/)?.[0] ||
+    (site ? url.pathname.match(/(?:\/|-)((?:19|20)\d{2})(?:\/|-)/)?.[1] : '') || '';
   const title = text(article.headline || article.name) || get('citation_title', 'og:title', 'twitter:title') ||
     text(html.match(/<title\b[^>]*>([\s\S]*?)<\/title>/i)?.[1]);
   return {

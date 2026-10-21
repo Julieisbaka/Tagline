@@ -31,14 +31,6 @@ export default function Editor({ value, onChange, noteNames, onOpenLink, onSendC
       };
     };
 
-    const sendCard = (view) => {
-      cb.current.onSendCard?.(view.state.selection.main.head, view.state.sliceDoc(
-        view.state.selection.main.from,
-        view.state.selection.main.to,
-      ));
-      return true;
-    };
-
     const actions = {
       pocket: setHeading(1), hat: setHeading(2), block: setHeading(3), tag: setHeading(4),
       cite: toggleWrap('**'), bold: toggleWrap('**'), italic: toggleWrap('*'),

@@ -3,6 +3,14 @@ const { contextBridge, ipcRenderer } = require('electron');
 contextBridge.exposeInMainWorld('api', {
   platform: process.platform,
   extractCitation: (url) => ipcRenderer.invoke('citation:extract', url),
+  setKeybindings: (overrides) => ipcRenderer.invoke('keybindings:set', overrides),
+  nextFlowFile: () => ipcRenderer.invoke('flow:pending'),
+  openFlowFile: (file) => ipcRenderer.invoke('flow:open', file),
+  onFlowAvailable: (callback) => {
+    const listener = () => callback();
+    ipcRenderer.on('flow:available', listener);
+    return () => ipcRenderer.removeListener('flow:available', listener);
+  },
   onMenuCommand: (callback) => {
     const listener = (_e, command) => callback(command);
     ipcRenderer.on('menu:command', listener);

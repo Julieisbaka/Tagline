@@ -50,7 +50,7 @@ export function cardStats(content) {
     .join('\n');
   const evidence = body.replace(/^\*\*[^*\n]+\*\*[^\n]*$/gm, '');
   const highlighted = [...evidence.matchAll(/==([\s\S]*?)==|<mark\b[^>]*>([\s\S]*?)<\/mark>/gi)]
-    .map((m) => (m[1] || m[2]).replace(/\+\+/g, '')).join(' ');
+    .map((m) => (m[1] ?? m[2]).replace(/\+\+/g, '')).join(' ');
   const citationWords = countWords(spokenCitations(content));
   const underlined = [...body.matchAll(/\+\+([\s\S]*?)\+\+/g)].map((m) => m[1].replace(/==/g, '')).join(' ');
   const cards = (content.match(/^####\s/gm) || []).length;

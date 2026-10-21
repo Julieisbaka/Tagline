@@ -1,24 +1,29 @@
 import { useI18n } from '../lib/i18n.js';
 import Icon from './Icon.jsx';
+import { binding, displayBinding } from '../lib/keybindings.js';
 
-export default function Ribbon({ ctx, showLeft }) {
+export default function Ribbon({ ctx, showLeft, keybindings }) {
   const { t } = useI18n();
   const btn = (icon, title, fn, active = false) => (
     <button className={`icon-btn${active ? ' active' : ''}`} title={t(title)} onClick={fn}>
       <Icon name={icon} size={18} />
     </button>
   );
+  const title = (label, id) => {
+    const shortcut = displayBinding(binding(id, keybindings));
+    return `${t(label)}${shortcut ? ` (${shortcut})` : ''}`;
+  };
   return (
     <nav className="ribbon">
       {btn('sidebar', 'Toggle file explorer', ctx.toggleLeft, showLeft)}
-      {btn('file', 'Quick switcher (Ctrl+O)', ctx.openSwitcher)}
-      {btn('search', 'Search (Ctrl+Shift+F)', ctx.openSearch)}
-      {btn('graph', 'Graph view (Ctrl+G)', ctx.openGraph)}
-      {btn('command', 'Command palette (Ctrl+P)', ctx.openCommands)}
+      {btn('file', title('Quick switcher', 'switcher'), ctx.openSwitcher)}
+      {btn('search', title('Search', 'search'), ctx.openSearch)}
+      {btn('graph', title('Graph view', 'graph'), ctx.openGraph)}
+      {btn('command', title('Command palette', 'commands'), ctx.openCommands)}
       {btn('folder', 'Import document with Pandoc', ctx.importDocument)}
       <div className="spacer" />
       {btn('timer', 'Toggle right sidebar (timer, backlinks, outline)', ctx.toggleRight)}
-      {btn('settings', 'Settings (Ctrl+,)', ctx.openSettings)}
+      {btn('settings', title('Settings', 'settings'), ctx.openSettings)}
     </nav>
   );
 }

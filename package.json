@@ -7,17 +7,36 @@
   "scripts": {
     "dev": "concurrently -k \"vite\" \"wait-on tcp:5173 && electron . --dev\"",
     "build": "vite build",
+    "package": "vite build && electron-builder",
     "start": "vite build && electron .",
-    "test": "node --test tests/core.test.cjs tests/features.test.cjs tests/improvements.test.cjs",
+    "test": "node --test tests/core.test.cjs tests/features.test.cjs tests/improvements.test.cjs tests/productivity.test.cjs",
     "test:electron": "vite build && electron tests/electron-smoke.cjs",
     "test:semantic": "node tests/semantic-smoke.cjs",
     "test:features": "vite build && electron tests/features-smoke.cjs",
     "icons": "electron scripts/generate-icons.cjs",
     "test:speech": "vite build && electron tests/speech-smoke.cjs",
     "test:profile": "vite build && node tests/profile-smoke.cjs",
-    "test:improvements": "vite build && node tests/improvements-smoke.cjs"
+    "test:improvements": "vite build && node tests/improvements-smoke.cjs",
+    "test:productivity": "vite build && node tests/productivity-smoke.cjs"
   },
   "license": "MIT",
+  "build": {
+    "appId": "app.tagline",
+    "productName": "Tagline",
+    "directories": { "output": "release" },
+    "files": ["dist/**/*", "electron/**/*", "src/lib/keybindings.json", "build/icon.*", "package.json"],
+    "asarUnpack": ["node_modules/onnxruntime-node/**/*"],
+    "fileAssociations": [{
+      "ext": "flow",
+      "name": "Tagline Debate Flow",
+      "description": "Tagline debate flow document",
+      "mimeType": "application/x-tagline-flow",
+      "role": "Editor"
+    }],
+    "win": { "target": "nsis", "icon": "build/icon.ico" },
+    "mac": { "target": "dmg", "icon": "build/icon.icns", "category": "public.app-category.productivity" },
+    "linux": { "target": "AppImage", "icon": "build/icon.png", "category": "Office" }
+  },
   "dependencies": {
     "@codemirror/autocomplete": "^6.20.4",
     "@codemirror/commands": "^6.11.1",
@@ -46,6 +65,7 @@
     "@vitejs/plugin-react": "^6.1.2",
     "concurrently": "^10.0.6",
     "electron": "^44.9.2",
+    "electron-builder": "^26.0.0",
     "vite": "^8.3.4",
     "wait-on": "^9.5.1"
   }

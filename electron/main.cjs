@@ -8,6 +8,8 @@ const { registerEmbeddings } = require('./embeddings.cjs');
 const { registerDocuments } = require('./documents.cjs');
 const { registerFonts } = require('./fonts.cjs');
 const { extractCitation } = require('./citationMetadata.cjs');
+const { registerFlowFiles } = require('./flowFiles.cjs');
+const keyDefinitions = require('../src/lib/keybindings.json');
 
 const isDev = process.argv.includes('--dev');
 const configPath = () => path.join(app.getPath('userData'), 'config.json');
@@ -15,6 +17,12 @@ const NOTE_EXTS = ['.md', '.flow'];
 
 let win;
 let vaultRoot = null;
+let keybindings = {};
+
+function accelerator(id) {
+  const value = keybindings[id] ?? keyDefinitions.find((item) => item.id === id)?.key;
+  return value ? value.replace(/\bMod\b/g, 'CmdOrCtrl').replace(/\bMeta\b/g, 'Super') : undefined;
+}
 
 if (process.platform === 'win32') app.setAppUserModelId('app.tagline');
 // Apps launched from Finder/Dock get a minimal PATH; add Homebrew and MacTeX so Pandoc and its PDF engines resolve.
@@ -87,6 +95,15 @@ async function openVault(dir) {
 
 function registerIpc() {
   ipcMain.handle('citation:extract', (_event, url) => extractCitation(url));
+  ipcMain.handle('keybindings:set', (_event, overrides) => {
+    if (!overrides || typeof overrides !== 'object' || Array.isArray(overrides) ||
+      Object.entries(overrides).some(([id, key]) => !keyDefinitions.some((item) => item.id === id) ||
+        typeof key !== 'string' || (key !== '' && !/^(?:(?:Mod|Ctrl|Meta|Alt|Shift)\+)*(?:[A-Z0-9,.;/[\]'=\\`-]|F(?:[1-9]|1\d|2[0-4])|Enter|Tab|Space|Arrow(?:Up|Down|Left|Right)|Home|End|PageUp|PageDown|Escape)$/.test(key)))) {
+      throw new Error('Invalid keyboard shortcut settings.');
+    }
+    keybindings = { ...overrides };
+    buildMenu();
+  });
   ipcMain.handle('vault:getLast', async () => {
     const { lastVault } = readConfig();
     if (lastVault && fssync.existsSync(lastVault)) return openVault(lastVault);
@@ -236,7 +253,7 @@ function buildMenu() {
     ...(process.platform === 'darwin' ? [{
       label: 'Tagline', submenu: [
         { role: 'about' }, { type: 'separator' },
-        { label: 'Settings...', accelerator: 'Cmd+,', click: command('openSettings') },
+        { label: 'Settings...', accelerator: accelerator('settings'), registerAccelerator: false, click: command('openSettings') },
         { type: 'separator' }, { role: 'services' }, { type: 'separator' },
         { role: 'hide' }, { role: 'hideOthers' }, { role: 'unhide' },
         { type: 'separator' }, { role: 'quit' },
@@ -245,12 +262,12 @@ function buildMenu() {
     {
       label: 'File', submenu: [
         { label: 'Open Vault...', click: command('switchVault') },
-        // The renderer handles Ctrl+N/W on Windows and Linux; registering them there would fire twice.
-        { label: 'New Note', accelerator: 'CmdOrCtrl+N', registerAccelerator: isMac, click: command('newNote') },
-        { label: 'Create Citation...', click: command('createCitation') },
+        // The renderer handles configurable commands; menu accelerators are display-only.
+        { label: 'New Note', accelerator: accelerator('new-note'), registerAccelerator: false, click: command('newNote') },
+        { label: 'Create Citation...', accelerator: accelerator('citation'), registerAccelerator: false, click: command('createCitation') },
         { label: 'Import Document...', click: command('importDocument') },
         { type: 'separator' },
-        { label: 'Close Tab', accelerator: 'CmdOrCtrl+W', registerAccelerator: isMac, click: command('closeTab') },
+        { label: 'Close Tab', accelerator: accelerator('close-tab'), registerAccelerator: false, click: command('closeTab') },
         ...(isMac ? [{ label: 'Close Window', role: 'close', accelerator: 'Cmd+Shift+W' }] : []),
       ],
     },
@@ -278,7 +295,10 @@ function buildMenu() {
   Menu.setApplicationMenu(Menu.buildFromTemplate(template));
 }
 
-app.whenReady().then(() => {
+const primary = registerFlowFiles({ app, ipcMain, getWindow: () => win, createWindow,
+  getVaultRoot: () => vaultRoot, openVault });
+
+if (primary) app.whenReady().then(() => {
   if (process.platform === 'darwin') app.dock.setIcon(path.join(__dirname, '..', 'build', 'icon.png'));
   app.setAboutPanelOptions({ applicationName: 'Tagline', applicationVersion: '0.0.1' });
   buildMenu();

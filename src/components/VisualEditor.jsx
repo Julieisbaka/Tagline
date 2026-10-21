@@ -117,6 +117,7 @@ function VisualDocument({ value, noteNames, visualRef, jump, live, keybindings }
     <button type="button" title={t(title)} className={active ? 'active' : ''}
       onMouseDown={(e) => e.preventDefault()} onClick={command}>{t(label)}</button>
   );
+  const shortcutTitle = (label, id) => `${t(label)} ${displayBinding(binding(id, keybindings))}`.trim();
   const insertLink = () => {
     setError('');
     if (!linkTarget?.trim()) return;
@@ -134,12 +135,12 @@ function VisualDocument({ value, noteNames, visualRef, jump, live, keybindings }
       <div className="visual-toolbar" role="toolbar" aria-label={t('Card formatting')}>
         {[['Pocket', 1], ['Hat', 2], ['Block', 3], ['Tag', 4]].map(([label, level]) => (
           <span key={level}>{button(label, () => editor.chain().focus().toggleHeading({ level }).run(),
-            editor.isActive('heading', { level }), `${t(label)} (F${level + 3})`)}</span>
+            editor.isActive('heading', { level }), shortcutTitle(label, ['pocket', 'hat', 'block', 'tag'][level - 1]))}</span>
         ))}
-        {button('Cite / Bold', () => editor.chain().focus().toggleBold().run(), editor.isActive('bold'), 'Cite (F8)')}
-        {button('Underline', () => editor.chain().focus().toggleUnderline().run(), editor.isActive('underline'), 'Underline (F9)')}
-        {button('Emphasis', () => editor.chain().focus().toggleBold().toggleUnderline().run(), false, 'Emphasis (F10)')}
-        {button('Highlight', () => editor.chain().focus().toggleHighlight().run(), editor.isActive('highlight'), 'Highlight (F11)')}
+        {button('Cite / Bold', () => editor.chain().focus().toggleBold().run(), editor.isActive('bold'), shortcutTitle('Cite / Bold', 'cite'))}
+        {button('Underline', () => editor.chain().focus().toggleUnderline().run(), editor.isActive('underline'), shortcutTitle('Underline', 'underline'))}
+        {button('Emphasis', () => editor.chain().focus().toggleBold().toggleUnderline().run(), false, shortcutTitle('Emphasis', 'emphasis'))}
+        {button('Highlight', () => editor.chain().focus().toggleHighlight().run(), editor.isActive('highlight'), shortcutTitle('Highlight', 'highlight'))}
         {button('Link', () => setLinkTarget(''))}
         {button('Send card', () => live.current.onSendCard())}
       </div>

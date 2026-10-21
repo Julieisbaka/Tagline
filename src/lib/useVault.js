@@ -11,6 +11,7 @@ export function useVault(underscoreFolders = true) {
   const [contents, setContents] = useState({});
   const [error, setError] = useState(null);
   const [ready, setReady] = useState(false);
+  const [initialized, setInitialized] = useState(false);
   const timers = useRef({});
   const pending = useRef({});
   const contentsRef = useRef(contents);
@@ -47,7 +48,7 @@ export function useVault(underscoreFolders = true) {
   );
 
   useEffect(() => {
-    api.getLastVault().then(open).catch(report);
+    api.getLastVault().then(open).catch(report).finally(() => setInitialized(true));
   }, [open]);
 
   const flush = useCallback(async () => {
@@ -55,7 +56,15 @@ export function useVault(underscoreFolders = true) {
     pending.current = {};
     Object.values(timers.current).forEach(clearTimeout);
     timers.current = {};
-    await Promise.all(entries.map(([p, c]) => api.write(p, c).catch(report)));
+    const saved = await Promise.all(entries.map(async ([p, c]) => {
+      try { await api.write(p, c); return true; }
+      catch (error) {
+        if (pending.current[p] === undefined) pending.current[p] = c;
+        report(error);
+        return false;
+      }
+    }));
+    return saved.every(Boolean);
   }, []);
 
   useEffect(() => {
@@ -151,13 +160,19 @@ export function useVault(underscoreFolders = true) {
   );
 
   const chooseVault = useCallback(async () => {
-    await flush();
+    if (!await flush()) return;
     open(await api.chooseVault().catch(report));
   }, [flush, open]);
 
   const createSample = useCallback(async () => {
-    await flush();
+    if (!await flush()) return;
     open(await api.createSampleVault().catch(report));
+  }, [flush, open]);
+  const openFlowFile = useCallback(async (file) => {
+    if (!await flush()) throw new Error('Could not save current edits. The flow file was not opened.');
+    const result = await api.openFlowFile(file);
+    await open(result.vault);
+    return result;
   }, [flush, open]);
 
   const index = useMemo(() => buildIndex(contents), [contents]);
@@ -165,6 +180,8 @@ export function useVault(underscoreFolders = true) {
   return {
     vault,
     ready,
+    initialized,
+    openFlowFile,
     tree,
     contents,
     index,

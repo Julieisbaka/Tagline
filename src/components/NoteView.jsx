@@ -10,6 +10,7 @@ import Icon from './Icon.jsx';
 import { baseName, isFlow } from '../lib/vault.js';
 import { cardStats, formatDuration, getSectionAt } from '../lib/card.js';
 import { useI18n } from '../lib/i18n.js';
+import { binding, displayBinding } from '../lib/keybindings.js';
 
 export default function NoteView({
   path,
@@ -139,13 +140,13 @@ export default function NoteView({
             </button>
           )}
           {mode !== 'read' && (
-            <button className="icon-btn" title={t('Send card to speech doc (Ctrl+Shift+S)')} onClick={sendCurrent}>
+            <button className="icon-btn" title={`${t('Send card')} ${displayBinding(binding('send-card', settings.keybindings))}`} onClick={sendCurrent}>
               <Icon name="send" />
             </button>
           )}
           <button
             className="icon-btn"
-            title={t(mode !== 'read' ? 'Reading view (Ctrl+E)' : 'Edit (Ctrl+E)')}
+            title={`${t(mode !== 'read' ? 'Read' : 'Edit')} ${displayBinding(binding('toggle-mode', settings.keybindings))}`}
             onClick={() => setMode(mode !== 'read' ? 'read' : settings.editorMode)}
           >
             <Icon name={mode !== 'read' ? 'eye' : 'edit'} />

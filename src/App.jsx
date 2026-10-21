@@ -76,6 +76,36 @@ export default function App() {
       v.clearError();
     }
   }, [v.error]); // eslint-disable-line react-hooks/exhaustive-deps
+  const flowVaultRef = useRef(v);
+  flowVaultRef.current = v;
+  const [externalFlow, setExternalFlow] = useState(null);
+  useEffect(() => {
+    if (!v.initialized) return;
+    let processing = false;
+    let disposed = false;
+    const drain = async () => {
+      if (processing || disposed) return;
+      processing = true;
+      try {
+        let file;
+        while (!disposed && (file = await window.api.nextFlowFile())) {
+          const result = await flowVaultRef.current.openFlowFile(file);
+          if (!disposed) setExternalFlow(result);
+        }
+      } catch (error) { notify(error.message); }
+      finally { processing = false; }
+    };
+    const unsubscribe = window.api.onFlowAvailable(drain);
+    drain();
+    return () => { disposed = true; unsubscribe(); };
+  }, [v.initialized, notify]);
+  useEffect(() => {
+    if (externalFlow && v.ready && v.vault?.root === externalFlow.vault.root &&
+      v.contents[externalFlow.path] !== undefined) {
+      tabs.openPath(externalFlow.path, true);
+      setExternalFlow(null);
+    }
+  }, [externalFlow, v.ready, v.vault, v.contents, tabs]);
 
   const setMode = (m) => activePath && setModes((s) => ({ ...s, [activePath]: m }));
 
@@ -246,7 +276,15 @@ export default function App() {
       setMode('read');
       setHighlightOnly((h) => !h);
     },
-    sendCard: () => (mode !== 'read' ? sendCard() : notify(t('Switch to an editing mode and place the cursor in a card'))),
+    sendCard: () => {
+      if (mode === 'read') return notify(t('Switch to an editing mode and place the cursor in a card'));
+      const view = editorRef.current;
+      if ((mode === 'edit' || sourceFallback) && view) {
+        const { from, to, head } = view.state.selection.main;
+        return sendCard(head, view.state.sliceDoc(from, to));
+      }
+      return sendCard();
+    },
     setCurrentAsSpeechDoc: () => actions.setSpeechDoc(activePath),
     renameCurrent: () => activePath && actions.rename({ type: 'file', path: activePath, name: activePath.split('/').pop() }),
     deleteCurrent: () => activePath && actions.remove({ type: 'file', path: activePath, name: activePath.split('/').pop() }),
@@ -346,7 +384,7 @@ export default function App() {
   return (
     <div className={`app${window.api.platform === 'darwin' ? ' mac-app' : ''}`}>
       {window.api.platform === 'darwin' && <div className="mac-titlebar">Tagline</div>}
-      <Ribbon ctx={ctx} showLeft={showLeft} />
+      <Ribbon ctx={ctx} showLeft={showLeft} keybindings={settings.keybindings} />
       {showLeft && <Sidebar vault={v.vault} tree={v.tree} activePath={activePath} actions={actions}
         spacedFolders={settings.underscoreFolders} />}
       <main className="main">
