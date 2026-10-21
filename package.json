@@ -23,19 +23,42 @@
   "build": {
     "appId": "app.tagline",
     "productName": "Tagline",
-    "directories": { "output": "release" },
-    "files": ["dist/**/*", "electron/**/*", "src/lib/keybindings.json", "build/icon.*", "package.json"],
-    "asarUnpack": ["node_modules/onnxruntime-node/**/*"],
-    "fileAssociations": [{
-      "ext": "flow",
-      "name": "Tagline Debate Flow",
-      "description": "Tagline debate flow document",
-      "mimeType": "application/x-tagline-flow",
-      "role": "Editor"
-    }],
-    "win": { "target": "nsis", "icon": "build/icon.ico" },
-    "mac": { "target": "dmg", "icon": "build/icon.icns", "category": "public.app-category.productivity" },
-    "linux": { "target": "AppImage", "icon": "build/icon.png", "category": "Office" }
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "dist/**/*",
+      "electron/**/*",
+      "src/lib/keybindings.json",
+      "build/icon.*",
+      "package.json"
+    ],
+    "asarUnpack": [
+      "node_modules/onnxruntime-node/**/*"
+    ],
+    "fileAssociations": [
+      {
+        "ext": "flow",
+        "name": "Tagline Debate Flow",
+        "description": "Tagline debate flow document",
+        "mimeType": "application/x-tagline-flow",
+        "role": "Editor"
+      }
+    ],
+    "win": {
+      "target": "nsis",
+      "icon": "build/icon.ico"
+    },
+    "mac": {
+      "target": "dmg",
+      "icon": "build/icon.icns",
+      "category": "public.app-category.productivity"
+    },
+    "linux": {
+      "target": "AppImage",
+      "icon": "build/icon.png",
+      "category": "Office"
+    }
   },
   "dependencies": {
     "@codemirror/autocomplete": "^6.20.4",
