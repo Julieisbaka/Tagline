@@ -2,27 +2,7 @@ import { useCallback, useEffect, useLayoutEffect, useState } from 'react';
 import { setLanguage } from './i18n.js';
 import { applyTheme, getTheme } from './themes.js';
 import { configureVisualCache } from './visualCache.js';
-
-const DEFAULTS = {
-  wpm: 250,
-  speechDoc: 'Speech Docs/Speech.md',
-  fontSize: 16,
-  format: 'policy',
-  readableWidth: true,
-  theme: 'dark',
-  editorMode: 'visual',
-  focusNewFlowRow: true,
-  language: 'en',
-  customTheme: null,
-  visualCacheEntries: 16,
-  visualCacheCharacters: 4_000_000,
-  searchMaxResults: 200,
-  underscoreFolders: true,
-  hideFlowExtension: true,
-  fontFamily: '',
-  importedFont: false,
-  keybindings: {},
-};
+import DEFAULTS from './defaultSettings.json' with { type: 'json' };
 
 const KEY = 'tagline-settings';
 
@@ -51,6 +31,14 @@ export function useSettings() {
     configureVisualCache(settings.visualCacheEntries, settings.visualCacheCharacters);
   }, [settings.visualCacheEntries, settings.visualCacheCharacters]);
   useLayoutEffect(() => {
+    if (!settings.customCssEnabled || !settings.customCss) return;
+    const style = document.createElement('style');
+    style.id = 'tagline-custom-css';
+    style.textContent = settings.customCss;
+    document.head.append(style);
+    return () => style.remove();
+  }, [settings.customCssEnabled, settings.customCss]);
+  useLayoutEffect(() => {
     const root = document.documentElement;
     root.style.setProperty('--font-text', settings.importedFont ? '"Tagline Custom"' :
       settings.fontFamily.trim() ? `${JSON.stringify(settings.fontFamily.trim())}, system-ui, sans-serif` : 'system-ui, sans-serif');
@@ -68,7 +56,11 @@ export function useSettings() {
     return () => { disposed = true; if (face) document.fonts.delete(face); };
   }, [settings.importedFont]);
   useEffect(() => {
-    localStorage.setItem(KEY, JSON.stringify(settings));
+    try { localStorage.setItem(KEY, JSON.stringify(settings)); }
+    catch (error) {
+      console.error('Could not save settings:', error);
+      window.dispatchEvent(new CustomEvent('app-error', { detail: `Could not save settings: ${error.message}` }));
+    }
     document.documentElement.style.setProperty('--editor-font-size', `${settings.fontSize}px`);
   }, [settings]);
   const update = useCallback((patch) => setSettings((s) => ({ ...s, ...patch })), []);

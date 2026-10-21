@@ -48,5 +48,3 @@ export function applyTheme(theme) {
   root.style.colorScheme = theme.mode;
   window.dispatchEvent(new Event('themechange'));
 }
-
-// TODO: Support unrestricted custom CSS with explicit opt-in and documented isolation risks.

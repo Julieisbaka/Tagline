@@ -27,8 +27,8 @@ import { Palette, PromptDialog, SettingsDialog } from './components/Dialogs.jsx'
 export default function App() {
   const { t } = useI18n();
   const [settings, updateSettings] = useSettings();
-  const v = useVault(settings.underscoreFolders);
-  const tabs = useTabs(v.vault?.root);
+  const v = useVault(settings.underscoreFolders, settings.autoRelink);
+  const tabs = useTabs(v.vault?.root, settings.persistWorkspaceTabs);
   const [modes, setModes] = useState({});
   const [highlightOnly, setHighlightOnly] = useState(false);
   const [modal, setModal] = useState(null);
@@ -50,8 +50,16 @@ export default function App() {
   const sourceFallback = mode === 'visual' && !!visualBlocker(activeContent || '');
 
   useEffect(() => {
-    if (v.ready) tabs.prune(new Set(paths));
-  }, [v.ready, paths]); // eslint-disable-line react-hooks/exhaustive-deps
+    if (v.ready && settings.closeMissingTabs) tabs.prune(new Set(paths));
+  }, [v.ready, paths, settings.closeMissingTabs, tabs.tabs]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    if (activeContent === undefined) {
+      editorRef.current = null;
+      visualRef.current = null;
+      setStats(null);
+    }
+  }, [activeContent]);
 
   const toastTimer = useRef(null);
   const notify = useCallback((msg) => {
@@ -165,7 +173,7 @@ export default function App() {
   const extensionBridge = useRef(null);
   extensionBridge.current = {
     getActiveNote: () => {
-      if (!activePath) return null;
+      if (!activePath || activeContent === undefined) return null;
       let selection = '';
       if (mode === 'visual' && !sourceFallback && visualRef.current) {
         const { from, to } = visualRef.current.state.selection;
@@ -256,7 +264,7 @@ export default function App() {
 
   const ctx = {
     createCitation: () => setModal({ type: 'citation' }),
-    hasNote: !!activePath,
+    hasNote: !!activePath && activeContent !== undefined,
     openSwitcher: () => setModal({ type: 'switcher' }),
     openSearch: () => setModal({ type: 'search' }),
     newNote: () => actions.newNote(),
@@ -397,8 +405,15 @@ export default function App() {
         </div>
       );
     }
-    if (tab.kind === 'graph') return <GraphView index={v.index} activePath={lastFile} onOpen={open} />;
-    if (activeContent === undefined) return <div className="empty-workspace">{t('Loading…')}</div>;
+    if (tab.kind === 'graph') return <GraphView index={v.index} activePath={lastFile} onOpen={open}
+      showMarkdownExtension={settings.showMarkdownExtension} />;
+    if (activeContent === undefined) return <div className="empty-workspace" role="status">
+      {v.ready ? <>
+        <p>{t('This file is no longer in the vault: {path}', { path: activePath })}</p>
+        <button onClick={v.reload}>{t('Reload vault')}</button>
+        <button onClick={() => tabs.close(tab.id)}>{t('Close tab')}</button>
+      </> : t('Loading…')}
+    </div>;
     return (
       <NoteView
         key={tab.path}
@@ -432,10 +447,12 @@ export default function App() {
       {window.api.platform === 'darwin' && <div className="mac-titlebar">Tagline</div>}
       <Ribbon ctx={ctx} showLeft={showLeft} keybindings={settings.keybindings} />
       {showLeft && <Sidebar vault={v.vault} tree={v.tree} activePath={activePath} actions={actions}
-        spacedFolders={settings.underscoreFolders} hideFlowExtension={settings.hideFlowExtension} />}
+        spacedFolders={settings.underscoreFolders} hideFlowExtension={settings.hideFlowExtension}
+        showMarkdownExtension={settings.showMarkdownExtension} />}
       <main className="main">
         <TabBar tabs={tabs.tabs} activeId={tabs.activeId} onActivate={tabs.setActiveId} onClose={tabs.close}
-          onCloseOthers={tabs.closeOthers} hideFlowExtension={settings.hideFlowExtension} onFileAction={(action, path) => action === 'rename'
+          onCloseOthers={tabs.closeOthers} hideFlowExtension={settings.hideFlowExtension}
+          showMarkdownExtension={settings.showMarkdownExtension} onFileAction={(action, path) => action === 'rename'
             ? actions.rename({ type: 'file', path, name: path.split('/').pop() }) : v.reveal(path)} />
         <div className="workspace">{renderWorkspace()}</div>
         <footer className="status-bar">
@@ -467,7 +484,7 @@ export default function App() {
       {modal?.type === 'switcher' && (
         <Palette
           placeholder={t('Find or create a note…')}
-          items={paths.map((p) => ({ id: p, label: displayName(p, settings.hideFlowExtension), detail: dirName(p), path: p }))}
+          items={paths.map((p) => ({ id: p, label: displayName(p, settings.hideFlowExtension, settings.showMarkdownExtension), detail: dirName(p), path: p }))}
           onSelect={(it, e) => open(it.path, e?.ctrlKey || e?.metaKey)}
           onCreate={(name) => createAndOpen(`${name.replace(/[\\:*?"<>|]/g, '-')}.md`, `# ${baseName(name)}\n\n`)}
           createLabel={t('Create note')}
@@ -479,6 +496,7 @@ export default function App() {
       )}
       {modal?.type === 'search' && (
         <SearchModal contents={v.contents} index={v.index} initialQuery={modal.query} maxResults={settings.searchMaxResults}
+          showMarkdownExtension={settings.showMarkdownExtension}
           onOpen={open} onClose={() => setModal(null)} />
       )}
       {modal?.type === 'prompt' && (

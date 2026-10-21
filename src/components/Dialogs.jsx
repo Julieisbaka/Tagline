@@ -6,6 +6,7 @@ import IntegrationSettings from './IntegrationSettings.jsx';
 import ThemeSettings from './ThemeSettings.jsx';
 import ExtensionSettings from './ExtensionSettings.jsx';
 import KeybindingSettings from './KeybindingSettings.jsx';
+import CustomCssSettings from './CustomCssSettings.jsx';
 
 // Generic fuzzy-filtered list modal used for quick switcher, commands, templates.
 export function Palette({ items, placeholder, onSelect, onClose, onCreate, createLabel }) {
@@ -214,6 +215,7 @@ export function SettingsDialog({ settings, update, onClose, extensions }) {
           <ThemeSettings settings={settings} update={update} />
           {field('Editor font size', 'fontSize', 'number', { min: 10, max: 32 })}
           <AdvancedSettings settings={settings} update={update} section="fonts" />
+          <CustomCssSettings settings={settings} update={update} />
         </section>
         <section hidden={section !== 'performance'} className="settings-panel">
           <AdvancedSettings settings={settings} update={update} section="performance" />

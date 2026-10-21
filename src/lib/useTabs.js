@@ -1,17 +1,27 @@
-﻿import { useCallback, useEffect, useState } from 'react';
+﻿import { useCallback, useEffect, useRef, useState } from 'react';
 
 let nextId = 1;
 const newId = () => `t${Date.now()}-${nextId++}`;
 
 // Workspace tabs, persisted per vault.
-export function useTabs(vaultRoot) {
+export function useTabs(vaultRoot, persist = true) {
   const storageKey = vaultRoot ? `tabs:${vaultRoot}` : null;
+  const loadKey = `${storageKey}:${persist}`;
+  const previousVault = useRef(null);
   const [tabs, setTabs] = useState([]);
   const [activeId, setActiveId] = useState(null);
   const [loadedKey, setLoadedKey] = useState(null);
 
   useEffect(() => {
-    if (!storageKey) return;
+    if (!persist || !storageKey) {
+      if (previousVault.current !== storageKey) {
+        setTabs([]);
+        setActiveId(null);
+      }
+      previousVault.current = storageKey;
+      setLoadedKey(loadKey);
+      return;
+    }
     try {
       const saved = JSON.parse(localStorage.getItem(storageKey) || 'null');
       setTabs(saved?.tabs || []);
@@ -20,14 +30,19 @@ export function useTabs(vaultRoot) {
       setTabs([]);
       setActiveId(null);
     }
-    setLoadedKey(storageKey);
-  }, [storageKey]);
+    previousVault.current = storageKey;
+    setLoadedKey(loadKey);
+  }, [storageKey, persist, loadKey]);
 
   useEffect(() => {
-    if (storageKey && loadedKey === storageKey) {
+    if (persist && storageKey && loadedKey === loadKey) {
       localStorage.setItem(storageKey, JSON.stringify({ tabs, activeId }));
     }
-  }, [tabs, activeId, storageKey, loadedKey]);
+  }, [tabs, activeId, storageKey, loadedKey, loadKey, persist]);
+
+  useEffect(() => {
+    if (activeId && !tabs.some((tab) => tab.id === activeId)) setActiveId(tabs[0]?.id || null);
+  }, [tabs, activeId]);
 
   const activeTab = tabs.find((t) => t.id === activeId) || null;
 

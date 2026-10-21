@@ -1,6 +1,8 @@
+import defaults from './defaultSettings.json' with { type: 'json' };
+
 const cache = new Map();
-let maxEntries = 16;
-let maxCharacters = 4_000_000;
+let maxEntries = defaults.visualCacheEntries;
+let maxCharacters = defaults.visualCacheCharacters;
 let characters = 0;
 
 function trimCache() {

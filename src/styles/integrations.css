@@ -112,6 +112,25 @@
 
 .visual-find-row input[type="checkbox"] { accent-color: var(--accent); }
 
+.custom-css-editor {
+  display: grid;
+  gap: 8px;
+  font-size: 13px;
+  margin: 12px 0;
+}
+
+.custom-css-editor textarea {
+  width: 100%;
+  min-height: 180px;
+  resize: vertical;
+  padding: 10px;
+  font-family: var(--font-mono);
+  background: var(--bg-secondary);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}
+
 .find-and-replace-result {
   background: var(--highlight-bg);
   color: var(--highlight-text);

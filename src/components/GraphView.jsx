@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useI18n } from '../lib/i18n.js';
-import { baseName } from '../lib/vault.js';
+import { displayName } from '../lib/vault.js';
 
 function nodeColor(tags) {
   if (tags.includes('aff')) return '--aff';
@@ -9,7 +9,7 @@ function nodeColor(tags) {
   return '--text-muted';
 }
 
-function buildGraph(index, activePath, local, showOrphans) {
+function buildGraph(index, activePath, local, showOrphans, showMarkdownExtension) {
   const md = index.paths.filter((p) => p.endsWith('.md'));
   const tagsOf = {};
   for (const [tag, ps] of Object.entries(index.tags)) for (const p of ps) (tagsOf[p] ||= []).push(tag);
@@ -33,14 +33,14 @@ function buildGraph(index, activePath, local, showOrphans) {
   }
   const nodes = [...include].map((p) => ({
     id: p,
-    label: baseName(p),
+    label: displayName(p, true, showMarkdownExtension),
     r: 4 + Math.sqrt(degree[p] || 0) * 2.5,
     color: nodeColor(tagsOf[p] || []),
   }));
   return { nodes, edges };
 }
 
-export default function GraphView({ index, activePath, onOpen }) {
+export default function GraphView({ index, activePath, onOpen, showMarkdownExtension = false }) {
   const { t } = useI18n();
   const canvasRef = useRef(null);
   const wrapRef = useRef(null);
@@ -49,7 +49,7 @@ export default function GraphView({ index, activePath, onOpen }) {
   const live = useRef({});
   live.current = { onOpen, activePath };
   const localRoot = local ? activePath : null;
-  const graph = useMemo(() => buildGraph(index, localRoot, !!localRoot, showOrphans), [index, localRoot, showOrphans]);
+  const graph = useMemo(() => buildGraph(index, localRoot, !!localRoot, showOrphans, showMarkdownExtension), [index, localRoot, showOrphans, showMarkdownExtension]);
 
   useEffect(() => {
     const canvas = canvasRef.current;

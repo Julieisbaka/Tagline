@@ -169,7 +169,7 @@ test('model autoload preference persists and semantic search forwards the result
   let config = { modelAutoload: false };
   registerEmbeddings({
     app, ipcMain: { handle: (name, handler) => { handlers[name] = handler; } },
-    safeStorage: { isEncryptionAvailable: () => true }, getVaultRoot: () => root,
+    safeStorage: { isAsyncEncryptionAvailable: async () => true }, getVaultRoot: () => root,
     readConfig: () => config, writeConfig: (patch) => { config = { ...config, ...patch }; },
   });
   t.after(() => app.emit('before-quit'));

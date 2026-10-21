@@ -5,7 +5,7 @@ import { folderPaths, normalizeFolders } from './folderPaths.js';
 const api = window.api;
 const SAVE_DELAY = 400;
 
-export function useVault(underscoreFolders = true) {
+export function useVault(underscoreFolders = true, autoRelink = true) {
   const [vault, setVault] = useState(null);
   const [tree, setTree] = useState([]);
   const [contents, setContents] = useState({});
@@ -129,7 +129,7 @@ export function useVault(underscoreFolders = true) {
         const paths = Object.keys(all);
         await api.rename(from, to);
         const moved = paths.filter((p) => p === from || p.startsWith(from + '/'));
-        for (const p of paths.filter(isMarkdown)) {
+        for (const p of autoRelink ? paths.filter(isMarkdown) : []) {
           let updated = all[p];
           for (const oldPath of moved.filter(isMarkdown)) {
             updated = rewriteLinks(updated, oldPath, to + oldPath.slice(from.length), paths);
@@ -144,7 +144,7 @@ export function useVault(underscoreFolders = true) {
         return null;
       }
     },
-    [flush, reload, underscoreFolders, tree],
+    [flush, reload, underscoreFolders, tree, autoRelink],
   );
 
   const remove = useCallback(

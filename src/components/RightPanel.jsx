@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { baseName, outline } from '../lib/vault.js';
+import { baseName, displayName, outline } from '../lib/vault.js';
 import Timer from './Timer.jsx';
 import Icon from './Icon.jsx';
 import { useI18n } from '../lib/i18n.js';
@@ -20,7 +20,7 @@ function snippetsFor(content, name) {
     .map((l) => l.trim().slice(0, 160));
 }
 
-function Backlinks({ activePath, index, contents, onOpen }) {
+function Backlinks({ activePath, index, contents, onOpen, settings }) {
   const { t } = useI18n();
   const name = activePath ? baseName(activePath) : '';
   const linked = (activePath && index.backlinks[activePath]) || [];
@@ -43,7 +43,7 @@ function Backlinks({ activePath, index, contents, onOpen }) {
       {linked.length === 0 && <div className="empty-hint">{t('No notes link here yet.')}</div>}
       {linked.map((p) => (
         <div key={p} className="backlink" onClick={(e) => onOpen(p, e.ctrlKey || e.metaKey)}>
-          <div className="backlink-title">{baseName(p)}</div>
+          <div className="backlink-title">{displayName(p, settings.hideFlowExtension, settings.showMarkdownExtension)}</div>
           {snippetsFor(contents[p] || '', `[[${name}`).map((s, i) => (
             <div key={i} className="backlink-snippet">
               {s}
@@ -54,7 +54,7 @@ function Backlinks({ activePath, index, contents, onOpen }) {
       <div className="panel-section-title">{t('Unlinked mentions ({count})', { count: unlinked.length })}</div>
       {unlinked.map((p) => (
         <div key={p} className="backlink" onClick={(e) => onOpen(p, e.ctrlKey || e.metaKey)}>
-          <div className="backlink-title">{baseName(p)}</div>
+          <div className="backlink-title">{displayName(p, settings.hideFlowExtension, settings.showMarkdownExtension)}</div>
           {snippetsFor(contents[p] || '', name).map((s, i) => (
             <div key={i} className="backlink-snippet">
               {s}

@@ -53,6 +53,25 @@ export default function AdvancedSettings({ settings, update, section = 'all' }) 
       <input type="checkbox" data-setting="hideFlowExtension" checked={settings.hideFlowExtension}
         onChange={(e) => update({ hideFlowExtension: e.target.checked })} />
     </label>
+    <label className="setting-row"><span>{t('Show .md file extension')}</span>
+      <input type="checkbox" data-setting="showMarkdownExtension" checked={settings.showMarkdownExtension}
+        onChange={(e) => update({ showMarkdownExtension: e.target.checked })} />
+    </label>
+    <h4>{t('Links and workspace')}</h4>
+    <label className="setting-row"><span>{t('Automatically update wiki links when renaming')}</span>
+      <input type="checkbox" data-setting="autoRelink" checked={settings.autoRelink}
+        onChange={(e) => update({ autoRelink: e.target.checked })} />
+    </label>
+    <label className="setting-row"><span>{t('Close tabs when files disappear externally')}</span>
+      <input type="checkbox" data-setting="closeMissingTabs" checked={settings.closeMissingTabs}
+        onChange={(e) => update({ closeMissingTabs: e.target.checked })} />
+    </label>
+    <p>{t('Deleting files inside Tagline always closes their tabs. Kept missing-file tabs show a notice until the file returns.')}</p>
+    <label className="setting-row"><span>{t('Persist workspace tabs')}</span>
+      <input type="checkbox" data-setting="persistWorkspaceTabs" checked={settings.persistWorkspaceTabs}
+        onChange={(e) => update({ persistWorkspaceTabs: e.target.checked })} />
+    </label>
+    <p>{t('When disabled, current tabs stay open but are not saved. Saved workspaces remain dormant and are restored when this is enabled again.')}</p>
     </>}
     {error && <p role="alert" className="error-text">{error}</p>}
   </section>;

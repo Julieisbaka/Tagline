@@ -1,10 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useI18n } from '../lib/i18n.js';
 import { searchVault } from '../lib/search.js';
-import { baseName, isMarkdown } from '../lib/vault.js';
+import { displayName, isMarkdown } from '../lib/vault.js';
 
 // Full-text search. Supports "tag:name" to filter by tag and quoted phrases.
-export default function SearchModal({ contents, index, initialQuery = '', maxResults = 200, onOpen, onClose }) {
+export default function SearchModal({ contents, index, initialQuery = '', maxResults = 200, showMarkdownExtension = false, onOpen, onClose }) {
   const { t } = useI18n();
   const [query, setQuery] = useState(initialQuery);
   const [mode, setMode] = useState('text');
@@ -91,7 +91,7 @@ export default function SearchModal({ contents, index, initialQuery = '', maxRes
                   onClose();
                 }}
               >
-                {baseName(r.path)} <span className="palette-detail">{r.path}</span>
+                {displayName(r.path, true, showMarkdownExtension)} <span className="palette-detail">{r.path}</span>
                 {r.score != null && <span className="search-score"> ({t('similarity')} {r.score.toFixed(3)})</span>}
               </div>
               {r.matches.map((m) => (

@@ -8,10 +8,10 @@ export function baseName(p) {
   return file.replace(/\.(md|flow)$/i, '');
 }
 
-// UI label for a file: .md is always hidden; .flow is shown only when the user opts in.
-export function displayName(p, hideFlowExtension = true) {
+export function displayName(p, hideFlowExtension = true, showMarkdownExtension = false) {
   const file = p.split('/').pop();
-  return hideFlowExtension ? baseName(p) : file.replace(/\.md$/i, '');
+  if (isMarkdown(p)) return showMarkdownExtension ? file : baseName(p);
+  return hideFlowExtension ? baseName(p) : file;
 }
 
 export function dirName(p) {

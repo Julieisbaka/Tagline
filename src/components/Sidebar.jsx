@@ -34,7 +34,7 @@ function ContextMenu({ menu, onClose, actions }) {
   );
 }
 
-export default function Sidebar({ vault, tree, activePath, actions, spacedFolders = false, hideFlowExtension = true }) {
+export default function Sidebar({ vault, tree, activePath, actions, spacedFolders = false, hideFlowExtension = true, showMarkdownExtension = false }) {
   const { t } = useI18n();
   const [menu, setMenu] = useState(null);
   const activeDir = activePath ? dirName(activePath) : '';
@@ -70,6 +70,7 @@ export default function Sidebar({ vault, tree, activePath, actions, spacedFolder
         onDropMove={onDropMove}
         spaced={spacedFolders}
         hideFlowExtension={hideFlowExtension}
+        showMarkdownExtension={showMarkdownExtension}
       />
       <div className="sidebar-footer" title={vault.root}>
         <button className="vault-switch" onClick={actions.switchVault}>

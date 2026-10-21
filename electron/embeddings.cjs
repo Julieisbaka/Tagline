@@ -1,6 +1,7 @@
 const { Worker } = require('node:worker_threads');
 const path = require('node:path');
 const fs = require('node:fs/promises');
+const defaults = require('../src/lib/defaultSettings.json');
 
 const MODEL = 'Xenova/all-MiniLM-L6-v2';
 const MODEL_FILES = ['config.json', 'tokenizer.json', 'tokenizer_config.json', path.join('onnx', 'model_quantized.onnx')];
@@ -35,8 +36,8 @@ function registerEmbeddings({ app, ipcMain, safeStorage, getVaultRoot, readConfi
       throw e;
     }
     tokenConfigured = true;
-    if (!safeStorage.isEncryptionAvailable()) throw new Error('OS credential encryption is unavailable.');
-    try { return safeStorage.decryptString(encrypted); }
+    if (!await safeStorage.isAsyncEncryptionAvailable()) throw new Error('OS credential encryption is unavailable.');
+    try { return (await safeStorage.decryptStringAsync(encrypted)).result; }
     catch (e) { throw new Error(`Cannot decrypt the saved token. Re-enter or remove it in Settings. ${e.message}`); }
   }
 
@@ -92,8 +93,8 @@ function registerEmbeddings({ app, ipcMain, safeStorage, getVaultRoot, readConfi
     catch (e) { if (e.code !== 'ENOENT') throw e; tokenConfigured = false; }
     return {
       ...state, downloaded: state.ready || await modelDownloaded(),
-      autoload: readConfig().modelAutoload !== false,
-      tokenConfigured, encryptionAvailable: safeStorage.isEncryptionAvailable(),
+      autoload: readConfig().modelAutoload ?? defaults.modelAutoload,
+      tokenConfigured, encryptionAvailable: await safeStorage.isAsyncEncryptionAvailable(),
     };
   });
   ipcMain.handle('embeddings:autoload', async (_e, enabled) => {
@@ -110,9 +111,9 @@ function registerEmbeddings({ app, ipcMain, safeStorage, getVaultRoot, readConfi
       tokenConfigured = false;
     } else {
       if (!/^hf_[A-Za-z0-9]+$/.test(clean)) throw new Error('Expected a Hugging Face token beginning with hf_.');
-      if (!safeStorage.isEncryptionAvailable()) throw new Error('OS credential encryption is unavailable; token was not saved.');
+      if (!await safeStorage.isAsyncEncryptionAvailable()) throw new Error('OS credential encryption is unavailable; token was not saved.');
       await fs.mkdir(storage, { recursive: true });
-      await fs.writeFile(tokenFile, safeStorage.encryptString(clean), { mode: 0o600 });
+      await fs.writeFile(tokenFile, await safeStorage.encryptStringAsync(clean), { mode: 0o600 });
       tokenConfigured = true;
     }
     return { tokenConfigured };
@@ -122,7 +123,7 @@ function registerEmbeddings({ app, ipcMain, safeStorage, getVaultRoot, readConfi
     if (state.ready) return { ready: true, model: MODEL };
     return request({ type: 'download', token: await readToken() });
   });
-  ipcMain.handle('embeddings:search', async (_e, { query, documents, maxResults = 200 }) => {
+  ipcMain.handle('embeddings:search', async (_e, { query, documents, maxResults = defaults.searchMaxResults }) => {
     await autoload;
     const vault = getVaultRoot();
     if (!vault) throw new Error('Open a vault first.');
@@ -143,7 +144,7 @@ function registerEmbeddings({ app, ipcMain, safeStorage, getVaultRoot, readConfi
     state = { ...state, detail: 'Loading downloaded model...' };
     await request({ type: 'load' });
   }
-  autoload = (readConfig().modelAutoload !== false ? loadDownloaded() : Promise.resolve())
+  autoload = ((readConfig().modelAutoload ?? defaults.modelAutoload) ? loadDownloaded() : Promise.resolve())
     .catch((e) => {
       state = { ...state, busy: false, ready: false, error: e.message };
       console.error('Model autoload failed:', e);
