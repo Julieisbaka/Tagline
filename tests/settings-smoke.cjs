@@ -13,7 +13,8 @@ if (!process.versions.electron) {
   return;
 }
 
-const { app, shell, dialog } = require('electron');
+const { app, shell, dialog, ipcMain } = require('electron');
+const http = require('node:http');
 const fs = require('node:fs/promises');
 const path = require('node:path');
 const assert = require('node:assert/strict');
@@ -36,6 +37,15 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
   app.setPath('userData', profile);
   // Keep deletion local to this temporary test vault rather than using the OS trash.
   shell.trashItem = async (file) => fs.rm(file);
+  const externalUrls = [];
+  shell.openExternal = async (url) => { externalUrls.push(url); };
+  const server = http.createServer((request, response) => {
+    response.setHeader('Content-Type', 'text/html');
+    response.end(`<h1>${request.url}</h1><a id="next" href="/two">Next</a>
+      <script>document.body.dataset.rendered = 'yes';</script>`);
+  });
+  await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
+  const website = `http://127.0.0.1:${server.address().port}/one`;
   app.on('browser-window-created', (_event, win) => {
     win.webContents.once('did-finish-load', async () => {
       const wc = win.webContents;
@@ -48,7 +58,10 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
           saved: JSON.parse(localStorage.getItem('tagline-settings')),
           style: document.querySelector('#tagline-custom-css')?.textContent,
           outline: getComputedStyle(document.querySelector('.sidebar')).outline,
-          draft: document.querySelector('[aria-label="CSS source"]')?.value
+          draft: document.querySelector('[aria-label="CSS source"]')?.value,
+          website: document.querySelector('.website-status')?.textContent,
+          browserUpdates: window.browserUpdates,
+          browserButtons: [...document.querySelectorAll('.website-toolbar button')].map(el => [el.textContent, el.disabled])
         })`)));
       };
       const click = (selector) => js(`document.querySelector(${JSON.stringify(selector)}).click()`);
@@ -91,6 +104,67 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
       try {
         await wait("document.querySelectorAll('.tree-item').length === 3");
         await open('Alpha.md');
+        await wait("!!document.querySelector('[aria-label=\"Dismiss visual editor notice\"]')");
+        await click('[aria-label="Dismiss visual editor notice"]');
+        await wait("!document.querySelector('.editor-notice')");
+        await reload();
+        await wait("!!document.querySelector('.ProseMirror')");
+        assert.equal(await js("!!document.querySelector('[aria-label=\"Dismiss visual editor notice\"]')"), false);
+        await settings('advanced');
+        assert.equal(await js("document.querySelector('[data-flag=\"visualNoticeDismissed\"]').checked"), true);
+        await click('[data-flag="visualNoticeDismissed"]');
+        await done();
+        await wait("!!document.querySelector('[aria-label=\"Dismiss visual editor notice\"]')");
+
+        ipcMain.removeHandler('pandoc:status');
+        ipcMain.handle('pandoc:status', () => ({ available: false }));
+        await settings('integrations');
+        await button('.integration-settings button', 'Install Pandoc');
+        assert.equal(externalUrls.pop(), 'https://pandoc.org/installing.html');
+        await done();
+
+        await js(`window.browserUpdates = []; window.api.onWebsiteState(next => window.browserUpdates.push(next)); window.open(${JSON.stringify(website)})`);
+        await wait("!!document.querySelector('.website-view')");
+        await wait(`document.querySelector('.website-status')?.textContent === ${JSON.stringify(website)}`);
+        const websiteView = win.contentView.children.find((view) => view.webContents);
+        const remote = websiteView.webContents;
+        const preferences = remote.getLastWebPreferences();
+        assert.equal(preferences.nodeIntegration, false);
+        assert.equal(preferences.sandbox, true);
+        assert.equal(preferences.contextIsolation, true);
+        assert.equal(preferences.preload, undefined);
+        assert.equal(await remote.executeJavaScript("document.body.dataset.rendered"), 'yes');
+        assert.equal(await remote.executeJavaScript("typeof window.api + ',' + typeof require"), 'undefined,undefined');
+        await remote.executeJavaScript("document.querySelector('#next').click()");
+        await wait("document.querySelector('.website-status')?.textContent.endsWith('/two')");
+        await wait("!document.querySelector('.website-toolbar button').disabled");
+        await button('.website-toolbar button', 'Back');
+        await wait(`document.querySelector('.website-status')?.textContent === ${JSON.stringify(website)}`);
+        await button('.website-toolbar button', 'Forward');
+        await wait("document.querySelector('.website-status')?.textContent.endsWith('/two')");
+        win.setSize(1200, 800);
+        await delay(200);
+        const surfaceWidth = await js("document.querySelector('.website-surface').getBoundingClientRect().width");
+        assert.ok(Math.abs(websiteView.getBounds().width - surfaceWidth) <= 1);
+        await button('.website-toolbar button', 'Open in browser');
+        assert.equal(externalUrls.pop(), website.replace('/one', '/two'));
+        await input('[aria-label="Website address"]', 'file:///C:/Windows/win.ini');
+        await js("document.querySelector('.website-toolbar').dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))");
+        await wait("document.querySelector('.website-status')?.textContent.includes('Only HTTP')");
+        assert.equal(remote.getURL(), website.replace('/one', '/two'));
+        await click('[aria-label="Close website"]');
+        await wait("!document.querySelector('.website-view')");
+        assert.equal(remote.isDestroyed(), true);
+        await settings('integrations');
+        await toggle('embedWebsites', false);
+        await done();
+        await js(`window.open(${JSON.stringify(website)})`);
+        await delay(100);
+        assert.equal(externalUrls.pop(), website);
+        assert.equal(await js("!!document.querySelector('.website-view')"), false);
+        await settings('integrations');
+        await toggle('embedWebsites', true);
+        await done();
         await open('Beta.md');
         await settings();
         await toggle('showMarkdownExtension', true);
@@ -218,9 +292,18 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
         await js("document.querySelector('.tree-item[title=\"Alpha.md\"]').dispatchEvent(new MouseEvent('contextmenu', { bubbles: true }))");
         await button('.context-menu button', 'Delete');
         await wait("!document.querySelector('.tab[title=\"Alpha.md\"]')");
-        console.log('PASS: extension labels, configurable relinking, retained/restored missing tabs, active-tab pruning, dormant workspace persistence, custom CSS editing/import/opt-in/reload/reset.');
+        server.close();
+        console.log('PASS: notice dismissal/reset/reload, Pandoc install link, isolated embedded websites/navigation/resize/close/external toggle, extension labels, configurable relinking, missing tabs, dormant workspaces, and custom CSS.');
         app.exit(0);
-      } catch (error) { console.error('FAIL:', error.stack); app.exit(1); }
+      } catch (error) {
+        console.error('FAIL:', error.stack);
+        for (const view of win.contentView.children) {
+          if (view.webContents) console.error('Website history:', view.webContents.navigationHistory.canGoBack(),
+            view.webContents.navigationHistory.getActiveIndex(),
+            view.webContents.navigationHistory.getAllEntries().map((entry) => entry.url));
+        }
+        app.exit(1);
+      }
     });
   });
   require('../electron/main.cjs');

@@ -6,6 +6,19 @@ import contrastLight from '../themes/high-contrast-light.json' with { type: 'jso
 export const BUILTIN_THEMES = [dark, light, contrastDark, contrastLight];
 export const COLOR_TOKENS = Object.freeze(Object.keys(dark.colors));
 
+function validateVariables(value = {}) {
+  if (!value || typeof value !== 'object' || Array.isArray(value) || Object.keys(value).length > 256) {
+    throw new Error('Theme variables must be an object with at most 256 CSS custom properties.');
+  }
+  for (const [key, text] of Object.entries(value)) {
+    if (!/^[a-z][a-z0-9-]{0,99}$/.test(key) || typeof text !== 'string' || !text.trim() ||
+      text.length > 2048 || /[;{}\0]|url\s*\(|@import/i.test(text)) {
+      throw new Error(`Invalid theme variable: ${key}. Use a property name without -- and a CSS value without URLs or declarations.`);
+    }
+  }
+  return { ...value };
+}
+
 export function validateTheme(value) {
   if (!value || value.version !== 1 || typeof value.name !== 'string' ||
     !value.name.trim() || value.name.length > 80 || !['dark', 'light'].includes(value.mode) ||
@@ -22,6 +35,7 @@ export function validateTheme(value) {
   return {
     version: 1, id: 'custom', name: value.name.trim(), mode: value.mode,
     colors: { ...base.colors, ...value.colors },
+    variables: validateVariables(value.variables),
   };
 }
 
@@ -41,9 +55,14 @@ export function registerExtensionThemes(themes) {
   window.dispatchEvent(new Event('extensionthemes'));
 }
 
+let appliedVariables = [];
+
 export function applyTheme(theme) {
   const root = document.documentElement;
+  for (const key of appliedVariables) root.style.removeProperty(`--${key}`);
   for (const key of COLOR_TOKENS) root.style.setProperty(`--${key}`, theme.colors[key]);
+  appliedVariables = Object.keys(theme.variables || {});
+  for (const key of appliedVariables) root.style.setProperty(`--${key}`, theme.variables[key]);
   root.dataset.theme = theme.id;
   root.style.colorScheme = theme.mode;
   window.dispatchEvent(new Event('themechange'));

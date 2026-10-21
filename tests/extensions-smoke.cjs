@@ -32,11 +32,19 @@ tagline.commands.register('index', async () => {
   tagline.notify('Indexed ' + files.length + ' files, run ' + await tagline.storage.get('runs'));
 });
 tagline.commands.register('escape', async () => {
-  const report = [typeof window.api, typeof require];
+  const report = [typeof globalThis.api, typeof require];
   try { localStorage.getItem('x'); report.push('storage'); } catch { report.push('no-storage'); }
   try { parent.document.title; report.push('dom'); } catch { report.push('no-dom'); }
   try { await fetch('https://example.com'); report.push('network'); } catch { report.push('no-network'); }
   tagline.notify(report.join(','));
+});
+tagline.commands.register('spin', () => { while (true) {} });
+tagline.commands.register('flood', () => {
+  for (let i = 0; i < 300; i++) postMessage({ type: 'error', message: 'flood' });
+});
+tagline.commands.register('pending', async () => {
+  const results = await Promise.allSettled(Array.from({ length: 33 }, () => tagline.storage.get('runs')));
+  tagline.notify('Rejected ' + results.filter((item) => item.status === 'rejected').length + ' excess calls');
 });
 `;
 
@@ -55,13 +63,15 @@ tagline.commands.register('escape', async () => {
     main: 'main.js', permissions: ['editor', 'vault:read', 'vault:write'],
     contributes: {
       commands: [{ id: 'stamp', title: 'Stamp note', key: 'Mod+Alt+K' }, { id: 'index', title: 'Build index' },
-        { id: 'escape', title: 'Try escaping', key: 'Mod+N' }],
+        { id: 'escape', title: 'Try escaping', key: 'Mod+N' }, { id: 'spin', title: 'Spin forever' },
+        { id: 'flood', title: 'Flood messages' }, { id: 'pending', title: 'Pending limit' }],
       themes: ['themes/ocean.json'],
     },
   }));
   await fs.writeFile(path.join(ext('demo'), 'main.js'), DEMO);
   await fs.writeFile(path.join(ext('demo'), 'themes', 'ocean.json'), JSON.stringify({
     version: 1, name: 'Ocean', mode: 'dark', colors: { accent: '#12a4d9' },
+    variables: { 'font-ui': 'monospace', 'editor-font-size': '21px', 'extension-token': '12px' },
   }));
   await fs.writeFile(path.join(ext('nosy'), 'manifest.json'), JSON.stringify({
     manifestVersion: 1, id: 'nosy', name: 'Nosy', version: '0.1.0', main: 'main.js',
@@ -112,6 +122,9 @@ tagline.commands.register('escape', async () => {
         await palette('Nosy: Peek');
         await toast('Nosy: Permission "vault:read" is not declared');
 
+        await palette('Demo: Pending limit');
+        await toast('Rejected 1 excess calls');
+
         await palette('Demo: Build index');
         await toast('Demo: Indexed 2 files, run 1');
         await wait(`[...document.querySelectorAll('.tree-item')].some((el) => el.textContent.trim() === 'Index')`, 'index file');
@@ -136,6 +149,14 @@ tagline.commands.register('escape', async () => {
         await wait(`!!document.querySelector('.dialog.settings')`, 'settings');
         assert.equal(await js(`document.activeElement === document.querySelector('.dialog.settings')`), true);
         assert.equal(await js(`[...document.querySelectorAll('select option')].some((o) => o.textContent === 'Ocean (Demo)')`), true);
+        await js(`(() => { const el = document.querySelector('[data-setting="theme"]');
+          el.value = 'ext:demo:0'; el.dispatchEvent(new Event('change', { bubbles: true })); })()`);
+        await wait(`getComputedStyle(document.documentElement).getPropertyValue('--editor-font-size') === '21px'`, 'theme variables applied');
+        assert.equal(await js(`getComputedStyle(document.documentElement).getPropertyValue('--font-ui')`), 'monospace');
+        await js(`(() => { const el = document.querySelector('[data-setting="theme"]');
+          el.value = 'dark'; el.dispatchEvent(new Event('change', { bubbles: true })); })()`);
+        await wait(`getComputedStyle(document.documentElement).getPropertyValue('--editor-font-size') === '16px'`, 'font preference restored');
+        assert.equal(await js(`getComputedStyle(document.documentElement).getPropertyValue('--extension-token')`), '');
         await js(`document.querySelector('[data-section="extensions"]').click()`);
         await wait(`document.querySelectorAll('.extension-card').length === 2`, 'extension cards');
         assert.match(await js(`document.querySelector('[data-extension="demo"]').textContent`), /Create and change notes/);
@@ -149,6 +170,22 @@ tagline.commands.register('escape', async () => {
         await wait(`document.querySelectorAll('iframe[data-extension]').length === 1`, 'disabled extension unloaded');
         const config = JSON.parse(await fs.readFile(path.join(profile, 'config.json'), 'utf8'));
         assert.deepEqual(config.enabledExtensions, ['demo']);
+        await js(`[...document.querySelectorAll('.settings button')].find(el => el.textContent.trim() === 'Done').click()`);
+        await palette('Demo: Spin forever');
+        assert.equal(await js('6 * 7'), 42, 'App stays responsive during an extension loop');
+        await toast('Demo: Extension stopped responding');
+        await wait(`!document.querySelector('iframe[data-extension="demo"]')`, 'runaway worker removed');
+        await palette('Demo: Spin forever');
+        await toast('Demo was stopped');
+        await js(`window.dispatchEvent(new KeyboardEvent('keydown', { key: ',', ctrlKey: ${process.platform !== 'darwin'}, metaKey: ${process.platform === 'darwin'}, bubbles: true }))`);
+        await wait(`!!document.querySelector('.settings')`, 'settings after runaway loop');
+        await js(`document.querySelector('[data-section="extensions"]').click()`);
+        await js(`[...document.querySelectorAll('.settings button')].find(el => el.textContent.trim() === 'Reload extensions').click()`);
+        await wait(`!!document.querySelector('iframe[data-extension="demo"]')`, 'worker reloaded');
+        await js(`[...document.querySelectorAll('.settings button')].find(el => el.textContent.trim() === 'Done').click()`);
+        await palette('Demo: Flood messages');
+        await toast('exceeded 200 messages');
+        await wait(`!document.querySelector('iframe[data-extension="demo"]')`, 'flooding worker removed');
         console.log('Extension smoke test passed');
         app.exit(0);
       } catch (error) {

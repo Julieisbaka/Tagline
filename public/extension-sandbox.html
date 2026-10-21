@@ -1,16 +1,33 @@
 <!doctype html>
-<!-- Extension sandbox page. src/lib/extensions.js loads it in an iframe with sandbox="allow-scripts" (opaque origin).
-     It is a separate page rather than srcdoc so it gets this policy instead of inheriting the app CSP. -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline' 'unsafe-eval'">
+<!-- The opaque-origin iframe supervises a worker so extension loops cannot block the application thread. -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline' 'unsafe-eval' blob:; worker-src blob:">
 <script>
 (() => {
+  let worker;
+  let watchdog;
+  let started = false;
+  let lastHeartbeat = 0;
+  let windowStart = 0;
+  let messages = 0;
+  const fail = (message) => {
+    worker?.terminate();
+    worker = null;
+    clearInterval(watchdog);
+    parent.postMessage({ type: 'failed', message }, '*');
+  };
+  const workerMain = () => {
   const pending = new Map();
   const handlers = new Map();
   let next = 0;
   let started = false;
-  const send = (message) => parent.postMessage(message, '*');
+  const send = (message) => postMessage(message);
   const describe = (error) => String((error && error.message) || error);
+  setInterval(() => send({ type: 'heartbeat' }), 500);
   const call = (method, ...args) => new Promise((resolve, reject) => {
+    if (pending.size >= 32) {
+      reject(new Error('Extension is limited to 32 pending API calls.'));
+      return;
+    }
     const id = ++next;
     pending.set(id, { resolve, reject });
     send({ type: 'call', id, method, args });
@@ -39,7 +56,7 @@
     notify: (message) => call('notify', message),
   });
   addEventListener('message', async (event) => {
-    if (event.source !== parent || !event.data) return;
+    if (!event.data) return;
     const data = event.data;
     if (data.type === 'start' && !started) {
       started = true;
@@ -55,6 +72,33 @@
     } else if (data.type === 'command') {
       try { await handlers.get(data.command)?.(); }
       catch (error) { send({ type: 'error', message: describe(error) }); }
+    }
+  });
+  };
+  addEventListener('message', (event) => {
+    if (event.source !== parent || !event.data) return;
+    const data = event.data;
+    if (data.type === 'start' && !started) {
+      started = true;
+      const url = URL.createObjectURL(new Blob([`(${workerMain.toString()})();`], { type: 'text/javascript' }));
+      try { worker = new Worker(url); }
+      catch (error) { fail(String(error.message)); return; }
+      finally { URL.revokeObjectURL(url); }
+      lastHeartbeat = windowStart = performance.now();
+      worker.onmessage = ({ data: message }) => {
+        const now = performance.now();
+        if (message.type === 'heartbeat') { lastHeartbeat = now; return; }
+        if (now - windowStart >= 1000) { windowStart = now; messages = 0; }
+        if (++messages > 200) { fail('Extension exceeded 200 messages per second and was stopped.'); return; }
+        parent.postMessage(message, '*');
+      };
+      worker.onerror = (event) => { event.preventDefault(); fail(event.message || 'Extension worker failed.'); };
+      watchdog = setInterval(() => {
+        if (performance.now() - lastHeartbeat > 5000) fail('Extension stopped responding for 5 seconds and was stopped.');
+      }, 500);
+      worker.postMessage(data);
+    } else if (worker && (data.type === 'result' || data.type === 'command')) {
+      worker.postMessage(data);
     }
   });
 })();

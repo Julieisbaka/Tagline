@@ -35,6 +35,7 @@ export default function NoteView({
   onExport,
   onCreateCitation,
   settings,
+  onDismissVisualNotice,
 }) {
   const { t, locale } = useI18n();
   const localRef = useRef(null);
@@ -154,8 +155,9 @@ export default function NoteView({
           </button>
         </div>
       </div>
-      {mode === 'visual' && !blocker && <div className="editor-notice">
-        {t('Visual edits normalize Markdown formatting. Source mode preserves exact syntax. Ctrl+click a wiki link to follow it.')}
+      {mode === 'visual' && !blocker && !settings.internalFlags?.visualNoticeDismissed && <div className="editor-notice dismissible-notice">
+        <span>{t('Visual edits normalize Markdown formatting. Source mode preserves exact syntax. Ctrl+click a wiki link to follow it.')}</span>
+        <button className="icon-btn" aria-label={t('Dismiss visual editor notice')} onClick={onDismissVisualNotice}>&times;</button>
       </div>}
       {blocker && <div className="editor-notice source-fallback" role="status">
         {t('This note contains {kind}. Showing source to preserve it; visual mode will not rewrite this note.', { kind: t(blocker) })}

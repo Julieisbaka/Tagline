@@ -37,6 +37,8 @@ export default function IntegrationSettings() {
       <p>{pandoc ? pandoc.available ? `${pandoc.version} (${pandoc.executable})`
         : t('Pandoc was not found. Install it or choose its executable in Settings.') : t('Checking Pandoc...')}</p>
       <div className="integration-buttons">
+        {pandoc && !pandoc.available && <button disabled={busy}
+          onClick={() => run(() => window.api.installPandoc())}>{t('Install Pandoc')}</button>}
         <button disabled={busy} onClick={() => run(async () => {
           const info = await window.api.choosePandoc();
           if (info) setPandoc(info);

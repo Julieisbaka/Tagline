@@ -10,6 +10,7 @@ const { registerFonts } = require('./fonts.cjs');
 const { registerExtensions } = require('./extensions.cjs');
 const { extractCitation } = require('./citationMetadata.cjs');
 const { registerFlowFiles } = require('./flowFiles.cjs');
+const { registerBrowser } = require('./browser.cjs');
 const keyDefinitions = require('../src/lib/keybindings.json');
 
 const isDev = process.argv.includes('--dev');
@@ -19,6 +20,7 @@ const NOTE_EXTS = ['.md', '.flow'];
 let win;
 let vaultRoot = null;
 let keybindings = {};
+let closeWebsiteView = () => {};
 
 function accelerator(id) {
   const value = keybindings[id] ?? keyDefinitions.find((item) => item.id === id)?.key;
@@ -95,6 +97,7 @@ async function openVault(dir) {
 }
 
 function registerIpc() {
+  ipcMain.handle('pandoc:install', () => shell.openExternal('https://pandoc.org/installing.html'));
   ipcMain.handle('citation:extract', (_event, url) => extractCitation(url));
   ipcMain.handle('keybindings:set', (_event, overrides) => {
     if (!overrides || typeof overrides !== 'object' || Array.isArray(overrides) ||
@@ -221,9 +224,13 @@ function createWindow() {
       : [{ role: 'copy' }, { role: 'selectAll' }];
     Menu.buildFromTemplate(template).popup({ window: win });
   });
-  // Open external links in the OS browser instead of inside the app.
+  win.on('close', () => closeWebsiteView());
+  win.webContents.on('did-start-navigation', (_event, _url, isInPlace, isMainFrame) => {
+    if (isMainFrame && !isInPlace) closeWebsiteView();
+  });
+  const openWebsite = (url) => win.webContents.send('browser:link', url);
   win.webContents.setWindowOpenHandler(({ url }) => {
-    if (/^https?:/i.test(url)) shell.openExternal(url);
+    if (/^https?:/i.test(url)) openWebsite(url);
     return { action: 'deny' };
   });
   win.webContents.on('will-navigate', (e, url) => {
@@ -231,7 +238,7 @@ function createWindow() {
     const current = new URL(win.webContents.getURL());
     if (destination.origin === current.origin && destination.pathname === current.pathname) return;
     e.preventDefault();
-    if (/^https?:/i.test(url)) shell.openExternal(url);
+    if (/^https?:/i.test(url)) openWebsite(url);
     else console.warn('Blocked navigation outside the application document:', url);
   });
 
@@ -305,6 +312,7 @@ if (primary) app.whenReady().then(() => {
   app.setAboutPanelOptions({ applicationName: 'Tagline', applicationVersion: '0.0.1' });
   buildMenu();
   registerIpc();
+  closeWebsiteView = registerBrowser({ ipcMain, shell, getWindow: () => win });
   registerPandoc({ ipcMain, dialog, getWindow: () => win, readConfig, writeConfig });
   registerDocuments({ ipcMain, dialog, getWindow: () => win, readConfig });
   registerFonts({ app, ipcMain, dialog, getWindow: () => win });

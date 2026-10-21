@@ -16,6 +16,7 @@ import SearchModal from './components/SearchModal.jsx';
 import ExportDialog from './components/ExportDialog.jsx';
 import ImportDialog from './components/ImportDialog.jsx';
 import CitationDialog from './components/CitationDialog.jsx';
+import WebsiteView from './components/WebsiteView.jsx';
 import { useI18n } from './lib/i18n.js';
 import { visualBlocker, visualSelection } from './lib/visualExtensions.js';
 import { useExtensions } from './lib/extensions.js';
@@ -67,6 +68,10 @@ export default function App() {
     clearTimeout(toastTimer.current);
     toastTimer.current = setTimeout(() => setToast(null), 2500);
   }, []);
+  useEffect(() => window.api.onWebsiteLink((url) => {
+    if (settings.embedWebsites) setModal({ type: 'website', url });
+    else window.api.websiteAction('external', url).catch((e) => notify(e.message));
+  }), [settings.embedWebsites, notify]);
   useEffect(() => {
     const onError = (e) => notify(e.detail);
     window.addEventListener('app-error', onError);
@@ -438,6 +443,9 @@ export default function App() {
         onExport={ctx.exportNote}
         onCreateCitation={ctx.createCitation}
         settings={settings}
+        onDismissVisualNotice={() => updateSettings({
+          internalFlags: { ...settings.internalFlags, visualNoticeDismissed: true },
+        })}
       />
     );
   };
@@ -511,6 +519,7 @@ export default function App() {
       {modal?.type === 'import' && <ImportDialog onImport={createAndOpen} onClose={() => setModal(null)} />}
       {modal?.type === 'citation' && <CitationDialog onInsert={activePath && isMarkdown(activePath) && mode !== 'read'
         ? insertCitation : null} onClose={() => setModal(null)} />}
+      {modal?.type === 'website' && <WebsiteView key={modal.url} url={modal.url} onClose={() => setModal(null)} />}
       {toast && <div className="toast">{toast}</div>}
     </div>
   );

@@ -142,6 +142,7 @@ export function SettingsDialog({ settings, update, onClose, extensions }) {
     ['integrations', 'Integrations', 'Document conversion and local models'],
     ['shortcuts', 'Keyboard shortcuts', 'Your commands, your keys'],
     ['extensions', 'Extensions', 'Sandboxed commands and themes from your extensions folder'],
+    ['advanced', 'Advanced settings', 'Inspect and reset internal application flags'],
   ];
   const field = (label, key, type = 'text', extra = {}) => (
     <label className="setting-row">
@@ -226,6 +227,11 @@ export function SettingsDialog({ settings, update, onClose, extensions }) {
           <p>{t('Installed builds register Tagline as an app for .flow files. To make it the default, use Open With in your file manager and select Tagline. On macOS choose Change All in Get Info.')}</p>
         </section>
         <section hidden={section !== 'integrations'} className="settings-panel">
+        <label className="setting-row"><span>{t('Open websites inside Tagline')}</span>
+          <input type="checkbox" data-setting="embedWebsites" checked={settings.embedWebsites}
+            onChange={(e) => update({ embedWebsites: e.target.checked })} />
+        </label>
+        <p>{t('Websites use an isolated browser session with JavaScript and sign-in support. Paywalls and anti-bot protections are not bypassed. Disable this to use your default browser.')}</p>
         <IntegrationSettings />
         </section>
         <section hidden={section !== 'shortcuts'} className="settings-panel">
@@ -233,6 +239,14 @@ export function SettingsDialog({ settings, update, onClose, extensions }) {
         </section>
         <section hidden={section !== 'extensions'} className="settings-panel">
           {extensions && <ExtensionSettings extensions={extensions} />}
+        </section>
+        <section hidden={section !== 'advanced'} className="settings-panel">
+          <h3>{t('Internal flags')}</h3>
+          <p>{t('These flags record dismissed notices. Clear a flag to show its notice again.')}</p>
+          <label className="setting-row"><span>{t('Visual editor notice dismissed')}</span>
+            <input type="checkbox" data-flag="visualNoticeDismissed" checked={!!settings.internalFlags?.visualNoticeDismissed}
+              onChange={(e) => update({ internalFlags: { ...settings.internalFlags, visualNoticeDismissed: e.target.checked } })} />
+          </label>
         </section>
           </div>
           <footer className="settings-footer"><span>{t('Settings are saved on this device')}</span>

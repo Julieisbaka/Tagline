@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { registerExtensionThemes, validateTheme } from './themes.js';
 import { KEYBINDINGS, reservedBinding, validBinding } from './keybindings.js';
 
-// Extension code runs in an opaque-origin iframe (sandbox="allow-scripts" without allow-same-origin):
+// A worker runs extension code inside an opaque-origin supervisor iframe:
 // it cannot reach window.api, the DOM, app storage or the network (CSP connect-src 'none').
 // Everything it can do goes through the permission-checked message bridge below. The bootstrap that
 // defines the `tagline` global lives in public/extension-sandbox.html.
@@ -24,6 +24,9 @@ export class ExtensionHost {
     this.source = source;
     this.bridge = bridge;
     this.registered = new Set();
+    this.pendingCalls = 0;
+    this.messageWindow = 0;
+    this.messageCount = 0;
     this.onMessage = this.onMessage.bind(this);
   }
 
@@ -94,21 +97,37 @@ export class ExtensionHost {
   async onMessage(event) {
     if (!this.frame || event.source !== this.frame.contentWindow || !event.data) return;
     const data = event.data;
+    const now = performance.now();
+    if (now - this.messageWindow >= 1000) { this.messageWindow = now; this.messageCount = 0; }
+    if (++this.messageCount > 200) {
+      const error = new Error('Extension exceeded 200 messages per second and was stopped.');
+      if (this.settle) this.settle(error);
+      else { this.dispose(); this.bridge.notify(`${this.manifest.name}: ${error.message}`); }
+      return;
+    }
     if (data.type === 'ready') this.settle?.();
     else if (data.type === 'failed') {
       const error = new Error(String(data.message));
-      if (this.settle) this.settle(error); else this.bridge.notify(`${this.manifest.name}: ${error.message}`);
+      if (this.settle) this.settle(error);
+      else { this.dispose(); this.bridge.notify(`${this.manifest.name}: ${error.message}`); }
     } else if (data.type === 'error') this.bridge.notify(`${this.manifest.name}: ${String(data.message).slice(0, 500)}`);
     else if (data.type === 'call') {
+      if (this.pendingCalls >= 32) {
+        this.frame.contentWindow.postMessage({ type: 'result', id: data.id, error: 'Extension is limited to 32 pending API calls.' }, '*');
+        return;
+      }
+      this.pendingCalls++;
       let reply;
       try {
         reply = { type: 'result', id: data.id, value: await this.handle(data.method, Array.isArray(data.args) ? data.args : []) };
       } catch (error) { reply = { type: 'result', id: data.id, error: error.message }; }
+      finally { this.pendingCalls--; }
       this.frame?.contentWindow?.postMessage(reply, '*');
     }
   }
 
   run(commandId) {
+    if (!this.frame) throw new Error(`${this.manifest.name} was stopped. Reload or disable it in Settings > Extensions.`);
     if (!this.registered.has(commandId)) throw new Error(`${this.manifest.name} has not registered "${commandId}".`);
     this.frame.contentWindow.postMessage({ type: 'command', command: commandId }, '*');
   }
@@ -117,6 +136,7 @@ export class ExtensionHost {
     window.removeEventListener('message', this.onMessage);
     this.frame?.remove();
     this.frame = null;
+    this.registered.clear();
   }
 }
 

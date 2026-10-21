@@ -2,6 +2,54 @@
   min-height: 100%;
 }
 
+.dismissible-notice {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.dismissible-notice button {
+  flex-shrink: 0;
+}
+
+.website-view {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg);
+}
+
+.mac-app .website-view {
+  top: 38px;
+}
+
+.website-toolbar {
+  display: flex;
+  gap: 6px;
+  padding: 10px;
+  border-bottom: 1px solid var(--border);
+}
+
+.website-toolbar input {
+  flex: 1;
+  min-width: 80px;
+}
+
+.website-status {
+  padding: 4px 10px;
+  font-size: 12px;
+  color: var(--text-muted);
+  overflow-wrap: anywhere;
+}
+
+.website-surface {
+  flex: 1;
+  min-height: 0;
+}
+
 .note-header {
   flex-wrap: wrap;
 }

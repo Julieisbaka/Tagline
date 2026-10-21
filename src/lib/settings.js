@@ -9,7 +9,8 @@ const KEY = 'tagline-settings';
 function load() {
   try {
     const saved = localStorage.getItem(KEY);
-    return { ...DEFAULTS, ...JSON.parse(saved || '{}') };
+    const parsed = JSON.parse(saved || '{}');
+    return { ...DEFAULTS, ...parsed, internalFlags: { ...DEFAULTS.internalFlags, ...parsed?.internalFlags } };
   } catch {
     return { ...DEFAULTS };
   }
@@ -40,9 +41,11 @@ export function useSettings() {
   }, [settings.customCssEnabled, settings.customCss]);
   useLayoutEffect(() => {
     const root = document.documentElement;
-    root.style.setProperty('--font-text', settings.importedFont ? '"Tagline Custom"' :
-      settings.fontFamily.trim() ? `${JSON.stringify(settings.fontFamily.trim())}, system-ui, sans-serif` : 'system-ui, sans-serif');
-  }, [settings.fontFamily, settings.importedFont]);
+    const variables = getTheme(settings.theme, settings.customTheme).variables || {};
+    root.style.setProperty('--font-text', variables['font-text'] ?? (settings.importedFont ? '"Tagline Custom"' :
+      settings.fontFamily.trim() ? `${JSON.stringify(settings.fontFamily.trim())}, system-ui, sans-serif` : 'system-ui, sans-serif'));
+    root.style.setProperty('--editor-font-size', variables['editor-font-size'] ?? `${settings.fontSize}px`);
+  }, [settings.fontFamily, settings.importedFont, settings.fontSize, settings.theme, settings.customTheme, themeRevision]);
   useEffect(() => {
     if (!settings.importedFont) return;
     let disposed = false;
@@ -61,7 +64,6 @@ export function useSettings() {
       console.error('Could not save settings:', error);
       window.dispatchEvent(new CustomEvent('app-error', { detail: `Could not save settings: ${error.message}` }));
     }
-    document.documentElement.style.setProperty('--editor-font-size', `${settings.fontSize}px`);
   }, [settings]);
   const update = useCallback((patch) => setSettings((s) => ({ ...s, ...patch })), []);
   return [settings, update];

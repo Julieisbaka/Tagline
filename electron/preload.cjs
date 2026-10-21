@@ -2,6 +2,21 @@ const { contextBridge, ipcRenderer } = require('electron');
 
 contextBridge.exposeInMainWorld('api', {
   platform: process.platform,
+  installPandoc: () => ipcRenderer.invoke('pandoc:install'),
+  openWebsite: (url, bounds) => ipcRenderer.invoke('browser:open', url, bounds),
+  resizeWebsite: (bounds) => ipcRenderer.invoke('browser:bounds', bounds),
+  closeWebsite: () => ipcRenderer.invoke('browser:close'),
+  websiteAction: (action, url) => ipcRenderer.invoke('browser:action', action, url),
+  onWebsiteLink: (callback) => {
+    const listener = (_event, url) => callback(url);
+    ipcRenderer.on('browser:link', listener);
+    return () => ipcRenderer.removeListener('browser:link', listener);
+  },
+  onWebsiteState: (callback) => {
+    const listener = (_event, state) => callback(state);
+    ipcRenderer.on('browser:state', listener);
+    return () => ipcRenderer.removeListener('browser:state', listener);
+  },
   extractCitation: (url) => ipcRenderer.invoke('citation:extract', url),
   setKeybindings: (overrides) => ipcRenderer.invoke('keybindings:set', overrides),
   nextFlowFile: () => ipcRenderer.invoke('flow:pending'),

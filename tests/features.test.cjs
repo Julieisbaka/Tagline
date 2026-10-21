@@ -46,6 +46,29 @@ test('all themes share tokens; high contrast text meets 7:1 on major surfaces', 
   }
 });
 
+test('theme variables expose CSS values and reject malformed or network-loading overrides', async () => {
+  const { validateTheme } = await import('../src/lib/themes.js');
+  const value = { version: 1, name: 'Custom', mode: 'dark', colors: {}, variables: {
+    'font-ui': '"Example", sans-serif', 'editor-font-size': '20px',
+    'future-token': 'calc(100% - 20px)', accent: 'var(--text)',
+  } };
+  assert.deepEqual(validateTheme(value).variables, value.variables);
+  assert.deepEqual(validateTheme({ ...value, variables: undefined }).variables, {});
+  for (const variables of [[], null, { '--font-ui': 'serif' }, { a: 1 }, { a: 'url(https://example.com)' },
+    { a: 'red; color: blue' }, { a: '' }, Object.fromEntries(Array.from({ length: 257 }, (_, i) => [`var-${i}`, '1']))]) {
+    assert.throws(() => validateTheme({ ...value, variables }), /variable/i);
+  }
+});
+
+test('embedded browser accepts web URLs without enabling local or privileged schemes', () => {
+  const { webUrl } = require('../electron/browser.cjs');
+  assert.equal(webUrl('https://example.com/a?q=1'), 'https://example.com/a?q=1');
+  for (const url of ['file:///C:/secret', 'javascript:alert(1)', 'data:text/html,test',
+    'https://user:pass@example.com', '', null, 'https://example.com/' + 'a'.repeat(8192)]) {
+    assert.throws(() => webUrl(url));
+  }
+});
+
 test('Pandoc import chooses an explicit reader, passes literal paths, and surfaces errors', async (t) => {
   let captured;
   let fail = false;

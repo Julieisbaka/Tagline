@@ -23,5 +23,9 @@
   "fontFamily": "",
   "importedFont": false,
   "keybindings": {},
-  "modelAutoload": true
+  "modelAutoload": true,
+  "embedWebsites": true,
+  "internalFlags": {
+    "visualNoticeDismissed": false
+  }
 }
