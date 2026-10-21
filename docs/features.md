@@ -18,6 +18,20 @@ context actions, and use the quick switcher (`Mod+O`) or command palette
 (`Mod+P`) instead of browsing folders.
 
 Edits autosave. Use the reload-vault command to pick up external changes.
+In **Settings > Files and folders**, automatic wiki-link rewriting on rename,
+closing externally missing-file tabs, and workspace-tab persistence are
+independent options. They are enabled by default.
+
+With workspace persistence disabled, current tabs remain open, but switching
+vaults or restarting does not restore them. Previously saved workspaces remain
+untouched; enabling persistence again restores the saved workspace for that
+vault rather than saving the temporary tabs over it.
+
+With missing-tab cleanup disabled, externally removed notes keep their tabs and
+show a missing-file notice with reload/close actions. Restoring the file and
+reloading makes it editable again. Deleting a note inside Tagline always closes
+its tabs, regardless of this preference.
+
 This is not a cloud-sync or revision-history system; keep backups of important
 evidence and avoid conflicting edits from multiple applications.
 
@@ -76,7 +90,9 @@ styles are not supported.
 - `[[Note]]`, `[[Note#Heading]]`, and `[[Note|Label]]` support navigation.
 - Wiki-link autocomplete is available while editing. Mod-click follows links;
   missing targets can be created on navigation.
-- Renaming a note through the app rewrites supported wiki links.
+- Renaming or moving a note/folder through the app rewrites supported wiki links
+  when **Automatically update wiki links when renaming** is enabled. Disabling
+  it leaves link text unchanged; open-tab paths still follow the rename.
 - Backlinks, unlinked mentions, an outline, and tags help navigate evidence.
 - The graph view shows note relationships, with local-graph and aff/neg coloring.
 - Markdown in a `Templates/` folder can be inserted or used for new notes.
@@ -199,9 +215,9 @@ Changes save automatically on the current device.
 | Section | Controls |
 | --- | --- |
 | General | Speaking-rate calibration, speech-document path, default editor, flow-row focus, readable line width. |
-| Appearance | English/Spanish/French UI, built-in/custom/extension themes, editor font size, installed or imported fonts. |
+| Appearance | English/Spanish/French UI, built-in/custom/extension themes, editor font size, installed or imported fonts, opt-in unrestricted custom CSS. |
 | Performance and search | Visual parse-cache limits and maximum search results. |
-| Files and folders | Underscores for new folder-path spaces, hiding `.flow` in supported file labels, association guidance. |
+| Files and folders | Folder-path spaces, `.md`/`.flow` label visibility, auto relinking, externally missing-tab cleanup, workspace persistence, association guidance. |
 | Integrations | Pandoc location/status, model download/load/autoload, optional Hugging Face token. |
 | Keyboard shortcuts | Record, clear, or reset built-in and extension bindings; conflicts and reserved shortcuts are explained. |
 | Extensions | Open the extension directory, reload, review permissions/errors, and enable/disable local extensions. |
@@ -218,6 +234,11 @@ Notable defaults and limits:
 | Maximum search results | 200 | 1-1,000, after ranking. |
 | Underscore folder spaces | Enabled | Newly created/renamed folder components; existing paths are not migrated. Explorer labels show spaces while enabled. |
 | Hide `.flow` extension | Enabled | Presentation only; actual filenames and extension API paths retain the suffix. |
+| Show `.md` extension | Disabled | Applies to file labels in the explorer, tabs, switcher, search, backlinks, and graph; does not change paths or the editable note title. |
+| Auto relinking | Enabled | Rewrites supported wiki links during in-app note/folder renames and moves. |
+| Close missing-file tabs | Enabled | Applies after vault reload detects external deletion; in-app deletion always closes tabs. |
+| Persist workspace tabs | Enabled | Saves/restores tabs per vault; disabled workspaces remain dormant. |
+| Custom CSS | Disabled, empty | Enable explicitly in Appearance; Apply saves drafts, disabling removes styles, Reset clears them. |
 | Model autoload | Enabled | Disabling defers loading; it does not unload a running model. |
 
 Imported fonts support `.ttf`, `.otf`, `.woff`, and `.woff2` files up to 20 MB.
@@ -226,6 +247,10 @@ appropriately licensed fonts.
 
 Themes are described in the [Theme API](./theme-api.md); local commands and theme
 packages are described in the [Extension API](./extension-api.md).
+Default preferences live in [defaultSettings.json](../src/lib/defaultSettings.json).
+The visual cache consumes the same defaults rather than maintaining a duplicate
+copy. Model-autoload's saved value is kept in main-process configuration; the
+shared JSON supplies its fallback.
 
 ## Privacy and current limitations
 
@@ -238,6 +263,8 @@ packages are described in the [Extension API](./extension-api.md).
   the settings page.
 - Extension access is permission-gated; enabling vault writes still entrusts an
   extension with your evidence. Private extension storage is not encrypted.
+- Opt-in custom CSS is unrestricted and may load external resources or hide
+  controls. See [CSS safety and recovery](./theme-api.md#unrestricted-custom-css).
 - There is no built-in cloud collaboration, vault version history, or automatic
   backup/recovery workflow.
 - UI language does not translate evidence or make the English embedding model

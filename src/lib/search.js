@@ -1,4 +1,5 @@
 import { baseName, isMarkdown } from './vault.js';
+import defaults from './defaultSettings.json' with { type: 'json' };
 
 const fold = (text) => text.normalize('NFKD').replace(/\p{M}/gu, '').toLowerCase();
 const words = (text) => fold(text).match(/[\p{L}\p{N}]+/gu) || [];
@@ -10,7 +11,7 @@ export function parseQuery(query) {
   return { tags, terms, text };
 }
 
-export function searchVault(contents, index, query, maxResults = 200) {
+export function searchVault(contents, index, query, maxResults = defaults.searchMaxResults) {
   if (!Number.isInteger(maxResults) || maxResults < 1 || maxResults > 1000) {
     throw new Error('Maximum search results must be an integer between 1 and 1000.');
   }

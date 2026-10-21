@@ -158,6 +158,62 @@ These module exports and window events are internal renderer integration points.
 Sandboxed extensions cannot import them or access the application document;
 contribute JSON files through a manifest instead.
 
-Themes cannot change fonts, spacing, component layout, keybindings, or inject
-arbitrary CSS/JavaScript. Custom fonts and editor font size are separate
-Appearance settings.
+JSON themes cannot change fonts, spacing, component layout, or keybindings.
+Custom fonts and editor font size are separate Appearance settings. For styling
+beyond palette tokens, use the separate custom CSS option below.
+
+## Unrestricted custom CSS
+
+In **Settings > Appearance > Custom CSS**, type CSS or choose **Import CSS file**.
+The editor is a draft: choose **Apply CSS** to save it. Enable **Enable custom
+CSS** and accept the warning to inject the saved stylesheet into the application.
+Disabling the switch immediately removes the stylesheet without erasing the
+saved source. **Discard CSS edits** restores the saved draft; **Reset custom
+CSS** clears the source and disables it.
+
+CSS is deliberately not selector-scoped or sanitized. It can target the entire
+application, use `!important`, media queries, animations, and `@import`, and load
+external resources where the browser permits. This can affect privacy, hide
+important controls, or make the application unusable. Only enable trusted CSS.
+It does not grant JavaScript or Node.js execution.
+
+For example:
+
+```css
+.visual-document,
+.preview {
+  line-height: 1.8;
+}
+
+@media (min-width: 1200px) {
+  .sidebar {
+    min-width: 260px;
+  }
+}
+```
+
+The stylesheet is added after the bundled styles. Some app properties are
+inline, so overriding those may require `!important`. Class names and component
+structure are internal implementation details and can change. Relative resource
+URLs resolve against the application document, not the imported CSS file's
+original folder.
+
+CSS is saved in the local application settings, not exported with palette JSON,
+shared through the vault, or applied inside extension sandbox documents.
+Do not assume that document exports inherit arbitrary application CSS.
+
+### Recovery from broken CSS
+
+The native menu is outside the page stylesheet. Open **View > Toggle Developer
+Tools** and run this in the application's main-frame console:
+
+```js
+const preferences = JSON.parse(localStorage.getItem('tagline-settings') || '{}');
+preferences.customCssEnabled = false;
+localStorage.setItem('tagline-settings', JSON.stringify(preferences));
+location.reload();
+```
+
+This preserves the CSS source for repair but prevents it from applying after
+reload. If necessary, set `preferences.customCss = ''` before saving to discard
+it entirely.

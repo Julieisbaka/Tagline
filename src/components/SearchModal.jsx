@@ -2,9 +2,10 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useI18n } from '../lib/i18n.js';
 import { searchVault } from '../lib/search.js';
 import { displayName, isMarkdown } from '../lib/vault.js';
+import defaults from '../lib/defaultSettings.json' with { type: 'json' };
 
 // Full-text search. Supports "tag:name" to filter by tag and quoted phrases.
-export default function SearchModal({ contents, index, initialQuery = '', maxResults = 200, showMarkdownExtension = false, onOpen, onClose }) {
+export default function SearchModal({ contents, index, initialQuery = '', maxResults = defaults.searchMaxResults, showMarkdownExtension = false, onOpen, onClose }) {
   const { t } = useI18n();
   const [query, setQuery] = useState(initialQuery);
   const [mode, setMode] = useState('text');

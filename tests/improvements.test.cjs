@@ -23,6 +23,87 @@ test('cache limits trim immediately, enforce character budgets, and allow disabl
   configureVisualCache(16, 4_000_000);
 });
 
+test('JSON defaults define settings and independent file-extension labels', async () => {
+  const defaults = require('../src/lib/defaultSettings.json');
+  const { displayName } = await import('../src/lib/vault.js');
+  assert.equal(defaults.showMarkdownExtension, false);
+  assert.equal(defaults.autoRelink, true);
+  assert.equal(defaults.closeMissingTabs, true);
+  assert.equal(defaults.persistWorkspaceTabs, true);
+  assert.equal(defaults.customCssEnabled, false);
+  assert.equal(defaults.customCss, '');
+  for (const hideFlow of [false, true]) {
+    assert.equal(displayName('Folder/Note.md', hideFlow, false), 'Note');
+    assert.equal(displayName('Folder/Note.md', hideFlow, true), 'Note.md');
+    assert.equal(displayName('Folder/Note.MD', hideFlow, true), 'Note.MD');
+  }
+  for (const showMarkdown of [false, true]) {
+    assert.equal(displayName('Folder/Round.flow', true, showMarkdown), 'Round');
+    assert.equal(displayName('Folder/Round.flow', false, showMarkdown), 'Round.flow');
+  }
+  const fs = require('node:fs');
+  const path = require('node:path');
+  const settingsSource = fs.readFileSync(path.join(__dirname, '..', 'src', 'lib', 'settings.js'), 'utf8');
+  const cacheSource = fs.readFileSync(path.join(__dirname, '..', 'src', 'lib', 'visualCache.js'), 'utf8');
+  assert.match(settingsSource, /defaultSettings\.json/);
+  assert.match(cacheSource, /defaults\.visualCacheEntries/);
+  assert.match(cacheSource, /defaults\.visualCacheCharacters/);
+});
+
+test('credentials await async availability, encrypt/decrypt asynchronously and reject unavailable storage', async (t) => {
+  const fs = require('node:fs/promises');
+  const path = require('node:path');
+  const { EventEmitter } = require('node:events');
+  const root = await fs.mkdtemp(path.join(require('node:os').tmpdir(), 'tagline-async-token-'));
+  t.after(() => fs.rm(root, { recursive: true, force: true }));
+  const requests = [];
+  class Worker extends EventEmitter {
+    postMessage(message) {
+      requests.push(message);
+      setImmediate(() => this.emit('message', { id: message.id, result: { ready: true } }));
+    }
+    terminate() {}
+  }
+  const module = { exports: {} };
+  const dirname = path.join(__dirname, '..', 'electron');
+  require('node:vm').runInNewContext(await fs.readFile(path.join(dirname, 'embeddings.cjs'), 'utf8'), {
+    module, __dirname: dirname, console,
+    require: (name) => name === 'node:worker_threads' ? { Worker } : require(name),
+  });
+  const app = new EventEmitter();
+  app.getPath = () => root;
+  let available = false;
+  let decrypted = false;
+  const handlers = {};
+  module.exports.registerEmbeddings({
+    app, ipcMain: { handle: (name, handler) => { handlers[name] = handler; } },
+    safeStorage: {
+      isAsyncEncryptionAvailable: async () => { await new Promise((resolve) => setImmediate(resolve)); return available; },
+      encryptStringAsync: async (text) => Buffer.from(Buffer.from(text).toString('hex')),
+      decryptStringAsync: async (buffer) => {
+        decrypted = true;
+        return { result: Buffer.from(buffer.toString(), 'hex').toString(), shouldReEncrypt: false };
+      },
+    },
+    getVaultRoot: () => root, readConfig: () => ({ modelAutoload: false }), writeConfig() {},
+  });
+  t.after(() => app.emit('before-quit'));
+  const call = (name, ...args) => handlers[`embeddings:${name}`](null, ...args);
+  assert.equal((await call('status')).encryptionAvailable, false);
+  await assert.rejects(call('token', 'hf_TestOnly123'), /unavailable/);
+  const tokenFile = path.join(root, 'semantic-search', 'huggingface-token.bin');
+  await assert.rejects(fs.access(tokenFile), { code: 'ENOENT' });
+  available = true;
+  assert.equal((await call('status')).encryptionAvailable, true);
+  await call('token', 'hf_TestOnly123');
+  assert.equal((await fs.readFile(tokenFile)).includes(Buffer.from('hf_TestOnly123')), false);
+  await call('download');
+  assert.equal(decrypted, true);
+  assert.equal(requests[0].token, 'hf_TestOnly123');
+  await call('token', '');
+  assert.equal((await call('status')).tokenConfigured, false);
+});
+
 test('citation creator validates, escapes markup, and reading time counts only the spoken lead', async () => {
   const { createCitation, spokenCitations } = await import('../src/lib/citation.js');
   const { cardStats, formatDuration } = await import('../src/lib/card.js');
