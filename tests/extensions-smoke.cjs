@@ -36,6 +36,7 @@ tagline.commands.register('escape', async () => {
   try { localStorage.getItem('x'); report.push('storage'); } catch { report.push('no-storage'); }
   try { parent.document.title; report.push('dom'); } catch { report.push('no-dom'); }
   try { await fetch('https://example.com'); report.push('network'); } catch { report.push('no-network'); }
+  report.push(typeof Worker, typeof SharedWorker);
   tagline.notify(report.join(','));
 });
 tagline.commands.register('spin', () => { while (true) {} });
@@ -117,7 +118,7 @@ tagline.commands.register('pending', async () => {
         assert.deepEqual(await js(`[...document.querySelectorAll('.tree-item')].map((el) => el.textContent.trim()).sort()`), ['Card', 'Round']);
 
         await palette('Demo: Try escaping');
-        await toast('Demo: undefined,undefined,no-storage,no-dom,no-network');
+        await toast('Demo: undefined,undefined,no-storage,no-dom,no-network,undefined,undefined');
 
         await palette('Nosy: Peek');
         await toast('Nosy: Permission "vault:read" is not declared');

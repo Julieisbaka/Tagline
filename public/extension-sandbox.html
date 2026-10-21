@@ -16,12 +16,19 @@
     parent.postMessage({ type: 'failed', message }, '*');
   };
   const workerMain = () => {
+  for (const name of ['Worker', 'SharedWorker']) {
+    Object.defineProperty(globalThis, name, { value: undefined, writable: false, configurable: false });
+  }
   const pending = new Map();
   const handlers = new Map();
   let next = 0;
   let started = false;
   const send = (message) => postMessage(message);
   const describe = (error) => String((error && error.message) || error);
+  addEventListener('unhandledrejection', (event) => {
+    event.preventDefault();
+    send({ type: 'error', message: describe(event.reason) });
+  });
   setInterval(() => send({ type: 'heartbeat' }), 500);
   const call = (method, ...args) => new Promise((resolve, reject) => {
     if (pending.size >= 32) {

@@ -2,8 +2,10 @@
 
 [Documentation home](./README.md) | [Theme API](./theme-api.md)
 
-Extensions contribute commands and JSON themes. JavaScript runs inside a hidden,
-opaque-origin iframe, not the Electron main process or the application page.
+Extensions contribute commands and JSON themes. JavaScript runs in a dedicated
+worker supervised by a hidden, opaque-origin iframe, not the Electron main
+process or the application page. DOM APIs such as `window` and `document` are
+unavailable; use the bridge rather than browser-page globals.
 The supported bridge is the `tagline` object supplied to the entry script.
 
 ## Install and reload
@@ -121,10 +123,27 @@ or network access. The sandbox CSP blocks network requests and external resource
 Browser APIs available within the sandbox are not a supported way to access
 application data.
 
-Enable only extensions you trust. A permitted write can overwrite evidence, and
-sandboxing is not a resource quota or a guarantee against a script freezing its
-renderer. There is no CPU/memory budget, command cancellation, or transactional
-write API.
+### Resource safeguards
+
+- A worker keeps synchronous extension loops off the application UI thread.
+- The supervisor terminates a worker that misses heartbeats for 5 seconds.
+  Startup also has a 10-second deadline.
+- More than 200 messages per second stops the extension. This includes API calls,
+  notifications, and error messages.
+- At most 32 bridge calls may be pending per extension; additional calls reject.
+- Nested `Worker` and `SharedWorker` constructors are disabled.
+- Disabling, reloading, or unloading an extension removes its supervisor and worker.
+
+Runtime failures are shown in notifications; startup failures appear on the
+extension card. A stopped extension's commands report that it must be reloaded
+or disabled in **Settings > Extensions**.
+
+These are basic responsiveness and abuse guards, not hard CPU or memory quotas.
+A continuously busy but yielding worker can still consume CPU, large allocations
+can exhaust memory, and timers can be delayed when the OS suspends the app.
+Enable only extensions you trust. A permitted write can overwrite evidence.
+Stopping a worker does not roll back bridge operations already in progress;
+there is no transactional write API.
 
 ## JavaScript API reference
 

@@ -35,7 +35,8 @@ export default function WebsiteView({ url, onClose }) {
         window.dispatchEvent(new CustomEvent('app-error', { detail: e.message })));
     };
   }, [url]);
-  return <div className="website-view" role="dialog" aria-modal="true" aria-label={t('Website browser')}>
+  return <div className={`website-view${window.api.platform === 'darwin' ? ' mac-website-view' : ''}`}
+    role="dialog" aria-modal="true" aria-label={t('Website browser')}>
     <form className="website-toolbar" onSubmit={(e) => { e.preventDefault(); run('navigate', address); }}>
       <button type="button" disabled={!state.canGoBack} onClick={() => run('back')}>{t('Back')}</button>
       <button type="button" disabled={!state.canGoForward} onClick={() => run('forward')}>{t('Forward')}</button>

@@ -225,6 +225,7 @@ function createWindow() {
     Menu.buildFromTemplate(template).popup({ window: win });
   });
   win.on('close', () => closeWebsiteView());
+  win.webContents.on('render-process-gone', () => closeWebsiteView());
   win.webContents.on('did-start-navigation', (_event, _url, isInPlace, isMainFrame) => {
     if (isMainFrame && !isInPlace) closeWebsiteView();
   });

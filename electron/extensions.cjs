@@ -2,7 +2,7 @@ const fs = require('node:fs/promises');
 const path = require('node:path');
 
 // Extensions live in <userData>/extensions/<folder>/manifest.json. The main process only reads and
-// validates files; extension code runs in a sandboxed renderer iframe (see src/lib/extensions.js).
+// validates files; extension code runs in a supervised sandbox worker (see src/lib/extensions.js).
 const PERMISSIONS = ['editor', 'vault:read', 'vault:write'];
 const ID = /^[a-z0-9][a-z0-9-]{1,63}$/;
 const MAX_SOURCE = 1024 * 1024;

@@ -388,11 +388,14 @@ export default function App() {
 
   const settingsDialog = <SettingsDialog settings={settings} update={updateSettings} extensions={ext}
     onClose={() => setModal(null)} />;
+  const websiteDialog = modal?.type === 'website' &&
+    <WebsiteView key={modal.url} url={modal.url} onClose={() => setModal(null)} />;
   if (!v.vault) return <>
     {window.api.platform === 'darwin' && <div className="mac-titlebar">Tagline</div>}
     <Welcome onOpen={v.chooseVault} onSample={v.createSample} error={v.error} />
     {modal?.type === 'settings' && settingsDialog}
     {modal?.type === 'citation' && <CitationDialog onClose={() => setModal(null)} />}
+    {websiteDialog}
     {toast && <div className="toast">{toast}</div>}
   </>;
 
@@ -519,7 +522,7 @@ export default function App() {
       {modal?.type === 'import' && <ImportDialog onImport={createAndOpen} onClose={() => setModal(null)} />}
       {modal?.type === 'citation' && <CitationDialog onInsert={activePath && isMarkdown(activePath) && mode !== 'read'
         ? insertCitation : null} onClose={() => setModal(null)} />}
-      {modal?.type === 'website' && <WebsiteView key={modal.url} url={modal.url} onClose={() => setModal(null)} />}
+      {websiteDialog}
       {toast && <div className="toast">{toast}</div>}
     </div>
   );

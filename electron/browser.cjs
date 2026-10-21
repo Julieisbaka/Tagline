@@ -22,7 +22,7 @@ function registerBrowser({ ipcMain, shell, getWindow }) {
     if (downloadHandler) browserSession.removeListener('will-download', downloadHandler);
     const window = getWindow();
     if (window && !window.isDestroyed()) {
-      window.removeListener('resize', resizeHandler);
+      if (resizeHandler) window.removeListener('resize', resizeHandler);
       window.contentView.removeChildView(previous);
     }
     if (!previous.webContents.isDestroyed()) previous.webContents.close();
@@ -36,10 +36,11 @@ function registerBrowser({ ipcMain, shell, getWindow }) {
     });
   };
   const navigate = async (url) => {
+    const wc = view.webContents;
     error = '';
-    try { await view.webContents.loadURL(webUrl(url)); }
+    try { await wc.loadURL(webUrl(url)); }
     catch (e) {
-      if (e.code !== 'ERR_ABORTED') { error = e.message; state(); }
+      if (view?.webContents === wc && e.code !== 'ERR_ABORTED') { error = e.message; state(); }
     }
   };
   const bounds = (value) => {
@@ -92,6 +93,9 @@ function registerBrowser({ ipcMain, shell, getWindow }) {
       return { action: 'deny' };
     });
     for (const event of ['did-start-loading', 'did-stop-loading', 'did-navigate', 'did-navigate-in-page']) wc.on(event, state);
+    wc.on('did-fail-load', (_event, code, description, _url, isMainFrame) => {
+      if (isMainFrame && code !== -3) { error = description; state(); }
+    });
     wc.on('render-process-gone', (_event, details) => {
       error = `Website renderer stopped: ${details.reason}`; state();
     });

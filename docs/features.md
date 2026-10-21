@@ -52,6 +52,11 @@ visual edits normalize Markdown formatting. Notes containing YAML frontmatter,
 raw HTML, footnotes, Markdown images, math, or custom fenced blocks fall back to
 source editing rather than silently dropping unsupported structures.
 
+The visual-formatting notice has a close button. Dismissal persists on this
+device; reset **Visual editor notice dismissed** in **Settings > Advanced
+settings > Internal flags** to show it again. Preservation warnings for unsupported
+Markdown remain visible.
+
 ### Default card-formatting shortcuts
 
 | Key | Action / syntax |
@@ -202,6 +207,9 @@ external resource-loading elements are omitted; wiki links become labels.
 **Pandoc export** adds DOCX, ODT, RTF, EPUB, and PDF. PDF also needs a compatible
 LaTeX engine. Install these tools separately and locate Pandoc in
 **Settings > Integrations** if necessary.
+When Pandoc is missing, **Install Pandoc** opens its official installation page
+in the default browser. This does not install software automatically; after
+installation use **Check again** or **Locate Pandoc**.
 
 **Pandoc import** accepts DOCX, ODT, RTF, HTML, and EPUB. Review the converted
 Markdown and warnings before adding a note. Canceling creates nothing; name
@@ -209,6 +217,24 @@ collisions do not overwrite existing notes. The source document is unchanged.
 
 Complex formatting may not survive conversion. Pandoc format support does not
 guarantee that every embedded HTML element retains its original behavior.
+
+## Embedded websites
+
+HTTP/HTTPS links open in an embedded website view by default. Turn off
+**Settings > Integrations > Open websites inside Tagline** to use the system
+browser instead. The view includes an address bar, back/forward, reload, close,
+and **Open in browser** controls.
+
+Sites render with JavaScript and use a separate persistent cookie/session store,
+so normal website sign-in can work across restarts. Remote pages have no Node.js,
+app preload, vault, or extension-bridge access. Device permissions and downloads
+are blocked; use the external browser for downloads or unsupported login flows.
+Non-HTTP(S) navigation and embedded credentials in URLs are rejected.
+
+The browser does not bypass paywalls, CAPTCHAs, or anti-bot protections, spoof
+clients, or grant access to subscription content. Some websites reject embedded
+browsers; use **Open in browser** when needed. Browsing does not change the
+citation creator's URL-extraction rules.
 
 ## Settings reference
 
@@ -220,9 +246,10 @@ Changes save automatically on the current device.
 | Appearance | English/Spanish/French UI, built-in/custom/extension themes, editor font size, installed or imported fonts, opt-in unrestricted custom CSS. |
 | Performance and search | Visual parse-cache limits and maximum search results. |
 | Files and folders | Folder-path spaces, `.md`/`.flow` label visibility, auto relinking, externally missing-tab cleanup, workspace persistence, association guidance. |
-| Integrations | Pandoc location/status, model download/load/autoload, optional Hugging Face token. |
+| Integrations | Embedded websites, Pandoc location/status/install-page link, model download/load/autoload, optional Hugging Face token. |
 | Keyboard shortcuts | Record, clear, or reset built-in and extension bindings; conflicts and reserved shortcuts are explained. |
 | Extensions | Open the extension directory, reload, review permissions/errors, and enable/disable local extensions. |
+| Advanced settings | Inspect or change internal flags, including visual-editor notice dismissal. |
 
 Notable defaults and limits:
 
@@ -242,6 +269,8 @@ Notable defaults and limits:
 | Persist workspace tabs | Enabled | Saves/restores tabs per vault; disabled workspaces remain dormant. |
 | Custom CSS | Disabled, empty | Enable explicitly in Appearance; Apply saves drafts, disabling removes styles, Reset clears them. |
 | Model autoload | Enabled | Disabling defers loading; it does not unload a running model. |
+| Embedded websites | Enabled | Disable to open HTTP/HTTPS links in the default browser. |
+| Visual editor notice dismissed | False | Internal flag; closing the notice sets it to true. Reset in Advanced settings. |
 
 Imported fonts support `.ttf`, `.otf`, `.woff`, and `.woff2` files up to 20 MB.
 They apply to note text, not application UI or code snippets. Import only trusted,
