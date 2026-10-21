@@ -94,6 +94,12 @@
     "key": "Ctrl+Tab"
   },
   {
+    "id": "find",
+    "label": "Find and replace in note",
+    "scope": "editor",
+    "key": "Mod+F"
+  },
+  {
     "id": "pocket",
     "label": "Pocket (H1)",
     "scope": "editor",

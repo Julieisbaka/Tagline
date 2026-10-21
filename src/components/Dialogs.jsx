@@ -187,6 +187,7 @@ export function SettingsDialog({ settings, update, onClose, extensions }) {
         <section hidden={section !== 'general'} className="settings-panel">
         <h3>{t('Writing and debate')}</h3>
         {field('Speaking rate (words per minute)', 'wpm', 'number', { min: 100, max: 500 })}
+        <p>{t('Read time uses syllables and pronunciation complexity, calibrated at 1.5 syllables per word. Estimates are optimized for English.')}</p>
         {field('Speech document path', 'speechDoc')}
         <label className="setting-row">
           <span>{t('Default editor')}</span>

@@ -9,6 +9,7 @@ import { visualBlocker, visualSelection } from '../lib/visualExtensions.js';
 import Icon from './Icon.jsx';
 import { baseName, isFlow } from '../lib/vault.js';
 import { cardStats, formatDuration, getSectionAt } from '../lib/card.js';
+import { readingSeconds } from '../lib/readTime.js';
 import { useI18n } from '../lib/i18n.js';
 import { binding, displayBinding } from '../lib/keybindings.js';
 
@@ -81,12 +82,12 @@ export default function NoteView({
     const parts = [
       t('{count} cards', { count: docStats.cards }),
       t('{count} words', { count: docStats.words }),
-      t('{count} highlighted (~{time} read)', { count: docStats.highlighted, time: formatDuration((docStats.readWords / wpm) * 60) }),
+      t('{count} highlighted (~{time} read)', { count: docStats.highlighted, time: formatDuration(readingSeconds(docStats, wpm)) }),
     ];
     if (section && sectionStats) {
       parts.unshift(t('“{title}”: {count} hl / ~{time}', {
         title: section.title.slice(0, 30), count: sectionStats.highlighted,
-        time: formatDuration((sectionStats.readWords / wpm) * 60),
+        time: formatDuration(readingSeconds(sectionStats, wpm)),
       }));
     }
     onCursorStats(parts);

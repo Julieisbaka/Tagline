@@ -73,7 +73,7 @@ The file and folder names are not rewritten.
 - Graph view (Ctrl+G) with local graph and aff/neg coloring
 - Verbatim-style card formatting: F4 pocket, F5 hat, F6 block, F7 tag, F8 cite, F9 underline `++x++`,
   F10 emphasis, F11 highlight `==x==`, F12 clear formatting
-- Reading view (Ctrl+E) with **highlighted-only** mode (Ctrl+Shift+H) and read-time estimate at your WPM
+- Reading view (Ctrl+E) with **highlighted-only** mode (Ctrl+Shift+H) and syllable-based read-time estimates calibrated to your speaking rate
 - Speech doc builder: Ctrl+Shift+S or the note header's send button appends the card under the cursor
   (or the selection) to the speech doc; open the speech doc from the status bar or command palette
 - Flows: multi-sheet `.flow` grids with aff/neg-colored speech columns; configurable focus after adding a row
@@ -140,7 +140,23 @@ and JavaScript-only articles may require manual entry. Pages are not executed.
 Requests have time/size/redirect limits and reject local/private network addresses.
 Estimated read time includes highlights **plus the author/year lead of bold citation
 lines**, not the full publication/URL. Existing `**Smith 24 — full citation**`
-lines are supported too; estimates use the written words, not spoken expansion of years.
+lines are supported too. Duration is calculated from English syllables rather than
+word count, with a small articulation surcharge for polysyllabic words and dense
+consonant clusters. Numbers (including citation years), percentages and common
+initialisms are expanded for pronunciation. Your speaking-rate setting remains
+a calibration: WPM is converted to syllables/minute at 1.5 syllables/word. Word
+counts still appear in the status bar, but no longer determine duration. These
+are approximate English-language estimates, not pronunciation-dictionary timings.
+
+The visual editor uses Tiptap 3.32 and its find-and-replace extension. Select
+**Find and replace** in the formatting toolbar or press **Ctrl+F / Cmd+F**.
+Search supports match-case and whole-word options, previous/next navigation,
+replacement of one match or all matches, and undo through the editor. Enter moves
+to the next result; Shift+Enter moves to the previous result; Escape closes the
+panel and clears search highlights. The shortcut is configurable under
+**Settings > Keyboard shortcuts > Note editing** and also opens the source
+editor's built-in find/replace panel. Searches do not change saved notes; only
+replacements do. Smart punctuation is not enabled and Marked remains unchanged.
 
 In **Settings > Appearance**, enter one installed font-family name,
 or import a trusted `.ttf`, `.otf`, `.woff`, or `.woff2` file (up to 20 MB).

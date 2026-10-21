@@ -1,4 +1,5 @@
 import { spokenCitations } from './citation.js';
+import { speechStats } from './readTime.js';
 
 const HEADING_RE = /^(#{1,6})\s/;
 
@@ -55,6 +56,7 @@ export function cardStats(content) {
   const underlined = [...body.matchAll(/\+\+([\s\S]*?)\+\+/g)].map((m) => m[1].replace(/==/g, '')).join(' ');
   const cards = (content.match(/^####\s/gm) || []).length;
   return {
+    ...speechStats(`${highlighted} ${spokenCitations(content)}`),
     words: countWords(body.replace(/[=+*_]/g, '')),
     highlighted: countWords(highlighted),
     citationWords,

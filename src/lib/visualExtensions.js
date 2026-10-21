@@ -5,6 +5,7 @@ import TaskItem from '@tiptap/extension-task-item';
 import TaskList from '@tiptap/extension-task-list';
 import { Markdown } from '@tiptap/markdown';
 import StarterKit from '@tiptap/starter-kit';
+import FindAndReplace from '@tiptap/extension-find-and-replace';
 
 export const WikiLink = Node.create({
   name: 'wikiLink',
@@ -61,6 +62,7 @@ export function visualExtensions() {
   return [
     StarterKit.configure({ link: { openOnClick: false }, trailingNode: false }),
     Highlight, TableKit, TaskList, TaskItem.configure({ nested: true }), WikiLink,
+    FindAndReplace.configure({ injectCSS: false, searchDebounceMs: 0 }),
     Markdown.configure({ markedOptions: { gfm: true, breaks: true } }),
   ];
 }

@@ -2,6 +2,7 @@ import { autocompletion } from '@codemirror/autocomplete';
 import { markdown, markdownLanguage } from '@codemirror/lang-markdown';
 import { languages } from '@codemirror/language-data';
 import { Prec } from '@codemirror/state';
+import { openSearchPanel, searchKeymap } from '@codemirror/search';
 import { EditorView, keymap } from '@codemirror/view';
 import CodeMirror from '@uiw/react-codemirror';
 import { useMemo, useRef } from 'react';
@@ -32,6 +33,7 @@ export default function Editor({ value, onChange, noteNames, onOpenLink, onSendC
     };
 
     const actions = {
+      find: openSearchPanel,
       pocket: setHeading(1), hat: setHeading(2), block: setHeading(3), tag: setHeading(4),
       cite: toggleWrap('**'), bold: toggleWrap('**'), italic: toggleWrap('*'),
       underline: toggleWrap('++'), 'underline-alt': toggleWrap('++'),
@@ -43,6 +45,7 @@ export default function Editor({ value, onChange, noteNames, onOpenLink, onSendC
     }))));
 
     return [
+      keymap.of(searchKeymap.filter((item) => item.key !== 'Mod-f')),
       markdown({ base: markdownLanguage, codeLanguages: languages }),
       EditorView.lineWrapping,
       autocompletion({ override: [wikiComplete] }),
@@ -79,7 +82,7 @@ export default function Editor({ value, onChange, noteNames, onOpenLink, onSendC
         highlightActiveLine: false,
         highlightActiveLineGutter: false,
         autocompletion: false,
-        searchKeymap: true,
+        searchKeymap: false,
       }}
       onCreateEditor={(view) => {
         if (viewRef) viewRef.current = view;

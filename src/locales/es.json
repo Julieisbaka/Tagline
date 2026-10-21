@@ -310,5 +310,18 @@
   "Autofill from URL": "Completar desde URL",
   "Extracting...": "Extrayendo...",
   "Available fields extracted. Review the citation before using it; existing fields were kept.": "Campos disponibles extraídos. Revisa la cita antes de usarla; los campos existentes se conservaron.",
-  "This shortcut is unsupported or reserved for standard system commands.": "Este atajo no es compatible o está reservado para comandos del sistema."
+  "This shortcut is unsupported or reserved for standard system commands.": "Este atajo no es compatible o está reservado para comandos del sistema.",
+  "Read time uses syllables and pronunciation complexity, calibrated at 1.5 syllables per word. Estimates are optimized for English.": "El tiempo de lectura usa sílabas y complejidad de pronunciación, calibrado a 1,5 sílabas por palabra. Las estimaciones están optimizadas para el inglés.",
+  "Find and replace in note": "Buscar y reemplazar en la nota",
+  "Find and replace": "Buscar y reemplazar",
+  "Find text": "Buscar texto",
+  "Replace with": "Reemplazar por",
+  "Replace": "Reemplazar",
+  "Replace all": "Reemplazar todo",
+  "Previous match": "Coincidencia anterior",
+  "Next match": "Siguiente coincidencia",
+  "Close find": "Cerrar búsqueda",
+  "Match case": "Distinguir mayúsculas",
+  "Whole words": "Palabras completas",
+  "{current} of {total}": "{current} de {total}"
 }

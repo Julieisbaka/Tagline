@@ -5,6 +5,7 @@ import { slugify } from '../lib/markdown.js';
 import { cachedDocument, cacheDocument } from '../lib/visualCache.js';
 import { visualExtensions, visualSelection } from '../lib/visualExtensions.js';
 import { binding, displayBinding, KEYBINDINGS, matchesBinding } from '../lib/keybindings.js';
+import VisualFindReplace from './VisualFindReplace.jsx';
 
 export default function VisualEditor({ value, onChange, onOpenLink, onSendCard, onSection, noteNames, visualRef, jump, keybindings }) {
   const live = useRef({});
@@ -24,6 +25,7 @@ function VisualDocument({ value, noteNames, visualRef, jump, live, keybindings }
   const extensions = useMemo(visualExtensions, []);
   const [error, setError] = useState('');
   const [linkTarget, setLinkTarget] = useState(null);
+  const [findOpen, setFindOpen] = useState(false);
   const editor = useEditor({
     shouldRerenderOnTransaction: false,
     extensions,
@@ -59,7 +61,8 @@ function VisualDocument({ value, noteNames, visualRef, jump, live, keybindings }
           const ed = visualRef.current;
           const cmd = ed.commands;
           const heading = ['pocket', 'hat', 'block', 'tag'].indexOf(command.id);
-          if (heading >= 0) cmd.toggleHeading({ level: heading + 1 });
+          if (command.id === 'find') setFindOpen(true);
+          else if (heading >= 0) cmd.toggleHeading({ level: heading + 1 });
           else if (['bold', 'cite'].includes(command.id)) cmd.toggleBold();
           else if (command.id === 'italic') cmd.toggleItalic();
           else if (['underline', 'underline-alt'].includes(command.id)) cmd.toggleUnderline();
@@ -142,8 +145,10 @@ function VisualDocument({ value, noteNames, visualRef, jump, live, keybindings }
         {button('Emphasis', () => editor.chain().focus().toggleBold().toggleUnderline().run(), false, shortcutTitle('Emphasis', 'emphasis'))}
         {button('Highlight', () => editor.chain().focus().toggleHighlight().run(), editor.isActive('highlight'), shortcutTitle('Highlight', 'highlight'))}
         {button('Link', () => setLinkTarget(''))}
+        {button('Find and replace', () => setFindOpen((open) => !open), findOpen, shortcutTitle('Find and replace', 'find'))}
         {button('Send card', () => live.current.onSendCard())}
       </div>
+      {findOpen && <VisualFindReplace editor={editor} onClose={() => setFindOpen(false)} />}
       {linkTarget !== null && <form className="visual-link-form" onSubmit={(e) => { e.preventDefault(); insertLink(); }}>
         <input autoFocus aria-label={t('Wiki link target')} placeholder="Note#Heading|Label" list="visual-note-targets"
           value={linkTarget} onChange={(e) => setLinkTarget(e.target.value)} />

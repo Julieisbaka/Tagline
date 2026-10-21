@@ -84,6 +84,42 @@
   flex: 1;
 }
 
+.visual-find {
+  padding: 8px 16px;
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--border);
+}
+
+.visual-find-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin: 4px 0;
+  font-size: 12px;
+}
+
+.visual-find-row > input {
+  flex: 1 1 180px;
+  min-width: 100px;
+}
+
+.visual-find-row label {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.visual-find-row input[type="checkbox"] { accent-color: var(--accent); }
+
+.find-and-replace-result {
+  background: var(--highlight-bg);
+  color: var(--highlight-text);
+  outline: 1px solid var(--border);
+}
+
+.find-and-replace-result-current { outline: 2px solid var(--accent); }
+
 .editor-notice {
   padding: 8px 16px;
   background: var(--accent-dim);

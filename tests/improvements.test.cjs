@@ -41,6 +41,52 @@ test('citation creator validates, escapes markup, and reading time counts only t
   assert.equal(formatDuration(12), '0:12');
 });
 
+test('read time uses syllables and articulation complexity, not word count', async () => {
+  const { speechStats, readingSeconds } = await import('../src/lib/readTime.js');
+  const simple = speechStats('cat dog fish');
+  const complex = speechStats('internationalization constitutional complexity');
+  assert.equal(simple.syllables, 3);
+  assert.equal(simple.weightedSyllables, 3);
+  assert.ok(complex.syllables >= 12);
+  assert.ok(readingSeconds(complex) > readingSeconds(simple) * 4);
+  const clusters = speechStats('strengths strengths strengths strengths');
+  const easy = speechStats('cat cat cat cat');
+  assert.equal(clusters.syllables, easy.syllables);
+  assert.ok(clusters.weightedSyllables > easy.weightedSyllables);
+  assert.equal(readingSeconds({ weightedSyllables: 375 }, 250), 60);
+  assert.equal(readingSeconds(complex, 500), readingSeconds(complex, 250) / 2);
+  assert.equal(readingSeconds(speechStats('')), 0);
+  assert.throws(() => readingSeconds(simple, 0), /positive/);
+  assert.throws(() => readingSeconds(simple, NaN), /positive/);
+});
+
+test('speech estimates expand numbers, years and initialisms and strip nonspoken markup', async () => {
+  const { speechStats } = await import('../src/lib/readTime.js');
+  assert.equal(speechStats('2024').syllables, speechStats('twenty twenty four').syllables);
+  assert.equal(speechStats('1999').syllables, speechStats('nineteen ninety nine').syllables);
+  assert.equal(speechStats('2001').syllables, speechStats('two thousand one').syllables);
+  assert.equal(speechStats('1,234').syllables, speechStats('one thousand two hundred thirty four').syllables);
+  assert.equal(speechStats('1.5%').syllables, speechStats('one point five percent').syllables);
+  assert.equal(speechStats('GDP USA WMD').syllables, 11);
+  assert.equal(speechStats('000').syllables, speechStats('zero zero zero').syllables);
+  assert.deepEqual(speechStats('<b>hello</b> &amp; world'), speechStats('hello and world'));
+  assert.deepEqual(speechStats('[hello](https://example.com/very-long-url)'), speechStats('hello'));
+  assert.deepEqual(speechStats('inter<em>national</em>'), speechStats('international'));
+});
+
+test('document and section read times include only highlights and spoken citation leads', async () => {
+  const { cardStats, getSectionAt } = await import('../src/lib/card.js');
+  const { speechStats } = await import('../src/lib/readTime.js');
+  const content = '#### Ignore heading\n**Smith 2024** — Long publication and credentials\n==Read this==\nNever spoken words';
+  const expected = speechStats('Read this Smith 2024');
+  const stats = cardStats(content);
+  assert.equal(stats.syllables, expected.syllables);
+  assert.equal(stats.weightedSyllables, expected.weightedSyllables);
+  assert.equal(cardStats(getSectionAt(content, 0).text).syllables, stats.syllables);
+  assert.equal(cardStats('==Read==').syllables, cardStats('<mark>Read</mark>').syllables);
+  assert.equal(cardStats('====').syllables, 0);
+});
+
 test('full text ranking favors titles and headings before limiting, respects phrases and tags', async () => {
   const { searchVault } = await import('../src/lib/search.js');
   const contents = {
