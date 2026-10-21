@@ -113,7 +113,8 @@ const delay = (ms) => new Promise((r) => setTimeout(r, ms));
         await click('.citation-dialog button', 'Insert citation');
         await wait("!document.querySelector('.citation-dialog')");
         await wait("document.querySelector('.visual-document').textContent.includes('Smith 2024')");
-        assert.match(await js("document.querySelector('.status-bar').textContent"), /0:01/);
+        // The spoken year adds several syllables; a word-only estimate was 0:01.
+        await wait("document.querySelector('.status-bar').textContent.includes('2 highlighted (~0:02 read)')");
 
         await settings();
         const status = await js('window.api.embeddingStatus()');
