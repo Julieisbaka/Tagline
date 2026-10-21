@@ -2,8 +2,6 @@
 
 ![Tagline icon](build/icon.png)
 
-Version 0.0.1. An Obsidian-style desktop app for policy debaters, built with Electron + React,
-Tiptap for visual editing, and CodeMirror for source editing.
 Your vault is a plain folder of markdown (`.md`) and flow (`.flow`) files.
 
 ## Run
@@ -15,9 +13,6 @@ npm start       # production build, then launch Electron
 ```
 
 On first launch choose **Open folder as vault** or **Create sample vault**.
-
-This pre-release uses only the current Tagline profile and settings. Old Debate
-Vault profiles, credentials, models, and settings are not imported or modified.
 
 The app icon source is `build/icon.svg`. Run `npm run icons` after editing it to
 regenerate `build/icon.png` and the multi-size Windows `build/icon.ico`.
@@ -36,10 +31,6 @@ Pandoc detection checks both Apple Silicon and Intel Homebrew paths, and Finder/
 launches add Homebrew and MacTeX (`/Library/TeX/texbin`) to PATH so PDF export finds
 its LaTeX engine.
 Custom fonts and credentials use Electron's platform facilities (Keychain on macOS).
-An old encrypted token may need to be re-entered if the OS app identity changes.
-
-**Real macOS runtime testing has not been performed:** this workspace is Windows-only.
-The included ICNS is an asset, not a signed/notarized `.app` installer.
 
 ## Features
 
