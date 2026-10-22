@@ -17,6 +17,13 @@ folders. Tabs keep several documents available. Right-click files or tabs for
 context actions, and use the quick switcher (`Mod+O`) or command palette
 (`Mod+P`) instead of browsing folders.
 
+Drag the edge of the file explorer or right-hand panel to resize it. Widths are
+saved and limited so the note column always keeps at least 320 pixels. Each edge
+can also be focused with `Tab`: use the arrow keys to resize (hold `Shift` for
+larger steps), `Home`/`End` to set the minimum or maximum, and `Enter` or a
+double-click to reset. The status bar wraps onto extra lines in narrow windows
+rather than hiding statistics.
+
 Edits autosave. Use the reload-vault command to pick up external changes.
 In **Settings > Files and folders**, automatic wiki-link rewriting on rename,
 closing externally missing-file tabs, and workspace-tab persistence are
@@ -245,7 +252,10 @@ python scripts/convert-political-debate.py <output-folder> [--push owner/repo-on
 
 The script needs `optimum[onnx]`, `onnxruntime`, and `huggingface_hub`. It
 exports, validates labels, quantizes, writes a model card, and optionally
-publishes the result.
+publishes the result. Publishing needs a Hugging Face **write** token in
+`HF_TOKEN`, either from the environment or from the gitignored repo-root `.env` file.
+Use `--upload-only --push owner/repo` to publish an already converted folder.
+The app itself never reads `.env`; downloading a public model needs no token.
 
 ## Flows and operating-system integration
 
