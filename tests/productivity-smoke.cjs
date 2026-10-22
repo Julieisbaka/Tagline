@@ -159,7 +159,7 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
         await js("document.querySelector('.vault-switch').click()");
         await wait("!!document.querySelector('.vault-manager-dialog')");
         await click('.vault-manager-dialog button', 'Add existing or create vault…');
-        await wait("document.querySelector('.note-title')?.value === 'Other'");
+        await wait("!!document.querySelector('.tree-item[title=\"Other.md\"]')");
         assert.equal((await js('window.api.listRecentVaults()')).length, 2);
         await js("document.querySelector('.vault-switch').click()");
         await wait("!!document.querySelector('.vault-manager-dialog')");
