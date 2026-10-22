@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
-import { useI18n } from '../lib/i18n.js';
-import { spokenEvidence, formatDuration } from '../lib/card.js';
-import { calibrateReading, readingAssessment, speechStats, validateReadingSample } from '../lib/readTime.js';
+import { useI18n } from '../../lib/i18n.js';
+import { spokenEvidence, formatDuration } from '../../lib/card.js';
+import { calibrateReading, readingAssessment, speechStats, validateReadingSample } from '../../lib/readTime.js';
 
 export default function ReadingSettings({ settings, update }) {
   const { t } = useI18n();

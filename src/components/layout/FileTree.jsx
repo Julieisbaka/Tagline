@@ -1,7 +1,7 @@
 import { useState } from 'react';
-import { useI18n } from '../lib/i18n.js';
-import { displayName, isFlow } from '../lib/vault.js';
-import Icon from './Icon.jsx';
+import { useI18n } from '../../lib/i18n.js';
+import { displayName, isFlow } from '../../lib/vault.js';
+import Icon from '../Icon.jsx';
 
 function TreeNode({ node, depth, activePath, expanded, toggle, onOpen, onContext, onDropMove, spaced, hideFlowExtension, showMarkdownExtension }) {
   // Folder underscores are an on-disk detail; show them as spaces only when the setting creates them.

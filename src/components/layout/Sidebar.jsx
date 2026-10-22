@@ -1,9 +1,9 @@
 import { useState } from 'react';
-import { useI18n } from '../lib/i18n.js';
-import { dirName, isMarkdown, joinPath } from '../lib/vault.js';
-import Menu from './ContextMenu.jsx';
+import { useI18n } from '../../lib/i18n.js';
+import { dirName, isMarkdown, joinPath } from '../../lib/vault.js';
+import Menu from '../dialogs/ContextMenu.jsx';
 import FileTree from './FileTree.jsx';
-import Icon from './Icon.jsx';
+import Icon from '../Icon.jsx';
 
 function ContextMenu({ menu, onClose, actions }) {
   const { node } = menu;

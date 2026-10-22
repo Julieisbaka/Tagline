@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useI18n } from '../lib/i18n.js';
+import { useI18n } from '../../lib/i18n.js';
 
 export default function AdvancedSettings({ settings, update, section = 'all' }) {
   const { t } = useI18n();

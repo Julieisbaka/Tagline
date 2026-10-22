@@ -2,10 +2,10 @@ import { useEffect, useMemo, useState } from 'react';
 import CodeMirror from '@uiw/react-codemirror';
 import { json } from '@codemirror/lang-json';
 import { EditorView } from '@codemirror/view';
-import { LANGUAGES, useI18n } from '../lib/i18n.js';
-import { BUILTIN_THEMES, COLOR_TOKENS, extensionThemes, getTheme, validateTheme } from '../lib/themes.js';
-import { getRuntimeLimits } from '../../electron/customization.mjs';
-import { settingsCodeMirrorTheme } from '../lib/editorExtensions.js';
+import { LANGUAGES, useI18n } from '../../lib/i18n.js';
+import { BUILTIN_THEMES, COLOR_TOKENS, extensionThemes, getTheme, validateTheme } from '../../lib/themes.js';
+import { getRuntimeLimits } from '../../../electron/customization.mjs';
+import { settingsCodeMirrorTheme } from '../../lib/editorExtensions.js';
 
 export default function ThemeSettings({ settings, update }) {
   const { t } = useI18n();

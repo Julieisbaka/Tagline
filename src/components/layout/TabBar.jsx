@@ -1,8 +1,8 @@
 import { useState } from 'react';
-import { useI18n } from '../lib/i18n.js';
-import { displayName, isFlow } from '../lib/vault.js';
-import ContextMenu from './ContextMenu.jsx';
-import Icon from './Icon.jsx';
+import { useI18n } from '../../lib/i18n.js';
+import { displayName, isFlow } from '../../lib/vault.js';
+import ContextMenu from '../dialogs/ContextMenu.jsx';
+import Icon from '../Icon.jsx';
 
 export default function TabBar({ tabs, activeId, onActivate, onClose, onCloseOthers, onFileAction, hideFlowExtension = true, showMarkdownExtension = false }) {
   const { t: tr } = useI18n();

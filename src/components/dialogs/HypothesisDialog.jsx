@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { useI18n } from '../lib/i18n.js';
-import { HYPOTHESIS_TEMPLATES, buildHypotheses, entailmentLabel, premiseText } from '../lib/nli.js';
+import { useI18n } from '../../lib/i18n.js';
+import { HYPOTHESIS_TEMPLATES, buildHypotheses, entailmentLabel, premiseText } from '../../lib/nli.js';
 
 // Explicit, on-demand stance/topic analysis with the Political DEBATE NLI model.
 export default function HypothesisDialog({ sources, onClose }) {

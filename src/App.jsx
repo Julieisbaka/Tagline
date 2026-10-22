@@ -7,11 +7,11 @@ import { binding, displayBinding, KEYBINDINGS, matchesBinding } from './lib/keyb
 import { getSectionAt } from './lib/card.js';
 import { slugify } from './lib/markdown.js';
 import { baseName, dirName, flattenTree, isMarkdown, joinPath, outline, resolveLink } from './lib/vault.js';
-import { clampPanel, PANEL_LIMITS } from './components/Splitter.jsx';
+import { clampPanel, PANEL_LIMITS } from './components/layout/Splitter.jsx';
 import { useI18n } from './lib/i18n.js';
 import { visualBlocker, visualSelection } from './lib/visualExtensions.js';
 import { EMPTY_FLOW } from './components/FlowEditor.jsx';
-import AppLayout from './components/AppLayout.jsx';
+import AppLayout from './components/layout/AppLayout.jsx';
 import { useAppExtensions } from './lib/useAppExtensions.js';
 
 export default function App() {

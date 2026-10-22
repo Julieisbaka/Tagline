@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
-import { baseName } from '../lib/vault.js';
-import { useI18n } from '../lib/i18n.js';
+import { baseName } from '../../lib/vault.js';
+import { useI18n } from '../../lib/i18n.js';
 
 export default function HistoryDialog({ path, onRestore, onClose }) {
   const { t, locale } = useI18n();

@@ -1,15 +1,15 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { useI18n } from '../lib/i18n.js';
-import { fuzzyScore } from '../lib/vault.js';
-import AdvancedSettings from './AdvancedSettings.jsx';
-import IntegrationSettings from './IntegrationSettings.jsx';
-import ThemeSettings from './ThemeSettings.jsx';
-import ExtensionSettings from './ExtensionSettings.jsx';
-import KeybindingSettings from './KeybindingSettings.jsx';
-import CustomCssSettings from './CustomCssSettings.jsx';
-import ReadingSettings from './ReadingSettings.jsx';
-import CustomizationLimits from './CustomizationLimits.jsx';
-import EditorSettings from './EditorSettings.jsx';
+import { useI18n } from '../../lib/i18n.js';
+import { fuzzyScore } from '../../lib/vault.js';
+import AdvancedSettings from '../settings/AdvancedSettings.jsx';
+import IntegrationSettings from '../settings/IntegrationSettings.jsx';
+import ThemeSettings from '../settings/ThemeSettings.jsx';
+import ExtensionSettings from '../settings/ExtensionSettings.jsx';
+import KeybindingSettings from '../settings/KeybindingSettings.jsx';
+import CustomCssSettings from '../settings/CustomCssSettings.jsx';
+import ReadingSettings from '../settings/ReadingSettings.jsx';
+import CustomizationLimits from '../settings/CustomizationLimits.jsx';
+import EditorSettings from '../settings/EditorSettings.jsx';
 
 // Generic fuzzy-filtered list modal used for quick switcher, commands, templates.
 export function Palette({ items, placeholder, onSelect, onClose, onCreate, createLabel }) {

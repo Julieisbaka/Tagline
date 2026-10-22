@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
-import { useI18n } from '../lib/i18n.js';
-import { getRuntimeLimits } from '../../electron/customization.mjs';
+import { useI18n } from '../../lib/i18n.js';
+import { getRuntimeLimits } from '../../../electron/customization.mjs';
 
 const PERMISSION_LABELS = {
   editor: 'Read and insert text in the active note',

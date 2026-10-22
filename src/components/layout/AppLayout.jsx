@@ -1,21 +1,21 @@
-import { baseName, dirName, displayName, isMarkdown } from '../lib/vault.js';
-import { binding, displayBinding } from '../lib/keybindings.js';
+import { baseName, dirName, displayName, isMarkdown } from '../../lib/vault.js';
+import { binding, displayBinding } from '../../lib/keybindings.js';
 import Sidebar, { renameTarget } from './Sidebar.jsx';
 import TabBar from './TabBar.jsx';
-import NoteView from './NoteView.jsx';
-import GraphView from './GraphView.jsx';
+import NoteView from '../NoteView.jsx';
+import GraphView from '../GraphView.jsx';
 import RightPanel from './RightPanel.jsx';
-import SearchModal from './SearchModal.jsx';
-import ExportDialog from './ExportDialog.jsx';
-import ImportDialog from './ImportDialog.jsx';
-import CitationDialog from './CitationDialog.jsx';
-import HypothesisDialog from './HypothesisDialog.jsx';
-import HistoryDialog from './HistoryDialog.jsx';
-import WebsiteView from './WebsiteView.jsx';
+import SearchModal from '../dialogs/SearchModal.jsx';
+import ExportDialog from '../dialogs/ExportDialog.jsx';
+import ImportDialog from '../dialogs/ImportDialog.jsx';
+import CitationDialog from '../dialogs/CitationDialog.jsx';
+import HypothesisDialog from '../dialogs/HypothesisDialog.jsx';
+import HistoryDialog from '../dialogs/HistoryDialog.jsx';
+import WebsiteView from '../dialogs/WebsiteView.jsx';
 import Splitter from './Splitter.jsx';
-import Welcome from './Welcome.jsx';
+import Welcome from '../dialogs/Welcome.jsx';
 import Ribbon from './Ribbon.jsx';
-import { Palette, PromptDialog, SettingsDialog } from './Dialogs.jsx';
+import { Palette, PromptDialog, SettingsDialog } from '../dialogs/Dialogs.jsx';
 
 export default function AppLayout({ app }) {
   const {

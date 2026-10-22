@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect, useRef } from 'react';
-import { useI18n } from '../lib/i18n.js';
+import { useI18n } from '../../lib/i18n.js';
 
 export default function ContextMenu({ x, y, items, onClose }) {
   const ref = useRef(null);

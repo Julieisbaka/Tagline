@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { useI18n } from '../lib/i18n.js';
+import { useI18n } from '../../lib/i18n.js';
 
 export default function WebsiteView({ url, onClose }) {
   const { t } = useI18n();

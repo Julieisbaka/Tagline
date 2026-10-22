@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { createCitation } from '../lib/citation.js';
-import { useI18n } from '../lib/i18n.js';
+import { createCitation } from '../../lib/citation.js';
+import { useI18n } from '../../lib/i18n.js';
 
 export default function CitationDialog({ onInsert, onClose }) {
   const { t } = useI18n();

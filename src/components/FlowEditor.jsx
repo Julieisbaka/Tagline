@@ -1,6 +1,6 @@
 import { useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useI18n } from '../lib/i18n.js';
-import ContextMenu from './ContextMenu.jsx';
+import ContextMenu from './dialogs/ContextMenu.jsx';
 import Icon from './Icon.jsx';
 import { binding, displayBinding, matchesBinding } from '../lib/keybindings.js';
 

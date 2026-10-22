@@ -1,4 +1,4 @@
-import { useI18n } from '../lib/i18n.js';
+import { useI18n } from '../../lib/i18n.js';
 
 export default function EditorSettings({ settings, update }) {
   const { t } = useI18n();
