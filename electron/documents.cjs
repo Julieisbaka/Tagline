@@ -11,7 +11,8 @@ async function importDocument(executable, file) {
   const reader = IMPORT_READERS[path.extname(file).slice(1).toLowerCase()];
   if (!reader) throw new Error('Unsupported import format.');
   const { stdout, stderr } = await run(executable, [
-    `--from=${reader}`, '--to=markdown+raw_html-bracketed_spans', '--wrap=none', '--sandbox', '--', file,
+    `--from=${reader}`, '--to=markdown+mark+raw_html-bracketed_spans',
+    `--lua-filter=${path.join(__dirname, 'importHighlights.lua')}`, '--wrap=none', '--sandbox', '--', file,
   ], { windowsHide: true, timeout: 120000, maxBuffer: 20 * 1024 * 1024 });
   return { markdown: stdout, warnings: stderr.trim() };
 }

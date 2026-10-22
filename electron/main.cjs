@@ -12,6 +12,7 @@ const { registerExtensions } = require('./extensions.cjs');
 const { extractCitation } = require('./citationMetadata.cjs');
 const { registerFlowFiles } = require('./flowFiles.cjs');
 const { registerBrowser } = require('./browser.cjs');
+const { DEFAULT_RETENTION, createRevisionHistory } = require('./revisionHistory.cjs');
 const keyDefinitions = require('../src/lib/keybindings.json');
 
 const isDev = process.argv.includes('--dev');
@@ -98,6 +99,10 @@ async function openVault(dir) {
 }
 
 function registerIpc() {
+  const history = createRevisionHistory({
+    getVaultRoot: () => vaultRoot,
+    resolveInVault,
+  });
   ipcMain.handle('pandoc:install', () => shell.openExternal('https://pandoc.org/installing.html'));
   ipcMain.handle('citation:extract', (_event, url) => extractCitation(url));
   ipcMain.handle('keybindings:set', (_event, overrides) => {
@@ -156,8 +161,9 @@ function registerIpc() {
 
   ipcMain.handle('fs:read', async (_e, rel) => fs.readFile(resolveInVault(rel), 'utf8'));
 
-  ipcMain.handle('fs:write', async (_e, rel, content) => {
+  ipcMain.handle('fs:write', async (_e, rel, content, retention = DEFAULT_RETENTION) => {
     const full = resolveInVault(rel);
+    await history.snapshot(rel, content, retention);
     await fs.mkdir(path.dirname(full), { recursive: true });
     await fs.writeFile(full, content, 'utf8');
     return true;
@@ -181,8 +187,37 @@ function registerIpc() {
   ipcMain.handle('fs:rename', async (_e, from, to) => {
     const dest = resolveInVault(to);
     if (fssync.existsSync(dest)) throw new Error('A file with that name already exists');
+    const source = resolveInVault(from);
+    const stat = await fs.stat(source);
+    let documents = [];
+    if (stat.isDirectory()) {
+      const collect = (nodes, base) => {
+        for (const node of nodes) {
+          const relative = `${base}/${node.path}`;
+          if (node.type === 'folder') collect(node.children, base);
+          else documents.push(relative);
+        }
+      };
+      collect(await walk(source), from);
+    } else if (NOTE_EXTS.includes(path.extname(from).toLowerCase())) {
+      documents = [from];
+    }
     await fs.mkdir(path.dirname(dest), { recursive: true });
-    await fs.rename(resolveInVault(from), dest);
+    const migrated = [];
+    const rollbackHistory = async () => {
+      for (const [oldPath, newPath] of [...migrated].reverse()) await history.rename(newPath, oldPath);
+    };
+    try {
+      for (const oldPath of documents) {
+        const newPath = `${to}${oldPath.slice(from.length)}`;
+        await history.rename(oldPath, newPath);
+        migrated.push([oldPath, newPath]);
+      }
+      await fs.rename(source, dest);
+    } catch (error) {
+      await rollbackHistory();
+      throw error;
+    }
     return toPosix(to);
   });
 
@@ -196,6 +231,8 @@ function registerIpc() {
   ipcMain.handle('shell:reveal', async (_e, rel) => {
     shell.showItemInFolder(resolveInVault(rel));
   });
+  ipcMain.handle('history:list', (_e, rel) => history.list(rel));
+  ipcMain.handle('history:read', (_e, rel, id) => history.read(rel, id));
 }
 
 function createWindow() {

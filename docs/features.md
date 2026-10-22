@@ -41,8 +41,16 @@ show a missing-file notice with reload/close actions. Restoring the file and
 reloading makes it editable again. Deleting a note inside Tagline always closes
 its tabs, regardless of this preference.
 
-This is not a cloud-sync or revision-history system; keep backups of important
-evidence and avoid conflicting edits from multiple applications.
+This is not a cloud-sync system; keep backups of important evidence and avoid
+conflicting edits from multiple applications.
+
+Tagline keeps a local revision history for Markdown and flow documents.
+Open **History** from a document header to preview and restore saved versions.
+Restoring a version preserves the current document as another revision. History
+is stored in the vault under `.tagline/history`, follows document and folder
+renames, and is limited by **Settings > Files and folders > Revision history**.
+The default is 50 revisions per document; older versions are pruned after the
+next change. This is a recovery aid, not a substitute for independent backups.
 
 ## Editing and debate cards
 
@@ -296,8 +304,10 @@ in the default browser. This does not install software automatically; after
 installation use **Check again** or **Locate Pandoc**.
 
 **Pandoc import** accepts DOCX, ODT, RTF, HTML, and EPUB. Review the converted
-Markdown and warnings before adding a note. Canceling creates nothing; name
-collisions do not overwrite existing notes. The source document is unchanged.
+Markdown and warnings before adding a note. Text highlights from Word, HTML
+`<mark>` elements, and spans with a background color are converted to Tagline's
+`==highlight==` Markdown. Canceling creates nothing; name collisions do not
+overwrite existing notes. The source document is unchanged.
 
 Complex formatting may not survive conversion. Pandoc format support does not
 guarantee that every embedded HTML element retains its original behavior.
@@ -339,7 +349,7 @@ Changes save automatically on the current device.
 | General | Speaking rate, personal speech calibration samples, speech-document path, default editor, flow-row focus, readable line width. |
 | Appearance | English/Spanish/French UI, built-in/custom/extension themes, editor font size, installed or imported fonts, opt-in unrestricted custom CSS in a CodeMirror editor with CSS highlighting (`Mod+Enter` applies). |
 | Performance and search | Visual parse-cache limits and maximum search results. |
-| Files and folders | Folder-path spaces, `.md`/`.flow` label visibility, auto relinking, externally missing-tab cleanup, workspace persistence, association guidance. |
+| Files and folders | Folder-path spaces, `.md`/`.flow` label visibility, auto relinking, externally missing-tab cleanup, workspace persistence, revision-history retention, association guidance. |
 | Integrations | Embedded websites, Pandoc location/status/install-page link, model download/load/autoload, optional Hugging Face token, Political DEBATE repository/local folder/unload. |
 | Keyboard shortcuts | Record, clear, or reset built-in and extension bindings; conflicts and reserved shortcuts are explained. |
 | Extensions | Open the extension directory, reload, review permissions/errors, and enable/disable local extensions. |
@@ -355,6 +365,7 @@ Notable defaults and limits:
 | Visual cache entries | 16 | 0-256; zero disables caching. |
 | Visual cache characters | 4,000,000 | 0-100,000,000; combined source and serialized-document budget. |
 | Maximum search results | 200 | 1-1,000, after ranking. |
+| Revision history | 50 | 1-5,000 snapshots per document, stored inside the vault. |
 | Underscore folder spaces | Enabled | Newly created/renamed folder components; existing paths are not migrated. Explorer labels show spaces while enabled. |
 | Hide `.flow` extension | Enabled | Presentation only; actual filenames and extension API paths retain the suffix. |
 | Show `.md` extension | Disabled | Applies to file labels in the explorer, tabs, switcher, search, backlinks, and graph; does not change paths or the editable note title. |
@@ -409,7 +420,6 @@ shared JSON supplies its fallback.
   extension with your evidence. Private extension storage is not encrypted.
 - Opt-in custom CSS is unrestricted and may load external resources or hide
   controls. See [CSS safety and recovery](./theme-api.md#unrestricted-custom-css).
-- There is no built-in cloud collaboration, vault version history, or automatic
-  backup/recovery workflow.
+- There is no built-in cloud collaboration or automatic backup workflow.
 - UI language does not translate evidence or make the English embedding model
   multilingual. Some native/custom menu and diagnostic messages remain English.

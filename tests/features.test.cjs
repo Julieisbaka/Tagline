@@ -3,6 +3,8 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 const childProcess = require('node:child_process');
+const fsAsync = require('node:fs/promises');
+const os = require('node:os');
 const { promisify } = require('node:util');
 
 test('extension settings have validated types, bounds, defaults and scoped storage', async (t) => {
@@ -248,11 +250,49 @@ test('Pandoc import chooses an explicit reader, passes literal paths, and surfac
     markdown: '# Imported\n\n**Card**', warnings: 'Conversion warning',
   });
   assert.ok(captured.args.includes('--from=docx'));
-  assert.ok(captured.args.includes('--to=markdown+raw_html-bracketed_spans'));
+  assert.ok(captured.args.includes('--to=markdown+mark+raw_html-bracketed_spans'));
+  assert.ok(captured.args.some((arg) => arg.endsWith('importHighlights.lua')));
   assert.ok(captured.args.includes('--sandbox'));
   assert.equal(captured.args.at(-1), file);
   assert.equal(captured.options.timeout, 120000);
   fail = true;
   await assert.rejects(importDocument('pandoc', file), /Bad document/);
   await assert.rejects(importDocument('pandoc', 'C:\\notes\\script.exe'), /Unsupported import format/);
+});
+
+test('revision history snapshots changed documents, enforces retention, and follows renames', async (t) => {
+  const { createRevisionHistory } = require('../electron/revisionHistory.cjs');
+  const root = await fsAsync.mkdtemp(path.join(os.tmpdir(), 'tagline-history-'));
+  t.after(() => fsAsync.rm(root, { recursive: true, force: true }));
+  const resolveInVault = (rel) => {
+    const full = path.resolve(root, rel);
+    const relative = path.relative(root, full);
+    if (relative.startsWith('..') || path.isAbsolute(relative)) throw new Error('Path escapes vault');
+    return full;
+  };
+  const history = createRevisionHistory({ getVaultRoot: () => root, resolveInVault });
+  const note = path.join(root, 'Evidence.md');
+  await fsAsync.writeFile(note, 'Version one');
+
+  const save = async (content) => {
+    await history.snapshot('Evidence.md', content, 2);
+    await fsAsync.writeFile(note, content);
+  };
+  await save('Version one');
+  assert.deepEqual(await history.list('Evidence.md'), []);
+  await save('Version two');
+  await save('Version three');
+  await save('Version four');
+  let revisions = await history.list('Evidence.md');
+  assert.equal(revisions.length, 2);
+  assert.deepEqual(await Promise.all(revisions.map(({ id }) => history.read('Evidence.md', id))),
+    ['Version three', 'Version two']);
+
+  await fsAsync.rename(note, path.join(root, 'Renamed.md'));
+  await history.rename('Evidence.md', 'Renamed.md');
+  revisions = await history.list('Renamed.md');
+  assert.equal(revisions.length, 2);
+  assert.equal(await history.read('Renamed.md', revisions[0].id), 'Version three');
+  await assert.rejects(history.list('../outside.md'), /Path escapes vault/);
+  await assert.rejects(history.snapshot('Evidence.md', 'next version', 0), /retention must be between/);
 });

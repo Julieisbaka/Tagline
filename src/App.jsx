@@ -17,6 +17,7 @@ import ExportDialog from './components/ExportDialog.jsx';
 import ImportDialog from './components/ImportDialog.jsx';
 import CitationDialog from './components/CitationDialog.jsx';
 import HypothesisDialog from './components/HypothesisDialog.jsx';
+import HistoryDialog from './components/HistoryDialog.jsx';
 import WebsiteView from './components/WebsiteView.jsx';
 import Splitter, { clampPanel, PANEL_LIMITS } from './components/Splitter.jsx';
 import { useI18n } from './lib/i18n.js';
@@ -30,7 +31,7 @@ import { Palette, PromptDialog, SettingsDialog } from './components/Dialogs.jsx'
 export default function App() {
   const { t } = useI18n();
   const [settings, updateSettings] = useSettings();
-  const v = useVault(settings.underscoreFolders, settings.autoRelink);
+  const v = useVault(settings.underscoreFolders, settings.autoRelink, settings.historyRetention);
   const tabs = useTabs(v.vault?.root, settings.persistWorkspaceTabs);
   const [modes, setModes] = useState({});
   const [highlightOnly, setHighlightOnly] = useState(false);
@@ -533,6 +534,7 @@ export default function App() {
         onExport={ctx.exportNote}
         onTestHypothesis={ctx.testHypothesis}
         onCreateCitation={ctx.createCitation}
+        onOpenHistory={() => setModal({ type: 'history', path: tab.path })}
         settings={settings}
         onDismissVisualNotice={() => updateSettings({
           internalFlags: { ...settings.internalFlags, visualNoticeDismissed: true },
@@ -614,6 +616,13 @@ export default function App() {
       )}
       {modal?.type === 'import' && <ImportDialog onImport={createAndOpen} onClose={() => setModal(null)} />}
       {modal?.type === 'hypothesis' && <HypothesisDialog sources={modal.sources} onClose={() => setModal(null)} />}
+      {modal?.type === 'history' && <HistoryDialog path={modal.path}
+        onRestore={(content) => {
+          v.updateContent(modal.path, content);
+          setModal(null);
+          notify(t('Revision restored; saving…'));
+        }}
+        onClose={() => setModal(null)} />}
       {modal?.type === 'citation' && <CitationDialog onInsert={activePath && isMarkdown(activePath) && mode !== 'read'
         ? insertCitation : null} onClose={() => setModal(null)} />}
       {toast && <div className="toast">{toast}</div>}

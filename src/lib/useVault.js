@@ -5,7 +5,7 @@ import { folderPaths, normalizeFolders } from './folderPaths.js';
 const api = window.api;
 const SAVE_DELAY = 400;
 
-export function useVault(underscoreFolders = true, autoRelink = true) {
+export function useVault(underscoreFolders = true, autoRelink = true, historyRetention = 50) {
   const [vault, setVault] = useState(null);
   const [tree, setTree] = useState([]);
   const [contents, setContents] = useState({});
@@ -19,6 +19,8 @@ export function useVault(underscoreFolders = true, autoRelink = true) {
   const observed = useRef({ root: null, contents: {} });
   const contentsRef = useRef(contents);
   contentsRef.current = contents;
+  const historyRetentionRef = useRef(historyRetention);
+  historyRetentionRef.current = historyRetention;
   const directories = folderPaths(tree);
   const normalize = (path, folder = false) => underscoreFolders ? normalizeFolders(path, folder, directories) : path;
 
@@ -26,7 +28,7 @@ export function useVault(underscoreFolders = true, autoRelink = true) {
 
   const writeDisk = useCallback((path, text) => {
     const previous = writes.current.get(path)?.task || Promise.resolve();
-    const task = previous.catch(() => { }).then(() => api.write(path, text));
+    const task = previous.catch(() => { }).then(() => api.write(path, text, historyRetentionRef.current));
     writes.current.set(path, { task, text });
     const cleanup = () => {
       if (writes.current.get(path)?.task === task) writes.current.delete(path);
@@ -106,7 +108,7 @@ export function useVault(underscoreFolders = true, autoRelink = true) {
 
   useEffect(() => {
     const onUnload = () => {
-      for (const [p, c] of Object.entries(pending.current)) api.write(p, c);
+      for (const [p, c] of Object.entries(pending.current)) api.write(p, c, historyRetentionRef.current);
     };
     window.addEventListener('beforeunload', onUnload);
     return () => window.removeEventListener('beforeunload', onUnload);
@@ -173,7 +175,7 @@ export function useVault(underscoreFolders = true, autoRelink = true) {
             updated = rewriteLinks(updated, oldPath, to + oldPath.slice(from.length), paths);
           }
           const destination = moved.includes(p) ? to + p.slice(from.length) : p;
-          if (updated !== all[p]) await api.write(destination, updated);
+          if (updated !== all[p]) await api.write(destination, updated, historyRetentionRef.current);
         }
         await reload();
         return to;

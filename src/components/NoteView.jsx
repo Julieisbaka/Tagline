@@ -35,6 +35,7 @@ export default function NoteView({
   onExport,
   onTestHypothesis,
   onCreateCitation,
+  onOpenHistory,
   settings,
   onDismissVisualNotice,
 }) {
@@ -118,6 +119,9 @@ export default function NoteView({
         <div className="note-header">
           <input className="note-title" value={title} onChange={(e) => setTitle(e.target.value)} onBlur={commitTitle}
             onKeyDown={(e) => e.key === 'Enter' && e.target.blur()} />
+          <div className="note-actions">
+            <button onClick={onOpenHistory}>{t('History')}</button>
+          </div>
         </div>
         <FlowEditor content={content} onChange={onChange} focusNewFlowRow={settings.focusNewFlowRow} keybindings={settings.keybindings} />
       </div>
@@ -135,6 +139,7 @@ export default function NoteView({
           onKeyDown={(e) => e.key === 'Enter' && e.target.blur()}
         />
         <div className="note-actions">
+          <button onClick={onOpenHistory}>{t('History')}</button>
           <select aria-label={t('Editor mode')} value={mode} onChange={(e) => setMode(e.target.value)}>
             <option value="visual">{t('Visual')}</option>
             <option value="edit">{t('Source')}</option>

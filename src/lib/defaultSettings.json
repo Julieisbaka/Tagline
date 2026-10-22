@@ -13,6 +13,7 @@
   "visualCacheEntries": 16,
   "visualCacheCharacters": 4000000,
   "searchMaxResults": 200,
+  "historyRetention": 50,
   "underscoreFolders": true,
   "hideFlowExtension": true,
   "showMarkdownExtension": false,

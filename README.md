@@ -3,9 +3,9 @@
 ![Tagline icon](build/icon.png)
 
 A local-first policy debate workspace for Markdown evidence and `.flow` speech
-grids. Tagline combines visual/source editing, citations, full-text and local
-semantic search, speech documents, timers, configurable shortcuts, themes,
-and sandboxed extensions.
+grids. Tagline combines visual/source editing, citations, local revision
+history, full-text and semantic search, speech documents, timers, configurable
+shortcuts, themes, and sandboxed extensions.
 
 Your vault is an ordinary folder. Standalone HTML export is built in; other
 document import/export formats use an optional, separately installed Pandoc.

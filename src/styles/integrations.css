@@ -504,6 +504,19 @@ button:disabled {
   background: var(--bg);
 }
 
+.history-dialog {
+  width: min(760px, 90vw);
+}
+
+.history-preview {
+  width: 100%;
+  min-height: 280px;
+  max-height: 55vh;
+  resize: vertical;
+  font-family: var(--font-mono);
+  background: var(--bg);
+}
+
 .setting-row input[type="file"] {
   max-width: 240px;
 }
