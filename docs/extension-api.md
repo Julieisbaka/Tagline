@@ -10,7 +10,7 @@ unavailable; use the bridge rather than browser-page globals.
 The supported bridge is the `tagline` object supplied to the entry script.
 
 For a complete working example of every API in this reference, see the
-[API demo extension](../Demo/README.md).
+[API demo extension](../demo/README.md).
 
 ## Install and reload
 
@@ -567,4 +567,4 @@ Implementation references:
 - [Permission checks and host lifecycle](../src/lib/extensions.js)
 - [Application bridge](../src/App.jsx)
 - [End-to-end extension examples](../tests/extensions-smoke.cjs)
-- [API demo extension](../Demo/tagline-api-demo/)
+- [API demo extension](../demo/tagline-api-demo/)
