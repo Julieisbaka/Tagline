@@ -168,11 +168,11 @@ and access date. Copy the generated Markdown or insert it into either editor.
 
 Paste a public article URL or DOI and choose **Autofill from URL** to read JSON-LD,
 citation metadata, and known-site URL rules. For DOI resolver links, Tagline
-also checks Crossref's public bibliographic metadata API; it does not retrieve
-article full text. Autofill preserves fields you already entered. Known-site
-fallbacks may recover a publisher, title, or year even when the page cannot be
-fetched. Review every result; author identity and publication dates cannot
-always be recovered reliably.
+also checks the [Crossref public bibliographic metadata API](https://www.crossref.org/documentation/retrieve-metadata/rest-api/);
+it does not retrieve article full text. Autofill preserves fields you already
+entered. Known-site fallbacks may recover a publisher, title, or year even when
+the page cannot be fetched. Review every result; author identity and publication
+dates cannot always be recovered reliably.
 
 The fetcher does not execute the page, has time/size/redirect limits, and rejects
 local/private-network targets. If automated access is restricted, Tagline reports
