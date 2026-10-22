@@ -463,5 +463,8 @@
   "Use repository": "Usar repositorio",
   "Use local folder...": "Usar carpeta local...",
   "Current source: {source}": "Origen actual: {source}",
-  "Ctrl/Cmd+Enter applies": "Ctrl/Cmd+Intro aplica"
+  "Ctrl/Cmd+Enter applies": "Ctrl/Cmd+Intro aplica",
+  "Resize file explorer": "Cambiar el tama?o del explorador de archivos",
+  "Resize side panel": "Cambiar el tama?o del panel lateral",
+  "Drag to resize; double-click to reset": "Arrastre para cambiar el tama?o; doble clic para restablecer"
 }

@@ -1,0 +1,76 @@
+// Layout check: status-bar statistics wrap instead of clipping, note actions stay inside the note
+// column, and both side panels resize by mouse drag and keyboard with persisted, clamped widths.
+if (!process.versions.electron) {
+  const { spawnSync } = require('node:child_process');
+  const os = require('node:os'), fs = require('node:fs'), path = require('node:path');
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'tagline-layout-'));
+  try { const r = spawnSync(require('electron'), [__filename], { env: { ...process.env, SHOT_ROOT: root }, stdio: 'inherit', timeout: 120000 }); process.exitCode = r.status ?? 1; } finally { fs.rmSync(root, { recursive: true, force: true, maxRetries: 20, retryDelay: 100 }); }
+  return;
+}
+const { app } = require('electron');
+const assert = require('node:assert/strict');
+const fs = require('node:fs/promises'), path = require('node:path');
+const delay = (ms) => new Promise((r) => setTimeout(r, ms));
+(async () => {
+  const root = process.env.SHOT_ROOT, profile = path.join(root, 'p'), vault = path.join(root, 'v');
+  await fs.mkdir(profile, { recursive: true }); await fs.mkdir(vault);
+  let body = '# Long doc\n\n';
+  for (let i = 0; i < 60; i++) body += `#### Card ${i}\n\n**Smith ${i}**\n\n==Evidence paragraph ${i} with some highlighted text.== More.\n\n`;
+  await fs.writeFile(path.join(vault, 'Doc.md'), body);
+  await fs.writeFile(path.join(profile, 'config.json'), JSON.stringify({ lastVault: vault, modelAutoload: false }));
+  app.setPath('userData', profile);
+  app.on('browser-window-created', (_e, win) => {
+    win.webContents.once('did-finish-load', async () => {
+      const js = (c) => win.webContents.executeJavaScript(c);
+      const rect = (s) => js(`(() => { const b = document.querySelector(${JSON.stringify(s)}).getBoundingClientRect(); return { x: b.x, y: b.y, w: b.width, h: b.height }; })()`);
+      try {
+        for (let i = 0; i < 100 && !(await js("document.querySelectorAll('.tree-item').length")); i++) await delay(100);
+        await js(`document.querySelector('.tree-item[title="Doc.md"]').click()`);
+        await delay(1200);
+        for (const [w, h] of [[1280, 800], [900, 700]]) {
+          win.setContentSize(w, h); await delay(800);
+          const clipped = await js(`(() => { const bar = document.querySelector('.status-bar').getBoundingClientRect(); return [...document.querySelectorAll('.status-bar > span:not(.spacer)')].filter(s => { const r = s.getBoundingClientRect(); return r.right > bar.right + 1 || r.bottom > bar.bottom + 1; }).map(s => s.textContent); })()`);
+          assert.deepEqual(clipped, [], `status items clipped at ${w}: ${clipped}`);
+          const actions = await rect('.note-actions'), main = await rect('.main');
+          assert.ok(actions.x + actions.w <= main.x + main.w + 1, `note actions overflow at ${w}`);
+        }
+        win.setContentSize(1280, 800); await delay(800);
+        // Real mouse drag of the left splitter by +120px.
+        const before = (await rect('.sidebar')).w;
+        const s = await rect('.panel-splitter-left');
+        const x = Math.round(s.x + s.w / 2), y = Math.round(s.y + 300);
+        win.webContents.sendInputEvent({ type: 'mouseDown', x, y, button: 'left', clickCount: 1 });
+        for (let dx = 20; dx <= 120; dx += 20) { win.webContents.sendInputEvent({ type: 'mouseMove', x: x + dx, y, button: 'left', modifiers: ['leftButtonDown'] }); await delay(30); }
+        win.webContents.sendInputEvent({ type: 'mouseUp', x: x + 120, y, button: 'left', clickCount: 1 });
+        await delay(400);
+        const after = (await rect('.sidebar')).w;
+        assert.ok(Math.abs(after - before - 120) <= 2, `sidebar drag ${before} -> ${after}`);
+        const saved = await js("JSON.parse(localStorage.getItem('tagline-settings')).sidebarWidth");
+        assert.equal(saved, Math.round(after), 'sidebar width persisted');
+        // Right splitter: drag left by 100 grows the right panel.
+        const rb = (await rect('.right-panel')).w, r = await rect('.panel-splitter-right');
+        const rx = Math.round(r.x + r.w / 2);
+        win.webContents.sendInputEvent({ type: 'mouseDown', x: rx, y, button: 'left', clickCount: 1 });
+        for (let dx = 20; dx <= 100; dx += 20) { win.webContents.sendInputEvent({ type: 'mouseMove', x: rx - dx, y, button: 'left', modifiers: ['leftButtonDown'] }); await delay(30); }
+        win.webContents.sendInputEvent({ type: 'mouseUp', x: rx - 100, y, button: 'left', clickCount: 1 });
+        await delay(400);
+        const ra = (await rect('.right-panel')).w;
+        assert.ok(Math.abs(ra - rb - 100) <= 2, `right drag ${rb} -> ${ra}`);
+        // Clamping keeps the note column usable.
+        await js("document.querySelector('.panel-splitter-right').focus()");
+        win.webContents.sendInputEvent({ type: 'keyDown', keyCode: 'End' }); await delay(300);
+        assert.ok((await rect('.main')).w >= 318, 'main keeps minimum width');
+        win.webContents.sendInputEvent({ type: 'keyDown', keyCode: 'Return' }); await delay(300);
+        assert.equal(Math.round((await rect('.right-panel')).w), 300, 'Enter resets right panel');
+        win.webContents.sendInputEvent({ type: 'keyDown', keyCode: 'Left' }); await delay(300);
+        assert.equal(Math.round((await rect('.right-panel')).w), 316, 'ArrowLeft grows right panel');
+        assert.equal(await js("document.body.classList.contains('resizing-panels')"), false);
+        console.log('PASS layout');
+        app.exit(0);
+      } catch (e) { console.error('FAIL', e.message); app.exit(1); }
+    });
+  });
+  require('../electron/main.cjs');
+})();
+
+

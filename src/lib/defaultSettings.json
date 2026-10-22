@@ -26,6 +26,8 @@
   "keybindings": {},
   "modelAutoload": true,
   "embedWebsites": true,
+  "sidebarWidth": 260,
+  "rightPanelWidth": 300,
   "internalFlags": {
     "visualNoticeDismissed": false
   }

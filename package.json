@@ -22,7 +22,8 @@
     "test:extensions": "vite build && node tests/extensions-smoke.cjs",
     "test:settings": "vite build && node tests/settings-smoke.cjs",
     "test:nli": "node tests/nli-smoke.cjs",
-    "test:nli-ui": "vite build && node tests/nli-ui-smoke.cjs"
+    "test:nli-ui": "vite build && node tests/nli-ui-smoke.cjs",
+    "test:layout": "vite build && node tests/layout-smoke.cjs"
   },
   "license": "MIT",
   "build": {

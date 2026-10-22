@@ -18,6 +18,7 @@ import ImportDialog from './components/ImportDialog.jsx';
 import CitationDialog from './components/CitationDialog.jsx';
 import HypothesisDialog from './components/HypothesisDialog.jsx';
 import WebsiteView from './components/WebsiteView.jsx';
+import Splitter, { clampPanel, PANEL_LIMITS } from './components/Splitter.jsx';
 import { useI18n } from './lib/i18n.js';
 import { visualBlocker, visualSelection } from './lib/visualExtensions.js';
 import { useExtensions } from './lib/extensions.js';
@@ -41,6 +42,18 @@ export default function App() {
   const [toast, setToast] = useState(null);
   const [showLeft, setShowLeft] = useState(true);
   const [showRight, setShowRight] = useState(true);
+  const [, setWindowWidth] = useState(() => window.innerWidth);
+  useEffect(() => {
+    let frame = 0;
+    const onResize = () => {
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(() => setWindowWidth(window.innerWidth));
+    };
+    window.addEventListener('resize', onResize);
+    return () => { cancelAnimationFrame(frame); window.removeEventListener('resize', onResize); };
+  }, []);
+  const rightWidth = clampPanel('rightPanelWidth', settings.rightPanelWidth, showLeft ? PANEL_LIMITS.sidebarWidth.min : 0);
+  const sidebarWidth = clampPanel('sidebarWidth', settings.sidebarWidth, showRight ? rightWidth : 0);
   const editorRef = useRef(null);
   const visualRef = useRef(null);
   const cursorRef = useRef(0);
@@ -529,12 +542,15 @@ export default function App() {
   };
 
   return (
-    <div className={`app${window.api.platform === 'darwin' ? ' mac-app' : ''}`}>
+    <div className={`app${window.api.platform === 'darwin' ? ' mac-app' : ''}`}
+      style={{ '--sidebar-width': `${sidebarWidth}px`, '--right-panel-width': `${rightWidth}px` }}>
       {window.api.platform === 'darwin' && <div className="mac-titlebar">Tagline</div>}
       <Ribbon ctx={ctx} showLeft={showLeft} keybindings={settings.keybindings} />
       {showLeft && <Sidebar vault={v.vault} tree={v.tree} activePath={activePath} actions={actions}
         spacedFolders={settings.underscoreFolders} hideFlowExtension={settings.hideFlowExtension}
         showMarkdownExtension={settings.showMarkdownExtension} />}
+      {showLeft && <Splitter panel="sidebarWidth" side="left" width={sidebarWidth} otherWidth={showRight ? rightWidth : 0}
+        label="Resize file explorer" onChange={(value) => updateSettings({ sidebarWidth: value })} />}
       <main className="main">
         <TabBar tabs={tabs.tabs} activeId={tabs.activeId} onActivate={tabs.setActiveId} onClose={tabs.close}
           onCloseOthers={tabs.closeOthers} hideFlowExtension={settings.hideFlowExtension}
@@ -552,6 +568,8 @@ export default function App() {
         </footer>
       </main>
       <div style={{ display: showRight ? 'contents' : 'none' }}>
+        <Splitter panel="rightPanelWidth" side="right" width={rightWidth} otherWidth={showLeft ? sidebarWidth : 0}
+          label="Resize side panel" onChange={(value) => updateSettings({ rightPanelWidth: value })} />
         <RightPanel
           activePath={activePath}
           content={activeContent}

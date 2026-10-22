@@ -19,16 +19,39 @@
 
 /* Left sidebar */
 .sidebar {
-  width: 260px;
+  width: var(--sidebar-width, 260px);
   flex-shrink: 0;
   display: flex;
   flex-direction: column;
   background: var(--bg-secondary);
   border-right: 1px solid var(--border);
-  resize: horizontal;
   overflow: hidden;
-  min-width: 180px;
-  max-width: 500px;
+}
+
+/* Drag handles between the side panels and the note column */
+.panel-splitter {
+  width: 6px;
+  margin: 0 -3px;
+  flex-shrink: 0;
+  position: relative;
+  z-index: 3;
+  cursor: col-resize;
+  touch-action: none;
+  background: transparent;
+  transition: background 0.12s;
+}
+
+.panel-splitter:hover,
+.panel-splitter:focus-visible,
+body.resizing-panels .panel-splitter:active {
+  background: var(--accent);
+  outline: none;
+}
+
+body.resizing-panels,
+body.resizing-panels * {
+  cursor: col-resize !important;
+  user-select: none !important;
 }
 
 .sidebar-header {
@@ -174,7 +197,8 @@
 
 .status-bar {
   display: flex;
-  gap: 16px;
+  flex-wrap: wrap;
+  gap: 2px 16px;
   align-items: center;
   padding: 3px 12px;
   font-size: 12px;
@@ -182,8 +206,12 @@
   background: var(--bg-secondary);
   border-top: 1px solid var(--border);
   white-space: nowrap;
-  overflow: hidden;
   flex-shrink: 0;
+}
+
+/* Wrap whole statistics rather than clipping them; keep the right-hand group together. */
+.status-bar .spacer {
+  flex: 1 0 0;
 }
 
 .status-bar .clickable {
@@ -196,7 +224,8 @@
 
 /* Right panel */
 .right-panel {
-  width: 300px;
+  width: var(--right-panel-width, 300px);
+  min-width: 0;
   flex-shrink: 0;
   display: flex;
   flex-direction: column;

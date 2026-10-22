@@ -5,8 +5,12 @@ Usage:
     .convert-venv\\Scripts\\pip install torch --index-url https://download.pytorch.org/whl/cpu
     .convert-venv\\Scripts\\pip install "optimum[onnxruntime]" transformers sentencepiece onnx huggingface_hub
     .convert-venv\\Scripts\\python scripts\\convert-political-debate.py out\\political-debate
-    # Optional: publish (requires `huggingface-cli login` or HF_TOKEN with write access)
+    # Optional: publish. Needs a write token: HF_TOKEN in the repo-root .env file,
+    # the HF_TOKEN environment variable, or `huggingface-cli login`.
     .convert-venv\\Scripts\\python scripts\\convert-political-debate.py out\\political-debate \\
+        --push Appleinteligence/Political_DEBATE_large_v1.0-onnx
+    # Publish an existing converted folder without re-exporting (only needs huggingface_hub):
+    python scripts\\convert-political-debate.py out\\political-debate --upload-only \\
         --push Appleinteligence/Political_DEBATE_large_v1.0-onnx
 
 The output folder can also be selected directly in Tagline (Settings > Integrations).
@@ -14,11 +18,37 @@ The output folder can also be selected directly in Tagline (Settings > Integrati
 
 import argparse
 import json
+import os
 import shutil
 import sys
 from pathlib import Path
 
 SOURCE = "mlburnham/Political_DEBATE_large_v1.0"
+TOKEN_PLACEHOLDER = "hf_your_write_token_here"
+REQUIRED_FILES = (
+    "config.json",
+    "tokenizer.json",
+    "tokenizer_config.json",
+    "onnx/model_quantized.onnx",
+)
+
+
+def load_env_token() -> None:
+    """Set HF_TOKEN from the repo-root .env unless it is already set or still the placeholder."""
+    if os.environ.get("HF_TOKEN"):
+        return
+    env_file = Path(__file__).resolve().parent.parent / ".env"
+    if not env_file.is_file():
+        return
+    for line in env_file.read_text(encoding="utf-8").splitlines():
+        key, sep, value = line.strip().partition("=")
+        if sep and key.strip() == "HF_TOKEN":
+            value = value.strip().strip("'\"")
+            if value and value != TOKEN_PLACEHOLDER:
+                os.environ["HF_TOKEN"] = value
+            return
+
+
 EXPECTED_LABELS = {"0": "entailment", "1": "not_entailment"}
 
 CARD = f"""---
@@ -57,12 +87,29 @@ def main() -> int:
     parser.add_argument(
         "--private", action="store_true", help="Create the pushed repo as private."
     )
+    parser.add_argument(
+        "--upload-only",
+        action="store_true",
+        help="Skip conversion and upload an existing converted output folder (requires --push).",
+    )
     args = parser.parse_args()
+    output: Path = args.output.resolve()
+
+    if args.upload_only:
+        if not args.push:
+            parser.error("--upload-only requires --push REPO_ID")
+        missing = [name for name in REQUIRED_FILES if not (output / name).is_file()]
+        if missing:
+            print(
+                f"Not a converted folder (missing {', '.join(missing)}): {output}",
+                file=sys.stderr,
+            )
+            return 1
+        return push(args, output)
 
     from onnxruntime.quantization import QuantType, quantize_dynamic
     from optimum.exporters.onnx import main_export
 
-    output: Path = args.output.resolve()
     if output.exists() and any(output.iterdir()):
         print(f"Output folder is not empty: {output}", file=sys.stderr)
         return 1
@@ -98,31 +145,29 @@ def main() -> int:
         weight_type=QuantType.QInt8,
     )
     (output / "README.md").write_text(CARD, encoding="utf-8")
-    for required in (
-        "config.json",
-        "tokenizer.json",
-        "tokenizer_config.json",
-        "onnx/model_quantized.onnx",
-    ):
+    for required in REQUIRED_FILES:
         if not (output / required).is_file():
             print(f"Missing exported file: {required}", file=sys.stderr)
             return 1
     print(f"Exported to {output}")
 
-    if args.push:
-        from huggingface_hub import HfApi
+    return push(args, output) if args.push else 0
 
-        api = HfApi()
-        api.create_repo(
-            args.push, repo_type="model", private=args.private, exist_ok=True
-        )
-        api.upload_folder(
-            repo_id=args.push,
-            folder_path=str(output),
-            repo_type="model",
-            commit_message=f"ONNX export of {args.source}",
-        )
-        print(f"Uploaded to https://huggingface.co/{args.push}")
+
+def push(args: argparse.Namespace, output: Path) -> int:
+    from huggingface_hub import HfApi
+
+    load_env_token()
+    api = HfApi()
+    api.create_repo(args.push, repo_type="model", private=args.private, exist_ok=True)
+    api.upload_folder(
+        repo_id=args.push,
+        folder_path=str(output),
+        repo_type="model",
+        commit_message=f"ONNX export of {args.source}",
+        ignore_patterns=["_export/*"],
+    )
+    print(f"Uploaded to https://huggingface.co/{args.push}")
     return 0
 
 

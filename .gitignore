@@ -2,3 +2,5 @@
 dist/
 *.log
 .playwright-mcp/
+.env
+scripts/__pycache__/
