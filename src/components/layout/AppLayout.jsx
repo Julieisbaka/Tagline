@@ -36,7 +36,7 @@ export default function AppLayout({ app }) {
     {window.api.platform === 'darwin' && <div className="mac-titlebar">Tagline</div>}
     <Welcome onOpen={v.chooseVault} onSample={v.createSample} onManage={() => setModal({ type: 'vaults' })} error={v.error} />
     {modal?.type === 'settings' && settingsDialog}
-    {modal?.type === 'vaults' && <VaultManagerDialog onOpen={v.openRecentVault} onChoose={v.chooseVault}
+    {modal?.type === 'vaults' && <VaultManagerDialog onOpen={v.openRecentVault} onChoose={v.chooseVault} onSample={v.createSample}
       onClose={() => setModal(null)} />}
     {modal?.type === 'citation' && <CitationDialog onClose={() => setModal(null)} />}
     {websiteView && <div className="welcome-website">{websiteView}</div>}
@@ -166,7 +166,7 @@ export default function AppLayout({ app }) {
         <PromptDialog title={modal.title} initial={modal.initial} onSubmit={modal.onSubmit} onClose={() => setModal(null)} />
       )}
       {modal?.type === 'settings' && settingsDialog}
-      {modal?.type === 'vaults' && <VaultManagerDialog onOpen={v.openRecentVault} onChoose={v.chooseVault}
+      {modal?.type === 'vaults' && <VaultManagerDialog onOpen={v.openRecentVault} onChoose={v.chooseVault} onSample={v.createSample}
         onClose={() => setModal(null)} />}
       {modal?.type === 'export' && activePath && (
         <ExportDialog title={baseName(activePath)} content={activeContent || ''} resolve={resolve} onClose={() => setModal(null)} />

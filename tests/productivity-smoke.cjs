@@ -13,7 +13,7 @@ if (!process.versions.electron) {
   return;
 }
 
-const { app, ipcMain } = require('electron');
+const { app, dialog, ipcMain } = require('electron');
 const fs = require('node:fs/promises');
 const path = require('node:path');
 const assert = require('node:assert/strict');
@@ -27,8 +27,12 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
   app.setPath('userData', profile);
   if (process.env.TAGLINE_SECONDARY) { require('../electron/main.cjs'); return; }
   const vault = path.join(root, 'Flow vault with spaces');
+  const otherVault = path.join(root, 'Second vault');
   await fs.mkdir(profile, { recursive: true });
   await fs.mkdir(vault);
+  await fs.mkdir(otherVault);
+  await fs.writeFile(path.join(otherVault, 'Other.md'), '# Second vault note\n');
+  dialog.showOpenDialog = async () => ({ canceled: false, filePaths: [otherVault] });
   const flow = JSON.stringify({ version: 1, sheets: [{ name: 'Case', columns: ['1AC', '1NC'], rows: [['Argument', 'Reply']] }] });
   const cold = path.join(vault, 'Cold.flow');
   const warm = path.join(vault, 'Warm.flow');
@@ -151,6 +155,19 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
         await new Promise((resolve) => { wc.once('did-finish-load', resolve); wc.reload(); });
         await wait("!!document.querySelector('.ribbon')");
         assert.equal(await js("JSON.parse(localStorage.getItem('tagline-settings')).keybindings.highlight"), 'Mod+Shift+L');
+        // Add a vault once, then reopen the earlier vault directly from the saved list.
+        await js("document.querySelector('.vault-switch').click()");
+        await wait("!!document.querySelector('.vault-manager-dialog')");
+        await click('.vault-manager-dialog button', 'Add existing or create vault…');
+        await wait("document.querySelector('.note-title')?.value === 'Other'");
+        assert.equal((await js('window.api.listRecentVaults()')).length, 2);
+        await js("document.querySelector('.vault-switch').click()");
+        await wait("!!document.querySelector('.vault-manager-dialog')");
+        await js(`(() => [...document.querySelectorAll('.vault-manager-list li')]
+          .find(item => item.querySelector('strong')?.textContent === 'Flow vault with spaces')
+          .querySelector('button').click())()`);
+        await wait("document.querySelectorAll('.tree-item').length >= 3");
+        assert.ok((await js('window.api.listRecentVaults()')).some((item) => item.root === ${JSON.stringify(vault)}));
         // An actual second Electron instance forwards .flow to the primary process.
         const secondary = spawn(process.execPath, [__filename, warm], {
           env: { ...process.env, TAGLINE_SECONDARY: '1' }, stdio: 'inherit',

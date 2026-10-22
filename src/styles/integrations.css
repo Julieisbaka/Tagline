@@ -405,6 +405,51 @@
   white-space: pre-wrap;
 }
 
+.vault-manager-dialog {
+  width: min(760px, 92vw);
+  max-height: 86vh;
+  overflow-y: auto;
+}
+
+.vault-manager-list {
+  list-style: none;
+  padding: 0;
+  margin: 12px 0;
+}
+
+.vault-manager-list li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.vault-manager-details {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.vault-manager-details span {
+  color: var(--text-muted);
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+
+.vault-manager-actions,
+.vault-manager-footer {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.vault-manager-footer {
+  justify-content: flex-end;
+}
+
 .hypothesis-dialog {
   width: min(640px, 92vw);
   max-height: 86vh;

@@ -157,7 +157,10 @@ function registerIpc() {
     const recent = readConfig().recentVaults;
     const recentVaults = (Array.isArray(recent) ? recent : [])
       .filter((item) => typeof item === 'string' && key(path.resolve(item)) !== key(path.resolve(root)));
-    writeConfig({ recentVaults });
+    const config = readConfig();
+    const lastVault = typeof config.lastVault === 'string' &&
+      key(path.resolve(config.lastVault)) === key(path.resolve(root)) ? null : config.lastVault;
+    writeConfig({ recentVaults, lastVault });
     return true;
   });
   ipcMain.handle('vault:revealRecent', async (_event, root) => {

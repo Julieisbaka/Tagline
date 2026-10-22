@@ -9,6 +9,13 @@ ordinary Markdown files; flow documents are JSON stored with a `.flow`
 extension. Settings and downloaded resources are kept separately in the app
 profile.
 
+Tagline remembers up to 20 recently opened vaults. Use the vault name at the
+bottom of the sidebar, or **Recent vaults** on the welcome screen, to switch to a
+saved vault without browsing for its folder. **Manage vaults** lets you reopen
+available folders, reveal them in the file explorer, or remove their paths
+from the recent list; removing a path never deletes vault files. Use **Add
+existing or create vault** to browse for another vault or choose a new folder.
+
 Use the file explorer to create, open, rename, move, and delete notes and
 folders. Tabs keep several documents available. Right-click files or tabs for
 context actions, and use the quick switcher (`Mod+O`) or command palette
