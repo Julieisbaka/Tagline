@@ -62,7 +62,7 @@ test('credentials await async availability, encrypt/decrypt asynchronously and r
       requests.push(message);
       setImmediate(() => this.emit('message', { id: message.id, result: { ready: true } }));
     }
-    terminate() {}
+    terminate() { }
   }
   const module = { exports: {} };
   const dirname = path.join(__dirname, '..', 'electron');
@@ -85,7 +85,7 @@ test('credentials await async availability, encrypt/decrypt asynchronously and r
         return { result: Buffer.from(buffer.toString(), 'hex').toString(), shouldReEncrypt: false };
       },
     },
-    getVaultRoot: () => root, readConfig: () => ({ modelAutoload: false }), writeConfig() {},
+    getVaultRoot: () => root, readConfig: () => ({ modelAutoload: false }), writeConfig() { },
   });
   t.after(() => app.emit('before-quit'));
   const call = (name, ...args) => handlers[`embeddings:${name}`](null, ...args);
@@ -286,23 +286,23 @@ test('macOS desktop wiring provides native window controls, menus and Dock react
   let quit = false;
   app.whenReady = () => Promise.resolve();
   app.dock = { setIcon: (icon) => { dockIcon = icon; } };
-  app.setAboutPanelOptions = () => {};
+  app.setAboutPanelOptions = () => { };
   app.quit = () => { quit = true; };
   class BrowserWindow extends EventEmitter {
     constructor(options) {
       super();
       this.options = options;
       this.webContents = new EventEmitter();
-      this.webContents.setWindowOpenHandler = () => {};
+      this.webContents.setWindowOpenHandler = () => { };
       this.webContents.send = (channel, command) => { this.sent = { channel, command }; };
       windows.push(this);
     }
     isDestroyed() { return this.destroyed; }
-    loadFile() {}
+    loadFile() { }
     static getAllWindows() { return windows.filter((win) => !win.destroyed); }
   }
   const electron = {
-    app, BrowserWindow, ipcMain: { handle() {} }, dialog: {}, shell: {}, safeStorage: {},
+    app, BrowserWindow, ipcMain: { handle() { } }, dialog: {}, shell: {}, safeStorage: {},
     Menu: {
       buildFromTemplate: (template) => template,
       setApplicationMenu: (template) => { menu = template; },
@@ -316,10 +316,10 @@ test('macOS desktop wiring provides native window controls, menus and Dock react
       if (name === 'electron') return electron;
       if (name.startsWith('./')) {
         if (name === './sampleVault.cjs') return { SAMPLE_VAULT: {} };
-        if (name === './browser.cjs') return { registerBrowser: () => () => {} };
+        if (name === './browser.cjs') return { registerBrowser: () => () => { } };
         if (name === './revisionHistory.cjs') return {
           DEFAULT_RETENTION: 50,
-          createRevisionHistory: () => ({ snapshot() {}, list() { return []; }, read() {}, rename() {} }),
+          createRevisionHistory: () => ({ snapshot() { }, list() { return []; }, read() { }, rename() { } }),
         };
         return Object.fromEntries(['registerPandoc', 'registerEmbeddings', 'registerDocuments', 'registerFonts', 'registerFlowFiles', 'registerExtensions', 'registerNli', 'registerSummarization']
           .map((key) => [key, () => true]));
@@ -359,11 +359,13 @@ test('Pandoc detection supports Apple Silicon and Intel Homebrew without relying
     const module = { exports: {} };
     vm.runInNewContext(source, {
       module, process: { platform: 'darwin' }, setTimeout, clearTimeout,
-      require: (name) => name === 'node:util' ? { promisify: () => async (executable) => {
-        tried.push(executable);
-        if (executable !== installed) throw Object.assign(new Error('Not on PATH'), { code: 'ENOENT' });
-        return { stdout: 'pandoc 3.6\n' };
-      } } : require(name),
+      require: (name) => name === 'node:util' ? {
+        promisify: () => async (executable) => {
+          tried.push(executable);
+          if (executable !== installed) throw Object.assign(new Error('Not on PATH'), { code: 'ENOENT' });
+          return { stdout: 'pandoc 3.6\n' };
+        }
+      } : require(name),
     });
     const result = await module.exports.detectPandoc();
     assert.equal(result.executable, installed);

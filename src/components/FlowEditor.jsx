@@ -1,8 +1,8 @@
 import { useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useI18n } from '../lib/i18n.js';
+import { binding, displayBinding, matchesBinding } from '../lib/keybindings.js';
 import ContextMenu from './dialogs/ContextMenu.jsx';
 import Icon from './Icon.jsx';
-import { binding, displayBinding, matchesBinding } from '../lib/keybindings.js';
 
 const AFF = new Set(['1AC', '2AC', '1AR', '2AR', 'AC', 'AR']);
 const PRESETS = {
@@ -207,35 +207,35 @@ export default function FlowEditor({ content, onChange, focusNewFlowRow = true, 
                       placeholder="…"
                       onChange={(e) => setCell(r, c, e.target.value)}
                       onKeyDown={(e) => {
-                          if (e.key === 'Tab') {
-                            const direction = e.shiftKey ? -1 : 1;
-                            let nextRow = r;
-                            let nextColumn = c + direction;
-                            if (nextColumn < 0) {
-                              nextRow -= 1;
-                              nextColumn = sheet.columns.length - 1;
-                            } else if (nextColumn >= sheet.columns.length) {
-                              nextRow += 1;
-                              nextColumn = 0;
-                            }
-                            const nextCell = gridRef.current?.querySelector(
-                              `[data-row="${nextRow}"][data-column="${nextColumn}"]`,
-                            );
-                            if (nextCell) {
-                              e.preventDefault();
-                              nextCell.focus();
-                              nextCell.scrollIntoView({ block: 'nearest', inline: 'nearest' });
-                            }
-                            return;
+                        if (e.key === 'Tab') {
+                          const direction = e.shiftKey ? -1 : 1;
+                          let nextRow = r;
+                          let nextColumn = c + direction;
+                          if (nextColumn < 0) {
+                            nextRow -= 1;
+                            nextColumn = sheet.columns.length - 1;
+                          } else if (nextColumn >= sheet.columns.length) {
+                            nextRow += 1;
+                            nextColumn = 0;
                           }
-                          if (matchesBinding(e, binding('flow-row-above', keybindings))) {
+                          const nextCell = gridRef.current?.querySelector(
+                            `[data-row="${nextRow}"][data-column="${nextColumn}"]`,
+                          );
+                          if (nextCell) {
                             e.preventDefault();
-                            insertRowAbove(r, c);
-                            return;
+                            nextCell.focus();
+                            nextCell.scrollIntoView({ block: 'nearest', inline: 'nearest' });
                           }
-                          if (matchesBinding(e, binding('flow-row', keybindings))) {
-                            e.preventDefault();
-                            addRow(r, c);
+                          return;
+                        }
+                        if (matchesBinding(e, binding('flow-row-above', keybindings))) {
+                          e.preventDefault();
+                          insertRowAbove(r, c);
+                          return;
+                        }
+                        if (matchesBinding(e, binding('flow-row', keybindings))) {
+                          e.preventDefault();
+                          addRow(r, c);
                         }
                       }}
                     />

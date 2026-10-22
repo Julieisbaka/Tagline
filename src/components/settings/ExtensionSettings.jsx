@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
-import { useI18n } from '../../lib/i18n.js';
 import { getRuntimeLimits } from '../../../electron/customization.mjs';
+import { useI18n } from '../../lib/i18n.js';
 
 const PERMISSION_LABELS = {
   editor: 'Read and edit the active note, selection, and visual editor',

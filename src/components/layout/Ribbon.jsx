@@ -1,6 +1,6 @@
 import { useI18n } from '../../lib/i18n.js';
-import Icon from '../Icon.jsx';
 import { binding, displayBinding } from '../../lib/keybindings.js';
+import Icon from '../Icon.jsx';
 
 export default function Ribbon({ ctx, showLeft, keybindings }) {
   const { t } = useI18n();

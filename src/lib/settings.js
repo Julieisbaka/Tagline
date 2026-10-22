@@ -61,7 +61,7 @@ export function useSettings() {
     root.style.setProperty('--visual-line-height',
       Number.isFinite(lineHeight) && lineHeight >= 1 && lineHeight <= 2.5 ? String(lineHeight) : '1.65');
   }, [settings.fontFamily, settings.importedFont, settings.fontSize, settings.visualLineHeight,
-    settings.theme, settings.customTheme, themeRevision]);
+  settings.theme, settings.customTheme, themeRevision]);
   useEffect(() => {
     if (!settings.importedFont) return;
     let disposed = false;

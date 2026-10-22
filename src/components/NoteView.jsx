@@ -1,17 +1,17 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
 import { EditorSelection } from '@codemirror/state';
 import { EditorView } from '@codemirror/view';
-import Editor from './Editor.jsx';
-import Preview from './Preview.jsx';
-import FlowEditor from './FlowEditor.jsx';
-import VisualEditor from './VisualEditor.jsx';
-import { visualBlocker, visualSelection } from '../lib/visualExtensions.js';
-import Icon from './Icon.jsx';
-import { baseName, isFlow } from '../lib/vault.js';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { cardStats, formatDuration, getSectionAt } from '../lib/card.js';
-import { calibrateReading, readingAssessment, readingSeconds } from '../lib/readTime.js';
 import { useI18n } from '../lib/i18n.js';
 import { binding, displayBinding } from '../lib/keybindings.js';
+import { calibrateReading, readingAssessment, readingSeconds } from '../lib/readTime.js';
+import { baseName, isFlow } from '../lib/vault.js';
+import { visualBlocker, visualSelection } from '../lib/visualExtensions.js';
+import Editor from './Editor.jsx';
+import FlowEditor from './FlowEditor.jsx';
+import Icon from './Icon.jsx';
+import Preview from './Preview.jsx';
+import VisualEditor from './VisualEditor.jsx';
 
 export default function NoteView({
   path,

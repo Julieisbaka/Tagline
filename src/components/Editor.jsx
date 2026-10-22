@@ -1,12 +1,12 @@
 import { autocompletion } from '@codemirror/autocomplete';
 import { markdown, markdownLanguage } from '@codemirror/lang-markdown';
 import { languages } from '@codemirror/language-data';
-import { Prec } from '@codemirror/state';
 import { openSearchPanel, search, searchKeymap } from '@codemirror/search';
+import { Prec } from '@codemirror/state';
 import { EditorView, highlightActiveLine, highlightActiveLineGutter, keymap, lineNumbers } from '@codemirror/view';
 import CodeMirror from '@uiw/react-codemirror';
 import { useMemo, useRef } from 'react';
-import { binding, editorBinding, KEYBINDINGS } from '../lib/keybindings.js';
+import { createCodeMirrorFindReplacePanel } from '../lib/codeMirrorFindReplace.js';
 import {
   clearFormatting,
   debateDecorations,
@@ -15,8 +15,8 @@ import {
   setHeading,
   toggleWrap,
 } from '../lib/editorExtensions.js';
-import { createCodeMirrorFindReplacePanel } from '../lib/codeMirrorFindReplace.js';
 import { applicationEvents } from '../lib/extensionCapabilities.js';
+import { binding, editorBinding, KEYBINDINGS } from '../lib/keybindings.js';
 
 export default function Editor({
   value, onChange, noteNames, onOpenLink, onSendCard, onCursor, viewRef, keybindings, settings,

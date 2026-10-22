@@ -37,11 +37,13 @@ const call = (message) => new Promise((resolve, reject) => {
   console.log(`Loaded ${repo ? `${repo} from Hugging Face` : 'local folder'} in ${((Date.now() - started) / 1000).toFixed(1)}s`);
   const premise = 'The senator argued that raising the minimum wage would lift millions of families out of poverty ' +
     'and that Congress must pass the increase this year. She dismissed claims that it would cost jobs.';
-  const result = await call({ type: 'analyze', premise, hypotheses: [
-    'The author of this text supports raising the minimum wage.',
-    'The author of this text opposes raising the minimum wage.',
-    'This text is about foreign policy.',
-  ] });
+  const result = await call({
+    type: 'analyze', premise, hypotheses: [
+      'The author of this text supports raising the minimum wage.',
+      'The author of this text opposes raising the minimum wage.',
+      'This text is about foreign policy.',
+    ]
+  });
   for (const item of result.results) console.log(`${(item.entailment * 100).toFixed(1)}%  ${item.hypothesis}`);
   const [support, oppose, topic] = result.results.map((item) => item.entailment);
   assert.ok(support > 0.5, 'Supportive stance is entailed');

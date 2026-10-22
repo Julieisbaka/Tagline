@@ -1,18 +1,18 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useVault } from './lib/useVault.js';
-import { useTabs } from './lib/useTabs.js';
-import { useSettings } from './lib/settings.js';
-import { buildCommands, fillTemplate } from './lib/commands.js';
-import { binding, displayBinding, KEYBINDINGS, matchesBinding } from './lib/keybindings.js';
-import { getSectionAt } from './lib/card.js';
-import { slugify } from './lib/markdown.js';
-import { baseName, dirName, flattenTree, isMarkdown, joinPath, outline, resolveLink } from './lib/vault.js';
-import { clampPanel, PANEL_LIMITS } from './components/layout/Splitter.jsx';
-import { useI18n } from './lib/i18n.js';
-import { visualBlocker, visualSelection } from './lib/visualExtensions.js';
 import { EMPTY_FLOW } from './components/FlowEditor.jsx';
 import AppLayout from './components/layout/AppLayout.jsx';
+import { clampPanel, PANEL_LIMITS } from './components/layout/Splitter.jsx';
+import { getSectionAt } from './lib/card.js';
+import { buildCommands, fillTemplate } from './lib/commands.js';
+import { useI18n } from './lib/i18n.js';
+import { binding, displayBinding, KEYBINDINGS, matchesBinding } from './lib/keybindings.js';
+import { slugify } from './lib/markdown.js';
+import { useSettings } from './lib/settings.js';
 import { useAppExtensions } from './lib/useAppExtensions.js';
+import { useTabs } from './lib/useTabs.js';
+import { useVault } from './lib/useVault.js';
+import { baseName, dirName, flattenTree, isMarkdown, joinPath, outline, resolveLink } from './lib/vault.js';
+import { visualBlocker, visualSelection } from './lib/visualExtensions.js';
 
 export default function App() {
   const { t } = useI18n();

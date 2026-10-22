@@ -14,9 +14,11 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
   await fs.mkdir(vault);
   await fs.mkdir(userData);
   const source = '# Cards\n\n#### Evidence\n**Author**\n++Warrant++ and ==read this==.\n\n[[Other]]\n';
-  const flow = { version: 1, sheets: [{
-    name: 'Case', columns: ['1AC', '1NC', '2AC', 'Block'], rows: [['Argument', 'Reply', '', '']],
-  }] };
+  const flow = {
+    version: 1, sheets: [{
+      name: 'Case', columns: ['1AC', '1NC', '2AC', 'Block'], rows: [['Argument', 'Reply', '', '']],
+    }]
+  };
   await fs.writeFile(path.join(vault, 'Cards.md'), source);
   await fs.writeFile(path.join(vault, 'Other.md'), '# Other');
   await fs.writeFile(path.join(vault, 'Round.flow'), JSON.stringify(flow));

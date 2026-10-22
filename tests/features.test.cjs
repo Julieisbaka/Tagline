@@ -13,9 +13,11 @@ test('extension capabilities validate selection, command, helper, event and UI c
     await import('../src/lib/extensionCapabilities.js');
   const calls = [];
   const sent = [];
-  const manifest = { id: 'capabilities', name: 'Capabilities',
+  const manifest = {
+    id: 'capabilities', name: 'Capabilities',
     permissions: ['editor', 'events', 'ui', 'vault:read', 'editor:active-note'],
-    contributes: { commands: [], panels: [{ id: 'status', title: 'Status' }], webviews: [] } };
+    contributes: { commands: [], panels: [{ id: 'status', title: 'Status' }], webviews: [] }
+  };
   const host = new ExtensionHost(manifest, '', {
     setSelection: (range) => { calls.push(range); return true; },
     getTiptapSnapshot: () => ({ doc: { type: 'doc' }, selection: { from: 1, to: 1 } }),
@@ -47,7 +49,7 @@ test('extension capabilities validate selection, command, helper, event and UI c
   await assert.rejects(host.handle('ui.show', ['webviews', 'undeclared']), /Undeclared/);
   manifest.permissions = [];
   for (const [method, args] of [['editor.setSelection', [{ from: 0, to: 0 }]],
-    ['editor.getTiptapSnapshot', []], ['events.subscribe', ['editor.ready']], ['ui.show', ['panels', 'status']]]) {
+  ['editor.getTiptapSnapshot', []], ['events.subscribe', ['editor.ready']], ['ui.show', ['panels', 'status']]]) {
     await assert.rejects(host.handle(method, args), /Permission/);
   }
   manifest.permissions = ['events'];
@@ -67,8 +69,8 @@ test('extension capabilities validate selection, command, helper, event and UI c
   stop();
   await host.handle('events.subscribe', ['ext.capabilities.disposal']);
   const originalWindow = global.window;
-  global.window = { removeEventListener() {} };
-  host.frame.remove = () => {};
+  global.window = { removeEventListener() { } };
+  host.frame.remove = () => { };
   try { host.dispose(); }
   finally { global.window = originalWindow; }
   assert.equal(host.eventWatches.size, 0);
@@ -79,9 +81,13 @@ test('extension capabilities validate selection, command, helper, event and UI c
 
 test('UI contributions require permission, declarations, a script and bounded unique identifiers', () => {
   const { validateManifest } = require('../electron/extensions.cjs');
-  const manifest = { manifestVersion: 1, id: 'ui-test', name: 'UI Test', version: '1',
-    main: 'main.js', permissions: ['ui'], contributes: { panels: [{ id: 'panel', title: 'Panel' }],
-      webviews: [{ id: 'details', title: 'Details' }] } };
+  const manifest = {
+    manifestVersion: 1, id: 'ui-test', name: 'UI Test', version: '1',
+    main: 'main.js', permissions: ['ui'], contributes: {
+      panels: [{ id: 'panel', title: 'Panel' }],
+      webviews: [{ id: 'details', title: 'Details' }]
+    }
+  };
   const root = path.join(__dirname, 'fixture');
   assert.equal(validateManifest(manifest, root).contributes.panels[0].id, 'panel');
   assert.throws(() => validateManifest({ ...manifest, permissions: [] }, root), /ui permission/);
@@ -112,9 +118,11 @@ test('extension settings have validated types, bounds, defaults and scoped stora
   }
   const original = { localStorage: global.localStorage, window: global.window };
   const storage = new Map();
-  global.localStorage = { getItem: (key) => storage.get(key) ?? null,
-    setItem: (key, value) => storage.set(key, value), removeItem: (key) => storage.delete(key) };
-  global.window = { dispatchEvent() {} };
+  global.localStorage = {
+    getItem: (key) => storage.get(key) ?? null,
+    setItem: (key, value) => storage.set(key, value), removeItem: (key) => storage.delete(key)
+  };
+  global.window = { dispatchEvent() { } };
   t.after(() => { global.localStorage = original.localStorage; global.window = original.window; });
   const manifest = { id: 'typed', permissions: [], contributes: { settings } };
   const host = new ExtensionHost(manifest, '', {});
@@ -138,12 +146,14 @@ test('active-note events are path-only, separately permissioned, bounded and dis
   const { ExtensionHost } = await import('../src/lib/extensions.js');
   const manifest = { id: 'events', permissions: ['editor'], contributes: { commands: [] } };
   const callbacks = new Set();
-  const bridge = { watchActiveNote: (listener) => {
-    callbacks.add(listener); return () => callbacks.delete(listener);
-  } };
+  const bridge = {
+    watchActiveNote: (listener) => {
+      callbacks.add(listener); return () => callbacks.delete(listener);
+    }
+  };
   const host = new ExtensionHost(manifest, '', bridge);
   const messages = [];
-  host.frame = { contentWindow: { postMessage: (message) => messages.push(message) }, remove() {} };
+  host.frame = { contentWindow: { postMessage: (message) => messages.push(message) }, remove() { } };
   await assert.rejects(host.handle('editor.watchActiveNote', []), /editor:active-note/);
   manifest.permissions = ['editor:active-note'];
   await assert.rejects(host.handle('editor.getActiveNote', []), /Permission "editor"/);
@@ -159,7 +169,7 @@ test('active-note events are path-only, separately permissioned, bounded and dis
   for (let i = 0; i < 32; i++) await host.handle('editor.watchActiveNote', []);
   await assert.rejects(host.handle('editor.watchActiveNote', []), /32 active-note/);
   const original = global.window;
-  global.window = { removeEventListener() {} };
+  global.window = { removeEventListener() { } };
   t.after(() => { global.window = original; });
   host.dispose();
   assert.equal(callbacks.size, 0);
@@ -172,9 +182,11 @@ test('settings and event permission changes require a fresh manifest review', as
   try {
     const folder = path.join(root, 'extensions', 'review');
     await fsAsync.mkdir(folder, { recursive: true });
-    const manifest = { manifestVersion: 1, id: 'review', name: 'Review', version: '1',
+    const manifest = {
+      manifestVersion: 1, id: 'review', name: 'Review', version: '1',
       main: 'main.js', permissions: ['settings', 'editor:active-note'],
-      contributes: { settings: [{ id: 'label', title: 'Label', type: 'string', default: 'x' }] } };
+      contributes: { settings: [{ id: 'label', title: 'Label', type: 'string', default: 'x' }] }
+    };
     assert.throws(() => validateManifest({ ...manifest, permissions: [] }, folder), /requires the settings permission/);
     const file = path.join(folder, 'manifest.json');
     await fsAsync.writeFile(file, JSON.stringify(manifest));
@@ -236,7 +248,7 @@ test('extension vault mutation and watch APIs enforce permissions and clean up s
   await assert.rejects(host.handle('vault.watch', []), /32 vault watches/);
   // Disposal's DOM listener removal is tested in the Electron suite; check its subscription cleanup here.
   const original = global.window;
-  global.window = { removeEventListener() {} };
+  global.window = { removeEventListener() { } };
   try { host.dispose(); } finally { global.window = original; }
   assert.equal(subscriptions, 0);
 });
@@ -286,14 +298,16 @@ test('all themes share tokens; high contrast text meets 7:1 on major surfaces', 
 
 test('theme variables expose CSS values and reject malformed or network-loading overrides', async () => {
   const { validateTheme } = await import('../src/lib/themes.js');
-  const value = { version: 1, name: 'Custom', mode: 'dark', colors: {}, variables: {
-    'font-ui': '"Example", sans-serif', 'editor-font-size': '20px',
-    'future-token': 'calc(100% - 20px)', accent: 'var(--text)',
-  } };
+  const value = {
+    version: 1, name: 'Custom', mode: 'dark', colors: {}, variables: {
+      'font-ui': '"Example", sans-serif', 'editor-font-size': '20px',
+      'future-token': 'calc(100% - 20px)', accent: 'var(--text)',
+    }
+  };
   assert.deepEqual(validateTheme(value).variables, value.variables);
   assert.deepEqual(validateTheme({ ...value, variables: undefined }).variables, {});
   for (const variables of [[], null, { '--font-ui': 'serif' }, { a: 1 }, { a: 'url(https://example.com)' },
-    { a: 'red; color: blue' }, { a: '' }, Object.fromEntries(Array.from({ length: 257 }, (_, i) => [`var-${i}`, '1']))]) {
+  { a: 'red; color: blue' }, { a: '' }, Object.fromEntries(Array.from({ length: 257 }, (_, i) => [`var-${i}`, '1']))]) {
     assert.throws(() => validateTheme({ ...value, variables }), /variable/i);
   }
 });

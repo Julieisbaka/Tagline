@@ -1,8 +1,8 @@
+import { getRuntimeLimits } from '../../electron/customization.mjs';
 import dark from '../themes/dark.json' with { type: 'json' };
-import light from '../themes/light.json' with { type: 'json' };
 import contrastDark from '../themes/high-contrast-dark.json' with { type: 'json' };
 import contrastLight from '../themes/high-contrast-light.json' with { type: 'json' };
-import { getRuntimeLimits } from '../../electron/customization.mjs';
+import light from '../themes/light.json' with { type: 'json' };
 
 export const BUILTIN_THEMES = [dark, light, contrastDark, contrastLight];
 export const COLOR_TOKENS = Object.freeze(Object.keys(dark.colors));

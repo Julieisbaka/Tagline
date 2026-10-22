@@ -26,7 +26,7 @@ export default function SummaryDialog({ content, title, onClose }) {
       setStatus(await window.api.summaryStatus());
     } catch (e) {
       setError(e.message);
-      window.api.summaryStatus().then(setStatus).catch(() => {});
+      window.api.summaryStatus().then(setStatus).catch(() => { });
     } finally {
       setBusy(false);
     }

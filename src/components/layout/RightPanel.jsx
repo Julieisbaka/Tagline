@@ -1,9 +1,9 @@
 import { useMemo, useState } from 'react';
-import { baseName, displayName, outline } from '../../lib/vault.js';
-import Timer from '../Timer.jsx';
-import Icon from '../Icon.jsx';
 import { useI18n } from '../../lib/i18n.js';
+import { baseName, displayName, outline } from '../../lib/vault.js';
 import ExtensionSurface from '../ExtensionSurface.jsx';
+import Icon from '../Icon.jsx';
+import Timer from '../Timer.jsx';
 
 const TABS = [
   ['backlinks', 'link', 'Backlinks'],

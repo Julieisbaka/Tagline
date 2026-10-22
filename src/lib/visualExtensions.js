@@ -1,11 +1,11 @@
 import { Node, mergeAttributes, nodeInputRule } from '@tiptap/core';
+import FindAndReplace from '@tiptap/extension-find-and-replace';
 import Highlight from '@tiptap/extension-highlight';
 import { TableKit } from '@tiptap/extension-table';
 import TaskItem from '@tiptap/extension-task-item';
 import TaskList from '@tiptap/extension-task-list';
 import { Markdown } from '@tiptap/markdown';
 import StarterKit from '@tiptap/starter-kit';
-import FindAndReplace from '@tiptap/extension-find-and-replace';
 
 export const WikiLink = Node.create({
   name: 'wikiLink',

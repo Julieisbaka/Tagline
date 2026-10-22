@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import defaults from '../../lib/defaultSettings.json' with { type: 'json' };
 import { useI18n } from '../../lib/i18n.js';
 import { filterSearchDocuments, HYBRID_CANDIDATE_LIMIT, mergeHybridResults, parseQuery, searchVault } from '../../lib/search.js';
 import { displayName } from '../../lib/vault.js';
-import defaults from '../../lib/defaultSettings.json' with { type: 'json' };
 
 // Keyword and local embedding search share tag and phrase constraints.
 export default function SearchModal({ contents, index, initialQuery = '', maxResults = defaults.searchMaxResults, showMarkdownExtension = false, onOpen, onClose }) {

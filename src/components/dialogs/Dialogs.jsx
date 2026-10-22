@@ -2,14 +2,14 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useI18n } from '../../lib/i18n.js';
 import { fuzzyScore } from '../../lib/vault.js';
 import AdvancedSettings from '../settings/AdvancedSettings.jsx';
-import IntegrationSettings from '../settings/IntegrationSettings.jsx';
-import ThemeSettings from '../settings/ThemeSettings.jsx';
-import ExtensionSettings from '../settings/ExtensionSettings.jsx';
-import KeybindingSettings from '../settings/KeybindingSettings.jsx';
 import CustomCssSettings from '../settings/CustomCssSettings.jsx';
-import ReadingSettings from '../settings/ReadingSettings.jsx';
 import CustomizationLimits from '../settings/CustomizationLimits.jsx';
 import EditorSettings from '../settings/EditorSettings.jsx';
+import ExtensionSettings from '../settings/ExtensionSettings.jsx';
+import IntegrationSettings from '../settings/IntegrationSettings.jsx';
+import KeybindingSettings from '../settings/KeybindingSettings.jsx';
+import ReadingSettings from '../settings/ReadingSettings.jsx';
+import ThemeSettings from '../settings/ThemeSettings.jsx';
 
 // Generic fuzzy-filtered list modal used for quick switcher, commands, templates.
 export function Palette({ items, placeholder, onSelect, onClose, onCreate, createLabel }) {
@@ -190,72 +190,72 @@ export function SettingsDialog({ settings, update, onClose, extensions }) {
             <button className="settings-close" aria-label={t('Close settings')} onClick={onClose}>&times;</button>
           </header>
           <div className="settings-content">
-        <section hidden={section !== 'general'} className="settings-panel">
-        <h3>{t('Writing and debate')}</h3>
-        {field('Speaking rate (words per minute)', 'wpm', 'number', { min: 50, max: 1000 })}
-        <ReadingSettings settings={settings} update={update} />
-        {field('Speech document path', 'speechDoc')}
-        <label className="setting-row">
-          <span>{t('Default editor')}</span>
-          <select value={settings.editorMode} onChange={(e) => update({ editorMode: e.target.value })}>
-            <option value="visual">{t('Visual (Tiptap)')}</option>
-            <option value="edit">{t('Source (CodeMirror)')}</option>
-          </select>
-        </label>
-        <label className="setting-row"><span>{t('Focus new flow rows')}</span>
-          <input type="checkbox" data-setting="focusNewFlowRow" checked={settings.focusNewFlowRow}
-            onChange={(e) => update({ focusNewFlowRow: e.target.checked })} />
-        </label>
-        <label className="setting-row">
-          <span>{t('Readable line width')}</span>
-          <input
-            type="checkbox"
-            checked={settings.readableWidth}
-            onChange={(e) => update({ readableWidth: e.target.checked })}
-          />
-        </label>
-        </section>
-        <section hidden={section !== 'editors'} className="settings-panel">
-          <EditorSettings settings={settings} update={update} />
-        </section>
-        <section hidden={section !== 'appearance'} className="settings-panel">
-          <h3>{t('Theme and typography')}</h3>
-          <ThemeSettings settings={settings} update={update} />
-          {field('Editor font size', 'fontSize', 'number', { min: 10, max: 32 })}
-          <AdvancedSettings settings={settings} update={update} section="fonts" />
-          <CustomCssSettings settings={settings} update={update} />
-        </section>
-        <section hidden={section !== 'performance'} className="settings-panel">
-          <AdvancedSettings settings={settings} update={update} section="performance" />
-        </section>
-        <section hidden={section !== 'files'} className="settings-panel">
-          <AdvancedSettings settings={settings} update={update} section="files" />
-          <h4>{t('Flow file association')}</h4>
-          <p>{t('Installed builds register Tagline as an app for .flow files. To make it the default, use Open With in your file manager and select Tagline. On macOS choose Change All in Get Info.')}</p>
-        </section>
-        <section hidden={section !== 'integrations'} className="settings-panel">
-        <label className="setting-row"><span>{t('Open websites inside Tagline')}</span>
-          <input type="checkbox" data-setting="embedWebsites" checked={settings.embedWebsites}
-            onChange={(e) => update({ embedWebsites: e.target.checked })} />
-        </label>
-        <p>{t('Websites use a separate signed-in session and identify as standard Chrome. Disable this to use your default browser.')}</p>
-        <IntegrationSettings />
-        </section>
-        <section hidden={section !== 'shortcuts'} className="settings-panel">
-          <KeybindingSettings settings={settings} update={update} extra={extensions?.commands || []} />
-        </section>
-        <section hidden={section !== 'extensions'} className="settings-panel">
-          {extensions && <ExtensionSettings extensions={extensions} />}
-        </section>
-        <section hidden={section !== 'advanced'} className="settings-panel">
-          <CustomizationLimits settings={settings} />
-          <h3>{t('Internal flags')}</h3>
-          <p>{t('These flags record dismissed notices. Clear a flag to show its notice again.')}</p>
-          <label className="setting-row"><span>{t('Visual editor notice dismissed')}</span>
-            <input type="checkbox" data-flag="visualNoticeDismissed" checked={!!settings.internalFlags?.visualNoticeDismissed}
-              onChange={(e) => update({ internalFlags: { ...settings.internalFlags, visualNoticeDismissed: e.target.checked } })} />
-          </label>
-        </section>
+            <section hidden={section !== 'general'} className="settings-panel">
+              <h3>{t('Writing and debate')}</h3>
+              {field('Speaking rate (words per minute)', 'wpm', 'number', { min: 50, max: 1000 })}
+              <ReadingSettings settings={settings} update={update} />
+              {field('Speech document path', 'speechDoc')}
+              <label className="setting-row">
+                <span>{t('Default editor')}</span>
+                <select value={settings.editorMode} onChange={(e) => update({ editorMode: e.target.value })}>
+                  <option value="visual">{t('Visual (Tiptap)')}</option>
+                  <option value="edit">{t('Source (CodeMirror)')}</option>
+                </select>
+              </label>
+              <label className="setting-row"><span>{t('Focus new flow rows')}</span>
+                <input type="checkbox" data-setting="focusNewFlowRow" checked={settings.focusNewFlowRow}
+                  onChange={(e) => update({ focusNewFlowRow: e.target.checked })} />
+              </label>
+              <label className="setting-row">
+                <span>{t('Readable line width')}</span>
+                <input
+                  type="checkbox"
+                  checked={settings.readableWidth}
+                  onChange={(e) => update({ readableWidth: e.target.checked })}
+                />
+              </label>
+            </section>
+            <section hidden={section !== 'editors'} className="settings-panel">
+              <EditorSettings settings={settings} update={update} />
+            </section>
+            <section hidden={section !== 'appearance'} className="settings-panel">
+              <h3>{t('Theme and typography')}</h3>
+              <ThemeSettings settings={settings} update={update} />
+              {field('Editor font size', 'fontSize', 'number', { min: 10, max: 32 })}
+              <AdvancedSettings settings={settings} update={update} section="fonts" />
+              <CustomCssSettings settings={settings} update={update} />
+            </section>
+            <section hidden={section !== 'performance'} className="settings-panel">
+              <AdvancedSettings settings={settings} update={update} section="performance" />
+            </section>
+            <section hidden={section !== 'files'} className="settings-panel">
+              <AdvancedSettings settings={settings} update={update} section="files" />
+              <h4>{t('Flow file association')}</h4>
+              <p>{t('Installed builds register Tagline as an app for .flow files. To make it the default, use Open With in your file manager and select Tagline. On macOS choose Change All in Get Info.')}</p>
+            </section>
+            <section hidden={section !== 'integrations'} className="settings-panel">
+              <label className="setting-row"><span>{t('Open websites inside Tagline')}</span>
+                <input type="checkbox" data-setting="embedWebsites" checked={settings.embedWebsites}
+                  onChange={(e) => update({ embedWebsites: e.target.checked })} />
+              </label>
+              <p>{t('Websites use a separate signed-in session and identify as standard Chrome. Disable this to use your default browser.')}</p>
+              <IntegrationSettings />
+            </section>
+            <section hidden={section !== 'shortcuts'} className="settings-panel">
+              <KeybindingSettings settings={settings} update={update} extra={extensions?.commands || []} />
+            </section>
+            <section hidden={section !== 'extensions'} className="settings-panel">
+              {extensions && <ExtensionSettings extensions={extensions} />}
+            </section>
+            <section hidden={section !== 'advanced'} className="settings-panel">
+              <CustomizationLimits settings={settings} />
+              <h3>{t('Internal flags')}</h3>
+              <p>{t('These flags record dismissed notices. Clear a flag to show its notice again.')}</p>
+              <label className="setting-row"><span>{t('Visual editor notice dismissed')}</span>
+                <input type="checkbox" data-flag="visualNoticeDismissed" checked={!!settings.internalFlags?.visualNoticeDismissed}
+                  onChange={(e) => update({ internalFlags: { ...settings.internalFlags, visualNoticeDismissed: e.target.checked } })} />
+              </label>
+            </section>
           </div>
           <footer className="settings-footer"><span>{t('Settings are saved on this device')}</span>
             <button className="primary" onClick={onClose}>{t('Done')}</button>

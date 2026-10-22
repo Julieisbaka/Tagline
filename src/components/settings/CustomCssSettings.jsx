@@ -1,10 +1,10 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
-import CodeMirror from '@uiw/react-codemirror';
 import { css } from '@codemirror/lang-css';
 import { Prec } from '@codemirror/state';
 import { EditorView, keymap } from '@codemirror/view';
-import { useI18n } from '../../lib/i18n.js';
+import CodeMirror from '@uiw/react-codemirror';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { settingsCodeMirrorTheme } from '../../lib/editorExtensions.js';
+import { useI18n } from '../../lib/i18n.js';
 
 export default function CustomCssSettings({ settings, update }) {
   const { t } = useI18n();

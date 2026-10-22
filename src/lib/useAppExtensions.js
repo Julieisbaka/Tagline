@@ -1,7 +1,7 @@
-import { useEffect, useRef } from 'react';
-import { useExtensions } from './extensions.js';
-import { applicationEvents, requireSelection } from './extensionCapabilities.js';
 import { EditorSelection } from '@codemirror/state';
+import { useEffect, useRef } from 'react';
+import { applicationEvents, requireSelection } from './extensionCapabilities.js';
+import { useExtensions } from './extensions.js';
 
 export function useAppExtensions({
   v, paths, activePath, activeContent, mode, sourceFallback, editorRef, visualRef,

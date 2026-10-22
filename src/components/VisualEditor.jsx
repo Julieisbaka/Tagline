@@ -1,10 +1,10 @@
 import { EditorContent, useEditor, useEditorState } from '@tiptap/react';
 import { memo, useEffect, useMemo, useRef, useState } from 'react';
 import { useI18n } from '../lib/i18n.js';
+import { binding, displayBinding, KEYBINDINGS, matchesBinding } from '../lib/keybindings.js';
 import { slugify } from '../lib/markdown.js';
 import { cachedDocument, cacheDocument } from '../lib/visualCache.js';
 import { visualExtensions, visualSelection } from '../lib/visualExtensions.js';
-import { binding, displayBinding, KEYBINDINGS, matchesBinding } from '../lib/keybindings.js';
 import VisualFindReplace from './VisualFindReplace.jsx';
 
 export default function VisualEditor({

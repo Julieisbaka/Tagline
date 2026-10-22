@@ -1,7 +1,7 @@
 // CodeMirror extensions: debate formatting commands, inline decorations, theme.
-import { EditorView, Decoration, ViewPlugin, MatchDecorator } from '@codemirror/view';
-import { EditorSelection } from '@codemirror/state';
 import { HighlightStyle, syntaxHighlighting } from '@codemirror/language';
+import { EditorSelection } from '@codemirror/state';
+import { Decoration, EditorView, MatchDecorator, ViewPlugin } from '@codemirror/view';
 import { tags as t } from '@lezer/highlight';
 
 export function setHeading(level) {
