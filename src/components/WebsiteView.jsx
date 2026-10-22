@@ -26,6 +26,8 @@ export default function WebsiteView({ url, onClose }) {
     const resize = () => window.api.resizeWebsite(rectangle()).catch(report);
     const observer = new ResizeObserver(resize);
     observer.observe(surface.current);
+    // The surface can move without resizing when sibling chrome changes height.
+    if (surface.current.parentElement) observer.observe(surface.current.parentElement);
     window.addEventListener('resize', resize);
     return () => {
       observer.disconnect();

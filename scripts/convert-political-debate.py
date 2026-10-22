@@ -71,7 +71,7 @@ def main() -> int:
         args.source,
         output=staging,
         task="text-classification",
-        opset=17,
+        opset=18,
         do_validation=True,
     )
 

@@ -78,9 +78,13 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
       const cssText = "document.querySelector('.custom-css-editor .cm-content').textContent";
       const setCss = async (value) => {
         await js(`document.querySelector('[aria-label="CSS source"]').focus()`);
-        wc.selectAll();
-        await delay(50);
+        const modifiers = [process.platform === 'darwin' ? 'meta' : 'control'];
+        wc.sendInputEvent({ type: 'keyDown', keyCode: 'A', modifiers });
+        wc.sendInputEvent({ type: 'keyUp', keyCode: 'A', modifiers });
+        await delay(100);
         await wc.insertText(value);
+        await wait(`[...document.querySelectorAll('.custom-css-settings button')]
+          .some(el => el.textContent.trim() === 'Apply CSS' && !el.disabled)`);
       };
       const open = async (file) => {
         await js(`document.querySelector('.tree-item[title=${JSON.stringify(file)}]').dispatchEvent(new MouseEvent('click', { bubbles: true, ctrlKey: true }))`);
@@ -293,7 +297,7 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
         await setCss('.sidebar { outline-width: 12px !important; }');
         assert.ok(await js("Math.abs(parseFloat(getComputedStyle(document.querySelector('.sidebar')).outlineWidth) - 7) < 1"));
         await button('.custom-css-settings button', 'Discard CSS edits');
-        assert.equal(await js(cssText), css);
+        await wait(`${cssText} === ${JSON.stringify(css)}`);
         await done();
         await reload();
         await wait("document.querySelectorAll('.tab').length === 0");

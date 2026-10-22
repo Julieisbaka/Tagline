@@ -33,22 +33,33 @@
 
 .website-toolbar {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   gap: 6px;
   padding: 10px;
   border-bottom: 1px solid var(--border);
+  /* Wrapping would move the native browser surface without resizing it. */
+  overflow-x: auto;
+  scrollbar-width: none;
+  flex-shrink: 0;
+}
+
+.website-toolbar button {
+  flex-shrink: 0;
 }
 
 .website-toolbar input {
   flex: 1;
-  min-width: 80px;
+  min-width: 48px;
 }
 
 .website-status {
   padding: 4px 10px;
   font-size: 12px;
   color: var(--text-muted);
-  overflow-wrap: anywhere;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex-shrink: 0;
 }
 
 .website-surface {
