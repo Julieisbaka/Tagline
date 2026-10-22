@@ -6,6 +6,7 @@ const { SAMPLE_VAULT } = require('./sampleVault.cjs');
 const { registerPandoc } = require('./pandoc.cjs');
 const { registerEmbeddings } = require('./embeddings.cjs');
 const { registerNli } = require('./nli.cjs');
+const { registerSummarization } = require('./summarization.cjs');
 const { registerDocuments } = require('./documents.cjs');
 const { registerFonts } = require('./fonts.cjs');
 const { registerExtensions } = require('./extensions.cjs');
@@ -358,6 +359,7 @@ if (primary) app.whenReady().then(() => {
   registerExtensions({ app, ipcMain, shell, readConfig, writeConfig, dialog, getWindow: () => win });
   const { readToken } = registerEmbeddings({ app, ipcMain, safeStorage, getVaultRoot: () => vaultRoot, readConfig, writeConfig });
   registerNli({ app, ipcMain, dialog, getWindow: () => win, readConfig, writeConfig, readToken });
+  registerSummarization({ app, ipcMain });
   createWindow();
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow();

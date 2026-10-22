@@ -337,6 +337,16 @@ app preload, vault, or extension-bridge access. Device permissions and downloads
 are blocked; use the external browser for downloads or unsupported login flows.
 Non-HTTP(S) navigation and embedded credentials in URLs are rejected.
 
+### On-demand document summaries
+
+Choose **Summarize** in a Markdown note to open the summary dialog. On first use,
+choose **Download and load summary model** to download
+`Xenova/long-t5-tglobal-base-16384-book-summary`; then choose **Summarize now**.
+Neither downloading nor inference starts automatically. The model runs locally,
+and the generated summary appears in the dialog without changing the source file.
+The downloaded model is cached in the app profile. Only Markdown notes are
+supported; notes larger than 500,000 characters are rejected.
+
 Access helpers:
 
 - The view identifies itself as standard Chrome (the `Electron/…` and `tagline/…`
@@ -360,7 +370,7 @@ Changes save automatically on the current device.
 | Appearance | English/Spanish/French UI, built-in/custom/extension themes, editor font family and size, installed or imported fonts, opt-in unrestricted custom CSS in a CodeMirror editor with CSS highlighting (`Mod+Enter` applies). |
 | Performance and search | Visual parse-cache limits and maximum search results. |
 | Files and folders | Folder-path spaces, `.md`/`.flow` label visibility, auto relinking, externally missing-tab cleanup, workspace persistence, revision-history retention, association guidance. |
-| Integrations | Embedded websites, Pandoc location/status/install-page link, model download/load/autoload, optional Hugging Face token, Political DEBATE repository/local folder/unload. |
+| Integrations | Embedded websites, Pandoc location/status/install-page link, model download/load/autoload, optional Hugging Face token, Political DEBATE repository/local folder/unload, on-demand Long-T5 document summaries. |
 | Keyboard shortcuts | Record, clear, or reset built-in and extension bindings; conflicts and reserved shortcuts are explained. |
 | Extensions | Open the extension directory, reload, review permissions/errors, and enable/disable local extensions. |
 | Advanced settings | Theme and extension limits; inspect or change internal flags, including visual-editor notice dismissal. |

@@ -10,6 +10,7 @@ import ExportDialog from '../dialogs/ExportDialog.jsx';
 import ImportDialog from '../dialogs/ImportDialog.jsx';
 import CitationDialog from '../dialogs/CitationDialog.jsx';
 import HypothesisDialog from '../dialogs/HypothesisDialog.jsx';
+import SummaryDialog from '../dialogs/SummaryDialog.jsx';
 import HistoryDialog from '../dialogs/HistoryDialog.jsx';
 import WebsiteView from '../dialogs/WebsiteView.jsx';
 import Splitter from './Splitter.jsx';
@@ -85,6 +86,7 @@ export default function AppLayout({ app }) {
         visualRef={visualRef}
         onExport={ctx.exportNote}
         onTestHypothesis={ctx.testHypothesis}
+        onSummarize={() => ctx.summarize(activePath, activeContent)}
         onCreateCitation={ctx.createCitation}
         onOpenHistory={() => setModal({ type: 'history', path: tab.path })}
         settings={settings}
@@ -166,6 +168,7 @@ export default function AppLayout({ app }) {
       )}
       {modal?.type === 'import' && <ImportDialog onImport={createAndOpen} onClose={() => setModal(null)} />}
       {modal?.type === 'hypothesis' && <HypothesisDialog sources={modal.sources} onClose={() => setModal(null)} />}
+      {modal?.type === 'summary' && <SummaryDialog title={modal.title} content={modal.content} onClose={() => setModal(null)} />}
       {modal?.type === 'history' && <HistoryDialog path={modal.path}
         onRestore={(content) => {
           v.updateContent(modal.path, content);

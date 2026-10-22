@@ -34,6 +34,7 @@ export default function NoteView({
   visualRef,
   onExport,
   onTestHypothesis,
+  onSummarize,
   onCreateCitation,
   onOpenHistory,
   settings,
@@ -148,6 +149,7 @@ export default function NoteView({
           <button onClick={onExport}>{t('Export')}</button>
           {onTestHypothesis && <button title={t('Test a hypothesis against this note (Political DEBATE)')}
             onClick={onTestHypothesis}>{t('Hypothesis')}</button>}
+          {onSummarize && <button onClick={onSummarize}>{t('Summarize')}</button>}
           {mode !== 'read' && <button onClick={onCreateCitation}>
             {t('Create citation')}
           </button>}

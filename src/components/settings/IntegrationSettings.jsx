@@ -5,6 +5,7 @@ export default function IntegrationSettings() {
   const { t } = useI18n();
   const [pandoc, setPandoc] = useState(null);
   const [embedding, setEmbedding] = useState(null);
+  const [summary, setSummary] = useState(null);
   const [token, setToken] = useState('');
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
@@ -12,8 +13,8 @@ export default function IntegrationSettings() {
 
   useEffect(() => {
     let disposed = false;
-    Promise.all([window.api.pandocStatus(), window.api.embeddingStatus()])
-      .then(([p, e]) => { if (!disposed) { setPandoc(p); setEmbedding(e); } })
+    Promise.all([window.api.pandocStatus(), window.api.embeddingStatus(), window.api.summaryStatus()])
+      .then(([p, e, s]) => { if (!disposed) { setPandoc(p); setEmbedding(e); setSummary(s); } })
       .catch((e) => { if (!disposed) setError(e.message); });
     const interval = setInterval(() => {
       window.api.embeddingStatus().then((e) => { if (!disposed) setEmbedding(e); })
@@ -92,6 +93,9 @@ export default function IntegrationSettings() {
       {error && <p className="error-text" role="alert">{error}</p>}
       {message && <p role="status">{message}</p>}
       <PoliticalDebateSettings />
+      <h4>{t('On-demand document summaries')}</h4>
+      <p>{t('Uses {model}. It downloads and runs only after you request a summary; document text stays on this computer.', { model: summary?.model || 'Xenova/long-t5-tglobal-base-16384-book-summary' })}</p>
+      <p role="status">{summary ? `${summary.model} — ${t(summary.ready ? 'loaded' : 'not loaded')}` : t('Checking model...')}</p>
     </section>
   );
 }

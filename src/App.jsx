@@ -306,6 +306,10 @@ export default function App() {
       };
       return setModal({ type: 'hypothesis', sources });
     },
+    summarize: (path, content) => {
+      if (!path || !isMarkdown(path)) return notify(t('Open a Markdown document to summarize it.'));
+      return setModal({ type: 'summary', title: baseName(path), content: content || '' });
+    },
     importDocument: () => setModal({ type: 'import' }),
     toggleHighlightOnly: () => {
       setMode('read');

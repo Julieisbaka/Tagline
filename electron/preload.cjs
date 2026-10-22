@@ -73,4 +73,7 @@ contextBridge.exposeInMainWorld('api', {
   loadNliModel: () => ipcRenderer.invoke('nli:load'),
   unloadNliModel: () => ipcRenderer.invoke('nli:unload'),
   analyzeHypotheses: (request) => ipcRenderer.invoke('nli:analyze', request),
+  summaryStatus: () => ipcRenderer.invoke('summary:status'),
+  loadSummaryModel: () => ipcRenderer.invoke('summary:load'),
+  summarizeDocument: (content) => ipcRenderer.invoke('summary:run', content),
 });
