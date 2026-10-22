@@ -1,0 +1,6 @@
+sentence-transformers==5.1.2
+transformers>=4.51,<5
+datasets>=3.0,<5
+accelerate>=1.0,<2
+torch>=2.6,<3
+einops>=0.8,<1
