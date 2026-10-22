@@ -11,9 +11,6 @@ Markdown notes (`.md`) and JSON flow documents (`.flow`).
   commands, editor/vault access, storage, examples, and current limitations.
 - [Theme API](./theme-api.md): JSON format, every supported color token,
   import/export, theme extensions, and accessibility.
-- [Feature suggestions](./feature-suggestions.md): proposed improvements,
-  priorities, and possible implementation boundaries. These are not shipped
-  features or a committed roadmap.
 
 For installation, development commands, and test commands, see the
 [project README](../README.md).
