@@ -169,6 +169,14 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
         await wait("document.querySelectorAll('.tree-item').length >= 3");
         const recentVaults = await js('window.api.listRecentVaults()');
         assert.ok(recentVaults.some((item) => item.root === vault));
+        await js("document.querySelector('.vault-switch').click()");
+        await wait("!!document.querySelector('.vault-manager-dialog')");
+        await js(`(() => [...document.querySelectorAll('.vault-manager-list li')]
+          .find(item => item.querySelector('strong')?.textContent === 'Second vault')
+          .querySelectorAll('button')[2].click())()`);
+        await wait("window.api.listRecentVaults().then(items => items.length === 1)");
+        assert.equal(await fs.stat(otherVault).then((info) => info.isDirectory()), true);
+        await js("document.querySelector('.vault-manager-dialog .dialog-buttons button:last-child').click()");
         // An actual second Electron instance forwards .flow to the primary process.
         const secondary = spawn(process.execPath, [__filename, warm], {
           env: { ...process.env, TAGLINE_SECONDARY: '1' }, stdio: 'inherit',
