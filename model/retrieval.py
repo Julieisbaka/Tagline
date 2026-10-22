@@ -17,9 +17,16 @@ def validate_pairs(rows: Iterable[dict]) -> list[Pair]:
         source_id = text_field(row.get("source_id"), "source_id")
         document = text_field(row.get("document"), "document")
         if not document.startswith("search_document: ") or not document[17:].strip():
-            raise ValueError("Documents must start with search_document: and contain evidence")
+            raise ValueError(
+                "Documents must start with search_document: and contain evidence"
+            )
         expected = make_pair(
-            {"id": card_id, "source_id": source_id, "text": document[17:], "metadata": {}},
+            {
+                "id": card_id,
+                "source_id": source_id,
+                "text": document[17:],
+                "metadata": {},
+            },
             {key: row.get(key) for key in ("argument_type", "topic", "component")},
         )
         if row.get("query") != expected["query"]:
@@ -48,7 +55,9 @@ def retrieval_labels(
 
 
 def metrics(
-    rankings: Sequence[Sequence[int]], relevant: Sequence[set[int]], ks: Sequence[int],
+    rankings: Sequence[Sequence[int]],
+    relevant: Sequence[set[int]],
+    ks: Sequence[int],
 ) -> dict[str, float]:
     if not rankings or len(rankings) != len(relevant):
         raise ValueError("Need matching, nonempty rankings and relevance labels")
@@ -62,7 +71,8 @@ def metrics(
         for k in ks:
             sums[f"recall@{k}"] += len(set(ranking[:k]) & positives) / len(positives)
         sums["mrr"] += next(
-            (1 / rank for rank, doc in enumerate(ranking, 1) if doc in positives), 0.0,
+            (1 / rank for rank, doc in enumerate(ranking, 1) if doc in positives),
+            0.0,
         )
     return {key: value / len(rankings) for key, value in sums.items()}
 
@@ -76,8 +86,9 @@ def unique_training_pairs(pairs: list[Pair]) -> list[Pair]:
         if key not in seen:
             seen.add(key)
             result.append(pair)
-    if len({pair["query"] for pair in result}) < 2 or len({
-        fingerprint(pair["document"]) for pair in result
-    }) < 2:
+    if (
+        len({pair["query"] for pair in result}) < 2
+        or len({fingerprint(pair["document"]) for pair in result}) < 2
+    ):
         raise ValueError("MNRL requires at least two distinct queries and documents")
     return result

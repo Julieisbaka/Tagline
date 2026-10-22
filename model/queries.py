@@ -7,7 +7,7 @@ import os
 import re
 from pathlib import Path
 from urllib.parse import urlsplit
-from urllib.request import Request, urlopen
+from urllib.request import HTTPRedirectHandler, Request, build_opener
 
 from .data import Card, Pair, read_jsonl, text_field, write_jsonl
 
@@ -96,6 +96,11 @@ def check_endpoint(endpoint: str, allow_remote: bool) -> None:
             raise ValueError("Remote endpoints must use HTTPS")
 
 
+class NoRedirect(HTTPRedirectHandler):
+    def redirect_request(self, req, fp, code, msg, headers, newurl):
+        raise ValueError("LLM endpoint redirects are not allowed; use the final endpoint URL")
+
+
 def generate(
     input_path: Path, output: Path, endpoint: str, llm: str, allow_remote: bool = False
 ) -> None:
@@ -104,6 +109,7 @@ def generate(
         raise FileExistsError(f"Refusing to overwrite {output}")
     cards = read_jsonl(input_path)
     pairs = []
+    client = build_opener(NoRedirect())
     for index, card in enumerate(cards, 1):
         payload = {
             "model": llm,
@@ -129,7 +135,7 @@ def generate(
         request = Request(
             endpoint, data=json.dumps(payload).encode("utf-8"), headers=headers
         )
-        with urlopen(request, timeout=180) as response:
+        with client.open(request, timeout=180) as response:
             result = json.load(response)
         fields = json.loads(result["choices"][0]["message"]["content"])
         if not isinstance(fields, dict):

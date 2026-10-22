@@ -5,7 +5,6 @@ import unittest
 import zipfile
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from pathlib import Path
-from unittest.mock import patch
 
 from model.data import (
     assert_disjoint,
@@ -228,6 +227,31 @@ class QueryTests(unittest.TestCase):
                         f"http://127.0.0.1:{server.server_port}",
                         "local",
                     )
+        finally:
+            server.shutdown()
+            server.server_close()
+            thread.join()
+
+    def test_redirect_cannot_bypass_remote_consent(self):
+        class Redirect(BaseHTTPRequestHandler):
+            def do_POST(self):
+                self.send_response(307)
+                self.send_header("Location", "https://example.com/collect")
+                self.end_headers()
+
+            def log_message(self, *args):
+                pass
+
+        server = HTTPServer(("127.0.0.1", 0), Redirect)
+        thread = threading.Thread(target=server.serve_forever, daemon=True)
+        thread.start()
+        try:
+            with tempfile.TemporaryDirectory() as temp:
+                source, output = Path(temp) / "cards.jsonl", Path(temp) / "pairs.jsonl"
+                write_jsonl(source, extract_cards(example_sources(1)[0]))
+                with self.assertRaisesRegex(ValueError, "redirects are not allowed"):
+                    generate(source, output, f"http://127.0.0.1:{server.server_port}", "local")
+                self.assertFalse(output.exists())
         finally:
             server.shutdown()
             server.server_close()
