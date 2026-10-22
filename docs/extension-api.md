@@ -2,7 +2,7 @@
 
 [Documentation home](./README.md) | [Theme API](./theme-api.md)
 
-Extensions contribute commands and JSON themes. JavaScript runs in a dedicated
+Extensions contribute commands, typed settings, and JSON themes. JavaScript runs in a dedicated
 worker supervised by a hidden, opaque-origin iframe, not the Electron main
 process or the application page. DOM APIs such as `window` and `document` are
 unavailable; use the bridge rather than browser-page globals.
@@ -91,9 +91,10 @@ self-contained script if necessary. There is no package loader.
 | `description` | No | String, at most 500 characters. |
 | `author` | No | String, at most 500 characters. |
 | `main` | For commands | Relative path to a `.js` file. Optional for theme-only extensions. |
-| `permissions` | No | Array containing only `editor`, `vault:read`, or `vault:write`. Defaults to `[]`. |
+| `permissions` | No | Array containing only `editor`, `editor:active-note`, `settings`, `vault:read`, or `vault:write`. Defaults to `[]`. |
 | `contributes.commands` | No | At most 50 command declarations; defaults to `[]`. |
 | `contributes.themes` | No | At most 20 relative `.json` paths; defaults to `[]`. |
+| `contributes.settings` | No | At most 32 typed setting declarations; requires `settings`. Defaults to `[]`. |
 
 Each command needs a unique `id` using the extension-ID character rules and a
 nonblank `title` of at most 80 characters. Its optional `key` is a shortcut string.
@@ -113,6 +114,8 @@ initialization and await their registration before the entry script finishes.
 | Permission | Grants |
 | --- | --- |
 | `editor` | Read the active note and its selection; insert text into its editor. Reading the active note includes its entire content. |
+| `editor:active-note` | Subscribe only to active-note path changes, without content or selection access. Does not imply `editor`. |
+| `settings` | Read/write only this extension's declared, validated settings. No application or other extension settings access. |
 | `vault:read` | List/read loaded `.md`/`.flow` notes and watch their changes in the open vault. |
 | `vault:write` | Create, replace, rename, trash, and flush supported notes. Append and compare-and-swap also require `vault:read`. |
 | None | Register declared commands, notify the user, use private extension storage, contribute JSON themes. |
@@ -123,6 +126,11 @@ or network access. The sandbox CSP blocks network requests and external resource
 Browser APIs available within the sandbox are not a supported way to access
 application data.
 
+Permission lists and setting definitions are reviewed together when enabling an
+extension. Changing either invalidates approval and disables the extension on
+reload until the user reviews and re-enables it. Previously enabled extensions
+cannot silently acquire `settings` or `editor:active-note` access.
+
 ### Resource safeguards
 
 - A worker keeps synchronous extension loops off the application UI thread.
@@ -132,6 +140,7 @@ application data.
   notifications, and error messages.
 - At most 32 bridge calls may be pending per extension; additional calls reject.
 - At most 32 vault watches may be registered per extension; disposal removes them.
+- At most 32 active-note listeners may be registered per extension; disposal removes them.
 - Nested `Worker` and `SharedWorker` constructors are disabled.
 - Disabling, reloading, or unloading an extension removes its supervisor and worker.
 
@@ -195,6 +204,68 @@ In visual mode it parses Markdown; in source mode it inserts literal text.
 It replaces the current selection or inserts at the cursor and uses normal
 application autosaving. It rejects in reading mode or on a `.flow` document.
 Text is limited to 5,000,000 characters.
+
+### Active-note changes
+
+Requires the separate `editor:active-note` permission, not `editor`:
+
+```js
+const stop = await tagline.editor.onActiveNoteChanged(async ({ path }) => {
+  // path is a vault-relative string, or null when there is no active note.
+  await tagline.storage.set('last-active-path', path);
+});
+// Later:
+await stop();
+```
+
+Only `{ path }` is delivered: no content, selection, keystrokes, or editor state.
+Events are emitted when the active note path or open vault changes, including
+switching to no active note. Subscription does not deliver an initial snapshot.
+Closing the extension, disabling it, or reloading it unsubscribes automatically.
+Use `editor.getActiveNote()` only when full note access is actually needed and
+the broader `editor` permission has been declared and approved.
+
+### Typed extension settings
+
+Declare `settings` permission and `contributes.settings` in the manifest:
+
+```json
+{
+  "permissions": ["settings"],
+  "contributes": {
+    "settings": [
+      {"id":"enabled","title":"Enable reminders","type":"boolean","default":true},
+      {"id":"limit","title":"Result limit","type":"number","min":1,"max":20,"default":5},
+      {"id":"style","title":"Style","type":"string","enum":["brief","full"],"default":"brief"}
+    ]
+  }
+}
+```
+
+This is a manifest fragment; include the usual required manifest fields.
+Each setting needs a unique `id` (same syntax as command IDs), a nonblank `title`
+up to 80 characters, `type`, and a valid `default`. An optional `description`
+is limited to 500 characters.
+
+- `boolean`: accepts only actual booleans.
+- `number`: accepts only finite numbers, with optional inclusive `min`/`max`.
+- `string`: accepts strings up to `maxLength` (default 1,000; configurable 1–10,000).
+  An optional `enum` restricts values to 1–50 unique string choices.
+
+Unsupported definition properties, invalid defaults, type mismatches, out-of-range
+values, and undeclared IDs are rejected rather than coerced or silently replaced.
+For example, the string `"5"` is not a number setting value.
+
+```js
+const limit = await tagline.settings.get('limit'); // saved value, or declared default
+await tagline.settings.set('limit', 10);          // Promise<true>
+```
+
+Users can edit, save, and reset these settings on the extension card under
+**Settings > Extensions**. Values live in extension-ID-scoped profile storage
+separate from private `storage`, with a 100,000-character serialized size limit.
+They are not encrypted and must not be used for secrets. Invalid stored values
+surface errors; the user can reset the extension's settings to recover.
 
 ### Vault
 
@@ -327,7 +398,7 @@ Keep the theme list order stable to preserve users' saved selections.
 ## Current boundaries and implementation
 
 There is no extension marketplace, automatic updater, panel/webview contribution,
-settings contribution API, lifecycle event subscription, editor selection setter,
+general-purpose application event bus, editor selection setter,
 custom Tiptap node API, or unrestricted CSS/theme script execution. These are
 not implied by the presence of internal application helpers.
 

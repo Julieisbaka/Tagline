@@ -122,13 +122,30 @@ access; the public model also works without a token. Once downloaded, cached
 loading and inference can work offline.
 
 Select **Semantic (local embeddings)** and describe the evidence you want.
-Semantic mode supports tag filters and shows the best matching passage per note.
+Semantic mode supports tag filters and required quoted phrases and shows the best matching passage per note.
 Opening a passage jumps to its line in Source mode. Displayed cosine similarity
 is not a probability or confidence score.
 
-The maximum-results setting applies after ranking in both search modes.
-The proposed domain-specific Nomic fine-tuning workflow is not the application's
-current search model.
+**Hybrid (keywords + local meaning)** combines keyword matches and semantic
+passage rankings using reciprocal-rank fusion. Select this mode and click
+**Search keywords + meaning**, or press Enter. Notes found by both ranking methods
+get an agreement boost; relevant paraphrases can appear even without all query
+words. Unlike full-text mode, hybrid keyword candidates need only one unquoted
+term, but **every tag and quoted phrase remains mandatory** in both channels.
+Accents and letter case are folded when checking phrases.
+
+Hybrid mode immediately shows keyword results while you type. Its status tells
+you to run the combined search; until then these are not semantic results.
+It shows whether each result matched keywords, meaning, or both. If local
+inference fails, an explicit error identifies the keyword-only results.
+Changing the query, filters, contents, or result limit invalidates old semantic
+results. No model is downloaded automatically and no notes or queries leave
+the computer.
+
+The maximum-results setting applies after fusion, with up to 1,000 candidates
+from each channel. Full-text remains the initial mode and needs no model.
+Hybrid and semantic search use the existing pretrained MiniLM model, not a
+custom-trained model or a query-generation LLM.
 
 ## Citation creator
 

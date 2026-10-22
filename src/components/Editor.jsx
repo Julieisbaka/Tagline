@@ -41,8 +41,8 @@ export default function Editor({ value, onChange, noteNames, onOpenLink, onSendC
     };
     const debateKeys = Prec.highest(keymap.of(KEYBINDINGS.filter((item) =>
       item.scope === 'editor' && binding(item.id, keybindings)).map((item) => ({
-      key: editorBinding(binding(item.id, keybindings)), run: actions[item.id],
-    }))));
+        key: editorBinding(binding(item.id, keybindings)), run: actions[item.id],
+      }))));
 
     return [
       keymap.of(searchKeymap.filter((item) => item.key !== 'Mod-f')),

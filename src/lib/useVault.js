@@ -26,7 +26,7 @@ export function useVault(underscoreFolders = true, autoRelink = true) {
 
   const writeDisk = useCallback((path, text) => {
     const previous = writes.current.get(path)?.task || Promise.resolve();
-    const task = previous.catch(() => {}).then(() => api.write(path, text));
+    const task = previous.catch(() => { }).then(() => api.write(path, text));
     writes.current.set(path, { task, text });
     const cleanup = () => {
       if (writes.current.get(path)?.task === task) writes.current.delete(path);
@@ -41,8 +41,10 @@ export function useVault(underscoreFolders = true, autoRelink = true) {
     const events = previous.root !== vault?.root ? [{ type: 'reset' }] :
       [...new Set([...Object.keys(previous.contents), ...Object.keys(contents)])]
         .filter((path) => previous.contents[path] !== contents[path])
-        .map((path) => ({ type: contents[path] === undefined ? 'delete' :
-          previous.contents[path] === undefined ? 'create' : 'change', path }));
+        .map((path) => ({
+          type: contents[path] === undefined ? 'delete' :
+            previous.contents[path] === undefined ? 'create' : 'change', path
+        }));
     for (const event of events) {
       for (const listener of watchers.current) listener(event);
     }
