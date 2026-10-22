@@ -33,7 +33,7 @@ contextBridge.exposeInMainWorld('api', {
   },
   listExtensions: () => ipcRenderer.invoke('extensions:list'),
   loadExtension: (id) => ipcRenderer.invoke('extensions:load', id),
-  setExtensionEnabled: (id, enabled) => ipcRenderer.invoke('extensions:setEnabled', id, enabled),
+  setExtensionEnabled: (id, enabled, reviewToken) => ipcRenderer.invoke('extensions:setEnabled', id, enabled, reviewToken),
   openExtensionsFolder: () => ipcRenderer.invoke('extensions:openFolder'),
   readFont: () => ipcRenderer.invoke('fonts:read'),
   importFont: () => ipcRenderer.invoke('fonts:import'),

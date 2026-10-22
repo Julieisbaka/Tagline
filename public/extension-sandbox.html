@@ -22,6 +22,7 @@
   const pending = new Map();
   const handlers = new Map();
   const watches = new Map();
+  const activeNoteWatches = new Map();
   let next = 0;
   let started = false;
   const send = (message) => postMessage(message);
@@ -51,6 +52,19 @@
     editor: Object.freeze({
       getActiveNote: () => call('editor.getActiveNote'),
       insertText: (text) => call('editor.insertText', text),
+      onActiveNoteChanged: async (listener) => {
+        if (typeof listener !== 'function') throw new TypeError('Active-note listener must be a function.');
+        const id = await call('editor.watchActiveNote');
+        activeNoteWatches.set(id, listener);
+        return async () => {
+          activeNoteWatches.delete(id);
+          return call('editor.unwatchActiveNote', id);
+        };
+      },
+    }),
+    settings: Object.freeze({
+      get: (key) => call('settings.get', key),
+      set: (key, value) => call('settings.set', key, value),
     }),
     vault: Object.freeze({
       list: () => call('vault.list'),
@@ -94,6 +108,9 @@
     } else if (data.type === 'vault-event') {
       try { await watches.get(data.id)?.(data.event); }
       catch (error) { send({ type: 'error', message: describe(error) }); }
+    } else if (data.type === 'active-note-event') {
+      try { await activeNoteWatches.get(data.id)?.(data.event); }
+      catch (error) { send({ type: 'error', message: describe(error) }); }
     } else if (data.type === 'command') {
       try { await handlers.get(data.command)?.(); }
       catch (error) { send({ type: 'error', message: describe(error) }); }
@@ -122,7 +139,7 @@
         if (performance.now() - lastHeartbeat > 5000) fail('Extension stopped responding for 5 seconds and was stopped.');
       }, 500);
       worker.postMessage(data);
-    } else if (worker && ['result', 'command', 'vault-event'].includes(data.type)) {
+    } else if (worker && ['result', 'command', 'vault-event', 'active-note-event'].includes(data.type)) {
       worker.postMessage(data);
     }
   });

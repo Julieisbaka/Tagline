@@ -181,6 +181,11 @@ export default function App() {
 
   // Everything extensions can touch goes through this object; see docs/extension-api.md.
   const extensionBridge = useRef(null);
+  const activeNoteListeners = useRef(new Set());
+  const activeNotePath = activeContent === undefined ? null : activePath;
+  useEffect(() => {
+    activeNoteListeners.current.forEach((listener) => listener({ path: activeNotePath }));
+  }, [activeNotePath, v.vault?.root]);
   const enqueueVault = (operation) => {
     const root = v.vault?.root;
     const task = vaultOperations.current.then(() => {
@@ -254,6 +259,10 @@ export default function App() {
       return true;
     }),
     watch: v.watch,
+    watchActiveNote: (listener) => {
+      activeNoteListeners.current.add(listener);
+      return () => activeNoteListeners.current.delete(listener);
+    },
   };
   const ext = useExtensions({ bridgeRef: extensionBridge, notify });
 

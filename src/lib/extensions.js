@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { registerExtensionThemes, validateTheme } from './themes.js';
 import { KEYBINDINGS, reservedBinding, validBinding } from './keybindings.js';
+import { getExtensionSetting, setExtensionSettings, resetExtensionSettings } from './extensionSettings.js';
 
 // A worker runs extension code inside an opaque-origin supervisor iframe:
 // it cannot reach window.api, the DOM, app storage or the network (CSP connect-src 'none').
@@ -25,6 +26,7 @@ export class ExtensionHost {
     this.bridge = bridge;
     this.registered = new Set();
     this.watches = new Map();
+    this.activeNoteWatches = new Map();
     this.nextWatch = 0;
     this.pendingCalls = 0;
     this.messageWindow = 0;
@@ -74,6 +76,25 @@ export class ExtensionHost {
         return true;
       case 'editor.getActiveNote': this.require('editor'); return b.getActiveNote();
       case 'editor.insertText': this.require('editor'); await b.insertText(requireText(args[0], 'Text')); return true;
+      case 'settings.get':
+        this.require('settings');
+        return getExtensionSetting(this.manifest, requireText(args[0], 'Setting id', 64));
+      case 'settings.set':
+        this.require('settings');
+        return setExtensionSettings(this.manifest, { [requireText(args[0], 'Setting id', 64)]: args[1] });
+      case 'editor.watchActiveNote': {
+        this.require('editor:active-note');
+        if (this.activeNoteWatches.size >= 32) throw new Error('Extension is limited to 32 active-note listeners.');
+        const id = ++this.nextWatch;
+        this.activeNoteWatches.set(id, b.watchActiveNote((event) => this.frame?.contentWindow?.postMessage({
+          type: 'active-note-event', id, event: { path: event.path },
+        }, '*')));
+        return id;
+      }
+      case 'editor.unwatchActiveNote': {
+        this.activeNoteWatches.get(args[0])?.();
+        return this.activeNoteWatches.delete(args[0]);
+      }
       case 'vault.list': this.require('vault:read'); return b.list();
       case 'vault.read': this.require('vault:read'); return b.read(requireText(args[0], 'Path', 1000));
       case 'vault.write':
@@ -168,6 +189,8 @@ export class ExtensionHost {
   dispose() {
     this.watches.forEach((unsubscribe) => unsubscribe());
     this.watches.clear();
+    this.activeNoteWatches.forEach((unsubscribe) => unsubscribe());
+    this.activeNoteWatches.clear();
     window.removeEventListener('message', this.onMessage);
     this.frame?.remove();
     this.frame = null;
@@ -189,6 +212,12 @@ export function useExtensions({ bridgeRef, notify }) {
   const [commands, setCommands] = useState([]);
   const hosts = useRef(new Map());
   const generation = useRef(0);
+  const [settingsRevision, settingsChanged] = useState(0);
+  useEffect(() => {
+    const changed = () => settingsChanged((value) => value + 1);
+    window.addEventListener('extension-settings-changed', changed);
+    return () => window.removeEventListener('extension-settings-changed', changed);
+  }, []);
 
   const reload = useCallback(async () => {
     const current = ++generation.current;
@@ -207,6 +236,7 @@ export function useExtensions({ bridgeRef, notify }) {
       flush: () => bridgeRef.current.flush(),
       compareAndSwap: (path, expected, content) => bridgeRef.current.compareAndSwap(path, expected, content),
       watch: (listener) => bridgeRef.current.watch(listener),
+      watchActiveNote: (listener) => bridgeRef.current.watchActiveNote(listener),
     };
     let list;
     try { list = await window.api.listExtensions(); }
@@ -255,9 +285,11 @@ export function useExtensions({ bridgeRef, notify }) {
   }, [notify]);
 
   const setEnabled = useCallback(async (id, enabled) => {
-    await window.api.setExtensionEnabled(id, enabled);
+    const item = extensions.find((extension) => extension.id === id);
+    await window.api.setExtensionEnabled(id, enabled, item?.reviewToken);
     await reload();
-  }, [reload]);
+  }, [reload, extensions]);
 
-  return { extensions, commands, run, reload, setEnabled };
+  return { extensions, commands, run, reload, setEnabled,
+    settingsRevision, getSetting: getExtensionSetting, setSettings: setExtensionSettings, resetSettings: resetExtensionSettings };
 }

@@ -1,9 +1,11 @@
 const fs = require('node:fs/promises');
 const path = require('node:path');
+const { validateSettingDefinitions } = require('./extensionSettings.mjs');
+const { createHash } = require('node:crypto');
 
 // Extensions live in <userData>/extensions/<folder>/manifest.json. The main process only reads and
 // validates files; extension code runs in a supervised sandbox worker (see src/lib/extensions.js).
-const PERMISSIONS = ['editor', 'vault:read', 'vault:write'];
+const PERMISSIONS = ['editor', 'vault:read', 'vault:write', 'settings', 'editor:active-note'];
 const ID = /^[a-z0-9][a-z0-9-]{1,63}$/;
 const MAX_SOURCE = 1024 * 1024;
 const MAX_THEME = 64 * 1024;
@@ -45,6 +47,8 @@ function validateManifest(value, root) {
   if (typeof contributes !== 'object' || Array.isArray(contributes)) fail('contributes must be an object.');
   const commands = contributes.commands ?? [];
   const themes = contributes.themes ?? [];
+  const settings = validateSettingDefinitions(contributes.settings);
+  if (settings.length && !permissions.includes('settings')) fail('contributes.settings requires the settings permission.');
   if (!Array.isArray(commands) || commands.length > 50) fail('contributes.commands must be a list of at most 50.');
   if (!Array.isArray(themes) || themes.length > 20) fail('contributes.themes must be a list of at most 20.');
   const seen = new Set();
@@ -63,8 +67,19 @@ function validateManifest(value, root) {
     manifestVersion: 1, id: value.id, name: value.name.trim(), version: value.version.trim(),
     description: value.description || '', author: value.author || '', main: value.main || null,
     permissions: [...new Set(permissions)],
-    contributes: { commands: commands.map(({ id, title, key }) => ({ id, title: title.trim(), key: key || '' })), themes },
+    contributes: { commands: commands.map(({ id, title, key }) => ({ id, title: title.trim(), key: key || '' })), themes, settings },
   };
+}
+
+function reviewSignature(manifest) {
+  return JSON.stringify({ permissions: [...manifest.permissions].sort(), settings: manifest.contributes.settings });
+}
+
+function needsReview(manifest, config) {
+  const approved = config.extensionReviews?.[manifest.id];
+  if (approved !== undefined) return approved !== reviewSignature(manifest);
+  // Preserve old enabled extensions, but never silently grant either new capability.
+  return manifest.permissions.some((permission) => ['settings', 'editor:active-note'].includes(permission));
 }
 
 function registerExtensions({ app, ipcMain, shell, readConfig, writeConfig }) {
@@ -84,7 +99,10 @@ function registerExtensions({ app, ipcMain, shell, readConfig, writeConfig }) {
         const manifest = validateManifest(JSON.parse(await fs.readFile(path.join(root, 'manifest.json'), 'utf8')), root);
         if (ids.has(manifest.id)) throw new Error(`Duplicate extension id: ${manifest.id}`);
         ids.add(manifest.id);
-        found.push({ ...manifest, folder: entry.name, root, enabled: enabled.includes(manifest.id) });
+        const reviewRequired = enabled.includes(manifest.id) && needsReview(manifest, readConfig());
+        const reviewToken = createHash('sha256').update(reviewSignature(manifest)).digest('hex');
+        found.push({ ...manifest, folder: entry.name, root, reviewRequired, reviewToken,
+          enabled: enabled.includes(manifest.id) && !reviewRequired });
       } catch (error) {
         found.push({ id: null, folder: entry.name, root, error: error.message, enabled: false });
       }
@@ -114,11 +132,20 @@ function registerExtensions({ app, ipcMain, shell, readConfig, writeConfig }) {
     return { source, themes };
   });
 
-  ipcMain.handle('extensions:setEnabled', async (_e, id, enabled) => {
+  ipcMain.handle('extensions:setEnabled', async (_e, id, enabled, reviewToken) => {
     if (typeof id !== 'string' || !ID.test(id) || typeof enabled !== 'boolean') throw new Error('Invalid extension request.');
+    const item = (await scan()).find((extension) => extension.id === id && !extension.error);
+    if (enabled && !item) throw new Error('Extension not found.');
+    if (enabled && ((reviewToken !== undefined && reviewToken !== item.reviewToken) ||
+      (item.permissions.some((permission) => ['settings', 'editor:active-note'].includes(permission)) &&
+        reviewToken !== item.reviewToken))) {
+      throw new Error('Extension permissions or settings changed. Reload and review before enabling.');
+    }
     const next = enabledIds().filter((item) => item !== id);
     if (enabled) next.push(id);
-    writeConfig({ enabledExtensions: next });
+    const extensionReviews = { ...readConfig().extensionReviews };
+    if (enabled) extensionReviews[id] = reviewSignature(item);
+    writeConfig({ enabledExtensions: next, extensionReviews });
     return next;
   });
 
