@@ -3,7 +3,7 @@ import { useI18n } from '../../lib/i18n.js';
 import { getRuntimeLimits } from '../../../electron/customization.mjs';
 
 const PERMISSION_LABELS = {
-  editor: 'Read and insert text in the active note',
+  editor: 'Read and edit the active note, selection, and visual editor',
   'vault:read': 'Read notes in the open vault',
   'vault:write': 'Create and change notes in the open vault',
   settings: "Read and change only this extension's declared settings",

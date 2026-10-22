@@ -61,14 +61,20 @@ export function useAppExtensions({
     getActiveNote: () => {
       if (!activePath || activeContent === undefined) return null;
       let selection = '';
+      let selectionRange = null;
+      let editorKind = null;
       if (mode === 'visual' && !sourceFallback && visualRef.current) {
         const { from, to } = visualRef.current.state.selection;
         selection = visualRef.current.state.doc.textBetween(from, to, '\n');
+        selectionRange = { from, to };
+        editorKind = 'tiptap';
       } else if (mode !== 'read' && editorRef.current) {
         const { from, to } = editorRef.current.state.selection.main;
         selection = editorRef.current.state.sliceDoc(from, to);
+        selectionRange = { from, to };
+        editorKind = 'source';
       }
-      return { path: activePath, content: activeContent ?? '', selection, mode };
+      return { path: activePath, content: activeContent ?? '', selection, selectionRange, editorKind, mode };
     },
     insertText: (text) => insertAtCursor(text),
     setSelection: (value) => {

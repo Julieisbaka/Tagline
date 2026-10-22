@@ -1,4 +1,7 @@
 {
+  "Read and edit the active note, selection, and visual editor": "Leer y editar la nota activa, la selección y el editor visual",
+  "Subscribe to application events and exchange custom extension events": "Suscribirse a eventos de la aplicación e intercambiar eventos de extensiones",
+  "Display sandboxed panels and webviews": "Mostrar paneles y vistas web aislados",
   "Extension settings": "Configuración de la extensión",
   "Save extension settings": "Guardar configuración de la extensión",
   "Reset extension settings": "Restablecer configuración de la extensión",

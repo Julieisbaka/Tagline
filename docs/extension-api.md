@@ -167,7 +167,9 @@ are no multi-file transactions or locks against external filesystem writers.
 
 ## JavaScript API reference
 
-All methods return promises. Await calls and let failures reach the command
+Bridge methods return promises. Local helpers such as `createDisposables`,
+disposable-group `add`, and UI `onMessage` registration are synchronous.
+Await bridge calls and let failures reach the command
 handler, or catch specific errors and explain recovery to the user. Unhandled
 command errors are surfaced as extension notifications.
 
@@ -193,7 +195,8 @@ Requires `editor`:
 ```js
 const note = await tagline.editor.getActiveNote();
 // null, or:
-// { path: string, content: string, selection: string, mode: string }
+// { path, content, selection, selectionRange: { from, to } | null,
+//   editorKind: "tiptap" | "source" | null, mode }
 
 await tagline.editor.insertText(markdown); // Promise<true>
 ```
@@ -202,6 +205,8 @@ await tagline.editor.insertText(markdown); // Promise<true>
 application's current text, including unsaved edits, not necessarily the last
 bytes saved on disk. `mode` is the selected note mode: `visual`, `edit`, or `read`.
 Source fallback can be active even when the selected mode is `visual`.
+`editorKind` identifies the actual editor and `selectionRange` uses its native
+positions, allowing a selection to be restored with `editor.setSelection`.
 
 For Markdown notes, `selection` is plain selected text in the visual editor and
 literal selected source in the source editor. Reading mode has no editor

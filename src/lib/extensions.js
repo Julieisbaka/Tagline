@@ -120,7 +120,10 @@ export class ExtensionHost {
       case 'events.emit': {
         this.require('events');
         const name = requireEventName(args[0]);
-        if (!name.startsWith(`ext.${this.manifest.id}.`)) throw new Error('Extensions can emit only their own namespaced events.');
+        if (!name.startsWith(`ext.${this.manifest.id}.`) ||
+          !/^ext\.[a-z0-9][a-z0-9-]{1,63}\.[a-z][a-zA-Z0-9.-]*$/.test(name)) {
+          throw new Error('Extensions can emit only their own namespaced events.');
+        }
         applicationEvents.emit(name, requirePayload(args[1]));
         return true;
       }
