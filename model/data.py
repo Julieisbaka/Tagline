@@ -91,7 +91,9 @@ def normalize_sources(
         for key in ("tags", "blocks", "pockets", "tag", "block", "pocket", "title"):
             if key in row:
                 metadata[key] = row[key]
-        sources.append(Source(id=identifier, source_id=group, text=text, metadata=metadata))
+        sources.append(
+            Source(id=identifier, source_id=group, text=text, metadata=metadata)
+        )
     if not sources:
         raise ValueError("No input documents")
     return sources
@@ -105,7 +107,9 @@ def read_document(path: Path) -> str:
         root = ElementTree.fromstring(archive.read("word/document.xml"))
     paragraphs = []
     for paragraph in root.findall(".//w:p", namespace):
-        text = "".join(node.text or "" for node in paragraph.findall(".//w:t", namespace))
+        text = "".join(
+            node.text or "" for node in paragraph.findall(".//w:t", namespace)
+        )
         style = paragraph.find("w:pPr/w:pStyle", namespace)
         name = style.get(f"{{{namespace['w']}}}val", "") if style is not None else ""
         heading = re.fullmatch(r"heading([1-6])", name, re.IGNORECASE)
@@ -121,7 +125,9 @@ def load_directory(directory: Path) -> list[Source]:
     for path in sorted(directory.rglob("*")):
         if path.is_file() and path.suffix.lower() in {".md", ".txt", ".docx"}:
             identifier = str(path.relative_to(directory))
-            rows.append({"id": identifier, "source_id": identifier, "text": read_document(path)})
+            rows.append(
+                {"id": identifier, "source_id": identifier, "text": read_document(path)}
+            )
     return normalize_sources(rows)
 
 
@@ -170,7 +176,9 @@ def extract_cards(source: Source) -> list[Card]:
         match = re.match(r"^(#{1,6})\s+(.+?)\s*#*\s*$", line)
         if match:
             if any(part.strip() for part in body):
-                sections.append(([title for _, title in headings], "\n".join(body).strip()))
+                sections.append(
+                    ([title for _, title in headings], "\n".join(body).strip())
+                )
             body = []
             level = len(match.group(1))
             headings = [(depth, title) for depth, title in headings if depth < level]
@@ -186,10 +194,14 @@ def extract_cards(source: Source) -> list[Card]:
             metadata["headings"] = titles
             metadata["tag"] = titles[-1]
             metadata["blocks"] = titles[:-1]
-        cards.append(Card(
-            id=f"{source['id']}::{index}", source_id=source["source_id"],
-            text=text, metadata=metadata,
-        ))
+        cards.append(
+            Card(
+                id=f"{source['id']}::{index}",
+                source_id=source["source_id"],
+                text=text,
+                metadata=metadata,
+            )
+        )
     if not cards:
         raise ValueError(f"{source['id']}: no evidence body found")
     return cards
@@ -208,7 +220,9 @@ def assert_disjoint(train: Iterable[dict], test: Iterable[dict], text_key: str) 
         )
 
 
-def prepare(sources: list[Source], output: Path, test_fraction: float, seed: int) -> None:
+def prepare(
+    sources: list[Source], output: Path, test_fraction: float, seed: int
+) -> None:
     splits = split_sources(sources, test_fraction, seed)
     cards = {
         split: [card for source in records for card in extract_cards(source)]
@@ -220,10 +234,13 @@ def prepare(sources: list[Source], output: Path, test_fraction: float, seed: int
         write_jsonl(output / f"{split}.sources.jsonl", splits[split])
         write_jsonl(output / f"{split}.cards.jsonl", cards[split])
     manifest = {
-        "seed": seed, "test_fraction": test_fraction,
+        "seed": seed,
+        "test_fraction": test_fraction,
         "source_counts": {key: len(value) for key, value in splits.items()},
         "card_counts": {key: len(value) for key, value in cards.items()},
-        "source_ids": {key: sorted({row["source_id"] for row in value})
-                       for key, value in splits.items()},
+        "source_ids": {
+            key: sorted({row["source_id"] for row in value})
+            for key, value in splits.items()
+        },
     }
     (output / "split.json").write_text(json.dumps(manifest, indent=2), encoding="utf-8")

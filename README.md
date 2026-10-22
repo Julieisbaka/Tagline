@@ -29,6 +29,7 @@ Windows, macOS, and Linux packaging targets are configured.
 - [Extension API](./docs/extension-api.md)
 - [Theme API and custom CSS](./docs/theme-api.md)
 - [Feature suggestions](./docs/feature-suggestions.md)
+- [Debate embedding training pipeline](./model/README.md)
 
 Run `npm test` for unit tests; the available Electron integration-test scripts
 are listed in [package.json](./package.json).
