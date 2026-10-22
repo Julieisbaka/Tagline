@@ -366,6 +366,75 @@
   white-space: pre-wrap;
 }
 
+.hypothesis-dialog {
+  width: min(640px, 92vw);
+  max-height: 86vh;
+  overflow-y: auto;
+}
+
+.hypothesis-dialog .hint,
+.hypothesis-model {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.hypothesis-model {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin: 8px 0;
+  overflow-wrap: anywhere;
+}
+
+.hypothesis-input {
+  display: grid;
+  gap: 4px;
+  margin-top: 8px;
+}
+
+.hypothesis-input textarea {
+  width: 100%;
+  resize: vertical;
+  font: inherit;
+}
+
+.hypothesis-results {
+  display: grid;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.hypothesis-result {
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 8px 10px;
+}
+
+.hypothesis-result p {
+  margin: 4px 0;
+}
+
+.hypothesis-score {
+  display: flex;
+  gap: 8px;
+  align-items: baseline;
+}
+
+.hypothesis-result meter {
+  width: 100%;
+}
+
+.hypothesis-result blockquote {
+  margin: 6px 0 0;
+  padding-left: 8px;
+  border-left: 3px solid var(--border);
+  font-size: 12px;
+  color: var(--text-muted);
+  white-space: pre-wrap;
+}
+
 .search-options {
   display: flex;
   gap: 12px;

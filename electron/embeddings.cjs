@@ -149,6 +149,7 @@ function registerEmbeddings({ app, ipcMain, safeStorage, getVaultRoot, readConfi
       state = { ...state, busy: false, ready: false, error: e.message };
       console.error('Model autoload failed:', e);
     }).finally(() => { autoload = null; });
+  return { readToken };
 }
 
 module.exports = { registerEmbeddings };

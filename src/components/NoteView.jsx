@@ -33,6 +33,7 @@ export default function NoteView({
   editorRef,
   visualRef,
   onExport,
+  onTestHypothesis,
   onCreateCitation,
   settings,
   onDismissVisualNotice,
@@ -140,6 +141,8 @@ export default function NoteView({
             <option value="read">{t('Read')}</option>
           </select>
           <button onClick={onExport}>{t('Export')}</button>
+          {onTestHypothesis && <button title={t('Test a hypothesis against this note (Political DEBATE)')}
+            onClick={onTestHypothesis}>{t('Hypothesis')}</button>}
           {mode !== 'read' && <button onClick={onCreateCitation}>
             {t('Create citation')}
           </button>}

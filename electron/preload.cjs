@@ -65,4 +65,10 @@ contextBridge.exposeInMainWorld('api', {
   saveHfToken: (token) => ipcRenderer.invoke('embeddings:token', token),
   downloadEmbeddingModel: () => ipcRenderer.invoke('embeddings:download'),
   semanticSearch: (request) => ipcRenderer.invoke('embeddings:search', request),
+  nliStatus: () => ipcRenderer.invoke('nli:status'),
+  setNliRepo: (repo) => ipcRenderer.invoke('nli:setRepo', repo),
+  chooseNliFolder: () => ipcRenderer.invoke('nli:chooseFolder'),
+  loadNliModel: () => ipcRenderer.invoke('nli:load'),
+  unloadNliModel: () => ipcRenderer.invoke('nli:unload'),
+  analyzeHypotheses: (request) => ipcRenderer.invoke('nli:analyze', request),
 });

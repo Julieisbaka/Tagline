@@ -91,6 +91,53 @@ export default function IntegrationSettings() {
       {embedding?.error && <p className="error-text" role="alert">{embedding.error}</p>}
       {error && <p className="error-text" role="alert">{error}</p>}
       {message && <p role="status">{message}</p>}
+      <PoliticalDebateSettings />
     </section>
   );
+}
+
+function PoliticalDebateSettings() {
+  const { t } = useI18n();
+  const [status, setStatus] = useState(null);
+  const [repo, setRepo] = useState('');
+  const [error, setError] = useState('');
+  const [busy, setBusy] = useState(false);
+  useEffect(() => {
+    let disposed = false;
+    window.api.nliStatus().then((s) => {
+      if (disposed) return;
+      setStatus(s);
+      setRepo(s.source.repo || s.defaultRepo);
+    }).catch((e) => { if (!disposed) setError(e.message); });
+    return () => { disposed = true; };
+  }, []);
+  const run = async (action) => {
+    setBusy(true);
+    setError('');
+    try {
+      await action();
+      setStatus(await window.api.nliStatus());
+    } catch (e) { setError(e.message); }
+    finally { setBusy(false); }
+  };
+  return <>
+    <h4>{t('Hypothesis testing (Political DEBATE)')}</h4>
+    <p>{t('An on-demand 0.4B-parameter NLI model (mlburnham/Political_DEBATE_large_v1.0, MIT). It never runs automatically: use the Hypothesis button on a note. The ONNX download is about 500 MB, and analysis stays on this computer.')}</p>
+    <label className="setting-row">
+      <span>{t('Hugging Face ONNX repository')}</span>
+      <input value={repo} spellCheck={false} aria-label={t('Hugging Face ONNX repository')}
+        placeholder={status?.defaultRepo} onChange={(e) => setRepo(e.target.value)} />
+    </label>
+    <div className="integration-buttons">
+      <button disabled={busy || status?.busy} onClick={() => run(() => window.api.setNliRepo(repo))}>
+        {t('Use repository')}</button>
+      <button disabled={busy || status?.busy} onClick={() => run(() => window.api.chooseNliFolder())}>
+        {t('Use local folder...')}</button>
+      {status?.ready && <button disabled={busy || status.busy} onClick={() => run(() => window.api.unloadNliModel())}>
+        {t('Unload model')}</button>}
+    </div>
+    {status && <p role="status">{t('Current source: {source}', { source: status.source.folder || status.source.repo })}
+      {' — '}{t(status.ready ? 'loaded' : status.downloaded ? 'downloaded, not loaded' : 'not downloaded')}</p>}
+    {error && <p className="error-text" role="alert">{error}</p>}
+  </>;
 }

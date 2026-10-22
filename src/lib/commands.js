@@ -29,6 +29,7 @@ export function buildCommands(ctx, overrides = {}) {
       c('source-mode', 'Editor: source mode (CodeMirror)', ctx.sourceMode),
       c('visual-mode', 'Editor: visual mode (Tiptap)', ctx.visualMode),
       c('export-note', 'Export note', ctx.exportNote),
+      c('test-hypothesis', 'Test a hypothesis against this note (Political DEBATE)', ctx.testHypothesis),
       c('highlight-only', 'Toggle highlighted-only reading', ctx.toggleHighlightOnly, 'Ctrl+Shift+H'),
       c('send-card', 'Send card under cursor to speech doc', ctx.sendCard, 'Ctrl+Shift+S'),
       c('insert-template', 'Insert template at cursor', ctx.insertTemplate),

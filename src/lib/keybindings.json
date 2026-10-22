@@ -56,6 +56,14 @@
     "key": ""
   },
   {
+    "id": "test-hypothesis",
+    "label": "Test a hypothesis against this note (Political DEBATE)",
+    "action": "testHypothesis",
+    "scope": "app",
+    "key": "",
+    "note": true
+  },
+  {
     "id": "toggle-mode",
     "label": "Toggle reading / editing view",
     "action": "toggleMode",

@@ -16,6 +16,7 @@ import SearchModal from './components/SearchModal.jsx';
 import ExportDialog from './components/ExportDialog.jsx';
 import ImportDialog from './components/ImportDialog.jsx';
 import CitationDialog from './components/CitationDialog.jsx';
+import HypothesisDialog from './components/HypothesisDialog.jsx';
 import WebsiteView from './components/WebsiteView.jsx';
 import { useI18n } from './lib/i18n.js';
 import { visualBlocker, visualSelection } from './lib/visualExtensions.js';
@@ -376,6 +377,18 @@ export default function App() {
     visualMode: () => setMode('visual'),
     exportNote: () => activePath && isMarkdown(activePath) ? setModal({ type: 'export' })
       : notify(t('Export is available for Markdown notes and speech documents.')),
+    testHypothesis: () => {
+      if (!activePath || !isMarkdown(activePath)) return notify(t('Open a Markdown note to test a hypothesis.'));
+      const view = editorRef.current;
+      const source = (mode === 'edit' || sourceFallback) && view;
+      const sources = {
+        selection: source ? view.state.sliceDoc(view.state.selection.main.from, view.state.selection.main.to) : '',
+        card: source ? getSectionAt(activeContent || '', cursorRef.current)?.text
+          : mode === 'visual' && visualRef.current ? visualSelection(visualRef.current) : '',
+        note: activeContent || '',
+      };
+      return setModal({ type: 'hypothesis', sources });
+    },
     importDocument: () => setModal({ type: 'import' }),
     toggleHighlightOnly: () => {
       setMode('read');
@@ -505,6 +518,7 @@ export default function App() {
         editorRef={editorRef}
         visualRef={visualRef}
         onExport={ctx.exportNote}
+        onTestHypothesis={ctx.testHypothesis}
         onCreateCitation={ctx.createCitation}
         settings={settings}
         onDismissVisualNotice={() => updateSettings({
@@ -581,6 +595,7 @@ export default function App() {
         <ExportDialog title={baseName(activePath)} content={activeContent || ''} resolve={resolve} onClose={() => setModal(null)} />
       )}
       {modal?.type === 'import' && <ImportDialog onImport={createAndOpen} onClose={() => setModal(null)} />}
+      {modal?.type === 'hypothesis' && <HypothesisDialog sources={modal.sources} onClose={() => setModal(null)} />}
       {modal?.type === 'citation' && <CitationDialog onInsert={activePath && isMarkdown(activePath) && mode !== 'read'
         ? insertCitation : null} onClose={() => setModal(null)} />}
       {toast && <div className="toast">{toast}</div>}
