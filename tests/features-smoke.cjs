@@ -166,6 +166,13 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
           await fs.writeFile(process.env.TAGLINE_FEATURE_SCREENSHOT, (await wc.capturePage()).toPNG());
         }
         await select('[data-setting="language"]', 'en');
+        await click('.theme-actions button', 'Customize current theme');
+        await wait("!!document.querySelector('.theme-editor .cm-editor .cm-content')");
+        assert.equal(await js("document.querySelectorAll('.theme-editor textarea').length"), 0);
+        await click('.theme-editor .settings-actions button', 'Discard theme edits');
+        await js("document.querySelector('[data-section=advanced]').click()");
+        assert.equal(await js("document.querySelectorAll('.customization-limits .settings-actions button').length"), 2);
+        await js("document.querySelector('[data-section=appearance]').click()");
         const injectTheme = async (colors) => {
           await js(`(() => { const data = new DataTransfer(); data.items.add(new File([
             JSON.stringify({ version: 1, name: 'Test custom', mode: 'dark', colors: ${JSON.stringify(colors)} })

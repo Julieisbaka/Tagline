@@ -41,8 +41,10 @@ export default function CustomizationLimits({ settings }) {
         min={definition.min} max={definition.max} value={values[key]}
         onChange={(event) => setValues({ ...values, [key]: event.target.value })} />
     </label>)}
-    <button disabled={!values || busy} onClick={() => save()}>{t('Apply customization limits')}</button>
-    <button disabled={!values || busy} onClick={() => save(true)}>{t('Reset customization limits')}</button>
+    <div className="settings-actions">
+      <button disabled={!values || busy} onClick={() => save()}>{t('Apply customization limits')}</button>
+      <button disabled={!values || busy} onClick={() => save(true)}>{t('Reset customization limits')}</button>
+    </div>
     {error && <p role="alert" className="error-text">{error}</p>}
   </section>;
 }

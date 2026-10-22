@@ -1,4 +1,7 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import CodeMirror from '@uiw/react-codemirror';
+import { json } from '@codemirror/lang-json';
+import { EditorView } from '@codemirror/view';
 import { LANGUAGES, useI18n } from '../lib/i18n.js';
 import { BUILTIN_THEMES, COLOR_TOKENS, extensionThemes, getTheme, validateTheme } from '../lib/themes.js';
 import { getRuntimeLimits } from '../../electron/customization.mjs';
@@ -9,6 +12,16 @@ export default function ThemeSettings({ settings, update }) {
   const [contributed, setContributed] = useState(extensionThemes);
   const [draft, setDraft] = useState(null);
   const [variables, setVariables] = useState('{}');
+  const variablesLabel = t('CSS variables (JSON object)');
+  const variablesExtensions = useMemo(() => [
+    json(),
+    EditorView.lineWrapping,
+    EditorView.contentAttributes.of({
+      'aria-label': variablesLabel,
+      'aria-multiline': 'true',
+      spellcheck: 'false',
+    }),
+  ], [variablesLabel]);
   useEffect(() => {
     const refresh = () => setContributed(extensionThemes());
     window.addEventListener('extensionthemes', refresh);
@@ -70,8 +83,10 @@ export default function ThemeSettings({ settings, update }) {
         <input className="theme-file-input" type="file" accept=".json,application/json"
           aria-label={t('Import JSON theme')} onChange={importTheme} />
       </label>
-      <button onClick={exportTheme}>{t('Export current theme')}</button>
-      <button onClick={customize}>{t('Customize current theme')}</button>
+      <div className="settings-actions theme-actions">
+        <button onClick={exportTheme}>{t('Export current theme')}</button>
+        <button onClick={customize}>{t('Customize current theme')}</button>
+      </div>
       {draft && <fieldset className="theme-editor">
         <legend>{t('Custom theme editor')}</legend>
         <label className="setting-row"><span>{t('Theme name')}</span>
@@ -91,13 +106,17 @@ export default function ThemeSettings({ settings, update }) {
               ...draft, colors: { ...draft.colors, [token]: event.target.value },
             })} />
         </label>)}
-        <label><span>{t('CSS variables (JSON object)')}</span>
-          <textarea aria-label={t('CSS variables (JSON object)')} rows={8}
-            value={variables} onChange={(event) => setVariables(event.target.value)} />
-        </label>
+        <div className="custom-css-editor theme-variables-editor">
+          <span>{variablesLabel}</span>
+          <CodeMirror value={variables} onChange={setVariables} extensions={variablesExtensions}
+            theme="none" minHeight="180px" maxHeight="420px"
+            basicSetup={{ foldGutter: true, highlightActiveLine: true, autocompletion: true, searchKeymap: true }} />
+        </div>
         <p>{t('Edit any color token and safe CSS variables, including fonts, sizes, and spacing. URLs, declarations, and imports are not allowed.')}</p>
-        <button onClick={apply}>{t('Apply custom theme')}</button>
-        <button onClick={() => setDraft(null)}>{t('Discard theme edits')}</button>
+        <div className="settings-actions">
+          <button onClick={apply}>{t('Apply custom theme')}</button>
+          <button onClick={() => setDraft(null)}>{t('Discard theme edits')}</button>
+        </div>
       </fieldset>}
       {error && <p className="error-text" role="alert">{error}</p>}
     </section>

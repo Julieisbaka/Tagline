@@ -328,7 +328,11 @@
 .settings :focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
 .dialog.settings:focus, .dialog.settings:focus-visible { outline: none; }
 .settings .error-text { color: var(--danger); }
-.settings-actions { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0; }
+.settings-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 12px 0; }
+.theme-actions { margin-top: 14px; }
+.theme-editor { min-width: 0; margin: 16px 0; padding: 14px; border: 1px solid var(--border); border-radius: 6px; }
+.theme-editor legend { padding: 0 6px; }
+.theme-variables-editor { min-width: 0; }
 .settings .settings-empty { padding: 14px; border: 1px dashed var(--border); border-radius: 8px; text-align: center; }
 .extension-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
 .extension-card { border: 1px solid var(--border); border-radius: 8px; padding: 12px 14px; background: var(--bg-elevated); }

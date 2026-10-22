@@ -9,8 +9,11 @@ theme contributions.
 ## Create, import, and export
 
 1. In **Settings > Appearance**, select a theme close to your desired result.
-2. Select **Export current theme** to save its complete palette as JSON.
-3. Edit supported color values or add CSS variable overrides.
+2. Select **Customize current theme** to adjust its color tokens and CSS variable
+   overrides in the in-app editor. CSS variables are edited as JSON with
+   CodeMirror.
+3. Select **Export current theme** to save its complete palette as JSON, or edit
+   the exported file.
 4. Select **Import JSON theme**, then choose the edited file.
 
 Import selects the custom theme immediately and persists it on this device.
