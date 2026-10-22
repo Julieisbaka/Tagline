@@ -1,4 +1,8 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import CodeMirror from '@uiw/react-codemirror';
+import { css } from '@codemirror/lang-css';
+import { Prec } from '@codemirror/state';
+import { EditorView, keymap } from '@codemirror/view';
 import { useI18n } from '../lib/i18n.js';
 
 export default function CustomCssSettings({ settings, update }) {
@@ -6,6 +10,15 @@ export default function CustomCssSettings({ settings, update }) {
   const [draft, setDraft] = useState(settings.customCss);
   const [error, setError] = useState('');
   useEffect(() => setDraft(settings.customCss), [settings.customCss]);
+  const apply = useRef(null);
+  apply.current = () => { if (draft !== settings.customCss) update({ customCss: draft }); };
+  const label = t('CSS source');
+  const extensions = useMemo(() => [
+    css(),
+    EditorView.lineWrapping,
+    EditorView.contentAttributes.of({ 'aria-label': label, 'aria-multiline': 'true', spellcheck: 'false' }),
+    Prec.high(keymap.of([{ key: 'Mod-Enter', run: () => { apply.current(); return true; } }])),
+  ], [label]);
   const warning = 'Custom CSS is unrestricted. It can hide controls, break the layout, and load external resources. Only enable CSS you trust.';
   return <section className="custom-css-settings">
     <h4>{t('Custom CSS')}</h4>
@@ -27,10 +40,11 @@ export default function CustomCssSettings({ settings, update }) {
           catch (err) { setError(err.message); }
         }} />
     </label>
-    <label className="custom-css-editor">
-      <span>{t('CSS source')}</span>
-      <textarea aria-label={t('CSS source')} spellCheck={false} value={draft} onChange={(event) => setDraft(event.target.value)} />
-    </label>
+    <div className="custom-css-editor">
+      <span>{label} <small>{t('Ctrl/Cmd+Enter applies')}</small></span>
+      <CodeMirror value={draft} onChange={setDraft} extensions={extensions} theme="none" minHeight="180px" maxHeight="420px"
+        basicSetup={{ foldGutter: true, highlightActiveLine: true, autocompletion: true, searchKeymap: true }} />
+    </div>
     <div className="settings-actions">
       <button disabled={draft === settings.customCss} onClick={() => update({ customCss: draft })}>{t('Apply CSS')}</button>
       <button onClick={() => setDraft(settings.customCss)}>{t('Discard CSS edits')}</button>

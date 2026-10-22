@@ -58,7 +58,7 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
           saved: JSON.parse(localStorage.getItem('tagline-settings')),
           style: document.querySelector('#tagline-custom-css')?.textContent,
           outline: getComputedStyle(document.querySelector('.sidebar')).outline,
-          draft: document.querySelector('[aria-label="CSS source"]')?.value,
+          draft: document.querySelector('.custom-css-editor .cm-content')?.textContent,
           website: document.querySelector('.website-status')?.textContent,
           browserUpdates: window.browserUpdates,
           browserButtons: [...document.querySelectorAll('.website-toolbar button')].map(el => [el.textContent, el.disabled])
@@ -75,6 +75,13 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
         Object.getOwnPropertyDescriptor(${type}.prototype, 'value').set.call(el, ${JSON.stringify(value)});
         el.dispatchEvent(new Event('input', { bubbles: true }));
       })()`);
+      const cssText = "document.querySelector('.custom-css-editor .cm-content').textContent";
+      const setCss = async (value) => {
+        await js(`document.querySelector('[aria-label="CSS source"]').focus()`);
+        wc.selectAll();
+        await delay(50);
+        await wc.insertText(value);
+      };
       const open = async (file) => {
         await js(`document.querySelector('.tree-item[title=${JSON.stringify(file)}]').dispatchEvent(new MouseEvent('click', { bubbles: true, ctrlKey: true }))`);
         await wait(`document.querySelector('.tab.active')?.getAttribute('title') === ${JSON.stringify(file)}`);
@@ -270,8 +277,8 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
         await settings('appearance');
         const css = '@media (min-width: 1px) { .sidebar { outline: 7px solid rgb(1, 2, 3) !important; } }';
-        await input('[aria-label="CSS source"]', css, 'HTMLTextAreaElement');
-        await wait(`document.querySelector('[aria-label="CSS source"]').value === ${JSON.stringify(css)}`);
+        await setCss(css);
+        await wait(`${cssText} === ${JSON.stringify(css)}`);
         await button('.custom-css-settings button', 'Apply CSS');
         await wait(`JSON.parse(localStorage.getItem('tagline-settings')).customCss === ${JSON.stringify(css)}`);
         assert.equal(await js("!!document.querySelector('#tagline-custom-css')"), false);
@@ -283,10 +290,10 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
         // Chromium rounds CSS border/outline widths to device pixels under Windows display scaling.
         await wait("Math.abs(parseFloat(getComputedStyle(document.querySelector('.sidebar')).outlineWidth) - 7) < 1");
         assert.equal(await js("getComputedStyle(document.querySelector('.sidebar')).outlineColor"), 'rgb(1, 2, 3)');
-        await input('[aria-label="CSS source"]', '.sidebar { outline-width: 12px !important; }', 'HTMLTextAreaElement');
+        await setCss('.sidebar { outline-width: 12px !important; }');
         assert.ok(await js("Math.abs(parseFloat(getComputedStyle(document.querySelector('.sidebar')).outlineWidth) - 7) < 1"));
         await button('.custom-css-settings button', 'Discard CSS edits');
-        assert.equal(await js("document.querySelector('[aria-label=\"CSS source\"]').value"), css);
+        assert.equal(await js(cssText), css);
         await done();
         await reload();
         await wait("document.querySelectorAll('.tab').length === 0");
@@ -304,14 +311,14 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
           const el = document.querySelector('[aria-label="Import CSS file"]');
           el.files = data.files; el.dispatchEvent(new Event('change', {bubbles: true}));
         })()`);
-        await wait("document.querySelector('[aria-label=\"CSS source\"]').value.includes('9px')");
+        await wait(`${cssText}.includes('9px')`);
         await button('.custom-css-settings button', 'Apply CSS');
         await wait("Math.abs(parseFloat(getComputedStyle(document.querySelector('.sidebar')).outlineWidth) - 9) < 1");
         assert.equal(await js("getComputedStyle(document.querySelector('.sidebar')).outlineColor"), 'rgb(0, 0, 255)');
         await toggle('customCssEnabled', false);
         assert.equal(await js("!!document.querySelector('#tagline-custom-css')"), false);
         await button('.custom-css-settings button', 'Reset custom CSS');
-        await wait("document.querySelector('[aria-label=\"CSS source\"]').value === ''");
+        await wait(`${cssText} === ''`);
         await done();
 
         // Re-enabling cleanup prunes the active missing tab and activates a remaining tab.

@@ -173,16 +173,37 @@
   margin: 12px 0;
 }
 
-.custom-css-editor textarea {
-  width: 100%;
-  min-height: 180px;
-  resize: vertical;
-  padding: 10px;
+.custom-css-editor small {
+  color: var(--text-muted);
+  font-weight: normal;
+}
+
+.custom-css-editor .cm-editor {
   font-family: var(--font-mono);
   background: var(--bg-secondary);
   color: var(--text);
   border: 1px solid var(--border);
   border-radius: 6px;
+}
+
+.custom-css-editor .cm-editor.cm-focused {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.custom-css-editor .cm-gutters {
+  background: var(--bg-secondary);
+  color: var(--text-muted);
+  border-right: 1px solid var(--border);
+}
+
+.custom-css-editor .cm-activeLine,
+.custom-css-editor .cm-activeLineGutter {
+  background: color-mix(in srgb, var(--accent) 8%, transparent);
+}
+
+.custom-css-editor .cm-content {
+  caret-color: var(--text);
 }
 
 .find-and-replace-result {
