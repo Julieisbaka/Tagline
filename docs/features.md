@@ -220,7 +220,10 @@ guarantee that every embedded HTML element retains its original behavior.
 
 ## Embedded websites
 
-HTTP/HTTPS links open in an embedded website view by default. Turn off
+HTTP/HTTPS links open in an embedded website view inside the note workspace by
+default, leaving the sidebar, note tabs, right panel, and status bar accessible.
+Close the website to return to the note, or select a note to leave the browser.
+The browser is hidden while an application dialog is open. Turn off
 **Settings > Integrations > Open websites inside Tagline** to use the system
 browser instead. The view includes an address bar, back/forward, reload, close, **Archived copy**,
 and **Open in browser** controls.

@@ -113,8 +113,8 @@ initialization and await their registration before the entry script finishes.
 | Permission | Grants |
 | --- | --- |
 | `editor` | Read the active note and its selection; insert text into its editor. Reading the active note includes its entire content. |
-| `vault:read` | List supported note paths and read loaded `.md`/`.flow` contents in the open vault. |
-| `vault:write` | Create or replace supported note contents in the open vault. Does not grant read access by itself. |
+| `vault:read` | List/read loaded `.md`/`.flow` notes and watch their changes in the open vault. |
+| `vault:write` | Create, replace, rename, trash, and flush supported notes. Append and compare-and-swap also require `vault:read`. |
 | None | Register declared commands, notify the user, use private extension storage, contribute JSON themes. |
 
 Undeclared permission checks reject API calls. There is no direct Node.js,
@@ -131,6 +131,7 @@ application data.
 - More than 200 messages per second stops the extension. This includes API calls,
   notifications, and error messages.
 - At most 32 bridge calls may be pending per extension; additional calls reject.
+- At most 32 vault watches may be registered per extension; disposal removes them.
 - Nested `Worker` and `SharedWorker` constructors are disabled.
 - Disabling, reloading, or unloading an extension removes its supervisor and worker.
 
@@ -142,8 +143,9 @@ These are basic responsiveness and abuse guards, not hard CPU or memory quotas.
 A continuously busy but yielding worker can still consume CPU, large allocations
 can exhaust memory, and timers can be delayed when the OS suspends the app.
 Enable only extensions you trust. A permitted write can overwrite evidence.
-Stopping a worker does not roll back bridge operations already in progress;
-there is no transactional write API.
+Stopping a worker does not roll back bridge operations already in progress.
+Compare-and-swap protects a single loaded note against stale app content; there
+are no multi-file transactions or locks against external filesystem writers.
 
 ## JavaScript API reference
 
@@ -200,9 +202,19 @@ Text is limited to 5,000,000 characters.
 const paths = await tagline.vault.list();          // Promise<string[]>
 const content = await tagline.vault.read(path);    // Promise<string>
 const actualPath = await tagline.vault.write(path, content); // Promise<string>
+await tagline.vault.append(path, text);            // Promise<string> (existing note)
+await tagline.vault.delete(path);                  // Promise<true> (move to trash)
+const renamed = await tagline.vault.rename(path, newPath); // Promise<string>
+await tagline.vault.flush();                       // Promise<true> (disk writes completed)
+const changed = await tagline.vault.compareAndSwap(path, expected, replacement); // Promise<boolean>
+const stop = await tagline.vault.watch(event => {
+  // { type: 'create' | 'change' | 'delete', path: string }, or { type: 'reset' }
+});
+await stop();                                     // unsubscribe
 ```
 
-`list` and `read` require `vault:read`; `write` requires `vault:write`.
+`list`, `read`, and `watch` require `vault:read`. All mutations and `flush`
+require `vault:write`; `append` and `compareAndSwap` require both permissions.
 
 - Paths are vault-relative, with `/` separators in the API, and include `.md` or
   `.flow`. Display settings such as hiding `.flow` do not change them.
@@ -216,9 +228,38 @@ const actualPath = await tagline.vault.write(path, content); // Promise<string>
   normalization and collision handling can change the requested path; use the
   returned path.
 - Paths are limited to 1,000 characters; written content to 5,000,000 characters.
-- There is no append, delete, rename, watch, save-flush, or compare-and-swap API.
-  Avoid concurrent read-modify-write operations and request confirmation in the
-  command's workflow before replacing important notes.
+- `append` adds literal text to an existing note, preserving current unsaved edits.
+  It rejects for a missing note and schedules the usual autosave.
+- `compareAndSwap` compares the entire current loaded text (including unsaved
+  edits) with `expected`. It replaces the text and returns `true` only on an exact
+  match; a mismatch returns `false` without changing anything. A missing note
+  rejects. Comparison and replacement happen without yielding. Concurrent
+  extension mutations are serialized across extensions.
+- `flush` waits for queued autosaves and in-flight writes for the current vault.
+  It rejects on save failure. It flushes all pending notes, including user edits,
+  not just this extension's writes. It is not an OS-level `fsync` guarantee.
+  Edits made after a flush starts may require another flush.
+- `rename` accepts an existing supported note, not a folder. It uses the app's
+  normal rename workflow, including folder-space normalization, configured wiki
+  relinking, open-tab updates, and speech-document path updates. Existing
+  destinations reject. The returned path is the actual normalized path.
+- `delete` accepts an existing supported note and moves it to the OS trash,
+  closing its tabs regardless of the missing-tab setting. Rename and delete
+  first flush pending edits and reject if saving fails. There is no built-in
+  confirmation dialog for extension calls: confirm destructive actions in the
+  command's workflow before invoking them.
+- `watch` takes a callback and resolves to an async unsubscribe function.
+  Events describe loaded text changes from the editor, extensions, and vault
+  reloads. Events may be coalesced within a render; renames appear as delete/create
+  events, with change events for relinked notes. Switching vaults emits `reset`;
+  the subscription then observes the newly active vault. Events do not contain
+  content; use `read` for a current snapshot.
+- Watch is not an OS filesystem watcher: external changes are reported only
+  after the app reloads the vault. Unsubscribing or unloading the extension stops
+  delivery; callback failures are shown as extension errors.
+- Append results and replacement text are also limited to 5,000,000 characters.
+  Use compare-and-swap rather than separate read/write calls when preserving
+  concurrent edits matters. Its guarantee covers app state, not external writers.
 
 For example, a command with both vault permissions can create a fresh index:
 

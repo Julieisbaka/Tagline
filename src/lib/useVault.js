@@ -25,11 +25,11 @@ export function useVault(underscoreFolders = true, autoRelink = true) {
   const report = (e) => setError(e?.message || String(e));
 
   const writeDisk = useCallback((path, text) => {
-    const previous = writes.current.get(path) || Promise.resolve();
+    const previous = writes.current.get(path)?.task || Promise.resolve();
     const task = previous.catch(() => {}).then(() => api.write(path, text));
-    writes.current.set(path, task);
+    writes.current.set(path, { task, text });
     const cleanup = () => {
-      if (writes.current.get(path) === task) writes.current.delete(path);
+      if (writes.current.get(path)?.task === task) writes.current.delete(path);
     };
     task.then(cleanup, cleanup);
     return task;
@@ -58,7 +58,8 @@ export function useVault(underscoreFolders = true, autoRelink = true) {
       const [t, all] = await Promise.all([api.list(), api.readAll()]);
       setTree(t);
       // Keep edits that haven't been flushed to disk yet.
-      const next = { ...all, ...pending.current };
+      const saving = Object.fromEntries([...writes.current].map(([path, entry]) => [path, entry.text]));
+      const next = { ...all, ...saving, ...pending.current };
       contentsRef.current = next;
       setContents(next);
       setReady(true);
@@ -84,7 +85,7 @@ export function useVault(underscoreFolders = true, autoRelink = true) {
   }, [open]);
 
   const flush = useCallback(async () => {
-    const inflight = Promise.allSettled([...writes.current.values()]);
+    const inflight = Promise.allSettled([...writes.current.values()].map((entry) => entry.task));
     const entries = Object.entries(pending.current);
     pending.current = {};
     Object.values(timers.current).forEach(clearTimeout);

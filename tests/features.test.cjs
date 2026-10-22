@@ -5,6 +5,41 @@ const path = require('node:path');
 const childProcess = require('node:child_process');
 const { promisify } = require('node:util');
 
+test('extension vault mutation and watch APIs enforce permissions and clean up subscriptions', async () => {
+  const { ExtensionHost } = await import('../src/lib/extensions.js');
+  const manifest = { id: 'test', name: 'Test', permissions: [], contributes: { commands: [] } };
+  let subscriptions = 0;
+  const bridge = {
+    append: async () => 'Card.md', delete: async () => true, rename: async () => 'Renamed.md',
+    flush: async () => true, compareAndSwap: async () => false,
+    watch: () => { subscriptions++; return () => { subscriptions--; }; },
+  };
+  const host = new ExtensionHost(manifest, '', bridge);
+  const calls = [
+    ['vault.append', ['Card.md', 'text']], ['vault.delete', ['Card.md']],
+    ['vault.rename', ['Card.md', 'Renamed.md']], ['vault.flush', []],
+    ['vault.compareAndSwap', ['Card.md', 'old', 'new']], ['vault.watch', []],
+  ];
+  for (const [method, args] of calls) await assert.rejects(host.handle(method, args), /Permission/);
+  manifest.permissions = ['vault:write'];
+  await assert.rejects(host.handle('vault.append', ['Card.md', 'text']), /vault:read/);
+  await assert.rejects(host.handle('vault.compareAndSwap', ['Card.md', 'old', 'new']), /vault:read/);
+  manifest.permissions.push('vault:read');
+  for (const [method, args] of calls.slice(0, -1)) await host.handle(method, args);
+  await assert.rejects(host.handle('vault.compareAndSwap', ['Card.md', null, 'new']), /Expected content/);
+  const id = await host.handle('vault.watch', []);
+  assert.equal(subscriptions, 1);
+  assert.equal(await host.handle('vault.unwatch', [id]), true);
+  assert.equal(await host.handle('vault.unwatch', [id]), false);
+  for (let i = 0; i < 32; i++) await host.handle('vault.watch', []);
+  await assert.rejects(host.handle('vault.watch', []), /32 vault watches/);
+  // Disposal's DOM listener removal is tested in the Electron suite; check its subscription cleanup here.
+  const original = global.window;
+  global.window = { removeEventListener() {} };
+  try { host.dispose(); } finally { global.window = original; }
+  assert.equal(subscriptions, 0);
+});
+
 test('translations have matching keys and preserve every interpolation', () => {
   const es = require('../src/locales/es.json');
   const fr = require('../src/locales/fr.json');

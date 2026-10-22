@@ -13,7 +13,7 @@ if (!process.versions.electron) {
   return;
 }
 
-const { app } = require('electron');
+const { app, shell } = require('electron');
 const fs = require('node:fs/promises');
 const path = require('node:path');
 const assert = require('node:assert/strict');
@@ -77,6 +77,22 @@ tagline.commands.register('vault-apis', async () => {
   await tagline.storage.set('watchStopped', true);
   tagline.notify('Vault APIs passed');
 });
+tagline.commands.register('save-checks', async () => {
+  const file = 'Renamed Operations.md';
+  await tagline.vault.write(file, 'retry');
+  let rejected = false;
+  try { await tagline.vault.flush(); }
+  catch (error) {
+    if (!error.message.includes('Could not save')) throw error;
+    rejected = true;
+  }
+  if (!rejected) throw new Error('Flush hid a disk write failure');
+  await tagline.vault.flush();
+  await tagline.vault.write(file, 'inflight-saved');
+  await new Promise(resolve => setTimeout(resolve, 500));
+  await tagline.vault.flush();
+  await tagline.storage.set('saveChecks', true);
+});
 `;
 
 (async () => {
@@ -89,6 +105,17 @@ tagline.commands.register('vault-apis', async () => {
   await fs.mkdir(path.join(ext('demo'), 'themes'), { recursive: true });
   await fs.mkdir(ext('nosy'), { recursive: true });
   await fs.mkdir(vault, { recursive: true });
+  shell.trashItem = async (file) => fs.rm(file);
+  let failSave = false;
+  let slowSave = false;
+  const originalWrite = fs.writeFile;
+  fs.writeFile = async (file, ...args) => {
+    if (file === path.join(vault, 'Renamed Operations.md')) {
+      if (failSave) { failSave = false; throw new Error('Simulated disk write failure'); }
+      if (slowSave) await delay(700);
+    }
+    return originalWrite(file, ...args);
+  };
   await fs.writeFile(path.join(ext('demo'), 'manifest.json'), JSON.stringify({
     manifestVersion: 1, id: 'demo', name: 'Demo', version: '1.0.0', description: 'Smoke test extension',
     main: 'main.js', permissions: ['editor', 'vault:read', 'vault:write'],
@@ -96,7 +123,8 @@ tagline.commands.register('vault-apis', async () => {
       commands: [{ id: 'stamp', title: 'Stamp note', key: 'Mod+Alt+K' }, { id: 'index', title: 'Build index' },
         { id: 'escape', title: 'Try escaping', key: 'Mod+N' }, { id: 'spin', title: 'Spin forever' },
         { id: 'flood', title: 'Flood messages' }, { id: 'pending', title: 'Pending limit' },
-        { id: 'vault-apis', title: 'Exercise vault APIs' }],
+        { id: 'vault-apis', title: 'Exercise vault APIs' },
+        { id: 'save-checks', title: 'Exercise save failures and in-flight flush' }],
       themes: ['themes/ocean.json'],
     },
   }));
@@ -179,6 +207,11 @@ tagline.commands.register('vault-apis', async () => {
         assert.ok(data.watchEvents.some(event => event.type === 'change' && event.path === 'Operations.md'));
         assert.ok(data.watchEvents.some(event => event.type === 'delete' && event.path === 'Operations.md'));
         assert.ok(data.watchEvents.some(event => event.type === 'create' && event.path === 'Renamed Operations.md'));
+        failSave = slowSave = true;
+        await palette('Demo: Exercise save failures and in-flight flush');
+        await wait("JSON.parse(localStorage.getItem('tagline-extension:demo')).saveChecks === true");
+        assert.equal(await fs.readFile(path.join(vault, 'Renamed Operations.md'), 'utf8'), 'inflight-saved');
+        slowSave = false;
 
         await js(`[...document.querySelectorAll('.tree-item')].find((el) => el.textContent.trim() === 'Card').click()`);
         await wait(`!!document.querySelector('.ProseMirror')`, 'visual editor');

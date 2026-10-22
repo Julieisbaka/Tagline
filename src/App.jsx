@@ -74,7 +74,7 @@ export default function App() {
     if (settings.embedWebsites) setWebsite(url);
     else window.api.websiteAction('external', url).catch((e) => notify(e.message));
   }), [settings.embedWebsites, notify]);
-  useEffect(() => { setWebsite(null); }, [v.vault?.root, tabs.activeId, settings.embedWebsites]);
+  useEffect(() => { setWebsite(null); }, [v.vault?.root, tabs.activeId, activePath, settings.embedWebsites]);
   useEffect(() => {
     const onError = (e) => notify(e.detail);
     window.addEventListener('app-error', onError);
@@ -128,6 +128,7 @@ export default function App() {
 
   const open = useCallback(
     (path, newTab = false, line = null) => {
+      setWebsite(null);
       tabs.openPath(path, newTab);
       if (line != null) {
         setModes((s) => ({ ...s, [path]: 'edit' }));
