@@ -9,15 +9,15 @@ import VisualFindReplace from './VisualFindReplace.jsx';
 
 export default function VisualEditor({
   value, onChange, onOpenLink, onSendCard, onSection, noteNames, visualRef, jump, keybindings,
-  toolbarVisible = true,
+  toolbarVisible = true, onReady,
 }) {
   const live = useRef({});
   live.current = { onChange, onOpenLink, onSendCard, onSection, keybindings };
   return <MemoizedDocument value={value} noteNames={noteNames} visualRef={visualRef} jump={jump}
-    live={live} keybindings={keybindings} toolbarVisible={toolbarVisible} />;
+    live={live} keybindings={keybindings} toolbarVisible={toolbarVisible} onReady={onReady} />;
 }
 
-function VisualDocument({ value, noteNames, visualRef, jump, live, keybindings, toolbarVisible }) {
+function VisualDocument({ value, noteNames, visualRef, jump, live, keybindings, toolbarVisible, onReady }) {
   const { t } = useI18n();
   const lastMarkdown = useRef(value);
   const lastProp = useRef(value);
@@ -91,8 +91,12 @@ function VisualDocument({ value, noteNames, visualRef, jump, live, keybindings, 
 
   useEffect(() => {
     visualRef.current = editor;
-    return () => { if (visualRef.current === editor) visualRef.current = null; };
-  }, [editor, visualRef]);
+    onReady?.(editor);
+    return () => {
+      if (visualRef.current === editor) visualRef.current = null;
+      onReady?.(null);
+    };
+  }, [editor, visualRef, onReady]);
 
   useEffect(() => {
     if (!editor || value === lastProp.current) return;

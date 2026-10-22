@@ -8,6 +8,8 @@ const PERMISSION_LABELS = {
   'vault:write': 'Create and change notes in the open vault',
   settings: "Read and change only this extension's declared settings",
   'editor:active-note': 'Watch active-note paths without reading note content',
+  events: 'Subscribe to application events and exchange custom extension events',
+  ui: 'Display sandboxed panels and webviews',
 };
 
 function ExtensionSettingsForm({ item, extensions }) {
@@ -71,8 +73,10 @@ function ExtensionSettingsForm({ item, extensions }) {
         type={setting.type === 'boolean' ? 'checkbox' : setting.type === 'number' ? 'number' : 'text'}
         {...(setting.type === 'boolean' ? { checked: values[setting.id] } : { value: values[setting.id] })}
         min={setting.min} max={setting.max} maxLength={setting.maxLength ?? 1000} step="any"
-        onChange={(event) => setValues({ ...values,
-          [setting.id]: setting.type === 'boolean' ? event.target.checked : event.target.value })} />}
+        onChange={(event) => setValues({
+          ...values,
+          [setting.id]: setting.type === 'boolean' ? event.target.checked : event.target.value
+        })} />}
     </label>)}
     {error && <p role="alert" className="error-text">{error}</p>}
     <div className="settings-actions">

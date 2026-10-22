@@ -1,151 +1,219 @@
 <!doctype html>
 <!-- The opaque-origin iframe supervises a worker so extension loops cannot block the application thread. -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline' 'unsafe-eval' blob:; worker-src blob:">
+<meta http-equiv="Content-Security-Policy"
+  content="default-src 'none'; script-src 'unsafe-inline' 'unsafe-eval' blob:; worker-src blob:">
 <script>
-(() => {
-  let worker;
-  let watchdog;
-  let started = false;
-  let lastHeartbeat = 0;
-  let windowStart = 0;
-  let messages = 0;
-  let limits;
-  const fail = (message) => {
-    worker?.terminate();
-    worker = null;
-    clearInterval(watchdog);
-    parent.postMessage({ type: 'failed', message }, '*');
-  };
-  const workerMain = () => {
-  for (const name of ['Worker', 'SharedWorker']) {
-    Object.defineProperty(globalThis, name, { value: undefined, writable: false, configurable: false });
-  }
-  const pending = new Map();
-  const handlers = new Map();
-  const watches = new Map();
-  const activeNoteWatches = new Map();
-  let next = 0;
-  let started = false;
-  let limits;
-  const send = (message) => postMessage(message);
-  const describe = (error) => String((error && error.message) || error);
-  addEventListener('unhandledrejection', (event) => {
-    event.preventDefault();
-    send({ type: 'error', message: describe(event.reason) });
-  });
-  setInterval(() => send({ type: 'heartbeat' }), 500);
-  const call = (method, ...args) => new Promise((resolve, reject) => {
-    if (pending.size >= limits.extensionPendingCalls) {
-      reject(new Error(`Extension is limited to ${limits.extensionPendingCalls} pending API calls.`));
-      return;
-    }
-    const id = ++next;
-    pending.set(id, { resolve, reject });
-    send({ type: 'call', id, method, args });
-  });
-  const tagline = Object.freeze({
-    commands: Object.freeze({
-      register(id, handler) {
-        if (typeof handler !== 'function') throw new TypeError('Command handler must be a function.');
-        handlers.set(id, handler);
-        return call('commands.register', id);
-      },
-    }),
-    editor: Object.freeze({
-      getActiveNote: () => call('editor.getActiveNote'),
-      insertText: (text) => call('editor.insertText', text),
-      onActiveNoteChanged: async (listener) => {
-        if (typeof listener !== 'function') throw new TypeError('Active-note listener must be a function.');
-        const id = await call('editor.watchActiveNote');
-        activeNoteWatches.set(id, listener);
-        return async () => {
-          activeNoteWatches.delete(id);
-          return call('editor.unwatchActiveNote', id);
+  (() => {
+    let worker;
+    let watchdog;
+    let started = false;
+    let lastHeartbeat = 0;
+    let windowStart = 0;
+    let messages = 0;
+    let limits;
+    const fail = (message) => {
+      worker?.terminate();
+      worker = null;
+      clearInterval(watchdog);
+      parent.postMessage({ type: 'failed', message }, '*');
+    };
+    const workerMain = () => {
+      for (const name of ['Worker', 'SharedWorker']) {
+        Object.defineProperty(globalThis, name, { value: undefined, writable: false, configurable: false });
+      }
+      const pending = new Map();
+      const handlers = new Map();
+      const watches = new Map();
+      const activeNoteWatches = new Map();
+      const eventWatches = new Map();
+      const surfaceListeners = new Map();
+      let next = 0;
+      let started = false;
+      let limits;
+      const send = (message) => postMessage(message);
+      const describe = (error) => String((error && error.message) || error);
+      addEventListener('unhandledrejection', (event) => {
+        event.preventDefault();
+        send({ type: 'error', message: describe(event.reason) });
+      });
+      setInterval(() => send({ type: 'heartbeat' }), 500);
+      const call = (method, ...args) => new Promise((resolve, reject) => {
+        if (pending.size >= limits.extensionPendingCalls) {
+          reject(new Error(`Extension is limited to ${limits.extensionPendingCalls} pending API calls.`));
+          return;
+        }
+        const id = ++next;
+        pending.set(id, { resolve, reject });
+        send({ type: 'call', id, method, args });
+      });
+      const surfaceApi = (kind) => Object.freeze({
+        setHtml: (id, html) => call('ui.setHtml', kind, id, html),
+        show: (id) => call('ui.show', kind, id),
+        close: (id) => call('ui.close', kind, id),
+        postMessage: (id, payload) => call('ui.postMessage', kind, id, payload),
+        onMessage(id, listener) {
+          if (typeof listener !== 'function') throw new TypeError('Message listener must be a function.');
+          const key = `${kind}:${id}`;
+          if (!surfaceListeners.has(key)) surfaceListeners.set(key, new Set());
+          const group = surfaceListeners.get(key);
+          if (group.size >= limits.extensionWatches) throw new Error('Too many message listeners.');
+          group.add(listener);
+          return () => { group.delete(listener); if (!group.size) surfaceListeners.delete(key); };
+        },
+      });
+      const paths = Object.freeze(Object.fromEntries(['join', 'normalize', 'basename', 'dirname', 'extname']
+        .map(operation => [operation, (...args) => call('helpers.path', operation, ...args)])));
+      const tagline = Object.freeze({
+        commands: Object.freeze({
+          register(id, handler) {
+            if (typeof handler !== 'function') throw new TypeError('Command handler must be a function.');
+            handlers.set(id, handler);
+            return call('commands.register', id);
+          },
+        }),
+        editor: Object.freeze({
+          getActiveNote: () => call('editor.getActiveNote'),
+          insertText: (text) => call('editor.insertText', text),
+          setSelection: (selection) => call('editor.setSelection', selection),
+          tiptap: Object.freeze({
+            getSnapshot: () => call('editor.getTiptapSnapshot'),
+            runCommand: (command, options) => call('editor.runTiptapCommand', command, options),
+          }),
+          onActiveNoteChanged: async (listener) => {
+            if (typeof listener !== 'function') throw new TypeError('Active-note listener must be a function.');
+            const id = await call('editor.watchActiveNote');
+            activeNoteWatches.set(id, listener);
+            return async () => {
+              activeNoteWatches.delete(id);
+              return call('editor.unwatchActiveNote', id);
+            };
+          },
+        }),
+        settings: Object.freeze({
+          get: (key) => call('settings.get', key),
+          set: (key, value) => call('settings.set', key, value),
+        }),
+        events: Object.freeze({
+          on: async (name, listener) => {
+            if (typeof listener !== 'function') throw new TypeError('Event listener must be a function.');
+            const id = await call('events.subscribe', name);
+            eventWatches.set(id, listener);
+            return async () => {
+              eventWatches.delete(id);
+              return call('events.unsubscribe', id);
+            };
+          },
+          emit: (name, payload) => call('events.emit', name, payload),
+        }),
+        panels: surfaceApi('panels'),
+        webviews: surfaceApi('webviews'),
+        helpers: Object.freeze({
+          path: paths,
+          markdownToText: (markdown) => call('helpers.markdownToText', markdown),
+          createDisposables() {
+            const disposables = new Set();
+            return Object.freeze({
+              add(dispose) {
+                if (typeof dispose !== 'function') throw new TypeError('Disposer must be a function.');
+                disposables.add(dispose);
+                return dispose;
+              },
+              async dispose() {
+                const tasks = [...disposables];
+                disposables.clear();
+                const results = await Promise.allSettled(tasks.map(dispose => Promise.resolve().then(dispose)));
+                const failure = results.find(result => result.status === 'rejected');
+                if (failure) throw failure.reason;
+              },
+            });
+          },
+        }),
+        vault: Object.freeze({
+          list: () => call('vault.list'),
+          read: (path) => call('vault.read', path),
+          write: (path, content) => call('vault.write', path, content),
+          append: (path, content) => call('vault.append', path, content),
+          delete: (path) => call('vault.delete', path),
+          rename: (from, to) => call('vault.rename', from, to),
+          flush: () => call('vault.flush'),
+          compareAndSwap: (path, expected, content) => call('vault.compareAndSwap', path, expected, content),
+          watch: async (listener) => {
+            if (typeof listener !== 'function') throw new TypeError('Watch listener must be a function.');
+            const id = await call('vault.watch');
+            watches.set(id, listener);
+            return async () => {
+              watches.delete(id);
+              return call('vault.unwatch', id);
+            };
+          },
+        }),
+        storage: Object.freeze({
+          get: (key) => call('storage.get', key),
+          set: (key, value) => call('storage.set', key, value),
+        }),
+        notify: (message) => call('notify', message),
+      });
+      addEventListener('message', async (event) => {
+        if (!event.data) return;
+        const data = event.data;
+        if (data.type === 'start' && !started) {
+          started = true;
+          limits = Object.freeze(data.limits);
+          try {
+            const AsyncFunction = Object.getPrototypeOf(async function () { }).constructor;
+            await new AsyncFunction('tagline', '"use strict";\n' + data.source)(tagline);
+            send({ type: 'ready' });
+          } catch (error) { send({ type: 'failed', message: describe(error) }); }
+        } else if (data.type === 'result' && pending.has(data.id)) {
+          const { resolve, reject } = pending.get(data.id);
+          pending.delete(data.id);
+          if (data.error) reject(new Error(data.error)); else resolve(data.value);
+        } else if (data.type === 'vault-event') {
+          try { await watches.get(data.id)?.(data.event); }
+          catch (error) { send({ type: 'error', message: describe(error) }); }
+        } else if (data.type === 'active-note-event') {
+          try { await activeNoteWatches.get(data.id)?.(data.event); }
+          catch (error) { send({ type: 'error', message: describe(error) }); }
+        } else if (data.type === 'application-event') {
+          try { await eventWatches.get(data.id)?.(data.event); }
+          catch (error) { send({ type: 'error', message: describe(error) }); }
+        } else if (data.type === 'surface-event') {
+          for (const listener of [...(surfaceListeners.get(data.id) || [])]) {
+            try { await listener(data.event); }
+            catch (error) { send({ type: 'error', message: describe(error) }); }
+          }
+        } else if (data.type === 'command') {
+          try { await handlers.get(data.command)?.(); }
+          catch (error) { send({ type: 'error', message: describe(error) }); }
+        }
+      });
+    };
+    addEventListener('message', (event) => {
+      if (event.source !== parent || !event.data) return;
+      const data = event.data;
+      if (data.type === 'start' && !started) {
+        started = true;
+        limits = Object.freeze(data.limits);
+        const url = URL.createObjectURL(new Blob([`(${workerMain.toString()})();`], { type: 'text/javascript' }));
+        try { worker = new Worker(url); }
+        catch (error) { fail(String(error.message)); return; }
+        finally { URL.revokeObjectURL(url); }
+        lastHeartbeat = windowStart = performance.now();
+        worker.onmessage = ({ data: message }) => {
+          const now = performance.now();
+          if (message.type === 'heartbeat') { lastHeartbeat = now; return; }
+          if (now - windowStart >= 1000) { windowStart = now; messages = 0; }
+          if (++messages > limits.extensionMessagesPerSecond) { fail(`Extension exceeded ${limits.extensionMessagesPerSecond} messages per second and was stopped.`); return; }
+          parent.postMessage(message, '*');
         };
-      },
-    }),
-    settings: Object.freeze({
-      get: (key) => call('settings.get', key),
-      set: (key, value) => call('settings.set', key, value),
-    }),
-    vault: Object.freeze({
-      list: () => call('vault.list'),
-      read: (path) => call('vault.read', path),
-      write: (path, content) => call('vault.write', path, content),
-      append: (path, content) => call('vault.append', path, content),
-      delete: (path) => call('vault.delete', path),
-      rename: (from, to) => call('vault.rename', from, to),
-      flush: () => call('vault.flush'),
-      compareAndSwap: (path, expected, content) => call('vault.compareAndSwap', path, expected, content),
-      watch: async (listener) => {
-        if (typeof listener !== 'function') throw new TypeError('Watch listener must be a function.');
-        const id = await call('vault.watch');
-        watches.set(id, listener);
-        return async () => {
-          watches.delete(id);
-          return call('vault.unwatch', id);
-        };
-      },
-    }),
-    storage: Object.freeze({
-      get: (key) => call('storage.get', key),
-      set: (key, value) => call('storage.set', key, value),
-    }),
-    notify: (message) => call('notify', message),
-  });
-  addEventListener('message', async (event) => {
-    if (!event.data) return;
-    const data = event.data;
-    if (data.type === 'start' && !started) {
-      started = true;
-      limits = Object.freeze(data.limits);
-      try {
-        const AsyncFunction = Object.getPrototypeOf(async function () {}).constructor;
-        await new AsyncFunction('tagline', '"use strict";\n' + data.source)(tagline);
-        send({ type: 'ready' });
-      } catch (error) { send({ type: 'failed', message: describe(error) }); }
-    } else if (data.type === 'result' && pending.has(data.id)) {
-      const { resolve, reject } = pending.get(data.id);
-      pending.delete(data.id);
-      if (data.error) reject(new Error(data.error)); else resolve(data.value);
-    } else if (data.type === 'vault-event') {
-      try { await watches.get(data.id)?.(data.event); }
-      catch (error) { send({ type: 'error', message: describe(error) }); }
-    } else if (data.type === 'active-note-event') {
-      try { await activeNoteWatches.get(data.id)?.(data.event); }
-      catch (error) { send({ type: 'error', message: describe(error) }); }
-    } else if (data.type === 'command') {
-      try { await handlers.get(data.command)?.(); }
-      catch (error) { send({ type: 'error', message: describe(error) }); }
-    }
-  });
-  };
-  addEventListener('message', (event) => {
-    if (event.source !== parent || !event.data) return;
-    const data = event.data;
-    if (data.type === 'start' && !started) {
-      started = true;
-      limits = Object.freeze(data.limits);
-      const url = URL.createObjectURL(new Blob([`(${workerMain.toString()})();`], { type: 'text/javascript' }));
-      try { worker = new Worker(url); }
-      catch (error) { fail(String(error.message)); return; }
-      finally { URL.revokeObjectURL(url); }
-      lastHeartbeat = windowStart = performance.now();
-      worker.onmessage = ({ data: message }) => {
-        const now = performance.now();
-        if (message.type === 'heartbeat') { lastHeartbeat = now; return; }
-        if (now - windowStart >= 1000) { windowStart = now; messages = 0; }
-        if (++messages > limits.extensionMessagesPerSecond) { fail(`Extension exceeded ${limits.extensionMessagesPerSecond} messages per second and was stopped.`); return; }
-        parent.postMessage(message, '*');
-      };
-      worker.onerror = (event) => { event.preventDefault(); fail(event.message || 'Extension worker failed.'); };
-      watchdog = setInterval(() => {
-        if (performance.now() - lastHeartbeat > limits.extensionHeartbeatMs) fail(`Extension stopped responding for ${limits.extensionHeartbeatMs / 1000} seconds and was stopped.`);
-      }, 500);
-      worker.postMessage(data);
-    } else if (worker && ['result', 'command', 'vault-event', 'active-note-event'].includes(data.type)) {
-      worker.postMessage(data);
-    }
-  });
-})();
+        worker.onerror = (event) => { event.preventDefault(); fail(event.message || 'Extension worker failed.'); };
+        watchdog = setInterval(() => {
+          if (performance.now() - lastHeartbeat > limits.extensionHeartbeatMs) fail(`Extension stopped responding for ${limits.extensionHeartbeatMs / 1000} seconds and was stopped.`);
+        }, 500);
+        worker.postMessage(data);
+      } else if (worker && ['result', 'command', 'vault-event', 'active-note-event', 'application-event', 'surface-event'].includes(data.type)) {
+        worker.postMessage(data);
+      }
+    });
+  })();
 </script>

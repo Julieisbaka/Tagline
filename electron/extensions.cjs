@@ -6,7 +6,7 @@ const { DEFAULT_LIMITS, validateLimits } = require('./customization.mjs');
 
 // Extensions live in <userData>/extensions/<folder>/manifest.json. The main process only reads and
 // validates files; extension code runs in a supervised sandbox worker (see src/lib/extensions.js).
-const PERMISSIONS = ['editor', 'vault:read', 'vault:write', 'settings', 'editor:active-note'];
+const PERMISSIONS = ['editor', 'vault:read', 'vault:write', 'settings', 'editor:active-note', 'events', 'ui'];
 const ID = /^[a-z0-9][a-z0-9-]{1,63}$/;
 
 function relativeFile(root, value, ext) {
@@ -47,6 +47,21 @@ function validateManifest(value, root, limits = DEFAULT_LIMITS) {
   const commands = contributes.commands ?? [];
   const themes = contributes.themes ?? [];
   const settings = validateSettingDefinitions(contributes.settings, limits);
+  const surfaces = {};
+  for (const kind of ['panels', 'webviews']) {
+    const declarations = contributes[kind] ?? [];
+    if (!Array.isArray(declarations) || declarations.length > 10) fail(`contributes.${kind} must be a list of at most 10.`);
+    const ids = new Set();
+    surfaces[kind] = declarations.map((item) => {
+      if (!item || typeof item.id !== 'string' || !ID.test(item.id) || ids.has(item.id) ||
+        typeof item.title !== 'string' || !item.title.trim() || item.title.length > 80) {
+        fail(`each ${kind} contribution needs a unique id and a title of up to 80 characters.`);
+      }
+      ids.add(item.id);
+      return { id: item.id, title: item.title.trim() };
+    });
+    if (declarations.length && (!permissions.includes('ui') || !value.main)) fail(`${kind} require ui permission and a main script.`);
+  }
   if (settings.length && !permissions.includes('settings')) fail('contributes.settings requires the settings permission.');
   if (!Array.isArray(commands) || commands.length > limits.extensionCommands) fail(`contributes.commands must be a list of at most ${limits.extensionCommands}.`);
   if (!Array.isArray(themes) || themes.length > limits.extensionThemes) fail(`contributes.themes must be a list of at most ${limits.extensionThemes}.`);
@@ -66,19 +81,23 @@ function validateManifest(value, root, limits = DEFAULT_LIMITS) {
     manifestVersion: 1, id: value.id, name: value.name.trim(), version: value.version.trim(),
     description: value.description || '', author: value.author || '', main: value.main || null,
     permissions: [...new Set(permissions)],
-    contributes: { commands: commands.map(({ id, title, key }) => ({ id, title: title.trim(), key: key || '' })), themes, settings },
+    contributes: { commands: commands.map(({ id, title, key }) => ({ id, title: title.trim(), key: key || '' })), themes, settings, ...surfaces },
   };
 }
 
 function reviewSignature(manifest) {
-  return JSON.stringify({ permissions: [...manifest.permissions].sort(), settings: manifest.contributes.settings });
+  return JSON.stringify({
+    permissions: [...manifest.permissions].sort(), settings: manifest.contributes.settings,
+    ...(manifest.contributes.panels.length || manifest.contributes.webviews.length
+      ? { panels: manifest.contributes.panels, webviews: manifest.contributes.webviews } : {})
+  });
 }
 
 function needsReview(manifest, config) {
   const approved = config.extensionReviews?.[manifest.id];
   if (approved !== undefined) return approved !== reviewSignature(manifest);
   // Preserve old enabled extensions, but never silently grant either new capability.
-  return manifest.permissions.some((permission) => ['settings', 'editor:active-note'].includes(permission));
+  return manifest.permissions.some((permission) => ['settings', 'editor:active-note', 'events', 'ui'].includes(permission));
 }
 
 function registerExtensions({ app, ipcMain, shell, readConfig, writeConfig, dialog, getWindow }) {
@@ -163,7 +182,7 @@ function registerExtensions({ app, ipcMain, shell, readConfig, writeConfig, dial
     const item = (await scan()).find((extension) => extension.id === id && !extension.error);
     if (enabled && !item) throw new Error('Extension not found.');
     if (enabled && ((reviewToken !== undefined && reviewToken !== item.reviewToken) ||
-      (item.permissions.some((permission) => ['settings', 'editor:active-note'].includes(permission)) &&
+      (item.permissions.some((permission) => ['settings', 'editor:active-note', 'events', 'ui'].includes(permission)) &&
         reviewToken !== item.reviewToken))) {
       throw new Error('Extension permissions or settings changed. Reload and review before enabling.');
     }

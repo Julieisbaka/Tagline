@@ -23,7 +23,7 @@ const NOTE_EXTS = ['.md', '.flow'];
 let win;
 let vaultRoot = null;
 let keybindings = {};
-let closeWebsiteView = () => {};
+let closeWebsiteView = () => { };
 
 function accelerator(id) {
   const value = keybindings[id] ?? keyDefinitions.find((item) => item.id === id)?.key;
@@ -106,7 +106,7 @@ async function openVault(dir) {
 async function listRecentVaults() {
   const config = readConfig();
   const candidates = [...(Array.isArray(config.recentVaults) ? config.recentVaults : []),
-    ...(typeof config.lastVault === 'string' ? [config.lastVault] : [])];
+  ...(typeof config.lastVault === 'string' ? [config.lastVault] : [])];
   const key = (value) => process.platform === 'win32' ? value.toLowerCase() : value;
   const unique = [...new Map(candidates.filter((item) => typeof item === 'string' && path.isAbsolute(item))
     .map((item) => [key(path.resolve(item)), path.resolve(item)])).values()].slice(0, 20);
@@ -325,6 +325,14 @@ function createWindow() {
     if (/^https?:/i.test(url)) openWebsite(url);
     return { action: 'deny' };
   });
+  win.webContents.on('will-frame-navigate', (event) => {
+    if (event.isMainFrame) return;
+    const destination = new URL(event.url);
+    if (destination.protocol === 'about:' && ['srcdoc', 'blank'].includes(destination.pathname)) return;
+    const supervisor = new URL(isDev ? 'http://localhost:5173/extension-sandbox.html'
+      : require('node:url').pathToFileURL(path.join(__dirname, '..', 'dist', 'extension-sandbox.html')).href);
+    if (destination.href !== supervisor.href) event.preventDefault();
+  });
   win.webContents.on('will-navigate', (e, url) => {
     const destination = new URL(url);
     const current = new URL(win.webContents.getURL());
@@ -396,8 +404,10 @@ function buildMenu() {
   Menu.setApplicationMenu(Menu.buildFromTemplate(template));
 }
 
-const primary = registerFlowFiles({ app, ipcMain, getWindow: () => win, createWindow,
-  getVaultRoot: () => vaultRoot, openVault });
+const primary = registerFlowFiles({
+  app, ipcMain, getWindow: () => win, createWindow,
+  getVaultRoot: () => vaultRoot, openVault
+});
 
 if (primary) app.whenReady().then(() => {
   if (process.platform === 'darwin') app.dock.setIcon(path.join(__dirname, '..', 'build', 'icon.png'));

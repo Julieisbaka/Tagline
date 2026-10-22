@@ -16,6 +16,7 @@ import WebsiteView from '../dialogs/WebsiteView.jsx';
 import Splitter from './Splitter.jsx';
 import Welcome from '../dialogs/Welcome.jsx';
 import VaultManagerDialog from '../dialogs/VaultManagerDialog.jsx';
+import ExtensionSurface from '../ExtensionSurface.jsx';
 import Ribbon from './Ribbon.jsx';
 import { Palette, PromptDialog, SettingsDialog } from '../dialogs/Dialogs.jsx';
 
@@ -25,12 +26,20 @@ export default function AppLayout({ app }) {
     mode, sourceFallback, stats, setStats, showLeft, showRight, sidebarWidth, rightWidth, lastFile,
     website, setWebsite, modal, setModal, jump, setJump, highlightOnly, setHighlightOnly, toast, ext, ctx, actions,
     open, openLink, sendCard, setMode, editorRef, visualRef, cursorRef, createAndOpen, doRename,
-    notify, insertCitation,
+    notify, insertCitation, setVisualEditor,
   } = app;
   const settingsDialog = <SettingsDialog settings={settings} update={updateSettings} extensions={ext}
     onClose={() => setModal(null)} />;
   const websiteView = website && !modal &&
     <WebsiteView key={website} url={website} onClose={() => setWebsite(null)} />;
+  const extensionWebviews = ext.surfaces.filter((surface) => surface.kind === 'webviews' && surface.visible)
+    .map((surface) => <div className="modal-backdrop" key={`${surface.host.manifest.id}:${surface.id}`}>
+      <div className="modal dialog extension-webview-dialog" role="dialog" aria-modal="true" aria-label={surface.title}
+        onKeyDown={(event) => { if (event.key === 'Escape') ext.closeSurface(surface); }}>
+        <header><h3>{surface.title}</h3><button onClick={() => ext.closeSurface(surface)}>{t('Close')}</button></header>
+        <ExtensionSurface surface={surface} onClose={ext.closeSurface} />
+      </div>
+    </div>);
 
   if (!v.vault) return <>
     {window.api.platform === 'darwin' && <div className="mac-titlebar">Tagline</div>}
@@ -40,6 +49,7 @@ export default function AppLayout({ app }) {
       onClose={() => setModal(null)} />}
     {modal?.type === 'citation' && <CitationDialog onClose={() => setModal(null)} />}
     {websiteView && <div className="welcome-website">{websiteView}</div>}
+    {extensionWebviews}
     {toast && <div className="toast">{toast}</div>}
   </>;
 
@@ -87,6 +97,7 @@ export default function AppLayout({ app }) {
         onRename={(path, title) => doRename(path, renameTarget({ type: 'file', path }, title))}
         editorRef={editorRef}
         visualRef={visualRef}
+        onVisualEditorReady={setVisualEditor}
         onExport={ctx.exportNote}
         onTestHypothesis={ctx.testHypothesis}
         onSummarize={() => ctx.summarize(activePath, activeContent)}
@@ -130,6 +141,7 @@ export default function AppLayout({ app }) {
         <Splitter panel="rightPanelWidth" side="right" width={rightWidth} otherWidth={showLeft ? sidebarWidth : 0}
           label="Resize side panel" onChange={(value) => updateSettings({ rightPanelWidth: value })} />
         <RightPanel
+          extensions={ext}
           activePath={activePath}
           content={activeContent}
           index={v.index}
@@ -184,6 +196,7 @@ export default function AppLayout({ app }) {
       {modal?.type === 'citation' && <CitationDialog onInsert={activePath && isMarkdown(activePath) && mode !== 'read'
         ? insertCitation : null} onClose={() => setModal(null)} />}
       {toast && <div className="toast">{toast}</div>}
+      {extensionWebviews}
     </div>
   );
 }

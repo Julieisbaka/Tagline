@@ -3,6 +3,7 @@ import { baseName, displayName, outline } from '../../lib/vault.js';
 import Timer from '../Timer.jsx';
 import Icon from '../Icon.jsx';
 import { useI18n } from '../../lib/i18n.js';
+import ExtensionSurface from '../ExtensionSurface.jsx';
 
 const TABS = [
   ['backlinks', 'link', 'Backlinks'],
@@ -117,6 +118,13 @@ export default function RightPanel(props) {
         ))}
       </div>
       <div className="panel-body">
+        {(props.extensions?.surfaces || []).filter((surface) => surface.kind === 'panels' && surface.visible)
+          .map((surface) => <section className="extension-panel" key={`${surface.host.manifest.id}:${surface.id}`}>
+            <header><strong>{surface.title}</strong>
+              <button aria-label={t('Close')} onClick={() => props.extensions.closeSurface(surface)}>&times;</button>
+            </header>
+            <ExtensionSurface surface={surface} onClose={props.extensions.closeSurface} />
+          </section>)}
         {tab === 'backlinks' && <Backlinks {...props} />}
         {tab === 'outline' && <Outline content={props.content} onJump={props.onJump} />}
         {tab === 'tags' && <Tags index={props.index} onTagClick={props.onTagClick} />}

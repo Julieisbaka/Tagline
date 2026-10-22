@@ -42,6 +42,7 @@ export default function App() {
   const sidebarWidth = clampPanel('sidebarWidth', settings.sidebarWidth, showRight ? rightWidth : 0);
   const editorRef = useRef(null);
   const visualRef = useRef(null);
+  const [visualEditor, setVisualEditor] = useState(null);
   const cursorRef = useRef(0);
 
   const paths = useMemo(() => flattenTree(v.tree), [v.tree]);
@@ -181,7 +182,7 @@ export default function App() {
 
   const ext = useAppExtensions({
     v, paths, activePath, activeContent, mode, sourceFallback, editorRef, visualRef,
-    insertAtCursor, doRename, tabs, notify,
+    insertAtCursor, doRename, tabs, notify, visualEditor,
   });
 
   const createAndOpen = async (path, content) => {
@@ -385,6 +386,6 @@ export default function App() {
     sourceFallback, stats, setStats, showLeft, showRight, sidebarWidth, rightWidth, lastFile, website,
     setWebsite, modal, setModal, jump, setJump, highlightOnly, setHighlightOnly, toast, ext, ctx, actions,
     open, openLink, sendCard, setMode, editorRef, visualRef, cursorRef, createAndOpen, doRename, notify,
-    insertCitation,
+    insertCitation, setVisualEditor,
   }} />;
 }

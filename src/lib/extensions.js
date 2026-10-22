@@ -3,6 +3,10 @@ import { registerExtensionThemes, validateTheme } from './themes.js';
 import { KEYBINDINGS, reservedBinding, validBinding } from './keybindings.js';
 import { getExtensionSetting, setExtensionSettings, resetExtensionSettings } from './extensionSettings.js';
 import { getRuntimeLimits, validateLimits } from '../../electron/customization.mjs';
+import {
+  APPLICATION_EVENTS, EDITOR_COMMANDS, applicationEvents, requireEventName,
+  requirePayload, requireSelection, pathHelper, markdownToText
+} from './extensionCapabilities.js';
 
 // A worker runs extension code inside an opaque-origin supervisor iframe:
 // it cannot reach window.api, the DOM, app storage or the network (CSP connect-src 'none').
@@ -28,6 +32,9 @@ export class ExtensionHost {
     this.registered = new Set();
     this.watches = new Map();
     this.activeNoteWatches = new Map();
+    this.eventWatches = new Map();
+    this.surfaces = new Map();
+    this.surfaceTransports = new Map();
     this.nextWatch = 0;
     this.pendingCalls = 0;
     this.messageWindow = 0;
@@ -77,6 +84,68 @@ export class ExtensionHost {
         return true;
       case 'editor.getActiveNote': this.require('editor'); return b.getActiveNote();
       case 'editor.insertText': this.require('editor'); await b.insertText(requireText(args[0], 'Text')); return true;
+      case 'editor.setSelection':
+        this.require('editor');
+        return b.setSelection(requireSelection(args[0]));
+      case 'editor.getTiptapSnapshot':
+        this.require('editor');
+        return b.getTiptapSnapshot();
+      case 'editor.runTiptapCommand': {
+        this.require('editor');
+        const [command, options] = args;
+        if (!EDITOR_COMMANDS.includes(command)) throw new Error('Unsupported Tiptap command.');
+        if (command === 'toggleHeading') {
+          if (!options || !Number.isInteger(options.level) || options.level < 1 || options.level > 6) {
+            throw new Error('Heading level must be an integer from 1 to 6.');
+          }
+        } else if (options !== undefined) throw new Error('This command does not accept options.');
+        return b.runTiptapCommand(command, command === 'toggleHeading' ? { level: options.level } : undefined);
+      }
+      case 'events.subscribe': {
+        this.require('events');
+        const name = requireEventName(args[0]);
+        if (APPLICATION_EVENTS[name]) this.require(APPLICATION_EVENTS[name]);
+        else if (!/^ext\.[a-z0-9][a-z0-9-]{1,63}\.[a-z][a-zA-Z0-9.-]*$/.test(name)) {
+          throw new Error('Unknown application event. Custom events must use ext.extension-id.name.');
+        }
+        if (this.eventWatches.size >= this.limits.extensionWatches) throw new Error('Too many event listeners.');
+        const id = ++this.nextWatch;
+        this.eventWatches.set(id, applicationEvents.on(name, (payload) => this.sendEvent('application-event', id, payload)));
+        return id;
+      }
+      case 'events.unsubscribe': {
+        this.eventWatches.get(args[0])?.();
+        return this.eventWatches.delete(args[0]);
+      }
+      case 'events.emit': {
+        this.require('events');
+        const name = requireEventName(args[0]);
+        if (!name.startsWith(`ext.${this.manifest.id}.`)) throw new Error('Extensions can emit only their own namespaced events.');
+        applicationEvents.emit(name, requirePayload(args[1]));
+        return true;
+      }
+      case 'helpers.path': return pathHelper(args[0], args.slice(1));
+      case 'helpers.markdownToText': return markdownToText(requireText(args[0], 'Markdown', 100000));
+      case 'ui.setHtml':
+      case 'ui.show':
+      case 'ui.close':
+      case 'ui.postMessage': {
+        this.require('ui');
+        const [kind, id, value] = args;
+        if (!['panels', 'webviews'].includes(kind) ||
+          !this.manifest.contributes[kind]?.some((item) => item.id === id)) throw new Error('Undeclared UI contribution.');
+        const key = `${kind}:${id}`;
+        if (method === 'ui.setHtml') {
+          const html = requireText(value, 'HTML', 200000);
+          this.surfaces.set(key, html);
+          b.updateSurface(this, kind, id, html, false);
+        } else if (method === 'ui.show') {
+          if (!this.surfaces.has(key)) throw new Error('Set contribution HTML before showing it.');
+          b.updateSurface(this, kind, id, this.surfaces.get(key), true);
+        } else if (method === 'ui.close') b.closeSurface(this, kind, id);
+        else b.postSurfaceMessage(this, kind, id, requirePayload(value));
+        return true;
+      }
       case 'settings.get':
         this.require('settings');
         return getExtensionSetting(this.manifest, requireText(args[0], 'Setting id', 64));
@@ -149,6 +218,10 @@ export class ExtensionHost {
     try { return JSON.parse(localStorage.getItem(`tagline-extension:${this.manifest.id}`) || '{}'); } catch { return {}; }
   }
 
+  sendEvent(type, id, event) {
+    this.frame?.contentWindow?.postMessage({ type, id, event }, '*');
+  }
+
   async onMessage(event) {
     if (!this.frame || event.source !== this.frame.contentWindow || !event.data) return;
     const data = event.data;
@@ -192,6 +265,11 @@ export class ExtensionHost {
     this.watches.clear();
     this.activeNoteWatches.forEach((unsubscribe) => unsubscribe());
     this.activeNoteWatches.clear();
+    this.eventWatches.forEach((unsubscribe) => unsubscribe());
+    this.eventWatches.clear();
+    this.surfaces.clear();
+    this.surfaceTransports.clear();
+    this.bridge.removeSurfaces?.(this);
     window.removeEventListener('message', this.onMessage);
     this.frame?.remove();
     this.frame = null;
@@ -211,6 +289,7 @@ export function usableDefaultKey(key, taken = []) {
 export function useExtensions({ bridgeRef, notify }) {
   const [extensions, setExtensions] = useState([]);
   const [commands, setCommands] = useState([]);
+  const [surfaces, setSurfaces] = useState([]);
   const hosts = useRef(new Map());
   const generation = useRef(0);
   const [settingsRevision, settingsChanged] = useState(0);
@@ -228,6 +307,28 @@ export function useExtensions({ bridgeRef, notify }) {
       notify: (message) => notify(message),
       getActiveNote: () => bridgeRef.current.getActiveNote(),
       insertText: (text) => bridgeRef.current.insertText(text),
+      setSelection: (selection) => bridgeRef.current.setSelection(selection),
+      getTiptapSnapshot: () => bridgeRef.current.getTiptapSnapshot(),
+      runTiptapCommand: (command, options) => bridgeRef.current.runTiptapCommand(command, options),
+      updateSurface: (host, kind, id, html, show) => {
+        const declaration = host.manifest.contributes[kind].find((item) => item.id === id);
+        setSurfaces((previous) => {
+          const existing = previous.find((item) => item.host === host && item.kind === kind && item.id === id);
+          const next = {
+            host, kind, id, html, title: `${host.manifest.name}: ${declaration.title}`,
+            visible: show || existing?.visible || false
+          };
+          return [...previous.filter((item) => !(item.host === host && item.kind === kind && item.id === id)), next];
+        });
+      },
+      closeSurface: (host, kind, id) => setSurfaces((previous) => previous.map((item) =>
+        item.host === host && item.kind === kind && item.id === id ? { ...item, visible: false } : item)),
+      removeSurfaces: (host) => setSurfaces((previous) => previous.filter((item) => item.host !== host)),
+      postSurfaceMessage: (host, kind, id, payload) => {
+        const send = host.surfaceTransports.get(`${kind}:${id}`);
+        if (!send) throw new Error('Contribution is not mounted. Wait for its ready message before sending.');
+        send(payload);
+      },
       list: () => bridgeRef.current.list(),
       read: (path) => bridgeRef.current.read(path),
       write: (path, content) => bridgeRef.current.write(path, content),
@@ -295,6 +396,9 @@ export function useExtensions({ bridgeRef, notify }) {
     await reload();
   }, [reload, extensions]);
 
-  return { extensions, commands, run, reload, setEnabled,
-    settingsRevision, getSetting: getExtensionSetting, setSettings: setExtensionSettings, resetSettings: resetExtensionSettings };
+  const closeSurface = (surface) => surface.host.bridge.closeSurface(surface.host, surface.kind, surface.id);
+  return {
+    extensions, commands, surfaces, closeSurface, run, reload, setEnabled,
+    settingsRevision, getSetting: getExtensionSetting, setSettings: setExtensionSettings, resetSettings: resetExtensionSettings
+  };
 }

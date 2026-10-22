@@ -20,6 +20,28 @@ const assert = require('node:assert/strict');
 const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 const DEMO = `
+tagline.commands.register('capabilities', async () => {
+  const disposables = tagline.helpers.createDisposables();
+  disposables.add(await tagline.events.on('ext.demo.check', payload => tagline.storage.set('eventCheck', payload)));
+  await tagline.events.emit('ext.demo.check', { passed: true });
+  const snapshot = await tagline.editor.tiptap.getSnapshot();
+  if (snapshot.doc.type !== 'doc') throw new Error('Missing Tiptap document');
+  await tagline.editor.setSelection({ from: 1, to: 3 });
+  await tagline.editor.tiptap.runCommand('toggleBold');
+  await tagline.storage.set('selectionCheck', (await tagline.editor.tiptap.getSnapshot()).selection);
+  await tagline.storage.set('helperCheck', await tagline.helpers.path.join('Folder', '..', 'Card.md'));
+  await tagline.storage.set('textCheck', await tagline.helpers.markdownToText('**Evidence**'));
+  tagline.panels.onMessage('status', async payload => {
+    if (payload.ready) await tagline.panels.postMessage('status', { reply: true });
+    else await tagline.storage.set('panelCheck', payload);
+  });
+  tagline.webviews.onMessage('details', payload => tagline.storage.set('webviewCheck', payload));
+  await tagline.panels.setHtml('status', '<p>Panel</p><script>taglineWebview.onMessage(payload => taglineWebview.postMessage(payload)); taglineWebview.postMessage({ready:true});</script>');
+  await tagline.panels.show('status');
+  await tagline.webviews.setHtml('details', '<p>Details</p><script>(async () => { let blocked = false; try { await fetch("https://example.com"); } catch { blocked = true; } taglineWebview.postMessage({ready:true, networkBlocked:blocked, api:typeof window.api}); })();</script>');
+  await tagline.webviews.show('details');
+  await disposables.dispose();
+});
 tagline.commands.register('stamp', async () => {
   const note = await tagline.editor.getActiveNote();
   await tagline.editor.insertText('Stamped ' + note.path);
@@ -118,13 +140,16 @@ tagline.commands.register('save-checks', async () => {
   };
   await fs.writeFile(path.join(ext('demo'), 'manifest.json'), JSON.stringify({
     manifestVersion: 1, id: 'demo', name: 'Demo', version: '1.0.0', description: 'Smoke test extension',
-    main: 'main.js', permissions: ['editor', 'vault:read', 'vault:write'],
+    main: 'main.js', permissions: ['editor', 'vault:read', 'vault:write', 'events', 'ui'],
     contributes: {
       commands: [{ id: 'stamp', title: 'Stamp note', key: 'Mod+Alt+K' }, { id: 'index', title: 'Build index' },
         { id: 'escape', title: 'Try escaping', key: 'Mod+N' }, { id: 'spin', title: 'Spin forever' },
         { id: 'flood', title: 'Flood messages' }, { id: 'pending', title: 'Pending limit' },
         { id: 'vault-apis', title: 'Exercise vault APIs' },
-        { id: 'save-checks', title: 'Exercise save failures and in-flight flush' }],
+        { id: 'save-checks', title: 'Exercise save failures and in-flight flush' },
+        { id: 'capabilities', title: 'Exercise editor events and UI' }],
+      panels: [{ id: 'status', title: 'Status' }],
+      webviews: [{ id: 'details', title: 'Details' }],
       themes: ['themes/ocean.json'],
     },
   }));
@@ -141,8 +166,13 @@ tagline.commands.register('save-checks', async () => {
     "tagline.commands.register('peek', async () => { await tagline.vault.list(); });");
   await fs.writeFile(path.join(vault, 'Card.md'), '# Card\n\nEvidence.\n');
   await fs.writeFile(path.join(vault, 'Round.flow'), JSON.stringify({ version: 1, sheets: [{ name: 'Case', columns: ['1AC'], rows: [['A']] }] }));
+  const demoManifest = require('../electron/extensions.cjs').validateManifest(
+    JSON.parse(await fs.readFile(path.join(ext('demo'), 'manifest.json'), 'utf8')), ext('demo'));
+  const demoReview = JSON.stringify({ permissions: [...demoManifest.permissions].sort(),
+    settings: demoManifest.contributes.settings, panels: demoManifest.contributes.panels, webviews: demoManifest.contributes.webviews });
   await fs.writeFile(path.join(profile, 'config.json'), JSON.stringify({
     modelAutoload: false, lastVault: vault, enabledExtensions: ['demo', 'nosy'],
+    extensionReviews: { demo: demoReview },
   }));
 
   app.on('browser-window-created', (_event, win) => {
@@ -219,6 +249,18 @@ tagline.commands.register('save-checks', async () => {
         wc.sendInputEvent({ type: 'keyDown', keyCode: 'K', modifiers: [process.platform === 'darwin' ? 'meta' : 'control', 'alt'] });
         wc.sendInputEvent({ type: 'keyUp', keyCode: 'K', modifiers: [process.platform === 'darwin' ? 'meta' : 'control', 'alt'] });
         await wait(`document.querySelector('.ProseMirror').textContent.includes('Stamped Card.md')`, 'stamped text');
+        await palette('Demo: Exercise editor events and UI');
+        await wait("JSON.parse(localStorage.getItem('tagline-extension:demo')).panelCheck?.reply === true", 'panel round-trip');
+        await wait("JSON.parse(localStorage.getItem('tagline-extension:demo')).webviewCheck?.ready === true", 'webview messaging');
+        const capabilities = await js("JSON.parse(localStorage.getItem('tagline-extension:demo'))");
+        assert.deepEqual(capabilities.eventCheck, { passed: true });
+        assert.deepEqual(capabilities.selectionCheck, { from: 1, to: 3 });
+        assert.equal(capabilities.helperCheck, 'Card.md');
+        assert.equal(capabilities.textCheck, 'Evidence');
+        assert.equal(capabilities.webviewCheck.networkBlocked, true);
+        assert.equal(capabilities.webviewCheck.api, 'undefined');
+        assert.equal(await js("document.querySelector('.extension-panel iframe').getAttribute('sandbox')"), 'allow-scripts');
+        await js("document.querySelector('.extension-webview-dialog header button').click()");
 
         // Mod+N stays with the built-in "New note"; the extension's default key was dropped.
         assert.equal(await js(`document.querySelectorAll('.palette').length`), 0);

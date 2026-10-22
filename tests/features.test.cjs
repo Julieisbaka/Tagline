@@ -7,6 +7,79 @@ const fsAsync = require('node:fs/promises');
 const os = require('node:os');
 const { promisify } = require('node:util');
 
+test('extension capabilities validate selection, command, helper, event and UI contracts', async () => {
+  const { ExtensionHost } = await import('../src/lib/extensions.js');
+  const { applicationEvents, createEventBus, pathHelper, markdownToText, requirePayload } =
+    await import('../src/lib/extensionCapabilities.js');
+  const calls = [];
+  const sent = [];
+  const manifest = { id: 'capabilities', name: 'Capabilities',
+    permissions: ['editor', 'events', 'ui', 'vault:read', 'editor:active-note'],
+    contributes: { commands: [], panels: [{ id: 'status', title: 'Status' }], webviews: [] } };
+  const host = new ExtensionHost(manifest, '', {
+    setSelection: (range) => { calls.push(range); return true; },
+    getTiptapSnapshot: () => ({ doc: { type: 'doc' }, selection: { from: 1, to: 1 } }),
+    runTiptapCommand: (...args) => { calls.push(args); return true; },
+    updateSurface: (...args) => calls.push(args.slice(1)),
+  });
+  host.frame = { contentWindow: { postMessage: (message) => sent.push(message) } };
+  assert.equal(await host.handle('editor.setSelection', [{ from: 0, to: 3 }]), true);
+  for (const range of [{ from: -1, to: 2 }, { from: 3, to: 2 }, { from: 1.5, to: 2 }, null]) {
+    await assert.rejects(host.handle('editor.setSelection', [range]), /Selection/);
+  }
+  assert.equal((await host.handle('editor.getTiptapSnapshot', [])).doc.type, 'doc');
+  await host.handle('editor.runTiptapCommand', ['toggleHeading', { level: 4 }]);
+  await assert.rejects(host.handle('editor.runTiptapCommand', ['setContent']), /Unsupported/);
+  await assert.rejects(host.handle('editor.runTiptapCommand', ['toggleHeading', { level: 9 }]), /Heading/);
+  await assert.rejects(host.handle('editor.runTiptapCommand', ['toggleBold', { arbitrary: true }]), /options/);
+  const watch = await host.handle('events.subscribe', ['ext.capabilities.ready']);
+  await host.handle('events.emit', ['ext.capabilities.ready', { count: 1 }]);
+  assert.deepEqual(sent.at(-1).event, { count: 1 });
+  await host.handle('events.unsubscribe', [watch]);
+  const count = sent.length;
+  applicationEvents.emit('ext.capabilities.ready', {});
+  assert.equal(sent.length, count);
+  await assert.rejects(host.handle('events.emit', ['editor.ready', {}]), /namespaced/);
+  await assert.rejects(host.handle('events.emit', ['ext.other.ready', {}]), /namespaced/);
+  await assert.rejects(host.handle('events.subscribe', ['unknown.event']), /Unknown/);
+  await host.handle('ui.setHtml', ['panels', 'status', '<p>Hello</p>']);
+  await host.handle('ui.show', ['panels', 'status']);
+  await assert.rejects(host.handle('ui.show', ['webviews', 'undeclared']), /Undeclared/);
+  manifest.permissions = [];
+  for (const [method, args] of [['editor.setSelection', [{ from: 0, to: 0 }]],
+    ['editor.getTiptapSnapshot', []], ['events.subscribe', ['editor.ready']], ['ui.show', ['panels', 'status']]]) {
+    await assert.rejects(host.handle(method, args), /Permission/);
+  }
+  manifest.permissions = ['events'];
+  await assert.rejects(host.handle('events.subscribe', ['editor.ready']), /Permission "editor"/);
+  assert.equal(pathHelper('join', ['Folder', '..', 'Note.md']), 'Note.md');
+  assert.equal(pathHelper('basename', ['Folder\\Note.md']), 'Note.md');
+  assert.equal(pathHelper('extname', ['.hidden']), '');
+  assert.throws(() => pathHelper('normalize', ['../../secret']), /escapes/);
+  assert.throws(() => pathHelper('normalize', ['C:\\secret']), /relative/);
+  assert.equal(markdownToText('# Heading\n\n**Evidence** [source](https://example.com)'), 'Heading Evidence source');
+  assert.throws(() => requirePayload('x'.repeat(65537)), /65,536/);
+  const bus = createEventBus();
+  const payload = { nested: { value: 1 } };
+  const stop = bus.on('test', (value) => { value.nested.value = 2; });
+  bus.emit('test', payload);
+  assert.equal(payload.nested.value, 1);
+  stop();
+});
+
+test('UI contributions require permission, declarations, a script and bounded unique identifiers', () => {
+  const { validateManifest } = require('../electron/extensions.cjs');
+  const manifest = { manifestVersion: 1, id: 'ui-test', name: 'UI Test', version: '1',
+    main: 'main.js', permissions: ['ui'], contributes: { panels: [{ id: 'panel', title: 'Panel' }],
+      webviews: [{ id: 'details', title: 'Details' }] } };
+  const root = path.join(__dirname, 'fixture');
+  assert.equal(validateManifest(manifest, root).contributes.panels[0].id, 'panel');
+  assert.throws(() => validateManifest({ ...manifest, permissions: [] }, root), /ui permission/);
+  assert.throws(() => validateManifest({ ...manifest, main: undefined }, root), /main script/);
+  assert.throws(() => validateManifest({ ...manifest, contributes: { panels: [{ title: 'Missing ID' }] } }, root), /unique id/);
+  assert.throws(() => validateManifest({ ...manifest, contributes: { panels: Array(11).fill({ id: 'panel', title: 'Panel' }) } }, root), /at most 10/);
+});
+
 test('extension settings have validated types, bounds, defaults and scoped storage', async (t) => {
   const { validateSettingDefinitions, validateSettingValue } = await import('../electron/extensionSettings.mjs');
   const { ExtensionHost } = await import('../src/lib/extensions.js');

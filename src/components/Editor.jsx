@@ -16,6 +16,7 @@ import {
   toggleWrap,
 } from '../lib/editorExtensions.js';
 import { createCodeMirrorFindReplacePanel } from '../lib/codeMirrorFindReplace.js';
+import { applicationEvents } from '../lib/extensionCapabilities.js';
 
 export default function Editor({
   value, onChange, noteNames, onOpenLink, onSendCard, onCursor, viewRef, keybindings, settings,
@@ -73,6 +74,10 @@ export default function Editor({
       }),
       EditorView.updateListener.of((u) => {
         if (u.selectionSet || u.docChanged) cb.current.onCursor?.(u.state.selection.main.head);
+        if (u.selectionSet) {
+          const { from, to } = u.state.selection.main;
+          applicationEvents.emit('editor.selectionChanged', { mode: 'edit', selection: { from, to } });
+        }
       }),
     ];
   }, [keybindings, settings.sourceActiveLine, settings.sourceAutocomplete, settings.sourceLineNumbers, settings.sourceLineWrapping]);
@@ -94,6 +99,7 @@ export default function Editor({
       }}
       onCreateEditor={(view) => {
         if (viewRef) viewRef.current = view;
+        applicationEvents.emit('editor.ready', { mode: 'edit' });
       }}
       height="100%"
       autoFocus

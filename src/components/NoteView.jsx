@@ -32,6 +32,7 @@ export default function NoteView({
   onRename,
   editorRef,
   visualRef,
+  onVisualEditorReady,
   onExport,
   onTestHypothesis,
   onSummarize,
@@ -198,6 +199,7 @@ export default function NoteView({
           />
         ) : mode === 'visual' ? (
           <VisualEditor value={content} onChange={onChange} onOpenLink={onOpenLink}
+            onReady={onVisualEditorReady}
             keybindings={settings.keybindings}
             onSendCard={sendCurrent} onSection={setVisualSection} noteNames={noteNames} visualRef={visualRef}
             jump={jump?.path === path ? jump : null} toolbarVisible={settings.visualToolbar} />
