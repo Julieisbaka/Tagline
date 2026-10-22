@@ -7,14 +7,31 @@ const { detectPandoc } = require('./pandoc.cjs');
 const run = promisify(execFile);
 const IMPORT_READERS = { docx: 'docx', odt: 'odt', rtf: 'rtf', html: 'html', htm: 'html', epub: 'epub' };
 
+function cleanImportedMarkdown(markdown) {
+  return markdown
+    .replace(/\r\n?/g, '\n')
+    .replace(/[\u00ad\u200b-\u200d\ufeff]/g, '')
+    .replace(/\u00a0/g, ' ')
+    .replace(/[ \t]+$/gm, '')
+    .replace(/\n{3,}/g, '\n\n')
+    .replace(/^\n+|\n+$/g, '') + '\n';
+}
+
 async function importDocument(executable, file) {
-  const reader = IMPORT_READERS[path.extname(file).slice(1).toLowerCase()];
+  const extension = path.extname(file).slice(1).toLowerCase();
+  const reader = IMPORT_READERS[extension];
   if (!reader) throw new Error('Unsupported import format.');
-  const { stdout, stderr } = await run(executable, [
+  const args = [
     `--from=${reader}`, '--to=markdown+mark+raw_html-bracketed_spans',
-    `--lua-filter=${path.join(__dirname, 'highlightRoundTrip.lua')}`, '--wrap=none', '--sandbox', '--', file,
-  ], { windowsHide: true, timeout: 120000, maxBuffer: 20 * 1024 * 1024 });
-  return { markdown: stdout, warnings: stderr.trim() };
+    `--lua-filter=${path.join(__dirname, 'highlightRoundTrip.lua')}`,
+  ];
+  if (extension === 'docx') args.push('--track-changes=accept');
+  args.push('--wrap=none', '--sandbox', '--', file);
+  const { stdout, stderr } = await run(executable, args,
+    { windowsHide: true, timeout: 120000, maxBuffer: 20 * 1024 * 1024 });
+  const warnings = [stderr.trim(), extension === 'docx'
+    ? 'Tracked changes were imported in their accepted (final-document) state.' : ''].filter(Boolean).join('\n');
+  return { markdown: cleanImportedMarkdown(stdout), warnings };
 }
 
 function registerDocuments({ ipcMain, dialog, getWindow, readConfig }) {
@@ -82,4 +99,4 @@ function registerDocuments({ ipcMain, dialog, getWindow, readConfig }) {
   });
 }
 
-module.exports = { IMPORT_READERS, importDocument, registerDocuments };
+module.exports = { IMPORT_READERS, cleanImportedMarkdown, importDocument, registerDocuments };

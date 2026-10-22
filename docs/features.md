@@ -317,6 +317,9 @@ Markdown and warnings before adding a note. Text highlights from Word, HTML
 `<mark>` elements, and spans with a background color are converted to Tagline's
 `==highlight==` Markdown. Canceling creates nothing; name collisions do not
 overwrite existing notes. The source document is unchanged.
+DOCX tracked changes are accepted, so the import reflects the final-document
+view; the original revision history is not retained. Common Word whitespace
+artifacts are normalized without changing paragraph and heading structure.
 
 Complex formatting may not survive conversion. Pandoc format support does not
 guarantee that every embedded HTML element retains its original behavior.

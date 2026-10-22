@@ -31,7 +31,7 @@ export default function ImportDialog({ onImport, onClose }) {
       <div className="modal dialog import-dialog" onMouseDown={(e) => e.stopPropagation()}>
         <h3>{t('Import document with Pandoc')}</h3>
         <p>{t('Choose a DOCX, ODT, RTF, HTML, or EPUB document. Review the Markdown before adding it to this vault. The original is never changed.')}</p>
-        <p>{t('Images and complex formatting may not survive conversion. Imported HTML stays in source mode when needed.')}</p>
+        <p>{t('Images and complex formatting may not survive conversion. DOCX tracked changes are imported in their accepted (final-document) state. Imported HTML stays in source mode when needed.')}</p>
         <button disabled={busy} onClick={choose}>{t('Choose document')}</button>
         {result && <>
           <label className="setting-row"><span>{t('Note name')}</span>

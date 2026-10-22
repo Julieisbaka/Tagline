@@ -234,7 +234,7 @@ test('embedded browser presents a standard Chrome user agent and builds archive 
   assert.throws(() => archiveUrl('file:///C:/secret'));
 });
 
-test('Pandoc import chooses an explicit reader, passes literal paths, and surfaces errors', async (t) => {
+test('Pandoc import chooses an explicit reader, accepts DOCX changes, cleans output and surfaces errors', async (t) => {
   let captured;
   let fail = false;
   const original = childProcess.execFile;
@@ -249,9 +249,11 @@ test('Pandoc import chooses an explicit reader, passes literal paths, and surfac
   const { importDocument } = require('../electron/documents.cjs');
   const file = 'C:\\notes\\document & more.docx';
   assert.deepEqual(await importDocument('pandoc', file), {
-    markdown: '# Imported\n\n**Card**', warnings: 'Conversion warning',
+    markdown: '# Imported\n\n**Card**\n',
+    warnings: 'Conversion warning\nTracked changes were imported in their accepted (final-document) state.',
   });
   assert.ok(captured.args.includes('--from=docx'));
+  assert.ok(captured.args.includes('--track-changes=accept'));
   assert.ok(captured.args.includes('--to=markdown+mark+raw_html-bracketed_spans'));
   assert.ok(captured.args.some((arg) => arg.endsWith('highlightRoundTrip.lua')));
   assert.ok(captured.args.includes('--sandbox'));
@@ -260,6 +262,13 @@ test('Pandoc import chooses an explicit reader, passes literal paths, and surfac
   fail = true;
   await assert.rejects(importDocument('pandoc', file), /Bad document/);
   await assert.rejects(importDocument('pandoc', 'C:\\notes\\script.exe'), /Unsupported import format/);
+});
+
+test('imported Markdown removes common Word whitespace artifacts without rewriting structure', () => {
+  const { cleanImportedMarkdown } = require('../electron/documents.cjs');
+  assert.equal(cleanImportedMarkdown('\uFEFF# Title\r\n\r\nA\u00a0word\u00ad\r\n\r\n\r\nNext\u200b\r\n'),
+    '# Title\n\nA word\n\nNext\n');
+  assert.equal(cleanImportedMarkdown(''), '\n');
 });
 
 test('revision history snapshots changed documents, enforces retention, and follows renames', async (t) => {
