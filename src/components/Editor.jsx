@@ -2,7 +2,7 @@ import { autocompletion } from '@codemirror/autocomplete';
 import { markdown, markdownLanguage } from '@codemirror/lang-markdown';
 import { languages } from '@codemirror/language-data';
 import { Prec } from '@codemirror/state';
-import { openSearchPanel, searchKeymap } from '@codemirror/search';
+import { openSearchPanel, search, searchKeymap } from '@codemirror/search';
 import { EditorView, highlightActiveLine, highlightActiveLineGutter, keymap, lineNumbers } from '@codemirror/view';
 import CodeMirror from '@uiw/react-codemirror';
 import { useMemo, useRef } from 'react';
@@ -15,6 +15,7 @@ import {
   setHeading,
   toggleWrap,
 } from '../lib/editorExtensions.js';
+import { createCodeMirrorFindReplacePanel } from '../lib/codeMirrorFindReplace.js';
 
 export default function Editor({
   value, onChange, noteNames, onOpenLink, onSendCard, onCursor, viewRef, keybindings, settings,
@@ -47,6 +48,7 @@ export default function Editor({
       }))));
 
     return [
+      search({ top: true, createPanel: createCodeMirrorFindReplacePanel }),
       keymap.of(searchKeymap.filter((item) => item.key !== 'Mod-f')),
       markdown({ base: markdownLanguage, codeLanguages: languages }),
       ...(settings.sourceLineNumbers ? [lineNumbers()] : []),
@@ -73,7 +75,7 @@ export default function Editor({
         if (u.selectionSet || u.docChanged) cb.current.onCursor?.(u.state.selection.main.head);
       }),
     ];
-  }, [keybindings, settings.sourceActiveLine, settings.sourceAutocomplete, settings.sourceLineWrapping]);
+  }, [keybindings, settings.sourceActiveLine, settings.sourceAutocomplete, settings.sourceLineNumbers, settings.sourceLineWrapping]);
 
   return (
     <CodeMirror

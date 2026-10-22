@@ -161,6 +161,16 @@ export const editorTheme = [
       },
       '.cm-activeLine': { backgroundColor: 'transparent' },
       '.cm-gutters': { backgroundColor: 'var(--bg-secondary)', color: 'var(--text-muted)', borderRight: '1px solid var(--border)' },
+      '.cm-searchMatch': {
+        backgroundColor: 'var(--highlight-bg)',
+        color: 'var(--highlight-text)',
+        outline: '1px solid var(--border)',
+      },
+      '.cm-searchMatch-selected': {
+        backgroundColor: 'var(--highlight-bg)',
+        color: 'var(--highlight-text)',
+        outline: '2px solid var(--accent)',
+      },
     },
     { dark: true },
   ),

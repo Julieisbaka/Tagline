@@ -90,14 +90,12 @@ Bindings are configurable. Mac keyboards may need Fn for function keys.
 
 ### Find and replace
 
-Use `Mod+F` or **Find and replace** in the visual toolbar.
-The visual panel supports case-sensitive and whole-word search, previous/next
-matches, replace, and replace all. Enter advances; Shift+Enter moves backward;
-Escape closes the panel and clears match decorations. Replacements participate
-in editor undo and autosaving; searching alone does not edit a note.
-
-The same configurable shortcut opens the source editor's own search panel.
-This searches the current note, not the whole vault.
+Use `Mod+F` or **Find and replace** in the visual toolbar. Visual and Source modes
+share the same panel and support case-sensitive and whole-word search,
+previous/next matches, replace, and replace all. Enter advances; Shift+Enter
+moves backward; Escape closes the panel and clears match decorations.
+Replacements participate in editor undo and autosaving; searching alone does
+not edit a note. Search is limited to the current note, not the whole vault.
 
 ### Embedded HTML
 
