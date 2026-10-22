@@ -14,6 +14,23 @@ const FORMATS = {
   pdf: { label: 'PDF (requires a PDF engine)', ext: 'pdf', writer: 'latex' },
 };
 
+function addRtfHighlightColor(rtf) {
+  if (!rtf.includes('\\highlight99')) return rtf;
+  let colorIndex = null;
+  const withColor = rtf.replace(/\{\\colortbl;[^}]*\}/, (table) => {
+    colorIndex = (table.match(/;/g) || []).length;
+    return `${table.slice(0, -1)}\\red255\\green255\\blue0;}`;
+  });
+  if (colorIndex === null) throw new Error('Pandoc RTF output did not contain a color table.');
+  return withColor.replaceAll('\\highlight99', `\\highlight${colorIndex}`);
+}
+
+async function preserveRtfHighlights(outputPath) {
+  const output = await fs.readFile(outputPath, 'utf8');
+  const updated = addRtfHighlightColor(output);
+  if (updated !== output) await fs.writeFile(outputPath, updated, 'utf8');
+}
+
 async function detectPandoc(customPath = '') {
   const candidates = customPath ? [customPath] : [
     'pandoc',
@@ -38,7 +55,8 @@ async function detectPandoc(customPath = '') {
 function convert({ executable, html, format, outputPath, title }) {
   if (!FORMATS[format]) return Promise.reject(new Error('Unsupported export format.'));
   return new Promise((resolve, reject) => {
-    const args = ['--from=html', `--to=${FORMATS[format].writer}`, '--standalone',
+    const args = ['--from=html', `--to=${FORMATS[format].writer}`,
+      `--lua-filter=${path.join(__dirname, 'highlightRoundTrip.lua')}`, '--standalone',
       '--sandbox', '--wrap=none', '--metadata', `title=${title}`, '--output', outputPath];
     const child = spawn(executable, args, { windowsHide: true, shell: false });
     let stderr = '';
@@ -57,8 +75,11 @@ function convert({ executable, html, format, outputPath, title }) {
     child.stderr.on('data', (data) => { if (stderr.length < 64000) stderr += data; });
     child.on('error', finish);
     child.stdin.on('error', (e) => { if (e.code !== 'EPIPE') finish(e); });
-    child.on('close', (code) => finish(code === 0 ? null
-      : new Error(`Pandoc export failed (${code}). ${stderr.trim() || 'No diagnostic output.'}`)));
+    child.on('close', (code) => {
+      if (code !== 0) return finish(new Error(`Pandoc export failed (${code}). ${stderr.trim() || 'No diagnostic output.'}`));
+      if (format === 'rtf') preserveRtfHighlights(outputPath).then(() => finish(), finish);
+      else finish();
+    });
     child.stdin.end(html);
   });
 }
@@ -101,4 +122,4 @@ function registerPandoc({ ipcMain, dialog, getWindow, readConfig, writeConfig })
   });
 }
 
-module.exports = { FORMATS, detectPandoc, convert, registerPandoc };
+module.exports = { FORMATS, addRtfHighlightColor, detectPandoc, convert, registerPandoc };

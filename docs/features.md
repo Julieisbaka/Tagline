@@ -302,6 +302,8 @@ LaTeX engine. Install these tools separately and locate Pandoc in
 When Pandoc is missing, **Install Pandoc** opens its official installation page
 in the default browser. This does not install software automatically; after
 installation use **Check again** or **Locate Pandoc**.
+The shared highlight filter also preserves `==highlight==` formatting in
+Pandoc exports, including RTF.
 
 **Pandoc import** accepts DOCX, ODT, RTF, HTML, and EPUB. Review the converted
 Markdown and warnings before adding a note. Text highlights from Word, HTML

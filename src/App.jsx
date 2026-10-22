@@ -6,27 +6,13 @@ import { buildCommands, fillTemplate } from './lib/commands.js';
 import { binding, displayBinding, KEYBINDINGS, matchesBinding } from './lib/keybindings.js';
 import { getSectionAt } from './lib/card.js';
 import { slugify } from './lib/markdown.js';
-import { baseName, dirName, displayName, flattenTree, isMarkdown, joinPath, outline, resolveLink } from './lib/vault.js';
-import Sidebar, { renameTarget } from './components/Sidebar.jsx';
-import TabBar from './components/TabBar.jsx';
-import NoteView from './components/NoteView.jsx';
-import GraphView from './components/GraphView.jsx';
-import RightPanel from './components/RightPanel.jsx';
-import SearchModal from './components/SearchModal.jsx';
-import ExportDialog from './components/ExportDialog.jsx';
-import ImportDialog from './components/ImportDialog.jsx';
-import CitationDialog from './components/CitationDialog.jsx';
-import HypothesisDialog from './components/HypothesisDialog.jsx';
-import HistoryDialog from './components/HistoryDialog.jsx';
-import WebsiteView from './components/WebsiteView.jsx';
-import Splitter, { clampPanel, PANEL_LIMITS } from './components/Splitter.jsx';
+import { baseName, dirName, flattenTree, isMarkdown, joinPath, outline, resolveLink } from './lib/vault.js';
+import { clampPanel, PANEL_LIMITS } from './components/Splitter.jsx';
 import { useI18n } from './lib/i18n.js';
 import { visualBlocker, visualSelection } from './lib/visualExtensions.js';
-import { useExtensions } from './lib/extensions.js';
-import Welcome from './components/Welcome.jsx';
-import Ribbon from './components/Ribbon.jsx';
 import { EMPTY_FLOW } from './components/FlowEditor.jsx';
-import { Palette, PromptDialog, SettingsDialog } from './components/Dialogs.jsx';
+import AppLayout from './components/AppLayout.jsx';
+import { useAppExtensions } from './lib/useAppExtensions.js';
 
 export default function App() {
   const { t } = useI18n();
@@ -37,7 +23,6 @@ export default function App() {
   const [highlightOnly, setHighlightOnly] = useState(false);
   const [modal, setModal] = useState(null);
   const [website, setWebsite] = useState(null);
-  const vaultOperations = useRef(Promise.resolve());
   const [jump, setJump] = useState(null);
   const [stats, setStats] = useState(null);
   const [toast, setToast] = useState(null);
@@ -194,92 +179,10 @@ export default function App() {
   };
   const insertCitation = (text) => insertAtCursor(text + '\n\n', 'Open a note in an editing mode to insert a citation.');
 
-  // Everything extensions can touch goes through this object; see docs/extension-api.md.
-  const extensionBridge = useRef(null);
-  const activeNoteListeners = useRef(new Set());
-  const activeNotePath = activeContent === undefined ? null : activePath;
-  useEffect(() => {
-    activeNoteListeners.current.forEach((listener) => listener({ path: activeNotePath }));
-  }, [activeNotePath, v.vault?.root]);
-  const enqueueVault = (operation) => {
-    const root = v.vault?.root;
-    const task = vaultOperations.current.then(() => {
-      if (!root || extensionBridge.current.root !== root) throw new Error('The active vault changed. Retry the operation.');
-      return operation();
-    });
-    // Keep the queue usable after a failure; the caller still receives the rejected task.
-    vaultOperations.current = task.catch(() => {});
-    return task;
-  };
-  const requireNote = (path) => {
-    if (!/\.(md|flow)$/i.test(path)) throw new Error('Extensions can only modify .md and .flow files.');
-    const content = v.getContent(path);
-    if (content === undefined) throw new Error(`Note not found: ${path}`);
-    return content;
-  };
-  extensionBridge.current = {
-    root: v.vault?.root,
-    getActiveNote: () => {
-      if (!activePath || activeContent === undefined) return null;
-      let selection = '';
-      if (mode === 'visual' && !sourceFallback && visualRef.current) {
-        const { from, to } = visualRef.current.state.selection;
-        selection = visualRef.current.state.doc.textBetween(from, to, '\n');
-      } else if (mode !== 'read' && editorRef.current) {
-        const { from, to } = editorRef.current.state.selection.main;
-        selection = editorRef.current.state.sliceDoc(from, to);
-      }
-      return { path: activePath, content: activeContent ?? '', selection, mode };
-    },
-    insertText: (text) => insertAtCursor(text),
-    list: () => paths,
-    read: (path) => {
-      const content = v.getContent(path);
-      if (content === undefined) throw new Error(`Note not found: ${path}`);
-      return content;
-    },
-    write: (path, content) => enqueueVault(async () => {
-      if (!/\.(md|flow)$/i.test(path)) throw new Error('Extensions can only write .md and .flow files.');
-      if (v.getContent(path) !== undefined) { v.updateContent(path, content); return path; }
-      const created = await v.createFile(path, content);
-      if (!created) throw new Error(`Could not create ${path}.`);
-      return created;
-    }),
-    append: (path, text) => enqueueVault(() => {
-      const content = requireNote(path) + text;
-      if (content.length > 5_000_000) throw new Error('Content must be text up to 5000000 characters.');
-      v.updateContent(path, content);
-      return path;
-    }),
-    compareAndSwap: (path, expected, content) => enqueueVault(() => {
-      if (requireNote(path) !== expected) return false;
-      v.updateContent(path, content);
-      return true;
-    }),
-    delete: (path) => enqueueVault(async () => {
-      requireNote(path);
-      if (!await v.remove(path)) throw new Error(`Could not delete ${path}.`);
-      tabs.removePath(path);
-      return true;
-    }),
-    rename: (from, to) => enqueueVault(async () => {
-      requireNote(from);
-      if (!/\.(md|flow)$/i.test(to)) throw new Error('Extensions can only rename to .md and .flow paths.');
-      const result = await doRename(from, to);
-      if (!result) throw new Error(`Could not rename ${from}.`);
-      return result;
-    }),
-    flush: () => enqueueVault(async () => {
-      if (!await v.flush()) throw new Error('Could not save pending vault edits.');
-      return true;
-    }),
-    watch: v.watch,
-    watchActiveNote: (listener) => {
-      activeNoteListeners.current.add(listener);
-      return () => activeNoteListeners.current.delete(listener);
-    },
-  };
-  const ext = useExtensions({ bridgeRef: extensionBridge, notify });
+  const ext = useAppExtensions({
+    v, paths, activePath, activeContent, mode, sourceFallback, editorRef, visualRef,
+    insertAtCursor, doRename, tabs, notify,
+  });
 
   const createAndOpen = async (path, content) => {
     const p = await v.createFile(path, content);
@@ -473,159 +376,11 @@ export default function App() {
     const next = tabs.tabs[(i + 1) % tabs.tabs.length];
     if (next) tabs.setActiveId(next.id);
   };
-
-  const settingsDialog = <SettingsDialog settings={settings} update={updateSettings} extensions={ext}
-    onClose={() => setModal(null)} />;
-  const websiteView = website && !modal &&
-    <WebsiteView key={website} url={website} onClose={() => setWebsite(null)} />;
-  if (!v.vault) return <>
-    {window.api.platform === 'darwin' && <div className="mac-titlebar">Tagline</div>}
-    <Welcome onOpen={v.chooseVault} onSample={v.createSample} error={v.error} />
-    {modal?.type === 'settings' && settingsDialog}
-    {modal?.type === 'citation' && <CitationDialog onClose={() => setModal(null)} />}
-    {websiteView && <div className="welcome-website">{websiteView}</div>}
-    {toast && <div className="toast">{toast}</div>}
-  </>;
-
-  const renderWorkspace = () => {
-    const tab = tabs.activeTab;
-    if (!tab) {
-      return (
-        <div className="empty-workspace">
-          <h2>{t('No file is open')}</h2>
-          <button className="link-btn" onClick={ctx.newNote}>{t('Create new note')} {displayBinding(binding('new-note', settings.keybindings))}</button>
-          <button className="link-btn" onClick={ctx.openSwitcher}>{t('Go to file')} {displayBinding(binding('switcher', settings.keybindings))}</button>
-          <button className="link-btn" onClick={ctx.openGraph}>{t('Open graph view')} {displayBinding(binding('graph', settings.keybindings))}</button>
-          <button className="link-btn" onClick={ctx.openCommands}>{t('Command palette')} {displayBinding(binding('commands', settings.keybindings))}</button>
-          <button className="link-btn" onClick={ctx.importDocument}>{t('Import document with Pandoc')}</button>
-        </div>
-      );
-    }
-    if (tab.kind === 'graph') return <GraphView index={v.index} activePath={lastFile} onOpen={open}
-      showMarkdownExtension={settings.showMarkdownExtension} />;
-    if (activeContent === undefined) return <div className="empty-workspace" role="status">
-      {v.ready ? <>
-        <p>{t('This file is no longer in the vault: {path}', { path: activePath })}</p>
-        <button onClick={v.reload}>{t('Reload vault')}</button>
-        <button onClick={() => tabs.close(tab.id)}>{t('Close tab')}</button>
-      </> : t('Loading…')}
-    </div>;
-    return (
-      <NoteView
-        key={tab.path}
-        path={tab.path}
-        content={activeContent}
-        mode={mode}
-        setMode={setMode}
-        highlightOnly={highlightOnly}
-        setHighlightOnly={setHighlightOnly}
-        jump={jump}
-        noteNames={noteNames}
-        resolve={resolve}
-        onChange={(text) => v.updateContent(tab.path, text)}
-        onOpenLink={openLink}
-        onTagClick={(t) => setModal({ type: 'search', query: `tag:${t} ` })}
-        onSendCard={sendCard}
-        onCursor={(pos) => (cursorRef.current = pos)}
-        onCursorStats={setStats}
-        onRename={(path, title) => doRename(path, renameTarget({ type: 'file', path }, title))}
-        editorRef={editorRef}
-        visualRef={visualRef}
-        onExport={ctx.exportNote}
-        onTestHypothesis={ctx.testHypothesis}
-        onCreateCitation={ctx.createCitation}
-        onOpenHistory={() => setModal({ type: 'history', path: tab.path })}
-        settings={settings}
-        onDismissVisualNotice={() => updateSettings({
-          internalFlags: { ...settings.internalFlags, visualNoticeDismissed: true },
-        })}
-      />
-    );
-  };
-
-  return (
-    <div className={`app${window.api.platform === 'darwin' ? ' mac-app' : ''}`}
-      style={{ '--sidebar-width': `${sidebarWidth}px`, '--right-panel-width': `${rightWidth}px` }}>
-      {window.api.platform === 'darwin' && <div className="mac-titlebar">Tagline</div>}
-      <Ribbon ctx={ctx} showLeft={showLeft} keybindings={settings.keybindings} />
-      {showLeft && <Sidebar vault={v.vault} tree={v.tree} activePath={activePath} actions={actions}
-        spacedFolders={settings.underscoreFolders} hideFlowExtension={settings.hideFlowExtension}
-        showMarkdownExtension={settings.showMarkdownExtension} />}
-      {showLeft && <Splitter panel="sidebarWidth" side="left" width={sidebarWidth} otherWidth={showRight ? rightWidth : 0}
-        label="Resize file explorer" onChange={(value) => updateSettings({ sidebarWidth: value })} />}
-      <main className="main">
-        <TabBar tabs={tabs.tabs} activeId={tabs.activeId} onActivate={tabs.setActiveId} onClose={tabs.close}
-          onCloseOthers={tabs.closeOthers} hideFlowExtension={settings.hideFlowExtension}
-          showMarkdownExtension={settings.showMarkdownExtension} onFileAction={(action, path) => action === 'rename'
-            ? actions.rename({ type: 'file', path, name: path.split('/').pop() }) : v.reveal(path)} />
-        <div className="workspace">{renderWorkspace()}{websiteView}</div>
-        <footer className="status-bar">
-          {activePath && stats?.map((s, i) => <span key={i}>{s}</span>)}
-          <span className="spacer" />
-          <span title={t('Current speech document')} className="clickable" onClick={ctx.openSpeechDoc}>
-            {t('Speech doc')}: {baseName(settings.speechDoc)}
-          </span>
-          {activePath && <span>{t(mode === 'edit' || sourceFallback ? 'Source editing' : mode === 'visual' ? 'Visual editing'
-            : highlightOnly ? 'Reading (highlights)' : 'Reading')}</span>}
-        </footer>
-      </main>
-      <div style={{ display: showRight ? 'contents' : 'none' }}>
-        <Splitter panel="rightPanelWidth" side="right" width={rightWidth} otherWidth={showLeft ? sidebarWidth : 0}
-          label="Resize side panel" onChange={(value) => updateSettings({ rightPanelWidth: value })} />
-        <RightPanel
-          activePath={activePath}
-          content={activeContent}
-          index={v.index}
-          contents={v.contents}
-          onOpen={open}
-          onJump={(h) =>
-            setJump({ path: activePath, line: h.line, heading: h.text, n: Date.now() })
-          }
-          onTagClick={(t) => setModal({ type: 'search', query: `tag:${t} ` })}
-          settings={settings}
-          updateSettings={updateSettings}
-        />
-      </div>
-
-      {modal?.type === 'switcher' && (
-        <Palette
-          placeholder={t('Find or create a note…')}
-          items={paths.map((p) => ({ id: p, label: displayName(p, settings.hideFlowExtension, settings.showMarkdownExtension), detail: dirName(p), path: p }))}
-          onSelect={(it, e) => open(it.path, e?.ctrlKey || e?.metaKey)}
-          onCreate={(name) => createAndOpen(`${name.replace(/[\\:*?"<>|]/g, '-')}.md`, `# ${baseName(name)}\n\n`)}
-          createLabel={t('Create note')}
-          onClose={() => setModal(null)}
-        />
-      )}
-      {modal?.type === 'palette' && (
-        <Palette placeholder={modal.placeholder} items={modal.items} onSelect={modal.onSelect} onClose={() => setModal(null)} />
-      )}
-      {modal?.type === 'search' && (
-        <SearchModal contents={v.contents} index={v.index} initialQuery={modal.query} maxResults={settings.searchMaxResults}
-          showMarkdownExtension={settings.showMarkdownExtension}
-          onOpen={open} onClose={() => setModal(null)} />
-      )}
-      {modal?.type === 'prompt' && (
-        <PromptDialog title={modal.title} initial={modal.initial} onSubmit={modal.onSubmit} onClose={() => setModal(null)} />
-      )}
-      {modal?.type === 'settings' && (
-        settingsDialog
-      )}
-      {modal?.type === 'export' && activePath && (
-        <ExportDialog title={baseName(activePath)} content={activeContent || ''} resolve={resolve} onClose={() => setModal(null)} />
-      )}
-      {modal?.type === 'import' && <ImportDialog onImport={createAndOpen} onClose={() => setModal(null)} />}
-      {modal?.type === 'hypothesis' && <HypothesisDialog sources={modal.sources} onClose={() => setModal(null)} />}
-      {modal?.type === 'history' && <HistoryDialog path={modal.path}
-        onRestore={(content) => {
-          v.updateContent(modal.path, content);
-          setModal(null);
-          notify(t('Revision restored; saving…'));
-        }}
-        onClose={() => setModal(null)} />}
-      {modal?.type === 'citation' && <CitationDialog onInsert={activePath && isMarkdown(activePath) && mode !== 'read'
-        ? insertCitation : null} onClose={() => setModal(null)} />}
-      {toast && <div className="toast">{toast}</div>}
-    </div>
-  );
+  return <AppLayout app={{
+    t, settings, updateSettings, v, tabs, paths, noteNames, resolve, activePath, activeContent, mode,
+    sourceFallback, stats, setStats, showLeft, showRight, sidebarWidth, rightWidth, lastFile, website,
+    setWebsite, modal, setModal, jump, setJump, highlightOnly, setHighlightOnly, toast, ext, ctx, actions,
+    open, openLink, sendCard, setMode, editorRef, visualRef, cursorRef, createAndOpen, doRename, notify,
+    insertCitation,
+  }} />;
 }

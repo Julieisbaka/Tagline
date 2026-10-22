@@ -251,7 +251,7 @@ test('Pandoc import chooses an explicit reader, passes literal paths, and surfac
   });
   assert.ok(captured.args.includes('--from=docx'));
   assert.ok(captured.args.includes('--to=markdown+mark+raw_html-bracketed_spans'));
-  assert.ok(captured.args.some((arg) => arg.endsWith('importHighlights.lua')));
+  assert.ok(captured.args.some((arg) => arg.endsWith('highlightRoundTrip.lua')));
   assert.ok(captured.args.includes('--sandbox'));
   assert.equal(captured.args.at(-1), file);
   assert.equal(captured.options.timeout, 120000);
