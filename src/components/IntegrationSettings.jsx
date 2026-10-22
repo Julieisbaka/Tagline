@@ -122,7 +122,7 @@ function PoliticalDebateSettings() {
   };
   return <>
     <h4>{t('Hypothesis testing (Political DEBATE)')}</h4>
-    <p>{t('An on-demand 0.4B-parameter NLI model (mlburnham/Political_DEBATE_large_v1.0, MIT). It never runs automatically: use the Hypothesis button on a note. The ONNX download is about 500 MB, and analysis stays on this computer.')}</p>
+    <p>{t('An on-demand 0.4B-parameter NLI model (mlburnham/Political_DEBATE_large_v1.0, MIT). It never runs automatically: use the Hypothesis button on a note. The ONNX download is about 650 MB, and analysis stays on this computer.')}</p>
     <label className="setting-row">
       <span>{t('Hugging Face ONNX repository')}</span>
       <input value={repo} spellCheck={false} aria-label={t('Hugging Face ONNX repository')}

@@ -52,7 +52,7 @@ export default function HypothesisDialog({ sources, onClose }) {
         <div className="hypothesis-model">
           <span>{status ? `${sourceLabel} — ${t(status.ready ? 'loaded' : status.downloaded ? 'downloaded, not loaded' : 'not downloaded')}` : t('Checking model...')}</span>
           {status && !status.ready && <button disabled={working} onClick={() => run(() => window.api.loadNliModel())}>
-            {t(status.downloaded ? 'Load model' : 'Download and load (about 500 MB)')}</button>}
+            {t(status.downloaded ? 'Load model' : 'Download and load (about 650 MB)')}</button>}
           {status?.ready && <button disabled={working} onClick={() => run(async () => {
             await window.api.unloadNliModel();
             setResult(null);
