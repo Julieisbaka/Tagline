@@ -267,11 +267,16 @@ The app itself never reads `.env`; downloading a public model needs no token.
 
 Flows are multi-sheet speech grids with affirmative/negative column colors.
 Presets include on-case, off-case, and cross-examination notes. Add, rename,
-and remove sheets; edit columns and rows using their context menus.
+and remove sheets; edit columns and rows using their context menus. The active
+sheet uses a neutral selection treatment instead of a distracting accent
+underline, and the grid flexes to keep row and column controls visible.
 
-`Mod+Enter` inserts a row below the current cell, optionally focusing the same
-speech column in the new row. Disabling **Focus new flow rows** preserves focus.
-Clicking the add-row button does not take focus from the current cell.
+Flow editing is keyboard-friendly: `Tab` and `Shift+Tab` move through cells
+horizontally and wrap between rows. `Mod+Enter` inserts a row below the current
+cell; `Mod+Shift+Enter` inserts one above. Both shortcuts can be customized in
+**Settings > Keyboard shortcuts**. New rows focus the corresponding speech
+column when **Focus new flow rows** is enabled. Clicking the add-row button
+does not take focus from the current cell.
 
 Packaged applications register support for `.flow` files. Setting Tagline as the
 default may require **Open with** approval; on macOS use

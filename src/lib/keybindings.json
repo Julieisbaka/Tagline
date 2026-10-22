@@ -184,5 +184,11 @@
     "label": "Insert flow row below",
     "scope": "flow",
     "key": "Mod+Enter"
+  },
+  {
+    "id": "flow-row-above",
+    "label": "Insert flow row above",
+    "scope": "flow",
+    "key": "Mod+Shift+Enter"
   }
 ]

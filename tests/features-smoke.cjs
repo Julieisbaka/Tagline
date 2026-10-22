@@ -65,6 +65,12 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
         const el = [...document.querySelectorAll(${JSON.stringify(selector)})].find(e => e.textContent.trim() === ${JSON.stringify(text)});
         if (!el) throw new Error('Missing ' + ${JSON.stringify(text)}); el.click();
       })()`);
+      const primary = process.platform === 'darwin' ? 'meta' : 'control';
+      const key = async (keyCode, modifiers = []) => {
+        wc.sendInputEvent({ type: 'keyDown', keyCode, modifiers });
+        wc.sendInputEvent({ type: 'keyUp', keyCode, modifiers });
+        await delay(100);
+      };
       const select = async (selector, value) => {
         await js(`(() => { const el = document.querySelector(${JSON.stringify(selector)});
           el.value = ${JSON.stringify(value)}; el.dispatchEvent(new Event('change', { bubbles: true })); })()`);
@@ -84,16 +90,40 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
         assert.equal(await js("document.querySelectorAll('[title=\"Settings (Ctrl+,)\"], [title=\"Settings\"]').length"), 1);
         await click('.tree-item', 'Round');
         await wait("!!document.querySelector('.flow-grid textarea')");
+        assert.equal(await js("getComputedStyle(document.querySelector('.flow-sheet-tab.active')).boxShadow"), 'none');
+        const flowRect = await js(`(() => {
+          const grid = document.querySelector('.flow-grid').getBoundingClientRect();
+          const wrap = document.querySelector('.flow-grid-wrap').getBoundingClientRect();
+          const last = document.querySelector('.flow-grid .flow-actions').getBoundingClientRect();
+          return { grid: grid.width, wrap: wrap.width, lastRight: last.right, wrapRight: wrap.right };
+        })()`);
+        assert.ok(flowRect.lastRight <= flowRect.wrapRight + 1, 'Flow row actions should remain visible');
         const addKey = async (row, col) => {
           await js(`document.querySelector('[data-row="${row}"][data-column="${col}"]').focus()`);
-          wc.sendInputEvent({ type: 'keyDown', keyCode: 'Enter', modifiers: ['control'] });
-          wc.sendInputEvent({ type: 'keyUp', keyCode: 'Enter', modifiers: ['control'] });
-          await delay(200);
+          await key('Enter', [primary]);
         };
         await addKey(0, 1);
         assert.deepEqual(await js("({ row: document.activeElement.dataset.row, column: document.activeElement.dataset.column })"),
           { row: '1', column: '1' });
         assert.equal(await js("document.querySelectorAll('.flow-grid tbody tr').length"), 2);
+        await js("document.querySelector('[data-row=\"1\"][data-column=\"0\"]').focus()");
+        await key('Tab');
+        assert.equal(await js("document.activeElement.dataset.column"), '1');
+        await key('Tab', ['shift']);
+        assert.equal(await js("document.activeElement.dataset.column"), '0');
+        await key('Tab', ['shift']);
+        assert.deepEqual(await js("({ row: document.activeElement.dataset.row, column: document.activeElement.dataset.column })"),
+          { row: '0', column: '1' }, 'Shift+Tab should wrap to the preceding row');
+        await key('Tab');
+        assert.deepEqual(await js("({ row: document.activeElement.dataset.row, column: document.activeElement.dataset.column })"),
+          { row: '1', column: '0' }, 'Tab should wrap to the next row');
+        await js("document.querySelector('[data-row=\"1\"][data-column=\"1\"]').focus()");
+        await key('Enter', [primary, 'shift']);
+        await wait("document.querySelectorAll('.flow-grid tbody tr').length === 3");
+        assert.equal(await js("document.activeElement.dataset.row"), '1', 'The inserted-above row should receive focus');
+        await js("document.querySelector('[data-row=\"2\"][data-column=\"1\"]').focus()");
+        await key('Enter', [primary]);
+        await wait("document.querySelectorAll('.flow-grid tbody tr').length === 4");
         await settings();
         await js("document.querySelector('[data-setting=\"focusNewFlowRow\"]').click()");
         await js("document.querySelector('[data-section=editors]').click()");
@@ -103,13 +133,15 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
         await click('.settings button', 'Done');
         await addKey(1, 0);
         assert.equal(await js("document.activeElement.dataset.row"), '1');
-        assert.equal(await js("document.querySelectorAll('.flow-grid tbody tr').length"), 3);
+        assert.equal(await js("document.querySelectorAll('.flow-grid tbody tr').length"), 5);
         // Context menus on cells and sheets, including keyboard dismissal.
         await js(`document.querySelector('.flow-grid textarea').dispatchEvent(new MouseEvent('contextmenu',
           { bubbles: true, clientX: innerWidth - 2, clientY: innerHeight - 2 }))`);
         await wait("!!document.querySelector('[role=menu]')");
-        assert.equal(await js("document.querySelectorAll('[role=menuitem]').length"), 3);
+        assert.equal(await js("document.querySelectorAll('[role=menuitem]').length"), 4);
         assert.ok(await js("document.querySelector('[role=menu]').getBoundingClientRect().right <= innerWidth"));
+        await click('[role=menuitem]', 'Insert row above');
+        await wait("document.querySelectorAll('.flow-grid tbody tr').length === 6");
         wc.sendInputEvent({ type: 'keyDown', keyCode: 'Escape' });
         await wait("!document.querySelector('[role=menu]')");
         await js(`document.querySelector('.flow-sheet-tab').dispatchEvent(new MouseEvent('contextmenu', { bubbles: true }))`);

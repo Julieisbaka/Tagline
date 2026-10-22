@@ -90,6 +90,7 @@ export default function FlowEditor({ content, onChange, focusNewFlowRow = true, 
     if (column !== null && focusNewFlowRow) focusTarget.current = { row: after + 1, column };
     updateSheet({ rows });
   };
+  const insertRowAbove = (row, column) => addRow(row - 1, column);
 
   const removeRow = (r) => updateSheet({ rows: sheet.rows.filter((_, i) => i !== r) });
 
@@ -108,7 +109,7 @@ export default function FlowEditor({ content, onChange, focusNewFlowRow = true, 
 
   return (
     <div className="flow">
-      <div className="flow-sheets">
+      <div className="flow-sheets" role="group" aria-label={t('Flow sheets')}>
         {data.sheets.map((s, i) =>
           renaming === i ? (
             <input
@@ -166,7 +167,7 @@ export default function FlowEditor({ content, onChange, focusNewFlowRow = true, 
       </div>
 
       <div className="flow-grid-wrap" ref={gridRef}>
-        <table className="flow-grid">
+        <table className="flow-grid" style={{ minWidth: `${sheet.columns.length * 160 + 32}px` }}>
           <thead>
             <tr>
               {sheet.columns.map((col, c) => (
@@ -193,6 +194,7 @@ export default function FlowEditor({ content, onChange, focusNewFlowRow = true, 
                 {row.map((cell, c) => (
                   <td key={c} className={`side-${sideOf(sheet.columns[c] || '')}`}
                     onContextMenu={(e) => context(e, [
+                      { label: 'Insert row above', run: () => insertRowAbove(r, c) },
                       { label: 'Insert row below', run: () => addRow(r, c) },
                       { label: 'Clear cell', run: () => setCell(r, c, '') },
                       { label: 'Remove row', run: () => removeRow(r), danger: true },
@@ -205,9 +207,35 @@ export default function FlowEditor({ content, onChange, focusNewFlowRow = true, 
                       placeholder="…"
                       onChange={(e) => setCell(r, c, e.target.value)}
                       onKeyDown={(e) => {
-                        if (matchesBinding(e, binding('flow-row', keybindings))) {
-                          e.preventDefault();
-                          addRow(r, c);
+                          if (e.key === 'Tab') {
+                            const direction = e.shiftKey ? -1 : 1;
+                            let nextRow = r;
+                            let nextColumn = c + direction;
+                            if (nextColumn < 0) {
+                              nextRow -= 1;
+                              nextColumn = sheet.columns.length - 1;
+                            } else if (nextColumn >= sheet.columns.length) {
+                              nextRow += 1;
+                              nextColumn = 0;
+                            }
+                            const nextCell = gridRef.current?.querySelector(
+                              `[data-row="${nextRow}"][data-column="${nextColumn}"]`,
+                            );
+                            if (nextCell) {
+                              e.preventDefault();
+                              nextCell.focus();
+                              nextCell.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+                            }
+                            return;
+                          }
+                          if (matchesBinding(e, binding('flow-row-above', keybindings))) {
+                            e.preventDefault();
+                            insertRowAbove(r, c);
+                            return;
+                          }
+                          if (matchesBinding(e, binding('flow-row', keybindings))) {
+                            e.preventDefault();
+                            addRow(r, c);
                         }
                       }}
                     />
@@ -222,9 +250,12 @@ export default function FlowEditor({ content, onChange, focusNewFlowRow = true, 
             ))}
           </tbody>
         </table>
-        <button className="flow-add-row" onClick={() => addRow()}>
-          {t('+ Add argument row')} <span className="hint">{displayBinding(binding('flow-row', keybindings))}</span>
-        </button>
+        <div className="flow-footer">
+          <button className="flow-add-row" onClick={() => addRow()}>
+            {t('+ Add argument row')} <span className="hint">{displayBinding(binding('flow-row', keybindings))}</span>
+          </button>
+          <span className="flow-keyboard-hint">{t('Tab moves between cells; Shift+Tab moves backward')}</span>
+        </div>
       </div>
       {menu && <ContextMenu {...menu} onClose={() => setMenu(null)} />}
     </div>
