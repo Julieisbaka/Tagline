@@ -107,7 +107,7 @@ For example, review `accent` with `accent-text`, and `highlight-bg` with
 `highlight-text`. Transparent colors must be evaluated after compositing
 against their actual background.
 
-## Built-in themes and accessibility
+## Built-in themes
 
 | ID | Theme |
 | --- | --- |
@@ -117,13 +117,6 @@ against their actual background.
 | `high-contrast-light` | High contrast light |
 
 The [built-in palettes](../src/themes/) are complete examples.
-The [theme tests](../tests/features.test.cjs) check token consistency and at least
-7:1 text contrast on tested high-contrast surfaces. Imported themes are validated
-for structure and color syntax, **not** automatically certified for contrast.
-
-Check normal and muted text, focus outlines, selected controls, citation text,
-highlights, find matches, and aff/neg distinction in both flows and graphs.
-Do not rely on color alone to communicate meaning.
 
 ## Package themes in an extension
 
@@ -196,71 +189,10 @@ By default at most 256 overrides are allowed. Names start with a lowercase lette
 by lowercase letters, digits, or hyphens (at most 100 characters). Each value must
 be nonblank text up to 2,048 characters by default, without semicolons, braces, null bytes,
 `url(...)`, or `@import`. The override count (1-2,048) and value length (32-16,384)
-are configurable as theme limits. Values are not automatically checked for suitability
-for each consuming CSS property. Use the separate unrestricted CSS option for
-external resources or full stylesheets.
+are configurable as theme limits.
 
 Variable overrides take precedence over `colors` and, for `font-text` and
 `editor-font-size`, over the corresponding Appearance preferences. The preferences
 are retained and resume when switching to a theme without those overrides.
 Switching themes clears previous variable overrides rather than leaking them
-into the next theme. Overrides survive import/export, restart, and extension
-theme contributions. Themes cannot change keybindings or application behavior.
-
-## Unrestricted custom CSS
-
-In **Settings > Appearance > Custom CSS**, type CSS or choose **Import CSS file**.
-The editor is a draft: choose **Apply CSS** or press `Mod+Enter` to save it. It is
-a CodeMirror editor with CSS syntax highlighting, bracket matching, autocompletion,
-undo history, and line wrapping. Enable **Enable custom
-CSS** and accept the warning to inject the saved stylesheet into the application.
-Disabling the switch immediately removes the stylesheet without erasing the
-saved source. **Discard CSS edits** restores the saved draft; **Reset custom
-CSS** clears the source and disables it.
-
-CSS is deliberately not selector-scoped or sanitized. It can target the entire
-application, use `!important`, media queries, animations, and `@import`, and load
-external resources where the browser permits. This can affect privacy, hide
-important controls, or make the application unusable. Only enable trusted CSS.
-It does not grant JavaScript or Node.js execution.
-
-For example:
-
-```css
-.visual-document,
-.preview {
-  line-height: 1.8;
-}
-
-@media (min-width: 1200px) {
-  .sidebar {
-    min-width: 260px;
-  }
-}
-```
-
-The stylesheet is added after the bundled styles. Some app properties are
-inline, so overriding those may require `!important`. Class names and component
-structure are internal implementation details and can change. Relative resource
-URLs resolve against the application document, not the imported CSS file's
-original folder.
-
-CSS is saved in the local application settings, not exported with palette JSON,
-shared through the vault, or applied inside extension sandbox documents.
-Do not assume that document exports inherit arbitrary application CSS.
-
-### Recovery from broken CSS
-
-The native menu is outside the page stylesheet. Open **View > Toggle Developer
-Tools** and run this in the application's main-frame console:
-
-```js
-const preferences = JSON.parse(localStorage.getItem('tagline-settings') || '{}');
-preferences.customCssEnabled = false;
-localStorage.setItem('tagline-settings', JSON.stringify(preferences));
-location.reload();
-```
-
-This preserves the CSS source for repair but prevents it from applying after
-reload. If necessary, set `preferences.customCss = ''` before saving to discard
-it entirely.
+into the next theme.

@@ -10,7 +10,7 @@ function webUrl(value) {
 }
 
 // Many sites reject Electron's default user agent outright. Present the plain Chromium/Chrome identity this
-// view actually is; this does not spoof crawlers or solve CAPTCHA/anti-bot challenges.
+// view actually is
 function browserUserAgent(agent) {
   return agent.replace(/\s(?:Electron|tagline)\/\S+/gi, '');
 }
@@ -63,8 +63,10 @@ function registerBrowser({ ipcMain, shell, getWindow }) {
     const scale = getWindow().webContents.getZoomFactor();
     const x = Math.max(0, Math.min(width - 1, Math.round(value.x * scale)));
     const y = Math.max(0, Math.min(height - 1, Math.round(value.y * scale)));
-    return { x, y, width: Math.max(1, Math.min(width - x, Math.round(value.width * scale))),
-      height: Math.max(1, Math.min(height - y, Math.round(value.height * scale))) };
+    return {
+      x, y, width: Math.max(1, Math.min(width - x, Math.round(value.width * scale))),
+      height: Math.max(1, Math.min(height - y, Math.round(value.height * scale)))
+    };
   };
   const handle = (channel, action) => ipcMain.handle(channel, (event, ...args) => {
     if (event.sender !== getWindow()?.webContents || event.senderFrame !== event.sender.mainFrame) {
@@ -77,10 +79,12 @@ function registerBrowser({ ipcMain, shell, getWindow }) {
     const box = bounds(rectangle);
     close();
     error = '';
-    view = new WebContentsView({ webPreferences: {
-      nodeIntegration: false, contextIsolation: true, sandbox: true,
-      partition: 'persist:tagline-web', webSecurity: true,
-    } });
+    view = new WebContentsView({
+      webPreferences: {
+        nodeIntegration: false, contextIsolation: true, sandbox: true,
+        partition: 'persist:tagline-web', webSecurity: true,
+      }
+    });
     const wc = view.webContents;
     wc.session.setUserAgent(browserUserAgent(wc.session.getUserAgent()));
     wc.setUserAgent(browserUserAgent(wc.getUserAgent()));
@@ -122,8 +126,10 @@ function registerBrowser({ ipcMain, shell, getWindow }) {
       if (!view) return;
       const [width, height] = getWindow().getContentSize();
       const current = view.getBounds();
-      view.setBounds({ ...current, width: Math.max(1, width - current.x - margins.right),
-        height: Math.max(1, height - current.y - margins.bottom) });
+      view.setBounds({
+        ...current, width: Math.max(1, width - current.x - margins.right),
+        height: Math.max(1, height - current.y - margins.bottom)
+      });
     };
     getWindow().on('resize', resizeHandler);
     await navigate(target);
