@@ -150,12 +150,12 @@ tagline.commands.register('save-checks', async () => {
     main: 'main.js', permissions: ['editor', 'vault:read', 'vault:write', 'events', 'ui'],
     contributes: {
       commands: [{ id: 'stamp', title: 'Stamp note', key: 'Mod+Alt+K' }, { id: 'index', title: 'Build index' },
-        { id: 'escape', title: 'Try escaping', key: 'Mod+N' }, { id: 'spin', title: 'Spin forever' },
-        { id: 'flood', title: 'Flood messages' }, { id: 'pending', title: 'Pending limit' },
-        { id: 'vault-apis', title: 'Exercise vault APIs' },
-        { id: 'save-checks', title: 'Exercise save failures and in-flight flush' },
-        { id: 'capabilities', title: 'Exercise editor events and UI' },
-        { id: 'source-selection', title: 'Set source selection' }],
+      { id: 'escape', title: 'Try escaping', key: 'Mod+N' }, { id: 'spin', title: 'Spin forever' },
+      { id: 'flood', title: 'Flood messages' }, { id: 'pending', title: 'Pending limit' },
+      { id: 'vault-apis', title: 'Exercise vault APIs' },
+      { id: 'save-checks', title: 'Exercise save failures and in-flight flush' },
+      { id: 'capabilities', title: 'Exercise editor events and UI' },
+      { id: 'source-selection', title: 'Set source selection' }],
       panels: [{ id: 'status', title: 'Status' }],
       webviews: [{ id: 'details', title: 'Details' }],
       themes: ['themes/ocean.json'],
@@ -176,8 +176,10 @@ tagline.commands.register('save-checks', async () => {
   await fs.writeFile(path.join(vault, 'Round.flow'), JSON.stringify({ version: 1, sheets: [{ name: 'Case', columns: ['1AC'], rows: [['A']] }] }));
   const demoManifest = require('../electron/extensions.cjs').validateManifest(
     JSON.parse(await fs.readFile(path.join(ext('demo'), 'manifest.json'), 'utf8')), ext('demo'));
-  const demoReview = JSON.stringify({ permissions: [...demoManifest.permissions].sort(),
-    settings: demoManifest.contributes.settings, panels: demoManifest.contributes.panels, webviews: demoManifest.contributes.webviews });
+  const demoReview = JSON.stringify({
+    permissions: [...demoManifest.permissions].sort(),
+    settings: demoManifest.contributes.settings, panels: demoManifest.contributes.panels, webviews: demoManifest.contributes.webviews
+  });
   await fs.writeFile(path.join(profile, 'config.json'), JSON.stringify({
     modelAutoload: false, lastVault: vault, enabledExtensions: ['demo', 'nosy'],
     extensionReviews: { demo: demoReview },
@@ -313,6 +315,7 @@ tagline.commands.register('save-checks', async () => {
         assert.equal(await js('6 * 7'), 42, 'App stays responsive during an extension loop');
         await toast('Demo: Extension stopped responding');
         await wait(`!document.querySelector('iframe[data-extension="demo"]')`, 'runaway worker removed');
+        await wait("document.querySelectorAll('.extension-surface').length === 0", 'stopped extension surfaces removed');
         await palette('Demo: Spin forever');
         await toast('Demo was stopped');
         await js(`window.dispatchEvent(new KeyboardEvent('keydown', { key: ',', ctrlKey: ${process.platform !== 'darwin'}, metaKey: ${process.platform === 'darwin'}, bubbles: true }))`);
