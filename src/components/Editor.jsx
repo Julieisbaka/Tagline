@@ -3,7 +3,7 @@ import { markdown, markdownLanguage } from '@codemirror/lang-markdown';
 import { languages } from '@codemirror/language-data';
 import { Prec } from '@codemirror/state';
 import { openSearchPanel, searchKeymap } from '@codemirror/search';
-import { EditorView, keymap } from '@codemirror/view';
+import { EditorView, highlightActiveLine, highlightActiveLineGutter, keymap, lineNumbers } from '@codemirror/view';
 import CodeMirror from '@uiw/react-codemirror';
 import { useMemo, useRef } from 'react';
 import { binding, editorBinding, KEYBINDINGS } from '../lib/keybindings.js';
@@ -16,7 +16,9 @@ import {
   toggleWrap,
 } from '../lib/editorExtensions.js';
 
-export default function Editor({ value, onChange, noteNames, onOpenLink, onSendCard, onCursor, viewRef, keybindings }) {
+export default function Editor({
+  value, onChange, noteNames, onOpenLink, onSendCard, onCursor, viewRef, keybindings, settings,
+}) {
   // Keep callbacks in a ref so extensions stay stable across renders.
   const cb = useRef({});
   cb.current = { noteNames, onOpenLink, onSendCard, onCursor };
@@ -47,11 +49,15 @@ export default function Editor({ value, onChange, noteNames, onOpenLink, onSendC
     return [
       keymap.of(searchKeymap.filter((item) => item.key !== 'Mod-f')),
       markdown({ base: markdownLanguage, codeLanguages: languages }),
-      EditorView.lineWrapping,
-      autocompletion({ override: [wikiComplete] }),
+      ...(settings.sourceLineNumbers ? [lineNumbers()] : []),
+      ...(settings.sourceLineWrapping ? [EditorView.lineWrapping] : []),
+      ...(settings.sourceActiveLine ? [highlightActiveLine()] : []),
+      ...(settings.sourceActiveLine && settings.sourceLineNumbers ? [highlightActiveLineGutter()] : []),
+      ...(settings.sourceAutocomplete ? [autocompletion({ override: [wikiComplete] })] : []),
       debateKeys,
       ...debateDecorations,
       ...editorTheme,
+      ...(settings.sourceActiveLine ? [EditorView.theme({ '.cm-activeLine': { backgroundColor: 'var(--bg-hover)' } })] : []),
       EditorView.domEventHandlers({
         mousedown(e, view) {
           if (!(e.ctrlKey || e.metaKey)) return false;
@@ -67,7 +73,7 @@ export default function Editor({ value, onChange, noteNames, onOpenLink, onSendC
         if (u.selectionSet || u.docChanged) cb.current.onCursor?.(u.state.selection.main.head);
       }),
     ];
-  }, [keybindings]);
+  }, [keybindings, settings.sourceActiveLine, settings.sourceAutocomplete, settings.sourceLineWrapping]);
 
   return (
     <CodeMirror

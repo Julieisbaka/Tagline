@@ -9,6 +9,7 @@ import KeybindingSettings from './KeybindingSettings.jsx';
 import CustomCssSettings from './CustomCssSettings.jsx';
 import ReadingSettings from './ReadingSettings.jsx';
 import CustomizationLimits from './CustomizationLimits.jsx';
+import EditorSettings from './EditorSettings.jsx';
 
 // Generic fuzzy-filtered list modal used for quick switcher, commands, templates.
 export function Palette({ items, placeholder, onSelect, onClose, onCreate, createLabel }) {
@@ -138,6 +139,7 @@ export function SettingsDialog({ settings, update, onClose, extensions }) {
   }, []);
   const sections = [
     ['general', 'General', 'Your writing and debate workspace'],
+    ['editors', 'Editors', 'Configure Tiptap and CodeMirror'],
     ['appearance', 'Appearance', 'Make Tagline feel like yours'],
     ['performance', 'Performance and search', 'Control resource usage and results'],
     ['files', 'Files and folders', 'Portable paths and file associations'],
@@ -212,6 +214,9 @@ export function SettingsDialog({ settings, update, onClose, extensions }) {
             onChange={(e) => update({ readableWidth: e.target.checked })}
           />
         </label>
+        </section>
+        <section hidden={section !== 'editors'} className="settings-panel">
+          <EditorSettings settings={settings} update={update} />
         </section>
         <section hidden={section !== 'appearance'} className="settings-panel">
           <h3>{t('Theme and typography')}</h3>

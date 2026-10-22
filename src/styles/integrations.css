@@ -100,15 +100,16 @@
 }
 
 .visual-toolbar button.active {
-  background: var(--accent-dim);
-  color: var(--accent);
+  background: var(--bg-hover);
+  color: var(--text-strong);
+  border-color: var(--accent);
 }
 
 .visual-document {
   padding: 24px 32px 40vh;
   min-height: 70vh;
   font-size: var(--editor-font-size);
-  line-height: 1.65;
+  line-height: var(--visual-line-height, 1.65);
   outline: none;
   user-select: text;
 }
@@ -216,7 +217,7 @@
 }
 
 .custom-css-editor .cm-content {
-  caret-color: var(--text);
+  caret-color: var(--accent);
 }
 
 .find-and-replace-result {

@@ -185,6 +185,7 @@ export default function NoteView({
         {sourceMode ? (
           <Editor
             keybindings={settings.keybindings}
+            settings={settings}
             value={content}
             onChange={onChange}
             noteNames={noteNames}
@@ -197,7 +198,7 @@ export default function NoteView({
           <VisualEditor value={content} onChange={onChange} onOpenLink={onOpenLink}
             keybindings={settings.keybindings}
             onSendCard={sendCurrent} onSection={setVisualSection} noteNames={noteNames} visualRef={visualRef}
-            jump={jump?.path === path ? jump : null} />
+            jump={jump?.path === path ? jump : null} toolbarVisible={settings.visualToolbar} />
         ) : (
           <Preview
             content={content}

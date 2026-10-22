@@ -188,6 +188,8 @@ test('all themes share tokens; high contrast text meets 7:1 on major surfaces', 
   for (const theme of themes) {
     assert.equal(theme.version, 1);
     assert.deepEqual(Object.keys(theme.colors).sort(), Object.keys(themes[0].colors).sort());
+    assert.ok(contrast(theme.colors['text-strong'], theme.colors['bg-hover']) >= 4.5,
+      `${theme.id}: selected widget text/background`);
     if (!theme.id.startsWith('high-contrast')) continue;
     for (const color of ['text', 'text-muted', 'text-faint', 'accent', 'aff', 'neg', 'warning', 'h1', 'h2', 'h3', 'h4']) {
       for (const bg of ['bg', 'bg-secondary', 'bg-elevated', 'bg-hover']) {

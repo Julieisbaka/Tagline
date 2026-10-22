@@ -4,6 +4,7 @@ import { css } from '@codemirror/lang-css';
 import { Prec } from '@codemirror/state';
 import { EditorView, keymap } from '@codemirror/view';
 import { useI18n } from '../lib/i18n.js';
+import { settingsCodeMirrorTheme } from '../lib/editorExtensions.js';
 
 export default function CustomCssSettings({ settings, update }) {
   const { t } = useI18n();
@@ -15,6 +16,7 @@ export default function CustomCssSettings({ settings, update }) {
   const label = t('CSS source');
   const extensions = useMemo(() => [
     css(),
+    settingsCodeMirrorTheme,
     EditorView.lineWrapping,
     EditorView.contentAttributes.of({ 'aria-label': label, 'aria-multiline': 'true', spellcheck: 'false' }),
     Prec.high(keymap.of([{ key: 'Mod-Enter', run: () => { apply.current(); return true; } }])),

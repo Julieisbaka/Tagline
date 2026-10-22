@@ -349,7 +349,8 @@ Changes save automatically on the current device.
 | Section | Controls |
 | --- | --- |
 | General | Speaking rate, personal speech calibration samples, speech-document path, default editor, flow-row focus, readable line width. |
-| Appearance | English/Spanish/French UI, built-in/custom/extension themes, editor font size, installed or imported fonts, opt-in unrestricted custom CSS in a CodeMirror editor with CSS highlighting (`Mod+Enter` applies). |
+| Editors | Tiptap toolbar visibility and line height; CodeMirror line numbers, wrapping, active-line highlight, and autocomplete. |
+| Appearance | English/Spanish/French UI, built-in/custom/extension themes, editor font family and size, installed or imported fonts, opt-in unrestricted custom CSS in a CodeMirror editor with CSS highlighting (`Mod+Enter` applies). |
 | Performance and search | Visual parse-cache limits and maximum search results. |
 | Files and folders | Folder-path spaces, `.md`/`.flow` label visibility, auto relinking, externally missing-tab cleanup, workspace persistence, revision-history retention, association guidance. |
 | Integrations | Embedded websites, Pandoc location/status/install-page link, model download/load/autoload, optional Hugging Face token, Political DEBATE repository/local folder/unload. |
@@ -363,6 +364,12 @@ Notable defaults and limits:
 | --- | --- | --- |
 | Speaking rate | 250 WPM | UI range 100-500; used to calibrate syllable-based timing. |
 | Editor font size | 16 | UI range 10-32. |
+| Visual editor line height | 1.65 | UI range 1-2.5. |
+| Source line numbers | Disabled | Toggle in **Settings > Editors**. |
+| Source line wrapping | Enabled | Toggle in **Settings > Editors**. |
+| Source active-line highlight | Disabled | Toggle in **Settings > Editors**. |
+| Source autocomplete | Enabled | Wiki-link suggestions; toggle in **Settings > Editors**. |
+| Visual formatting toolbar | Enabled | Toggle in **Settings > Editors**; editor shortcuts remain available when hidden. |
 | Default editor | Visual | Visual or Source. |
 | Visual cache entries | 16 | 0-256; zero disables caching. |
 | Visual cache characters | 4,000,000 | 0-100,000,000; combined source and serialized-document budget. |

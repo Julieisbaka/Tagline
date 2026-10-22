@@ -7,13 +7,17 @@ import { visualExtensions, visualSelection } from '../lib/visualExtensions.js';
 import { binding, displayBinding, KEYBINDINGS, matchesBinding } from '../lib/keybindings.js';
 import VisualFindReplace from './VisualFindReplace.jsx';
 
-export default function VisualEditor({ value, onChange, onOpenLink, onSendCard, onSection, noteNames, visualRef, jump, keybindings }) {
+export default function VisualEditor({
+  value, onChange, onOpenLink, onSendCard, onSection, noteNames, visualRef, jump, keybindings,
+  toolbarVisible = true,
+}) {
   const live = useRef({});
   live.current = { onChange, onOpenLink, onSendCard, onSection, keybindings };
-  return <MemoizedDocument value={value} noteNames={noteNames} visualRef={visualRef} jump={jump} live={live} keybindings={keybindings} />;
+  return <MemoizedDocument value={value} noteNames={noteNames} visualRef={visualRef} jump={jump}
+    live={live} keybindings={keybindings} toolbarVisible={toolbarVisible} />;
 }
 
-function VisualDocument({ value, noteNames, visualRef, jump, live, keybindings }) {
+function VisualDocument({ value, noteNames, visualRef, jump, live, keybindings, toolbarVisible }) {
   const { t } = useI18n();
   const lastMarkdown = useRef(value);
   const lastProp = useRef(value);
@@ -135,7 +139,7 @@ function VisualDocument({ value, noteNames, visualRef, jump, live, keybindings }
   };
   return (
     <div className="visual-editor">
-      <div className="visual-toolbar" role="toolbar" aria-label={t('Card formatting')}>
+      {toolbarVisible && <div className="visual-toolbar" role="toolbar" aria-label={t('Card formatting')}>
         {[['Pocket', 1], ['Hat', 2], ['Block', 3], ['Tag', 4]].map(([label, level]) => (
           <span key={level}>{button(label, () => editor.chain().focus().toggleHeading({ level }).run(),
             editor.isActive('heading', { level }), shortcutTitle(label, ['pocket', 'hat', 'block', 'tag'][level - 1]))}</span>
@@ -147,7 +151,7 @@ function VisualDocument({ value, noteNames, visualRef, jump, live, keybindings }
         {button('Link', () => setLinkTarget(''))}
         {button('Find and replace', () => setFindOpen((open) => !open), findOpen, shortcutTitle('Find and replace', 'find'))}
         {button('Send card', () => live.current.onSendCard())}
-      </div>
+      </div>}
       {findOpen && <VisualFindReplace editor={editor} onClose={() => setFindOpen(false)} />}
       {linkTarget !== null && <form className="visual-link-form" onSubmit={(e) => { e.preventDefault(); insertLink(); }}>
         <input autoFocus aria-label={t('Wiki link target')} placeholder="Note#Heading|Label" list="visual-note-targets"

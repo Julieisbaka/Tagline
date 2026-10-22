@@ -30,7 +30,7 @@
   padding: 24px 32px 40vh;
   font-family: var(--font-text);
   font-size: var(--editor-font-size);
-  line-height: 1.65;
+  line-height: var(--visual-line-height, 1.65);
   user-select: text;
 }
 

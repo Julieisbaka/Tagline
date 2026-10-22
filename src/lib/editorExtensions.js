@@ -123,23 +123,47 @@ const highlightStyle = HighlightStyle.define([
   { tag: t.list, color: 'var(--accent)' },
 ]);
 
+export const settingsCodeMirrorTheme = EditorView.theme(
+  {
+    '&': { color: 'var(--text)' },
+    '.cm-content': { caretColor: 'var(--accent)', color: 'var(--text)' },
+    '.cm-cursor, .cm-dropCursor': { borderLeftColor: 'var(--accent)', borderLeftWidth: '2px' },
+    '.cm-tooltip': {
+      backgroundColor: 'var(--bg-elevated)',
+      border: '1px solid var(--border)',
+      color: 'var(--text)',
+    },
+    '.cm-tooltip-autocomplete ul': { backgroundColor: 'var(--bg-elevated)', color: 'var(--text)' },
+    '.cm-tooltip-autocomplete ul li': { backgroundColor: 'var(--bg-elevated)', color: 'var(--text)' },
+    '.cm-tooltip-autocomplete ul li[aria-selected]': {
+      backgroundColor: 'var(--bg-hover)',
+      color: 'var(--text-strong)',
+      borderLeft: '2px solid var(--accent)',
+    },
+    '.cm-completionLabel': { color: 'inherit' },
+    '.cm-completionDetail': { color: 'var(--text-muted)' },
+    '.cm-tooltip-autocomplete ul li[aria-selected] .cm-completionDetail': { color: 'var(--text-strong)' },
+    '.cm-completionMatchedText': { color: 'inherit', fontWeight: '700', textDecoration: 'underline' },
+  },
+  { dark: true },
+);
+
 export const editorTheme = [
   EditorView.theme(
     {
       '&': { height: '100%', backgroundColor: 'transparent', color: 'var(--text)' },
       '.cm-scroller': { fontFamily: 'var(--font-text)', fontSize: 'var(--editor-font-size)', lineHeight: '1.6' },
-      '.cm-content': { padding: '24px 0 40vh', caretColor: 'var(--accent)' },
+      '.cm-content': { padding: '24px 0 40vh', caretColor: 'var(--accent)', color: 'var(--text)' },
       '.cm-line': { padding: '0 4px' },
-      '.cm-cursor': { borderLeftColor: 'var(--accent)', borderLeftWidth: '2px' },
+      '.cm-cursor, .cm-dropCursor': { borderLeftColor: 'var(--accent)', borderLeftWidth: '2px' },
       '&.cm-focused .cm-selectionBackground, .cm-selectionBackground, ::selection': {
         backgroundColor: 'var(--selection) !important',
       },
       '.cm-activeLine': { backgroundColor: 'transparent' },
-      '.cm-gutters': { display: 'none' },
-      '.cm-tooltip': { background: 'var(--bg-elevated)', border: '1px solid var(--border)', color: 'var(--text)' },
-      '.cm-tooltip-autocomplete ul li[aria-selected]': { background: 'var(--accent-dim)', color: 'var(--text)' },
+      '.cm-gutters': { backgroundColor: 'var(--bg-secondary)', color: 'var(--text-muted)', borderRight: '1px solid var(--border)' },
     },
     { dark: true },
   ),
   syntaxHighlighting(highlightStyle),
+  settingsCodeMirrorTheme,
 ];

@@ -70,6 +70,11 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
           el.value = ${JSON.stringify(value)}; el.dispatchEvent(new Event('change', { bubbles: true })); })()`);
         await delay(150);
       };
+      const check = async (selector, value, key) => {
+        await js(`document.querySelector(${JSON.stringify(selector)}).click()`);
+        await wait(`JSON.parse(localStorage.getItem('tagline-settings')).${key} === ${JSON.stringify(value)}`);
+        await wait(`document.querySelector(${JSON.stringify(selector)}).checked === ${JSON.stringify(value)}`);
+      };
       const settings = async () => {
         await js("document.querySelector('.ribbon button:last-child').click()");
         await wait("!!document.querySelector('.settings')");
@@ -91,6 +96,10 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
         assert.equal(await js("document.querySelectorAll('.flow-grid tbody tr').length"), 2);
         await settings();
         await js("document.querySelector('[data-setting=\"focusNewFlowRow\"]').click()");
+        await js("document.querySelector('[data-section=editors]').click()");
+        await check('[data-setting=sourceLineNumbers]', true, 'sourceLineNumbers');
+        await check('[data-setting=sourceActiveLine]', true, 'sourceActiveLine');
+        await check('[data-setting=sourceLineWrapping]', false, 'sourceLineWrapping');
         await click('.settings button', 'Done');
         await addKey(1, 0);
         assert.equal(await js("document.activeElement.dataset.row"), '1');
@@ -126,6 +135,8 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
         await wait("!!document.querySelector('.visual-document')");
         assert.equal(await js("window.parseCount"), 0, 'Unchanged Markdown should use the parsed-document cache');
         await select('[aria-label="Editor mode"]', 'edit');
+        assert.equal(await js("!!document.querySelector('.cm-gutters .cm-lineNumbers')"), true);
+        assert.equal(await js("!!document.querySelector('.cm-activeLine')"), true);
         await js("document.querySelector('.cm-content').focus()");
         wc.sendInputEvent({ type: 'keyDown', keyCode: 'End', modifiers: ['control'] });
         wc.sendInputEvent({ type: 'keyUp', keyCode: 'End', modifiers: ['control'] });
@@ -149,6 +160,10 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
         // Real themes all apply through the same token API, and locale changes update live.
         await settings();
         await js("document.querySelector('[data-section=appearance]').click()");
+        const cssEditorColors = await js(`(() => { const style = getComputedStyle(document.querySelector('.custom-css-editor .cm-content'));
+          return { text: style.color, caret: style.caretColor }; })()`);
+        assert.notEqual(cssEditorColors.text, 'rgb(0, 0, 0)');
+        assert.notEqual(cssEditorColors.caret, 'rgb(0, 0, 0)');
         for (const id of ['light', 'high-contrast-dark', 'high-contrast-light', 'dark']) {
           await select('[data-setting="theme"]', id);
           assert.equal(await js("document.documentElement.dataset.theme"), id);
@@ -158,6 +173,12 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
         assert.equal(await js("document.querySelector('.settings-header h2').textContent"), 'Apariencia');
         await select('[data-setting="language"]', 'fr');
         assert.equal(await js("document.querySelector('.settings-header h2').textContent"), 'Apparence');
+        await js("document.querySelector('[data-section=editors]').click()");
+        assert.deepEqual(await js(`(() => Object.fromEntries(['visualToolbar', 'sourceLineNumbers', 'sourceLineWrapping',
+          'sourceActiveLine', 'sourceAutocomplete'].map(key => [key, document.querySelector('[data-setting=\"' + key + '\"]').checked])))()`),
+          { visualToolbar: true, sourceLineNumbers: true, sourceLineWrapping: false, sourceActiveLine: true, sourceAutocomplete: true });
+        assert.equal(await js("document.querySelector('[data-setting=visualLineHeight]').value"), '1.65');
+        await js("document.querySelector('[data-section=appearance]').click()");
         if (process.env.TAGLINE_FEATURE_SCREENSHOT) {
           await select('[data-setting="theme"]', 'high-contrast-light');
           win.show();
@@ -169,6 +190,10 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
         await click('.theme-actions button', 'Customize current theme');
         await wait("!!document.querySelector('.theme-editor .cm-editor .cm-content')");
         assert.equal(await js("document.querySelectorAll('.theme-editor textarea').length"), 0);
+        const jsonEditorColors = await js(`(() => { const style = getComputedStyle(document.querySelector('.theme-editor .cm-content'));
+          return { text: style.color, caret: style.caretColor }; })()`);
+        assert.notEqual(jsonEditorColors.text, 'rgb(0, 0, 0)');
+        assert.notEqual(jsonEditorColors.caret, 'rgb(0, 0, 0)');
         await click('.theme-editor .settings-actions button', 'Discard theme edits');
         await js("document.querySelector('[data-section=advanced]').click()");
         assert.equal(await js("document.querySelectorAll('.customization-limits .settings-actions button').length"), 2);

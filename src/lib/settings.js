@@ -57,7 +57,11 @@ export function useSettings() {
     root.style.setProperty('--font-text', variables['font-text'] ?? (settings.importedFont ? '"Tagline Custom"' :
       settings.fontFamily.trim() ? `${JSON.stringify(settings.fontFamily.trim())}, system-ui, sans-serif` : 'system-ui, sans-serif'));
     root.style.setProperty('--editor-font-size', variables['editor-font-size'] ?? `${settings.fontSize}px`);
-  }, [settings.fontFamily, settings.importedFont, settings.fontSize, settings.theme, settings.customTheme, themeRevision]);
+    const lineHeight = Number(settings.visualLineHeight);
+    root.style.setProperty('--visual-line-height',
+      Number.isFinite(lineHeight) && lineHeight >= 1 && lineHeight <= 2.5 ? String(lineHeight) : '1.65');
+  }, [settings.fontFamily, settings.importedFont, settings.fontSize, settings.visualLineHeight,
+    settings.theme, settings.customTheme, themeRevision]);
   useEffect(() => {
     if (!settings.importedFont) return;
     let disposed = false;
