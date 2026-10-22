@@ -1,3 +1,5 @@
+import { getRuntimeLimits } from './customization.mjs';
+
 const ID = /^[a-z0-9][a-z0-9-]{1,63}$/;
 
 export function validateSettingValue(setting, value) {
@@ -15,9 +17,9 @@ export function validateSettingValue(setting, value) {
   return value;
 }
 
-export function validateSettingDefinitions(definitions = []) {
-  if (!Array.isArray(definitions) || definitions.length > 32) {
-    throw new Error('contributes.settings must be a list of at most 32 settings.');
+export function validateSettingDefinitions(definitions = [], limits = getRuntimeLimits()) {
+  if (!Array.isArray(definitions) || definitions.length > limits.extensionSettings) {
+    throw new Error(`contributes.settings must be a list of at most ${limits.extensionSettings} settings.`);
   }
   const seen = new Set();
   return definitions.map((setting) => {

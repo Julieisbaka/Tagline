@@ -7,6 +7,8 @@ import ThemeSettings from './ThemeSettings.jsx';
 import ExtensionSettings from './ExtensionSettings.jsx';
 import KeybindingSettings from './KeybindingSettings.jsx';
 import CustomCssSettings from './CustomCssSettings.jsx';
+import ReadingSettings from './ReadingSettings.jsx';
+import CustomizationLimits from './CustomizationLimits.jsx';
 
 // Generic fuzzy-filtered list modal used for quick switcher, commands, templates.
 export function Palette({ items, placeholder, onSelect, onClose, onCreate, createLabel }) {
@@ -188,8 +190,8 @@ export function SettingsDialog({ settings, update, onClose, extensions }) {
           <div className="settings-content">
         <section hidden={section !== 'general'} className="settings-panel">
         <h3>{t('Writing and debate')}</h3>
-        {field('Speaking rate (words per minute)', 'wpm', 'number', { min: 100, max: 500 })}
-        <p>{t('Read time uses syllables and pronunciation complexity, calibrated at 1.5 syllables per word. Estimates are optimized for English.')}</p>
+        {field('Speaking rate (words per minute)', 'wpm', 'number', { min: 50, max: 1000 })}
+        <ReadingSettings settings={settings} update={update} />
         {field('Speech document path', 'speechDoc')}
         <label className="setting-row">
           <span>{t('Default editor')}</span>
@@ -241,6 +243,7 @@ export function SettingsDialog({ settings, update, onClose, extensions }) {
           {extensions && <ExtensionSettings extensions={extensions} />}
         </section>
         <section hidden={section !== 'advanced'} className="settings-panel">
+          <CustomizationLimits settings={settings} />
           <h3>{t('Internal flags')}</h3>
           <p>{t('These flags record dismissed notices. Clear a flag to show its notice again.')}</p>
           <label className="setting-row"><span>{t('Visual editor notice dismissed')}</span>

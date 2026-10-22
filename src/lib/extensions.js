@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { registerExtensionThemes, validateTheme } from './themes.js';
 import { KEYBINDINGS, reservedBinding, validBinding } from './keybindings.js';
 import { getExtensionSetting, setExtensionSettings, resetExtensionSettings } from './extensionSettings.js';
+import { getRuntimeLimits, validateLimits } from '../../electron/customization.mjs';
 
 // A worker runs extension code inside an opaque-origin supervisor iframe:
 // it cannot reach window.api, the DOM, app storage or the network (CSP connect-src 'none').
@@ -10,7 +11,6 @@ import { getExtensionSetting, setExtensionSettings, resetExtensionSettings } fro
 const SANDBOX_URL = 'extension-sandbox.html';
 
 const MAX_TEXT = 5_000_000;
-const MAX_STORAGE = 100_000;
 
 export const extensionCommandId = (extensionId, commandId) => `ext:${extensionId}.${commandId}`;
 
@@ -20,10 +20,11 @@ function requireText(value, label, max = MAX_TEXT) {
 }
 
 export class ExtensionHost {
-  constructor(manifest, source, bridge) {
+  constructor(manifest, source, bridge, limits = getRuntimeLimits()) {
     this.manifest = manifest;
     this.source = source;
     this.bridge = bridge;
+    this.limits = Object.freeze(validateLimits(limits));
     this.registered = new Set();
     this.watches = new Map();
     this.activeNoteWatches = new Map();
@@ -34,7 +35,7 @@ export class ExtensionHost {
     this.onMessage = this.onMessage.bind(this);
   }
 
-  start(timeout = 10000) {
+  start(timeout = this.limits.extensionStartupMs) {
     this.frame = document.createElement('iframe');
     this.frame.setAttribute('sandbox', 'allow-scripts');
     this.frame.setAttribute('aria-hidden', 'true');
@@ -42,14 +43,14 @@ export class ExtensionHost {
     this.frame.style.display = 'none';
     this.frame.src = new URL(SANDBOX_URL, document.baseURI).href;
     return new Promise((resolve, reject) => {
-      const timer = setTimeout(() => { this.dispose(); reject(new Error('Extension did not start within 10 seconds.')); }, timeout);
+      const timer = setTimeout(() => { this.dispose(); reject(new Error(`Extension did not start within ${timeout / 1000} seconds.`)); }, timeout);
       this.settle = (error) => {
         clearTimeout(timer);
         this.settle = null;
         if (error) { this.dispose(); reject(error); } else resolve();
       };
       window.addEventListener('message', this.onMessage);
-      this.frame.addEventListener('load', () => this.frame?.contentWindow.postMessage({ type: 'start', source: this.source }, '*'), { once: true });
+      this.frame.addEventListener('load', () => this.frame?.contentWindow.postMessage({ type: 'start', source: this.source, limits: this.limits }, '*'), { once: true });
       document.body.append(this.frame);
     });
   }
@@ -84,7 +85,7 @@ export class ExtensionHost {
         return setExtensionSettings(this.manifest, { [requireText(args[0], 'Setting id', 64)]: args[1] });
       case 'editor.watchActiveNote': {
         this.require('editor:active-note');
-        if (this.activeNoteWatches.size >= 32) throw new Error('Extension is limited to 32 active-note listeners.');
+        if (this.activeNoteWatches.size >= this.limits.extensionWatches) throw new Error(`Extension is limited to ${this.limits.extensionWatches} active-note listeners.`);
         const id = ++this.nextWatch;
         this.activeNoteWatches.set(id, b.watchActiveNote((event) => this.frame?.contentWindow?.postMessage({
           type: 'active-note-event', id, event: { path: event.path },
@@ -120,7 +121,7 @@ export class ExtensionHost {
           requireText(args[1], 'Expected content'), requireText(args[2], 'Content'));
       case 'vault.watch': {
         this.require('vault:read');
-        if (this.watches.size >= 32) throw new Error('Extension is limited to 32 vault watches.');
+        if (this.watches.size >= this.limits.extensionWatches) throw new Error(`Extension is limited to ${this.limits.extensionWatches} vault watches.`);
         const id = ++this.nextWatch;
         this.watches.set(id, b.watch((event) => this.frame?.contentWindow?.postMessage({
           type: 'vault-event', id, event,
@@ -136,7 +137,7 @@ export class ExtensionHost {
         const data = { ...this.storage(), [requireText(args[0], 'Key', 200)]: args[1] };
         if (args[1] === undefined || args[1] === null) delete data[args[0]];
         const text = JSON.stringify(data);
-        if (text.length > MAX_STORAGE) throw new Error('Extension storage is limited to 100 KB.');
+        if (text.length > this.limits.extensionStorageCharacters) throw new Error('Extension storage exceeds the configured limit.');
         localStorage.setItem(`tagline-extension:${this.manifest.id}`, text);
         return true;
       }
@@ -153,8 +154,8 @@ export class ExtensionHost {
     const data = event.data;
     const now = performance.now();
     if (now - this.messageWindow >= 1000) { this.messageWindow = now; this.messageCount = 0; }
-    if (++this.messageCount > 200) {
-      const error = new Error('Extension exceeded 200 messages per second and was stopped.');
+    if (++this.messageCount > this.limits.extensionMessagesPerSecond) {
+      const error = new Error(`Extension exceeded ${this.limits.extensionMessagesPerSecond} messages per second and was stopped.`);
       if (this.settle) this.settle(error);
       else { this.dispose(); this.bridge.notify(`${this.manifest.name}: ${error.message}`); }
       return;
@@ -166,8 +167,8 @@ export class ExtensionHost {
       else { this.dispose(); this.bridge.notify(`${this.manifest.name}: ${error.message}`); }
     } else if (data.type === 'error') this.bridge.notify(`${this.manifest.name}: ${String(data.message).slice(0, 500)}`);
     else if (data.type === 'call') {
-      if (this.pendingCalls >= 32) {
-        this.frame.contentWindow.postMessage({ type: 'result', id: data.id, error: 'Extension is limited to 32 pending API calls.' }, '*');
+      if (this.pendingCalls >= this.limits.extensionPendingCalls) {
+        this.frame.contentWindow.postMessage({ type: 'result', id: data.id, error: `Extension is limited to ${this.limits.extensionPendingCalls} pending API calls.` }, '*');
         return;
       }
       this.pendingCalls++;
@@ -246,12 +247,12 @@ export function useExtensions({ bridgeRef, notify }) {
     const loaded = await Promise.all(list.map(async (item) => {
       if (item.error || !item.enabled) return item;
       try {
-        const { source, themes: files } = await window.api.loadExtension(item.id);
+        const { source, themes: files, limits } = await window.api.loadExtension(item.id);
         files.forEach((theme, index) => themes.push({
-          ...validateTheme(theme), id: `ext:${item.id}:${index}`, extension: item.name,
+          ...validateTheme(theme, limits), id: `ext:${item.id}:${index}`, extension: item.name,
         }));
         if (source) {
-          const host = new ExtensionHost(item, source, bridge);
+          const host = new ExtensionHost(item, source, bridge, limits);
           await host.start();
           if (current !== generation.current) { host.dispose(); return item; }
           hosts.current.set(item.id, host);
@@ -277,6 +278,10 @@ export function useExtensions({ bridgeRef, notify }) {
     reload();
     const active = hosts;
     return () => { generation.current++; active.current.forEach((host) => host.dispose()); };
+  }, [reload]);
+  useEffect(() => {
+    window.addEventListener('customizationlimits', reload);
+    return () => window.removeEventListener('customizationlimits', reload);
   }, [reload]);
 
   const run = useCallback((item) => {

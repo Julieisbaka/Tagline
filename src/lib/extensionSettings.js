@@ -1,4 +1,5 @@
 import { validateSettingValue } from '../../electron/extensionSettings.mjs';
+import { getRuntimeLimits } from '../../electron/customization.mjs';
 
 function definition(manifest, key) {
   const setting = manifest.contributes.settings?.find((item) => item.id === key);
@@ -26,7 +27,7 @@ export function setExtensionSettings(manifest, values) {
     data[key] = validateSettingValue(definition(manifest, key), value);
   }
   const text = JSON.stringify(data);
-  if (text.length > 100000) throw new Error('Extension settings are limited to 100 KB.');
+  if (text.length > getRuntimeLimits().extensionStorageCharacters) throw new Error('Extension settings exceed the configured storage limit.');
   localStorage.setItem(`tagline-extension-settings:${manifest.id}`, text);
   window.dispatchEvent(new CustomEvent('extension-settings-changed'));
   return true;

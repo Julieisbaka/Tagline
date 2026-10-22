@@ -43,7 +43,7 @@ export function getSectionAt(content, offset) {
 const countWords = (s) => (s.replace(/<[^>]*>/g, '').replace(/&(?:#\d+|#x[\da-f]+|\w+);/gi, ' ')
   .match(/[\p{L}\p{N}]+(?:['’-][\p{L}\p{N}]+)*/gu) || []).length;
 
-export function cardStats(content) {
+function evidenceParts(content) {
   // Strip headings, cites and markup so we only count evidence text.
   const body = content
     .split('\n')
@@ -52,11 +52,21 @@ export function cardStats(content) {
   const evidence = body.replace(/^\*\*[^*\n]+\*\*[^\n]*$/gm, '');
   const highlighted = [...evidence.matchAll(/==([\s\S]*?)==|<mark\b[^>]*>([\s\S]*?)<\/mark>/gi)]
     .map((m) => (m[1] ?? m[2]).replace(/\+\+/g, '')).join(' ');
-  const citationWords = countWords(spokenCitations(content));
+  return { body, highlighted, citations: spokenCitations(content) };
+}
+
+export function spokenEvidence(content) {
+  const { highlighted, citations } = evidenceParts(content);
+  return `${highlighted}\n${citations}`.trim();
+}
+
+export function cardStats(content) {
+  const { body, highlighted, citations } = evidenceParts(content);
+  const citationWords = countWords(citations);
   const underlined = [...body.matchAll(/\+\+([\s\S]*?)\+\+/g)].map((m) => m[1].replace(/==/g, '')).join(' ');
   const cards = (content.match(/^####\s/gm) || []).length;
   return {
-    ...speechStats(`${highlighted} ${spokenCitations(content)}`),
+    ...speechStats(`${highlighted}\n${citations}`.trim()),
     words: countWords(body.replace(/[=+*_]/g, '')),
     highlighted: countWords(highlighted),
     citationWords,

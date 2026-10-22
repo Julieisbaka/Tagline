@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { formatDuration } from '../lib/card.js';
 import { useI18n } from '../lib/i18n.js';
+import { remainingAt } from '../lib/countdown.js';
 
 export const FORMATS = {
   policy: {
@@ -32,8 +33,9 @@ function beep() {
     osc.connect(gain).connect(ctx.destination);
     osc.start();
     osc.stop(ctx.currentTime + 0.8);
-  } catch {
-    /* audio unavailable */
+    osc.onended = () => ctx.close();
+  } catch (error) {
+    console.error('Timer sound failed:', error);
   }
 }
 
@@ -41,24 +43,19 @@ function beep() {
 function useCountdown(initial) {
   const [remaining, setRemaining] = useState(initial);
   const [running, setRunning] = useState(false);
-  const last = useRef(0);
+  const deadline = useRef(null);
 
   useEffect(() => {
     if (!running) return undefined;
-    last.current = performance.now();
     const id = setInterval(() => {
-      const now = performance.now();
-      const dt = (now - last.current) / 1000;
-      last.current = now;
-      setRemaining((r) => {
-        const next = r - dt;
-        if (next <= 0) {
-          setRunning(false);
-          beep();
-          return 0;
-        }
-        return next;
-      });
+      if (deadline.current === null) return;
+      const next = remainingAt(deadline.current);
+      setRemaining(next);
+      if (next === 0) {
+        deadline.current = null;
+        setRunning(false);
+        beep();
+      }
     }, 200);
     return () => clearInterval(id);
   }, [running]);
@@ -66,10 +63,24 @@ function useCountdown(initial) {
   return {
     remaining,
     running,
-    toggle: () => setRunning((r) => !r && remaining > 0),
-    stop: () => setRunning(false),
+    toggle: () => {
+      if (deadline.current !== null) {
+        setRemaining(remainingAt(deadline.current));
+        deadline.current = null;
+        setRunning(false);
+      } else if (remaining > 0) {
+        deadline.current = Date.now() + remaining * 1000;
+        setRunning(true);
+      }
+    },
+    stop: () => {
+      if (deadline.current !== null) setRemaining(remainingAt(deadline.current));
+      deadline.current = null;
+      setRunning(false);
+    },
     reset: (v) => {
       setRunning(false);
+      deadline.current = null;
       setRemaining(v);
     },
   };

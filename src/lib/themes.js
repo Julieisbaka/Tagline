@@ -2,24 +2,25 @@ import dark from '../themes/dark.json' with { type: 'json' };
 import light from '../themes/light.json' with { type: 'json' };
 import contrastDark from '../themes/high-contrast-dark.json' with { type: 'json' };
 import contrastLight from '../themes/high-contrast-light.json' with { type: 'json' };
+import { getRuntimeLimits } from '../../electron/customization.mjs';
 
 export const BUILTIN_THEMES = [dark, light, contrastDark, contrastLight];
 export const COLOR_TOKENS = Object.freeze(Object.keys(dark.colors));
 
-function validateVariables(value = {}) {
-  if (!value || typeof value !== 'object' || Array.isArray(value) || Object.keys(value).length > 256) {
-    throw new Error('Theme variables must be an object with at most 256 CSS custom properties.');
+function validateVariables(value = {}, limits = getRuntimeLimits()) {
+  if (!value || typeof value !== 'object' || Array.isArray(value) || Object.keys(value).length > limits.themeVariables) {
+    throw new Error(`Theme variables must be an object with at most ${limits.themeVariables} CSS custom properties.`);
   }
   for (const [key, text] of Object.entries(value)) {
     if (!/^[a-z][a-z0-9-]{0,99}$/.test(key) || typeof text !== 'string' || !text.trim() ||
-      text.length > 2048 || /[;{}\0]|url\s*\(|@import/i.test(text)) {
+      text.length > limits.themeValueLength || /[;{}\0]|url\s*\(|@import/i.test(text)) {
       throw new Error(`Invalid theme variable: ${key}. Use a property name without -- and a CSS value without URLs or declarations.`);
     }
   }
   return { ...value };
 }
 
-export function validateTheme(value) {
+export function validateTheme(value, limits = getRuntimeLimits()) {
   if (!value || value.version !== 1 || typeof value.name !== 'string' ||
     !value.name.trim() || value.name.length > 80 || !['dark', 'light'].includes(value.mode) ||
     !value.colors || typeof value.colors !== 'object' || Array.isArray(value.colors)) {
@@ -35,7 +36,7 @@ export function validateTheme(value) {
   return {
     version: 1, id: 'custom', name: value.name.trim(), mode: value.mode,
     colors: { ...base.colors, ...value.colors },
-    variables: validateVariables(value.variables),
+    variables: validateVariables(value.variables, limits),
   };
 }
 

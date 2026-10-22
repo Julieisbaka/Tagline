@@ -3,6 +3,7 @@ import { setLanguage } from './i18n.js';
 import { applyTheme, getTheme } from './themes.js';
 import { configureVisualCache } from './visualCache.js';
 import DEFAULTS from './defaultSettings.json' with { type: 'json' };
+import { setRuntimeLimits } from '../../electron/customization.mjs';
 
 const KEY = 'tagline-settings';
 
@@ -22,10 +23,19 @@ export function useSettings() {
   useEffect(() => {
     const onThemes = () => setThemeRevision((n) => n + 1);
     window.addEventListener('extensionthemes', onThemes);
-    return () => window.removeEventListener('extensionthemes', onThemes);
+    window.addEventListener('customizationlimits', onThemes);
+    window.api.getCustomizationLimits().then((limits) => {
+      setRuntimeLimits(limits);
+      onThemes();
+    }).catch((error) => window.dispatchEvent(new CustomEvent('app-error', { detail: error.message })));
+    return () => {
+      window.removeEventListener('extensionthemes', onThemes);
+      window.removeEventListener('customizationlimits', onThemes);
+    };
   }, []);
   useLayoutEffect(() => {
-    applyTheme(getTheme(settings.theme, settings.customTheme));
+    try { applyTheme(getTheme(settings.theme, settings.customTheme)); }
+    catch (error) { window.dispatchEvent(new CustomEvent('app-error', { detail: error.message })); }
     setLanguage(settings.language);
   }, [settings.theme, settings.customTheme, settings.language, themeRevision]);
   useLayoutEffect(() => {
@@ -41,7 +51,9 @@ export function useSettings() {
   }, [settings.customCssEnabled, settings.customCss]);
   useLayoutEffect(() => {
     const root = document.documentElement;
-    const variables = getTheme(settings.theme, settings.customTheme).variables || {};
+    let variables;
+    try { variables = getTheme(settings.theme, settings.customTheme).variables || {}; }
+    catch (error) { window.dispatchEvent(new CustomEvent('app-error', { detail: error.message })); return; }
     root.style.setProperty('--font-text', variables['font-text'] ?? (settings.importedFont ? '"Tagline Custom"' :
       settings.fontFamily.trim() ? `${JSON.stringify(settings.fontFamily.trim())}, system-ui, sans-serif` : 'system-ui, sans-serif'));
     root.style.setProperty('--editor-font-size', variables['editor-font-size'] ?? `${settings.fontSize}px`);

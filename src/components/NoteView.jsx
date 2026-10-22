@@ -9,7 +9,7 @@ import { visualBlocker, visualSelection } from '../lib/visualExtensions.js';
 import Icon from './Icon.jsx';
 import { baseName, isFlow } from '../lib/vault.js';
 import { cardStats, formatDuration, getSectionAt } from '../lib/card.js';
-import { readingSeconds } from '../lib/readTime.js';
+import { calibrateReading, readingAssessment, readingSeconds } from '../lib/readTime.js';
 import { useI18n } from '../lib/i18n.js';
 import { binding, displayBinding } from '../lib/keybindings.js';
 
@@ -76,23 +76,34 @@ export default function NoteView({
     [content, cursor, mode, path, sourceMode, visualSection],
   );
   const sectionStats = useMemo(() => (section ? cardStats(section.text) : null), [section]);
+  const calibration = useMemo(() => {
+    try { return { profile: calibrateReading(settings.readingSamples), error: '' }; }
+    catch (error) { return { profile: null, error: error.message }; }
+  }, [settings.readingSamples]);
 
   useEffect(() => {
     if (!docStats) return onCursorStats(null);
     const wpm = settings.wpm || 250;
+    const profile = calibration.profile;
+    const assessment = readingAssessment(docStats, wpm, profile);
     const parts = [
       t('{count} cards', { count: docStats.cards }),
       t('{count} words', { count: docStats.words }),
-      t('{count} highlighted (~{time} read)', { count: docStats.highlighted, time: formatDuration(readingSeconds(docStats, wpm)) }),
+      t('{count} highlighted (~{time} read)', { count: docStats.highlighted, time: formatDuration(assessment.seconds) }),
+      t(profile ? 'Personal speech estimate' : 'Default speech estimate'),
     ];
+    if (assessment.readingEase !== null) parts.push(t('Readability {score} / effort {effort}', {
+      score: assessment.readingEase.toFixed(0), effort: assessment.effort.toFixed(0),
+    }));
+    if (calibration.error) parts.push(calibration.error);
     if (section && sectionStats) {
       parts.unshift(t('“{title}”: {count} hl / ~{time}', {
         title: section.title.slice(0, 30), count: sectionStats.highlighted,
-        time: formatDuration(readingSeconds(sectionStats, wpm)),
+        time: formatDuration(readingSeconds(sectionStats, wpm, profile)),
       }));
     }
     onCursorStats(parts);
-  }, [docStats, sectionStats, section, settings.wpm, onCursorStats, locale]);
+  }, [docStats, sectionStats, section, settings.wpm, calibration, onCursorStats, locale]);
 
   const commitTitle = () => {
     const t = title.trim();

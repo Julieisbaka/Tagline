@@ -223,7 +223,9 @@ test('extension manifests validate ids, permissions, commands and contained file
   await assert.rejects(handlers['extensions:setEnabled'](null, '../x', true), /Invalid/);
   await handlers['extensions:setEnabled'](null, 'word-tools', true);
   assert.deepEqual(config.enabledExtensions, ['word-tools']);
-  assert.deepEqual(await handlers['extensions:load'](null, 'word-tools'), { source: 'void 0;', themes: [] });
+  assert.deepEqual(await handlers['extensions:load'](null, 'word-tools'), {
+    source: 'void 0;', themes: [], limits: (await import('../electron/customization.mjs')).DEFAULT_LIMITS,
+  });
   await fs.rm(userData, { recursive: true, force: true });
 });
 

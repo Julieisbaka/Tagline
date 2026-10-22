@@ -317,7 +317,7 @@ if (primary) app.whenReady().then(() => {
   registerPandoc({ ipcMain, dialog, getWindow: () => win, readConfig, writeConfig });
   registerDocuments({ ipcMain, dialog, getWindow: () => win, readConfig });
   registerFonts({ app, ipcMain, dialog, getWindow: () => win });
-  registerExtensions({ app, ipcMain, shell, readConfig, writeConfig });
+  registerExtensions({ app, ipcMain, shell, readConfig, writeConfig, dialog, getWindow: () => win });
   registerEmbeddings({ app, ipcMain, safeStorage, getVaultRoot: () => vaultRoot, readConfig, writeConfig });
   createWindow();
   app.on('activate', () => {

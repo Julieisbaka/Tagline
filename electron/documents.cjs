@@ -50,6 +50,35 @@ function registerDocuments({ ipcMain, dialog, getWindow, readConfig }) {
     const converted = await importDocument(info.executable, source);
     return { canceled: false, name: path.basename(source, path.extname(source)), ...converted };
   });
+  ipcMain.handle('documents:readingSamples', async () => {
+    const result = await dialog.showOpenDialog(getWindow(), {
+      title: 'Import timed reading documents', properties: ['openFile', 'multiSelections'],
+      filters: [{ name: 'Documents', extensions: ['md', 'txt', ...Object.keys(IMPORT_READERS)] }],
+    });
+    if (result.canceled) return { canceled: true };
+    if (result.filePaths.length > 100) throw new Error('Use at most 100 timed reading samples.');
+    const documents = [];
+    let total = 0;
+    let pandoc;
+    for (const file of result.filePaths) {
+      const size = (await fs.stat(file)).size;
+      total += size;
+      if (size > 5 * 1024 * 1024 || total > 20 * 1024 * 1024) {
+        throw new Error('Reading imports are limited to 5 MB per document and 20 MB per batch.');
+      }
+      const extension = path.extname(file).toLowerCase();
+      let converted;
+      if (['.md', '.txt'].includes(extension)) {
+        converted = { markdown: await fs.readFile(file, 'utf8'), warnings: '' };
+      } else {
+        pandoc ||= await detectPandoc(readConfig().pandocPath || '');
+        if (!pandoc.available) throw new Error(pandoc.message);
+        converted = await importDocument(pandoc.executable, file);
+      }
+      documents.push({ name: path.basename(file), ...converted });
+    }
+    return { canceled: false, documents };
+  });
 }
 
 module.exports = { IMPORT_READERS, importDocument, registerDocuments };

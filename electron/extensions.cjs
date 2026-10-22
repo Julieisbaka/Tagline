@@ -1,14 +1,13 @@
 const fs = require('node:fs/promises');
 const path = require('node:path');
-const { validateSettingDefinitions } = require('./extensionSettings.mjs');
+const { validateSettingDefinitions, validateSettingValue } = require('./extensionSettings.mjs');
 const { createHash } = require('node:crypto');
+const { DEFAULT_LIMITS, validateLimits } = require('./customization.mjs');
 
 // Extensions live in <userData>/extensions/<folder>/manifest.json. The main process only reads and
 // validates files; extension code runs in a supervised sandbox worker (see src/lib/extensions.js).
 const PERMISSIONS = ['editor', 'vault:read', 'vault:write', 'settings', 'editor:active-note'];
 const ID = /^[a-z0-9][a-z0-9-]{1,63}$/;
-const MAX_SOURCE = 1024 * 1024;
-const MAX_THEME = 64 * 1024;
 
 function relativeFile(root, value, ext) {
   if (typeof value !== 'string' || !value || path.isAbsolute(value) || !value.toLowerCase().endsWith(ext)) {
@@ -28,7 +27,7 @@ async function containedFile(root, value, ext) {
   return file;
 }
 
-function validateManifest(value, root) {
+function validateManifest(value, root, limits = DEFAULT_LIMITS) {
   const fail = (message) => { throw new Error(`Invalid manifest: ${message}`); };
   if (!value || typeof value !== 'object' || Array.isArray(value)) fail('expected a JSON object.');
   if (value.manifestVersion !== 1) fail('manifestVersion must be 1.');
@@ -47,10 +46,10 @@ function validateManifest(value, root) {
   if (typeof contributes !== 'object' || Array.isArray(contributes)) fail('contributes must be an object.');
   const commands = contributes.commands ?? [];
   const themes = contributes.themes ?? [];
-  const settings = validateSettingDefinitions(contributes.settings);
+  const settings = validateSettingDefinitions(contributes.settings, limits);
   if (settings.length && !permissions.includes('settings')) fail('contributes.settings requires the settings permission.');
-  if (!Array.isArray(commands) || commands.length > 50) fail('contributes.commands must be a list of at most 50.');
-  if (!Array.isArray(themes) || themes.length > 20) fail('contributes.themes must be a list of at most 20.');
+  if (!Array.isArray(commands) || commands.length > limits.extensionCommands) fail(`contributes.commands must be a list of at most ${limits.extensionCommands}.`);
+  if (!Array.isArray(themes) || themes.length > limits.extensionThemes) fail(`contributes.themes must be a list of at most ${limits.extensionThemes}.`);
   const seen = new Set();
   for (const command of commands) {
     if (!command || typeof command.id !== 'string' || !ID.test(command.id) || seen.has(command.id)) {
@@ -82,7 +81,14 @@ function needsReview(manifest, config) {
   return manifest.permissions.some((permission) => ['settings', 'editor:active-note'].includes(permission));
 }
 
-function registerExtensions({ app, ipcMain, shell, readConfig, writeConfig }) {
+function registerExtensions({ app, ipcMain, shell, readConfig, writeConfig, dialog, getWindow }) {
+  const limits = () => validateLimits(readConfig().customizationLimits);
+  ipcMain.handle('customization:get', () => limits());
+  ipcMain.handle('customization:set', (_event, value) => {
+    const next = validateLimits(value);
+    writeConfig({ customizationLimits: next });
+    return next;
+  });
   const folder = () => path.join(app.getPath('userData'), 'extensions');
   const enabledIds = () => (Array.isArray(readConfig().enabledExtensions) ? readConfig().enabledExtensions : []);
 
@@ -96,7 +102,7 @@ function registerExtensions({ app, ipcMain, shell, readConfig, writeConfig }) {
     for (const entry of entries.filter((e) => e.isDirectory()).sort((a, b) => a.name.localeCompare(b.name))) {
       const root = path.join(folder(), entry.name);
       try {
-        const manifest = validateManifest(JSON.parse(await fs.readFile(path.join(root, 'manifest.json'), 'utf8')), root);
+        const manifest = validateManifest(JSON.parse(await fs.readFile(path.join(root, 'manifest.json'), 'utf8')), root, limits());
         if (ids.has(manifest.id)) throw new Error(`Duplicate extension id: ${manifest.id}`);
         ids.add(manifest.id);
         const reviewRequired = enabled.includes(manifest.id) && needsReview(manifest, readConfig());
@@ -113,6 +119,24 @@ function registerExtensions({ app, ipcMain, shell, readConfig, writeConfig }) {
   }
 
   ipcMain.handle('extensions:list', async () => (await scan()).map(({ root, ...item }) => item));
+  ipcMain.handle('extensions:exportSettings', async (_event, id, values) => {
+    const item = (await scan()).find((extension) => extension.id === id && !extension.error);
+    if (!item || !values || typeof values !== 'object' || Array.isArray(values)) throw new Error('Invalid extension settings export.');
+    const clean = {};
+    for (const [key, value] of Object.entries(values)) {
+      const setting = item.contributes.settings.find((definition) => definition.id === key);
+      if (!setting) throw new Error(`Undeclared extension setting: ${key}.`);
+      clean[key] = validateSettingValue(setting, value);
+    }
+    if (JSON.stringify(clean).length > limits().extensionStorageCharacters) throw new Error('Extension settings exceed the configured storage limit.');
+    const result = await dialog.showSaveDialog(getWindow(), {
+      title: 'Export extension settings', defaultPath: `${id}-settings.json`,
+      filters: [{ name: 'JSON', extensions: ['json'] }],
+    });
+    if (result.canceled) return { canceled: true };
+    await fs.writeFile(result.filePath, JSON.stringify({ version: 1, extensionId: id, values: clean }, null, 2), 'utf8');
+    return { canceled: false };
+  });
 
   // Returns code and theme files only for enabled, valid extensions.
   ipcMain.handle('extensions:load', async (_e, id) => {
@@ -122,16 +146,16 @@ function registerExtensions({ app, ipcMain, shell, readConfig, writeConfig }) {
     let source = null;
     if (item.main) {
       const file = await containedFile(item.root, item.main, '.js');
-      if ((await fs.stat(file)).size > MAX_SOURCE) throw new Error('Extension scripts must be smaller than 1 MB.');
+      if ((await fs.stat(file)).size > limits().extensionSourceBytes) throw new Error(`Extension script exceeds ${limits().extensionSourceBytes} bytes.`);
       source = await fs.readFile(file, 'utf8');
     }
     const themes = [];
     for (const theme of item.contributes.themes) {
       const file = await containedFile(item.root, theme, '.json');
-      if ((await fs.stat(file)).size > MAX_THEME) throw new Error('Theme files must be smaller than 64 KB.');
+      if ((await fs.stat(file)).size > limits().themeFileBytes) throw new Error(`Theme file exceeds ${limits().themeFileBytes} bytes.`);
       themes.push(JSON.parse(await fs.readFile(file, 'utf8')));
     }
-    return { source, themes };
+    return { source, themes, limits: limits() };
   });
 
   ipcMain.handle('extensions:setEnabled', async (_e, id, enabled, reviewToken) => {

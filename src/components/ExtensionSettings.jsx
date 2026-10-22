@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useI18n } from '../lib/i18n.js';
+import { getRuntimeLimits } from '../../electron/customization.mjs';
 
 const PERMISSION_LABELS = {
   editor: 'Read and insert text in the active note',
@@ -14,6 +15,27 @@ function ExtensionSettingsForm({ item, extensions }) {
   const [values, setValues] = useState({});
   const [error, setError] = useState('');
   const [loaded, setLoaded] = useState(false);
+  const importSettings = async (event) => {
+    const file = event.target.files[0];
+    event.target.value = '';
+    if (!file) return;
+    try {
+      if (file.size > getRuntimeLimits().extensionStorageCharacters * 4 + 1000) throw new Error(t('Extension settings file is too large.'));
+      const data = JSON.parse(await file.text());
+      if (!data || data.version !== 1 || data.extensionId !== item.id || !data.values ||
+        typeof data.values !== 'object' || Array.isArray(data.values)) throw new Error(t('Invalid extension settings file.'));
+      extensions.setSettings(item, data.values);
+      setError('');
+    } catch (err) { setError(err.message); }
+  };
+  const exportSettings = async () => {
+    try {
+      await window.api.exportExtensionSettings(item.id, Object.fromEntries(
+        item.contributes.settings.map((setting) => [setting.id, extensions.getSetting(item, setting.id)]),
+      ));
+      setError('');
+    } catch (err) { setError(err.message); }
+  };
   useEffect(() => {
     try {
       setValues(Object.fromEntries(item.contributes.settings.map((setting) =>
@@ -56,7 +78,10 @@ function ExtensionSettingsForm({ item, extensions }) {
     <div className="settings-actions">
       <button disabled={!loaded} onClick={() => apply()}>{t('Save extension settings')}</button>
       <button onClick={() => apply(true)}>{t('Reset extension settings')}</button>
+      <button disabled={!loaded} onClick={exportSettings}>{t('Export extension settings')}</button>
     </div>
+    <label>{t('Import extension settings')}<input type="file" accept=".json,application/json"
+      aria-label={t('Import extension settings')} onChange={importSettings} /></label>
   </fieldset>;
 }
 
