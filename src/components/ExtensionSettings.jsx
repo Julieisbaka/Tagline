@@ -5,7 +5,7 @@ const PERMISSION_LABELS = {
   editor: 'Read and insert text in the active note',
   'vault:read': 'Read notes in the open vault',
   'vault:write': 'Create and change notes in the open vault',
-  settings: 'Read and change only this extension’s declared settings',
+  settings: "Read and change only this extension's declared settings",
   'editor:active-note': 'Watch active-note paths without reading note content',
 };
 

@@ -5,6 +5,122 @@ const path = require('node:path');
 const childProcess = require('node:child_process');
 const { promisify } = require('node:util');
 
+test('extension settings have validated types, bounds, defaults and scoped storage', async (t) => {
+  const { validateSettingDefinitions, validateSettingValue } = await import('../electron/extensionSettings.mjs');
+  const { ExtensionHost } = await import('../src/lib/extensions.js');
+  const { resetExtensionSettings } = await import('../src/lib/extensionSettings.js');
+  const settings = [
+    { id: 'enabled', title: 'Enabled', type: 'boolean', default: true },
+    { id: 'limit', title: 'Limit', type: 'number', min: 1, max: 5, default: 3 },
+    { id: 'label', title: 'Label', type: 'string', maxLength: 10, default: 'note' },
+    { id: 'mode', title: 'Mode', type: 'string', enum: ['brief', 'full'], default: 'brief' },
+  ];
+  assert.deepEqual(validateSettingDefinitions(settings), settings);
+  for (const invalid of [null, [settings[0], settings[0]], [{ ...settings[0], id: undefined }],
+    [{ ...settings[0], default: 'true' }], [{ ...settings[1], min: 6 }],
+    [{ ...settings[2], maxLength: 0 }], [{ ...settings[3], enum: ['brief', 'brief'] }],
+    [{ ...settings[0], max: 5 }], Array(33).fill(settings[0])]) {
+    assert.throws(() => validateSettingDefinitions(invalid));
+  }
+  for (const [index, value] of [[0, 1], [1, NaN], [1, 6], [2, 'x'.repeat(11)], [3, 'other']]) {
+    assert.throws(() => validateSettingValue(settings[index], value), /Invalid value/);
+  }
+  const original = { localStorage: global.localStorage, window: global.window };
+  const storage = new Map();
+  global.localStorage = { getItem: (key) => storage.get(key) ?? null,
+    setItem: (key, value) => storage.set(key, value), removeItem: (key) => storage.delete(key) };
+  global.window = { dispatchEvent() {} };
+  t.after(() => { global.localStorage = original.localStorage; global.window = original.window; });
+  const manifest = { id: 'typed', permissions: [], contributes: { settings } };
+  const host = new ExtensionHost(manifest, '', {});
+  await assert.rejects(host.handle('settings.get', ['enabled']), /Permission/);
+  await assert.rejects(host.handle('settings.set', ['enabled', false]), /Permission/);
+  manifest.permissions.push('settings');
+  assert.equal(await host.handle('settings.get', ['enabled']), true);
+  await host.handle('settings.set', ['enabled', false]);
+  assert.equal(await host.handle('settings.get', ['enabled']), false);
+  await assert.rejects(host.handle('settings.set', ['limit', '4']), /Invalid value/);
+  await assert.rejects(host.handle('settings.get', ['theme']), /not declared/);
+  const other = new ExtensionHost({ ...manifest, id: 'other' }, '', {});
+  assert.equal(await other.handle('settings.get', ['enabled']), true);
+  storage.set('tagline-extension-settings:typed', '{invalid');
+  await assert.rejects(host.handle('settings.get', ['enabled']), SyntaxError);
+  resetExtensionSettings(manifest);
+  assert.equal(await host.handle('settings.get', ['enabled']), true);
+});
+
+test('active-note events are path-only, separately permissioned, bounded and disposable', async (t) => {
+  const { ExtensionHost } = await import('../src/lib/extensions.js');
+  const manifest = { id: 'events', permissions: ['editor'], contributes: { commands: [] } };
+  const callbacks = new Set();
+  const bridge = { watchActiveNote: (listener) => {
+    callbacks.add(listener); return () => callbacks.delete(listener);
+  } };
+  const host = new ExtensionHost(manifest, '', bridge);
+  const messages = [];
+  host.frame = { contentWindow: { postMessage: (message) => messages.push(message) }, remove() {} };
+  await assert.rejects(host.handle('editor.watchActiveNote', []), /editor:active-note/);
+  manifest.permissions = ['editor:active-note'];
+  await assert.rejects(host.handle('editor.getActiveNote', []), /Permission "editor"/);
+  const id = await host.handle('editor.watchActiveNote', []);
+  callbacks.forEach((callback) => callback({ path: 'Card.md', content: 'not exposed', selection: 'private' }));
+  callbacks.forEach((callback) => callback({ path: null }));
+  assert.deepEqual(messages, [
+    { type: 'active-note-event', id, event: { path: 'Card.md' } },
+    { type: 'active-note-event', id, event: { path: null } },
+  ]);
+  assert.equal(await host.handle('editor.unwatchActiveNote', [id]), true);
+  assert.equal(callbacks.size, 0);
+  for (let i = 0; i < 32; i++) await host.handle('editor.watchActiveNote', []);
+  await assert.rejects(host.handle('editor.watchActiveNote', []), /32 active-note/);
+  const original = global.window;
+  global.window = { removeEventListener() {} };
+  t.after(() => { global.window = original; });
+  host.dispose();
+  assert.equal(callbacks.size, 0);
+});
+
+test('settings and event permission changes require a fresh manifest review', async () => {
+  const fsAsync = require('node:fs/promises');
+  const { registerExtensions, validateManifest } = require('../electron/extensions.cjs');
+  const root = await fsAsync.mkdtemp(path.join(require('node:os').tmpdir(), 'tagline-review-'));
+  try {
+    const folder = path.join(root, 'extensions', 'review');
+    await fsAsync.mkdir(folder, { recursive: true });
+    const manifest = { manifestVersion: 1, id: 'review', name: 'Review', version: '1',
+      main: 'main.js', permissions: ['settings', 'editor:active-note'],
+      contributes: { settings: [{ id: 'label', title: 'Label', type: 'string', default: 'x' }] } };
+    assert.throws(() => validateManifest({ ...manifest, permissions: [] }, folder), /requires the settings permission/);
+    const file = path.join(folder, 'manifest.json');
+    await fsAsync.writeFile(file, JSON.stringify(manifest));
+    await fsAsync.writeFile(path.join(folder, 'main.js'), 'void 0;');
+    let config = { enabledExtensions: ['review'] };
+    const handlers = {};
+    registerExtensions({
+      app: { getPath: () => root }, shell: {},
+      ipcMain: { handle: (name, fn) => { handlers[name] = fn; } },
+      readConfig: () => config, writeConfig: (patch) => { config = { ...config, ...patch }; },
+    });
+    const [item] = await handlers['extensions:list']();
+    assert.equal(item.enabled, false);
+    assert.equal(item.reviewRequired, true);
+    await assert.rejects(handlers['extensions:load'](null, 'review'), /disabled/);
+    await assert.rejects(handlers['extensions:setEnabled'](null, 'review', true), /Reload and review/);
+    await handlers['extensions:setEnabled'](null, 'review', true, item.reviewToken);
+    assert.equal((await handlers['extensions:list']())[0].enabled, true);
+    manifest.contributes.settings[0].default = 'changed';
+    await fsAsync.writeFile(file, JSON.stringify(manifest));
+    assert.equal((await handlers['extensions:list']())[0].reviewRequired, true);
+    await assert.rejects(handlers['extensions:setEnabled'](null, 'review', true, item.reviewToken), /Reload and review/);
+    const [changed] = await handlers['extensions:list']();
+    await handlers['extensions:setEnabled'](null, 'review', true, changed.reviewToken);
+    assert.equal((await handlers['extensions:load'](null, 'review')).source, 'void 0;');
+    manifest.permissions.push('vault:write');
+    await fsAsync.writeFile(file, JSON.stringify(manifest));
+    assert.equal((await handlers['extensions:list']())[0].enabled, false);
+  } finally { await fsAsync.rm(root, { recursive: true, force: true }); }
+});
+
 test('extension vault mutation and watch APIs enforce permissions and clean up subscriptions', async () => {
   const { ExtensionHost } = await import('../src/lib/extensions.js');
   const manifest = { id: 'test', name: 'Test', permissions: [], contributes: { commands: [] } };

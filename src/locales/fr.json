@@ -4,7 +4,7 @@
   "Reset extension settings": "Réinitialiser les paramètres de l’extension",
   "Number settings cannot be empty.": "Les valeurs numériques ne peuvent pas être vides.",
   "Review changed permissions and settings before enabling this extension.": "Vérifiez les autorisations et paramètres modifiés avant d’activer cette extension.",
-  "Read and change only this extension’s declared settings": "Lire et modifier uniquement les paramètres déclarés de cette extension",
+  "Read and change only this extension's declared settings": "Lire et modifier uniquement les paramètres déclarés de cette extension",
   "Watch active-note paths without reading note content": "Observer les chemins de la note active sans lire son contenu",
   "Settings": "Paramètres",
   "Language": "Langue",

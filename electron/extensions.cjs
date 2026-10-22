@@ -101,8 +101,10 @@ function registerExtensions({ app, ipcMain, shell, readConfig, writeConfig }) {
         ids.add(manifest.id);
         const reviewRequired = enabled.includes(manifest.id) && needsReview(manifest, readConfig());
         const reviewToken = createHash('sha256').update(reviewSignature(manifest)).digest('hex');
-        found.push({ ...manifest, folder: entry.name, root, reviewRequired, reviewToken,
-          enabled: enabled.includes(manifest.id) && !reviewRequired });
+        found.push({
+          ...manifest, folder: entry.name, root, reviewRequired, reviewToken,
+          enabled: enabled.includes(manifest.id) && !reviewRequired
+        });
       } catch (error) {
         found.push({ id: null, folder: entry.name, root, error: error.message, enabled: false });
       }

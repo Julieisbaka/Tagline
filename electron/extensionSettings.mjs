@@ -21,7 +21,7 @@ export function validateSettingDefinitions(definitions = []) {
   }
   const seen = new Set();
   return definitions.map((setting) => {
-    if (!setting || !ID.test(setting.id) || seen.has(setting.id) ||
+    if (!setting || typeof setting.id !== 'string' || !ID.test(setting.id) || seen.has(setting.id) ||
       typeof setting.title !== 'string' || !setting.title.trim() || setting.title.length > 80 ||
       !['boolean', 'number', 'string'].includes(setting.type)) {
       throw new Error('Each extension setting needs a unique id, title, and boolean/number/string type.');
