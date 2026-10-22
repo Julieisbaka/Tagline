@@ -329,9 +329,10 @@ function createWindow() {
     if (event.isMainFrame) return;
     const destination = new URL(event.url);
     if (destination.protocol === 'about:' && ['srcdoc', 'blank'].includes(destination.pathname)) return;
-    const supervisor = new URL(isDev ? 'http://localhost:5173/extension-sandbox.html'
-      : require('node:url').pathToFileURL(path.join(__dirname, '..', 'dist', 'extension-sandbox.html')).href);
-    if (destination.href !== supervisor.href) event.preventDefault();
+    const allowed = ['extension-sandbox.html', 'extension-webview.html'].map((file) => isDev
+      ? `http://localhost:5173/${file}`
+      : require('node:url').pathToFileURL(path.join(__dirname, '..', 'dist', file)).href);
+    if (!allowed.includes(destination.href)) event.preventDefault();
   });
   win.webContents.on('will-navigate', (e, url) => {
     const destination = new URL(url);

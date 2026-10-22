@@ -61,10 +61,12 @@ test('rank fusion promotes agreement, retrieves semantic-only matches and limits
 
 test('fusion avoids duplicated files, sources and snippets and bounds excerpt count', async () => {
   const { mergeHybridResults } = await import('../src/lib/search.js');
-  const keyword = { path: 'Card.md', matches: [
-    { line: 0, text: 'zero' }, { line: 1, text: 'one' },
-    { line: 2, text: 'two' }, { line: 3, text: 'three' }, { line: 4, text: 'four' },
-  ] };
+  const keyword = {
+    path: 'Card.md', matches: [
+      { line: 0, text: 'zero' }, { line: 1, text: 'one' },
+      { line: 2, text: 'two' }, { line: 3, text: 'three' }, { line: 4, text: 'four' },
+    ]
+  };
   const semantic = { path: 'Card.md', score: 0.7, line: 0, text: 'zero' };
   const [result] = mergeHybridResults([keyword, keyword], [semantic, semantic]);
   assert.deepEqual(result.sources, ['keyword', 'semantic']);

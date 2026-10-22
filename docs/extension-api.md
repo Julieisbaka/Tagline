@@ -2,7 +2,8 @@
 
 [Documentation home](./README.md) | [Theme API](./theme-api.md)
 
-Extensions contribute commands, typed settings, and JSON themes. JavaScript runs in a dedicated
+Extensions contribute commands, typed settings, JSON themes, sidebar panels, and
+webview dialogs. Extension entry scripts run in a dedicated
 worker supervised by a hidden, opaque-origin iframe, not the Electron main
 process or the application page. DOM APIs such as `window` and `document` are
 unavailable; use the bridge rather than browser-page globals.
@@ -91,10 +92,12 @@ self-contained script if necessary. There is no package loader.
 | `description` | No | String, at most 500 characters. |
 | `author` | No | String, at most 500 characters. |
 | `main` | For commands | Relative path to a `.js` file. Optional for theme-only extensions. |
-| `permissions` | No | Array containing only `editor`, `editor:active-note`, `settings`, `vault:read`, or `vault:write`. Defaults to `[]`. |
+| `permissions` | No | Array containing only `editor`, `editor:active-note`, `settings`, `vault:read`, `vault:write`, `events`, or `ui`. Defaults to `[]`. |
 | `contributes.commands` | No | At most 50 command declarations; defaults to `[]`. |
 | `contributes.themes` | No | At most 20 relative `.json` paths; defaults to `[]`. |
 | `contributes.settings` | No | At most 32 typed setting declarations; requires `settings`. Defaults to `[]`. |
+| `contributes.panels` | No | At most 10 `{ id, title }` declarations for right-sidebar panels; requires `ui` and `main`. |
+| `contributes.webviews` | No | At most 10 `{ id, title }` declarations for sandboxed HTML dialogs; requires `ui` and `main`. |
 
 Each command needs a unique `id` using the extension-ID character rules and a
 nonblank `title` of at most 80 characters. Its optional `key` is a shortcut string.
@@ -117,11 +120,13 @@ initialization and await their registration before the entry script finishes.
 
 | Permission | Grants |
 | --- | --- |
-| `editor` | Read the active note and its selection; insert text into its editor. Reading the active note includes its entire content. |
+| `editor` | Read the active note, document and selection; insert text, set selection, and run approved Tiptap commands. Reading the active note includes its entire content. |
 | `editor:active-note` | Subscribe only to active-note path changes, without content or selection access. Does not imply `editor`. |
 | `settings` | Read/write only this extension's declared, validated settings. No application or other extension settings access. |
 | `vault:read` | List/read loaded `.md`/`.flow` notes and watch their changes in the open vault. |
 | `vault:write` | Create, replace, rename, trash, and flush supported notes. Append and compare-and-swap also require `vault:read`. |
+| `events` | Subscribe to application events (also requires each event's data permission); subscribe to custom events and emit events in this extension's namespace. |
+| `ui` | Display declared sandboxed panels and webviews and exchange messages with them. |
 | None | Register declared commands, notify the user, use private extension storage, contribute JSON themes. |
 
 Undeclared permission checks reject API calls. There is no direct Node.js,
@@ -130,8 +135,8 @@ or network access. The sandbox CSP blocks network requests and external resource
 Browser APIs available within the sandbox are not a supported way to access
 application data.
 
-Permission lists and setting definitions are reviewed together when enabling an
-extension. Changing either invalidates approval and disables the extension on
+Permission lists, setting definitions, and UI declarations are reviewed together when enabling an
+extension. Changing any of these invalidates approval and disables the extension on
 reload until the user reviews and re-enables it. Previously enabled extensions
 cannot silently acquire `settings` or `editor:active-note` access.
 
@@ -228,6 +233,147 @@ switching to no active note. Subscription does not deliver an initial snapshot.
 Closing the extension, disabling it, or reloading it unsubscribes automatically.
 Use `editor.getActiveNote()` only when full note access is actually needed and
 the broader `editor` permission has been declared and approved.
+
+### Editor selection and Tiptap bridge
+
+Requires `editor`. Extensions do not receive the live editor object, execute
+arbitrary editor methods, or install ProseMirror plugins.
+
+```js
+await tagline.editor.setSelection({ from: 1, to: 12 });
+const snapshot = await tagline.editor.tiptap.getSnapshot();
+// { path, doc: TiptapJSON, text, selection: { from, to }, size }
+await tagline.editor.tiptap.runCommand('toggleHeading', { level: 4 });
+await tagline.editor.tiptap.runCommand('toggleBold');
+```
+
+Selections use **source character offsets starting at 0** in source mode and
+**ProseMirror document positions** in visual mode (text usually starts at 1).
+These coordinate systems are not interchangeable. Positions must be integers
+with `from <= to`; positions outside the current document reject. Reading mode
+and flows reject. Tiptap snapshots and commands require an active visual Markdown
+editor; source fallback rejects. Snapshots include unsaved edits.
+
+Approved commands: `toggleBold`, `toggleItalic`, `toggleUnderline`,
+`toggleHighlight`, `toggleStrike`, `toggleHeading`, `setParagraph`,
+`toggleBulletList`, `toggleOrderedList`, `toggleBlockquote`, `undo`, `redo`,
+`unsetAllMarks`. Only `toggleHeading` takes options (`{ level: 1..6 }`).
+
+### Application event bus
+
+```js
+const stop = await tagline.events.on('editor.selectionChanged', async (event) => {
+  await tagline.storage.set('last-selection', event.selection);
+});
+await stop();
+
+const stopCustom = await tagline.events.on('ext.debate-tools.finished', (payload) => {
+  // Custom event payloads are untrusted data from the named extension.
+});
+await tagline.events.emit('ext.debate-tools.finished', { count: 3 });
+await stopCustom();
+```
+
+All subscriptions require `events`; built-in events also require:
+
+| Event | Additional permission | Payload |
+| --- | --- | --- |
+| `vault.changed` | `vault:read` | `{ open: boolean }`, emitted when the open vault changes. |
+| `vault.fileChanged` | `vault:read` | Same path-only change/reset events as `vault.watch`. |
+| `note.changed` | `editor:active-note` | `{ path: string \| null }`. |
+| `editor.updated` | `editor` | `{ path: string \| null, mode }`, emitted on content/note/mode changes. |
+| `editor.selectionChanged` | `editor` | `{ mode, selection: { from, to }, path? }`. |
+| `editor.ready` | `editor` | `{ mode, path? }`. |
+
+Subscriptions do not replay initial state. All listeners are removed on
+disable/reload/worker failure. At most the configured listener limit (default
+32) can be registered per extension. Custom names use
+`ext.<extension-id>.<event-name>`; extensions may subscribe to other namespaces
+but emit only their own. Names are at most 128 characters. Custom event and UI
+message payloads must be JSON-serializable and at most 65,536 characters.
+Payloads are copied for each listener, and application events cannot be spoofed.
+
+### Sidebar panels and HTML webviews
+
+Declare contributions before using them:
+
+```json
+{
+  "permissions": ["ui"],
+  "main": "main.js",
+  "contributes": {
+    "panels": [{ "id": "research-panel", "title": "Research" }],
+    "webviews": [{ "id": "source-details", "title": "Source details" }]
+  }
+}
+```
+
+IDs follow command-ID syntax; titles must be nonblank and at most 80 characters.
+Each surface is scoped to its owning extension. HTML is limited to 200,000
+characters. Use the same methods on `tagline.panels` or `tagline.webviews`:
+
+```js
+const stopMessages = tagline.webviews.onMessage('source-details', async (message) => {
+  if (message.ready) await tagline.webviews.postMessage('source-details', { title: 'Example source' });
+});
+await tagline.webviews.setHtml('source-details', `
+  <h1 id="title"></h1>
+  <script>
+    taglineWebview.onMessage(message => {
+      document.getElementById('title').textContent = message.title;
+    });
+    taglineWebview.postMessage({ ready: true });
+  </script>
+`);
+await tagline.webviews.show('source-details');
+// Later:
+await tagline.webviews.close('source-details');
+stopMessages();
+```
+
+Register message handlers before showing a surface. The page should send a ready
+message after registering `taglineWebview.onMessage`, then the worker can reply.
+Posting to an unmounted surface rejects. `setHtml` replaces the page and resets
+its DOM; `show` displays it, and `close` hides/unmounts it while retaining its
+HTML for reopening. Disabling/reloading removes all contributed surfaces.
+
+Panels appear above the built-in right-sidebar content (show the right sidebar
+if it is hidden); webviews appear as dialogs. HTML and inline scripts run in an
+opaque-origin `sandbox="allow-scripts"` iframe without same-origin access,
+Node, Electron APIs, network requests, forms, nested frames/workers, popups,
+or arbitrary frame navigation. Styles must be inline; images may use data URLs.
+HTML is not application-trusted markup: never inject unescaped note content into
+it. Use `textContent` for data sent over messages.
+
+Unlike worker entry scripts, webview scripts have DOM access and are not covered
+by the worker heartbeat guard; expensive synchronous scripts can harm renderer
+responsiveness. UI message rates are limited; exceeding the rate closes the
+surface. Enable UI extensions only if you trust their code.
+
+### Helpers and disposable subscriptions
+
+Helpers do not require a permission:
+
+```js
+const path = await tagline.helpers.path.join('Research', 'Energy.md');
+await tagline.helpers.path.normalize('Research/../Energy.md'); // "Energy.md"
+await tagline.helpers.path.basename(path); // "Energy.md"
+await tagline.helpers.path.dirname(path);  // "Research"
+await tagline.helpers.path.extname(path);  // ".md"
+const text = await tagline.helpers.markdownToText('**Evidence**'); // "Evidence"
+
+const disposables = tagline.helpers.createDisposables();
+disposables.add(await tagline.events.on('ext.debate-tools.finished', () => {}));
+disposables.add(tagline.panels.onMessage('research-panel', () => {}));
+await disposables.dispose();
+```
+
+Path helpers operate on vault-relative paths, normalize separators, and reject
+absolute paths and `..` traversal above the vault root. They do not access files.
+Markdown-to-text accepts at most 100,000 characters, omits HTML, and returns a
+plain-text approximation, not a round-trip serializer. `createDisposables` is
+synchronous; `add` returns the supplied function, and `dispose` invokes all
+registered disposers, clears the group, and surfaces any failure.
 
 ### Typed extension settings
 

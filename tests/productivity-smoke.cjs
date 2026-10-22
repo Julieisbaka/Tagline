@@ -193,7 +193,7 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
         await key('Enter', [primary, 'alt']);
         await wait("document.querySelectorAll('.flow-grid textarea').length === 4");
         // Finder open-file delivery reuses the existing vault and window.
-        app.emit('open-file', { preventDefault() {} }, cold);
+        app.emit('open-file', { preventDefault() { } }, cold);
         await wait("document.querySelector('.note-title')?.value === 'Cold'");
         console.log('PASS: citation autofill/preservation, settings layout/file styling, shortcut recording/conflicts/persistence, both editors, cold .flow launch, real second-instance handoff and Finder event.');
         app.exit(0);

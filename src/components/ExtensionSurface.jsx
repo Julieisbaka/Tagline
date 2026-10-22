@@ -1,38 +1,10 @@
-import { useEffect, useMemo, useRef } from 'react';
+import { useEffect, useRef } from 'react';
 import { requirePayload } from '../lib/extensionCapabilities.js';
-
-const BOOTSTRAP = `<script>
-(() => {
-  const listeners = new Set();
-  window.taglineWebview = Object.freeze({
-    postMessage: (payload) => parent.postMessage({ type: 'extension-ui-message', payload }, '*'),
-    onMessage: (listener) => {
-      if (typeof listener !== 'function') throw new TypeError('Expected a listener.');
-      listeners.add(listener);
-      return () => listeners.delete(listener);
-    },
-  });
-  addEventListener('message', (event) => {
-    if (event.source !== parent || event.data?.type !== 'extension-ui-message') return;
-    for (const listener of [...listeners]) {
-      try { listener(event.data.payload); }
-      catch (error) { parent.postMessage({ type: 'extension-ui-error', message: String(error.message) }, '*'); }
-    }
-  });
-  addEventListener('error', (event) => parent.postMessage({ type: 'extension-ui-error', message: event.message }, '*'));
-  addEventListener('unhandledrejection', (event) => parent.postMessage({
-    type: 'extension-ui-error', message: String(event.reason?.message || event.reason)
-  }, '*'));
-})();
-</script>`;
 
 export default function ExtensionSurface({ surface, onClose }) {
   const frame = useRef(null);
   const rate = useRef({ start: 0, count: 0 });
   const { host, kind, id, html, title } = surface;
-  const document = useMemo(() => `<!doctype html><html><head><meta charset="utf-8">
-    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data:; connect-src 'none'; base-uri 'none'; form-action 'none'; frame-src 'none'; worker-src 'none'">
-    ${BOOTSTRAP}</head><body>${html}</body></html>`, [html]);
 
   useEffect(() => {
     const receive = (event) => {
@@ -60,6 +32,8 @@ export default function ExtensionSurface({ surface, onClose }) {
     };
   }, [host, kind, id, title, surface, onClose]);
 
-  return <iframe className="extension-surface" ref={frame} title={title}
-    sandbox="allow-scripts" referrerPolicy="no-referrer" srcDoc={document} />;
+  return <iframe className="extension-surface" key={html} ref={frame} title={title}
+    sandbox="allow-scripts" referrerPolicy="no-referrer"
+    src={new URL('extension-webview.html', document.baseURI).href}
+    onLoad={() => frame.current?.contentWindow?.postMessage({ type: 'initialize', html }, '*')} />;
 }

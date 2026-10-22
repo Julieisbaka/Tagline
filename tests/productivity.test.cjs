@@ -10,8 +10,10 @@ test('citation autofill reads JSON-LD graphs, repeated authors, entities and met
       "datePublished":"2025-01-20","publisher":{"name":"Reuters"}}]}</script>
     <meta content='Ignored title' property='og:title'>
   `, 'https://www.reuters.com/world/story-2024-01-01/');
-  assert.deepEqual(fields, { author: 'Jane Smith, John Doe', title: 'Climate & Energy',
-    year: '2025', publication: 'Reuters', url: 'https://www.reuters.com/world/story-2024-01-01/' });
+  assert.deepEqual(fields, {
+    author: 'Jane Smith, John Doe', title: 'Climate & Energy',
+    year: '2025', publication: 'Reuters', url: 'https://www.reuters.com/world/story-2024-01-01/'
+  });
   const fallback = parseMetadata(`<meta name="byl" content="By Jane Smith">
     <meta property="og:title" content="Research &#x2014; explained">`, 'https://www.nytimes.com/2024/05/03/science/research.html');
   assert.equal(fallback.author, 'Jane Smith');
@@ -24,12 +26,16 @@ test('citation autofill reads JSON-LD graphs, repeated authors, entities and met
 
   const primaryArticle = parseMetadata(`
     <link rel="canonical" href="https://example.com/story/">
-    <script type="application/ld+json">${JSON.stringify({ '@graph': [
-    { '@type': 'NewsArticle', headline: 'Sponsored placement', author: { name: 'Ad Writer' } },
-    { '@type': 'https://schema.org/NewsArticle', url: 'https://example.com/story/',
-      headline: 'Actual story &amp; analysis', author: { givenName: 'Ada', familyName: 'Lovelace' },
-      datePublished: '2024-04-11', publisher: { name: 'Example Journal' } },
-    ] })}</script>
+    <script type="application/ld+json">${JSON.stringify({
+    '@graph': [
+      { '@type': 'NewsArticle', headline: 'Sponsored placement', author: { name: 'Ad Writer' } },
+      {
+        '@type': 'https://schema.org/NewsArticle', url: 'https://example.com/story/',
+        headline: 'Actual story &amp; analysis', author: { givenName: 'Ada', familyName: 'Lovelace' },
+        datePublished: '2024-04-11', publisher: { name: 'Example Journal' }
+      },
+    ]
+  })}</script>
   `, 'https://example.com/story/?utm_source=feed');
   assert.equal(primaryArticle.title, 'Actual story & analysis');
   assert.equal(primaryArticle.author, 'Ada Lovelace');
@@ -89,36 +95,40 @@ test('citation transport pins public DNS results and handles redirects, errors a
   let route = 'success';
   const requests = [];
   const module = { exports: {} };
-  const client = { get(url, options, callback) {
-    requests.push(new URL(url.href || url));
-    const crossref = url.hostname === 'api.crossref.org';
-    const request = new EventEmitter();
-    request.destroy = (error) => { request.emit('error', error); request.emit('close'); };
-    process.nextTick(() => options.lookup(url.hostname, { all: true }, (error, addresses) => {
-      if (error) return request.destroy(error);
-      assert.equal(addresses[0].address, address);
-      const response = new EventEmitter();
-      response.statusCode = route === 'redirect' ? 302 : route === 'denied' ? 403 : 200;
-      response.headers = {
-        'content-type': crossref ? 'application/json; charset=utf-8' : 'text/html',
-        location: 'http://127.0.0.1/private',
-      };
-      response.resume = () => request.emit('close');
-      callback(response);
-      if (response.statusCode !== 200) return;
-      const body = crossref
-        ? JSON.stringify({ status: 'ok', message: {
-          title: ['Public metadata title'], author: [{ given: 'Ada', family: 'Lovelace' }],
-          issued: { 'date-parts': [[2024, 3, 5]] }, 'container-title': ['Journal of Scholarly Metadata'],
-        } })
-        : route === 'large' ? 'a'.repeat(2_000_001)
-          : '<meta name="author" content="A Writer"><meta property="og:title" content="Example story">';
-      response.emit('data', Buffer.from(body));
-      response.emit('end');
-      request.emit('close');
-    }));
-    return request;
-  } };
+  const client = {
+    get(url, options, callback) {
+      requests.push(new URL(url.href || url));
+      const crossref = url.hostname === 'api.crossref.org';
+      const request = new EventEmitter();
+      request.destroy = (error) => { request.emit('error', error); request.emit('close'); };
+      process.nextTick(() => options.lookup(url.hostname, { all: true }, (error, addresses) => {
+        if (error) return request.destroy(error);
+        assert.equal(addresses[0].address, address);
+        const response = new EventEmitter();
+        response.statusCode = route === 'redirect' ? 302 : route === 'denied' ? 403 : 200;
+        response.headers = {
+          'content-type': crossref ? 'application/json; charset=utf-8' : 'text/html',
+          location: 'http://127.0.0.1/private',
+        };
+        response.resume = () => request.emit('close');
+        callback(response);
+        if (response.statusCode !== 200) return;
+        const body = crossref
+          ? JSON.stringify({
+            status: 'ok', message: {
+              title: ['Public metadata title'], author: [{ given: 'Ada', family: 'Lovelace' }],
+              issued: { 'date-parts': [[2024, 3, 5]] }, 'container-title': ['Journal of Scholarly Metadata'],
+            }
+          })
+          : route === 'large' ? 'a'.repeat(2_000_001)
+            : '<meta name="author" content="A Writer"><meta property="og:title" content="Example story">';
+        response.emit('data', Buffer.from(body));
+        response.emit('end');
+        request.emit('close');
+      }));
+      return request;
+    }
+  };
   vm.runInNewContext(fs.readFileSync(path.join(__dirname, '..', 'electron', 'citationMetadata.cjs'), 'utf8'), {
     module, URL, Buffer, setTimeout, clearTimeout,
     require: (name) => ['node:http', 'node:https'].includes(name) ? client
@@ -135,8 +145,10 @@ test('citation transport pins public DNS results and handles redirects, errors a
   await assert.rejects(extract(), /HTTP 403/);
   // Known sites fall back to URL rules when the publisher blocks the request.
   const blocked = await module.exports.extractCitation('https://www.nytimes.com/2024/03/05/us/politics/border-deal-vote.html');
-  assert.deepEqual({ ...blocked }, { author: '', title: 'Border deal vote', year: '2024',
-    publication: 'The New York Times', url: 'https://www.nytimes.com/2024/03/05/us/politics/border-deal-vote.html' });
+  assert.deepEqual({ ...blocked }, {
+    author: '', title: 'Border deal vote', year: '2024',
+    publication: 'The New York Times', url: 'https://www.nytimes.com/2024/03/05/us/politics/border-deal-vote.html'
+  });
   route = 'crossref';
   const doiCitation = await module.exports.extractCitation('https://doi.org/10.5555/example.2024');
   assert.deepEqual({ ...doiCitation }, {
@@ -191,12 +203,16 @@ test('OS flow opens handle cold starts, second instances, macOS events and vault
     const handlers = {};
     let current = null;
     let focused = 0;
-    const win = { isDestroyed: () => false, isMinimized: () => false, show() {},
-      focus: () => focused++, webContents: { send() {} } };
-    registerFlowFiles({ app, ipcMain: { handle: (name, fn) => { handlers[name] = fn; } },
-      getWindow: () => win, createWindow() {}, getVaultRoot: () => current,
+    const win = {
+      isDestroyed: () => false, isMinimized: () => false, show() { },
+      focus: () => focused++, webContents: { send() { } }
+    };
+    registerFlowFiles({
+      app, ipcMain: { handle: (name, fn) => { handlers[name] = fn; } },
+      getWindow: () => win, createWindow() { }, getVaultRoot: () => current,
       openVault: async (dir) => { current = dir; return { root: dir, name: path.basename(dir) }; },
-      argv: ['tagline.exe', file, 'relative.flow', path.join(root, 'not-md.md')] });
+      argv: ['tagline.exe', file, 'relative.flow', path.join(root, 'not-md.md')]
+    });
     assert.deepEqual(flowArguments([file, '--other', 'relative.flow']), [file]);
     assert.equal(handlers['flow:pending'](), file);
     let result = await handlers['flow:open'](null, file);
@@ -227,8 +243,10 @@ test('extension manifests validate ids, permissions, commands and contained file
   const { validateManifest, registerExtensions } = require('../electron/extensions.cjs');
   const root = path.join(os.tmpdir(), 'tagline-ext');
   const base = { manifestVersion: 1, id: 'word-tools', name: 'Word tools', version: '1.0.0' };
-  const ok = validateManifest({ ...base, main: 'main.js', permissions: ['editor', 'editor'],
-    contributes: { commands: [{ id: 'count', title: ' Count ', key: 'Mod+Alt+K' }], themes: ['themes/a.json'] } }, root);
+  const ok = validateManifest({
+    ...base, main: 'main.js', permissions: ['editor', 'editor'],
+    contributes: { commands: [{ id: 'count', title: ' Count ', key: 'Mod+Alt+K' }], themes: ['themes/a.json'] }
+  }, root);
   assert.deepEqual(ok.permissions, ['editor']);
   assert.deepEqual(ok.contributes.commands, [{ id: 'count', title: 'Count', key: 'Mod+Alt+K' }]);
   assert.throws(() => validateManifest({ ...base, manifestVersion: 2 }, root), /manifestVersion/);
@@ -273,7 +291,7 @@ test('extension manifests validate ids, permissions, commands and contained file
 });
 
 test('extension default shortcuts never shadow built-ins and .flow labels follow the setting', async () => {
-  global.window = { api: { platform: 'win32' }, addEventListener() {}, dispatchEvent() {} };
+  global.window = { api: { platform: 'win32' }, addEventListener() { }, dispatchEvent() { } };
   const { usableDefaultKey, extensionCommandId } = await import('../src/lib/extensions.js');
   const { displayName } = await import('../src/lib/vault.js');
   assert.equal(extensionCommandId('word-tools', 'count'), 'ext:word-tools.count');

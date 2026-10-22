@@ -93,5 +93,5 @@ export function markdownToText(markdown) {
     if (token.tokens) return collect(token.tokens);
     return token.text || (token.type === 'br' || token.type === 'space' ? '\n' : token.raw || '');
   }).join(' ');
-  return collect(marked.lexer(markdown)).replace(/[ \t]+/g, ' ').replace(/\n[ \t]+/g, '\n').trim();
+  return collect(marked.lexer(markdown)).replace(/[ \t]+/g, ' ').replace(/[ \t]*\n[ \t]*/g, '\n').trim();
 }

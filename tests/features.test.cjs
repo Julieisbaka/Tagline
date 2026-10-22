@@ -57,7 +57,7 @@ test('extension capabilities validate selection, command, helper, event and UI c
   assert.equal(pathHelper('extname', ['.hidden']), '');
   assert.throws(() => pathHelper('normalize', ['../../secret']), /escapes/);
   assert.throws(() => pathHelper('normalize', ['C:\\secret']), /relative/);
-  assert.equal(markdownToText('# Heading\n\n**Evidence** [source](https://example.com)'), 'Heading Evidence source');
+  assert.equal(markdownToText('# Heading\n\n**Evidence** [source](https://example.com)'), 'Heading\nEvidence source');
   assert.throws(() => requirePayload('x'.repeat(65537)), /65,536/);
   const bus = createEventBus();
   const payload = { nested: { value: 1 } };

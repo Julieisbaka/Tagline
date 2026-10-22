@@ -1,0 +1,42 @@
+<!doctype html>
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data:; connect-src 'none'; base-uri 'none'; form-action 'none'; frame-src 'none'; worker-src 'none'">
+<body></body>
+<script>
+(() => {
+  const listeners = new Set();
+  let started = false;
+  const sendError = (error) => parent.postMessage({
+    type: 'extension-ui-error', message: String(error?.message || error)
+  }, '*');
+  window.taglineWebview = Object.freeze({
+    postMessage: (payload) => parent.postMessage({ type: 'extension-ui-message', payload }, '*'),
+    onMessage: (listener) => {
+      if (typeof listener !== 'function') throw new TypeError('Expected a listener.');
+      listeners.add(listener);
+      return () => listeners.delete(listener);
+    },
+  });
+  addEventListener('error', (event) => sendError(event.message));
+  addEventListener('unhandledrejection', (event) => sendError(event.reason));
+  addEventListener('message', (event) => {
+    if (event.source !== parent || !event.data) return;
+    if (event.data.type === 'initialize' && !started) {
+      started = true;
+      const parsed = new DOMParser().parseFromString(event.data.html, 'text/html');
+      for (const style of parsed.head.querySelectorAll('style')) document.head.append(style.cloneNode(true));
+      document.body.replaceChildren(...[...parsed.body.childNodes].map(node => node.cloneNode(true)));
+      for (const old of [...parsed.head.querySelectorAll('script'), ...document.body.querySelectorAll('script')]) {
+        const script = document.createElement('script');
+        script.textContent = old.textContent;
+        if (old.parentNode === parsed.head) document.body.append(script);
+        else old.replaceWith(script);
+      }
+    } else if (event.data.type === 'extension-ui-message') {
+      for (const listener of [...listeners]) {
+        try { Promise.resolve(listener(event.data.payload)).catch(sendError); }
+        catch (error) { sendError(error); }
+      }
+    }
+  });
+})();
+</script>
