@@ -102,8 +102,12 @@ Declaring any commands requires a `main` script.
 
 File paths must stay inside the extension folder. Absolute paths, escaping
 relative paths, and symlinks resolving outside that folder are rejected.
-Script files have a 1,048,576-byte limit; contributed theme files have a
-65,536-byte limit. File content is checked when the enabled extension loads.
+Script files have a 1,048,576-byte default limit; contributed theme files have a
+65,536-byte default limit. File content is checked when the enabled extension loads.
+Users can adjust these and other extension limits, such as commands, settings,
+listeners, message rate, storage size, and timeouts, within fixed bounds under
+**Settings > Advanced settings > Theme and extension limits**. See
+[Theme and extension limits](./features.md#theme-and-extension-limits).
 
 Invalid manifests or load failures are shown in extension settings. A script
 must finish initialization within 10 seconds. Register commands during
@@ -263,7 +267,7 @@ await tagline.settings.set('limit', 10);          // Promise<true>
 
 Users can edit, save, and reset these settings on the extension card under
 **Settings > Extensions**. Values live in extension-ID-scoped profile storage
-separate from private `storage`, with a 100,000-character serialized size limit.
+separate from private `storage`, with a configurable size limit (100,000 serialized characters by default).
 They are not encrypted and must not be used for secrets. Invalid stored values
 surface errors; the user can reset the extension's settings to recover.
 

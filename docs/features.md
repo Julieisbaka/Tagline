@@ -175,20 +175,77 @@ same or a higher level. Sending from a higher-level section can include the
 whole section.
 
 The status bar shows document counts and, while editing, statistics for the
-current section. Estimated duration uses:
+current section. Without calibration, estimated duration uses:
 
 - Highlighted evidence plus the author/year lead of bold citation lines.
 - English syllable estimates rather than the number of words.
 - Spoken expansion of numbers, years, percentages, and common initialisms.
 - A small articulation surcharge for polysyllabic words and consonant clusters.
+- Punctuation pauses scaled to the speaking rate.
 - Your speaking-rate setting, converted at 1.5 syllables per word.
 
 Full citation details and unhighlighted evidence do not determine duration.
-Word counts remain visible as separate statistics. Estimates are approximate
-and optimized for English, not calibrated recordings of your speaking voice.
+Word counts remain visible as separate statistics. Estimates are optimized for
+English.
+
+### Personal speech calibration
+
+In **Settings > General > Personal speech calibration**, import one or more
+documents and enter the number of seconds you actually took to read each one aloud.
+Choose whether each sample covers the full document or only highlighted evidence
+and spoken citations. Up to 100 samples are kept; only derived statistics and
+timings are saved, not document text.
+
+With valid samples, a robust weighted fit replaces the speaking-rate setting. It
+estimates your seconds per syllable plus your articulation and pause costs.
+Median/MAD down-weighting limits the influence of an unusually fast or slow
+sample. The settings page reports the median in-sample timing error and each
+sample's re-estimated time. Remove samples individually or reset calibration to
+return to the default algorithm.
+
+Readability is shown as Flesch reading ease, a standard English formula. The
+**effort** score is relative to your samples (100 = your sample baseline).
+Without samples, it uses the default density baseline. Neither is a
+comprehension test.
 
 The timer includes speech and separate affirmative/negative preparation clocks,
 with high-school 8-3-5 and college 9-3-6 formats.
+
+## Hypothesis testing (Political DEBATE)
+
+The **Hypothesis** button on a note, and **Test a hypothesis** in the command
+palette, open an on-demand natural-language-inference dialog. It uses
+[mlburnham/Political_DEBATE_large_v1.0](https://huggingface.co/mlburnham/Political_DEBATE_large_v1.0),
+a 0.4B-parameter DeBERTa-v3 model released under the MIT license. The model treats the text as a
+*premise* and estimates the probability that each *hypothesis* follows from it
+(entailment vs. not entailment).
+
+1. Choose the text: selection, card under cursor, or whole note.
+2. Choose a format: `The author of this text believes {}.` for stance,
+   `This text is about {}.` for topic, or a full custom hypothesis.
+3. Enter 1-10 hypotheses, one per line, in English. Then click **Analyze** or press
+   `Mod+Enter`.
+
+Nothing loads or runs automatically. The first **Download and load** fetches an
+int8 ONNX build of about 650 MB, cached outside the vault. **Unload model** frees
+memory. Long text is split into sentence-aligned passages that fit the model's
+512-token window, up to 48 passages. Each hypothesis reports its strongest
+passage. Scores are model judgments, not fact-checks, and hypotheses should be
+written in English.
+
+The default source is the Hugging Face repository
+`Appleinteligence/Political_DEBATE_large_v1.0-onnx`. In **Settings >
+Integrations**, choose another repository or a local folder containing
+`config.json`, the tokenizer files, and `onnx/model_quantized.onnx`. Create that
+folder with:
+
+```powershell
+python scripts/convert-political-debate.py <output-folder> [--push owner/repo-onnx]
+```
+
+The script needs `optimum[onnx]`, `onnxruntime`, and `huggingface_hub`. It
+exports, validates labels, quantizes, writes a model card, and optionally
+publishes the result.
 
 ## Flows and operating-system integration
 
@@ -269,14 +326,14 @@ Changes save automatically on the current device.
 
 | Section | Controls |
 | --- | --- |
-| General | Speaking-rate calibration, speech-document path, default editor, flow-row focus, readable line width. |
-| Appearance | English/Spanish/French UI, built-in/custom/extension themes, editor font size, installed or imported fonts, opt-in unrestricted custom CSS. |
+| General | Speaking rate, personal speech calibration samples, speech-document path, default editor, flow-row focus, readable line width. |
+| Appearance | English/Spanish/French UI, built-in/custom/extension themes, editor font size, installed or imported fonts, opt-in unrestricted custom CSS in a CodeMirror editor with CSS highlighting (`Mod+Enter` applies). |
 | Performance and search | Visual parse-cache limits and maximum search results. |
 | Files and folders | Folder-path spaces, `.md`/`.flow` label visibility, auto relinking, externally missing-tab cleanup, workspace persistence, association guidance. |
-| Integrations | Embedded websites, Pandoc location/status/install-page link, model download/load/autoload, optional Hugging Face token. |
+| Integrations | Embedded websites, Pandoc location/status/install-page link, model download/load/autoload, optional Hugging Face token, Political DEBATE repository/local folder/unload. |
 | Keyboard shortcuts | Record, clear, or reset built-in and extension bindings; conflicts and reserved shortcuts are explained. |
 | Extensions | Open the extension directory, reload, review permissions/errors, and enable/disable local extensions. |
-| Advanced settings | Inspect or change internal flags, including visual-editor notice dismissal. |
+| Advanced settings | Theme and extension limits; inspect or change internal flags, including visual-editor notice dismissal. |
 
 Notable defaults and limits:
 
@@ -299,6 +356,25 @@ Notable defaults and limits:
 | Embedded websites | Enabled | Disable to open HTTP/HTTPS links in the default browser. |
 | Visual editor notice dismissed | False | Internal flag; closing the notice sets it to true. Reset in Advanced settings. |
 
+### Theme and extension limits
+
+**Settings > Advanced settings > Theme and extension limits** sets the bounds
+used when importing themes, loading extensions, and running the extension
+sandbox. Applying changes reloads extensions. Values outside these ranges are
+rejected. Fixed safety ceilings and permission checks remain in place.
+
+| Limit | Default | Range |
+| --- | --- | --- |
+| Theme file bytes | 65,536 | 1,024-1,048,576 |
+| Theme CSS variable count | 256 | 1-2,048 |
+| Theme CSS value characters | 2,048 | 32-16,384 |
+| Extension script bytes | 1,048,576 | 1,024-8,388,608 |
+| Commands / themes / settings per extension | 50 / 20 / 32 | 1-500 / 1-200 / 1-256 |
+| Listeners per event type, pending calls | 32 each | 1-256 |
+| Messages per second per extension | 200 | 10-2,000 |
+| Storage characters per extension store | 100,000 | 1,000-1,000,000 |
+| Startup / heartbeat timeout (ms) | 10,000 / 5,000 | 1,000-60,000 / 1,000-30,000 |
+
 Imported fonts support `.ttf`, `.otf`, `.woff`, and `.woff2` files up to 20 MB.
 They apply to note text, not application UI or code snippets. Import only trusted,
 appropriately licensed fonts.
@@ -312,8 +388,8 @@ shared JSON supplies its fallback.
 
 ## Privacy and current limitations
 
-- Semantic queries and note content are processed locally, not uploaded for
-  embedding inference. Initial model downloads require network access.
+- Semantic queries, hypothesis tests, and note content are processed locally,
+  not uploaded for inference. Initial model downloads require network access.
 - Citation autofill contacts the supplied article website. Following external
   links also leaves the app.
 - Hugging Face tokens use Electron OS-backed encryption; storage is refused when

@@ -317,7 +317,7 @@ test('macOS desktop wiring provides native window controls, menus and Dock react
       if (name.startsWith('./')) {
         if (name === './sampleVault.cjs') return { SAMPLE_VAULT: {} };
         if (name === './browser.cjs') return { registerBrowser: () => () => {} };
-        return Object.fromEntries(['registerPandoc', 'registerEmbeddings', 'registerDocuments', 'registerFonts', 'registerFlowFiles', 'registerExtensions']
+        return Object.fromEntries(['registerPandoc', 'registerEmbeddings', 'registerDocuments', 'registerFonts', 'registerFlowFiles', 'registerExtensions', 'registerNli']
           .map((key) => [key, () => true]));
       }
       return require(name);

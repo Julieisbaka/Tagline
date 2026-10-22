@@ -11,7 +11,7 @@ They build on the current workflows without making cloud services necessary.
 | --- | --- | --- | --- |
 | 1 | Local note history and recovery | Protect evidence from accidental replacements, extension mistakes, and bad edits. | Bounded per-note snapshots, preview/diff, explicit restore, and a retention setting outside the vault. |
 | 2 | Pre-round evidence checklist | Catch missing authors/years, broken URLs, empty highlights, and cards without citations. | Non-destructive report with links to affected cards; never rewrite evidence automatically. |
-| 3 | Speech-time calibration | Make syllable-based estimates reflect the individual debater. | Time a known passage and store a local calibration; distinguish estimated from measured duration. |
+| 3 | Live speech-time measurement | Capture a measured duration while reading instead of typing it in. | Start/stop recording timer on a card that saves a calibration sample automatically; show estimate vs. actual. |
 | 4 | Card-level search and preview | Find the actual card rather than opening an entire file to locate it. | Stable heading-based card results, citation/highlight preview, and send-to-speech action. |
 | 5 | Flow-to-evidence links | Move directly from a round argument to supporting evidence. | Per-cell note/card links that survive in-app renames without embedding whole cards in grids. |
 | 6 | Theme preview and contrast feedback | Make theme authoring safer and more approachable. | Live preview, foreground/background contrast warnings, and token descriptions; no arbitrary CSS required. |
@@ -35,11 +35,30 @@ Use exact normalized-text hashes first, then optional local embedding similarity
 Group candidates with side-by-side previews; never merge or delete automatically.
 Keep performance and model-loading costs visible.
 
+### Hypothesis-testing follow-ups
+
+- **Batch stance scan:** run one hypothesis over every card in a file or speech
+  document. Then sort cards by entailment so you can find the strongest card for a claim.
+  Keep the scan explicit and show progress and a cancel control.
+- **Contradiction check for answers:** pair an opponent's tag as the hypothesis
+  with your answer card as the premise to flag cards that accidentally concede it.
+- **Saved hypothesis sets:** store reusable per-topic hypotheses, such as
+  `the plan increases inflation`, in vault metadata.
+- **Tag-to-card faithfulness:** test whether the card text entails its own tag,
+  which helps catch overclaiming tags before a round.
+
+### Speech-time follow-ups
+
+- Per-speech-type profiles, such as constructive vs. rebuttal pace, selectable from the timer.
+- Out-of-sample error from leave-one-out cross-validation, alongside in-sample error.
+- A drift warning when recent measured samples differ consistently from the profile.
+
 ### Structured extension settings and lifecycle events
 
-Add typed, permission-reviewed settings and narrowly scoped events such as
-active-note changes. Establish cancellation and resource limits before adding
-more powerful extension UI or long-running commands.
+Typed settings and the `editor:active-note` event are implemented. Follow-ups
+are cancellation tokens for long-running commands, per-extension resource
+usage displayed against the configurable limits, and further narrowly scoped
+events, such as selection changes, each with its own permission.
 
 ### Domain-specific embedding evaluation
 

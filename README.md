@@ -29,7 +29,11 @@ Windows, macOS, and Linux packaging targets are configured.
 - [Extension API](./docs/extension-api.md)
 - [Theme API and custom CSS](./docs/theme-api.md)
 - [Feature suggestions](./docs/feature-suggestions.md)
-- [Debate embedding training pipeline](./model/README.md)
+
+Optional hypothesis testing uses an ONNX build of
+`mlburnham/Political_DEBATE_large_v1.0`. Produce or publish one with
+[scripts/convert-political-debate.py](./scripts/convert-political-debate.py);
+see [Hypothesis testing](./docs/features.md#hypothesis-testing-political-debate).
 
 Run `npm test` for unit tests; the available Electron integration-test scripts
 are listed in [package.json](./package.json).

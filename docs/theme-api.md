@@ -57,9 +57,10 @@ Unknown color tokens are rejected. An empty `colors` object is valid and yields
 the base palette. Import errors are displayed rather than partially applying
 the file.
 
-The Appearance file picker accepts files up to 64,000 bytes. Extension theme
-loading allows up to 65,536 bytes per file. Keep shared themes at or below
-64,000 bytes to work through both routes.
+The Appearance file picker and extension theme loading share the configurable
+**Theme file bytes** limit (65,536 bytes by default, adjustable from 1,024 to
+1,048,576 in **Settings > Advanced settings > Theme and extension limits**).
+Keep shared themes at or below the default so they load for other users.
 
 ## Color tokens
 
@@ -188,10 +189,11 @@ Alongside all 28 color variables above, the application currently defines
 and custom styles. Adding a variable alone does not create a new layout feature;
 some stylesheet must consume it.
 
-At most 256 overrides are allowed. Names start with a lowercase letter followed
+By default at most 256 overrides are allowed. Names start with a lowercase letter followed
 by lowercase letters, digits, or hyphens (at most 100 characters). Each value must
-be nonblank text up to 2,048 characters, without semicolons, braces, null bytes,
-`url(...)`, or `@import`. Values are not automatically checked for suitability
+be nonblank text up to 2,048 characters by default, without semicolons, braces, null bytes,
+`url(...)`, or `@import`. The override count (1-2,048) and value length (32-16,384)
+are configurable as theme limits. Values are not automatically checked for suitability
 for each consuming CSS property. Use the separate unrestricted CSS option for
 external resources or full stylesheets.
 
@@ -205,7 +207,9 @@ theme contributions. Themes cannot change keybindings or application behavior.
 ## Unrestricted custom CSS
 
 In **Settings > Appearance > Custom CSS**, type CSS or choose **Import CSS file**.
-The editor is a draft: choose **Apply CSS** to save it. Enable **Enable custom
+The editor is a draft: choose **Apply CSS** or press `Mod+Enter` to save it. It is
+a CodeMirror editor with CSS syntax highlighting, bracket matching, autocompletion,
+undo history, and line wrapping. Enable **Enable custom
 CSS** and accept the warning to inject the saved stylesheet into the application.
 Disabling the switch immediately removes the stylesheet without erasing the
 saved source. **Discard CSS edits** restores the saved draft; **Reset custom
