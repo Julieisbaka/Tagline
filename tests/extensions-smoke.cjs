@@ -23,6 +23,7 @@ const DEMO = `
 tagline.commands.register('capabilities', async () => {
   const disposables = tagline.helpers.createDisposables();
   disposables.add(await tagline.events.on('ext.demo.check', payload => tagline.storage.set('eventCheck', payload)));
+  disposables.add(await tagline.events.on('editor.selectionChanged', payload => tagline.storage.set('selectionEvent', payload)));
   await tagline.events.emit('ext.demo.check', { passed: true });
   const snapshot = await tagline.editor.tiptap.getSnapshot();
   if (snapshot.doc.type !== 'doc') throw new Error('Missing Tiptap document');
@@ -41,6 +42,12 @@ tagline.commands.register('capabilities', async () => {
   await tagline.webviews.setHtml('details', '<p>Details</p><script>(async () => { let blocked = false; try { await fetch("https://example.com"); } catch { blocked = true; } taglineWebview.postMessage({ready:true, networkBlocked:blocked, api:typeof window.api}); })();</script>');
   await tagline.webviews.show('details');
   await disposables.dispose();
+});
+tagline.commands.register('source-selection', async () => {
+  const note = await tagline.editor.getActiveNote();
+  if (note.editorKind !== 'source') throw new Error('Expected source editor');
+  await tagline.editor.setSelection({ from: 0, to: 4 });
+  await tagline.storage.set('sourceSelection', (await tagline.editor.getActiveNote()).selectionRange);
 });
 tagline.commands.register('stamp', async () => {
   const note = await tagline.editor.getActiveNote();
@@ -147,7 +154,8 @@ tagline.commands.register('save-checks', async () => {
         { id: 'flood', title: 'Flood messages' }, { id: 'pending', title: 'Pending limit' },
         { id: 'vault-apis', title: 'Exercise vault APIs' },
         { id: 'save-checks', title: 'Exercise save failures and in-flight flush' },
-        { id: 'capabilities', title: 'Exercise editor events and UI' }],
+        { id: 'capabilities', title: 'Exercise editor events and UI' },
+        { id: 'source-selection', title: 'Set source selection' }],
       panels: [{ id: 'status', title: 'Status' }],
       webviews: [{ id: 'details', title: 'Details' }],
       themes: ['themes/ocean.json'],
@@ -255,12 +263,22 @@ tagline.commands.register('save-checks', async () => {
         const capabilities = await js("JSON.parse(localStorage.getItem('tagline-extension:demo'))");
         assert.deepEqual(capabilities.eventCheck, { passed: true });
         assert.deepEqual(capabilities.selectionCheck, { from: 1, to: 3 });
+        assert.deepEqual(capabilities.selectionEvent.selection, { from: 1, to: 3 });
         assert.equal(capabilities.helperCheck, 'Card.md');
         assert.equal(capabilities.textCheck, 'Evidence');
         assert.equal(capabilities.webviewCheck.networkBlocked, true);
         assert.equal(capabilities.webviewCheck.api, 'undefined');
         assert.equal(await js("document.querySelector('.extension-panel iframe').getAttribute('sandbox')"), 'allow-scripts');
         await js("document.querySelector('.extension-webview-dialog header button').click()");
+        await js(`(() => { const select = document.querySelector('.note-actions select');
+          select.value = 'edit'; select.dispatchEvent(new Event('change', { bubbles: true })); })()`);
+        await wait("!!document.querySelector('.cm-content')", 'source editor');
+        await palette('Demo: Set source selection');
+        await wait("JSON.parse(localStorage.getItem('tagline-extension:demo')).sourceSelection?.to === 4", 'source selection');
+        assert.deepEqual((await js("JSON.parse(localStorage.getItem('tagline-extension:demo'))")).sourceSelection, { from: 0, to: 4 });
+        await js(`(() => { const select = document.querySelector('.note-actions select');
+          select.value = 'visual'; select.dispatchEvent(new Event('change', { bubbles: true })); })()`);
+        await wait("!!document.querySelector('.ProseMirror')", 'restored visual editor');
 
         // Mod+N stays with the built-in "New note"; the extension's default key was dropped.
         assert.equal(await js(`document.querySelectorAll('.palette').length`), 0);

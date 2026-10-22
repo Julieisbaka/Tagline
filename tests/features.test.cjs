@@ -65,6 +65,16 @@ test('extension capabilities validate selection, command, helper, event and UI c
   bus.emit('test', payload);
   assert.equal(payload.nested.value, 1);
   stop();
+  await host.handle('events.subscribe', ['ext.capabilities.disposal']);
+  const originalWindow = global.window;
+  global.window = { removeEventListener() {} };
+  host.frame.remove = () => {};
+  try { host.dispose(); }
+  finally { global.window = originalWindow; }
+  assert.equal(host.eventWatches.size, 0);
+  assert.equal(host.surfaces.size, 0);
+  applicationEvents.emit('ext.capabilities.disposal', {});
+  assert.equal(sent.length, count);
 });
 
 test('UI contributions require permission, declarations, a script and bounded unique identifiers', () => {
