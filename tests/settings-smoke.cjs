@@ -135,6 +135,7 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
         assert.equal(preferences.preload, undefined);
         assert.equal(await remote.executeJavaScript("document.body.dataset.rendered"), 'yes');
         assert.equal(await remote.executeJavaScript("typeof window.api + ',' + typeof require"), 'undefined,undefined');
+        assert.doesNotMatch(await remote.executeJavaScript('navigator.userAgent'), /Electron|tagline/i);
         await remote.session.cookies.set({ url: website, name: 'login-test', value: 'signed-in',
           expirationDate: Date.now() / 1000 + 3600 });
         assert.equal((await wc.session.cookies.get({ url: website, name: 'login-test' })).length, 0);
