@@ -7,6 +7,7 @@
   "Read and change only this extension's declared settings": "Lire et modifier uniquement les paramètres déclarés de cette extension",
   "Watch active-note paths without reading note content": "Observer les chemins de la note active sans lire son contenu",
   "Editors": "Éditeurs",
+  "Paste a public article URL or DOI. Autofill reads public citation metadata only; it does not fetch full text or bypass access controls.": "Collez l’URL publique d’un article ou son DOI. Le remplissage automatique ne lit que des métadonnées bibliographiques publiques ; il ne récupère pas le texte intégral et ne contourne pas les contrôles d’accès.",
   "Configure Tiptap and CodeMirror": "Configurer Tiptap et CodeMirror",
   "Visual editor (Tiptap)": "Éditeur visuel (Tiptap)",
   "Show formatting toolbar": "Afficher la barre de mise en forme",

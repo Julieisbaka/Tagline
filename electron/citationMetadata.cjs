@@ -90,10 +90,13 @@ function validateUrl(value) {
   return url;
 }
 
-function download(url, redirects = 0) {
+function download(url, redirects = 0, responseType = 'html') {
   return new Promise((resolve, reject) => {
     const request = (url.protocol === 'https:' ? https : http).get(url, {
-      headers: { Accept: 'text/html,application/xhtml+xml', 'User-Agent': 'Tagline/0.0.1 CitationMetadata' },
+      headers: {
+        Accept: responseType === 'json' ? 'application/json' : 'text/html,application/xhtml+xml',
+        'User-Agent': 'Tagline/0.0.1 CitationMetadata',
+      },
       lookup(host, options, callback) {
         dns.lookup(host, { all: true }, (error, addresses) => {
           if (error) return callback(error);
@@ -107,17 +110,25 @@ function download(url, redirects = 0) {
       if ([301, 302, 303, 307, 308].includes(response.statusCode)) {
         response.resume();
         if (redirects >= 4) return reject(new Error('The article redirected too many times.'));
-        try { resolve(download(validateUrl(new URL(response.headers.location, url).href), redirects + 1)); }
+        try { resolve(download(validateUrl(new URL(response.headers.location, url).href), redirects + 1, responseType)); }
         catch (error) { reject(error); }
         return;
       }
       if (response.statusCode !== 200) {
         response.resume();
-        return reject(new Error(`The website returned HTTP ${response.statusCode}. Enter citation details manually.`));
+        const restricted = [401, 402, 403, 429].includes(response.statusCode);
+        const message = restricted
+          ? `Automated metadata access is restricted (HTTP ${response.statusCode}). Use a DOI URL or enter citation details manually.`
+          : `The website returned HTTP ${response.statusCode}. Enter citation details manually.`;
+        return reject(new Error(message));
       }
-      if (!/^(text\/html|application\/xhtml\+xml)\b/i.test(response.headers['content-type'] || '')) {
+      const contentType = response.headers['content-type'] || '';
+      const acceptedType = responseType === 'json'
+        ? /^application\/(?:json|[\w.+-]+\+json)\b/i.test(contentType)
+        : /^(text\/html|application\/xhtml\+xml)\b/i.test(contentType);
+      if (!acceptedType) {
         response.resume();
-        return reject(new Error('The URL did not return an HTML article.'));
+        return reject(new Error(`The URL did not return ${responseType === 'json' ? 'JSON metadata' : 'an HTML article'}.`));
       }
       let size = 0;
       const chunks = [];
@@ -127,7 +138,10 @@ function download(url, redirects = 0) {
         else chunks.push(chunk);
       });
       response.on('error', reject);
-      response.on('end', () => resolve({ html: Buffer.concat(chunks).toString('utf8'), url: url.href }));
+      response.on('end', () => {
+        const body = Buffer.concat(chunks).toString('utf8');
+        resolve(responseType === 'json' ? { json: body, url: url.href } : { html: body, url: url.href });
+      });
     });
     const deadline = setTimeout(() => request.destroy(new Error('The website took too long to respond.')), 15000);
     request.on('close', () => clearTimeout(deadline));
@@ -139,64 +153,186 @@ function text(value) {
   return String(value || '').replace(/<[^>]*>/g, '').replace(/&#(x[\da-f]+|\d+);/gi, (_, number) => {
     const point = number[0].toLowerCase() === 'x' ? parseInt(number.slice(1), 16) : Number(number);
     return point > 0 && point <= 0x10ffff ? String.fromCodePoint(point) : '';
-  }).replace(/&(amp|quot|apos|lt|gt|nbsp);/gi, (_, name) =>
-    ({ amp: '&', quot: '"', apos: "'", lt: '<', gt: '>', nbsp: ' ' })[name.toLowerCase()])
+  }).replace(/&(amp|quot|apos|lt|gt|nbsp|ndash|mdash|hellip|rsquo|lsquo|rdquo|ldquo|copy|reg|trade);/gi, (_, name) =>
+    ({
+      amp: '&', quot: '"', apos: "'", lt: '<', gt: '>', nbsp: ' ', ndash: '–', mdash: '—',
+      hellip: '…', rsquo: '’', lsquo: '‘', rdquo: '”', ldquo: '“', copy: '©', reg: '®', trade: '™',
+    })[name.toLowerCase()])
     .replace(/\s+/g, ' ').trim().slice(0, 2000);
+}
+
+function attributes(tag) {
+  const result = {};
+  for (const match of tag.matchAll(/([\w:-]+)\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>]+))/g)) {
+    result[match[1].toLowerCase()] = text(match[2] ?? match[3] ?? match[4]);
+  }
+  return result;
+}
+
+function names(value) {
+  return [].concat(value || []).map((item) => {
+    if (typeof item === 'string') return text(item);
+    if (!item || typeof item !== 'object') return '';
+    const name = item.name || item.alternateName ||
+      [item.givenName || item.given, item.familyName || item.family].filter(Boolean).join(' ');
+    return text(name);
+  }).filter(Boolean).join(', ');
+}
+
+function canonicalPageUrl(value, base) {
+  if (typeof value !== 'string' || !value) return '';
+  try {
+    const url = new URL(value, base);
+    return `${url.origin}${url.pathname.replace(/\/+$/, '') || '/'}`.toLowerCase();
+  } catch {
+    return '';
+  }
 }
 
 function parseMetadata(html, address) {
   const url = validateUrl(address);
   const meta = new Map();
   for (const [tag] of html.matchAll(/<meta\b[^>]*>/gi)) {
-    const attributes = {};
-    for (const match of tag.matchAll(/([\w:-]+)\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>]+))/g)) {
-      attributes[match[1].toLowerCase()] = text(match[2] ?? match[3] ?? match[4]);
+    const values = attributes(tag);
+    const key = (values.property || values.name || values.itemprop || '').toLowerCase();
+    if (key && values.content) {
+      const entries = meta.get(key) || [];
+      if (!entries.includes(values.content)) entries.push(values.content);
+      meta.set(key, entries);
     }
-    const key = (attributes.property || attributes.name || '').toLowerCase();
-    if (attributes.content && !meta.has(key)) meta.set(key, attributes.content);
   }
-  const get = (...keys) => keys.map((key) => meta.get(key)).find(Boolean) || '';
+  const getAll = (...keys) => keys.flatMap((key) => meta.get(key) || []);
+  const get = (...keys) => getAll(...keys).find(Boolean) || '';
+  let canonical = get('og:url');
+  if (!canonical) {
+    for (const [tag] of html.matchAll(/<link\b[^>]*>/gi)) {
+      const values = attributes(tag);
+      if (values.href && values.rel?.toLowerCase().split(/\s+/).includes('canonical')) {
+        canonical = values.href;
+        break;
+      }
+    }
+  }
   const articles = [];
   const visit = (value) => {
     if (Array.isArray(value)) value.forEach(visit);
     else if (value && typeof value === 'object') {
-      if ([].concat(value['@type'] || []).some((type) => /^(?:NewsArticle|Article|ScholarlyArticle|Report|BlogPosting)$/.test(type))) articles.push(value);
-      if (value['@graph']) visit(value['@graph']);
+      const types = [].concat(value['@type'] || []).map((type) => String(type).split(/[\/#]/).pop().toLowerCase());
+      if (types.some((type) => ['newsarticle', 'article', 'scholarlyarticle', 'report', 'blogposting'].includes(type))) {
+        articles.push(value);
+      }
+      for (const [key, child] of Object.entries(value)) if (key !== '@context') visit(child);
     }
   };
   for (const match of html.matchAll(/<script\b[^>]*type\s*=\s*["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi)) {
     try { visit(JSON.parse(match[1])); }
     catch { /* Publishers sometimes include invalid JSON-LD; meta tags remain usable. */ }
   }
-  const article = articles[0] || {};
-  const names = (value) => [].concat(value || []).map((item) => text(typeof item === 'string' ? item : item?.name)).filter(Boolean).join(', ');
+  const targetUrl = canonicalPageUrl(canonical, url.href) || canonicalPageUrl(url.href, url.href);
+  const entityUrl = (value) => typeof value === 'string' ? value
+    : value && typeof value === 'object' ? value['@id'] || value.url || '' : '';
+  const articleScore = (article) => {
+    const articleUrl = entityUrl(article.url) || entityUrl(article.mainEntityOfPage);
+    const matchesPage = articleUrl && canonicalPageUrl(articleUrl, url.href) === targetUrl;
+    return (matchesPage ? 100 : 0) + (article.headline || article.name ? 8 : 0) +
+      (article.author ? 4 : 0) + (article.datePublished ? 2 : 0) + (article.publisher ? 1 : 0);
+  };
+  const article = articles.reduce((best, candidate) =>
+    !best || articleScore(candidate) > articleScore(best) ? candidate : best, null) || {};
   const fromUrl = parseUrl(url.href);
-  const date = text(article.datePublished) || get('article:published_time', 'citation_publication_date', 'date', 'datepublished', 'pubdate');
+  const date = text(article.datePublished || article.dateCreated) ||
+    get('article:published_time', 'citation_publication_date', 'citation_online_date', 'parsely-pub-date',
+      'dcterms.issued', 'dc.date', 'date', 'datepublished', 'pubdate');
   const year = date.match(/\b(?:19|20)\d{2}\b/)?.[0] || fromUrl.year;
-  const title = text(article.headline || article.name) || get('citation_title', 'og:title', 'twitter:title') ||
+  const title = text(article.headline || article.name) ||
+    get('citation_title', 'dc.title', 'dcterms.title', 'og:title', 'twitter:title', 'parsely-title') ||
     text(html.match(/<title\b[^>]*>([\s\S]*?)<\/title>/i)?.[1]) || fromUrl.title;
+  const authorMeta = getAll('citation_author', 'dc.creator', 'dcterms.creator')
+    .map((author) => author.replace(/^By\s+/i, '')).filter(Boolean).join(', ');
   return {
-    author: names(article.author) || get('citation_author', 'author', 'parsely-author', 'dc.creator', 'byl').replace(/^By\s+/i, ''),
+    author: names(article.author) || authorMeta ||
+      get('author', 'author_name', 'article:author', 'parsely-author', 'byl').replace(/^By\s+/i, ''),
     title, year,
-    publication: names(article.publisher) || get('og:site_name', 'citation_journal_title', 'application-name') || fromUrl.publication,
+    publication: names(article.publisher) ||
+      get('og:site_name', 'citation_journal_title', 'citation_conference_title', 'application-name',
+        'dc.publisher', 'dcterms.publisher') || fromUrl.publication,
     url: url.href,
   };
+}
+
+function doiFromUrl(address) {
+  const url = validateUrl(address);
+  if (!/^(?:dx\.)?doi\.org$/i.test(url.hostname)) return '';
+  let doi;
+  try { doi = decodeURIComponent(url.pathname).replace(/^\/+|\/+$/g, ''); }
+  catch { return ''; }
+  if (!/^10\.\d{4,9}\/[-._;()/:+A-Z0-9]+$/i.test(doi) ||
+    doi.split('/').some((part) => !part || part === '.' || part === '..')) return '';
+  return doi;
+}
+
+function crossrefYear(value) {
+  const year = Number(value?.['date-parts']?.[0]?.[0]);
+  return Number.isInteger(year) && year >= 1000 && year <= 9999 ? String(year) : '';
+}
+
+async function crossrefCitation(address) {
+  const doi = doiFromUrl(address);
+  if (!doi) return null;
+  const path = doi.split('/').map(encodeURIComponent).join('/');
+  const endpoint = validateUrl(`https://api.crossref.org/works/doi/${path}`);
+  const { json } = await download(endpoint, 0, 'json');
+  let response;
+  try { response = JSON.parse(json); }
+  catch { throw new Error('Crossref returned invalid JSON metadata.'); }
+  if (response?.status !== 'ok' || !response.message || typeof response.message !== 'object') {
+    throw new Error('Crossref did not return a metadata record for this DOI.');
+  }
+  const work = response.message;
+  const date = work.published || work['published-online'] || work['published-print'] || work.issued || work.created;
+  const fields = {
+    author: names(work.author),
+    year: crossrefYear(date),
+    title: names(work.title),
+    publication: names(work['container-title']) || text(work.publisher),
+    url: parseUrl(address).url,
+  };
+  return fields.author || fields.year || fields.title || fields.publication ? fields : null;
 }
 
 async function extractCitation(value) {
   if (typeof value !== 'string' || value.length > 8000) throw new Error('Enter a valid article URL.');
   const fromUrl = parseUrl(value);
+  const doi = doiFromUrl(value);
+  let crossrefError = null;
+  if (doi) {
+    try {
+      const metadata = await crossrefCitation(value);
+      if (metadata) return metadata;
+    } catch (error) {
+      crossrefError = error;
+    }
+  }
   let fields;
   try {
     const { html, url } = await download(validateUrl(value));
     fields = parseMetadata(html, url);
   } catch (error) {
-    // Paywalls and bot blocks are common; fall back to what the URL itself reveals.
-    if (!fromUrl.title && !fromUrl.year && !fromUrl.publication) throw error;
+    const hasUsefulUrlFields = (!!fromUrl.title && !fromUrl.title.startsWith('doi:')) ||
+      fromUrl.year || fromUrl.publication;
+    if (!hasUsefulUrlFields) {
+      if (crossrefError) {
+        throw new Error(`DOI metadata lookup failed (${crossrefError.message}); publisher metadata lookup failed (${error.message}).`);
+      }
+      throw error;
+    }
     return fromUrl;
   }
-  if (!fields.title && !fields.author && !fields.year) throw new Error('No article metadata was found. Enter citation details manually.');
+  if (!fields.title && !fields.author && !fields.year) {
+    if (crossrefError) throw new Error(`No article metadata was found. The Crossref lookup also failed (${crossrefError.message}). Enter citation details manually.`);
+    throw new Error('No article metadata was found. Enter citation details manually.');
+  }
   return fields;
 }
 
-module.exports = { parseMetadata, parseUrl, extractCitation, publicAddress, validateUrl };
+module.exports = { parseMetadata, parseUrl, extractCitation, crossrefCitation, doiFromUrl, publicAddress, validateUrl };

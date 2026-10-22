@@ -166,14 +166,18 @@ Choose **Create citation** from the note header, command palette, or File menu.
 Enter an author and four-digit year; optionally add title, publication, URL,
 and access date. Copy the generated Markdown or insert it into either editor.
 
-Paste a public article URL and choose **Autofill from URL** to read JSON-LD,
-metadata, and known-site URL rules. Autofill preserves fields you already
-entered. Known-site fallbacks may recover a publisher, title, or year even when
-the page cannot be fetched. Review every result; author identity and publication
-dates cannot always be recovered reliably.
+Paste a public article URL or DOI and choose **Autofill from URL** to read JSON-LD,
+citation metadata, and known-site URL rules. For DOI resolver links, Tagline
+also checks Crossref's public bibliographic metadata API; it does not retrieve
+article full text. Autofill preserves fields you already entered. Known-site
+fallbacks may recover a publisher, title, or year even when the page cannot be
+fetched. Review every result; author identity and publication dates cannot
+always be recovered reliably.
 
 The fetcher does not execute the page, has time/size/redirect limits, and rejects
-local/private-network targets. This action contacts the supplied public website;
+local/private-network targets. If automated access is restricted, Tagline reports
+that instead of trying to evade paywalls, CAPTCHAs, or anti-bot protections.
+This action contacts the supplied public website and, for DOI links, Crossref;
 it is separate from local-only semantic inference.
 
 ## Speech documents, read time, and timers

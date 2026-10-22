@@ -21,6 +21,30 @@ test('citation autofill reads JSON-LD graphs, repeated authors, entities and met
   const reuters = parseMetadata('<title>Article</title>', 'https://reuters.com/world/article-2023-06-10/');
   assert.equal(reuters.year, '2023');
   assert.equal(parseMetadata('<title>Unknown</title>', 'https://example.com/2020/archive').year, '');
+
+  const primaryArticle = parseMetadata(`
+    <link rel="canonical" href="https://example.com/story/">
+    <script type="application/ld+json">${JSON.stringify({ '@graph': [
+    { '@type': 'NewsArticle', headline: 'Sponsored placement', author: { name: 'Ad Writer' } },
+    { '@type': 'https://schema.org/NewsArticle', url: 'https://example.com/story/',
+      headline: 'Actual story &amp; analysis', author: { givenName: 'Ada', familyName: 'Lovelace' },
+      datePublished: '2024-04-11', publisher: { name: 'Example Journal' } },
+    ] })}</script>
+  `, 'https://example.com/story/?utm_source=feed');
+  assert.equal(primaryArticle.title, 'Actual story & analysis');
+  assert.equal(primaryArticle.author, 'Ada Lovelace');
+  assert.equal(primaryArticle.publication, 'Example Journal');
+  assert.equal(primaryArticle.year, '2024');
+
+  const repeatedAuthors = parseMetadata(`
+    <meta name="citation_author" content="Jane Smith">
+    <meta name="citation_author" content="John Doe">
+    <meta name="dc.title" content="A cited research paper">
+    <meta name="dcterms.issued" content="2022-08-14">
+  `, 'https://example.com/paper');
+  assert.equal(repeatedAuthors.author, 'Jane Smith, John Doe');
+  assert.equal(repeatedAuthors.title, 'A cited research paper');
+  assert.equal(repeatedAuthors.year, '2022');
 });
 
 test('citation URLs reject local networks, credentials and non-web schemes', async () => {
@@ -63,8 +87,11 @@ test('citation transport pins public DNS results and handles redirects, errors a
   const { EventEmitter } = require('node:events');
   let address = '93.184.215.14';
   let route = 'success';
+  const requests = [];
   const module = { exports: {} };
   const client = { get(url, options, callback) {
+    requests.push(new URL(url.href || url));
+    const crossref = url.hostname === 'api.crossref.org';
     const request = new EventEmitter();
     request.destroy = (error) => { request.emit('error', error); request.emit('close'); };
     process.nextTick(() => options.lookup(url.hostname, { all: true }, (error, addresses) => {
@@ -72,12 +99,21 @@ test('citation transport pins public DNS results and handles redirects, errors a
       assert.equal(addresses[0].address, address);
       const response = new EventEmitter();
       response.statusCode = route === 'redirect' ? 302 : route === 'denied' ? 403 : 200;
-      response.headers = { 'content-type': 'text/html', location: 'http://127.0.0.1/private' };
+      response.headers = {
+        'content-type': crossref ? 'application/json; charset=utf-8' : 'text/html',
+        location: 'http://127.0.0.1/private',
+      };
       response.resume = () => request.emit('close');
       callback(response);
       if (response.statusCode !== 200) return;
-      response.emit('data', Buffer.from(route === 'large' ? 'a'.repeat(2_000_001) :
-        '<meta name="author" content="A Writer"><meta property="og:title" content="Example story">'));
+      const body = crossref
+        ? JSON.stringify({ status: 'ok', message: {
+          title: ['Public metadata title'], author: [{ given: 'Ada', family: 'Lovelace' }],
+          issued: { 'date-parts': [[2024, 3, 5]] }, 'container-title': ['Journal of Scholarly Metadata'],
+        } })
+        : route === 'large' ? 'a'.repeat(2_000_001)
+          : '<meta name="author" content="A Writer"><meta property="og:title" content="Example story">';
+      response.emit('data', Buffer.from(body));
       response.emit('end');
       request.emit('close');
     }));
@@ -101,6 +137,13 @@ test('citation transport pins public DNS results and handles redirects, errors a
   const blocked = await module.exports.extractCitation('https://www.nytimes.com/2024/03/05/us/politics/border-deal-vote.html');
   assert.deepEqual({ ...blocked }, { author: '', title: 'Border deal vote', year: '2024',
     publication: 'The New York Times', url: 'https://www.nytimes.com/2024/03/05/us/politics/border-deal-vote.html' });
+  route = 'crossref';
+  const doiCitation = await module.exports.extractCitation('https://doi.org/10.5555/example.2024');
+  assert.deepEqual({ ...doiCitation }, {
+    author: 'Ada Lovelace', title: 'Public metadata title', year: '2024',
+    publication: 'Journal of Scholarly Metadata', url: 'https://doi.org/10.5555/example.2024',
+  });
+  assert.equal(requests.at(-1).hostname, 'api.crossref.org');
   route = 'large';
   await assert.rejects(extract(), /too large/);
 });

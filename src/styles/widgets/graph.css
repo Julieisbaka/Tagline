@@ -1,0 +1,31 @@
+/* Graph */
+.graph {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+}
+
+.graph canvas {
+  display: block;
+  cursor: grab;
+}
+
+.graph-controls {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 12px;
+}
+
+.graph-legend {
+  display: flex;
+  gap: 8px;
+  margin-top: 4px;
+}

@@ -1,0 +1,97 @@
+/* Timer */
+.timer {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 4px;
+}
+
+.timer h4 {
+  margin: 8px 0 0;
+  color: var(--text-muted);
+  font-size: 12px;
+  text-transform: uppercase;
+}
+
+.timer-speeches {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 4px;
+}
+
+.speech-btn {
+  padding: 4px 0;
+  font-size: 12px;
+}
+
+.speech-btn.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-text);
+}
+
+.timer-display {
+  font-family: var(--font-mono);
+  font-size: 54px;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-strong);
+}
+
+.timer-display.low {
+  color: var(--warning);
+}
+
+.timer-display.done {
+  color: var(--danger);
+  animation: blink 1s steps(2) infinite;
+}
+
+@keyframes blink {
+  50% {
+    opacity: 0.3;
+  }
+}
+
+.timer-controls {
+  display: flex;
+  gap: 6px;
+  justify-content: center;
+}
+
+.prep-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.prep-box {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.prep-box.side-aff {
+  border-top: 3px solid var(--aff);
+}
+
+.prep-box.side-neg {
+  border-top: 3px solid var(--neg);
+}
+
+.prep-box.running {
+  background: var(--accent-dim);
+}
+
+.prep-label {
+  font-weight: 600;
+}
+
+.prep-time {
+  font-family: var(--font-mono);
+  font-size: 24px;
+}

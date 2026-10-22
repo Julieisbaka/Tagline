@@ -1,0 +1,37 @@
+@media (max-width: 480px) {
+  .modal-backdrop {
+    align-items: flex-start;
+    padding: 12px;
+  }
+
+  .modal {
+    max-width: 100%;
+    max-height: calc(100vh - 24px);
+  }
+
+  .dialog:not(.settings) {
+    width: 100%;
+    overflow-y: auto;
+  }
+
+  .citation-url {
+    flex-wrap: wrap;
+  }
+
+  .citation-url input {
+    flex-basis: 100%;
+  }
+
+  .citation-dialog .setting-row {
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .citation-dialog .setting-row > span {
+    flex-basis: 100%;
+  }
+
+  .citation-dialog .setting-row input:not([type='checkbox']) {
+    width: 100%;
+  }
+}

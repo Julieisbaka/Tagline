@@ -1,0 +1,73 @@
+/* Backlinks, outline and tags */
+.backlink {
+  padding: 6px 8px;
+  border-radius: 6px;
+  cursor: pointer;
+  margin-bottom: 4px;
+}
+
+.backlink:hover {
+  background: var(--bg-hover);
+}
+
+.backlink-title {
+  font-weight: 600;
+}
+
+.backlink-snippet {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-top: 2px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.outline-item {
+  padding: 3px 6px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 13px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.outline-item:hover {
+  background: var(--bg-hover);
+}
+
+.outline-item.level-1 {
+  color: var(--h1);
+  font-weight: 700;
+}
+
+.outline-item.level-2 {
+  color: var(--h2);
+  font-weight: 600;
+}
+
+.outline-item.level-3 {
+  color: var(--h3);
+}
+
+.outline-item.level-4 {
+  color: var(--h4);
+}
+
+.tag-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 4px 6px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.tag-row:hover {
+  background: var(--bg-hover);
+}
+
+.tag-row .count {
+  color: var(--text-faint);
+  font-size: 12px;
+}

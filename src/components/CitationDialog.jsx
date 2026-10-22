@@ -42,7 +42,7 @@ export default function CitationDialog({ onInsert, onClose }) {
     <form className="modal dialog citation-dialog" onMouseDown={(e) => e.stopPropagation()}
       onSubmit={(e) => { e.preventDefault(); perform(false); }}>
       <h3>{t('Create citation')}</h3>
-      <p>{t('Paste an article URL to fill empty fields, then review the details.')}</p>
+      <p>{t('Paste a public article URL or DOI. Autofill reads public citation metadata only; it does not fetch full text or bypass access controls.')}</p>
       <div className="citation-url">
         <input name="url" type="url" aria-label={t('Article URL')} placeholder="https://..." value={values.url} disabled={loading}
           onChange={(e) => setValues({ ...values, url: e.target.value })} />

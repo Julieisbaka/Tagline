@@ -1,0 +1,162 @@
+/* Flow */
+.flow {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.flow-sheets {
+  display: flex;
+  gap: 4px;
+  padding: 6px 12px;
+  border-bottom: 1px solid var(--border);
+  align-items: center;
+  overflow-x: auto;
+  flex-shrink: 0;
+}
+
+.flow-sheet-tab {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  cursor: pointer;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+.flow-sheet-tab.active {
+  background: var(--bg-hover);
+  color: var(--text-strong);
+  border-color: var(--border);
+  font-weight: 600;
+}
+
+.flow-sheet-close {
+  display: flex;
+  opacity: 0.5;
+}
+
+.flow-sheet-close:hover {
+  opacity: 1;
+}
+
+.flow-sheet-input {
+  width: 140px;
+}
+
+.flow-add {
+  width: auto;
+}
+
+.flow-grid-wrap {
+  flex: 1;
+  overflow: auto;
+  padding: 12px;
+}
+
+.flow-grid {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+}
+
+.flow-grid th,
+.flow-grid td {
+  border: 1px solid var(--border);
+  width: auto;
+  min-width: 0;
+  vertical-align: top;
+  padding: 0;
+}
+
+.flow-grid th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: var(--bg-secondary);
+  display: table-cell;
+}
+
+.flow-grid th input {
+  width: calc(100% - 24px);
+  background: transparent;
+  border: none;
+  font-weight: 700;
+  padding: 6px 8px;
+}
+
+.flow-grid th.side-aff input {
+  color: var(--aff);
+}
+
+.flow-grid th.side-neg input {
+  color: var(--neg);
+}
+
+.flow-grid td.side-aff {
+  background: var(--aff-bg);
+}
+
+.flow-grid td.side-neg {
+  background: var(--neg-bg);
+}
+
+.flow-grid textarea {
+  width: 100%;
+  min-height: 60px;
+  field-sizing: content;
+  resize: none;
+  border: none;
+  background: transparent;
+  padding: 6px 8px;
+  font-size: 13px;
+  line-height: 1.4;
+  outline: none;
+  display: block;
+}
+
+.flow-grid td.side-aff textarea {
+  color: var(--aff);
+}
+
+.flow-grid td.side-neg textarea {
+  color: var(--neg);
+}
+
+.flow-grid textarea:focus {
+  background: var(--accent-dim);
+}
+
+.flow-grid .flow-actions {
+  width: 32px;
+  min-width: 32px;
+  border: none;
+  background: transparent;
+  text-align: center;
+}
+
+.flow-footer {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 10px;
+}
+
+.flow-keyboard-hint {
+  color: var(--text-faint);
+  font-size: 12px;
+}
+
+.flow-add-row .hint,
+.flow-error {
+  color: var(--text-faint);
+}
+
+.flow-error {
+  padding: 24px;
+}
