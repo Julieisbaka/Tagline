@@ -2,9 +2,6 @@
 
 [Documentation home](./README.md)
 
-This guide describes implemented features. For ideas that are not implemented,
-see [Feature suggestions](./feature-suggestions.md).
-
 ## Get started
 
 Open an existing folder as a vault or create the sample vault. Notes are
@@ -41,16 +38,13 @@ show a missing-file notice with reload/close actions. Restoring the file and
 reloading makes it editable again. Deleting a note inside Tagline always closes
 its tabs, regardless of this preference.
 
-This is not a cloud-sync system; keep backups of important evidence and avoid
-conflicting edits from multiple applications.
-
 Tagline keeps a local revision history for Markdown and flow documents.
 Open **History** from a document header to preview and restore saved versions.
 Restoring a version preserves the current document as another revision. History
 is stored in the vault under `.tagline/history`, follows document and folder
 renames, and is limited by **Settings > Files and folders > Revision history**.
 The default is 50 revisions per document; older versions are pruned after the
-next change. This is a recovery aid, not a substitute for independent backups.
+next change.
 
 ## Editing and debate cards
 
@@ -136,29 +130,20 @@ loading and inference can work offline.
 
 Select **Semantic (local embeddings)** and describe the evidence you want.
 Semantic mode supports tag filters and required quoted phrases and shows the best matching passage per note.
-Opening a passage jumps to its line in Source mode. Displayed cosine similarity
-is not a probability or confidence score.
+Opening a passage jumps to its line in Source mode.
 
 **Hybrid (keywords + local meaning)** combines keyword matches and semantic
 passage rankings using reciprocal-rank fusion. Select this mode and click
 **Search keywords + meaning**, or press Enter. Notes found by both ranking methods
 get an agreement boost; relevant paraphrases can appear even without all query
-words. Unlike full-text mode, hybrid keyword candidates need only one unquoted
-term, but **every tag and quoted phrase remains mandatory** in both channels.
-Accents and letter case are folded when checking phrases.
+words.
 
 Hybrid mode immediately shows keyword results while you type. Its status tells
 you to run the combined search; until then these are not semantic results.
 It shows whether each result matched keywords, meaning, or both. If local
 inference fails, an explicit error identifies the keyword-only results.
 Changing the query, filters, contents, or result limit invalidates old semantic
-results. No model is downloaded automatically and no notes or queries leave
-the computer.
-
-The maximum-results setting applies after fusion, with up to 1,000 candidates
-from each channel. Full-text remains the initial mode and needs no model.
-Hybrid and semantic search use the existing pretrained MiniLM model, not a
-custom-trained model or a query-generation LLM.
+results.
 
 ## Citation creator
 
@@ -169,16 +154,7 @@ and access date. Copy the generated Markdown or insert it into either editor.
 Paste a public article URL or DOI and choose **Autofill from URL** to read JSON-LD,
 citation metadata, and known-site URL rules. For DOI resolver links, Tagline
 also checks the [Crossref public bibliographic metadata API](https://www.crossref.org/documentation/retrieve-metadata/rest-api/);
-it does not retrieve article full text. Autofill preserves fields you already
-entered. Known-site fallbacks may recover a publisher, title, or year even when
-the page cannot be fetched. Review every result; author identity and publication
-dates cannot always be recovered reliably.
-
-The fetcher does not execute the page, has time/size/redirect limits, and rejects
-local/private-network targets. If automated access is restricted, Tagline reports
-that instead of trying to evade paywalls, CAPTCHAs, or anti-bot protections.
-This action contacts the supplied public website and, for DOI links, Crossref;
-it is separate from local-only semantic inference.
+it does not retrieve article full text.
 
 ## Speech documents, read time, and timers
 
@@ -200,10 +176,6 @@ current section. Without calibration, estimated duration uses:
 - A small articulation surcharge for polysyllabic words and consonant clusters.
 - Punctuation pauses scaled to the speaking rate.
 - Your speaking-rate setting, converted at 1.5 syllables per word.
-
-Full citation details and unhighlighted evidence do not determine duration.
-Word counts remain visible as separate statistics. Estimates are optimized for
-English.
 
 ### Personal speech calibration
 
@@ -243,29 +215,10 @@ a 0.4B-parameter DeBERTa-v3 model released under the MIT license. The model trea
 3. Enter 1-10 hypotheses, one per line, in English. Then click **Analyze** or press
    `Mod+Enter`.
 
-Nothing loads or runs automatically. The first **Download and load** fetches an
-int8 ONNX build of about 650 MB, cached outside the vault. **Unload model** frees
-memory. Long text is split into sentence-aligned passages that fit the model's
-512-token window, up to 48 passages. Each hypothesis reports its strongest
-passage. Scores are model judgments, not fact-checks, and hypotheses should be
-written in English.
-
-The default source is the Hugging Face repository
-`Appleinteligence/Political_DEBATE_large_v1.0-onnx`. In **Settings >
-Integrations**, choose another repository or a local folder containing
-`config.json`, the tokenizer files, and `onnx/model_quantized.onnx`. Create that
-folder with:
-
-```powershell
-python scripts/convert-political-debate.py <output-folder> [--push owner/repo-onnx]
-```
-
-The script needs `optimum[onnx]`, `onnxruntime`, and `huggingface_hub`. It
-exports, validates labels, quantizes, writes a model card, and optionally
-publishes the result. Publishing needs a Hugging Face **write** token in
-`HF_TOKEN`, either from the environment or from the gitignored repo-root `.env` file.
-Use `--upload-only --push owner/repo` to publish an already converted folder.
-The app itself never reads `.env`; downloading a public model needs no token.
+The first **Download and load** fetches an int8 ONNX build of about 650 MB,
+cached outside the vault. **Unload model** frees memory.
+Long text is split into sentence-aligned passages that fit the model's 512-token window, up to 48 passages.
+Each hypothesis reports its strongest passage.
 
 ## Flows and operating-system integration
 
@@ -323,9 +276,6 @@ artifacts can be normalized without changing paragraph and heading structure
 by checking **Clean up imported Markdown** in the import dialog. This
 experimental cleanup is off by default.
 
-Complex formatting may not survive conversion. Pandoc format support does not
-guarantee that every embedded HTML element retains its original behavior.
-
 ## Embedded websites
 
 HTTP/HTTPS links open in an embedded website view inside the note workspace by
@@ -359,10 +309,6 @@ Access helpers:
 - Sign in with your own subscriptions; the persistent session keeps you signed in.
 - **Archived copy** opens the page's Wayback Machine snapshot, which helps with
   dead links and pages that won't load directly.
-
-Tagline does not circumvent paywalls or solve CAPTCHA/anti-bot challenges, and it
-does not impersonate search-engine crawlers. Browsing does not change the
-citation creator's URL-extraction rules.
 
 ## Settings reference
 
@@ -428,8 +374,7 @@ rejected. Fixed safety ceilings and permission checks remain in place.
 | Startup / heartbeat timeout (ms) | 10,000 / 5,000 | 1,000-60,000 / 1,000-30,000 |
 
 Imported fonts support `.ttf`, `.otf`, `.woff`, and `.woff2` files up to 20 MB.
-They apply to note text, not application UI or code snippets. Import only trusted,
-appropriately licensed fonts.
+They apply to note text, not application UI or code snippets.
 
 Themes are described in the [Theme API](./theme-api.md); local commands and theme
 packages are described in the [Extension API](./extension-api.md).
@@ -437,20 +382,3 @@ Default preferences live in [defaultSettings.json](../src/lib/defaultSettings.js
 The visual cache consumes the same defaults rather than maintaining a duplicate
 copy. Model-autoload's saved value is kept in main-process configuration; the
 shared JSON supplies its fallback.
-
-## Privacy and current limitations
-
-- Semantic queries, hypothesis tests, and note content are processed locally,
-  not uploaded for inference. Initial model downloads require network access.
-- Citation autofill contacts the supplied article website. Following external
-  links also leaves the app.
-- Hugging Face tokens use Electron OS-backed encryption; storage is refused when
-  encryption is unavailable. Tokens are not stored in the vault or returned to
-  the settings page.
-- Extension access is permission-gated; enabling vault writes still entrusts an
-  extension with your evidence. Private extension storage is not encrypted.
-- Opt-in custom CSS is unrestricted and may load external resources or hide
-  controls. See [CSS safety and recovery](./theme-api.md#unrestricted-custom-css).
-- There is no built-in cloud collaboration or automatic backup workflow.
-- UI language does not translate evidence or make the English embedding model
-  multilingual. Some native/custom menu and diagnostic messages remain English.

@@ -15,6 +15,7 @@ import HistoryDialog from '../dialogs/HistoryDialog.jsx';
 import WebsiteView from '../dialogs/WebsiteView.jsx';
 import Splitter from './Splitter.jsx';
 import Welcome from '../dialogs/Welcome.jsx';
+import VaultManagerDialog from '../dialogs/VaultManagerDialog.jsx';
 import Ribbon from './Ribbon.jsx';
 import { Palette, PromptDialog, SettingsDialog } from '../dialogs/Dialogs.jsx';
 
@@ -33,8 +34,10 @@ export default function AppLayout({ app }) {
 
   if (!v.vault) return <>
     {window.api.platform === 'darwin' && <div className="mac-titlebar">Tagline</div>}
-    <Welcome onOpen={v.chooseVault} onSample={v.createSample} error={v.error} />
+    <Welcome onOpen={v.chooseVault} onSample={v.createSample} onManage={() => setModal({ type: 'vaults' })} error={v.error} />
     {modal?.type === 'settings' && settingsDialog}
+    {modal?.type === 'vaults' && <VaultManagerDialog onOpen={v.openRecentVault} onChoose={v.chooseVault}
+      onClose={() => setModal(null)} />}
     {modal?.type === 'citation' && <CitationDialog onClose={() => setModal(null)} />}
     {websiteView && <div className="welcome-website">{websiteView}</div>}
     {toast && <div className="toast">{toast}</div>}
@@ -163,6 +166,8 @@ export default function AppLayout({ app }) {
         <PromptDialog title={modal.title} initial={modal.initial} onSubmit={modal.onSubmit} onClose={() => setModal(null)} />
       )}
       {modal?.type === 'settings' && settingsDialog}
+      {modal?.type === 'vaults' && <VaultManagerDialog onOpen={v.openRecentVault} onChoose={v.chooseVault}
+        onClose={() => setModal(null)} />}
       {modal?.type === 'export' && activePath && (
         <ExportDialog title={baseName(activePath)} content={activeContent || ''} resolve={resolve} onClose={() => setModal(null)} />
       )}

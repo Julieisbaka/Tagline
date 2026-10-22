@@ -203,13 +203,26 @@ export function useVault(underscoreFolders = true, autoRelink = true, historyRet
   );
 
   const chooseVault = useCallback(async () => {
-    if (!await flush()) return;
-    open(await api.chooseVault().catch(report));
+    if (!await flush()) return false;
+    const info = await api.chooseVault().catch((error) => { report(error); return null; });
+    if (!info) return false;
+    await open(info);
+    return true;
   }, [flush, open]);
 
   const createSample = useCallback(async () => {
-    if (!await flush()) return;
-    open(await api.createSampleVault().catch(report));
+    if (!await flush()) return false;
+    const info = await api.createSampleVault().catch((error) => { report(error); return null; });
+    if (!info) return false;
+    await open(info);
+    return true;
+  }, [flush, open]);
+  const openRecentVault = useCallback(async (root) => {
+    if (!await flush()) return false;
+    const info = await api.openRecentVault(root).catch((error) => { report(error); return null; });
+    if (!info) return false;
+    await open(info);
+    return true;
   }, [flush, open]);
   const openFlowFile = useCallback(async (file) => {
     if (!await flush()) throw new Error('Could not save current edits. The flow file was not opened.');
@@ -240,6 +253,7 @@ export function useVault(underscoreFolders = true, autoRelink = true, historyRet
     rename,
     remove,
     chooseVault,
+    openRecentVault,
     createSample,
     reveal: (p) => api.reveal(p),
   };

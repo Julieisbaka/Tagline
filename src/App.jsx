@@ -197,7 +197,7 @@ export default function App() {
     open,
     reload: v.reload,
     reveal: v.reveal,
-    switchVault: v.chooseVault,
+    switchVault: () => setModal({ type: 'vaults' }),
     settings: () => setModal({ type: 'settings' }),
     newNote: (dir = activePath ? dirName(activePath) : '') => createAndOpen(joinPath(dir, 'Untitled.md'), ''),
     newFlow: (dir = activePath ? dirName(activePath) : '') => createAndOpen(joinPath(dir, 'Untitled Flow.flow'), EMPTY_FLOW),

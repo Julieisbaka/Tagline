@@ -95,8 +95,27 @@ function uniquePath(rel, folder = false, underscoreFolders = false) {
 async function openVault(dir) {
   await fs.mkdir(dir, { recursive: true });
   vaultRoot = path.resolve(dir);
-  writeConfig({ lastVault: vaultRoot });
+  const saved = readConfig().recentVaults;
+  const key = (value) => process.platform === 'win32' ? value.toLowerCase() : value;
+  const recentVaults = [vaultRoot, ...(Array.isArray(saved) ? saved.filter((item) =>
+    typeof item === 'string' && key(path.resolve(item)) !== key(vaultRoot)) : [])].slice(0, 20);
+  writeConfig({ lastVault: vaultRoot, recentVaults });
   return { root: vaultRoot, name: path.basename(vaultRoot) };
+}
+
+async function listRecentVaults() {
+  const config = readConfig();
+  const candidates = [...(Array.isArray(config.recentVaults) ? config.recentVaults : []),
+    ...(typeof config.lastVault === 'string' ? [config.lastVault] : [])];
+  const key = (value) => process.platform === 'win32' ? value.toLowerCase() : value;
+  const unique = [...new Map(candidates.filter((item) => typeof item === 'string' && path.isAbsolute(item))
+    .map((item) => [key(path.resolve(item)), path.resolve(item)])).values()].slice(0, 20);
+  return Promise.all(unique.map(async (root) => {
+    let exists = false;
+    try { exists = (await fs.stat(root)).isDirectory(); }
+    catch (error) { if (error.code !== 'ENOENT' && error.code !== 'ENOTDIR') throw error; }
+    return { root, name: path.basename(root), exists };
+  }));
 }
 
 function registerIpc() {
@@ -120,6 +139,36 @@ function registerIpc() {
     const { lastVault } = readConfig();
     if (lastVault && fssync.existsSync(lastVault)) return openVault(lastVault);
     return null;
+  });
+
+  ipcMain.handle('vault:listRecent', listRecentVaults);
+  ipcMain.handle('vault:openRecent', async (_event, root) => {
+    if (typeof root !== 'string' || !path.isAbsolute(root)) throw new Error('Invalid saved vault path.');
+    const recent = await listRecentVaults();
+    const key = (value) => process.platform === 'win32' ? value.toLowerCase() : value;
+    if (!recent?.some((item) => item.exists && key(item.root) === key(path.resolve(root)))) {
+      throw new Error('That saved vault is unavailable. Choose its folder to add it again.');
+    }
+    return openVault(root);
+  });
+  ipcMain.handle('vault:forgetRecent', (_event, root) => {
+    if (typeof root !== 'string' || !path.isAbsolute(root)) throw new Error('Invalid saved vault path.');
+    const key = (value) => process.platform === 'win32' ? value.toLowerCase() : value;
+    const recent = readConfig().recentVaults;
+    const recentVaults = (Array.isArray(recent) ? recent : [])
+      .filter((item) => typeof item === 'string' && key(path.resolve(item)) !== key(path.resolve(root)));
+    writeConfig({ recentVaults });
+    return true;
+  });
+  ipcMain.handle('vault:revealRecent', async (_event, root) => {
+    if (typeof root !== 'string' || !path.isAbsolute(root)) throw new Error('Invalid saved vault path.');
+    const recent = await listRecentVaults();
+    const key = (value) => process.platform === 'win32' ? value.toLowerCase() : value;
+    if (!recent?.some((item) => item.exists && key(item.root) === key(path.resolve(root)))) {
+      throw new Error('That saved vault is unavailable.');
+    }
+    const error = await shell.openPath(root);
+    if (error) throw new Error(error);
   });
 
   ipcMain.handle('vault:choose', async () => {

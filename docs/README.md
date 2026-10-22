@@ -1,25 +1,15 @@
-# Tagline documentation
-
-Tagline is a local-first policy debate workspace. Vaults are ordinary folders of
-Markdown notes (`.md`) and JSON flow documents (`.flow`).
+# Tagline Documentation
 
 ## Guides
 
-- [Application features](./features.md): workflows, editing, search, citations,
-  flows, settings, shortcuts, import/export, and privacy.
-- [Extension API](./extension-api.md): installation, manifests, permissions,
-  commands, editor/vault access, storage, examples, and current limitations.
-- [Theme API](./theme-api.md): JSON format, every supported color token,
-  import/export, theme extensions, and accessibility.
+- [Application features](./features.md)
+- [Extension API](./extension-api.md)
+- [Theme API](./theme-api.md)
 
 For installation, development commands, and test commands, see the
 [project README](../README.md).
 
-## Status and conventions
-
-These guides describe the current pre-release implementation. The extension
-manifest and theme JSON formats both use version `1`; this is not a promise of
-long-term API stability.
+## Status and Conventions
 
 Keyboard shortcuts shown in the guides are defaults. `Mod` means Ctrl on
 Windows/Linux and Cmd on macOS. Change bindings in
