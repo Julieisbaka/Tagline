@@ -1,0 +1,154 @@
+{
+  "manifestVersion": 1,
+  "id": "tagline-api-demo",
+  "name": "API Demo",
+  "version": "1.0.0",
+  "description": "Demonstrates every Tagline extension API: commands, notifications, editor, Tiptap, active-note changes, events, panels, webviews, helpers, settings, vault, storage, and themes.",
+  "author": "Tagline",
+  "main": "main.js",
+  "permissions": [
+    "editor",
+    "editor:active-note",
+    "settings",
+    "vault:read",
+    "vault:write",
+    "events",
+    "ui"
+  ],
+  "contributes": {
+    "commands": [
+      {
+        "id": "open-dashboard",
+        "title": "Open API dashboard",
+        "key": "Mod+Alt+J"
+      },
+      {
+        "id": "open-inspector",
+        "title": "Open active note inspector"
+      },
+      {
+        "id": "close-surfaces",
+        "title": "Close dashboard and inspector"
+      },
+      {
+        "id": "notify",
+        "title": "Show greeting notification"
+      },
+      {
+        "id": "describe-note",
+        "title": "Describe active note"
+      },
+      {
+        "id": "insert-text",
+        "title": "Insert demo text"
+      },
+      {
+        "id": "select-first-word",
+        "title": "Select first word"
+      },
+      {
+        "id": "bold-selection",
+        "title": "Toggle bold on selection"
+      },
+      {
+        "id": "toggle-heading",
+        "title": "Toggle level-2 heading"
+      },
+      {
+        "id": "undo",
+        "title": "Undo last editor change"
+      },
+      {
+        "id": "toggle-active-note-tracking",
+        "title": "Toggle active-note tracking"
+      },
+      {
+        "id": "toggle-event-log",
+        "title": "Toggle event log"
+      },
+      {
+        "id": "emit-event",
+        "title": "Emit custom event"
+      },
+      {
+        "id": "helpers",
+        "title": "Run helper demos"
+      },
+      {
+        "id": "settings",
+        "title": "Show and validate settings"
+      },
+      {
+        "id": "storage",
+        "title": "Run storage demo"
+      },
+      {
+        "id": "vault-index",
+        "title": "Write vault index note"
+      },
+      {
+        "id": "vault-lifecycle",
+        "title": "Run vault lifecycle demo"
+      }
+    ],
+    "settings": [
+      {
+        "id": "greeting",
+        "title": "Greeting",
+        "description": "Text shown by the greeting notification.",
+        "type": "string",
+        "maxLength": 200,
+        "default": "Hello from the Tagline API demo!"
+      },
+      {
+        "id": "insert-style",
+        "title": "Inserted text style",
+        "type": "string",
+        "enum": [
+          "quote",
+          "plain"
+        ],
+        "default": "quote"
+      },
+      {
+        "id": "index-limit",
+        "title": "Notes in vault index",
+        "description": "Maximum number of notes read when writing the index note.",
+        "type": "number",
+        "min": 1,
+        "max": 500,
+        "default": 25
+      },
+      {
+        "id": "log-events",
+        "title": "Log application events",
+        "description": "Subscribe to application and custom events at startup and show them in the dashboard.",
+        "type": "boolean",
+        "default": true
+      },
+      {
+        "id": "keep-scratch-note",
+        "title": "Keep vault lifecycle note",
+        "description": "When off, the lifecycle demo moves its scratch note to the trash at the end.",
+        "type": "boolean",
+        "default": false
+      }
+    ],
+    "panels": [
+      {
+        "id": "dashboard",
+        "title": "API Demo"
+      }
+    ],
+    "webviews": [
+      {
+        "id": "inspector",
+        "title": "Active note inspector"
+      }
+    ],
+    "themes": [
+      "themes/demo-dusk.json",
+      "themes/demo-dawn.json"
+    ]
+  }
+}

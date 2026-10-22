@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "name": "Demo Dawn",
+  "mode": "light",
+  "colors": {
+    "bg": "#fffaf3",
+    "bg-secondary": "#f7efe3",
+    "accent": "#b4532a",
+    "accent-text": "#ffffff",
+    "accent-dim": "#b4532a26",
+    "selection": "#b4532a40"
+  },
+  "variables": {
+    "font-text": "Georgia, serif",
+    "editor-font-size": "18px"
+  }
+}

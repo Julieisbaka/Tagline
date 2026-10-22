@@ -1,0 +1,25 @@
+{
+  "version": 1,
+  "name": "Demo Dusk",
+  "mode": "dark",
+  "colors": {
+    "bg": "#16121f",
+    "bg-secondary": "#1d1829",
+    "bg-elevated": "#262036",
+    "bg-hover": "#2f2842",
+    "border": "#3a3150",
+    "text": "#e6e0f2",
+    "text-strong": "#ffffff",
+    "text-muted": "#b2a8c7",
+    "text-faint": "#857b9c",
+    "accent": "#c79bff",
+    "accent-text": "#16121f",
+    "accent-dim": "#c79bff33",
+    "selection": "#c79bff55",
+    "highlight-bg": "#ffd36e",
+    "highlight-text": "#16121f"
+  },
+  "variables": {
+    "font-ui": "system-ui, sans-serif"
+  }
+}
