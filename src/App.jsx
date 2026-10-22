@@ -33,6 +33,8 @@ export default function App() {
   const [modes, setModes] = useState({});
   const [highlightOnly, setHighlightOnly] = useState(false);
   const [modal, setModal] = useState(null);
+  const [website, setWebsite] = useState(null);
+  const vaultOperations = useRef(Promise.resolve());
   const [jump, setJump] = useState(null);
   const [stats, setStats] = useState(null);
   const [toast, setToast] = useState(null);
@@ -69,9 +71,10 @@ export default function App() {
     toastTimer.current = setTimeout(() => setToast(null), 2500);
   }, []);
   useEffect(() => window.api.onWebsiteLink((url) => {
-    if (settings.embedWebsites) setModal({ type: 'website', url });
+    if (settings.embedWebsites) setWebsite(url);
     else window.api.websiteAction('external', url).catch((e) => notify(e.message));
   }), [settings.embedWebsites, notify]);
+  useEffect(() => { setWebsite(null); }, [v.vault?.root, tabs.activeId, settings.embedWebsites]);
   useEffect(() => {
     const onError = (e) => notify(e.detail);
     window.addEventListener('app-error', onError);
@@ -160,6 +163,7 @@ export default function App() {
     if (settings.speechDoc === from || settings.speechDoc.startsWith(from + '/')) {
       updateSettings({ speechDoc: result + settings.speechDoc.slice(from.length) });
     }
+    return result;
   };
 
   const insertAtCursor = async (text, message = 'Open a note in an editing mode to insert text.') => {
@@ -176,7 +180,24 @@ export default function App() {
 
   // Everything extensions can touch goes through this object; see docs/extension-api.md.
   const extensionBridge = useRef(null);
+  const enqueueVault = (operation) => {
+    const root = v.vault?.root;
+    const task = vaultOperations.current.then(() => {
+      if (!root || extensionBridge.current.root !== root) throw new Error('The active vault changed. Retry the operation.');
+      return operation();
+    });
+    // Keep the queue usable after a failure; the caller still receives the rejected task.
+    vaultOperations.current = task.catch(() => {});
+    return task;
+  };
+  const requireNote = (path) => {
+    if (!/\.(md|flow)$/i.test(path)) throw new Error('Extensions can only modify .md and .flow files.');
+    const content = v.getContent(path);
+    if (content === undefined) throw new Error(`Note not found: ${path}`);
+    return content;
+  };
   extensionBridge.current = {
+    root: v.vault?.root,
     getActiveNote: () => {
       if (!activePath || activeContent === undefined) return null;
       let selection = '';
@@ -192,16 +213,46 @@ export default function App() {
     insertText: (text) => insertAtCursor(text),
     list: () => paths,
     read: (path) => {
-      if (v.contents[path] === undefined) throw new Error(`Note not found: ${path}`);
-      return v.contents[path];
+      const content = v.getContent(path);
+      if (content === undefined) throw new Error(`Note not found: ${path}`);
+      return content;
     },
-    write: async (path, content) => {
+    write: (path, content) => enqueueVault(async () => {
       if (!/\.(md|flow)$/i.test(path)) throw new Error('Extensions can only write .md and .flow files.');
-      if (v.contents[path] !== undefined) { v.updateContent(path, content); return path; }
+      if (v.getContent(path) !== undefined) { v.updateContent(path, content); return path; }
       const created = await v.createFile(path, content);
       if (!created) throw new Error(`Could not create ${path}.`);
       return created;
-    },
+    }),
+    append: (path, text) => enqueueVault(() => {
+      const content = requireNote(path) + text;
+      if (content.length > 5_000_000) throw new Error('Content must be text up to 5000000 characters.');
+      v.updateContent(path, content);
+      return path;
+    }),
+    compareAndSwap: (path, expected, content) => enqueueVault(() => {
+      if (requireNote(path) !== expected) return false;
+      v.updateContent(path, content);
+      return true;
+    }),
+    delete: (path) => enqueueVault(async () => {
+      requireNote(path);
+      if (!await v.remove(path)) throw new Error(`Could not delete ${path}.`);
+      tabs.removePath(path);
+      return true;
+    }),
+    rename: (from, to) => enqueueVault(async () => {
+      requireNote(from);
+      if (!/\.(md|flow)$/i.test(to)) throw new Error('Extensions can only rename to .md and .flow paths.');
+      const result = await doRename(from, to);
+      if (!result) throw new Error(`Could not rename ${from}.`);
+      return result;
+    }),
+    flush: () => enqueueVault(async () => {
+      if (!await v.flush()) throw new Error('Could not save pending vault edits.');
+      return true;
+    }),
+    watch: v.watch,
   };
   const ext = useExtensions({ bridgeRef: extensionBridge, notify });
 
@@ -388,14 +439,14 @@ export default function App() {
 
   const settingsDialog = <SettingsDialog settings={settings} update={updateSettings} extensions={ext}
     onClose={() => setModal(null)} />;
-  const websiteDialog = modal?.type === 'website' &&
-    <WebsiteView key={modal.url} url={modal.url} onClose={() => setModal(null)} />;
+  const websiteView = website && !modal &&
+    <WebsiteView key={website} url={website} onClose={() => setWebsite(null)} />;
   if (!v.vault) return <>
     {window.api.platform === 'darwin' && <div className="mac-titlebar">Tagline</div>}
     <Welcome onOpen={v.chooseVault} onSample={v.createSample} error={v.error} />
     {modal?.type === 'settings' && settingsDialog}
     {modal?.type === 'citation' && <CitationDialog onClose={() => setModal(null)} />}
-    {websiteDialog}
+    {websiteView && <div className="welcome-website">{websiteView}</div>}
     {toast && <div className="toast">{toast}</div>}
   </>;
 
@@ -465,7 +516,7 @@ export default function App() {
           onCloseOthers={tabs.closeOthers} hideFlowExtension={settings.hideFlowExtension}
           showMarkdownExtension={settings.showMarkdownExtension} onFileAction={(action, path) => action === 'rename'
             ? actions.rename({ type: 'file', path, name: path.split('/').pop() }) : v.reveal(path)} />
-        <div className="workspace">{renderWorkspace()}</div>
+        <div className="workspace">{renderWorkspace()}{websiteView}</div>
         <footer className="status-bar">
           {activePath && stats?.map((s, i) => <span key={i}>{s}</span>)}
           <span className="spacer" />
@@ -522,7 +573,6 @@ export default function App() {
       {modal?.type === 'import' && <ImportDialog onImport={createAndOpen} onClose={() => setModal(null)} />}
       {modal?.type === 'citation' && <CitationDialog onInsert={activePath && isMarkdown(activePath) && mode !== 'read'
         ? insertCitation : null} onClose={() => setModal(null)} />}
-      {websiteDialog}
       {toast && <div className="toast">{toast}</div>}
     </div>
   );

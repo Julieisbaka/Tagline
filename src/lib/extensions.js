@@ -24,6 +24,8 @@ export class ExtensionHost {
     this.source = source;
     this.bridge = bridge;
     this.registered = new Set();
+    this.watches = new Map();
+    this.nextWatch = 0;
     this.pendingCalls = 0;
     this.messageWindow = 0;
     this.messageCount = 0;
@@ -77,6 +79,37 @@ export class ExtensionHost {
       case 'vault.write':
         this.require('vault:write');
         return b.write(requireText(args[0], 'Path', 1000), requireText(args[1], 'Content'));
+      case 'vault.append':
+        this.require('vault:read');
+        this.require('vault:write');
+        return b.append(requireText(args[0], 'Path', 1000), requireText(args[1], 'Content'));
+      case 'vault.delete':
+        this.require('vault:write');
+        return b.delete(requireText(args[0], 'Path', 1000));
+      case 'vault.rename':
+        this.require('vault:write');
+        return b.rename(requireText(args[0], 'Path', 1000), requireText(args[1], 'New path', 1000));
+      case 'vault.flush':
+        this.require('vault:write');
+        return b.flush();
+      case 'vault.compareAndSwap':
+        this.require('vault:read');
+        this.require('vault:write');
+        return b.compareAndSwap(requireText(args[0], 'Path', 1000),
+          requireText(args[1], 'Expected content'), requireText(args[2], 'Content'));
+      case 'vault.watch': {
+        this.require('vault:read');
+        if (this.watches.size >= 32) throw new Error('Extension is limited to 32 vault watches.');
+        const id = ++this.nextWatch;
+        this.watches.set(id, b.watch((event) => this.frame?.contentWindow?.postMessage({
+          type: 'vault-event', id, event,
+        }, '*')));
+        return id;
+      }
+      case 'vault.unwatch': {
+        this.watches.get(args[0])?.();
+        return this.watches.delete(args[0]);
+      }
       case 'storage.get': return this.storage()[requireText(args[0], 'Key', 200)] ?? null;
       case 'storage.set': {
         const data = { ...this.storage(), [requireText(args[0], 'Key', 200)]: args[1] };
@@ -133,6 +166,8 @@ export class ExtensionHost {
   }
 
   dispose() {
+    this.watches.forEach((unsubscribe) => unsubscribe());
+    this.watches.clear();
     window.removeEventListener('message', this.onMessage);
     this.frame?.remove();
     this.frame = null;
@@ -166,6 +201,12 @@ export function useExtensions({ bridgeRef, notify }) {
       list: () => bridgeRef.current.list(),
       read: (path) => bridgeRef.current.read(path),
       write: (path, content) => bridgeRef.current.write(path, content),
+      append: (path, content) => bridgeRef.current.append(path, content),
+      delete: (path) => bridgeRef.current.delete(path),
+      rename: (from, to) => bridgeRef.current.rename(from, to),
+      flush: () => bridgeRef.current.flush(),
+      compareAndSwap: (path, expected, content) => bridgeRef.current.compareAndSwap(path, expected, content),
+      watch: (listener) => bridgeRef.current.watch(listener),
     };
     let list;
     try { list = await window.api.listExtensions(); }

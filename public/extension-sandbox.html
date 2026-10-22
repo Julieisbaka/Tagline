@@ -21,6 +21,7 @@
   }
   const pending = new Map();
   const handlers = new Map();
+  const watches = new Map();
   let next = 0;
   let started = false;
   const send = (message) => postMessage(message);
@@ -55,6 +56,20 @@
       list: () => call('vault.list'),
       read: (path) => call('vault.read', path),
       write: (path, content) => call('vault.write', path, content),
+      append: (path, content) => call('vault.append', path, content),
+      delete: (path) => call('vault.delete', path),
+      rename: (from, to) => call('vault.rename', from, to),
+      flush: () => call('vault.flush'),
+      compareAndSwap: (path, expected, content) => call('vault.compareAndSwap', path, expected, content),
+      watch: async (listener) => {
+        if (typeof listener !== 'function') throw new TypeError('Watch listener must be a function.');
+        const id = await call('vault.watch');
+        watches.set(id, listener);
+        return async () => {
+          watches.delete(id);
+          return call('vault.unwatch', id);
+        };
+      },
     }),
     storage: Object.freeze({
       get: (key) => call('storage.get', key),
@@ -76,6 +91,9 @@
       const { resolve, reject } = pending.get(data.id);
       pending.delete(data.id);
       if (data.error) reject(new Error(data.error)); else resolve(data.value);
+    } else if (data.type === 'vault-event') {
+      try { await watches.get(data.id)?.(data.event); }
+      catch (error) { send({ type: 'error', message: describe(error) }); }
     } else if (data.type === 'command') {
       try { await handlers.get(data.command)?.(); }
       catch (error) { send({ type: 'error', message: describe(error) }); }
@@ -104,7 +122,7 @@
         if (performance.now() - lastHeartbeat > 5000) fail('Extension stopped responding for 5 seconds and was stopped.');
       }, 500);
       worker.postMessage(data);
-    } else if (worker && (data.type === 'result' || data.type === 'command')) {
+    } else if (worker && ['result', 'command', 'vault-event'].includes(data.type)) {
       worker.postMessage(data);
     }
   });

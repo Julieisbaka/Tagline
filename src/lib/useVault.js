@@ -14,12 +14,44 @@ export function useVault(underscoreFolders = true, autoRelink = true) {
   const [initialized, setInitialized] = useState(false);
   const timers = useRef({});
   const pending = useRef({});
+  const writes = useRef(new Map());
+  const watchers = useRef(new Set());
+  const observed = useRef({ root: null, contents: {} });
   const contentsRef = useRef(contents);
   contentsRef.current = contents;
   const directories = folderPaths(tree);
   const normalize = (path, folder = false) => underscoreFolders ? normalizeFolders(path, folder, directories) : path;
 
   const report = (e) => setError(e?.message || String(e));
+
+  const writeDisk = useCallback((path, text) => {
+    const previous = writes.current.get(path) || Promise.resolve();
+    const task = previous.catch(() => {}).then(() => api.write(path, text));
+    writes.current.set(path, task);
+    const cleanup = () => {
+      if (writes.current.get(path) === task) writes.current.delete(path);
+    };
+    task.then(cleanup, cleanup);
+    return task;
+  }, []);
+
+  useEffect(() => {
+    const previous = observed.current;
+    observed.current = { root: vault?.root, contents };
+    const events = previous.root !== vault?.root ? [{ type: 'reset' }] :
+      [...new Set([...Object.keys(previous.contents), ...Object.keys(contents)])]
+        .filter((path) => previous.contents[path] !== contents[path])
+        .map((path) => ({ type: contents[path] === undefined ? 'delete' :
+          previous.contents[path] === undefined ? 'create' : 'change', path }));
+    for (const event of events) {
+      for (const listener of watchers.current) listener(event);
+    }
+  }, [vault?.root, contents]);
+
+  const watch = useCallback((listener) => {
+    watchers.current.add(listener);
+    return () => watchers.current.delete(listener);
+  }, []);
 
   const reload = useCallback(async () => {
     try {
@@ -52,20 +84,22 @@ export function useVault(underscoreFolders = true, autoRelink = true) {
   }, [open]);
 
   const flush = useCallback(async () => {
+    const inflight = Promise.allSettled([...writes.current.values()]);
     const entries = Object.entries(pending.current);
     pending.current = {};
     Object.values(timers.current).forEach(clearTimeout);
     timers.current = {};
     const saved = await Promise.all(entries.map(async ([p, c]) => {
-      try { await api.write(p, c); return true; }
+      try { await writeDisk(p, c); return true; }
       catch (error) {
-        if (pending.current[p] === undefined) pending.current[p] = c;
+        if (pending.current[p] === undefined && contentsRef.current[p] === c) pending.current[p] = c;
         report(error);
         return false;
       }
     }));
-    return saved.every(Boolean);
-  }, []);
+    const completed = await inflight;
+    return saved.every(Boolean) && completed.every((result) => result.status === 'fulfilled');
+  }, [writeDisk]);
 
   useEffect(() => {
     const onUnload = () => {
@@ -76,6 +110,7 @@ export function useVault(underscoreFolders = true, autoRelink = true) {
   }, []);
 
   const updateContent = useCallback((path, text) => {
+    contentsRef.current = { ...contentsRef.current, [path]: text };
     setContents((c) => ({ ...c, [path]: text }));
     pending.current[path] = text;
     clearTimeout(timers.current[path]);
@@ -83,12 +118,12 @@ export function useVault(underscoreFolders = true, autoRelink = true) {
       const value = pending.current[path];
       delete pending.current[path];
       delete timers.current[path];
-      if (value !== undefined) api.write(path, value).catch((error) => {
+      if (value !== undefined) writeDisk(path, value).catch((error) => {
         if (pending.current[path] === undefined && contentsRef.current[path] === value) pending.current[path] = value;
         report(error);
       });
     }, SAVE_DELAY);
-  }, []);
+  }, [writeDisk]);
 
   const createFile = useCallback(
     async (path, content = '') => {
@@ -149,7 +184,7 @@ export function useVault(underscoreFolders = true, autoRelink = true) {
 
   const remove = useCallback(
     async (path) => {
-      delete pending.current[path];
+      if (!await flush()) return false;
       try {
         await api.remove(path);
         await reload();
@@ -159,7 +194,7 @@ export function useVault(underscoreFolders = true, autoRelink = true) {
         return false;
       }
     },
-    [reload],
+    [flush, reload],
   );
 
   const chooseVault = useCallback(async () => {
@@ -192,6 +227,9 @@ export function useVault(underscoreFolders = true, autoRelink = true) {
     clearError: () => setError(null),
     reload,
     updateContent,
+    getContent: (path) => contentsRef.current[path],
+    flush,
+    watch,
     createFile,
     createFolder,
     rename,

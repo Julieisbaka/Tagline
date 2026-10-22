@@ -127,6 +127,23 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
         await wait("!!document.querySelector('.website-view')");
         await wait(`document.querySelector('.website-status')?.textContent === ${JSON.stringify(website)}`);
         const websiteView = win.contentView.children.find((view) => view.webContents);
+        const checkBrowserBounds = async () => {
+          const area = await js(`(() => {
+            const workspace = document.querySelector('.workspace').getBoundingClientRect();
+            const surface = document.querySelector('.website-surface').getBoundingClientRect();
+            const browser = document.querySelector('.website-view').getBoundingClientRect();
+            return { x: surface.x, y: surface.y, width: surface.width, height: surface.height,
+              inside: browser.x >= workspace.x && browser.y >= workspace.y &&
+                browser.right <= workspace.right + 1 && browser.bottom <= workspace.bottom + 1 };
+          })()`);
+          assert.equal(area.inside, true, 'Browser stays inside the note workspace');
+          const box = websiteView.getBounds();
+          for (const key of ['x', 'y', 'width', 'height']) {
+            assert.ok(Math.abs(box[key] - area[key] * wc.getZoomFactor()) <= 1,
+              `Native browser ${key} matches the note surface: ${JSON.stringify({ box, area })}`);
+          }
+        };
+        await checkBrowserBounds();
         const remote = websiteView.webContents;
         const preferences = remote.getLastWebPreferences();
         assert.equal(preferences.nodeIntegration, false);
@@ -151,6 +168,7 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
         const surfaceWidth = await js("document.querySelector('.website-surface').getBoundingClientRect().width");
         assert.ok(Math.abs(websiteView.getBounds().width - surfaceWidth * wc.getZoomFactor()) <= 1,
           `Website bounds ${JSON.stringify(websiteView.getBounds())}, surface ${surfaceWidth}, zoom ${wc.getZoomFactor()}, content ${win.getContentSize()}`);
+        await checkBrowserBounds();
         await button('.website-toolbar button', 'Open in browser');
         assert.equal(externalUrls.pop(), website.replace('/one', '/two'));
         await input('[aria-label="Website address"]', 'file:///C:/Windows/win.ini');

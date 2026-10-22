@@ -47,6 +47,36 @@ tagline.commands.register('pending', async () => {
   const results = await Promise.allSettled(Array.from({ length: 33 }, () => tagline.storage.get('runs')));
   tagline.notify('Rejected ' + results.filter((item) => item.status === 'rejected').length + ' excess calls');
 });
+tagline.commands.register('vault-apis', async () => {
+  const events = [];
+  const stop = await tagline.vault.watch(event => events.push(event));
+  const file = await tagline.vault.write('Operations.md', 'start');
+  await Promise.all([tagline.vault.append(file, '-a'), tagline.vault.append(file, '-b')]);
+  const before = await tagline.vault.read(file);
+  if (before !== 'start-a-b') throw new Error('Concurrent appends lost content: ' + before);
+  const swapped = await Promise.all([
+    tagline.vault.compareAndSwap(file, before, 'winner'),
+    tagline.vault.compareAndSwap(file, before, 'loser'),
+  ]);
+  if (String(swapped) !== 'true,false') throw new Error('CAS did not reject stale content');
+  if (await tagline.vault.read(file) !== 'winner') throw new Error('CAS lost the winning content');
+  await tagline.vault.flush();
+  await tagline.vault.write('Operation Links.md', '[[Operations]]');
+  const renamed = await tagline.vault.rename(file, 'Renamed Operations.md');
+  if (renamed !== 'Renamed Operations.md') throw new Error('Rename returned wrong path');
+  await tagline.vault.append(renamed, '-saved');
+  await tagline.vault.flush();
+  await new Promise(resolve => setTimeout(resolve, 100));
+  await tagline.storage.set('watchEvents', events);
+  await stop();
+  const count = events.length;
+  await tagline.vault.write('Delete Me.md', 'temporary');
+  await tagline.vault.delete('Delete Me.md');
+  await new Promise(resolve => setTimeout(resolve, 100));
+  if (events.length !== count) throw new Error('Watch continued after unsubscribe');
+  await tagline.storage.set('watchStopped', true);
+  tagline.notify('Vault APIs passed');
+});
 `;
 
 (async () => {
@@ -65,7 +95,8 @@ tagline.commands.register('pending', async () => {
     contributes: {
       commands: [{ id: 'stamp', title: 'Stamp note', key: 'Mod+Alt+K' }, { id: 'index', title: 'Build index' },
         { id: 'escape', title: 'Try escaping', key: 'Mod+N' }, { id: 'spin', title: 'Spin forever' },
-        { id: 'flood', title: 'Flood messages' }, { id: 'pending', title: 'Pending limit' }],
+        { id: 'flood', title: 'Flood messages' }, { id: 'pending', title: 'Pending limit' },
+        { id: 'vault-apis', title: 'Exercise vault APIs' }],
       themes: ['themes/ocean.json'],
     },
   }));
@@ -135,6 +166,19 @@ tagline.commands.register('pending', async () => {
           await delay(100);
         }
         assert.match(index, /Card\.md[\s\S]*Round\.flow[\s\S]*\n\n\d+$/);
+
+        await palette('Demo: Exercise vault APIs');
+        await toast('Demo: Vault APIs passed');
+        assert.equal(await fs.readFile(path.join(vault, 'Renamed Operations.md'), 'utf8'), 'winner-saved');
+        assert.equal(await fs.readFile(path.join(vault, 'Operation Links.md'), 'utf8'), '[[Renamed Operations]]');
+        await assert.rejects(fs.access(path.join(vault, 'Operations.md')));
+        await assert.rejects(fs.access(path.join(vault, 'Delete Me.md')));
+        const data = await js("JSON.parse(localStorage.getItem('tagline-extension:demo'))");
+        assert.equal(data.watchStopped, true);
+        assert.ok(data.watchEvents.some(event => event.type === 'create' && event.path === 'Operations.md'));
+        assert.ok(data.watchEvents.some(event => event.type === 'change' && event.path === 'Operations.md'));
+        assert.ok(data.watchEvents.some(event => event.type === 'delete' && event.path === 'Operations.md'));
+        assert.ok(data.watchEvents.some(event => event.type === 'create' && event.path === 'Renamed Operations.md'));
 
         await js(`[...document.querySelectorAll('.tree-item')].find((el) => el.textContent.trim() === 'Card').click()`);
         await wait(`!!document.querySelector('.ProseMirror')`, 'visual editor');

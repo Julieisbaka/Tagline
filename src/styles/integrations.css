@@ -14,20 +14,26 @@
 }
 
 .website-view {
-  position: fixed;
+  position: absolute;
   inset: 0;
-  z-index: 200;
+  z-index: 10;
   display: flex;
   flex-direction: column;
   background: var(--bg);
 }
 
-.mac-website-view {
+.welcome-website {
+  position: fixed;
+  inset: 0;
+}
+
+.mac-titlebar ~ .welcome-website {
   top: 38px;
 }
 
 .website-toolbar {
   display: flex;
+  flex-wrap: wrap;
   gap: 6px;
   padding: 10px;
   border-bottom: 1px solid var(--border);
