@@ -58,7 +58,7 @@ contextBridge.exposeInMainWorld('api', {
   choosePandoc: () => ipcRenderer.invoke('pandoc:choose'),
   exportDocument: (document) => ipcRenderer.invoke('pandoc:export', document),
   exportHtml: (document) => ipcRenderer.invoke('documents:html', document),
-  importDocument: () => ipcRenderer.invoke('documents:import'),
+  importDocument: (options) => ipcRenderer.invoke('documents:import', options),
   listHistory: (p) => ipcRenderer.invoke('history:list', p),
   readHistory: (p, id) => ipcRenderer.invoke('history:read', p, id),
   importReadingSamples: () => ipcRenderer.invoke('documents:readingSamples'),

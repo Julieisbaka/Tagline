@@ -319,7 +319,9 @@ Markdown and warnings before adding a note. Text highlights from Word, HTML
 overwrite existing notes. The source document is unchanged.
 DOCX tracked changes are accepted, so the import reflects the final-document
 view; the original revision history is not retained. Common Word whitespace
-artifacts are normalized without changing paragraph and heading structure.
+artifacts can be normalized without changing paragraph and heading structure
+by checking **Clean up imported Markdown** in the import dialog. This
+experimental cleanup is off by default.
 
 Complex formatting may not survive conversion. Pandoc format support does not
 guarantee that every embedded HTML element retains its original behavior.

@@ -6,12 +6,13 @@ export default function ImportDialog({ onImport, onClose }) {
   const [busy, setBusy] = useState(false);
   const [result, setResult] = useState(null);
   const [name, setName] = useState('');
+  const [cleanup, setCleanup] = useState(false);
   const [error, setError] = useState('');
   const choose = async () => {
     setBusy(true);
     setError('');
     try {
-      const doc = await window.api.importDocument();
+      const doc = await window.api.importDocument({ cleanup });
       if (!doc.canceled) { setResult(doc); setName(doc.name); }
     } catch (e) { setError(e.message); }
     finally { setBusy(false); }
@@ -32,6 +33,10 @@ export default function ImportDialog({ onImport, onClose }) {
         <h3>{t('Import document with Pandoc')}</h3>
         <p>{t('Choose a DOCX, ODT, RTF, HTML, or EPUB document. Review the Markdown before adding it to this vault. The original is never changed.')}</p>
         <p>{t('Images and complex formatting may not survive conversion. DOCX tracked changes are imported in their accepted (final-document) state. Imported HTML stays in source mode when needed.')}</p>
+        <label className="setting-row">
+          <span>{t('Clean up imported Markdown (experimental; off by default)')}</span>
+          <input type="checkbox" checked={cleanup} disabled={busy} onChange={(e) => setCleanup(e.target.checked)} />
+        </label>
         <button disabled={busy} onClick={choose}>{t('Choose document')}</button>
         {result && <>
           <label className="setting-row"><span>{t('Note name')}</span>

@@ -17,7 +17,7 @@ function cleanImportedMarkdown(markdown) {
     .replace(/^\n+|\n+$/g, '') + '\n';
 }
 
-async function importDocument(executable, file) {
+async function importDocument(executable, file, { cleanup = false } = {}) {
   const extension = path.extname(file).slice(1).toLowerCase();
   const reader = IMPORT_READERS[extension];
   if (!reader) throw new Error('Unsupported import format.');
@@ -31,7 +31,7 @@ async function importDocument(executable, file) {
     { windowsHide: true, timeout: 120000, maxBuffer: 20 * 1024 * 1024 });
   const warnings = [stderr.trim(), extension === 'docx'
     ? 'Tracked changes were imported in their accepted (final-document) state.' : ''].filter(Boolean).join('\n');
-  return { markdown: cleanImportedMarkdown(stdout), warnings };
+  return { markdown: cleanup ? cleanImportedMarkdown(stdout) : stdout, warnings };
 }
 
 function registerDocuments({ ipcMain, dialog, getWindow, readConfig }) {
@@ -56,7 +56,11 @@ function registerDocuments({ ipcMain, dialog, getWindow, readConfig }) {
     await fs.writeFile(result.filePath, JSON.stringify(theme, null, 2) + '\n', 'utf8');
     return { canceled: false, path: result.filePath };
   });
-  ipcMain.handle('documents:import', async () => {
+  ipcMain.handle('documents:import', async (_event, options = {}) => {
+    if (!options || typeof options !== 'object' || Array.isArray(options) ||
+      (options.cleanup !== undefined && typeof options.cleanup !== 'boolean')) {
+      throw new Error('Invalid document import options.');
+    }
     const info = await detectPandoc(readConfig().pandocPath || '');
     if (!info.available) throw new Error(info.message);
     const result = await dialog.showOpenDialog(getWindow(), {
@@ -65,7 +69,7 @@ function registerDocuments({ ipcMain, dialog, getWindow, readConfig }) {
     });
     if (result.canceled) return { canceled: true };
     const source = result.filePaths[0];
-    const converted = await importDocument(info.executable, source);
+    const converted = await importDocument(info.executable, source, options);
     return { canceled: false, name: path.basename(source, path.extname(source)), ...converted };
   });
   ipcMain.handle('documents:readingSamples', async () => {
