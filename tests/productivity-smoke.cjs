@@ -167,7 +167,8 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
           .find(item => item.querySelector('strong')?.textContent === 'Flow vault with spaces')
           .querySelector('button').click())()`);
         await wait("document.querySelectorAll('.tree-item').length >= 3");
-        assert.ok((await js('window.api.listRecentVaults()')).some((item) => item.root === ${JSON.stringify(vault)}));
+        const recentVaults = await js('window.api.listRecentVaults()');
+        assert.ok(recentVaults.some((item) => item.root === vault));
         // An actual second Electron instance forwards .flow to the primary process.
         const secondary = spawn(process.execPath, [__filename, warm], {
           env: { ...process.env, TAGLINE_SECONDARY: '1' }, stdio: 'inherit',
