@@ -110,6 +110,23 @@
         helpers: Object.freeze({
           path: paths,
           markdownToText: (markdown) => call('helpers.markdownToText', markdown),
+          markdown: Object.freeze({
+            toText: (markdown) => call('helpers.markdown.toText', markdown),
+            slugify: (heading) => call('helpers.markdown.slugify', heading),
+            outline: (markdown) => call('helpers.markdown.outline', markdown),
+            extractLinks: (markdown) => call('helpers.markdown.extractLinks', markdown),
+            extractTags: (markdown) => call('helpers.markdown.extractTags', markdown),
+            resolveLink: (target, paths) => call('helpers.markdown.resolveLink', target, paths),
+          }),
+          cards: Object.freeze({
+            getAt: (markdown, offset) => call('helpers.cards.getAt', markdown, offset),
+            stats: (markdown) => call('helpers.cards.stats', markdown),
+            spokenEvidence: (markdown) => call('helpers.cards.spokenEvidence', markdown),
+          }),
+          speech: Object.freeze({
+            analyze: (text) => call('helpers.speech.analyze', text),
+            estimate: (text, wordsPerMinute) => call('helpers.speech.estimate', text, wordsPerMinute),
+          }),
           createDisposables() {
             const disposables = new Set();
             return Object.freeze({

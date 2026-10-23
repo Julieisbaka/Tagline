@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useI18n } from '../../lib/i18n.js';
-import { displayName, isFlow } from '../../lib/vault.js';
+import { displayName, isCanvas, isFlow } from '../../lib/vault.js';
 import ContextMenu from '../dialogs/ContextMenu.jsx';
 import Icon from '../Icon.jsx';
 
@@ -36,7 +36,7 @@ export default function TabBar({ tabs, activeId, onActivate, onClose, onCloseOth
           }}
           title={t.path || tr('Graph view')}
         >
-          <Icon name={t.kind === 'graph' ? 'graph' : isFlow(t.path) ? 'flow' : 'file'} size={12} />
+          <Icon name={t.kind === 'graph' ? 'graph' : isFlow(t.path) ? 'flow' : isCanvas(t.path) ? 'canvas' : 'file'} size={12} />
           <span className="tab-label">{t.kind === 'graph' ? tr('Graph view') : displayName(t.path, hideFlowExtension, showMarkdownExtension)}</span>
           <button
             className="tab-close"

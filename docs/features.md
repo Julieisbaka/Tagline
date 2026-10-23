@@ -5,13 +5,19 @@
 ## Vaults and notes
 
 Open a folder as a vault or create one from the welcome screen. Notes are
-Markdown files; speech flows use `.flow` files. Settings and downloaded models
-are stored in the app profile, not the vault.
+Markdown files; speech flows use `.flow` files, and visual canvases use
+`.canvas` files in the [JSON Canvas 1.0](https://jsoncanvas.org/spec/1.0/)
+format. Settings and downloaded models are stored in the app profile, not the
+vault.
 
 Create, move, rename, and delete files in the sidebar. Open several documents
 in tabs, use `Mod+O` to switch files, or `Mod+P` to find a command. Edits
 autosave. Drag either sidebar edge to resize it.
 Right-click a note and choose **Copy note path** to copy its vault-relative path.
+Create canvases from the sidebar or command palette. Add and arrange text, file,
+link, and group nodes; connect nodes with labeled or colored arrows. Switch to
+**JSON source** to inspect or edit the Canvas file directly. Existing JSON
+Canvas fields that Tagline does not edit are preserved.
 
 Tagline keeps up to 20 recent vaults. Switch from the sidebar or welcome screen.
 Removing a vault from the recent list only removes its saved path; it never

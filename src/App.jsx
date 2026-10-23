@@ -3,6 +3,7 @@ import { EMPTY_FLOW } from './components/FlowEditor.jsx';
 import AppLayout from './components/layout/AppLayout.jsx';
 import { clampPanel, PANEL_LIMITS } from './components/layout/Splitter.jsx';
 import { getSectionAt } from './lib/card.js';
+import { EMPTY_CANVAS } from './lib/canvas.js';
 import { buildCommands, fillTemplate } from './lib/commands.js';
 import { useI18n } from './lib/i18n.js';
 import { binding, displayBinding, KEYBINDINGS, matchesBinding } from './lib/keybindings.js';
@@ -11,7 +12,7 @@ import { useSettings } from './lib/settings.js';
 import { useAppExtensions } from './lib/useAppExtensions.js';
 import { useTabs } from './lib/useTabs.js';
 import { useVault } from './lib/useVault.js';
-import { baseName, dirName, flattenTree, isMarkdown, joinPath, outline, resolveLink } from './lib/vault.js';
+import { baseName, dirName, flattenTree, isCanvas, isMarkdown, joinPath, outline, resolveLink } from './lib/vault.js';
 import { visualBlocker, visualSelection } from './lib/visualExtensions.js';
 
 export default function App() {
@@ -212,7 +213,9 @@ export default function App() {
     newFlow: (dir = activePath ? dirName(activePath) : '') => createAndOpen(joinPath(dir, 'Untitled Flow.flow'), EMPTY_FLOW),
     newFolder: (dir = activePath ? dirName(activePath) : '') =>
       prompt(t('New folder name'), t('New folder'), (name) => v.createFolder(joinPath(dir, name.replace(/[\\/:*?"<>|]/g, '-')))),
-    rename: (node) => prompt(t('Rename “{name}”', { name: node.name }), node.name.replace(/\.(md|flow)$/i, ''), (name) => doRename(node.path, renameTarget(node, name))),
+    newCanvas: (dir = activePath ? dirName(activePath) : '') => createAndOpen(joinPath(dir, 'Untitled.canvas'), EMPTY_CANVAS)
+      .then((path) => path && setModes((current) => ({ ...current, [path]: 'visual' }))),
+    rename: (node) => prompt(t('Rename “{name}”', { name: node.name }), node.name.replace(/\.(md|flow|canvas)$/i, ''), (name) => doRename(node.path, renameTarget(node, name))),
     move: doRename,
     remove: async (node) => {
       if (!window.confirm(t('Move “{name}” to the trash?', { name: node.name }))) return;
@@ -262,6 +265,7 @@ export default function App() {
     openSearch: () => setModal({ type: 'search' }),
     newNote: () => actions.newNote(),
     newFlow: () => actions.newFlow(),
+    newCanvas: () => actions.newCanvas(),
     newFolder: () => actions.newFolder(),
     newFromTemplate: () =>
       pickTemplate((tp) =>
@@ -298,7 +302,8 @@ export default function App() {
     switchVault: v.chooseVault,
     createSample: v.createSample,
     reload: v.reload,
-    toggleMode: () => setMode(mode !== 'read' ? 'read' : settings.editorMode),
+    toggleMode: () => setMode(isCanvas(activePath) ? (mode === 'edit' ? 'visual' : 'edit')
+      : mode !== 'read' ? 'read' : settings.editorMode),
     sourceMode: () => setMode('edit'),
     visualMode: () => setMode('visual'),
     exportNote: () => activePath && isMarkdown(activePath) ? setModal({ type: 'export' })

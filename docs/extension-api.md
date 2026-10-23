@@ -358,6 +358,15 @@ await tagline.helpers.path.dirname(path);  // "Research"
 await tagline.helpers.path.extname(path);  // ".md"
 const text = await tagline.helpers.markdownToText('**Evidence**'); // "Evidence"
 
+const outline = await tagline.helpers.markdown.outline('# Case\n\n#### Card');
+const tags = await tagline.helpers.markdown.extractTags('Debate #aff');
+const paths = await tagline.vault.list(); // Requires vault:read
+const target = await tagline.helpers.markdown.resolveLink('Energy', paths);
+const markdown = '#### Claim\n\n==Evidence==';
+const card = await tagline.helpers.cards.getAt(markdown, 0);
+const stats = await tagline.helpers.cards.stats(card.text);
+const timing = await tagline.helpers.speech.estimate(card.text, 250);
+
 const disposables = tagline.helpers.createDisposables();
 disposables.add(await tagline.events.on('ext.debate-tools.finished', () => {}));
 disposables.add(tagline.panels.onMessage('research-panel', () => {}));
@@ -366,10 +375,26 @@ await disposables.dispose();
 
 Path helpers operate on vault-relative paths, normalize separators, and reject
 absolute paths and `..` traversal above the vault root. They do not access files.
-Markdown-to-text accepts at most 100,000 characters, omits HTML, and returns a
-plain-text approximation, not a round-trip serializer. `createDisposables` is
-synchronous; `add` returns the supplied function, and `dispose` invokes all
-registered disposers, clears the group, and surfaces any failure.
+The Markdown helpers are `toText`, `slugify`, `outline`, `extractLinks`,
+`extractTags`, and `resolveLink(target, paths)`. Link resolution only checks
+the supplied list (at most 10,000 paths); listing vault paths requires
+`vault:read`. The legacy
+`helpers.markdownToText` method remains available. `toText` omits HTML and is a
+plain-text approximation, not a round-trip serializer. `outline` reports
+zero-based line numbers. Link and tag extraction skip fenced and inline code.
+
+Card helpers provide `getAt(markdown, offset)`, `stats(markdown)`, and
+`spokenEvidence(markdown)`. `getAt` returns the heading section containing the
+character offset, or `null` if there is no preceding heading. Speech helpers
+provide `analyze(text)` and `estimate(text, wordsPerMinute = 250)`; estimates
+include the analysis fields and `seconds`. Text inputs are limited to 100,000
+characters; estimates accept speaking rates from 50 to 1,000 WPM. These helpers
+are pure and require no permission. Use the vault API separately to read files;
+vault access still requires its declared permissions.
+
+`createDisposables` is synchronous; `add` returns the supplied function, and
+`dispose` invokes all registered disposers, clears the group, and surfaces any
+failure.
 
 ### Typed extension settings
 

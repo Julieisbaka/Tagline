@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useI18n } from '../../lib/i18n.js';
-import { displayName, isFlow } from '../../lib/vault.js';
+import { displayName, isCanvas, isFlow } from '../../lib/vault.js';
 import Icon from '../Icon.jsx';
 
 function TreeNode({ node, depth, activePath, expanded, toggle, onOpen, onContext, onDropMove, spaced, hideFlowExtension, showMarkdownExtension }) {
@@ -45,7 +45,7 @@ function TreeNode({ node, depth, activePath, expanded, toggle, onOpen, onContext
         {isFolder ? (
           <Icon name={open ? 'chevron-down' : 'chevron-right'} size={12} />
         ) : (
-          <Icon name={isFlow(node.path) ? 'flow' : 'file'} size={12} />
+          <Icon name={isFlow(node.path) ? 'flow' : isCanvas(node.path) ? 'canvas' : 'file'} size={12} />
         )}
         <span className="tree-label">{isFolder ? show(node.name) : displayName(node.path, hideFlowExtension, showMarkdownExtension)}</span>
       </div>

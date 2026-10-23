@@ -58,8 +58,14 @@ const delay = (ms) => new Promise((r) => setTimeout(r, ms));
         assert.equal(await js("!!document.querySelector('.graph-controls button') && !document.querySelector('.graph-controls button').disabled"),
           true, 'two cards are selected for a relation');
         await js("document.querySelector('.graph-controls button').click()");
-        await delay(1000);
-        const argumentNote = await fs.readFile(path.join(vault, 'Doc.md'), 'utf8');
+        for (let i = 0; i < 30 && !(await js("!!document.querySelector('.argument-relations>div')")); i++) await delay(100);
+        assert.equal(await js("!!document.querySelector('.argument-relations>div')"), true,
+          'relationship appears in the selected card list');
+        let argumentNote = await fs.readFile(path.join(vault, 'Doc.md'), 'utf8');
+        for (let i = 0; i < 30 && !argumentNote.includes('**Supports:**'); i++) {
+          await delay(100);
+          argumentNote = await fs.readFile(path.join(vault, 'Doc.md'), 'utf8');
+        }
         assert.match(argumentNote, /\*\*Supports:\*\* \[\[Doc#card-1\]\]/,
           `argument relationship saves with its source card: ${argumentNote.split('\n').filter((line) => line.includes('Supports')).join('|')}`);
         await js(`document.querySelector('.tree-item[title="Doc.md"]').click()`);

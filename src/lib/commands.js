@@ -9,6 +9,7 @@ export function buildCommands(ctx, overrides = {}) {
     c('search', 'Search vault', ctx.openSearch, 'Ctrl+Shift+F'),
     c('new-note', 'Create new note', ctx.newNote, 'Ctrl+N'),
     c('new-flow', 'Create new flow', ctx.newFlow),
+    c('new-canvas', 'Create new canvas', ctx.newCanvas),
     c('new-folder', 'Create new folder', ctx.newFolder),
     c('from-template', 'Create new note from template', ctx.newFromTemplate),
     c('graph', 'Open graph view', ctx.openGraph, 'Ctrl+G'),

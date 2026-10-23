@@ -32,6 +32,14 @@ tagline.commands.register('capabilities', async () => {
   await tagline.storage.set('selectionCheck', (await tagline.editor.tiptap.getSnapshot()).selection);
   await tagline.storage.set('helperCheck', await tagline.helpers.path.join('Folder', '..', 'Card.md'));
   await tagline.storage.set('textCheck', await tagline.helpers.markdownToText('**Evidence**'));
+  await tagline.storage.set('helperLibraryCheck', {
+    slug: await tagline.helpers.markdown.slugify('Climate Impact'),
+    outline: await tagline.helpers.markdown.outline('# Case\\n\\n#### Card'),
+    links: await tagline.helpers.markdown.extractLinks('[[Card]]'),
+    tags: await tagline.helpers.markdown.extractTags('#aff'),
+    card: await tagline.helpers.cards.getAt('#### Card\\n\\n==Evidence==', 10),
+    speech: await tagline.helpers.speech.estimate('Evidence matters.').spokenWords,
+  });
   tagline.panels.onMessage('status', async payload => {
     if (payload.ready) await tagline.panels.postMessage('status', { reply: true });
     else await tagline.storage.set('panelCheck', payload);
@@ -268,6 +276,13 @@ tagline.commands.register('save-checks', async () => {
         assert.deepEqual(capabilities.selectionEvent.selection, { from: 1, to: 3 });
         assert.equal(capabilities.helperCheck, 'Card.md');
         assert.equal(capabilities.textCheck, 'Evidence');
+        assert.deepEqual(capabilities.helperLibraryCheck, {
+          slug: 'climate-impact',
+          outline: [{ level: 1, text: 'Case', line: 0 }, { level: 4, text: 'Card', line: 2 }],
+          links: ['Card'], tags: ['aff'],
+          card: { text: '#### Card\n\n==Evidence==', level: 4, title: 'Card' },
+          speech: 2,
+        });
         assert.equal(capabilities.webviewCheck.networkBlocked, true);
         assert.equal(capabilities.webviewCheck.api, 'undefined');
         assert.equal(await js("document.querySelector('.extension-panel iframe').getAttribute('sandbox')"), 'allow-scripts');

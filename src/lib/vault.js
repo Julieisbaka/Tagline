@@ -2,15 +2,17 @@
 
 export const isFlow = (p) => p.toLowerCase().endsWith('.flow');
 export const isMarkdown = (p) => p.toLowerCase().endsWith('.md');
+export const isCanvas = (p) => p.toLowerCase().endsWith('.canvas');
 
 export function baseName(p) {
   const file = p.split('/').pop();
-  return file.replace(/\.(md|flow)$/i, '');
+  return file.replace(/\.(md|flow|canvas)$/i, '');
 }
 
 export function displayName(p, hideFlowExtension = true, showMarkdownExtension = false) {
   const file = p.split('/').pop();
   if (isMarkdown(p)) return showMarkdownExtension ? file : baseName(p);
+  if (isCanvas(p)) return baseName(p);
   return hideFlowExtension ? baseName(p) : file;
 }
 

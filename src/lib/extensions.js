@@ -5,7 +5,7 @@ import { getExtensionSetting, setExtensionSettings, resetExtensionSettings } fro
 import { getRuntimeLimits, validateLimits } from '../../electron/customization.mjs';
 import {
   APPLICATION_EVENTS, EDITOR_COMMANDS, applicationEvents, requireEventName,
-  requirePayload, requireSelection, pathHelper, markdownToText
+  requirePayload, requireSelection, pathHelper, extensionHelper
 } from './extensionCapabilities.js';
 
 // A worker runs extension code inside an opaque-origin supervisor iframe:
@@ -128,7 +128,19 @@ export class ExtensionHost {
         return true;
       }
       case 'helpers.path': return pathHelper(args[0], args.slice(1));
-      case 'helpers.markdownToText': return markdownToText(requireText(args[0], 'Markdown', 100000));
+      case 'helpers.markdownToText':
+      case 'helpers.markdown.toText':
+      case 'helpers.markdown.slugify':
+      case 'helpers.markdown.outline':
+      case 'helpers.markdown.extractLinks':
+      case 'helpers.markdown.extractTags':
+      case 'helpers.markdown.resolveLink':
+      case 'helpers.cards.getAt':
+      case 'helpers.cards.stats':
+      case 'helpers.cards.spokenEvidence':
+      case 'helpers.speech.analyze':
+      case 'helpers.speech.estimate':
+        return extensionHelper(method, args);
       case 'ui.setHtml':
       case 'ui.show':
       case 'ui.close':

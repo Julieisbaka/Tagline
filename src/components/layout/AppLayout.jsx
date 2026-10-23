@@ -1,8 +1,9 @@
-import { baseName, dirName, displayName, isMarkdown } from '../../lib/vault.js';
+import { baseName, dirName, displayName, isCanvas, isMarkdown } from '../../lib/vault.js';
 import { binding, displayBinding } from '../../lib/keybindings.js';
 import Sidebar, { renameTarget } from './Sidebar.jsx';
 import TabBar from './TabBar.jsx';
 import NoteView from '../NoteView.jsx';
+import CanvasView from '../CanvasView.jsx';
 import GraphView from '../GraphView.jsx';
 import RightPanel from './RightPanel.jsx';
 import SearchModal from '../dialogs/SearchModal.jsx';
@@ -77,6 +78,19 @@ export default function AppLayout({ app }) {
         <button onClick={() => tabs.close(tab.id)}>{t('Close tab')}</button>
       </> : t('Loading…')}
     </div>;
+    if (isCanvas(activePath)) return <CanvasView
+      key={activePath}
+      path={activePath}
+      content={activeContent}
+      mode={mode}
+      setMode={setMode}
+      onChange={(text) => v.updateContent(activePath, text)}
+      onRename={(path, title) => doRename(path, renameTarget({ type: 'file', path }, title))}
+      onOpenHistory={() => setModal({ type: 'history', path: activePath })}
+      paths={paths}
+      onOpenFile={(file, subpath) => openLink(file, subpath?.slice(1), false)}
+      onOpenUrl={(url) => window.api.websiteAction('external', url).catch((error) => notify(error.message))}
+    />;
     return (
       <NoteView
         key={tab.path}

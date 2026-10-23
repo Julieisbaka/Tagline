@@ -46,10 +46,47 @@ test('argument-map card links persist in Markdown without creating note-graph li
   assert.equal(getArgumentCards({ ...contents, [source.path]: removed })[0].relations.length, 0);
 });
 
+test('JSON Canvas validates spec fields and round-trips unknown properties', async () => {
+  const { EMPTY_CANVAS, parseCanvas, serializeCanvas, createCanvasNode } = await import('../src/lib/canvas.js');
+  const canvas = parseCanvas(JSON.stringify({
+    nodes: [
+      { id: 'a', type: 'text', x: -20, y: 5, width: 280, height: 180, text: '**Claim**', pluginData: { keep: true } },
+      { id: 'b', type: 'link', x: 320, y: 5, width: 280, height: 180, url: 'https://example.com', color: '6' },
+    ],
+    edges: [{ id: 'edge', fromNode: 'a', toNode: 'b', fromSide: 'right', toSide: 'left', toEnd: 'arrow', label: 'supports' }],
+  }));
+  const serialized = serializeCanvas(canvas);
+  assert.equal(parseCanvas(serialized).nodes[0].pluginData.keep, true);
+  assert.equal(parseCanvas(serialized).edges[0].label, 'supports');
+  assert.deepEqual(parseCanvas(EMPTY_CANVAS), { nodes: [], edges: [] });
+  assert.equal(createCanvasNode('group', 0, 'group').type, 'group');
+  for (const invalid of [
+    '{"nodes":[{"id":"x","type":"text","x":0,"y":0,"width":0,"height":10,"text":""}]}',
+    '{"nodes":[{"id":"x","type":"file","x":0,"y":0,"width":10,"height":10,"file":""}],"edges":[{"id":"e","fromNode":"x","toNode":"missing"}]}',
+    '{"nodes":[{"id":"x","type":"other","x":0,"y":0,"width":10,"height":10}]}',
+  ]) assert.throws(() => parseCanvas(invalid));
+});
+
 test('extension capabilities validate selection, command, helper, event and UI contracts', async () => {
   const { ExtensionHost } = await import('../src/lib/extensions.js');
-  const { applicationEvents, createEventBus, pathHelper, markdownToText, requirePayload } =
+  const { applicationEvents, createEventBus, extensionHelper, pathHelper, markdownToText, requirePayload } =
     await import('../src/lib/extensionCapabilities.js');
+  const cardMarkdown = '#### Climate impact\n\n**Smith 2024**\n\n==The impact is significant.==';
+  assert.equal(extensionHelper('helpers.markdown.slugify', ['Climate Impact']), 'climate-impact');
+  assert.deepEqual(extensionHelper('helpers.markdown.outline', [`# Case\n${cardMarkdown}`]), [
+    { level: 1, text: 'Case', line: 0 },
+    { level: 4, text: 'Climate impact', line: 1 },
+  ]);
+  assert.deepEqual(extensionHelper('helpers.markdown.extractLinks', ['[[Evidence]]']), ['Evidence']);
+  assert.deepEqual(extensionHelper('helpers.markdown.extractTags', ['#aff #impact']), ['aff', 'impact']);
+  assert.equal(extensionHelper('helpers.markdown.resolveLink', ['Evidence', ['Evidence.md']]), 'Evidence.md');
+  assert.equal(extensionHelper('helpers.cards.getAt', [cardMarkdown, 24]).title, 'Climate impact');
+  assert.equal(extensionHelper('helpers.cards.spokenEvidence', [cardMarkdown]), 'The impact is significant.\nSmith 2024');
+  assert.equal(extensionHelper('helpers.cards.stats', [cardMarkdown]).cards, 1);
+  assert.ok(extensionHelper('helpers.speech.analyze', ['A short speech.']).spokenWords > 0);
+  assert.ok(extensionHelper('helpers.speech.estimate', ['A short speech.', 250]).seconds > 0);
+  assert.throws(() => extensionHelper('helpers.cards.getAt', [cardMarkdown, -1]), /Offset/);
+  assert.throws(() => extensionHelper('helpers.speech.estimate', ['words', 0]), /Speaking rate/);
   const calls = [];
   const sent = [];
   const manifest = {

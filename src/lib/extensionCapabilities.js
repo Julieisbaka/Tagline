@@ -1,4 +1,10 @@
 import { marked } from 'marked';
+import { cardStats, getSectionAt, spokenEvidence } from './card.js';
+import { slugify } from './markdown.js';
+import { readingSeconds, speechStats } from './readTime.js';
+import { extractLinks, extractTags, outline, resolveLink } from './vault.js';
+
+export const MAX_HELPER_TEXT = 100_000;
 
 export const EDITOR_COMMANDS = Object.freeze([
   'toggleBold', 'toggleItalic', 'toggleUnderline', 'toggleHighlight', 'toggleStrike',
@@ -94,4 +100,62 @@ export function markdownToText(markdown) {
     return token.text || (token.type === 'br' || token.type === 'space' ? '\n' : token.raw || '');
   }).join(' ');
   return collect(marked.lexer(markdown)).replace(/[ \t]+/g, ' ').replace(/[ \t]*\n[ \t]*/g, '\n').trim();
+}
+
+function requireHelperText(value, label) {
+  if (typeof value !== 'string' || value.length > MAX_HELPER_TEXT) {
+    throw new Error(`${label} must be text up to ${MAX_HELPER_TEXT} characters.`);
+  }
+  return value;
+}
+
+function requirePaths(value) {
+  if (!Array.isArray(value) || value.length > 10_000 ||
+    value.some((path) => typeof path !== 'string' || path.length > 1000)) {
+    throw new Error('Paths must be an array of at most 10,000 vault-relative paths.');
+  }
+  return value;
+}
+
+export function extensionHelper(method, args) {
+  switch (method) {
+    case 'helpers.markdownToText':
+    case 'helpers.markdown.toText':
+      return markdownToText(requireHelperText(args[0], 'Markdown'));
+    case 'helpers.markdown.slugify':
+      return slugify(requireHelperText(args[0], 'Heading'));
+    case 'helpers.markdown.outline':
+      return outline(requireHelperText(args[0], 'Markdown'));
+    case 'helpers.markdown.extractLinks':
+      return extractLinks(requireHelperText(args[0], 'Markdown'));
+    case 'helpers.markdown.extractTags':
+      return extractTags(requireHelperText(args[0], 'Markdown'));
+    case 'helpers.markdown.resolveLink':
+      return resolveLink(requireHelperText(args[0], 'Link target'), requirePaths(args[1]));
+    case 'helpers.cards.getAt': {
+      const content = requireHelperText(args[0], 'Markdown');
+      const offset = args[1];
+      if (!Number.isSafeInteger(offset) || offset < 0 || offset > content.length) {
+        throw new Error('Offset must be an integer within the Markdown text.');
+      }
+      return getSectionAt(content, offset);
+    }
+    case 'helpers.cards.stats':
+      return cardStats(requireHelperText(args[0], 'Card'));
+    case 'helpers.cards.spokenEvidence':
+      return spokenEvidence(requireHelperText(args[0], 'Card'));
+    case 'helpers.speech.analyze':
+      return speechStats(requireHelperText(args[0], 'Text'));
+    case 'helpers.speech.estimate': {
+      const text = requireHelperText(args[0], 'Text');
+      const wpm = args[1] === undefined ? 250 : args[1];
+      if (!Number.isFinite(wpm) || wpm < 50 || wpm > 1000) {
+        throw new Error('Speaking rate must be a number from 50 to 1,000 words per minute.');
+      }
+      const stats = speechStats(text);
+      return { ...stats, seconds: readingSeconds(stats, wpm) };
+    }
+    default:
+      throw new Error(`Unknown extension helper: ${method}`);
+  }
 }

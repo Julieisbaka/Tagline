@@ -22,6 +22,13 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
   await fs.writeFile(path.join(vault, 'Cards.md'), source);
   await fs.writeFile(path.join(vault, 'Other.md'), '# Other');
   await fs.writeFile(path.join(vault, 'Round.flow'), JSON.stringify(flow));
+  await fs.writeFile(path.join(vault, 'Map.canvas'), JSON.stringify({
+    nodes: [
+      { id: 'claim', type: 'text', x: 40, y: 40, width: 260, height: 180, text: 'Claim' },
+      { id: 'evidence', type: 'file', x: 380, y: 40, width: 260, height: 180, file: 'Cards.md' },
+    ],
+    edges: [{ id: 'support', fromNode: 'claim', toNode: 'evidence', fromSide: 'right', toSide: 'left', label: 'supports' }],
+  }));
   await fs.writeFile(path.join(userData, 'config.json'), JSON.stringify({ lastVault: vault }));
   app.setPath('userData', userData);
   let pandocAvailable = false;
@@ -90,8 +97,21 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
         await wait("!!document.querySelector('.settings')");
       };
       try {
-        await wait("document.querySelectorAll('.tree-item').length === 3");
+        await wait("document.querySelectorAll('.tree-item').length === 4");
         assert.equal(await js("document.querySelectorAll('[title=\"Settings (Ctrl+,)\"], [title=\"Settings\"]').length"), 1);
+        await click('.tree-item', 'Map');
+        await wait("document.querySelectorAll('.canvas-node').length === 2 && document.querySelectorAll('.canvas-edge-line').length === 1");
+        await click('button', 'Add text');
+        await wait("document.querySelectorAll('.canvas-node').length === 3");
+        await select('.canvas-view select', 'source');
+        await wait("!!document.querySelector('.canvas-json-editor .cm-content')");
+        assert.match(await js("document.querySelector('.canvas-json-editor .cm-content').textContent"), /fromNode/);
+        await select('.canvas-view select', 'visual');
+        await wait("document.querySelectorAll('.canvas-node').length === 3");
+        await click('button', 'Connect nodes');
+        await js("document.querySelector('[data-node-id=\"claim\"]').click()");
+        await js("document.querySelector('[data-node-id=\"evidence\"]').click()");
+        await wait("document.querySelectorAll('.canvas-edge-line').length === 2");
         await click('.tree-item', 'Round');
         await wait("!!document.querySelector('.flow-grid textarea')");
         assert.equal(await js("getComputedStyle(document.querySelector('.flow-sheet-tab.active')).boxShadow"), 'none');

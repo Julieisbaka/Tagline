@@ -2,5 +2,6 @@
 @import './widgets/right-panel.css';
 @import './widgets/timer.css';
 @import './widgets/flow.css';
+@import './widgets/canvas.css';
 @import './widgets/graph.css';
 @import './widgets/responsive.css';

@@ -12,6 +12,7 @@ function ContextMenu({ menu, onClose, actions }) {
     ? [
       ['New note', () => actions.newNote(node.path)],
       ['New flow', () => actions.newFlow(node.path)],
+      ['New canvas', () => actions.newCanvas(node.path)],
       ['New folder', () => actions.newFolder(node.path)],
       ...(node.path
         ? [
@@ -56,6 +57,9 @@ export default function Sidebar({ vault, tree, activePath, actions, spacedFolder
         <button className="icon-btn" title={t('New flow')} aria-label={t('New flow')} onClick={() => actions.newFlow(activeDir)}>
           <Icon name="flow" />
         </button>
+        <button className="icon-btn" title={t('New canvas')} aria-label={t('New canvas')} onClick={() => actions.newCanvas(activeDir)}>
+          <Icon name="canvas" />
+        </button>
         <button className="icon-btn" title={t('New folder')} aria-label={t('New folder')} onClick={() => actions.newFolder(activeDir)}>
           <Icon name="folder-plus" />
         </button>
@@ -84,7 +88,7 @@ export default function Sidebar({ vault, tree, activePath, actions, spacedFolder
 }
 
 export function renameTarget(node, newName) {
-  const ext = node.type === 'file' ? node.path.match(/\.(md|flow)$/i)?.[0] || '' : '';
+  const ext = node.type === 'file' ? node.path.match(/\.(md|flow|canvas)$/i)?.[0] || '' : '';
   const clean = newName.replace(/[\\/:*?"<>|]/g, '-').replace(new RegExp(`${ext.replace('.', '\\.')}$`, 'i'), '');
   return joinPath(dirName(node.path), clean + ext);
 }
