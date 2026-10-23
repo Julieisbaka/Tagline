@@ -1,4 +1,7 @@
 {
+  "Copy note path": "Copiar la ruta de la nota",
+  "Copied note path": "Ruta de la nota copiada",
+  "Could not copy note path: {error}": "No se pudo copiar la ruta de la nota: {error}",
   "Sidebar shortcuts": "Accesos directos de la barra lateral",
   "Choose which shortcuts appear and change their order. Drag icons on the sidebar to reorder them. Settings stays available.": "Elige qué accesos directos aparecen y cambia su orden. Arrastra los iconos de la barra lateral para reorganizarlos. La configuración siempre estará disponible.",
   "Drag to reorder; configure in Settings": "Arrastra para reordenar; configura en Ajustes",

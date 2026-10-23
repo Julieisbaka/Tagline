@@ -11,6 +11,7 @@ are stored in the app profile, not the vault.
 Create, move, rename, and delete files in the sidebar. Open several documents
 in tabs, use `Mod+O` to switch files, or `Mod+P` to find a command. Edits
 autosave. Drag either sidebar edge to resize it.
+Right-click a note and choose **Copy note path** to copy its vault-relative path.
 
 Tagline keeps up to 20 recent vaults. Switch from the sidebar or welcome screen.
 Removing a vault from the recent list only removes its saved path; it never

@@ -198,6 +198,14 @@ export default function App() {
     open,
     reload: v.reload,
     reveal: v.reveal,
+    copyNotePath: async (path) => {
+      try {
+        await navigator.clipboard.writeText(path);
+        notify(t('Copied note path'));
+      } catch (error) {
+        notify(t('Could not copy note path: {error}', { error: error.message }));
+      }
+    },
     switchVault: () => setModal({ type: 'vaults' }),
     settings: () => setModal({ type: 'settings' }),
     newNote: (dir = activePath ? dirName(activePath) : '') => createAndOpen(joinPath(dir, 'Untitled.md'), ''),

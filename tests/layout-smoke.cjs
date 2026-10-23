@@ -45,6 +45,12 @@ const delay = (ms) => new Promise((r) => setTimeout(r, ms));
         await js("document.querySelector('.settings-footer .primary').click()");
         await delay(100);
         for (let i = 0; i < 100 && !(await js("document.querySelectorAll('.tree-item').length")); i++) await delay(100);
+        await js(`(() => { const item = document.querySelector('.tree-item[title="Doc.md"]'); item.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, clientX: 140, clientY: 160 })); })()`);
+        await delay(100);
+        await js(`(() => [...document.querySelectorAll('.context-menu button')].find((button) => button.textContent.includes('Copy note path')).click())()`);
+        await delay(100);
+        assert.equal(await js("JSON.stringify(document.querySelector('.toast')?.textContent)"), JSON.stringify('Copied note path'),
+          'copy path action reports success');
         await js(`document.querySelector('.tree-item[title="Doc.md"]').click()`);
         await delay(1200);
         for (const [w, h] of [[1280, 800], [900, 700]]) {

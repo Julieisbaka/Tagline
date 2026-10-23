@@ -23,6 +23,7 @@ function ContextMenu({ menu, onClose, actions }) {
     ]
     : [
       ['Open in new tab', () => actions.open(node.path, true)],
+      ['Copy note path', () => actions.copyNotePath(node.path)],
       ['Rename…', () => actions.rename(node)],
       ...(isMarkdown(node.path) ? [['Set as speech doc', () => actions.setSpeechDoc(node.path)]] : []),
       ['Reveal in file explorer', () => actions.reveal(node.path)],
