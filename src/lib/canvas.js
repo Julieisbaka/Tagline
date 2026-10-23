@@ -41,12 +41,14 @@ export function parseCanvas(content) {
   }
 
   const ids = new Set();
+  const nodeIds = new Set();
   for (const [index, node] of nodes.entries()) {
     const label = `Node ${index + 1}`;
     if (!isRecord(node)) throw new Error(`${label} must be an object.`);
     requireString(node.id, `${label} id`);
     if (!node.id.trim() || ids.has(node.id)) throw new Error(`${label} id must be unique and non-empty.`);
     ids.add(node.id);
+    nodeIds.add(node.id);
     if (!NODE_TYPES.has(node.type)) throw new Error(`${label} has an unsupported type.`);
     for (const key of ['x', 'y', 'width', 'height']) {
       if (!Number.isSafeInteger(node[key])) throw new Error(`${label} ${key} must be an integer.`);
@@ -79,7 +81,7 @@ export function parseCanvas(content) {
     ids.add(edge.id);
     requireString(edge.fromNode, `${label} fromNode`);
     requireString(edge.toNode, `${label} toNode`);
-    if (!nodes.some((node) => node.id === edge.fromNode) || !nodes.some((node) => node.id === edge.toNode)) {
+    if (!nodeIds.has(edge.fromNode) || !nodeIds.has(edge.toNode)) {
       throw new Error(`${label} must reference existing nodes.`);
     }
     for (const key of ['fromSide', 'toSide']) {

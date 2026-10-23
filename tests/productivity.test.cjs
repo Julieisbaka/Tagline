@@ -301,6 +301,7 @@ test('extension default shortcuts never shadow built-ins and .flow labels follow
   assert.equal(usableDefaultKey('Mod++'), '');
   assert.equal(usableDefaultKey('Mod+Alt+K', [{ key: 'Mod+Alt+K' }]), '');
   assert.equal(displayName('Rounds/Round 1.flow'), 'Round 1');
+  assert.equal(displayName('Boards/Case.canvas'), 'Case');
   assert.equal(displayName('Rounds/Round 1.flow', false), 'Round 1.flow');
   assert.equal(displayName('Cases/Aff.md', false), 'Aff');
 });

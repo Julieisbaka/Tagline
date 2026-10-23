@@ -87,7 +87,7 @@ test('extension capabilities validate selection, command, helper, event and UI c
   assert.equal(extensionHelper('helpers.citations.create', [{ author: 'Smith', year: '2024', title: 'A claim' }]),
     '**Smith 2024** — "A claim"');
   assert.equal(extensionHelper('helpers.search.fuzzyScore', ['deb', 'debate']), 999.4);
-  assert.equal(extensionHelper('helpers.templates.fill', ['{{title}}', 'Case'],), 'Case');
+  assert.equal(extensionHelper('helpers.templates.fill', ['{{title}}', 'Case']), 'Case');
   assert.ok(extensionHelper('helpers.speech.analyze', ['A short speech.']).spokenWords > 0);
   assert.ok(extensionHelper('helpers.speech.estimate', ['A short speech.', 250]).seconds > 0);
   assert.throws(() => extensionHelper('helpers.cards.getAt', [cardMarkdown, -1]), /Offset/);

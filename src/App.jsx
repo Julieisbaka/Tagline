@@ -52,19 +52,21 @@ export default function App() {
   const activePath = tabs.activeTab?.kind === 'file' ? tabs.activeTab.path : null;
   const activeContent = activePath ? v.contents[activePath] : undefined;
   const mode = (activePath && modes[activePath]) || settings.editorMode;
-  const sourceFallback = mode === 'visual' && !!visualBlocker(activeContent || '');
+  const sourceFallback = mode === 'visual' && !(activePath && isCanvas(activePath)) && !!visualBlocker(activeContent || '');
 
   useEffect(() => {
     if (v.ready && settings.closeMissingTabs) tabs.prune(new Set(paths));
   }, [v.ready, paths, settings.closeMissingTabs, tabs.tabs]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
-    if (activeContent === undefined) {
+    if (activeContent === undefined || (activePath && isCanvas(activePath))) {
       editorRef.current = null;
       visualRef.current = null;
+      setVisualEditor(null);
+      cursorRef.current = 0;
       setStats(null);
     }
-  }, [activeContent]);
+  }, [activeContent, activePath]);
 
   const toastTimer = useRef(null);
   const notify = useCallback((msg) => {
