@@ -1,7 +1,7 @@
 import { json } from '@codemirror/lang-json';
 import CodeMirror from '@uiw/react-codemirror';
 import { useMemo, useRef, useState } from 'react';
-import { createCanvasId, createCanvasNode, parseCanvas, serializeCanvas } from '../lib/canvas.js';
+import { createArgumentEdge, createCanvasId, createCanvasNode, parseCanvas, serializeCanvas } from '../lib/canvas.js';
 import { useI18n } from '../lib/i18n.js';
 import { baseName, resolveLink } from '../lib/vault.js';
 import Icon from './Icon.jsx';
@@ -99,11 +99,12 @@ function CanvasNode({
 function CanvasBoard({ canvas, onChange, paths, onOpenFile, onOpenUrl, onOpenLink, t }) {
   const gestureRef = useRef(null);
   const [gesture, setGesture] = useState(null);
+  const [mode, setMode] = useState('canvas');
   const [selectedNode, setSelectedNode] = useState(null);
   const [selectedEdge, setSelectedEdge] = useState(null);
   const [connecting, setConnecting] = useState(false);
   const [connectionStart, setConnectionStart] = useState(null);
-  const [edgeLabel, setEdgeLabel] = useState('');
+  const [relationType, setRelationType] = useState('supports');
   const node = canvas.nodes.find((item) => item.id === selectedNode);
   const edge = canvas.edges.find((item) => item.id === selectedEdge);
   const minX = Math.min(0, ...canvas.nodes.map((item) => item.x)) - 240;
@@ -140,11 +141,10 @@ function CanvasBoard({ canvas, onChange, paths, onOpenFile, onOpenUrl, onOpenLin
         return;
       }
       if (connectionStart !== id) {
-        const next = {
-          id: createCanvasId(), fromNode: connectionStart, toNode: id,
-          fromSide: 'right', toSide: 'left', toEnd: 'arrow',
-          ...(edgeLabel.trim() ? { label: edgeLabel.trim() } : {}),
-        };
+        const next = mode === 'arguments'
+          ? createArgumentEdge(connectionStart, id, relationType)
+          : { id: createCanvasId(), fromNode: connectionStart, toNode: id,
+            fromSide: 'right', toSide: 'left', toEnd: 'arrow' };
         update({ ...canvas, edges: [...canvas.edges, next] });
         setSelectedEdge(next.id);
         setSelectedNode(null);
@@ -190,9 +190,22 @@ function CanvasBoard({ canvas, onChange, paths, onOpenFile, onOpenUrl, onOpenLin
   return (
     <div className="canvas-editor">
       <div className="canvas-toolbar">
-        {['text', 'file', 'link', 'group'].map((type) => <button key={type} onClick={() => addNode(type)}>
-          {t('Add {type}', { type: t(type) })}
-        </button>)}
+        <label className="canvas-mode-control">{t('Canvas mode')}
+          <select aria-label={t('Canvas mode')} value={mode} onChange={(event) => {
+            setMode(event.target.value);
+            setConnecting(false);
+            setConnectionStart(null);
+            setSelectedEdge(null);
+          }}>
+            <option value="canvas">{t('Canvas')}</option>
+            <option value="arguments">{t('Argument map')}</option>
+          </select>
+        </label>
+        {mode === 'canvas'
+          ? ['text', 'file', 'link', 'group'].map((type) => <button key={type} onClick={() => addNode(type)}>
+            {t('Add {type}', { type: t(type) })}
+          </button>)
+          : <button onClick={() => addNode('text')}>{t('Add argument')}</button>}
         <button className={connecting ? 'active' : ''} onClick={() => {
           setConnecting((value) => !value);
           setConnectionStart(null);
@@ -202,8 +215,16 @@ function CanvasBoard({ canvas, onChange, paths, onOpenFile, onOpenUrl, onOpenLin
           update({ ...canvas, edges: canvas.edges.filter((item) => item.id !== edge.id) });
           setSelectedEdge(null);
         }}>{t('Delete connection')}</button>}
-        {connecting && <input aria-label={t('Connection label')} placeholder={t('Connection label')}
-          value={edgeLabel} onChange={(event) => setEdgeLabel(event.target.value)} />}
+        {mode === 'arguments' && <label className="canvas-mode-control">{t('Relation')}
+          <select aria-label={t('Relation')} value={relationType} onChange={(event) => setRelationType(event.target.value)}>
+            <option value="supports">{t('Supports')}</option>
+            <option value="answers">{t('Answers')}</option>
+            <option value="contradicts">{t('Contradicts')}</option>
+          </select>
+        </label>}
+        {connecting && <span className="canvas-hint" role="status">
+          {t(connectionStart ? 'Select the target node.' : 'Select a starting node.')}
+        </span>}
       </div>
       {node && <div className="canvas-inspector">
         <label>{t('Node color')}
@@ -269,7 +290,6 @@ function CanvasBoard({ canvas, onChange, paths, onOpenFile, onOpenUrl, onOpenLin
           </div>
         </div>
       </div>
-      {connecting && <div className="canvas-hint" role="status">{t(connectionStart ? 'Select the target node.' : 'Select a starting node.')}</div>}
     </div>
   );
 }

@@ -17,33 +17,21 @@ test('sidebar shortcut order is normalized and drag reordering is stable', async
   assert.deepEqual(moveRibbonItem(['a', 'b'], 'missing', 'b'), ['a', 'b']);
 });
 
-test('argument-map card links persist in Markdown without creating note-graph links', async () => {
-  const { buildArgumentGraph, createArgumentRelation, getArgumentCards, removeArgumentRelation } =
-    await import('../src/lib/argumentMap.js');
-  const { extractLinks, rewriteLinks } = await import('../src/lib/vault.js');
-  const contents = {
-    'Case.md': '# Case\n\n#### Climate impact\n\n**Smith 2024**\n\nEvidence.\n\n#### Funding\n\nSecond card.\n',
-    'Answers.md': '#### Alternative explanation\n\nResponse.\n',
-  };
-  const cards = getArgumentCards(contents);
-  assert.equal(cards.length, 3);
-  const source = cards[0];
-  const target = cards[2];
-  const changed = createArgumentRelation(contents[source.path], source, target, 'answers');
-  assert.notEqual(changed, contents[source.path]);
-  assert.deepEqual(extractLinks(changed), []);
-
-  const updated = getArgumentCards({ ...contents, [source.path]: changed });
-  assert.deepEqual(updated[0].relations, [{ type: 'answers', targetId: target.id }]);
-  assert.deepEqual(buildArgumentGraph(updated).edges, [[source.id, target.id]]);
-  const renamed = rewriteLinks(changed, 'Answers.md', 'Renamed Answers.md', ['Case.md', 'Answers.md']);
-  assert.match(renamed, /\[\[Renamed Answers#alternative-explanation\]\]/, 'relationship links follow note renames');
-
-  const removed = removeArgumentRelation(changed, updated[0], {
-    ...updated[0].relations[0],
-    target,
+test('argument-map relations are JSON Canvas edges and do not affect note links', async () => {
+  const { createArgumentEdge, parseCanvas, serializeCanvas } = await import('../src/lib/canvas.js');
+  const { extractLinks } = await import('../src/lib/vault.js');
+  const nodes = [
+    { id: 'claim', type: 'text', x: 0, y: 0, width: 280, height: 180, text: 'Claim [[Evidence]]' },
+    { id: 'evidence', type: 'text', x: 320, y: 0, width: 280, height: 180, text: 'Evidence' },
+  ];
+  const canvas = { nodes, edges: [createArgumentEdge('claim', 'evidence', 'supports', 'support-edge')] };
+  const parsed = parseCanvas(serializeCanvas(canvas));
+  assert.deepEqual(parsed.edges[0], {
+    id: 'support-edge', fromNode: 'claim', toNode: 'evidence',
+    fromSide: 'right', toSide: 'left', toEnd: 'arrow', label: 'Supports', color: '4',
   });
-  assert.equal(getArgumentCards({ ...contents, [source.path]: removed })[0].relations.length, 0);
+  assert.deepEqual(extractLinks('Claim [[Evidence]]'), ['Evidence']);
+  assert.throws(() => createArgumentEdge('claim', 'evidence', 'unknown'), /Unsupported argument relation/);
 });
 
 test('JSON Canvas validates spec fields and round-trips unknown properties', async () => {

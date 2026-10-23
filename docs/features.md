@@ -51,11 +51,10 @@ Tagline also provides backlinks, mentions, an outline, tags, and a graph view.
 Put reusable Markdown in `Templates/`; placeholders include `{{date}}`,
 `{{time}}`, and `{{title}}`.
 
-The graph view's **Argument map** mode links level-four debate cards as
-supporting, answering, or contradicting one another. Select two cards and a
-relationship type to add a link; click a card in the map to open its note.
-Links are saved as labeled wiki links in the source card and follow note
-renames.
+Use **Argument map** mode inside a `.canvas` file to connect text nodes as
+supporting, answering, or contradicting arguments. Choose a relation, select
+**Connect nodes**, then click the source and target. These are standard JSON
+Canvas edges, stored in that canvas file.
 
 ## Search and citations
 

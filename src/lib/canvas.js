@@ -120,3 +120,22 @@ export function createCanvasNode(type, index, id = createCanvasId()) {
   if (type === 'group') node.label = 'Group';
   return node;
 }
+
+export function createArgumentEdge(fromNode, toNode, relation, id = createCanvasId()) {
+  const relations = {
+    supports: { label: 'Supports', color: '4' },
+    answers: { label: 'Answers', color: '2' },
+    contradicts: { label: 'Contradicts', color: '1' },
+  };
+  const details = relations[relation];
+  if (!details) throw new Error(`Unsupported argument relation: ${relation}`);
+  return {
+    id,
+    fromNode,
+    toNode,
+    fromSide: 'right',
+    toSide: 'left',
+    toEnd: 'arrow',
+    ...details,
+  };
+}

@@ -21,8 +21,12 @@
   background: var(--bg-secondary);
 }
 
-.canvas-toolbar input {
-  width: min(240px, 30vw);
+.canvas-mode-control {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--text-muted);
+  font-size: 12px;
 }
 
 .canvas-inspector {

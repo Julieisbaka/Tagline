@@ -17,6 +17,12 @@ const delay = (ms) => new Promise((r) => setTimeout(r, ms));
   let body = '# Long doc\n\n';
   for (let i = 0; i < 60; i++) body += `#### Card ${i}\n\n**Smith ${i}**\n\n==Evidence paragraph ${i} with some highlighted text.== More.\n\n`;
   await fs.writeFile(path.join(vault, 'Doc.md'), body);
+  await fs.writeFile(path.join(vault, 'Map.canvas'), JSON.stringify({
+    nodes: [
+      { id: 'claim', type: 'text', x: 80, y: 80, width: 280, height: 180, text: 'Claim' },
+      { id: 'evidence', type: 'text', x: 400, y: 80, width: 280, height: 180, text: 'Evidence' },
+    ], edges: [],
+  }, null, 2));
   await fs.writeFile(path.join(profile, 'config.json'), JSON.stringify({ lastVault: vault, modelAutoload: false }));
   app.setPath('userData', profile);
   app.on('browser-window-created', (_e, win) => {
@@ -51,27 +57,34 @@ const delay = (ms) => new Promise((r) => setTimeout(r, ms));
         await delay(100);
         assert.equal(await js("JSON.stringify(document.querySelector('.toast')?.textContent)"), JSON.stringify('Copied note path'),
           'copy path action reports success');
-        await js("document.querySelector('.ribbon [data-ribbon-item=\"graph\"]').click()");
-        await delay(150);
-        await js(`(() => { const select = document.querySelector('.graph-controls select'); select.value = 'arguments'; select.dispatchEvent(new Event('change', { bubbles: true })); })()`);
-        await delay(500);
-        assert.equal(await js("!!document.querySelector('.graph-controls button') && !document.querySelector('.graph-controls button').disabled"),
-          true, 'two cards are selected for a relation');
-        await js("document.querySelector('.graph-controls button').click()");
-        for (let i = 0; i < 30 && !(await js("!!document.querySelector('.argument-relations>div')")); i++) await delay(100);
-        assert.equal(await js("!!document.querySelector('.argument-relations>div')"), true,
-          'relationship appears in the selected card list');
-        let argumentNote = await fs.readFile(path.join(vault, 'Doc.md'), 'utf8');
-        for (let i = 0; i < 30 && !argumentNote.includes('**Supports:**'); i++) {
+        await js(`document.querySelector('.tree-item[title="Map.canvas"]').click()`);
+        await delay(300);
+        await js(`(() => {
+          document.querySelector('.canvas-mode-control select').value = 'arguments';
+          document.querySelector('.canvas-mode-control select').dispatchEvent(new Event('change', { bubbles: true }));
+        })()`);
+        await js(`(() => {
+          const relation = [...document.querySelectorAll('.canvas-mode-control select')].find((select) =>
+            select.getAttribute('aria-label') === 'Relation');
+          relation.value = 'supports';
+          relation.dispatchEvent(new Event('change', { bubbles: true }));
+          [...document.querySelectorAll('.canvas-toolbar button')].find((button) => button.textContent.includes('Connect nodes')).click();
+        })()`);
+        await delay(100);
+        await js(`document.querySelector('[data-node-id="claim"]').click()`);
+        await delay(100);
+        await js(`document.querySelector('[data-node-id="evidence"]').click()`);
+        let argumentCanvas = JSON.parse(await fs.readFile(path.join(vault, 'Map.canvas'), 'utf8'));
+        for (let i = 0; i < 30 && !argumentCanvas.edges.length; i++) {
           await delay(100);
-          argumentNote = await fs.readFile(path.join(vault, 'Doc.md'), 'utf8');
+          argumentCanvas = JSON.parse(await fs.readFile(path.join(vault, 'Map.canvas'), 'utf8'));
         }
-        assert.match(argumentNote, /\*\*Supports:\*\* \[\[Doc#card-1\]\]/,
-          `argument relationship saves with its source card: ${argumentNote.split('\n').filter((line) => line.includes('Supports')).join('|')}`);
-        await js(`document.querySelector('.tree-item[title="Doc.md"]').click()`);
-        await delay(1200);
-        assert.equal(await js("!!document.querySelector('.visual-document')"), true,
-          'argument links do not force notes out of visual editing');
+        assert.deepEqual(argumentCanvas.edges[0], {
+          id: argumentCanvas.edges[0].id, fromNode: 'claim', toNode: 'evidence',
+          fromSide: 'right', toSide: 'left', toEnd: 'arrow', label: 'Supports', color: '4',
+        }, 'argument relation is saved as a standard Canvas edge');
+        assert.equal(await js("!!document.querySelector('.canvas-board')"), true,
+          'argument map is rendered inside the canvas editor');
         for (const [w, h] of [[1280, 800], [900, 700]]) {
           win.setContentSize(w, h); await delay(800);
           const clipped = await js(`(() => { const bar = document.querySelector('.status-bar').getBoundingClientRect(); return [...document.querySelectorAll('.status-bar > span:not(.spacer)')].filter(s => { const r = s.getBoundingClientRect(); return r.right > bar.right + 1 || r.bottom > bar.bottom + 1; }).map(s => s.textContent); })()`);

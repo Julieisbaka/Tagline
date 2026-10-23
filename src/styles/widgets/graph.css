@@ -47,36 +47,3 @@
   gap: 8px;
   margin-top: 4px;
 }
-
-.argument-relations {
-  display: grid;
-  gap: 4px;
-  padding-top: 6px;
-  border-top: 1px solid var(--border);
-}
-
-.argument-relations>div {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-}
-
-.argument-relations>div span {
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.argument-map-empty {
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  max-width: 340px;
-  padding: 14px 18px;
-  transform: translate(-50%, -50%);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  background: var(--bg-elevated);
-  color: var(--text-muted);
-  text-align: center;
-}

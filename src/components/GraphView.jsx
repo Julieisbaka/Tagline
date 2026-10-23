@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useI18n } from '../lib/i18n.js';
 import { displayName } from '../lib/vault.js';
-import { buildArgumentGraph, createArgumentRelation, getArgumentCards, removeArgumentRelation } from '../lib/argumentMap.js';
 
 function nodeColor(tags) {
   if (tags.includes('aff')) return '--aff';
@@ -41,49 +40,17 @@ function buildGraph(index, activePath, local, showOrphans, showMarkdownExtension
   return { nodes, edges };
 }
 
-export default function GraphView({ index, contents, activePath, onOpen, onUpdateContent, showMarkdownExtension = false }) {
+export default function GraphView({ index, activePath, onOpen, showMarkdownExtension = false }) {
   const { t } = useI18n();
   const canvasRef = useRef(null);
   const wrapRef = useRef(null);
-  const [mode, setMode] = useState('notes');
   const [local, setLocal] = useState(false);
   const [showOrphans, setShowOrphans] = useState(true);
-  const [sourceId, setSourceId] = useState('');
-  const [targetId, setTargetId] = useState('');
-  const [relationType, setRelationType] = useState('supports');
   const live = useRef({});
   live.current = { onOpen, activePath };
   const localRoot = local ? activePath : null;
-  const cards = useMemo(() => getArgumentCards(contents), [contents]);
-  const argumentGraph = useMemo(() => buildArgumentGraph(cards), [cards]);
-  const graph = useMemo(() => mode === 'arguments' ? argumentGraph :
-    buildGraph(index, localRoot, !!localRoot, showOrphans, showMarkdownExtension),
-  [mode, argumentGraph, index, localRoot, showOrphans, showMarkdownExtension]);
-  const byCardId = useMemo(() => new Map(cards.map((card) => [card.id, card])), [cards]);
-
-  useEffect(() => {
-    if (!cards.length) {
-      setSourceId('');
-      setTargetId('');
-      return;
-    }
-    if (!byCardId.has(sourceId)) setSourceId(cards[0].id);
-    if (!byCardId.has(targetId) || targetId === sourceId) {
-      setTargetId(cards.find((card) => card.id !== sourceId)?.id || '');
-    }
-  }, [cards, byCardId, sourceId, targetId]);
-
-  const addRelation = () => {
-    const source = byCardId.get(sourceId);
-    const target = byCardId.get(targetId);
-    if (!source || !target || source.id === target.id) return;
-    onUpdateContent(source.path, createArgumentRelation(contents[source.path] || '', source, target, relationType));
-  };
-  const deleteRelation = (source, relation) => {
-    const target = byCardId.get(relation.targetId);
-    if (!target) return;
-    onUpdateContent(source.path, removeArgumentRelation(contents[source.path] || '', source, { ...relation, target }));
-  };
+  const graph = useMemo(() => buildGraph(index, localRoot, !!localRoot, showOrphans, showMarkdownExtension),
+    [index, localRoot, showOrphans, showMarkdownExtension]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -191,29 +158,13 @@ export default function GraphView({ index, contents, activePath, onOpen, onUpdat
         const a = pos.get(s);
         const b = pos.get(t);
         const hot = focus && (s === focus || t === focus);
-        const edgeType = graph.edgeTypes?.[`${s}\u0000${t}`];
-        const edgeColor = edgeType === 'supports' ? '--aff' : edgeType === 'answers' ? '--warning' :
-          edgeType === 'contradicts' ? '--neg' : '--border';
-        ctx.strokeStyle = colors[hot ? '--accent' : edgeColor];
+        ctx.strokeStyle = colors[hot ? '--accent' : '--border'];
         ctx.globalAlpha = focus && !hot ? 0.25 : 1;
         ctx.lineWidth = hot ? 1.6 / view.k : 1 / view.k;
         ctx.beginPath();
         ctx.moveTo(a.x, a.y);
         ctx.lineTo(b.x, b.y);
         ctx.stroke();
-        if (edgeType) {
-          const angle = Math.atan2(b.y - a.y, b.x - a.x);
-          const tipX = b.x - Math.cos(angle) * (graph.nodes.find((node) => node.id === t)?.r || 5);
-          const tipY = b.y - Math.sin(angle) * (graph.nodes.find((node) => node.id === t)?.r || 5);
-          const size = 7 / view.k;
-          ctx.beginPath();
-          ctx.moveTo(tipX, tipY);
-          ctx.lineTo(tipX - Math.cos(angle - Math.PI / 6) * size, tipY - Math.sin(angle - Math.PI / 6) * size);
-          ctx.lineTo(tipX - Math.cos(angle + Math.PI / 6) * size, tipY - Math.sin(angle + Math.PI / 6) * size);
-          ctx.closePath();
-          ctx.fillStyle = colors[hot ? '--accent' : edgeColor];
-          ctx.fill();
-        }
       }
       for (const n of graph.nodes) {
         const p = pos.get(n.id);
@@ -292,73 +243,21 @@ export default function GraphView({ index, contents, activePath, onOpen, onUpdat
   }, [graph]);
 
   return (
-    <div className={`graph${mode === 'arguments' ? ' argument-map' : ''}`} ref={wrapRef}>
+    <div className="graph" ref={wrapRef}>
       <canvas ref={canvasRef} />
       <div className="graph-controls">
-        <label className="graph-select-control">{t('Graph view')}
-          <select value={mode} onChange={(event) => setMode(event.target.value)}>
-            <option value="notes">{t('Note links')}</option>
-            <option value="arguments">{t('Argument map')}</option>
-          </select>
+        <label>
+          <input type="checkbox" checked={local} onChange={(e) => setLocal(e.target.checked)} /> {t('Local graph')}
         </label>
-        {mode === 'notes' ? <>
-          <label>
-            <input type="checkbox" checked={local} onChange={(e) => setLocal(e.target.checked)} /> {t('Local graph')}
-          </label>
-          <label>
-            <input type="checkbox" checked={showOrphans} onChange={(e) => setShowOrphans(e.target.checked)} /> {t('Orphans')}
-          </label>
-          <div className="graph-legend">
-            <span style={{ color: 'var(--aff)' }}>● #aff</span>
-            <span style={{ color: 'var(--neg)' }}>● #neg</span>
-            <span style={{ color: 'var(--warning)' }}>● #opponent</span>
-          </div>
-        </> : <>
-          <label className="graph-select-control">{t('From card')}
-            <select value={sourceId} onChange={(event) => setSourceId(event.target.value)}>
-              {cards.map((card) => <option key={card.id} value={card.id}>
-                {card.title} — {displayName(card.path, true, showMarkdownExtension)}
-              </option>)}
-            </select>
-          </label>
-          <label className="graph-select-control">{t('Relation')}
-            <select value={relationType} onChange={(event) => setRelationType(event.target.value)}>
-              <option value="supports">{t('Supports')}</option>
-              <option value="answers">{t('Answers')}</option>
-              <option value="contradicts">{t('Contradicts')}</option>
-            </select>
-          </label>
-          <label className="graph-select-control">{t('To card')}
-            <select value={targetId} onChange={(event) => setTargetId(event.target.value)}>
-              {cards.filter((card) => card.id !== sourceId).map((card) => <option key={card.id} value={card.id}>
-                {card.title} — {displayName(card.path, true, showMarkdownExtension)}
-              </option>)}
-            </select>
-          </label>
-          <button disabled={!sourceId || !targetId || sourceId === targetId} onClick={addRelation}>
-            {t('Add relation')}
-          </button>
-          <div className="graph-legend">
-            <span style={{ color: 'var(--aff)' }}>● {t('Supports')}</span>
-            <span style={{ color: 'var(--warning)' }}>● {t('Answers')}</span>
-            <span style={{ color: 'var(--neg)' }}>● {t('Contradicts')}</span>
-          </div>
-          {sourceId && <div className="argument-relations">
-            <strong>{t('Links from selected card')}</strong>
-            {(byCardId.get(sourceId)?.relations || []).map((relation, index) => {
-              const target = byCardId.get(relation.targetId);
-              return target && <div key={`${relation.targetId}:${index}`}>
-                <span>{t(relation.type === 'supports' ? 'Supports' : relation.type === 'answers' ? 'Answers' : 'Contradicts')}:
-                  {' '}{target.title}</span>
-                <button aria-label={t('Remove relationship to {name}', { name: target.title })}
-                  onClick={() => deleteRelation(byCardId.get(sourceId), relation)}>{t('Remove')}</button>
-              </div>;
-            })}
-          </div>}
-        </>}
+        <label>
+          <input type="checkbox" checked={showOrphans} onChange={(e) => setShowOrphans(e.target.checked)} /> {t('Orphans')}
+        </label>
+        <div className="graph-legend">
+          <span style={{ color: 'var(--aff)' }}>● #aff</span>
+          <span style={{ color: 'var(--neg)' }}>● #neg</span>
+          <span style={{ color: 'var(--warning)' }}>● #opponent</span>
+        </div>
       </div>
-      {mode === 'arguments' && cards.length === 0 &&
-        <div className="argument-map-empty">{t('Add level-four debate card headings to notes to start an argument map.')}</div>}
     </div>
   );
 }
