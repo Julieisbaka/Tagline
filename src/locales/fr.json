@@ -44,6 +44,7 @@
   "Supports": "Étaye",
   "Answers": "Répond",
   "Contradicts": "Contredit",
+  "Remove": "Supprimer",
   "Copy note path": "Copier le chemin de la note",
   "Copied note path": "Chemin de la note copié",
   "Could not copy note path: {error}": "Impossible de copier le chemin de la note : {error}",

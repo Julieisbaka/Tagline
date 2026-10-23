@@ -24,12 +24,18 @@ test('argument-map relations are JSON Canvas edges and do not affect note links'
     { id: 'claim', type: 'text', x: 0, y: 0, width: 280, height: 180, text: 'Claim [[Evidence]]' },
     { id: 'evidence', type: 'text', x: 320, y: 0, width: 280, height: 180, text: 'Evidence' },
   ];
-  const canvas = { nodes, edges: [createArgumentEdge('claim', 'evidence', 'supports', 'support-edge')] };
-  const parsed = parseCanvas(serializeCanvas(canvas));
-  assert.deepEqual(parsed.edges[0], {
-    id: 'support-edge', fromNode: 'claim', toNode: 'evidence',
-    fromSide: 'right', toSide: 'left', toEnd: 'arrow', label: 'Supports', color: '4',
-  });
+  for (const [relation, label, color] of [
+    ['supports', 'Supports', '4'],
+    ['answers', 'Answers', '2'],
+    ['contradicts', 'Contradicts', '1'],
+  ]) {
+    const canvas = { nodes, edges: [createArgumentEdge('claim', 'evidence', relation, `${relation}-edge`)] };
+    const [edge] = parseCanvas(serializeCanvas(canvas)).edges;
+    assert.deepEqual(edge, {
+      id: `${relation}-edge`, fromNode: 'claim', toNode: 'evidence',
+      fromSide: 'right', toSide: 'left', toEnd: 'arrow', label, color,
+    });
+  }
   assert.deepEqual(extractLinks('Claim [[Evidence]]'), ['Evidence']);
   assert.throws(() => createArgumentEdge('claim', 'evidence', 'unknown'), /Unsupported argument relation/);
 });

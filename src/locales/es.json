@@ -44,6 +44,7 @@
   "Supports": "Apoya",
   "Answers": "Responde",
   "Contradicts": "Contradice",
+  "Remove": "Eliminar",
   "Copy note path": "Copiar la ruta de la nota",
   "Copied note path": "Ruta de la nota copiada",
   "Could not copy note path: {error}": "No se pudo copiar la ruta de la nota: {error}",

@@ -209,6 +209,11 @@
   border-top: 1px solid var(--border);
 }
 
+.canvas-toolbar .canvas-hint {
+  padding: 4px 6px;
+  border-top: 0;
+}
+
 .canvas-invalid {
   flex: 1;
   display: grid;
