@@ -1,5 +1,6 @@
 import { translate } from './i18n.js';
 import { binding, displayBinding } from './keybindings.js';
+export { fillTemplate } from './template.js';
 
 // Command palette entries. `ctx` provides the actions implemented in App.
 export function buildCommands(ctx, overrides = {}) {
@@ -42,12 +43,4 @@ export function buildCommands(ctx, overrides = {}) {
     );
   }
   return list;
-}
-
-export function fillTemplate(text, title) {
-  const now = new Date();
-  return text
-    .replace(/{{date}}/g, now.toISOString().slice(0, 10))
-    .replace(/{{time}}/g, now.toTimeString().slice(0, 5))
-    .replace(/{{title}}/g, title);
 }

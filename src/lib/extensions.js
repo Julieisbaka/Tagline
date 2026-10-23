@@ -131,6 +131,7 @@ export class ExtensionHost {
       case 'helpers.markdownToText':
       case 'helpers.markdown.toText':
       case 'helpers.markdown.slugify':
+      case 'helpers.markdown.toHtml':
       case 'helpers.markdown.outline':
       case 'helpers.markdown.extractLinks':
       case 'helpers.markdown.extractTags':
@@ -138,6 +139,10 @@ export class ExtensionHost {
       case 'helpers.cards.getAt':
       case 'helpers.cards.stats':
       case 'helpers.cards.spokenEvidence':
+      case 'helpers.cards.formatDuration':
+      case 'helpers.search.fuzzyScore':
+      case 'helpers.templates.fill':
+      case 'helpers.citations.create':
       case 'helpers.speech.analyze':
       case 'helpers.speech.estimate':
         return extensionHelper(method, args);

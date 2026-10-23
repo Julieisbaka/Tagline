@@ -1,8 +1,10 @@
 import { marked } from 'marked';
-import { cardStats, getSectionAt, spokenEvidence } from './card.js';
-import { slugify } from './markdown.js';
+import { cardStats, formatDuration, getSectionAt, spokenEvidence } from './card.js';
+import { createCitation } from './citation.js';
+import { renderMarkdown, slugify } from './markdown.js';
 import { readingSeconds, speechStats } from './readTime.js';
-import { extractLinks, extractTags, outline, resolveLink } from './vault.js';
+import { fillTemplate } from './template.js';
+import { extractLinks, extractTags, fuzzyScore, outline, resolveLink } from './vault.js';
 
 export const MAX_HELPER_TEXT = 100_000;
 
@@ -124,6 +126,8 @@ export function extensionHelper(method, args) {
       return markdownToText(requireHelperText(args[0], 'Markdown'));
     case 'helpers.markdown.slugify':
       return slugify(requireHelperText(args[0], 'Heading'));
+    case 'helpers.markdown.toHtml':
+      return renderMarkdown(requireHelperText(args[0], 'Markdown'));
     case 'helpers.markdown.outline':
       return outline(requireHelperText(args[0], 'Markdown'));
     case 'helpers.markdown.extractLinks':
@@ -144,6 +148,35 @@ export function extensionHelper(method, args) {
       return cardStats(requireHelperText(args[0], 'Card'));
     case 'helpers.cards.spokenEvidence':
       return spokenEvidence(requireHelperText(args[0], 'Card'));
+    case 'helpers.cards.formatDuration': {
+      const seconds = args[0];
+      if (!Number.isFinite(seconds) || seconds < 0 || seconds > 1_000_000_000) {
+        throw new Error('Duration must be a number from 0 to 1,000,000,000 seconds.');
+      }
+      return formatDuration(seconds);
+    }
+    case 'helpers.search.fuzzyScore':
+      return fuzzyScore(requireHelperText(args[0], 'Query'), requireHelperText(args[1], 'Text'));
+    case 'helpers.templates.fill':
+      return fillTemplate(requireHelperText(args[0], 'Template'), requireHelperText(args[1], 'Title'));
+    case 'helpers.citations.create': {
+      const input = args[0];
+      if (!input || typeof input !== 'object' || Array.isArray(input)) {
+        throw new Error('Citation details must be an object.');
+      }
+      const details = {};
+      for (const key of ['author', 'year', 'title', 'publication', 'url', 'accessed']) {
+        const value = input[key];
+        if (value !== undefined && (typeof value !== 'string' || value.length > 10_000)) {
+          throw new Error(`Citation ${key} must be text up to 10,000 characters.`);
+        }
+        if (value !== undefined) details[key] = value;
+      }
+      if (typeof details.author !== 'string' || typeof details.year !== 'string') {
+        throw new Error('Citation author and year are required text fields.');
+      }
+      return createCitation(details);
+    }
     case 'helpers.speech.analyze':
       return speechStats(requireHelperText(args[0], 'Text'));
     case 'helpers.speech.estimate': {

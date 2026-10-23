@@ -112,6 +112,7 @@
           markdownToText: (markdown) => call('helpers.markdownToText', markdown),
           markdown: Object.freeze({
             toText: (markdown) => call('helpers.markdown.toText', markdown),
+            toHtml: (markdown) => call('helpers.markdown.toHtml', markdown),
             slugify: (heading) => call('helpers.markdown.slugify', heading),
             outline: (markdown) => call('helpers.markdown.outline', markdown),
             extractLinks: (markdown) => call('helpers.markdown.extractLinks', markdown),
@@ -122,6 +123,16 @@
             getAt: (markdown, offset) => call('helpers.cards.getAt', markdown, offset),
             stats: (markdown) => call('helpers.cards.stats', markdown),
             spokenEvidence: (markdown) => call('helpers.cards.spokenEvidence', markdown),
+            formatDuration: (seconds) => call('helpers.cards.formatDuration', seconds),
+          }),
+          citations: Object.freeze({
+            create: (details) => call('helpers.citations.create', details),
+          }),
+          search: Object.freeze({
+            fuzzyScore: (query, text) => call('helpers.search.fuzzyScore', query, text),
+          }),
+          templates: Object.freeze({
+            fill: (template, title) => call('helpers.templates.fill', template, title),
           }),
           speech: Object.freeze({
             analyze: (text) => call('helpers.speech.analyze', text),

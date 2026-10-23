@@ -39,6 +39,11 @@ tagline.commands.register('capabilities', async () => {
     tags: await tagline.helpers.markdown.extractTags('#aff'),
     card: await tagline.helpers.cards.getAt('#### Card\\n\\n==Evidence==', 10),
     speech: (await tagline.helpers.speech.estimate('Evidence matters.')).spokenWords,
+    duration: await tagline.helpers.cards.formatDuration(90),
+    citation: await tagline.helpers.citations.create({ author: 'Smith', year: '2024', title: 'A claim' }),
+    score: await tagline.helpers.search.fuzzyScore('deb', 'debate'),
+    template: await tagline.helpers.templates.fill('{{title}}', 'Case'),
+    html: await tagline.helpers.markdown.toHtml('**Safe**'),
   });
   tagline.panels.onMessage('status', async payload => {
     if (payload.ready) await tagline.panels.postMessage('status', { reply: true });
@@ -282,6 +287,11 @@ tagline.commands.register('save-checks', async () => {
           links: ['Card'], tags: ['aff'],
           card: { text: '#### Card\n\n==Evidence==', level: 4, title: 'Card' },
           speech: 2,
+          duration: '1:30',
+          citation: '**Smith 2024** — "A claim"',
+          score: 999.4,
+          template: 'Case',
+          html: '<p><strong>Safe</strong></p>\n',
         });
         assert.equal(capabilities.webviewCheck.networkBlocked, true);
         assert.equal(capabilities.webviewCheck.api, 'undefined');
