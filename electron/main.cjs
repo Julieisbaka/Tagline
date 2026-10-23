@@ -18,7 +18,7 @@ const keyDefinitions = require('../src/lib/keybindings.json');
 
 const isDev = process.argv.includes('--dev');
 const configPath = () => path.join(app.getPath('userData'), 'config.json');
-const NOTE_EXTS = ['.md', '.flow'];
+const NOTE_EXTS = ['.md', '.flow', '.canvas'];
 
 let win;
 let vaultRoot = null;

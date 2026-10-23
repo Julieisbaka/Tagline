@@ -67,7 +67,10 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
       const wc = win.webContents;
       const errors = [];
       wc.on('console-message', (e) => { if (e.level === 'error') errors.push(e.message); });
-      const js = (s) => wc.executeJavaScript(s);
+      const js = (s) => wc.executeJavaScript(s).catch((error) => {
+        console.error('Renderer script failed:', s, error);
+        throw error;
+      });
       const wait = async (s) => {
         for (let i = 0; i < 100; i++) { if (await js(s)) return; await delay(100); }
         throw new Error('Timed out: ' + s);
@@ -275,7 +278,7 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
         await click('[role=menuitem]', 'Close other tabs');
         assert.equal(await js("document.querySelectorAll('.tab').length"), 1);
         // Import uses the real IPC and dialog pipeline with a stubbed Pandoc process.
-        await js("document.querySelector('[title=\"Import document with Pandoc\"]').click()");
+        await js("document.querySelector('[data-ribbon-item=\"import\"]').click()");
         await click('.import-dialog button', 'Choose document');
         await wait("!!document.querySelector('.import-dialog [role=alert]')");
         pandocAvailable = true;

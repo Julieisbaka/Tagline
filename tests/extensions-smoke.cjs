@@ -38,7 +38,7 @@ tagline.commands.register('capabilities', async () => {
     links: await tagline.helpers.markdown.extractLinks('[[Card]]'),
     tags: await tagline.helpers.markdown.extractTags('#aff'),
     card: await tagline.helpers.cards.getAt('#### Card\\n\\n==Evidence==', 10),
-    speech: await tagline.helpers.speech.estimate('Evidence matters.').spokenWords,
+    speech: (await tagline.helpers.speech.estimate('Evidence matters.')).spokenWords,
   });
   tagline.panels.onMessage('status', async payload => {
     if (payload.ready) await tagline.panels.postMessage('status', { reply: true });
