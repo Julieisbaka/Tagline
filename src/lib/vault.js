@@ -32,7 +32,8 @@ function stripCode(content) {
 
 export function extractLinks(content) {
   const out = [];
-  for (const m of stripCode(content).matchAll(WIKILINK_RE)) out.push(m[2].trim());
+  const text = stripCode(content).replace(/<!-- tagline-argument:[\s\S]*?-->/g, '');
+  for (const m of text.matchAll(WIKILINK_RE)) out.push(m[2].trim());
   return out;
 }
 

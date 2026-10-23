@@ -67,7 +67,8 @@ export default function AppLayout({ app }) {
         </div>
       );
     }
-    if (tab.kind === 'graph') return <GraphView index={v.index} activePath={lastFile} onOpen={open}
+    if (tab.kind === 'graph') return <GraphView index={v.index} contents={v.contents} activePath={lastFile} onOpen={open}
+      onUpdateContent={v.updateContent}
       showMarkdownExtension={settings.showMarkdownExtension} />;
     if (activeContent === undefined) return <div className="empty-workspace" role="status">
       {v.ready ? <>

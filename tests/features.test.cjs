@@ -17,6 +17,33 @@ test('sidebar shortcut order is normalized and drag reordering is stable', async
   assert.deepEqual(moveRibbonItem(['a', 'b'], 'missing', 'b'), ['a', 'b']);
 });
 
+test('argument-map card links persist in Markdown without creating note-graph links', async () => {
+  const { buildArgumentGraph, createArgumentRelation, getArgumentCards, removeArgumentRelation } =
+    await import('../src/lib/argumentMap.js');
+  const { extractLinks } = await import('../src/lib/vault.js');
+  const contents = {
+    'Case.md': '# Case\n\n#### Climate impact\n\n**Smith 2024**\n\nEvidence.\n\n#### Funding\n\nSecond card.\n',
+    'Answers.md': '#### Alternative explanation\n\nResponse.\n',
+  };
+  const cards = getArgumentCards(contents);
+  assert.equal(cards.length, 3);
+  const source = cards[0];
+  const target = cards[2];
+  const changed = createArgumentRelation(contents[source.path], source, target, 'answers');
+  assert.notEqual(changed, contents[source.path]);
+  assert.deepEqual(extractLinks(changed), []);
+
+  const updated = getArgumentCards({ ...contents, [source.path]: changed });
+  assert.deepEqual(updated[0].relations, [{ type: 'answers', targetId: target.id }]);
+  assert.deepEqual(buildArgumentGraph(updated).edges, [[source.id, target.id]]);
+
+  const removed = removeArgumentRelation(changed, updated[0], {
+    ...updated[0].relations[0],
+    target,
+  });
+  assert.equal(getArgumentCards({ ...contents, [source.path]: removed })[0].relations.length, 0);
+});
+
 test('extension capabilities validate selection, command, helper, event and UI contracts', async () => {
   const { ExtensionHost } = await import('../src/lib/extensions.js');
   const { applicationEvents, createEventBus, pathHelper, markdownToText, requirePayload } =

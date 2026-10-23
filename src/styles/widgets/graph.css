@@ -14,6 +14,9 @@
   position: absolute;
   top: 12px;
   right: 12px;
+  width: min(300px, calc(100% - 24px));
+  max-height: calc(100% - 24px);
+  overflow: auto;
   background: var(--bg-elevated);
   border: 1px solid var(--border);
   border-radius: 8px;
@@ -24,8 +27,56 @@
   font-size: 12px;
 }
 
+.graph-controls label {
+  display: grid;
+  gap: 4px;
+}
+
+.graph-controls select {
+  width: 100%;
+  min-width: 0;
+}
+
+.graph-controls button {
+  align-self: flex-start;
+}
+
 .graph-legend {
   display: flex;
+  flex-wrap: wrap;
   gap: 8px;
   margin-top: 4px;
+}
+
+.argument-relations {
+  display: grid;
+  gap: 4px;
+  padding-top: 6px;
+  border-top: 1px solid var(--border);
+}
+
+.argument-relations>div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.argument-relations>div span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.argument-map-empty {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  max-width: 340px;
+  padding: 14px 18px;
+  transform: translate(-50%, -50%);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg-elevated);
+  color: var(--text-muted);
+  text-align: center;
 }
