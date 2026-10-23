@@ -89,6 +89,7 @@ export default function AppLayout({ app }) {
       onOpenHistory={() => setModal({ type: 'history', path: activePath })}
       paths={paths}
       onOpenFile={(file, subpath) => openLink(file, subpath?.slice(1), false)}
+      onOpenLink={(target, heading, newTab) => openLink(target, heading, newTab)}
       onOpenUrl={(url) => window.api.websiteAction('external', url).catch((error) => notify(error.message))}
     />;
     return (

@@ -161,6 +161,14 @@
   font-family: var(--font-text);
 }
 
+.canvas-node-content .canvas-node-preview {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: 2px 4px;
+  font-size: 13px;
+}
+
 .canvas-node-content input {
   width: 100%;
 }

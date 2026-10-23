@@ -5,6 +5,7 @@ import { createCanvasId, createCanvasNode, parseCanvas, serializeCanvas } from '
 import { useI18n } from '../lib/i18n.js';
 import { baseName, resolveLink } from '../lib/vault.js';
 import Icon from './Icon.jsx';
+import Preview from './Preview.jsx';
 
 const PRESET_COLORS = [
   ['1', '#e06c75'], ['2', '#d19a66'], ['3', '#e5c07b'],
@@ -23,9 +24,11 @@ function sidePoint(node, side, xOffset, yOffset) {
 }
 
 function CanvasNode({
-  node, selected, order, xOffset, yOffset, onSelect, onUpdate, onRemove, onOpenFile, onOpenUrl, onStartGesture, paths, t,
+  node, selected, order, xOffset, yOffset, onSelect, onUpdate, onRemove, onOpenFile, onOpenUrl, onOpenLink,
+  onStartGesture, paths, t,
 }) {
   const accent = nodeColor(node.color);
+  const [editingText, setEditingText] = useState(node.type === 'text' && !node.text);
   return (
     <article
       className={`canvas-node canvas-node-${node.type}${selected ? ' selected' : ''}`}
@@ -45,14 +48,21 @@ function CanvasNode({
           });
         }}>
         <span>{t(node.type)}</span>
+        {node.type === 'text' && selected && <button className="link-btn"
+          onClick={(event) => { event.stopPropagation(); setEditingText((editing) => !editing); }}>
+          {editingText ? t('Preview text') : t('Edit text')}
+        </button>}
         {selected && <button className="icon-btn" aria-label={t('Delete node')} title={t('Delete node')}
           onClick={(event) => { event.stopPropagation(); onRemove(node.id); }}>
           <Icon name="x" size={12} />
         </button>}
       </header>
       <div className="canvas-node-content">
-        {node.type === 'text' && <textarea aria-label={t('Canvas text')} value={node.text}
-          onChange={(event) => onUpdate(node.id, { text: event.target.value })} />}
+        {node.type === 'text' && (editingText
+          ? <textarea aria-label={t('Canvas text')} value={node.text}
+            onChange={(event) => onUpdate(node.id, { text: event.target.value })} />
+          : <Preview className="canvas-node-preview" content={node.text} resolve={(target) => resolveLink(target, paths)}
+            onOpenLink={onOpenLink} onTagClick={() => {}} />)}
         {node.type === 'file' && <>
           <input aria-label={t('File path')} placeholder={t('Vault-relative file path')} value={node.file}
             onChange={(event) => onUpdate(node.id, { file: event.target.value })} />
@@ -86,7 +96,7 @@ function CanvasNode({
   );
 }
 
-function CanvasBoard({ canvas, onChange, paths, onOpenFile, onOpenUrl, t }) {
+function CanvasBoard({ canvas, onChange, paths, onOpenFile, onOpenUrl, onOpenLink, t }) {
   const gestureRef = useRef(null);
   const [gesture, setGesture] = useState(null);
   const [selectedNode, setSelectedNode] = useState(null);
@@ -225,9 +235,10 @@ function CanvasBoard({ canvas, onChange, paths, onOpenFile, onOpenUrl, t }) {
           onPointerMove={moveGesture} onPointerUp={endGesture} onPointerCancel={endGesture}
           onClick={() => { setSelectedNode(null); setSelectedEdge(null); }}>
           <svg className="canvas-edges" width={width} height={height} aria-label={t('Canvas connections')}>
-            <defs><marker id="canvas-arrow" markerWidth="8" markerHeight="8" refX="7" refY="4"
-              orient="auto" markerUnits="strokeWidth"><path d="M0,0 L8,4 L0,8 z" fill="context-stroke" /></marker></defs>
-            {canvas.edges.map((item) => {
+            <defs>{canvas.edges.map((item, index) => <marker key={item.id} id={`canvas-arrow-${index}`}
+            markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto-start-reverse"
+            markerUnits="strokeWidth"><path d="M0,0 L8,4 L0,8 z" fill={nodeColor(item.color)} /></marker>)}</defs>
+            {canvas.edges.map((item, index) => {
               const from = renderedNodes.find((candidate) => candidate.id === item.fromNode);
               const to = renderedNodes.find((candidate) => candidate.id === item.toNode);
               if (!from || !to) return null;
@@ -242,7 +253,9 @@ function CanvasBoard({ canvas, onChange, paths, onOpenFile, onOpenUrl, t }) {
                 }}>
                 <line className="canvas-edge-hit" x1={a.x} y1={a.y} x2={b.x} y2={b.y} />
                 <line className="canvas-edge-line" x1={a.x} y1={a.y} x2={b.x} y2={b.y}
-                  stroke={nodeColor(item.color)} markerEnd={(item.toEnd || 'arrow') === 'arrow' ? 'url(#canvas-arrow)' : undefined} />
+                  stroke={nodeColor(item.color)}
+                  markerStart={item.fromEnd === 'arrow' ? `url(#canvas-arrow-${index})` : undefined}
+                  markerEnd={(item.toEnd || 'arrow') === 'arrow' ? `url(#canvas-arrow-${index})` : undefined} />
                 {item.label && <text className="canvas-edge-label" x={(a.x + b.x) / 2} y={(a.y + b.y) / 2 - 6}>{item.label}</text>}
               </g>;
             })}
@@ -252,7 +265,7 @@ function CanvasBoard({ canvas, onChange, paths, onOpenFile, onOpenUrl, t }) {
               selected={item.id === selectedNode || (connecting && item.id === connectionStart)} order={index}
               xOffset={xOffset} yOffset={yOffset} onStartGesture={startGesture}
               onSelect={selectNode} onUpdate={updateNode} onRemove={removeNode}
-              onOpenFile={onOpenFile} onOpenUrl={onOpenUrl} paths={paths} t={t} />)}
+              onOpenFile={onOpenFile} onOpenUrl={onOpenUrl} onOpenLink={onOpenLink} paths={paths} t={t} />)}
           </div>
         </div>
       </div>
@@ -262,7 +275,7 @@ function CanvasBoard({ canvas, onChange, paths, onOpenFile, onOpenUrl, t }) {
 }
 
 export default function CanvasView({
-  path, content, mode, setMode, onChange, onRename, onOpenHistory, paths, onOpenFile, onOpenUrl,
+  path, content, mode, setMode, onChange, onRename, onOpenHistory, paths, onOpenFile, onOpenUrl, onOpenLink,
 }) {
   const { t } = useI18n();
   const [title, setTitle] = useState(baseName(path));
@@ -299,7 +312,7 @@ export default function CanvasView({
         <h2>{t('Invalid Canvas JSON')}</h2><p>{parsed.error}</p>
         <button onClick={() => setMode('edit')}>{t('Open JSON source')}</button>
       </div> : <CanvasBoard canvas={parsed.canvas} onChange={onChange} paths={paths}
-        onOpenFile={onOpenFile} onOpenUrl={onOpenUrl} t={t} />}
+        onOpenFile={onOpenFile} onOpenUrl={onOpenUrl} onOpenLink={onOpenLink} t={t} />}
     </div>
   );
 }

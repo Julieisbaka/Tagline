@@ -1,6 +1,8 @@
 {
   "New canvas": "Nouveau canevas",
   "Create new canvas": "Créer un canevas",
+  "Edit text": "Modifier le texte",
+  "Preview text": "Aperçu du texte",
   "Canvas mode": "Mode canevas",
   "JSON source": "Source JSON",
   "Add {type}": "Ajouter : {type}",

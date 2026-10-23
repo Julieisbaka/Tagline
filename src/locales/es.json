@@ -1,6 +1,8 @@
 {
   "New canvas": "Nuevo lienzo",
   "Create new canvas": "Crear un lienzo",
+  "Edit text": "Editar texto",
+  "Preview text": "Vista previa del texto",
   "Canvas mode": "Modo del lienzo",
   "JSON source": "Código JSON",
   "Add {type}": "Añadir {type}",

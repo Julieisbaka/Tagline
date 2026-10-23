@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef } from 'react';
 import { renderMarkdown, slugify } from '../lib/markdown.js';
 
-export default function Preview({ content, resolve, onOpenLink, onTagClick, highlightOnly, scrollTo }) {
+export default function Preview({ content, resolve, onOpenLink, onTagClick, highlightOnly, scrollTo, className = '' }) {
   const ref = useRef(null);
   const html = useMemo(() => renderMarkdown(content, resolve), [content, resolve]);
 
@@ -27,7 +27,7 @@ export default function Preview({ content, resolve, onOpenLink, onTagClick, high
   return (
     <div
       ref={ref}
-      className={`preview markdown-body${highlightOnly ? ' highlight-only' : ''}`}
+      className={`preview markdown-body${className ? ` ${className}` : ''}${highlightOnly ? ' highlight-only' : ''}`}
       onClick={onClick}
       dangerouslySetInnerHTML={{ __html: html }}
     />
