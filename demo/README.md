@@ -1,9 +1,8 @@
-# Tagline API demo extension
+# API demo extension
 
-[`tagline-api-demo`](./tagline-api-demo/) is a working extension that exercises
-every part of the [Extension API](../docs/extension-api.md). Read its
-[`main.js`](./tagline-api-demo/main.js) alongside the reference: each API area
-has its own labelled section.
+[`tagline-api-demo`](./tagline-api-demo/) demonstrates the
+[Extension API](../docs/extension-api.md). Its `main.js` includes examples for
+each API area.
 
 ## Install
 
@@ -11,11 +10,9 @@ has its own labelled section.
 2. Copy the whole `tagline-api-demo` folder into that extensions folder.
 3. Select **Reload extensions**, review the permissions, and enable **API Demo**.
 4. Run **API Demo: Open API dashboard** (`Mod+Alt+J`) from the command palette
-   (`Mod+P`). Show the right sidebar if it is hidden.
+   (`Mod+P`). Show the right sidebar if needed.
 
-Every demo is available both as a dashboard button and as an
-**API Demo: …** palette command. Results appear in the dashboard and as
-notifications.
+Each demo is available from the dashboard and command palette.
 
 ## What each demo shows
 
@@ -39,9 +36,8 @@ notifications.
 | Close dashboard and inspector | `panels.close`, `webviews.close` | `ui` |
 | Themes **Demo Dusk** and **Demo Dawn** | `contributes.themes` with colors and CSS variables | None |
 
-The manifest also demonstrates a default shortcut and all three typed setting
-kinds (boolean, number with bounds, and string with `maxLength` or `enum`).
-Edit the settings on the extension card under **Settings > Extensions**.
+The manifest also shows a shortcut and boolean, number, and string settings.
+Edit them on the extension card in **Settings > Extensions**.
 
 ## Vault changes
 
@@ -53,4 +49,4 @@ Vault demos only touch notes named `Tagline API Demo - …`:
   **Keep vault lifecycle note** setting is on. It refuses to run if either note
   already exists.
 
-Try the demos in a scratch vault if you prefer not to modify your own.
+Use a scratch vault to try the demos without changing your own notes.

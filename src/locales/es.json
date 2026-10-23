@@ -1,4 +1,10 @@
 {
+  "Sidebar shortcuts": "Accesos directos de la barra lateral",
+  "Choose which shortcuts appear and change their order. Drag icons on the sidebar to reorder them. Settings stays available.": "Elige qué accesos directos aparecen y cambia su orden. Arrastra los iconos de la barra lateral para reorganizarlos. La configuración siempre estará disponible.",
+  "Drag to reorder; configure in Settings": "Arrastra para reordenar; configura en Ajustes",
+  "Restore default shortcuts": "Restaurar accesos directos predeterminados",
+  "Move {name} up": "Mover {name} hacia arriba",
+  "Move {name} down": "Mover {name} hacia abajo",
   "Read and edit the active note, selection, and visual editor": "Leer y editar la nota activa, la selección y el editor visual",
   "Subscribe to application events and exchange custom extension events": "Suscribirse a eventos de la aplicación e intercambiar eventos de extensiones",
   "Display sandboxed panels and webviews": "Mostrar paneles y vistas web aislados",

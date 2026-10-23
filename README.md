@@ -2,38 +2,30 @@
 
 ![Tagline icon](build/icon.png)
 
-A local-first policy debate workspace for Markdown evidence and `.flow` speech
-grids. Tagline combines visual/source editing, citations, local revision
-history, full-text and semantic search, speech documents, timers, configurable
-shortcuts, themes, and sandboxed extensions.
+A local-first workspace for debate research, Markdown evidence, and `.flow`
+speech grids. Includes visual/source editing, citations, search, revision
+history, speech tools, themes, and extensions.
 
-Your vault is an ordinary folder. Standalone HTML export is built in; other
-document import/export formats use an optional, separately installed Pandoc.
+Vaults are ordinary folders. HTML export is built in; other import/export
+formats use the optional [Pandoc](https://pandoc.org/).
 
 ## Run
 
 ```sh
 npm install
-npm run dev     # Vite + Electron development
-npm start       # build and launch
-npm run package # package for the current operating system
+npm run dev      # development
+npm start        # build and launch
+npm run package  # package for this operating system
 ```
 
-Open an existing folder as a vault or create the sample vault on first launch.
-Windows, macOS, and Linux packaging targets are configured.
+Open a folder as a vault or create the sample vault on first launch.
 
 ## Documentation
 
 - [Documentation home](./docs/README.md)
-- [Application features, settings, and shortcuts](./docs/features.md)
+- [Features and settings](./docs/features.md)
 - [Extension API](./docs/extension-api.md)
 - [Theme API and custom CSS](./docs/theme-api.md)
-- [Feature suggestions](./docs/feature-suggestions.md)
 
-Optional hypothesis testing uses an ONNX build of
-`mlburnham/Political_DEBATE_large_v1.0`. Produce or publish one with
-[scripts/convert-political-debate.py](./scripts/convert-political-debate.py);
-see [Hypothesis testing](./docs/features.md#hypothesis-testing-political-debate).
-
-Run `npm test` for unit tests; the available Electron integration-test scripts
-are listed in [package.json](./package.json).
+Run `npm test` for unit tests. Electron integration-test commands are listed in
+[package.json](./package.json).

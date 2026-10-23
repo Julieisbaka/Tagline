@@ -1,4 +1,10 @@
 {
+  "Sidebar shortcuts": "Raccourcis de la barre latérale",
+  "Choose which shortcuts appear and change their order. Drag icons on the sidebar to reorder them. Settings stays available.": "Choisissez les raccourcis affichés et modifiez leur ordre. Faites glisser les icônes pour les réorganiser. Les paramètres restent accessibles.",
+  "Drag to reorder; configure in Settings": "Faites glisser pour réorganiser ; configurez dans les paramètres",
+  "Restore default shortcuts": "Restaurer les raccourcis par défaut",
+  "Move {name} up": "Déplacer {name} vers le haut",
+  "Move {name} down": "Déplacer {name} vers le bas",
   "Read and edit the active note, selection, and visual editor": "Lire et modifier la note active, la sélection et l’éditeur visuel",
   "Subscribe to application events and exchange custom extension events": "S’abonner aux événements de l’application et échanger des événements d’extensions",
   "Display sandboxed panels and webviews": "Afficher des panneaux et vues web isolés",

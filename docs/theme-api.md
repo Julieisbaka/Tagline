@@ -2,9 +2,9 @@
 
 [Documentation home](./README.md) | [Extension API](./extension-api.md)
 
-Themes are declarative JSON color palettes with optional CSS variable overrides. They are not executable plugins or
-CSS stylesheets. The same format is used for standalone imports and extension
-theme contributions.
+Themes are JSON color palettes with optional CSS variable overrides. They are
+not executable plugins or stylesheets. The format is shared by imported themes
+and extension contributions.
 
 ## Create, import, and export
 
@@ -138,24 +138,6 @@ When a saved extension theme is unavailable or still loading, the app keeps the
 saved selection but temporarily renders the dark palette. A disabled or removed
 theme appears as **Unavailable extension theme** in the selector.
 
-## Internal helpers, not sandbox APIs
-
-For contributors to Tagline itself, [themes.js](../src/lib/themes.js) exports:
-
-| Export | Behavior |
-| --- | --- |
-| `BUILTIN_THEMES` | The four complete built-in theme objects. |
-| `COLOR_TOKENS` | Frozen list of supported color-token names. |
-| `validateTheme(value)` | Validates input and CSS variables, merges the mode's base colors, and returns a normalized theme with ID `custom`; throws for invalid input. |
-| `getTheme(id, customTheme)` | Resolves a built-in, custom, or registered extension theme; unknown non-extension IDs throw. |
-| `applyTheme(theme)` | Clears previous variable overrides, sets root colors and variables, `data-theme`, and `color-scheme`; dispatches `themechange`. Expects an already complete, validated palette. |
-| `registerExtensionThemes(themes)` | Replaces the renderer's contributed-theme list and dispatches `extensionthemes`. |
-| `extensionThemes()` | Returns the current contributed-theme list. |
-
-These module exports and window events are internal renderer integration points.
-Sandboxed extensions cannot import them or access the application document;
-contribute JSON files through a manifest instead.
-
 ## CSS variable overrides
 
 The optional `variables` object can set any CSS custom property, including all
@@ -179,17 +161,15 @@ Names omit the leading `--`. Values are CSS value strings, not declarations.
 }
 ```
 
-Alongside all 28 color variables above, the application currently defines
-`font-text` (note text), `font-ui` (controls), `font-mono` (code), and
-`editor-font-size`. Unknown variable names are accepted for future variables
-and custom styles. Adding a variable alone does not create a new layout feature;
-some stylesheet must consume it.
+The app also defines `font-text`, `font-ui`, `font-mono`, and
+`editor-font-size`. Unknown variable names are accepted, but only affect the
+app when a stylesheet uses them.
 
-By default at most 256 overrides are allowed. Names start with a lowercase letter followed
-by lowercase letters, digits, or hyphens (at most 100 characters). Each value must
-be nonblank text up to 2,048 characters by default, without semicolons, braces, null bytes,
-`url(...)`, or `@import`. The override count (1-2,048) and value length (32-16,384)
-are configurable as theme limits.
+By default, up to 256 overrides are allowed, each with a name up to 100
+characters and a value up to 2,048 characters. Names must start with a lowercase
+letter and contain only lowercase letters, digits, or hyphens. Values cannot
+contain semicolons, braces, null bytes, `url(...)`, or `@import`. Limits are
+configurable under **Settings > Advanced settings > Theme and extension limits**.
 
 Variable overrides take precedence over `colors` and, for `font-text` and
 `editor-font-size`, over the corresponding Appearance preferences. The preferences

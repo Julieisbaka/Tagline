@@ -7,6 +7,16 @@ const fsAsync = require('node:fs/promises');
 const os = require('node:os');
 const { promisify } = require('node:util');
 
+test('sidebar shortcut order is normalized and drag reordering is stable', async () => {
+  const { DEFAULT_RIBBON_ITEMS, moveRibbonItem, normalizeRibbonItems } =
+    await import('../src/lib/ribbonItems.js');
+  assert.deepEqual(normalizeRibbonItems(['search', 'search', 'unknown']), ['search']);
+  assert.deepEqual(normalizeRibbonItems(null), DEFAULT_RIBBON_ITEMS);
+  assert.deepEqual(moveRibbonItem(['a', 'b', 'c'], 'a', 'c'), ['b', 'a', 'c']);
+  assert.deepEqual(moveRibbonItem(['a', 'b', 'c'], 'c', 'a'), ['c', 'a', 'b']);
+  assert.deepEqual(moveRibbonItem(['a', 'b'], 'missing', 'b'), ['a', 'b']);
+});
+
 test('extension capabilities validate selection, command, helper, event and UI contracts', async () => {
   const { ExtensionHost } = await import('../src/lib/extensions.js');
   const { applicationEvents, createEventBus, pathHelper, markdownToText, requirePayload } =

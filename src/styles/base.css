@@ -56,10 +56,21 @@ button {
   border-radius: 6px;
   padding: 5px 12px;
   cursor: pointer;
+  transition:
+    background-color 140ms ease,
+    border-color 140ms ease,
+    color 140ms ease,
+    box-shadow 140ms ease,
+    transform 140ms ease;
 }
 
 button:hover {
   background: var(--bg-hover);
+  border-color: color-mix(in srgb, var(--border), var(--text-muted) 30%);
+}
+
+button:active:not(:disabled) {
+  transform: scale(0.98);
 }
 
 button.primary {
@@ -79,12 +90,14 @@ select {
   border-radius: 6px;
   padding: 5px 8px;
   outline: none;
+  transition: border-color 140ms ease, box-shadow 140ms ease;
 }
 
 input:focus,
 select:focus,
 textarea:focus {
   border-color: var(--accent);
+  box-shadow: 0 0 0 2px var(--accent-dim);
 }
 
 .icon-btn {
@@ -96,6 +109,7 @@ textarea:focus {
   padding: 5px;
   border-radius: 4px;
   color: var(--text-muted);
+  transition: background-color 140ms ease, color 140ms ease, transform 140ms ease;
 }
 
 .icon-btn:hover {
@@ -222,4 +236,15 @@ input[type="checkbox"]:checked::after {
 .context-menu button:hover,
 .context-menu button:focus-visible {
   background: var(--accent-dim);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }

@@ -9,6 +9,7 @@ import ExtensionSettings from '../settings/ExtensionSettings.jsx';
 import IntegrationSettings from '../settings/IntegrationSettings.jsx';
 import KeybindingSettings from '../settings/KeybindingSettings.jsx';
 import ReadingSettings from '../settings/ReadingSettings.jsx';
+import RibbonSettings from '../settings/RibbonSettings.jsx';
 import ThemeSettings from '../settings/ThemeSettings.jsx';
 
 // Generic fuzzy-filtered list modal used for quick switcher, commands, templates.
@@ -221,6 +222,7 @@ export function SettingsDialog({ settings, update, onClose, extensions }) {
             <section hidden={section !== 'appearance'} className="settings-panel">
               <h3>{t('Theme and typography')}</h3>
               <ThemeSettings settings={settings} update={update} />
+              <RibbonSettings settings={settings} update={update} />
               {field('Editor font size', 'fontSize', 'number', { min: 10, max: 32 })}
               <AdvancedSettings settings={settings} update={update} section="fonts" />
               <CustomCssSettings settings={settings} update={update} />

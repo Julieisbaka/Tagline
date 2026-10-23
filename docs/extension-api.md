@@ -2,12 +2,9 @@
 
 [Documentation home](./README.md) | [Theme API](./theme-api.md)
 
-Extensions contribute commands, typed settings, JSON themes, sidebar panels, and
-webview dialogs. Extension entry scripts run in a dedicated
-worker supervised by a hidden, opaque-origin iframe, not the Electron main
-process or the application page. DOM APIs such as `window` and `document` are
-unavailable; use the bridge rather than browser-page globals.
-The supported bridge is the `tagline` object supplied to the entry script.
+Extensions can add commands, settings, themes, sidebar panels, and dialogs.
+Entry scripts run in a sandboxed worker and use the supplied `tagline` bridge;
+they have no access to the app DOM or Node.js.
 
 For a complete working example of every API in this reference, see the
 [API demo extension](../demo/README.md).
@@ -21,9 +18,8 @@ For a complete working example of every API in this reference, see the
 5. Find its commands in the command palette (`Mod+P`), and its themes in
    **Settings > Appearance > Theme**.
 
-The installation directory is `<Electron userData>/extensions`. Use the button
-instead of hard-coding an OS-specific profile path. Extensions are local to the
-application profile, not installed inside individual vaults.
+Extensions are stored in the app profile, not in a vault. Use the settings
+button to open the installation folder.
 
 After changing an extension, reload it. Reloading tears down and recreates enabled
 script hosts. Disabling an extension removes its running host and contributions;
@@ -110,10 +106,8 @@ File paths must stay inside the extension folder. Absolute paths, escaping
 relative paths, and symlinks resolving outside that folder are rejected.
 Script files have a 1,048,576-byte default limit; contributed theme files have a
 65,536-byte default limit. File content is checked when the enabled extension loads.
-Users can adjust these and other extension limits, such as commands, settings,
-listeners, message rate, storage size, and timeouts, within fixed bounds under
-**Settings > Advanced settings > Theme and extension limits**. See
-[Theme and extension limits](./features.md#theme-and-extension-limits).
+Users can adjust extension limits within fixed bounds under
+**Settings > Advanced settings > Theme and extension limits**.
 
 Invalid manifests or load failures are shown in extension settings. A script
 must finish initialization within 10 seconds. Register commands during
@@ -138,10 +132,8 @@ or network access. The sandbox CSP blocks network requests and external resource
 Browser APIs available within the sandbox are not a supported way to access
 application data.
 
-Permission lists, setting definitions, and UI declarations are reviewed together when enabling an
-extension. Changing any of these invalidates approval and disables the extension on
-reload until the user reviews and re-enables it. Previously enabled extensions
-cannot silently acquire `settings` or `editor:active-note` access.
+Users review permissions, settings, and UI declarations when enabling an
+extension. Changes require review and re-enabling on reload.
 
 ### Resource safeguards
 
@@ -160,13 +152,9 @@ Runtime failures are shown in notifications; startup failures appear on the
 extension card. A stopped extension's commands report that it must be reloaded
 or disabled in **Settings > Extensions**.
 
-These are basic responsiveness and abuse guards, not hard CPU or memory quotas.
-A continuously busy but yielding worker can still consume CPU, large allocations
-can exhaust memory, and timers can be delayed when the OS suspends the app.
-Enable only extensions you trust. A permitted write can overwrite evidence.
-Stopping a worker does not roll back bridge operations already in progress.
-Compare-and-swap protects a single loaded note against stale app content; there
-are no multi-file transactions or locks against external filesystem writers.
+These safeguards are not hard CPU or memory quotas. Enable only extensions you
+trust; permitted writes can overwrite notes, and stopping a worker does not
+reverse operations already in progress.
 
 ## JavaScript API reference
 
@@ -553,18 +541,4 @@ See the [Theme API](./theme-api.md) for the contents of `themes/ocean.json`.
 Theme IDs are assigned as `ext:<extension-id>:<zero-based-file-index>`.
 Keep the theme list order stable to preserve users' saved selections.
 
-## Current boundaries and implementation
-
-There is no extension marketplace, automatic updater, panel/webview contribution,
-general-purpose application event bus, editor selection setter,
-custom Tiptap node API, or unrestricted CSS/theme script execution. These are
-not implied by the presence of internal application helpers.
-
-Implementation references:
-
-- [Manifest validation and file loading](../electron/extensions.cjs)
-- [Sandbox bootstrap](../public/extension-sandbox.html)
-- [Permission checks and host lifecycle](../src/lib/extensions.js)
-- [Application bridge](../src/App.jsx)
-- [End-to-end extension examples](../tests/extensions-smoke.cjs)
-- [API demo extension](../demo/tagline-api-demo/)
+For working examples, see the [API demo extension](../demo/README.md).

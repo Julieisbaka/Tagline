@@ -115,7 +115,8 @@ export default function AppLayout({ app }) {
     <div className={`app${window.api.platform === 'darwin' ? ' mac-app' : ''}`}
       style={{ '--sidebar-width': `${sidebarWidth}px`, '--right-panel-width': `${rightWidth}px` }}>
       {window.api.platform === 'darwin' && <div className="mac-titlebar">Tagline</div>}
-      <Ribbon ctx={ctx} showLeft={showLeft} keybindings={settings.keybindings} />
+      <Ribbon ctx={ctx} showLeft={showLeft} keybindings={settings.keybindings}
+        settings={settings} updateSettings={updateSettings} />
       {showLeft && <Sidebar vault={v.vault} tree={v.tree} activePath={activePath} actions={actions}
         spacedFolders={settings.underscoreFolders} hideFlowExtension={settings.hideFlowExtension}
         showMarkdownExtension={settings.showMarkdownExtension} />}

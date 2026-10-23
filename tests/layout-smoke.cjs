@@ -24,6 +24,26 @@ const delay = (ms) => new Promise((r) => setTimeout(r, ms));
       const js = (c) => win.webContents.executeJavaScript(c);
       const rect = (s) => js(`(() => { const b = document.querySelector(${JSON.stringify(s)}).getBoundingClientRect(); return { x: b.x, y: b.y, w: b.width, h: b.height }; })()`);
       try {
+        for (let i = 0; i < 100 && !(await js("!!document.querySelector('.ribbon-settings-button')")); i++) await delay(100);
+        await js("document.querySelector('.ribbon-settings-button').click()");
+        await js("document.querySelector('[data-section=\"appearance\"]').click()");
+        await delay(100);
+        const defaultItems = await js("JSON.parse(localStorage.getItem('tagline-settings')).ribbonItems");
+        assert.deepEqual(defaultItems, ['fileExplorer', 'switcher', 'search', 'graph', 'commands', 'import', 'rightPanel']);
+        await js("document.querySelector('.ribbon-settings input[data-ribbon-item=\"search\"]').click()");
+        await delay(100);
+        assert.equal(await js("document.querySelector('.ribbon [data-ribbon-item=\"search\"]') === null"), true,
+          'hidden shortcut is removed from the sidebar');
+        assert.equal(await js("!!document.querySelector('.ribbon-settings-button')"), true,
+          'settings remains available when shortcuts are hidden');
+        await js("document.querySelector('[data-ribbon-reset]').click()");
+        await delay(100);
+        await js("document.querySelector('.ribbon-settings button[data-direction=\"down\"]').click()");
+        await delay(100);
+        const reorderedItems = await js("JSON.parse(localStorage.getItem('tagline-settings')).ribbonItems");
+        assert.deepEqual(reorderedItems.slice(0, 2), ['switcher', 'fileExplorer'], 'shortcut order persists');
+        await js("document.querySelector('.settings-footer .primary').click()");
+        await delay(100);
         for (let i = 0; i < 100 && !(await js("document.querySelectorAll('.tree-item').length")); i++) await delay(100);
         await js(`document.querySelector('.tree-item[title="Doc.md"]').click()`);
         await delay(1200);
@@ -72,5 +92,3 @@ const delay = (ms) => new Promise((r) => setTimeout(r, ms));
   });
   require('../electron/main.cjs');
 })();
-
-

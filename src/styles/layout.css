@@ -17,6 +17,26 @@
   border-right: 1px solid var(--border);
 }
 
+.ribbon .icon-btn {
+  cursor: grab;
+}
+
+.ribbon .icon-btn:active {
+  cursor: grabbing;
+}
+
+.ribbon .icon-btn.dragging {
+  opacity: 0.35;
+}
+
+.ribbon .ribbon-bottom-item {
+  margin-top: auto;
+}
+
+.ribbon .ribbon-settings-button {
+  cursor: pointer;
+}
+
 /* Left sidebar */
 .sidebar {
   width: var(--sidebar-width, 260px);
@@ -78,6 +98,7 @@ body.resizing-panels * {
   color: var(--text-muted);
   white-space: nowrap;
   user-select: none;
+  transition: background-color 140ms ease, color 140ms ease;
 }
 
 .tree-item:hover {
@@ -151,6 +172,7 @@ body.resizing-panels * {
   cursor: pointer;
   color: var(--text-muted);
   user-select: none;
+  transition: background-color 160ms ease, color 160ms ease, box-shadow 160ms ease;
 }
 
 .tab.active {
@@ -172,6 +194,7 @@ body.resizing-panels * {
   padding: 3px;
   display: flex;
   opacity: 0;
+  transition: opacity 140ms ease, color 140ms ease;
 }
 
 .tab:hover .tab-close,
