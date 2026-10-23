@@ -1,8 +1,9 @@
 import { slugify } from './markdown.js';
 import { isMarkdown, resolveLink } from './vault.js';
 
-const RELATION_PATTERN = /<!-- tagline-argument:(supports|answers|contradicts) \[\[([^\]#|]+)(?:#([^\]|]*))?\]\](?:\s+(\d+))? -->/g;
+const RELATION_PATTERN = /^\*\*(Supports|Answers|Contradicts):\*\*\s+\[\[([^\]#|]+)(?:#([^\]|]*))?\]\](?:\s+\((\d+)\))?\s*$/gim;
 const HEADING_PATTERN = /^(#{1,6})\s+(.+?)\s*#*\s*$/;
+const RELATION_LABELS = { supports: 'Supports', answers: 'Answers', contradicts: 'Contradicts' };
 
 function scanHeadings(content) {
   const headings = [];
@@ -65,7 +66,7 @@ export function getArgumentCards(contents) {
       const slug = slugify(match[3] || '');
       const occurrence = match[4] ? Math.max(0, Number(match[4]) - 1) : 0;
       const targetId = cardId(targetPath, slug, occurrence);
-      if (byId.has(targetId)) card.relations.push({ type: match[1], targetId });
+      if (byId.has(targetId)) card.relations.push({ type: match[1].toLowerCase(), targetId });
     }
   }
   return cards;
@@ -76,24 +77,24 @@ export function createArgumentRelation(content, source, target, type) {
     throw new Error(`Unknown argument relation: ${type}`);
   }
   if (!source || !target || source.id === target.id) return content;
-  const comment = `<!-- tagline-argument:${type} [[${target.path.replace(/\.md$/i, '')}#${target.slug}]] ${target.occurrence + 1} -->`;
+  const line = `**${RELATION_LABELS[type]}:** [[${target.path.replace(/\.md$/i, '')}#${target.slug}]]${target.occurrence ? ` (${target.occurrence + 1})` : ''}`;
   const section = content.slice(source.start, source.end);
-  if (section.includes(comment)) return content;
+  if (section.includes(line)) return content;
   const trimmedEnd = source.end;
   const existing = content.slice(source.start, trimmedEnd).replace(/\s+$/, '');
-  const insertion = `${existing}\n${comment}\n`;
+  const insertion = `${existing}\n\n${line}\n`;
   return content.slice(0, source.start) + insertion + content.slice(trimmedEnd);
 }
 
 export function removeArgumentRelation(content, source, relation) {
   if (!source || !relation) return content;
   const target = relation.target;
-  const comment = `<!-- tagline-argument:${relation.type} [[${target.path.replace(/\.md$/i, '')}#${target.slug}]] ${target.occurrence + 1} -->`;
+  const line = `**${RELATION_LABELS[relation.type]}:** [[${target.path.replace(/\.md$/i, '')}#${target.slug}]]${target.occurrence ? ` (${target.occurrence + 1})` : ''}`;
   const section = content.slice(source.start, source.end);
-  const index = section.indexOf(comment);
+  const index = section.indexOf(line);
   if (index < 0) return content;
   const before = section.slice(0, index).replace(/\n+$/, '\n');
-  const after = section.slice(index + comment.length).replace(/^\n/, '');
+  const after = section.slice(index + line.length).replace(/^\n/, '');
   return content.slice(0, source.start) + before + after + content.slice(source.end);
 }
 

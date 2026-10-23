@@ -27,7 +27,7 @@
   font-size: 12px;
 }
 
-.graph-controls label {
+.graph-controls .graph-select-control {
   display: grid;
   gap: 4px;
 }

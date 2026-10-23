@@ -295,7 +295,7 @@ export default function GraphView({ index, contents, activePath, onOpen, onUpdat
     <div className={`graph${mode === 'arguments' ? ' argument-map' : ''}`} ref={wrapRef}>
       <canvas ref={canvasRef} />
       <div className="graph-controls">
-        <label>{t('Graph view')}
+        <label className="graph-select-control">{t('Graph view')}
           <select value={mode} onChange={(event) => setMode(event.target.value)}>
             <option value="notes">{t('Note links')}</option>
             <option value="arguments">{t('Argument map')}</option>
@@ -314,21 +314,21 @@ export default function GraphView({ index, contents, activePath, onOpen, onUpdat
             <span style={{ color: 'var(--warning)' }}>● #opponent</span>
           </div>
         </> : <>
-          <label>{t('From card')}
+          <label className="graph-select-control">{t('From card')}
             <select value={sourceId} onChange={(event) => setSourceId(event.target.value)}>
               {cards.map((card) => <option key={card.id} value={card.id}>
                 {card.title} — {displayName(card.path, true, showMarkdownExtension)}
               </option>)}
             </select>
           </label>
-          <label>{t('Relation')}
+          <label className="graph-select-control">{t('Relation')}
             <select value={relationType} onChange={(event) => setRelationType(event.target.value)}>
               <option value="supports">{t('Supports')}</option>
               <option value="answers">{t('Answers')}</option>
               <option value="contradicts">{t('Contradicts')}</option>
             </select>
           </label>
-          <label>{t('To card')}
+          <label className="graph-select-control">{t('To card')}
             <select value={targetId} onChange={(event) => setTargetId(event.target.value)}>
               {cards.filter((card) => card.id !== sourceId).map((card) => <option key={card.id} value={card.id}>
                 {card.title} — {displayName(card.path, true, showMarkdownExtension)}

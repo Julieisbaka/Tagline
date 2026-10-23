@@ -45,6 +45,12 @@ Tagline also provides backlinks, mentions, an outline, tags, and a graph view.
 Put reusable Markdown in `Templates/`; placeholders include `{{date}}`,
 `{{time}}`, and `{{title}}`.
 
+The graph view's **Argument map** mode links level-four debate cards as
+supporting, answering, or contradicting one another. Select two cards and a
+relationship type to add a link; click a card in the map to open its note.
+Links are saved as labeled wiki links in the source card and follow note
+renames.
+
 ## Search and citations
 
 Open vault search with `Mod+Shift+F`. Full-text search works immediately and

@@ -20,7 +20,7 @@ test('sidebar shortcut order is normalized and drag reordering is stable', async
 test('argument-map card links persist in Markdown without creating note-graph links', async () => {
   const { buildArgumentGraph, createArgumentRelation, getArgumentCards, removeArgumentRelation } =
     await import('../src/lib/argumentMap.js');
-  const { extractLinks } = await import('../src/lib/vault.js');
+  const { extractLinks, rewriteLinks } = await import('../src/lib/vault.js');
   const contents = {
     'Case.md': '# Case\n\n#### Climate impact\n\n**Smith 2024**\n\nEvidence.\n\n#### Funding\n\nSecond card.\n',
     'Answers.md': '#### Alternative explanation\n\nResponse.\n',
@@ -36,6 +36,8 @@ test('argument-map card links persist in Markdown without creating note-graph li
   const updated = getArgumentCards({ ...contents, [source.path]: changed });
   assert.deepEqual(updated[0].relations, [{ type: 'answers', targetId: target.id }]);
   assert.deepEqual(buildArgumentGraph(updated).edges, [[source.id, target.id]]);
+  const renamed = rewriteLinks(changed, 'Answers.md', 'Renamed Answers.md', ['Case.md', 'Answers.md']);
+  assert.match(renamed, /\[\[Renamed Answers#alternative-explanation\]\]/, 'relationship links follow note renames');
 
   const removed = removeArgumentRelation(changed, updated[0], {
     ...updated[0].relations[0],

@@ -51,8 +51,21 @@ const delay = (ms) => new Promise((r) => setTimeout(r, ms));
         await delay(100);
         assert.equal(await js("JSON.stringify(document.querySelector('.toast')?.textContent)"), JSON.stringify('Copied note path'),
           'copy path action reports success');
+        await js("document.querySelector('.ribbon [data-ribbon-item=\"graph\"]').click()");
+        await delay(150);
+        await js(`(() => { const select = document.querySelector('.graph-controls select'); select.value = 'arguments'; select.dispatchEvent(new Event('change', { bubbles: true })); })()`);
+        await delay(500);
+        assert.equal(await js("!!document.querySelector('.graph-controls button') && !document.querySelector('.graph-controls button').disabled"),
+          true, 'two cards are selected for a relation');
+        await js("document.querySelector('.graph-controls button').click()");
+        await delay(1000);
+        const argumentNote = await fs.readFile(path.join(vault, 'Doc.md'), 'utf8');
+        assert.match(argumentNote, /\*\*Supports:\*\* \[\[Doc#card-1\]\]/,
+          `argument relationship saves with its source card: ${argumentNote.split('\n').filter((line) => line.includes('Supports')).join('|')}`);
         await js(`document.querySelector('.tree-item[title="Doc.md"]').click()`);
         await delay(1200);
+        assert.equal(await js("!!document.querySelector('.visual-document')"), true,
+          'argument links do not force notes out of visual editing');
         for (const [w, h] of [[1280, 800], [900, 700]]) {
           win.setContentSize(w, h); await delay(800);
           const clipped = await js(`(() => { const bar = document.querySelector('.status-bar').getBoundingClientRect(); return [...document.querySelectorAll('.status-bar > span:not(.spacer)')].filter(s => { const r = s.getBoundingClientRect(); return r.right > bar.right + 1 || r.bottom > bar.bottom + 1; }).map(s => s.textContent); })()`);
