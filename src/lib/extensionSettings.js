@@ -8,6 +8,7 @@ function definition(manifest, key) {
 }
 
 function saved(manifest) {
+  // TODO: Handle malformed stored JSON so one corrupt extension setting can be reset without surfacing a parse error.
   const data = JSON.parse(localStorage.getItem(`tagline-extension-settings:${manifest.id}`) || '{}');
   if (!data || typeof data !== 'object' || Array.isArray(data)) {
     throw new Error(`Invalid stored settings for extension "${manifest.id}". Reset its settings.`);

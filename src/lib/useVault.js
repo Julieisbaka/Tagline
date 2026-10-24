@@ -108,6 +108,7 @@ export function useVault(underscoreFolders = true, autoRelink = true, historyRet
 
   useEffect(() => {
     const onUnload = () => {
+      // TODO: Make pending writes reliable on shutdown; these fire-and-forget IPC calls may be interrupted by window teardown.
       for (const [p, c] of Object.entries(pending.current)) api.write(p, c, historyRetentionRef.current);
     };
     window.addEventListener('beforeunload', onUnload);
