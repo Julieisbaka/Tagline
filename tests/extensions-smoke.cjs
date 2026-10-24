@@ -174,7 +174,8 @@ tagline.commands.register('save-checks', async () => {
   let slowSave = false;
   const originalWrite = fs.writeFile;
   fs.writeFile = async (file, ...args) => {
-    if (file === path.join(vault, 'Renamed Operations.md')) {
+    if (file === path.join(vault, 'Renamed Operations.md') ||
+      path.dirname(file) === vault && path.basename(file).startsWith('.tagline-save-')) {
       if (failSave) { failSave = false; throw new Error('Simulated disk write failure'); }
       if (slowSave) await delay(700);
     }

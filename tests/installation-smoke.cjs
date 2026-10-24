@@ -67,6 +67,32 @@ app.on('browser-window-created', (_event, win) => {
       assert.equal(info.arch, process.arch);
       assert.equal(info.electron, process.versions.electron);
       if (first) {
+        const created = await js(`Promise.all(Array.from({ length: 8 }, (_, i) =>
+          window.api.create('Concurrent.md', 'Note ' + i)))`);
+        assert.equal(new Set(created).size, created.length, 'Concurrent note creation must use distinct filenames');
+        for (const [index, file] of created.entries()) {
+          assert.equal(fs.readFileSync(path.join(vault, file), 'utf8'), `Note ${index}`);
+          fs.unlinkSync(path.join(vault, file));
+        }
+        const folders = await js(`Promise.all(Array.from({ length: 8 }, () => window.api.mkdir('Concurrent folder', true)))`);
+        assert.equal(new Set(folders).size, folders.length, 'Concurrent folder creation must use distinct paths');
+        for (const folder of folders) fs.rmdirSync(path.join(vault, folder));
+        const disk = require('node:fs/promises');
+        const writeFile = disk.writeFile;
+        const card = path.join(vault, 'Card.md');
+        const original = fs.readFileSync(card, 'utf8');
+        disk.writeFile = async (file, ...args) => {
+          if (file === card || path.basename(file).startsWith('.tagline-save-')) {
+            await writeFile(file, 'Partial write', ...args.slice(1));
+            throw Object.assign(new Error('Simulated disk full'), { code: 'ENOSPC' });
+          }
+          return writeFile(file, ...args);
+        };
+        try { await assert.rejects(js("window.api.write('Card.md', 'Unsaved edit')"), /disk full/); }
+        finally { disk.writeFile = writeFile; }
+        assert.equal(fs.readFileSync(card, 'utf8'), original, 'Failed saves must not truncate the original note');
+        assert.equal(fs.readdirSync(vault).some((file) => file.startsWith('.tagline-save-')), false,
+          'Failed saves clean up temporary files');
         const defaults = require('../src/lib/defaultSettings.json');
         const settings = {
           ...defaults, wpm: 333, theme: 'high-contrast-dark', modelAutoload: false,

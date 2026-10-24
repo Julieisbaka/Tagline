@@ -76,6 +76,7 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
             '<meta name="author" content="Extracted Author"><meta property="og:title" content="Example story">', url);
         });
         await click('.note-actions button', 'Create citation');
+        await wait("!!document.querySelector('.citation-dialog [name=author]')");
         await js(`(() => {
           for (const [selector,value] of [['[name=author]','Manual Author'],['[aria-label="Article URL"]','https://www.reuters.com/world/story-2024-01-20/']]) {
             const el=document.querySelector(selector);

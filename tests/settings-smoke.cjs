@@ -108,7 +108,9 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
       const rename = async (from, to) => {
         await js(`document.querySelector('.tree-item[title=${JSON.stringify(from)}]').dispatchEvent(new MouseEvent('contextmenu', { bubbles: true }))`);
         await button('.context-menu button', 'Rename…');
+        await wait("!!document.querySelector('.dialog input')");
         await input('.dialog input', to);
+        await wait(`document.querySelector('.dialog input')?.getAttribute('value') === ${JSON.stringify(to)}`);
         await button('.dialog button', 'OK');
         await wait(`!!document.querySelector('.tree-item[title=${JSON.stringify(to + '.md')}]')`);
       };
@@ -139,16 +141,21 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
         await wait(`document.querySelector('.website-status')?.textContent === ${JSON.stringify(website)}`);
         const websiteView = win.contentView.children.find((view) => view.webContents);
         const checkBrowserBounds = async () => {
-          const area = await js(`(() => {
+          let area, box;
+          for (let i = 0; i < 30; i++) {
+            area = await js(`(() => {
             const workspace = document.querySelector('.workspace').getBoundingClientRect();
             const surface = document.querySelector('.website-surface').getBoundingClientRect();
             const browser = document.querySelector('.website-view').getBoundingClientRect();
             return { x: surface.x, y: surface.y, width: surface.width, height: surface.height,
               inside: browser.x >= workspace.x && browser.y >= workspace.y &&
                 browser.right <= workspace.right + 1 && browser.bottom <= workspace.bottom + 1 };
-          })()`);
+            })()`);
+            box = websiteView.getBounds();
+            if (['x', 'y', 'width', 'height'].every((key) => Math.abs(box[key] - area[key] * wc.getZoomFactor()) <= 1)) break;
+            await delay(100);
+          }
           assert.equal(area.inside, true, 'Browser stays inside the note workspace');
-          const box = websiteView.getBounds();
           for (const key of ['x', 'y', 'width', 'height']) {
             assert.ok(Math.abs(box[key] - area[key] * wc.getZoomFactor()) <= 1,
               `Native browser ${key} matches the note surface: ${JSON.stringify({ box, area })}`);
@@ -263,6 +270,8 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
         // Temporary tabs must not leak between vaults or create new persisted snapshots.
         dialog.showOpenDialog = async () => ({ canceled: false, filePaths: [otherVault] });
         await click('.vault-switch');
+        await wait("!!document.querySelector('.vault-manager-dialog')");
+        await button('.vault-manager-dialog button', 'Add existing or create vault…');
         await wait(`document.querySelector('.sidebar-footer')?.title === ${JSON.stringify(otherVault)}`);
         await wait("document.querySelectorAll('.tab').length === 0");
         await wait("!!document.querySelector('.tree-item[title=\"Other.md\"]')");
@@ -278,6 +287,8 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
         await done();
         dialog.showOpenDialog = async () => ({ canceled: false, filePaths: [vault] });
         await click('.vault-switch');
+        await wait("!!document.querySelector('.vault-manager-dialog')");
+        await button('.vault-manager-dialog button', 'Add existing or create vault…');
         await wait(`document.querySelector('.sidebar-footer')?.title === ${JSON.stringify(vault)}`);
         await wait("document.querySelectorAll('.tab').length === 0");
 
@@ -348,6 +359,12 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
         app.exit(0);
       } catch (error) {
         console.error('FAIL:', error.stack);
+        console.error('Vault files:', await fs.readdir(vault), 'UI:', await js(`({
+          files: [...document.querySelectorAll('.tree-item')].map(el => el.title),
+          toast: document.querySelector('.toast')?.textContent,
+          prompt: document.querySelector('.dialog input')?.value,
+          dialog: document.querySelector('.dialog')?.textContent
+        })`));
         for (const view of win.contentView.children) {
           if (view.webContents) console.error('Website history:', view.webContents.navigationHistory.canGoBack(),
             view.webContents.navigationHistory.getActiveIndex(),

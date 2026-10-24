@@ -2,6 +2,7 @@ const { app, BrowserWindow, ipcMain, dialog, shell, Menu, safeStorage, session }
 const path = require('path');
 const fs = require('fs/promises');
 const fssync = require('fs');
+const { randomUUID } = require('node:crypto');
 const { SAMPLE_VAULT } = require('./sampleVault.cjs');
 const { registerPandoc } = require('./pandoc.cjs');
 const { registerEmbeddings } = require('./embeddings.cjs');
@@ -196,23 +197,45 @@ function registerIpc() {
     const full = resolveInVault(rel);
     await history.snapshot(rel, content, retention, canvasMode);
     await fs.mkdir(path.dirname(full), { recursive: true });
-    await fs.writeFile(full, content, 'utf8');
+    let mode;
+    try { mode = (await fs.stat(full)).mode; }
+    catch (error) { if (error.code !== 'ENOENT') throw error; }
+    const temporary = path.join(path.dirname(full), `.tagline-save-${randomUUID()}.tmp`);
+    try {
+      await fs.writeFile(temporary, content, { encoding: 'utf8', flag: 'wx', mode });
+      await fs.rename(temporary, full);
+    } catch (error) {
+      if (error.code !== 'EEXIST') await fs.rm(temporary, { force: true });
+      throw error;
+    }
     return true;
   });
 
   ipcMain.handle('fs:create', async (_e, rel, content = '') => {
-    const finalRel = uniquePath(rel);
-    const full = resolveInVault(finalRel);
-    await fs.mkdir(path.dirname(full), { recursive: true });
-    await fs.writeFile(full, content, 'utf8');
-    return toPosix(finalRel);
+    await fs.mkdir(path.dirname(resolveInVault(rel)), { recursive: true });
+    while (true) {
+      const finalRel = uniquePath(rel);
+      try {
+        await fs.writeFile(resolveInVault(finalRel), content, { encoding: 'utf8', flag: 'wx' });
+        return toPosix(finalRel);
+      } catch (error) {
+        if (error.code !== 'EEXIST') throw error;
+      }
+    }
   });
 
   ipcMain.handle('fs:mkdir', async (_e, rel, underscoreFolders) => {
     if (typeof underscoreFolders !== 'boolean') throw new Error('Invalid folder path preference.');
-    const finalRel = uniquePath(rel, true, underscoreFolders);
-    await fs.mkdir(resolveInVault(finalRel), { recursive: true });
-    return toPosix(finalRel);
+    await fs.mkdir(path.dirname(resolveInVault(rel)), { recursive: true });
+    while (true) {
+      const finalRel = uniquePath(rel, true, underscoreFolders);
+      try {
+        await fs.mkdir(resolveInVault(finalRel));
+        return toPosix(finalRel);
+      } catch (error) {
+        if (error.code !== 'EEXIST') throw error;
+      }
+    }
   });
 
   ipcMain.handle('fs:rename', async (_e, from, to) => {

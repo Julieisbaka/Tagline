@@ -24,6 +24,7 @@ export default function WebsiteView({ url, onClose }) {
     const report = (e) => setError(e.message);
     window.api.openWebsite(url, rectangle()).catch(report);
     const resize = () => window.api.resizeWebsite(rectangle()).catch(report);
+    const unsubscribeResize = window.api.onWebsiteResize(resize);
     const observer = new ResizeObserver(resize);
     observer.observe(surface.current);
     // The surface can move without resizing when sibling chrome changes height.
@@ -33,6 +34,7 @@ export default function WebsiteView({ url, onClose }) {
       observer.disconnect();
       window.removeEventListener('resize', resize);
       unsubscribe();
+      unsubscribeResize();
       window.api.closeWebsite().catch((e) =>
         window.dispatchEvent(new CustomEvent('app-error', { detail: e.message })));
     };

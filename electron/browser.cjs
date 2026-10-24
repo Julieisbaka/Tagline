@@ -26,7 +26,6 @@ function registerBrowser({ ipcMain, shell, getWindow }) {
   let downloadHandler;
   let browserSession;
   let resizeHandler;
-  let margins;
   const close = () => {
     if (!view) return;
     const previous = view;
@@ -119,26 +118,14 @@ function registerBrowser({ ipcMain, shell, getWindow }) {
     });
     getWindow().contentView.addChildView(view);
     view.setBounds(box);
-    const [contentWidth, contentHeight] = getWindow().getContentSize();
-    margins = { right: contentWidth - box.x - box.width, bottom: contentHeight - box.y - box.height };
-    // Native resize events also work while Chromium has throttled the app's layout observers.
-    resizeHandler = () => {
-      if (!view) return;
-      const [width, height] = getWindow().getContentSize();
-      const current = view.getBounds();
-      view.setBounds({
-        ...current, width: Math.max(1, width - current.x - margins.right),
-        height: Math.max(1, height - current.y - margins.bottom)
-      });
-    };
+    // Request fresh layout even when native content throttles ResizeObserver.
+    resizeHandler = () => getWindow()?.webContents.send('browser:resize');
     getWindow().on('resize', resizeHandler);
     await navigate(target);
   });
   handle('browser:bounds', (rectangle) => {
     if (!view) return;
     const box = bounds(rectangle);
-    const [width, height] = getWindow().getContentSize();
-    margins = { right: width - box.x - box.width, bottom: height - box.y - box.height };
     view.setBounds(box);
   });
   handle('browser:close', close);

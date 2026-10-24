@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { EMPTY_FLOW } from '../electron/flow.mjs';
 import AppLayout from './components/layout/AppLayout.jsx';
+import { renameTarget } from './components/layout/Sidebar.jsx';
 import { clampPanel, PANEL_LIMITS } from './components/layout/Splitter.jsx';
 import { EMPTY_CANVAS } from './lib/canvas.js';
 import { getSectionAt } from './lib/card.js';

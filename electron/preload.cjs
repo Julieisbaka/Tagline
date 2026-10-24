@@ -26,6 +26,11 @@ contextBridge.exposeInMainWorld('api', {
   installPandoc: () => ipcRenderer.invoke('pandoc:install'),
   openWebsite: (url, bounds) => ipcRenderer.invoke('browser:open', url, bounds),
   resizeWebsite: (bounds) => ipcRenderer.invoke('browser:bounds', bounds),
+  onWebsiteResize: (callback) => {
+    const listener = () => callback();
+    ipcRenderer.on('browser:resize', listener);
+    return () => ipcRenderer.removeListener('browser:resize', listener);
+  },
   closeWebsite: () => ipcRenderer.invoke('browser:close'),
   websiteAction: (action, url) => ipcRenderer.invoke('browser:action', action, url),
   onWebsiteLink: (callback) => {

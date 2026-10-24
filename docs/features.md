@@ -12,7 +12,9 @@ vault.
 
 Create, move, rename, and delete files in the sidebar. Open several documents
 in tabs, use `Mod+O` to switch files, or `Mod+P` to find a command. Edits
-autosave. Drag either sidebar edge to resize it.
+autosave using a temporary file so failed writes leave the original intact.
+Simultaneous file or folder creation uses distinct names. Drag either sidebar
+edge to resize it.
 Right-click a note and choose **Copy note path** to copy its vault-relative path.
 Create canvases from the sidebar or command palette. Add and arrange text, file,
 link, and group nodes; connect nodes with labeled or colored arrows. Switch to
