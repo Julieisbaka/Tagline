@@ -3,6 +3,7 @@ import dark from '../themes/dark.json' with { type: 'json' };
 import contrastDark from '../themes/high-contrast-dark.json' with { type: 'json' };
 import contrastLight from '../themes/high-contrast-light.json' with { type: 'json' };
 import light from '../themes/light.json' with { type: 'json' };
+import { validateSettingDefinitions, validateSettingValue } from '../../electron/extensionSettings.mjs';
 
 export const BUILTIN_THEMES = [dark, light, contrastDark, contrastLight];
 export const COLOR_TOKENS = Object.freeze(Object.keys(dark.colors));
@@ -20,6 +21,54 @@ function validateVariables(value = {}, limits = getRuntimeLimits()) {
   return { ...value };
 }
 
+function validateMetadata(metadata = {}) {
+  if (!metadata || typeof metadata !== 'object' || Array.isArray(metadata)) throw new Error('Theme metadata must be an object.');
+  const { author, description, license, tags = [], accessibility = {} } = metadata;
+  if (Object.keys(metadata).some((key) => !['author', 'description', 'license', 'tags', 'accessibility'].includes(key)) ||
+    [author, description, license].some((value) => value !== undefined && (typeof value !== 'string' || value.length > 500)) ||
+    !Array.isArray(tags) || tags.length > 20 || tags.some((tag) => typeof tag !== 'string' || !tag.trim() || tag.length > 40)) {
+    throw new Error('Invalid theme metadata fields.');
+  }
+  if (!accessibility || typeof accessibility !== 'object' || Array.isArray(accessibility) ||
+    Object.keys(accessibility).some((key) => !['contrast', 'colorVision', 'reducedMotion', 'notes'].includes(key)) ||
+    (accessibility.contrast !== undefined && !['standard', 'high'].includes(accessibility.contrast)) ||
+    (accessibility.reducedMotion !== undefined && typeof accessibility.reducedMotion !== 'boolean') ||
+    (accessibility.notes !== undefined && (typeof accessibility.notes !== 'string' || accessibility.notes.length > 1000)) ||
+    (accessibility.colorVision !== undefined && (!Array.isArray(accessibility.colorVision) ||
+      accessibility.colorVision.length > 4 || accessibility.colorVision.some((value) =>
+        !['protanopia', 'deuteranopia', 'tritanopia', 'achromatopsia'].includes(value))))) {
+    throw new Error('Invalid theme accessibility metadata.');
+  }
+  return { ...metadata, tags: [...tags], accessibility: { ...accessibility } };
+}
+
+function validateThemeSettings(definitions = [], theme, limits) {
+  if (!Array.isArray(definitions)) throw new Error('Theme settings must be a list.');
+  const targets = new Set();
+  return definitions.map((definition) => {
+    if (!definition || typeof definition !== 'object') throw new Error('Invalid theme setting.');
+    const { variable, unit, ...setting } = definition;
+    if (typeof variable !== 'string' || targets.has(variable) ||
+      !(COLOR_TOKENS.includes(variable) || Object.hasOwn(theme.variables, variable)) ||
+      (unit !== undefined && (setting.type !== 'number' || !['px', 'em', 'rem', '%', ''].includes(unit)))) {
+      throw new Error('Theme settings need unique declared CSS variables and valid numeric units.');
+    }
+    targets.add(variable);
+    const color = COLOR_TOKENS.includes(variable);
+    if (color && (setting.type !== 'string' || !/^#[\da-f]{6}(?:[\da-f]{2})?$/i.test(setting.default))) {
+      throw new Error('Theme color settings require a string with a hex color default.');
+    }
+    if (!color && !['string', 'number'].includes(setting.type)) throw new Error('Theme variables require string or number settings.');
+    const [validated] = validateSettingDefinitions([setting], limits);
+    return { ...validated, variable, ...(unit !== undefined ? { unit } : {}) };
+  }).map((setting, index, all) => {
+    if (all.findIndex((item) => item.id === setting.id) !== index || all.length > limits.extensionSettings) {
+      throw new Error('Theme settings must have unique ids within the configured setting limit.');
+    }
+    return setting;
+  });
+}
+
 export function validateTheme(value, limits = getRuntimeLimits()) {
   if (!value || value.version !== 1 || typeof value.name !== 'string' ||
     !value.name.trim() || value.name.length > 80 || !['dark', 'light'].includes(value.mode) ||
@@ -33,20 +82,46 @@ export function validateTheme(value, limits = getRuntimeLimits()) {
     }
   }
   const base = value.mode === 'light' ? light : dark;
-  return {
+  const theme = {
     version: 1, id: 'custom', name: value.name.trim(), mode: value.mode,
     colors: { ...base.colors, ...value.colors },
     variables: validateVariables(value.variables, limits),
+    metadata: validateMetadata(value.metadata),
   };
+  theme.settings = validateThemeSettings(value.settings, theme, limits);
+  resolveThemeSettings(theme);
+  return theme;
 }
 
-export function getTheme(id, customTheme) {
-  if (id === 'custom') return validateTheme(customTheme);
+export function resolveThemeSettings(theme, values = {}) {
+  if (!values || typeof values !== 'object' || Array.isArray(values)) throw new Error('Theme setting values must be an object.');
+  const definitions = theme.settings || [];
+  if (Object.keys(values).some((id) => !definitions.some((setting) => setting.id === id))) {
+    throw new Error('Unknown theme setting.');
+  }
+  const result = { ...theme, colors: { ...theme.colors }, variables: { ...theme.variables } };
+  for (const setting of definitions) {
+    const value = validateSettingValue(setting, Object.hasOwn(values, setting.id) ? values[setting.id] : setting.default);
+    if (COLOR_TOKENS.includes(setting.variable)) {
+      if (typeof value !== 'string' || !/^#[\da-f]{6}(?:[\da-f]{2})?$/i.test(value)) throw new Error('Theme settings require hex colors.');
+      result.colors[setting.variable] = value;
+      if (Object.hasOwn(result.variables, setting.variable)) result.variables[setting.variable] = value;
+    } else {
+      const text = `${value}${setting.unit || ''}`;
+      validateVariables({ [setting.variable]: text });
+      result.variables[setting.variable] = text;
+    }
+  }
+  return result;
+}
+
+export function getTheme(id, customTheme, themeSettings = {}) {
+  if (id === 'custom') return resolveThemeSettings(validateTheme(customTheme), themeSettings[id]);
   const theme = BUILTIN_THEMES.find((t) => t.id === id) || extensionThemeList.find((t) => t.id === id);
   // Extension themes load asynchronously (or may be disabled); keep the saved choice and show dark meanwhile.
   if (!theme && id?.startsWith('ext:')) return dark;
   if (!theme) throw new Error(`Unknown theme: ${id}`);
-  return theme;
+  return resolveThemeSettings(theme, themeSettings[id]);
 }
 
 let extensionThemeList = [];
@@ -58,6 +133,7 @@ export function registerExtensionThemes(themes) {
 
 let appliedVariables = [];
 let appliedTheme = '';
+let activeTheme;
 let transitionTimer;
 
 export function applyTheme(theme, animate = true) {
@@ -79,5 +155,15 @@ export function applyTheme(theme, animate = true) {
   root.dataset.theme = theme.id;
   root.style.colorScheme = theme.mode;
   appliedTheme = signature;
+  activeTheme = theme;
   window.dispatchEvent(new Event('themechange'));
+}
+
+export function themeSnapshot() {
+  const root = document.documentElement;
+  const computed = getComputedStyle(root);
+  const variables = Object.fromEntries([...computed].filter((key) => key.startsWith('--'))
+    .map((key) => [key, computed.getPropertyValue(key).trim()]));
+  return { id: root.dataset.theme, mode: root.style.colorScheme, variables,
+    metadata: activeTheme?.metadata || {}, reducedMotion: window.matchMedia('(prefers-reduced-motion: reduce)').matches };
 }

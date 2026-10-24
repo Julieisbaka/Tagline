@@ -6,6 +6,7 @@
   "format": "policy",
   "readableWidth": true,
   "theme": "dark",
+  "themeSettings": {},
   "themeTransition": true,
   "editorMode": "visual",
   "visualToolbar": true,

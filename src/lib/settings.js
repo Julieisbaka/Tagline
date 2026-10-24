@@ -34,10 +34,10 @@ export function useSettings() {
     };
   }, []);
   useLayoutEffect(() => {
-    try { applyTheme(getTheme(settings.theme, settings.customTheme), settings.themeTransition); }
+    try { applyTheme(getTheme(settings.theme, settings.customTheme, settings.themeSettings), settings.themeTransition); }
     catch (error) { window.dispatchEvent(new CustomEvent('app-error', { detail: error.message })); }
     setLanguage(settings.language);
-  }, [settings.theme, settings.customTheme, settings.themeTransition, settings.language, themeRevision]);
+  }, [settings.theme, settings.customTheme, settings.themeSettings, settings.themeTransition, settings.language, themeRevision]);
   useLayoutEffect(() => {
     configureVisualCache(settings.visualCacheEntries, settings.visualCacheCharacters);
   }, [settings.visualCacheEntries, settings.visualCacheCharacters]);
@@ -52,7 +52,7 @@ export function useSettings() {
   useLayoutEffect(() => {
     const root = document.documentElement;
     let variables;
-    try { variables = getTheme(settings.theme, settings.customTheme).variables || {}; }
+    try { variables = getTheme(settings.theme, settings.customTheme, settings.themeSettings).variables || {}; }
     catch (error) { window.dispatchEvent(new CustomEvent('app-error', { detail: error.message })); return; }
     root.style.setProperty('--font-text', variables['font-text'] ?? (settings.importedFont ? '"Tagline Custom"' :
       settings.fontFamily.trim() ? `${JSON.stringify(settings.fontFamily.trim())}, system-ui, sans-serif` : 'system-ui, sans-serif'));
@@ -61,7 +61,7 @@ export function useSettings() {
     root.style.setProperty('--visual-line-height',
       Number.isFinite(lineHeight) && lineHeight >= 1 && lineHeight <= 2.5 ? String(lineHeight) : '1.65');
   }, [settings.fontFamily, settings.importedFont, settings.fontSize, settings.visualLineHeight,
-  settings.theme, settings.customTheme, themeRevision]);
+  settings.theme, settings.customTheme, settings.themeSettings, themeRevision]);
   useEffect(() => {
     if (!settings.importedFont) return;
     let disposed = false;

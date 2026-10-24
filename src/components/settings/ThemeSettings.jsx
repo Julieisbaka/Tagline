@@ -3,9 +3,42 @@ import CodeMirror from '@uiw/react-codemirror';
 import { json } from '@codemirror/lang-json';
 import { EditorView } from '@codemirror/view';
 import { LANGUAGES, useI18n } from '../../lib/i18n.js';
-import { BUILTIN_THEMES, COLOR_TOKENS, extensionThemes, getTheme, validateTheme } from '../../lib/themes.js';
+import { BUILTIN_THEMES, COLOR_TOKENS, extensionThemes, getTheme, resolveThemeSettings, validateTheme } from '../../lib/themes.js';
 import { getRuntimeLimits } from '../../../electron/customization.mjs';
 import { settingsCodeMirrorTheme } from '../../lib/editorExtensions.js';
+import SettingControl from './SettingControl.jsx';
+
+function ThemeOptions({ theme, settings, update }) {
+  const { t } = useI18n();
+  const saved = settings.themeSettings?.[theme.id] || {};
+  const [values, setValues] = useState(() => Object.fromEntries(theme.settings.map((setting) =>
+    [setting.id, saved[setting.id] ?? setting.default])));
+  const [error, setError] = useState('');
+  const save = (reset = false) => {
+    try {
+      const next = reset ? {} : Object.fromEntries(theme.settings.map((setting) => {
+        const value = values[setting.id];
+        if (setting.type === 'number' && String(value).trim() === '') throw new Error(t('Number settings cannot be empty.'));
+        return [setting.id, setting.type === 'number' ? Number(value) : value];
+      }));
+      resolveThemeSettings(theme, next);
+      update({ themeSettings: { ...settings.themeSettings, [theme.id]: next } });
+      if (reset) setValues(Object.fromEntries(theme.settings.map((setting) => [setting.id, setting.default])));
+      setError('');
+    } catch (err) { setError(err.message); }
+  };
+  return <fieldset className="theme-options">
+    <legend>{t('Theme settings')}</legend>
+    {theme.settings.map((setting) => <SettingControl key={setting.id} setting={setting}
+      data-theme-setting={setting.id} value={values[setting.id]}
+      onChange={(value) => setValues({ ...values, [setting.id]: value })} />)}
+    {error && <p className="error-text" role="alert">{error}</p>}
+    <div className="settings-actions">
+      <button onClick={() => save()}>{t('Apply theme settings')}</button>
+      <button onClick={() => save(true)}>{t('Reset theme settings')}</button>
+    </div>
+  </fieldset>;
+}
 
 export default function ThemeSettings({ settings, update }) {
   const { t } = useI18n();
@@ -13,6 +46,10 @@ export default function ThemeSettings({ settings, update }) {
   const [contributed, setContributed] = useState(extensionThemes);
   const [draft, setDraft] = useState(null);
   const [variables, setVariables] = useState('{}');
+  const active = useMemo(() => {
+    try { return { theme: getTheme(settings.theme, settings.customTheme) }; }
+    catch (err) { return { error: err.message }; }
+  }, [settings.theme, settings.customTheme, contributed]);
   const variablesLabel = t('CSS variables (JSON object)');
   const variablesExtensions = useMemo(() => [
     json(),
@@ -42,14 +79,14 @@ export default function ThemeSettings({ settings, update }) {
   };
   const exportTheme = async () => {
     try {
-      await window.api.saveTheme(getTheme(settings.theme, settings.customTheme));
+      await window.api.saveTheme({ ...getTheme(settings.theme, settings.customTheme, settings.themeSettings), settings: [] });
       setError('');
     } catch (err) { setError(err.message); }
   };
   const customize = () => {
     try {
-      const theme = getTheme(settings.theme, settings.customTheme);
-      setDraft({ ...theme, name: `${theme.name} Custom`.slice(0, 80), colors: { ...theme.colors } });
+      const theme = getTheme(settings.theme, settings.customTheme, settings.themeSettings);
+      setDraft({ ...theme, settings: [], name: `${theme.name} Custom`.slice(0, 80), colors: { ...theme.colors } });
       setVariables(JSON.stringify(theme.variables || {}, null, 2));
       setError('');
     } catch (err) { setError(err.message); }
@@ -81,6 +118,21 @@ export default function ThemeSettings({ settings, update }) {
           {settings.customTheme && <option value="custom">{settings.customTheme.name}</option>}
         </select>
       </label>
+      {active.theme?.metadata && <div className="theme-metadata">
+        {active.theme.metadata.description && <p>{active.theme.metadata.description}</p>}
+        {active.theme.metadata.author && <p>{t('by {author}', { author: active.theme.metadata.author })}</p>}
+        {!!Object.keys(active.theme.metadata.accessibility || {}).length && <>
+          <strong>{t('Accessibility information (author provided)')}</strong>
+          <dl>
+            {Object.entries(active.theme.metadata.accessibility).map(([key, value]) =>
+              <div key={key}><dt>{t({ contrast: 'Contrast', colorVision: 'Color vision', reducedMotion: 'Reduced motion', notes: 'Notes' }[key])}</dt>
+                <dd>{Array.isArray(value) ? value.join(', ') : typeof value === 'boolean' ? t(value ? 'Yes' : 'No') : t(value)}</dd></div>)}
+          </dl>
+        </>}
+      </div>}
+      {!!active.theme?.settings?.length && <ThemeOptions key={`${settings.theme}:${JSON.stringify(active.theme.settings)}`}
+        theme={active.theme} settings={settings} update={update} />}
+      {active.error && <p role="alert" className="error-text">{active.error}</p>}
       <label className="setting-row"><span>{t('Fade between themes')}</span>
         <input type="checkbox" data-setting="themeTransition" checked={settings.themeTransition}
           onChange={(event) => update({ themeTransition: event.target.checked })} />

@@ -519,6 +519,17 @@
   color: var(--danger);
 }
 
+.theme-metadata {
+  margin-block: 8px;
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+.theme-metadata dl > div { display: flex; gap: 12px; margin-block: 4px; }
+.theme-metadata dt { font-weight: 600; }
+.theme-metadata dd { margin: 0; overflow-wrap: anywhere; }
+.theme-options { margin-block: 12px; border: 1px solid var(--border); border-radius: 6px; }
+
 .settings-actions {
   display: flex;
   flex-wrap: wrap;

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { getRuntimeLimits } from '../../../electron/customization.mjs';
 import { useI18n } from '../../lib/i18n.js';
+import SettingControl from './SettingControl.jsx';
 
 const PERMISSION_LABELS = {
   editor: 'Read and edit the active note, selection, and visual editor',
@@ -64,20 +65,9 @@ function ExtensionSettingsForm({ item, extensions }) {
   };
   return <fieldset className="extension-settings-form">
     <legend>{t('Extension settings')}</legend>
-    {loaded && item.contributes.settings.map((setting) => <label key={setting.id} className="setting-row">
-      <span>{setting.title}{setting.description && <small>{setting.description}</small>}</span>
-      {setting.enum ? <select data-extension-setting={setting.id} value={values[setting.id]}
-        onChange={(event) => setValues({ ...values, [setting.id]: event.target.value })}>
-        {setting.enum.map((value) => <option key={value} value={value}>{value}</option>)}
-      </select> : <input data-extension-setting={setting.id}
-        type={setting.type === 'boolean' ? 'checkbox' : setting.type === 'number' ? 'number' : 'text'}
-        {...(setting.type === 'boolean' ? { checked: values[setting.id] } : { value: values[setting.id] })}
-        min={setting.min} max={setting.max} maxLength={setting.maxLength ?? 1000} step="any"
-        onChange={(event) => setValues({
-          ...values,
-          [setting.id]: setting.type === 'boolean' ? event.target.checked : event.target.value
-        })} />}
-    </label>)}
+    {loaded && item.contributes.settings.map((setting) => <SettingControl key={setting.id}
+      setting={setting} data-extension-setting={setting.id} value={values[setting.id]}
+      onChange={(value) => setValues({ ...values, [setting.id]: value })} />)}
     {error && <p role="alert" className="error-text">{error}</p>}
     <div className="settings-actions">
       <button disabled={!loaded} onClick={() => apply()}>{t('Save extension settings')}</button>

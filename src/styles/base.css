@@ -1,3 +1,5 @@
+@import './ui.css';
+
 :root {
   --font-text: 'Segoe UI', -apple-system, BlinkMacSystemFont, 'Inter', sans-serif;
   --font-ui: 'Segoe UI', -apple-system, BlinkMacSystemFont, 'Inter', sans-serif;
@@ -40,110 +42,6 @@ body,
   color: var(--text);
   font-family: var(--font-ui);
   font-size: 14px;
-}
-
-button,
-input,
-select,
-textarea {
-  font: inherit;
-  color: inherit;
-}
-
-button {
-  background: var(--bg-elevated);
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  padding: 5px 12px;
-  cursor: pointer;
-  transition:
-    background-color 140ms ease,
-    border-color 140ms ease,
-    color 140ms ease,
-    box-shadow 140ms ease,
-    transform 140ms ease;
-}
-
-button:hover {
-  background: var(--bg-hover);
-  border-color: color-mix(in srgb, var(--border), var(--text-muted) 30%);
-}
-
-button:active:not(:disabled) {
-  transform: scale(0.98);
-}
-
-button.primary {
-  background: var(--accent);
-  border-color: var(--accent);
-  color: var(--accent-text);
-}
-
-button.primary:hover {
-  filter: brightness(1.1);
-}
-
-input,
-select {
-  background: var(--bg-secondary);
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  padding: 5px 8px;
-  outline: none;
-  transition: border-color 140ms ease, box-shadow 140ms ease;
-}
-
-input:focus,
-select:focus,
-textarea:focus {
-  border-color: var(--accent);
-}
-
-select {
-  color: var(--text);
-  font: inherit;
-  cursor: pointer;
-}
-
-select option,
-select optgroup {
-  color: var(--text);
-  background: var(--bg-elevated);
-}
-
-@supports (appearance: base-select) {
-  select:not([multiple]):not([size]),
-  select:not([multiple]):not([size])::picker(select) {
-    appearance: base-select;
-  }
-
-  select:not([multiple]):not([size]) {
-    align-items: center;
-    gap: 8px;
-  }
-
-  select::picker-icon {
-    color: var(--text-muted);
-  }
-
-  select::picker(select) {
-    padding: 4px;
-    border: 1px solid var(--border);
-    border-radius: 6px;
-    background: var(--bg-elevated);
-    color: var(--text);
-    box-shadow: 0 8px 24px #0003;
-  }
-
-  select option {
-    padding: 5px 8px;
-    border-radius: 4px;
-  }
-
-  select option:hover,
-  select option:checked {
-    background: var(--bg-hover);
-  }
 }
 
 @media (prefers-reduced-motion: no-preference) {
@@ -232,45 +130,6 @@ kbd {
 
 ::-webkit-scrollbar-track {
   background: transparent;
-}
-
-:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 2px;
-}
-
-button:disabled {
-  cursor: not-allowed;
-  opacity: 0.6;
-}
-
-input[type="checkbox"] {
-  appearance: none;
-  display: inline-grid;
-  place-content: center;
-  flex-shrink: 0;
-  width: 16px;
-  height: 16px;
-  padding: 0;
-  border: 2px solid var(--text-muted);
-  border-radius: 2px;
-  background: var(--bg);
-  vertical-align: middle;
-}
-
-input[type="checkbox"]:checked {
-  background: var(--accent);
-  border-color: var(--accent);
-}
-
-input[type="checkbox"]:checked::after {
-  content: "";
-  width: 4px;
-  height: 8px;
-  margin-top: -3px;
-  border: solid var(--accent-text);
-  border-width: 0 2px 2px 0;
-  transform: rotate(45deg);
 }
 
 .context-menu button {

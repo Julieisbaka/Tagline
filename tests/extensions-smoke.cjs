@@ -47,10 +47,20 @@ tagline.commands.register('capabilities', async () => {
   });
   tagline.panels.onMessage('status', async payload => {
     if (payload.ready) await tagline.panels.postMessage('status', { reply: true });
+    else if (payload.uiReport) await tagline.storage.set('uiReport', payload.uiReport);
     else await tagline.storage.set('panelCheck', payload);
   });
   tagline.webviews.onMessage('details', payload => tagline.storage.set('webviewCheck', payload));
-  await tagline.panels.setHtml('status', '<p>Panel</p><script>taglineWebview.onMessage(payload => taglineWebview.postMessage(payload)); taglineWebview.postMessage({ready:true});</script>');
+  await tagline.panels.setHtml('status', '<p>Panel</p><script>' +
+    'const report = () => taglineWebview.postMessage({uiReport:{ theme:taglineWebview.getTheme(), button:getComputedStyle(document.querySelector("button")).backgroundColor, selection:getComputedStyle(document.body,"::selection").backgroundColor }});' +
+    'document.body.append(taglineUI.card({title:"Theme-aware tools",children:[' +
+    'taglineUI.field({label:"Find evidence",description:"Filename match",value:"Climate"}),' +
+    'taglineUI.select({label:"Side",value:"aff",options:[{label:"Affirmative",value:"aff"},{label:"Negative",value:"neg"}]}),' +
+    'taglineUI.toggle({label:"Enabled",checked:true,onChange:value=>taglineWebview.postMessage({toggle:value})}),' +
+    'taglineUI.notice({text:"Ready"}),' +
+    'taglineUI.button({label:"Save",variant:"primary",onClick:()=>taglineWebview.postMessage({button:true})})]}));' +
+    'taglineWebview.onThemeChange(report); report();' +
+    'taglineWebview.onMessage(payload => {if(payload.inspect)report();else taglineWebview.postMessage(payload)}); taglineWebview.postMessage({ready:true});</script>');
   await tagline.panels.show('status');
   await tagline.webviews.setHtml('details', '<p>Details</p><script>(async () => { let blocked = false; try { await fetch("https://example.com"); } catch { blocked = true; } taglineWebview.postMessage({ready:true, networkBlocked:blocked, api:typeof window.api}); })();</script>');
   await tagline.webviews.show('details');
@@ -192,6 +202,11 @@ tagline.commands.register('save-checks', async () => {
   await fs.writeFile(path.join(ext('demo'), 'themes', 'ocean.json'), JSON.stringify({
     version: 1, name: 'Ocean', mode: 'dark', colors: { accent: '#12a4d9' },
     variables: { 'font-ui': 'monospace', 'editor-font-size': '21px', 'extension-token': '12px' },
+    metadata: { author: 'Theme author', accessibility: { contrast: 'high', reducedMotion: true, notes: 'Test declaration, not certification.' } },
+    settings: [
+      { id: 'selection-color', title: 'Selection color', type: 'string', default: '#123456', variable: 'selection' },
+      { id: 'reading-size', title: 'Reading size', type: 'number', default: 21, min: 12, max: 30, variable: 'editor-font-size', unit: 'px' },
+    ],
   }));
   await fs.writeFile(path.join(ext('nosy'), 'manifest.json'), JSON.stringify({
     manifestVersion: 1, id: 'nosy', name: 'Nosy', version: '0.1.0', main: 'main.js',
@@ -290,6 +305,7 @@ tagline.commands.register('save-checks', async () => {
         await palette('Demo: Exercise editor events and UI');
         await wait("JSON.parse(localStorage.getItem('tagline-extension:demo')).panelCheck?.reply === true", 'panel round-trip');
         await wait("JSON.parse(localStorage.getItem('tagline-extension:demo')).webviewCheck?.ready === true", 'webview messaging');
+        await wait("JSON.parse(localStorage.getItem('tagline-extension:demo')).uiReport?.theme.id === 'dark'", 'UI kit initializes before extension scripts');
         const capabilities = await js("JSON.parse(localStorage.getItem('tagline-extension:demo'))");
         assert.deepEqual(capabilities.eventCheck, { passed: true });
         assert.deepEqual(capabilities.selectionCheck, { from: 1, to: 3 });
@@ -350,10 +366,39 @@ tagline.commands.register('save-checks', async () => {
           el.value = 'ext:demo:0'; el.dispatchEvent(new Event('change', { bubbles: true })); })()`);
         await wait(`getComputedStyle(document.documentElement).getPropertyValue('--editor-font-size') === '21px'`, 'theme variables applied');
         assert.equal(await js(`getComputedStyle(document.documentElement).getPropertyValue('--font-ui')`), 'monospace');
+        await wait("JSON.parse(localStorage.getItem('tagline-extension:demo')).uiReport?.theme.id === 'ext:demo:0'", 'panel theme updates live');
+        await delay(250);
+        await js("void document.querySelector('.extension-panel iframe').contentWindow.postMessage({type:'extension-ui-message',payload:{inspect:true}},'*')");
+        await wait("JSON.parse(localStorage.getItem('tagline-extension:demo')).uiReport.button === 'rgb(18, 164, 217)'", 'shared primary button follows theme accent');
+        assert.equal(await js("JSON.parse(localStorage.getItem('tagline-extension:demo')).uiReport.theme.metadata.accessibility.contrast"), 'high');
+        assert.match(await js("document.querySelector('.theme-metadata').textContent"), /author provided/);
+        assert.equal(await js("document.querySelectorAll('[data-theme-setting]').length"), 2);
+        await js(`(() => {
+          const set = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set;
+          const color = document.querySelector('[data-theme-setting="selection-color"]');
+          set.call(color, '#abcdef'); color.dispatchEvent(new Event('input', {bubbles:true}));
+        })()`);
+        await js(`(() => {
+          const input = document.querySelector('[data-theme-setting="reading-size"]');
+          Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set.call(input, '24');
+          input.dispatchEvent(new Event('input', {bubbles:true}));
+        })()`);
+        await js(`[...document.querySelectorAll('.theme-options button')].find(el => el.textContent === 'Apply theme settings').click()`);
+        await wait("getComputedStyle(document.documentElement).getPropertyValue('--selection') === '#abcdef'");
+        await wait("JSON.parse(localStorage.getItem('tagline-extension:demo')).uiReport?.selection === 'rgb(171, 205, 239)'");
+        assert.equal(await js("getComputedStyle(document.documentElement).getPropertyValue('--editor-font-size')"), '24px');
         await js(`(() => { const el = document.querySelector('[data-setting="theme"]');
           el.value = 'dark'; el.dispatchEvent(new Event('change', { bubbles: true })); })()`);
         await wait(`getComputedStyle(document.documentElement).getPropertyValue('--editor-font-size') === '16px'`, 'font preference restored');
         assert.equal(await js(`getComputedStyle(document.documentElement).getPropertyValue('--extension-token')`), '');
+        assert.equal(await js("document.querySelectorAll('[data-theme-setting]').length"), 0, 'options only appear for active theme');
+        await js(`(() => { const el = document.querySelector('[data-setting="theme"]');
+          el.value = 'ext:demo:0'; el.dispatchEvent(new Event('change', { bubbles: true })); })()`);
+        await wait("getComputedStyle(document.documentElement).getPropertyValue('--selection') === '#abcdef'");
+        await js(`[...document.querySelectorAll('.theme-options button')].find(el => el.textContent === 'Reset theme settings').click()`);
+        await wait("getComputedStyle(document.documentElement).getPropertyValue('--selection') === '#123456'");
+        await js(`(() => { const el = document.querySelector('[data-setting="theme"]');
+          el.value = 'dark'; el.dispatchEvent(new Event('change', { bubbles: true })); })()`);
         await js(`document.querySelector('[data-section="extensions"]').click()`);
         await wait(`document.querySelectorAll('.extension-card').length === 2`, 'extension cards');
         assert.match(await js(`document.querySelector('[data-extension="demo"]').textContent`), /Create and change notes/);
@@ -389,7 +434,7 @@ tagline.commands.register('save-checks', async () => {
         console.log('Extension smoke test passed');
         app.exit(0);
       } catch (error) {
-        console.error(error, await js(`JSON.stringify({ toast: document.querySelector('.toast')?.textContent, palette: !!document.querySelector('.palette'), items: [...document.querySelectorAll('.palette-list > *')].map((el) => el.textContent).slice(0, 5) })`));
+        console.error(error, await js(`JSON.stringify({ toast: document.querySelector('.toast')?.textContent, palette: !!document.querySelector('.palette'), ui: JSON.parse(localStorage.getItem('tagline-extension:demo') || '{}').uiReport, items: [...document.querySelectorAll('.palette-list > *')].map((el) => el.textContent).slice(0, 5) })`));
         app.exit(1);
       }
     });

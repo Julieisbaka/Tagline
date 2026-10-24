@@ -127,6 +127,8 @@ export const settingsCodeMirrorTheme = EditorView.theme(
   {
     '&': { color: 'var(--text)' },
     '.cm-content': { caretColor: 'var(--accent)', color: 'var(--text)' },
+    '&.cm-focused .cm-selectionBackground, .cm-selectionBackground': { backgroundColor: 'var(--selection) !important' },
+    '.cm-content ::selection': { backgroundColor: 'var(--selection) !important', color: 'var(--selection-text) !important' },
     '.cm-cursor, .cm-dropCursor': { borderLeftColor: 'var(--accent)', borderLeftWidth: '2px' },
     '.cm-tooltip': {
       backgroundColor: 'var(--bg-elevated)',

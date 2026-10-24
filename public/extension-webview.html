@@ -6,6 +6,9 @@
 <script>
   (() => {
     const listeners = new Set();
+    const themeListeners = new Set();
+    let theme = {};
+    let appliedVariables = [];
     let started = false;
     const sendError = (error) => parent.postMessage({
       type: 'extension-ui-error', message: String(error?.message || error)
@@ -17,13 +20,109 @@
         listeners.add(listener);
         return () => listeners.delete(listener);
       },
+      getTheme: () => structuredClone(theme),
+      onThemeChange: (listener) => {
+        if (typeof listener !== 'function') throw new TypeError('Expected a listener.');
+        themeListeners.add(listener);
+        return () => themeListeners.delete(listener);
+      },
     });
+    const text = (value) => {
+      if (typeof value !== 'string' || !value.trim()) throw new TypeError('A nonempty label is required.');
+      return value;
+    };
+    const element = (tag, className, children = []) => {
+      const el = document.createElement(tag);
+      el.className = className;
+      el.append(...children);
+      return el;
+    };
+    let fieldId = 0;
+    const field = (options, control, eventName) => {
+      const label = element('label', 'tl-field');
+      const id = `tl-field-${++fieldId}`;
+      control.id = id;
+      label.htmlFor = id;
+      label.append(element('span', '', [text(options.label)]), control);
+      control.disabled = !!options.disabled;
+      if (options.description) {
+        const description = element('small', '', [String(options.description)]);
+        description.id = `${id}-description`;
+        control.setAttribute('aria-describedby', description.id);
+        label.append(description);
+      }
+      if (options.onChange) control.addEventListener(eventName, () =>
+        options.onChange(control.type === 'checkbox' ? control.checked : control.value));
+      return label;
+    };
+    window.taglineUI = Object.freeze({
+      button: ({ label, variant = 'default', onClick, disabled = false }) => {
+        if (!['default', 'primary'].includes(variant)) throw new TypeError('Unknown button variant.');
+        const el = element('button', variant === 'primary' ? 'primary' : '', [text(label)]);
+        el.type = 'button'; el.disabled = disabled;
+        if (onClick) el.addEventListener('click', onClick);
+        return el;
+      },
+      field: (options) => {
+        const { type = 'text', value = '' } = options;
+        if (!['text', 'number', 'search', 'email', 'url', 'password', 'textarea', 'color'].includes(type)) throw new TypeError('Unknown field type.');
+        const control = document.createElement(type === 'textarea' ? 'textarea' : 'input');
+        if (type !== 'textarea') control.type = type;
+        control.value = value;
+        for (const key of ['min', 'max', 'step', 'maxLength', 'placeholder']) {
+          if (options[key] !== undefined) control[key] = options[key];
+        }
+        return field(options, control, 'input');
+      },
+      select: (options) => {
+        const control = document.createElement('select');
+        for (const option of options.options) {
+          control.append(new Option(text(option.label), String(option.value)));
+        }
+        control.value = options.value;
+        return field(options, control, 'change');
+      },
+      toggle: (options) => {
+        const control = document.createElement('input');
+        control.type = 'checkbox'; control.checked = !!options.checked;
+        const label = field(options, control, 'change');
+        label.classList.add('tl-toggle');
+        return label;
+      },
+      stack: ({ children = [] } = {}) => element('div', 'tl-stack', children),
+      card: ({ title, children = [] }) => element('section', 'tl-card', [
+        element('h3', '', [text(title)]), element('div', 'tl-stack', children),
+      ]),
+      notice: ({ text: message, tone = 'info' }) => {
+        if (!['info', 'warning', 'error'].includes(tone)) throw new TypeError('Unknown notice tone.');
+        const el = element('p', 'tl-notice', [text(message)]);
+        el.dataset.tone = tone; el.setAttribute('role', tone === 'error' ? 'alert' : 'status');
+        return el;
+      },
+    });
+    const applyTheme = (next) => {
+      theme = next;
+      for (const key of appliedVariables) document.documentElement.style.removeProperty(key);
+      appliedVariables = Object.keys(next.variables);
+      for (const [key, value] of Object.entries(next.variables)) document.documentElement.style.setProperty(key, value);
+      document.documentElement.style.colorScheme = next.mode;
+      document.documentElement.dataset.theme = next.id;
+      for (const listener of themeListeners) {
+        try { Promise.resolve(listener(structuredClone(next))).catch(sendError); }
+        catch (error) { sendError(error); }
+      }
+    };
     addEventListener('error', (event) => sendError(event.message));
     addEventListener('unhandledrejection', (event) => sendError(event.reason));
     addEventListener('message', (event) => {
       if (event.source !== parent || !event.data) return;
       if (event.data.type === 'initialize' && !started) {
         started = true;
+        applyTheme(event.data.theme);
+        document.documentElement.lang = event.data.language;
+        const baseStyle = document.createElement('style');
+        baseStyle.textContent = event.data.css + '\n*{box-sizing:border-box}body{margin:0;padding:12px;background:var(--bg);color:var(--text);font:14px var(--font-ui);line-height:1.5}';
+        document.head.append(baseStyle);
         const parsed = new DOMParser().parseFromString(event.data.html, 'text/html');
         for (const style of parsed.head.querySelectorAll('style')) document.head.append(style.cloneNode(true));
         document.body.replaceChildren(...[...parsed.body.childNodes].map(node => node.cloneNode(true)));
@@ -33,6 +132,8 @@
           if (old.parentNode === parsed.head) document.body.append(script);
           else old.replaceWith(script);
         }
+      } else if (event.data.type === 'extension-ui-theme' && started) {
+        applyTheme(event.data.theme);
       } else if (event.data.type === 'extension-ui-message') {
         for (const listener of [...listeners]) {
           try { Promise.resolve(listener(event.data.payload)).catch(sendError); }

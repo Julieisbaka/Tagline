@@ -4,6 +4,7 @@ import { dirName, isMarkdown, joinPath } from '../../lib/vault.js';
 import Menu from '../dialogs/ContextMenu.jsx';
 import FileTree from './FileTree.jsx';
 import Icon from '../Icon.jsx';
+import RefreshButton from '../RefreshButton.jsx';
 
 function ContextMenu({ menu, onClose, actions }) {
   const { node } = menu;
@@ -63,9 +64,7 @@ export default function Sidebar({ vault, tree, activePath, actions, spacedFolder
         <button className="icon-btn" title={t('New folder')} aria-label={t('New folder')} onClick={() => actions.newFolder(activeDir)}>
           <Icon name="folder-plus" />
         </button>
-        <button className="icon-btn" title={t('Refresh')} aria-label={t('Refresh')} onClick={actions.reload}>
-          <Icon name="refresh" />
-        </button>
+        <RefreshButton onRefresh={actions.reload} />
       </div>
       <FileTree
         tree={tree}

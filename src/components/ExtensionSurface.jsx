@@ -1,10 +1,27 @@
 import { useEffect, useRef } from 'react';
 import { requirePayload } from '../lib/extensionCapabilities.js';
+import { themeSnapshot } from '../lib/themes.js';
+import uiStyles from '../styles/ui.css?raw';
 
 export default function ExtensionSurface({ surface, onClose }) {
   const frame = useRef(null);
   const rate = useRef({ start: 0, count: 0 });
   const { host, kind, id, html, title } = surface;
+  useEffect(() => {
+    const sendTheme = () => frame.current?.contentWindow?.postMessage({
+      type: 'extension-ui-theme', theme: themeSnapshot(),
+    }, '*');
+    const observer = new MutationObserver(sendTheme);
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['style', 'data-theme'] });
+    const motion = window.matchMedia('(prefers-reduced-motion: reduce)');
+    motion.addEventListener('change', sendTheme);
+    window.addEventListener('themechange', sendTheme);
+    return () => {
+      observer.disconnect();
+      motion.removeEventListener('change', sendTheme);
+      window.removeEventListener('themechange', sendTheme);
+    };
+  }, []);
 
   useEffect(() => {
     const receive = (event) => {
@@ -35,5 +52,7 @@ export default function ExtensionSurface({ surface, onClose }) {
   return <iframe className="extension-surface" key={html} ref={frame} title={title}
     sandbox="allow-scripts" referrerPolicy="no-referrer"
     src={new URL('extension-webview.html', document.baseURI).href}
-    onLoad={() => frame.current?.contentWindow?.postMessage({ type: 'initialize', html }, '*')} />;
+    onLoad={() => frame.current?.contentWindow?.postMessage({
+      type: 'initialize', html, css: uiStyles, theme: themeSnapshot(), language: document.documentElement.lang || 'en',
+    }, '*')} />;
 }

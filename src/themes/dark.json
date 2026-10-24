@@ -17,6 +17,7 @@
     "accent-text": "#ffffff",
     "accent-dim": "#8b6cff40",
     "selection": "#8b6cff59",
+    "selection-text": "#ffffff",
     "highlight-bg": "#3d8f3d",
     "highlight-text": "#ffffff",
     "code": "#e6a26a",

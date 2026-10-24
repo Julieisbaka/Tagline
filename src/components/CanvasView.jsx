@@ -7,6 +7,7 @@ import { useId, useMemo, useRef, useState } from 'react';
 import { canvasGroupMembers, createArgumentEdge, createCanvasId, createCanvasNode, moveCanvasNodes,
   parseCanvas, serializeCanvas, suggestCanvasFiles } from '../lib/canvas.js';
 import { settingsCodeMirrorTheme } from '../lib/editorExtensions.js';
+import ContextMenu from './dialogs/ContextMenu.jsx';
 import { useI18n } from '../lib/i18n.js';
 import { baseName, resolveLink } from '../lib/vault.js';
 import Icon from './Icon.jsx';
@@ -38,7 +39,7 @@ function sidePoint(node, side, xOffset, yOffset) {
 
 function CanvasNode({
   node, selected, order, xOffset, yOffset, onSelect, onUpdate, onRemove, onOpenFile, onOpenUrl, onOpenLink,
-  onStartGesture, paths, t,
+  onStartGesture, onContextMenu, paths, t,
 }) {
   const accent = nodeColor(node.color);
   const fileListId = useId();
@@ -47,6 +48,15 @@ function CanvasNode({
     <article
       className={`canvas-node canvas-node-${node.type}${selected ? ' selected' : ''}`}
       data-node-id={node.id}
+      tabIndex={0} aria-label={t('Canvas node: {type}', { type: t(node.type) })}
+      onKeyDown={(event) => {
+        if (event.target !== event.currentTarget) return;
+        if (event.key === 'ContextMenu' || (event.key === 'F10' && event.shiftKey)) {
+          event.preventDefault();
+          const rect = event.currentTarget.getBoundingClientRect();
+          onContextMenu({ clientX: rect.left + 16, clientY: rect.top + 16 }, node.id);
+        }
+      }}
       style={{
         left: node.x, top: node.y, width: node.width, height: node.height,
         zIndex: order + 2, '--canvas-node-accent': accent,
@@ -112,7 +122,7 @@ function CanvasNode({
   );
 }
 
-function CanvasBoard({ canvas, onChange, paths, onOpenFile, onOpenUrl, onOpenLink, t }) {
+function CanvasBoard({ canvas, onChange, paths, onOpenFile, onOpenUrl, onOpenLink, onEditSource, t }) {
   const gestureRef = useRef(null);
   const [gesture, setGesture] = useState(null);
   const [mode, setMode] = useState('canvas');
@@ -121,6 +131,7 @@ function CanvasBoard({ canvas, onChange, paths, onOpenFile, onOpenUrl, onOpenLin
   const [connecting, setConnecting] = useState(false);
   const [connectionStart, setConnectionStart] = useState(null);
   const [relationType, setRelationType] = useState('supports');
+  const [menu, setMenu] = useState(null);
   const node = canvas.nodes.find((item) => item.id === selectedNode);
   const edge = canvas.edges.find((item) => item.id === selectedEdge);
   const minX = Math.min(0, ...canvas.nodes.map((item) => item.x)) - 240;
@@ -144,14 +155,49 @@ function CanvasBoard({ canvas, onChange, paths, onOpenFile, onOpenUrl, onOpenLin
       edges: canvas.edges.filter((item) => item.fromNode !== id && item.toNode !== id) });
     setSelectedNode(null);
   };
-  const addNode = (type) => {
+  const addNode = (type, position, wrapped = node) => {
     const nextNode = createCanvasNode(type, canvas.nodes.length);
-    if (type === 'group' && node) Object.assign(nextNode, {
-      x: node.x - 24, y: node.y - 40, width: node.width + 48, height: node.height + 64,
+    if (position) Object.assign(nextNode, position);
+    if (type === 'group' && wrapped) Object.assign(nextNode, {
+      x: wrapped.x - 24, y: wrapped.y - 40, width: wrapped.width + 48, height: wrapped.height + 64,
     });
     update({ ...canvas, nodes: [...canvas.nodes, nextNode] });
     setSelectedNode(nextNode.id);
     setSelectedEdge(null);
+  };
+  const contextMenu = (event, nodeId, edgeId, position) => {
+    event.preventDefault?.();
+    const targetNode = canvas.nodes.find((item) => item.id === nodeId);
+    const targetEdge = canvas.edges.find((item) => item.id === edgeId);
+    const items = targetNode ? [
+      ...(targetNode.type === 'file' ? [{ label: 'Open file', disabled: !resolveLink(targetNode.file, paths),
+        run: () => onOpenFile(resolveLink(targetNode.file, paths), targetNode.subpath) }] : []),
+      ...(targetNode.type === 'link' ? [{ label: 'Open link', disabled: !/^https?:\/\//i.test(targetNode.url),
+        run: () => onOpenUrl(targetNode.url) }] : []),
+      ...(targetNode.type !== 'group' ? [
+        { label: 'Duplicate node', run: () => {
+          const copy = { ...targetNode, id: createCanvasId(), x: targetNode.x + 32, y: targetNode.y + 32 };
+          update({ ...canvas, nodes: [...canvas.nodes, copy] });
+          setSelectedNode(copy.id);
+        } },
+        { label: 'Group node', run: () => addNode('group', undefined, targetNode) },
+      ] : []),
+      { label: 'Delete node', danger: true, run: () => removeNode(targetNode.id) },
+    ] : targetEdge ? [
+      { label: 'Reverse connection', run: () => update({ ...canvas, edges: canvas.edges.map((item) =>
+        item.id === targetEdge.id ? { ...item, fromNode: item.toNode, toNode: item.fromNode,
+          fromSide: item.toSide || 'left', toSide: item.fromSide || 'right',
+          fromEnd: item.toEnd || 'arrow', toEnd: item.fromEnd || 'none' } : item) }) },
+      { label: 'Delete connection', danger: true, run: () => {
+        update({ ...canvas, edges: canvas.edges.filter((item) => item.id !== targetEdge.id) });
+        setSelectedEdge(null);
+      } },
+    ] : ['text', 'file', 'link', 'group'].map((type) => ({
+      label: t('Add {type}', { type: t(type) }), run: () => addNode(type, position, null),
+    }));
+    setSelectedNode(targetNode?.id || null);
+    setSelectedEdge(targetEdge?.id || null);
+    setMenu({ x: event.clientX, y: event.clientY, items: [...items, { label: 'Open JSON source', run: onEditSource }] });
   };
   const selectNode = (id) => {
     if (connecting) {
@@ -273,7 +319,23 @@ function CanvasBoard({ canvas, onChange, paths, onOpenFile, onOpenUrl, onOpenLin
         </select></label>
       </div>}
       <div className="canvas-board-wrap">
-        <div className="canvas-board" style={{ width, height }}
+        <div className="canvas-board" style={{ width, height }} tabIndex={0} aria-label={t('Canvas')}
+          onContextMenu={(event) => {
+            if (event.target.closest('input, textarea, button, [contenteditable="true"]')) return;
+            const rect = event.currentTarget.getBoundingClientRect();
+            contextMenu(event, event.target.closest('[data-node-id]')?.dataset.nodeId,
+              event.target.closest('[data-edge-id]')?.dataset.edgeId,
+              { x: Math.round(event.clientX - rect.left - xOffset), y: Math.round(event.clientY - rect.top - yOffset) });
+          }}
+          onKeyDown={(event) => {
+            if (event.target !== event.currentTarget || !(event.key === 'ContextMenu' || (event.key === 'F10' && event.shiftKey))) return;
+            event.preventDefault();
+            const rect = event.currentTarget.getBoundingClientRect();
+            const wrap = event.currentTarget.parentElement.getBoundingClientRect();
+            const x = Math.max(rect.left, wrap.left) + 32, y = Math.max(rect.top, wrap.top) + 32;
+            contextMenu({ clientX: x, clientY: y }, null, null,
+              { x: Math.round(x - rect.left - xOffset), y: Math.round(y - rect.top - yOffset) });
+          }}
           onPointerMove={moveGesture} onPointerUp={endGesture} onPointerCancel={endGesture}
           onClick={() => { setSelectedNode(null); setSelectedEdge(null); }}>
           <svg className="canvas-edges" width={width} height={height} aria-label={t('Canvas connections')}>
@@ -287,7 +349,15 @@ function CanvasBoard({ canvas, onChange, paths, onOpenFile, onOpenUrl, onOpenLin
               const a = sidePoint(from, item.fromSide || 'right', xOffset, yOffset);
               const b = sidePoint(to, item.toSide || 'left', xOffset, yOffset);
               const selected = item.id === selectedEdge;
-              return <g key={item.id} className={selected ? 'selected' : ''}
+              return <g key={item.id} data-edge-id={item.id} className={selected ? 'selected' : ''}
+                tabIndex={0} role="button" aria-label={item.label || t('Canvas connection')}
+                onKeyDown={(event) => {
+                  if (event.key === 'ContextMenu' || event.key === 'Enter' || (event.key === 'F10' && event.shiftKey)) {
+                    event.preventDefault();
+                    const rect = event.currentTarget.getBoundingClientRect();
+                    contextMenu({ clientX: rect.left + rect.width / 2, clientY: rect.top + rect.height / 2 }, null, item.id);
+                  }
+                }}
                 onClick={(event) => {
                   event.stopPropagation();
                   setSelectedEdge(item.id);
@@ -308,10 +378,12 @@ function CanvasBoard({ canvas, onChange, paths, onOpenFile, onOpenUrl, onOpenLin
               .map((item, index) => <CanvasNode key={item.id} node={{ ...item, x: item.x + xOffset, y: item.y + yOffset }}
               selected={item.id === selectedNode || (connecting && item.id === connectionStart)} order={index}
               xOffset={xOffset} yOffset={yOffset} onStartGesture={startGesture}
+              onContextMenu={contextMenu}
               onSelect={selectNode} onUpdate={updateNode} onRemove={removeNode}
               onOpenFile={onOpenFile} onOpenUrl={onOpenUrl} onOpenLink={onOpenLink} paths={paths} t={t} />)}
           </div>)}
         </div>
+        {menu && <ContextMenu {...menu} onClose={() => setMenu(null)} />}
       </div>
     </div>
   );
@@ -355,7 +427,7 @@ export default function CanvasView({
       </> : parsed.error ? <div className="canvas-invalid" role="alert">
         <h2>{t('Invalid Canvas JSON')}</h2><p>{parsed.error}</p>
         <button onClick={() => setMode('edit')}>{t('Open JSON source')}</button>
-      </div> : <CanvasBoard canvas={parsed.canvas} onChange={onChange} paths={paths}
+      </div> : <CanvasBoard canvas={parsed.canvas} onChange={onChange} paths={paths} onEditSource={() => setMode('edit')}
         onOpenFile={onOpenFile} onOpenUrl={onOpenUrl} onOpenLink={onOpenLink} t={t} />}
     </div>
   );
