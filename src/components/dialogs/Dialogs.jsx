@@ -135,7 +135,6 @@ export function PromptDialog({ title, initial = '', onSubmit, onClose }) {
 export function SettingsDialog({ settings, update, onClose, extensions }) {
   const { t } = useI18n();
   const [section, setSection] = useState('general');
-  const shell = useRef(null);
   const sections = [
     ['general', 'General', 'Your writing and debate workspace'],
     ['editors', 'Editors', 'Configure Tiptap and CodeMirror'],
@@ -164,7 +163,7 @@ export function SettingsDialog({ settings, update, onClose, extensions }) {
   return (
     <ModalBackdrop className="modal-backdrop settings-backdrop" onMouseDown={onClose}>
       <div className="modal dialog settings" role="dialog" aria-modal="true" aria-labelledby="settings-title"
-        ref={shell} tabIndex={-1} onMouseDown={(e) => e.stopPropagation()}>
+        tabIndex={-1} onMouseDown={(e) => e.stopPropagation()}>
         <aside className="settings-sidebar">
           <div className="settings-brand">Tagline <span>{t('Workspace preferences')}</span></div>
           <nav aria-label={t('Settings sections')}>

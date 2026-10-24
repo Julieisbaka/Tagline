@@ -31,7 +31,7 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
       const js = (code) => wc.executeJavaScript(code);
       const wait = async (code) => {
         for (let i = 0; i < 100; i++) { if (await js(code)) return; await delay(50); }
-        throw new Error(`Timed out: ${code}`);
+        throw new Error(`Timed out: ${code}\nFocus: ${await js('document.activeElement.outerHTML')}`);
       };
       const key = async (keyCode, modifiers = []) => {
         wc.sendInputEvent({ type: 'keyDown', keyCode, modifiers });
@@ -78,6 +78,13 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
         assert.equal(tree.nodes.some((node) => !node.ignored && node.name?.value === 'Visual note editor'), false,
           'covered editor is absent from the accessibility tree');
         await js('document.querySelector(\'[data-section="appearance"]\').click()');
+        assert.equal(await js("getComputedStyle(document.querySelector('[data-setting=theme]')).appearance"), 'base-select',
+          'dropdowns use the themed picker');
+        await js("document.querySelector('[data-setting=theme]').focus()");
+        await wc.executeJavaScript("document.querySelector('[data-setting=theme]').showPicker()", true);
+        await wait("document.querySelector('[data-setting=theme]').matches(':open')");
+        await key('Escape');
+        assert.equal(await js("!!document.querySelector('.settings')"), true, 'Escape closes the picker before its dialog');
         await js('document.querySelector(\'.ribbon-settings button[data-direction="down"]\').click()');
         await delay(30);
         assert.deepEqual(await js("[...document.querySelectorAll('.ribbon-settings input[data-ribbon-item]:checked')].map(el => el.dataset.ribbonItem)"),
@@ -112,6 +119,16 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
         await delay(50);
         assert.equal(await js("document.querySelector('.ribbon [data-ribbon-item]').dataset.ribbonItem"), 'rightPanel',
           'clock shortcut moves to the first position');
+        await js(`(() => {
+          const items = document.querySelectorAll('.ribbon [data-ribbon-item]');
+          const dataTransfer = new DataTransfer();
+          items[0].dispatchEvent(new DragEvent('dragstart', { bubbles: true, dataTransfer }));
+          items[items.length - 1].dispatchEvent(new DragEvent('drop', { bubbles: true, dataTransfer }));
+          items[0].dispatchEvent(new DragEvent('dragend', { bubbles: true, dataTransfer }));
+        })()`);
+        await delay(50);
+        assert.equal(await js("[...document.querySelectorAll('.ribbon [data-ribbon-item]')].at(-1).dataset.ribbonItem"), 'rightPanel',
+          'clock shortcut can also move down to the last position');
         await js("document.querySelector('.note-title').focus()");
         await js(`document.querySelector('.tree-item[title="Card.md"]').dispatchEvent(new MouseEvent('contextmenu', {
           bubbles: true, clientX: 100, clientY: 100,
@@ -130,6 +147,10 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
           await change('[aria-label="Editor mode"]', mode);
           const editor = mode === 'visual' ? '.visual-document' : '.editor .cm-content';
           await wait(`!!document.querySelector('${editor}')`);
+          if (mode === 'edit') {
+            assert.ok(await js("document.querySelector('.editor .cm-content').textContent.includes('[[Card#claim|Evidence link]]')"),
+              'visual link insertion remains editable as Markdown source');
+          }
           assert.deepEqual(await js("[...document.querySelectorAll('[data-editor-action]')].map(el => el.dataset.editorAction)"),
             visualActions, 'editors expose the same toolbar actions');
           await js("document.querySelector('[data-editor-action=pocket]').focus()");
@@ -157,7 +178,25 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
           await checkTabLoop('.visual-link-form');
           await key('Escape');
           await wait("!document.querySelector('.visual-link-form')");
+          await js("document.querySelector('[data-editor-action=link]').click()");
+          await wait("!!document.querySelector('.visual-link-form input')");
+          await js("document.querySelector('.visual-link-form input').focus()");
+          await wc.insertText('Card#claim|Evidence link');
+          await js("document.querySelector('.visual-link-form button[type=submit]').click()");
+          await wait("!document.querySelector('.visual-link-form')");
+          if (mode === 'visual') {
+            await wait("!!document.querySelector('.visual-document [data-wiki-link]')");
+          }
         }
+        await change('[aria-label="Editor mode"]', 'visual');
+        await wait("document.querySelectorAll('.visual-document [data-wiki-link]').length === 2");
+        let saved = '';
+        for (let i = 0; i < 100 && (saved.match(/\[\[Card#claim\|Evidence link\]\]/g) || []).length !== 2; i++) {
+          await delay(50);
+          saved = await fs.readFile(path.join(vault, 'Card.md'), 'utf8');
+        }
+        assert.equal((saved.match(/\[\[Card#claim\|Evidence link\]\]/g) || []).length, 2,
+          'links inserted in both editing modes survive switching and save to disk');
         assert.equal(await js("document.querySelectorAll('[inert]').length"), 0);
         wc.debugger.detach();
         console.log('PASS accessibility: focus scopes, sidebar ordering, theme fade, and editor parity');

@@ -7,7 +7,7 @@ export default function ModalBackdrop({ children, className = 'modal-backdrop', 
   useLayoutEffect(() => containFocus(ref.current, previousFocus.current), []);
   return <div ref={ref} className={className} tabIndex={-1} onMouseDown={onMouseDown}
     onKeyDown={(event) => {
-      if (event.target instanceof HTMLSelectElement && event.target.matches(':open')) return;
+      if (event.target.closest('select')?.matches(':open')) return;
       if (event.key === 'Escape' && !event.defaultPrevented && onMouseDown) {
         event.preventDefault();
         event.stopPropagation();

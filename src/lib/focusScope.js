@@ -2,9 +2,10 @@ const scopes = [];
 const inertElements = new WeakMap();
 
 function focusableElements(root) {
-  return [...root.querySelectorAll('button, input, select, textarea, a[href], iframe, [tabindex], [contenteditable="true"]')]
+  return [...root.querySelectorAll('button, input, select, textarea, a[href], summary, iframe, [tabindex], [contenteditable="true"]')]
     .filter((element) => element.tabIndex >= 0 && !element.disabled &&
-      !element.closest('[inert], [hidden]') && element.getClientRects().length);
+      !element.closest('[inert], [hidden]') && element.getClientRects().length &&
+      getComputedStyle(element).visibility !== 'hidden');
 }
 
 export function trapTabKey(event, root) {

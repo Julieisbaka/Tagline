@@ -46,9 +46,12 @@ export default function NoteView({
   const viewRef = editorRef || localRef;
   const blocker = mode === 'visual' ? visualBlocker(content) : null;
   const sourceMode = mode === 'edit' || !!blocker;
-  const sendCurrent = () => sourceMode
-    ? onSendCard(cursor, '')
-    : onSendCard(0, visualRef.current ? visualSelection(visualRef.current) : '');
+  const sendCurrent = () => {
+    if (!sourceMode) return onSendCard(0, visualRef.current ? visualSelection(visualRef.current) : '');
+    const view = viewRef.current;
+    const selection = view?.state.selection.main;
+    return onSendCard(selection?.head ?? cursor, view ? view.state.sliceDoc(selection.from, selection.to) : '');
+  };
   const [cursor, setCursorState] = useState(0);
   const [visualSection, setVisualSection] = useState('');
   const setCursor = (pos) => {

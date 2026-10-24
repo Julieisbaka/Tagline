@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useI18n } from '../../lib/i18n.js';
 import { renderMarkdown } from '../../lib/markdown.js';
+import ModalBackdrop from './ModalBackdrop.jsx';
 
 const FORMATS = [
   ['docx', 'Word (.docx)'], ['odt', 'OpenDocument (.odt)'], ['rtf', 'Rich text (.rtf)'],
@@ -34,8 +35,6 @@ export function standaloneHtml(title, content, resolve, language = 'en') {
   doc.body.innerHTML = exportHtml(content, resolve);
   return '<!doctype html>\n' + doc.documentElement.outerHTML;
 }
-
-import ModalBackdrop from './ModalBackdrop.jsx';
 
 export default function ExportDialog({ title, content, resolve, onClose }) {
   const { t, locale } = useI18n();

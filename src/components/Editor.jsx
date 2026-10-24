@@ -21,6 +21,13 @@ import { useI18n } from '../lib/i18n.js';
 import EditorToolbar from './EditorToolbar.jsx';
 import EditorLinkForm from './EditorLinkForm.jsx';
 
+const SOURCE_ACTIONS = {
+  pocket: setHeading(1), hat: setHeading(2), block: setHeading(3), tag: setHeading(4),
+  cite: toggleWrap('**'), bold: toggleWrap('**'), italic: toggleWrap('*'),
+  underline: toggleWrap('++'), 'underline-alt': toggleWrap('++'),
+  emphasis: toggleWrap('**++', '++**'), highlight: toggleWrap('=='), 'clear-format': clearFormatting,
+};
+
 export default function Editor({
   value, onChange, noteNames, onOpenLink, onSendCard, onCursor, viewRef, keybindings, settings,
 }) {
@@ -44,10 +51,7 @@ export default function Editor({
 
     const actions = {
       find: openSearchPanel,
-      pocket: setHeading(1), hat: setHeading(2), block: setHeading(3), tag: setHeading(4),
-      cite: toggleWrap('**'), bold: toggleWrap('**'), italic: toggleWrap('*'),
-      underline: toggleWrap('++'), 'underline-alt': toggleWrap('++'),
-      emphasis: toggleWrap('**++', '++**'), highlight: toggleWrap('=='), 'clear-format': clearFormatting,
+      ...SOURCE_ACTIONS,
     };
     const debateKeys = Prec.highest(keymap.of(KEYBINDINGS.filter((item) =>
       item.scope === 'editor' && binding(item.id, keybindings)).map((item) => ({
@@ -97,50 +101,48 @@ export default function Editor({
   };
   return (
     <div className="source-editor">
-    {settings.visualToolbar && <EditorToolbar keybindings={keybindings} actions={{
-      pocket: run(setHeading(1)), hat: run(setHeading(2)), block: run(setHeading(3)), tag: run(setHeading(4)),
-      cite: run(toggleWrap('**')), underline: run(toggleWrap('++')),
-      emphasis: run(toggleWrap('**++', '++**')), highlight: run(toggleWrap('==')),
-      'clear-format': run(clearFormatting), link: () => setLinkOpen((open) => !open),
-      find: () => openSearchPanel(ownViewRef.current),
-      'send-card': () => {
+      {settings.visualToolbar && <EditorToolbar keybindings={keybindings} active={{ link: linkOpen }} actions={{
+        ...Object.fromEntries(Object.entries(SOURCE_ACTIONS).map(([id, action]) => [id, run(action)])),
+        link: () => setLinkOpen((open) => !open),
+        find: () => openSearchPanel(ownViewRef.current),
+        'send-card': () => {
+          const view = ownViewRef.current;
+          const { from, to, head } = view.state.selection.main;
+          onSendCard(head, view.state.sliceDoc(from, to));
+        },
+      }} />}
+      {linkOpen && <EditorLinkForm noteNames={noteNames} onClose={() => {
+        setLinkOpen(false); ownViewRef.current?.focus();
+      }} onInsert={(target) => {
         const view = ownViewRef.current;
-        const { from, to, head } = view.state.selection.main;
-        onSendCard(head, view.state.sliceDoc(from, to));
-      },
-    }} />}
-    {linkOpen && <EditorLinkForm noteNames={noteNames} onClose={() => {
-      setLinkOpen(false); ownViewRef.current?.focus();
-    }} onInsert={(target) => {
-      const view = ownViewRef.current;
-      const { from, to } = view.state.selection.main;
-      const text = `[[${target}]]`;
-      view.dispatch({ changes: { from, to, insert: text }, selection: { anchor: from + text.length } });
-      setLinkOpen(false);
-      view.focus();
-    }} />}
-    <CodeMirror
-      className="editor"
-      value={value}
-      onChange={onChange}
-      extensions={extensions}
-      theme="none"
-      basicSetup={{
-        lineNumbers: false,
-        foldGutter: false,
-        highlightActiveLine: false,
-        highlightActiveLineGutter: false,
-        autocompletion: false,
-        searchKeymap: false,
-      }}
-      onCreateEditor={(view) => {
-        ownViewRef.current = view;
-        if (viewRef) viewRef.current = view;
-        applicationEvents.emit('editor.ready', { mode: 'edit' });
-      }}
-      height="100%"
-      autoFocus
-    />
+        const { from, to } = view.state.selection.main;
+        const text = `[[${target}]]`;
+        view.dispatch({ changes: { from, to, insert: text }, selection: { anchor: from + text.length } });
+        setLinkOpen(false);
+        view.focus();
+      }} />}
+      <CodeMirror
+        className="editor"
+        value={value}
+        onChange={onChange}
+        extensions={extensions}
+        theme="none"
+        basicSetup={{
+          lineNumbers: false,
+          foldGutter: false,
+          highlightActiveLine: false,
+          highlightActiveLineGutter: false,
+          autocompletion: false,
+          searchKeymap: false,
+        }}
+        onCreateEditor={(view) => {
+          ownViewRef.current = view;
+          if (viewRef) viewRef.current = view;
+          applicationEvents.emit('editor.ready', { mode: 'edit' });
+        }}
+        height="100%"
+        autoFocus
+      />
     </div>
   );
 }

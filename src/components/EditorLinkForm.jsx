@@ -25,7 +25,7 @@ export default function EditorLinkForm({ noteNames, onInsert, onClose }) {
     <input autoFocus aria-label={t('Wiki link target')} placeholder="Note#Heading|Label" list={id}
       value={target} onChange={(event) => setTarget(event.target.value)} aria-invalid={!!error}
       aria-describedby={error ? `${id}-error` : undefined} />
-    <datalist id={id}>{noteNames.map((name) => <option key={name} value={name} />)}</datalist>
+    <datalist id={id}>{[...new Set(noteNames)].map((name) => <option key={name} value={name} />)}</datalist>
     <button type="submit">{t('Insert link')}</button>
     <button type="button" onClick={onClose}>{t('Cancel')}</button>
     {error && <span id={`${id}-error`} className="error-text" role="alert">{error}</span>}
