@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { useI18n } from '../../lib/i18n.js';
 import { binding, displayBinding } from '../../lib/keybindings.js';
 import { moveRibbonItem, normalizeRibbonItems, RIBBON_ITEMS } from '../../lib/ribbonItems.js';
@@ -9,6 +10,7 @@ export default function Ribbon({ ctx, showLeft, keybindings, settings, updateSet
   const [menu, setMenu] = useState(null);
   const catalog = [...RIBBON_ITEMS, ...contributions];
   const items = normalizeRibbonItems(settings.ribbonItems, contributions, settings.hiddenRibbonItems);
+  const availableItems = items.filter((id) => catalog.some((item) => item.id === id));
   const actions = {
     fileExplorer: ctx.toggleLeft,
     switcher: ctx.openSwitcher,
@@ -27,10 +29,10 @@ export default function Ribbon({ ctx, showLeft, keybindings, settings, updateSet
   });
   const context = (event, id) => {
     event.preventDefault();
-    const index = items.indexOf(id);
+    const index = availableItems.indexOf(id);
     setMenu({ x: event.clientX, y: event.clientY, items: [
-      { label: 'Move up', disabled: index === 0, run: () => moveItem(id, items[index - 1]) },
-      { label: 'Move down', disabled: index === items.length - 1, run: () => moveItem(id, items[index + 1]) },
+      { label: 'Move up', disabled: index === 0, run: () => moveItem(id, availableItems[index - 1]) },
+      { label: 'Move down', disabled: index === availableItems.length - 1, run: () => moveItem(id, availableItems[index + 1]) },
       { label: 'Remove from sidebar', run: () => updateSettings({
         ribbonItems: items.filter((item) => item !== id),
         hiddenRibbonItems: [...new Set([...(settings.hiddenRibbonItems || []), id])],
@@ -80,4 +82,3 @@ export default function Ribbon({ ctx, showLeft, keybindings, settings, updateSet
     </nav>
   );
 }
-import { useState } from 'react';

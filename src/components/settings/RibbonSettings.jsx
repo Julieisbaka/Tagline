@@ -5,16 +5,19 @@ export default function RibbonSettings({ settings, update, contributions = [] })
   const { t } = useI18n();
   const catalog = [...RIBBON_ITEMS, ...contributions];
   const visibleItems = normalizeRibbonItems(settings.ribbonItems, contributions, settings.hiddenRibbonItems);
+  const availableItems = visibleItems.filter((id) => catalog.some((item) => item.id === id));
   const orderedItems = [
     ...visibleItems.map((id) => catalog.find((item) => item.id === id)).filter(Boolean),
     ...catalog.filter((item) => !visibleItems.includes(item.id)),
   ];
   const move = (id, offset) => {
-    const index = visibleItems.indexOf(id);
-    const destination = index + offset;
-    if (index < 0 || destination < 0 || destination >= visibleItems.length) return;
+    const index = availableItems.indexOf(id);
+    const neighbor = availableItems[index + offset];
+    if (index < 0 || !neighbor) return;
     const next = [...visibleItems];
-    [next[index], next[destination]] = [next[destination], next[index]];
+    const source = visibleItems.indexOf(id);
+    const destination = visibleItems.indexOf(neighbor);
+    [next[source], next[destination]] = [next[destination], next[source]];
     update({ ribbonItems: next });
   };
   const toggle = (id, checked) => {
@@ -33,7 +36,7 @@ export default function RibbonSettings({ settings, update, contributions = [] })
       <p>{t('Choose which shortcuts appear and change their order. Drag icons on the sidebar to reorder them. Settings stays available.')}</p>
       <ol>
         {orderedItems.map(({ id, title }) => {
-          const index = visibleItems.indexOf(id);
+          const index = availableItems.indexOf(id);
           const checked = index >= 0;
           return (
             <li key={id} className={checked ? '' : 'hidden'}>
@@ -46,7 +49,7 @@ export default function RibbonSettings({ settings, update, contributions = [] })
                 <button type="button" aria-label={t('Move {name} up', { name: t(title) })}
                   data-direction="up" disabled={index === 0} onClick={() => move(id, -1)}>↑</button>
                 <button type="button" aria-label={t('Move {name} down', { name: t(title) })}
-                  data-direction="down" disabled={index === visibleItems.length - 1}
+                  data-direction="down" disabled={index === availableItems.length - 1}
                   onClick={() => move(id, 1)}>↓</button>
               </span>}
             </li>

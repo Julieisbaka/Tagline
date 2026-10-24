@@ -62,6 +62,18 @@ tagline.commands.register('source-selection', async () => {
   await tagline.editor.setSelection({ from: 0, to: 4 });
   await tagline.storage.set('sourceSelection', (await tagline.editor.getActiveNote()).selectionRange);
 });
+tagline.commands.register('document-apis', async () => {
+  const active = await tagline.editor.getActiveNote();
+  await tagline.storage.set('documentKind', { kind: active.kind, editorKind: active.editorKind, selection: active.selectionRange });
+  const flow = await tagline.flow.read('Round.flow');
+  await tagline.flow.write('Round.flow', await tagline.helpers.flow.setCell(flow, 0, 0, 0, 'Extension evidence'));
+  const canvas = await tagline.helpers.canvas.parse('{"nodes":[],"edges":[]}');
+  canvas.nodes.push(await tagline.helpers.canvas.createNode('text', 0));
+  canvas.nodes[0].text = 'Extension canvas';
+  await tagline.canvas.write('Map.canvas', canvas);
+  await tagline.vault.flush();
+  await tagline.storage.set('documentCheck', (await tagline.canvas.read('Map.canvas')).nodes[0].text);
+});
 tagline.commands.register('stamp', async () => {
   const note = await tagline.editor.getActiveNote();
   await tagline.editor.insertText('Stamped ' + note.path);
@@ -168,7 +180,9 @@ tagline.commands.register('save-checks', async () => {
       { id: 'vault-apis', title: 'Exercise vault APIs' },
       { id: 'save-checks', title: 'Exercise save failures and in-flight flush' },
       { id: 'capabilities', title: 'Exercise editor events and UI' },
-      { id: 'source-selection', title: 'Set source selection' }],
+      { id: 'source-selection', title: 'Set source selection' },
+      { id: 'document-apis', title: 'Exercise document APIs' }],
+      ribbonItems: [{ id: 'documents', title: 'Document tools', icon: 'canvas', command: 'document-apis' }],
       panels: [{ id: 'status', title: 'Status' }],
       webviews: [{ id: 'details', title: 'Details' }],
       themes: ['themes/ocean.json'],
@@ -191,7 +205,8 @@ tagline.commands.register('save-checks', async () => {
     JSON.parse(await fs.readFile(path.join(ext('demo'), 'manifest.json'), 'utf8')), ext('demo'));
   const demoReview = JSON.stringify({
     permissions: [...demoManifest.permissions].sort(),
-    settings: demoManifest.contributes.settings, panels: demoManifest.contributes.panels, webviews: demoManifest.contributes.webviews
+    settings: demoManifest.contributes.settings, panels: demoManifest.contributes.panels, webviews: demoManifest.contributes.webviews,
+    ribbonItems: demoManifest.contributes.ribbonItems,
   });
   await fs.writeFile(path.join(profile, 'config.json'), JSON.stringify({
     modelAutoload: false, lastVault: vault, enabledExtensions: ['demo', 'nosy'],
@@ -303,6 +318,23 @@ tagline.commands.register('save-checks', async () => {
         await palette('Demo: Set source selection');
         await wait("JSON.parse(localStorage.getItem('tagline-extension:demo')).sourceSelection?.to === 4", 'source selection');
         assert.deepEqual((await js("JSON.parse(localStorage.getItem('tagline-extension:demo'))")).sourceSelection, { from: 0, to: 4 });
+        await js(`[...document.querySelectorAll('.tree-item')].find(el => el.textContent.trim() === 'Round').click()`);
+        await wait("!!document.querySelector('.flow-grid textarea')");
+        await wait("!!document.querySelector('.ribbon [data-ribbon-item=\"ext:demo.documents\"]')");
+        await js("document.querySelector('.ribbon [data-ribbon-item=\"ext:demo.documents\"]').click()");
+        await wait("JSON.parse(localStorage.getItem('tagline-extension:demo')).documentCheck === 'Extension canvas'");
+        assert.deepEqual(await js("JSON.parse(localStorage.getItem('tagline-extension:demo')).documentKind"),
+          { kind: 'flow', editorKind: null, selection: null });
+        assert.equal(JSON.parse(await fs.readFile(path.join(vault, 'Round.flow'), 'utf8')).sheets[0].rows[0][0], 'Extension evidence');
+        assert.equal(JSON.parse(await fs.readFile(path.join(vault, 'Map.canvas'), 'utf8')).nodes[0].text, 'Extension canvas');
+        await js(`(() => { const button = document.querySelector('.ribbon [data-ribbon-item="ext:demo.documents"]');
+          button.focus(); button.dispatchEvent(new KeyboardEvent('keydown', { key: 'ContextMenu', bubbles: true })); })()`);
+        await wait("!!document.querySelector('.context-menu')");
+        await js(`[...document.querySelectorAll('.context-menu button')].find(el => el.textContent === 'Remove from sidebar').click()`);
+        await wait("!document.querySelector('.ribbon [data-ribbon-item=\"ext:demo.documents\"]')");
+        assert.ok(await js("JSON.parse(localStorage.getItem('tagline-settings')).hiddenRibbonItems.includes('ext:demo.documents')"));
+        await js(`[...document.querySelectorAll('.tree-item')].find(el => el.textContent.trim() === 'Card').click()`);
+        await wait("!!document.querySelector('.cm-content')");
         await js(`(() => { const select = document.querySelector('.note-actions select');
           select.value = 'visual'; select.dispatchEvent(new Event('change', { bubbles: true })); })()`);
         await wait("!!document.querySelector('.ProseMirror')", 'restored visual editor');
@@ -348,6 +380,8 @@ tagline.commands.register('save-checks', async () => {
         await js(`document.querySelector('[data-section="extensions"]').click()`);
         await js(`[...document.querySelectorAll('.settings button')].find(el => el.textContent.trim() === 'Reload extensions').click()`);
         await wait(`!!document.querySelector('iframe[data-extension="demo"]')`, 'worker reloaded');
+        assert.equal(await js("!!document.querySelector('.ribbon [data-ribbon-item=\"ext:demo.documents\"]')"), false,
+          'removed extension shortcuts stay hidden after extension reload');
         await js(`[...document.querySelectorAll('.settings button')].find(el => el.textContent.trim() === 'Done').click()`);
         await palette('Demo: Flood messages');
         await toast('exceeded 200 messages');

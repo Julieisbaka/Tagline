@@ -284,6 +284,8 @@ test('macOS desktop wiring provides native window controls, menus and Dock react
   let menu;
   let dockIcon;
   let quit = false;
+  const ipcMain = new EventEmitter();
+  ipcMain.handle = () => { };
   app.whenReady = () => Promise.resolve();
   app.dock = { setIcon: (icon) => { dockIcon = icon; } };
   app.setAboutPanelOptions = () => { };
@@ -295,14 +297,21 @@ test('macOS desktop wiring provides native window controls, menus and Dock react
       this.webContents = new EventEmitter();
       this.webContents.setWindowOpenHandler = () => { };
       this.webContents.send = (channel, command) => { this.sent = { channel, command }; };
+      this.webContents.isDestroyed = () => false;
+      this.webContents.isCrashed = () => false;
       windows.push(this);
     }
     isDestroyed() { return this.destroyed; }
+    close() {
+      let prevented = false;
+      this.emit('close', { preventDefault: () => { prevented = true; } });
+      if (!prevented) { this.destroyed = true; this.emit('closed'); }
+    }
     loadFile() { }
     static getAllWindows() { return windows.filter((win) => !win.destroyed); }
   }
   const electron = {
-    app, BrowserWindow, ipcMain: { handle() { } }, dialog: {}, shell: {}, safeStorage: {},
+    app, BrowserWindow, ipcMain, dialog: {}, shell: {}, safeStorage: {},
     Menu: {
       buildFromTemplate: (template) => template,
       setApplicationMenu: (template) => { menu = template; },
@@ -342,7 +351,17 @@ test('macOS desktop wiring provides native window controls, menus and Dock react
   assert.equal(file.find((item) => item.role === 'close').accelerator, 'Cmd+Shift+W');
   file.find((item) => item.label === 'New Note').click();
   assert.equal(windows[0].sent.command, 'newNote');
-  windows[0].destroyed = true;
+  windows[0].close();
+  assert.equal(windows[0].sent.channel, 'app:prepareClose');
+  assert.equal(windows[0].destroyed, undefined, 'close waits for pending writes');
+  ipcMain.emit('app:closeReady', { sender: windows[0].webContents }, false);
+  assert.equal(windows[0].destroyed, undefined, 'failed save leaves the window open');
+  windows[0].close();
+  ipcMain.emit('app:closeReady', { sender: {} }, true);
+  assert.equal(windows[0].destroyed, undefined, 'foreign IPC cannot acknowledge another window');
+  ipcMain.emit('app:closeReady', { sender: windows[0].webContents }, true);
+  assert.equal(windows[0].destroyed, true);
+  assert.equal(ipcMain.listenerCount('app:closeReady'), 0, 'window recreation does not leak IPC handlers');
   app.emit('window-all-closed');
   assert.equal(quit, false);
   app.emit('activate');

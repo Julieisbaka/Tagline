@@ -121,7 +121,12 @@ export function useVault(underscoreFolders = true, autoRelink = true, historyRet
       }).catch(report);
     };
     const unsubscribe = api.onPrepareClose(async () => {
-      try { api.closeReady(await flush()); }
+      try {
+        let saved;
+        do { saved = await flush(); }
+        while (saved && (Object.keys(pending.current).length || writes.current.size));
+        api.closeReady(saved);
+      }
       catch (error) { report(error); api.closeReady(false); }
     });
     window.addEventListener('beforeunload', onUnload);

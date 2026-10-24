@@ -10,6 +10,7 @@ export default function HistoryDialog({ path, onRestore, onClose }) {
   const [selected, setSelected] = useState(null);
   const [content, setContent] = useState('');
   const [busy, setBusy] = useState(true);
+  const [reading, setReading] = useState(false);
   const [error, setError] = useState('');
 
   useEffect(() => {
@@ -31,10 +32,12 @@ export default function HistoryDialog({ path, onRestore, onClose }) {
     if (!selected) { setContent(''); return undefined; }
     let active = true;
     setError('');
+    setContent('');
+    setReading(true);
     window.api.readHistory(path, selected).then((text) => {
-      if (active) setContent(text);
+      if (active) { setContent(text); setReading(false); }
     }).catch((e) => {
-      if (active) setError(e.message);
+      if (active) { setError(e.message); setReading(false); }
     });
     return () => { active = false; };
   }, [path, selected]);
@@ -60,7 +63,7 @@ export default function HistoryDialog({ path, onRestore, onClose }) {
         {error && <p role="alert" className="error-text">{error}</p>}
         <div className="dialog-buttons">
           <button onClick={onClose}>{t('Close')}</button>
-          {!!selected && <button className="primary" disabled={busy || !!error} onClick={() => {
+          {!!selected && <button className="primary" disabled={busy || reading || !!error} onClick={() => {
             if (window.confirm(t('Restore this saved version? The current document will be kept in revision history.'))) {
               onRestore(content);
             }

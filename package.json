@@ -9,7 +9,7 @@
     "build": "vite build",
     "package": "vite build && electron-builder",
     "start": "vite build && electron .",
-    "test": "node --test tests/core.test.cjs tests/features.test.cjs tests/improvements.test.cjs tests/productivity.test.cjs tests/search.test.cjs tests/calibration.test.cjs tests/nli.test.cjs",
+    "test": "node --test tests/core.test.cjs tests/features.test.cjs tests/canvas.test.cjs tests/improvements.test.cjs tests/productivity.test.cjs tests/search.test.cjs tests/calibration.test.cjs tests/nli.test.cjs",
     "test:electron": "vite build && electron tests/electron-smoke.cjs",
     "test:semantic": "node tests/semantic-smoke.cjs",
     "test:search": "vite build && node tests/search-smoke.cjs",

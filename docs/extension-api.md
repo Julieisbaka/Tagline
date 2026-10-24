@@ -450,7 +450,27 @@ separate from private `storage`, with a configurable size limit (100,000 seriali
 They are not encrypted and must not be used for secrets. Invalid stored values
 surface errors; the user can reset the extension's settings to recover.
 
-### Vault
+### Canvas and flow documents
+
+`tagline.canvas.read(path)` and `tagline.flow.read(path)` return parsed documents
+and require `vault:read`. Their `write(path, document)` counterparts validate and
+serialize the document, require `vault:write`, and return the saved path. Paths
+must end in `.canvas` or `.flow` respectively. Saves use the normal autosave and
+revision-history pipeline; call `tagline.vault.flush()` to await disk persistence.
+Active Canvas/flow documents report their `kind`, with no Markdown selection.
+
+Pure helpers require no permissions:
+
+- `helpers.canvas.parse(json)`, `serialize(document)`,
+  `createNode(type, index = 0)`, `createArgumentEdge(from, to, relation)`,
+  `groupMembers(document, groupId)`.
+- `helpers.flow.parse(json)`, `serialize(document)`, `create()`,
+  `setCell(document, sheetIndex, rowIndex, columnIndex, text)`.
+
+Relations are `supports`, `answers`, or `contradicts`. `flow.create()` creates
+an empty on-case flow. Helpers return new values rather than mutating inputs.
+
+## Vault
 
 ```js
 const paths = await tagline.vault.list();          // Promise<string[]>
