@@ -30,6 +30,10 @@ export default function AppLayout({ app }) {
     open, openLink, sendCard, setMode, editorRef, visualRef, cursorRef, createAndOpen, doRename,
     notify, insertCitation, setVisualEditor,
   } = app;
+  const openHistory = async (path) => {
+    try { if (await v.flush()) setModal({ type: 'history', path }); }
+    catch (error) { notify(error.message); }
+  };
   const settingsDialog = <SettingsDialog settings={settings} update={updateSettings} extensions={ext}
     onClose={() => setModal(null)} />;
   const websiteView = website && !modal &&
@@ -87,7 +91,7 @@ export default function AppLayout({ app }) {
       setMode={setMode}
       onChange={(text) => v.updateContent(activePath, text)}
       onRename={(path, title) => doRename(path, renameTarget({ type: 'file', path }, title))}
-      onOpenHistory={() => setModal({ type: 'history', path: activePath })}
+      onOpenHistory={() => openHistory(activePath)}
       paths={paths}
       onOpenFile={(file, subpath) => openLink(file, subpath?.slice(1), false)}
       onOpenLink={(target, heading, newTab) => openLink(target, heading, newTab)}
@@ -119,7 +123,7 @@ export default function AppLayout({ app }) {
         onTestHypothesis={ctx.testHypothesis}
         onSummarize={() => ctx.summarize(activePath, activeContent)}
         onCreateCitation={ctx.createCitation}
-        onOpenHistory={() => setModal({ type: 'history', path: tab.path })}
+        onOpenHistory={() => openHistory(tab.path)}
         settings={settings}
         onDismissVisualNotice={() => updateSettings({
           internalFlags: { ...settings.internalFlags, visualNoticeDismissed: true },

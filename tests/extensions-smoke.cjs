@@ -205,8 +205,8 @@ tagline.commands.register('save-checks', async () => {
     JSON.parse(await fs.readFile(path.join(ext('demo'), 'manifest.json'), 'utf8')), ext('demo'));
   const demoReview = JSON.stringify({
     permissions: [...demoManifest.permissions].sort(),
-    settings: demoManifest.contributes.settings, panels: demoManifest.contributes.panels, webviews: demoManifest.contributes.webviews,
-    ribbonItems: demoManifest.contributes.ribbonItems,
+    settings: demoManifest.contributes.settings, ribbonItems: demoManifest.contributes.ribbonItems,
+    panels: demoManifest.contributes.panels, webviews: demoManifest.contributes.webviews,
   });
   await fs.writeFile(path.join(profile, 'config.json'), JSON.stringify({
     modelAutoload: false, lastVault: vault, enabledExtensions: ['demo', 'nosy'],

@@ -14,6 +14,7 @@
     "test:semantic": "node tests/semantic-smoke.cjs",
     "test:search": "vite build && node tests/search-smoke.cjs",
     "test:features": "vite build && electron tests/features-smoke.cjs",
+    "test:canvas": "vite build && electron tests/canvas-smoke.cjs",
     "icons": "electron scripts/generate-icons.cjs",
     "test:speech": "vite build && electron tests/speech-smoke.cjs",
     "test:profile": "vite build && node tests/profile-smoke.cjs",
