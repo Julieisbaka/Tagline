@@ -28,7 +28,9 @@ export default function RefreshButton({ onRefresh }) {
       if (spin?.playState === 'running') {
         spin.effect.updateTiming({ iterations: refreshTurns(Number(spin.currentTime)) });
         try { await spin.finished; }
-        catch (error) { if (error.name !== 'AbortError') throw error; }
+        catch (error) {
+          if (error.name !== 'AbortError') window.dispatchEvent(new CustomEvent('app-error', { detail: error.message }));
+        }
       }
       spin?.cancel();
       motion.removeEventListener('change', stopMotion);

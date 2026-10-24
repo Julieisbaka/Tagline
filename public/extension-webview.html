@@ -101,12 +101,16 @@
       },
     });
     const applyTheme = (next) => {
+      if (JSON.stringify(next) === JSON.stringify(theme)) return;
       theme = next;
+      document.documentElement.classList.add('tl-theme-updating');
       for (const key of appliedVariables) document.documentElement.style.removeProperty(key);
       appliedVariables = Object.keys(next.variables);
       for (const [key, value] of Object.entries(next.variables)) document.documentElement.style.setProperty(key, value);
       document.documentElement.style.colorScheme = next.mode;
       document.documentElement.dataset.theme = next.id;
+      document.body.getBoundingClientRect();
+      document.documentElement.classList.remove('tl-theme-updating');
       for (const listener of themeListeners) {
         try { Promise.resolve(listener(structuredClone(next))).catch(sendError); }
         catch (error) { sendError(error); }

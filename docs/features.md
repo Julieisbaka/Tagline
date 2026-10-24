@@ -21,6 +21,8 @@ Canvas fields that Tagline does not edit are preserved.
 File nodes suggest vault filenames as you type. Groups sit behind their cards;
 moving a group moves every fully enclosed node. Adding a group while a card is
 selected wraps that card.
+Right-click the board to add nodes at the pointer, or a node/connection for
+context actions. Keyboard users can focus one and press `Shift+F10`.
 
 Tagline keeps up to 20 recent vaults. Switch from the sidebar or welcome screen.
 Removing a vault from the recent list only removes its saved path; it never
@@ -60,6 +62,9 @@ and find panels; Escape closes them and returns focus.
 
 In **Settings > Appearance**, reorder sidebar shortcuts or disable the
 theme-change fade. Reduced-motion preferences always disable the fade.
+Themes can expose their own controls here and show author-provided accessibility
+information. The file-refresh icon spins in complete turns until reload finishes;
+reduced-motion preferences disable the spin.
 
 Wiki links support `[[Note]]`, `[[Note#Heading]]`, and `[[Note|Label]]`.
 Tagline also provides backlinks, mentions, an outline, tags, and a graph view.

@@ -73,7 +73,7 @@ export default function ThemeSettings({ settings, update }) {
     try {
       if (file.size > getRuntimeLimits().themeFileBytes) throw new Error(t('Theme file exceeds the configured size limit.'));
       const theme = validateTheme(JSON.parse(await file.text()));
-      update({ customTheme: theme, theme: 'custom' });
+      update({ customTheme: theme, theme: 'custom', themeSettings: { ...settings.themeSettings, custom: {} } });
       setError('');
     } catch (err) { setError(err.message); }
   };
@@ -97,7 +97,7 @@ export default function ThemeSettings({ settings, update }) {
       if (new TextEncoder().encode(JSON.stringify(theme)).length > getRuntimeLimits().themeFileBytes) {
         throw new Error(t('Theme file exceeds the configured size limit.'));
       }
-      update({ customTheme: theme, theme: 'custom' });
+      update({ customTheme: theme, theme: 'custom', themeSettings: { ...settings.themeSettings, custom: {} } });
       setDraft(null); setError('');
     } catch (err) { setError(err.message); }
   };

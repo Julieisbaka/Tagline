@@ -52,7 +52,7 @@ tagline.commands.register('capabilities', async () => {
   });
   tagline.webviews.onMessage('details', payload => tagline.storage.set('webviewCheck', payload));
   await tagline.panels.setHtml('status', '<p>Panel</p><script>' +
-    'const report = () => taglineWebview.postMessage({uiReport:{ theme:taglineWebview.getTheme(), button:getComputedStyle(document.querySelector("button")).backgroundColor, selection:getComputedStyle(document.body,"::selection").backgroundColor }});' +
+    'const report = () => taglineWebview.postMessage({uiReport:{ theme:taglineWebview.getTheme(), button:getComputedStyle(document.querySelector("button")).backgroundColor, selection:getComputedStyle(document.body,"::selection").backgroundColor, selectionText:getComputedStyle(document.body,"::selection").color, labels:[...document.querySelectorAll("label")].map(label=>({name:label.textContent,associated:label.control?.id===label.htmlFor})), notice:document.querySelector(".tl-notice").getAttribute("role") }});' +
     'document.body.append(taglineUI.card({title:"Theme-aware tools",children:[' +
     'taglineUI.field({label:"Find evidence",description:"Filename match",value:"Climate"}),' +
     'taglineUI.select({label:"Side",value:"aff",options:[{label:"Affirmative",value:"aff"},{label:"Negative",value:"neg"}]}),' +
@@ -229,6 +229,7 @@ tagline.commands.register('save-checks', async () => {
   }));
 
   app.on('browser-window-created', (_event, win) => {
+    win.webContents.setBackgroundThrottling(false);
     win.webContents.once('did-finish-load', async () => {
       const wc = win.webContents;
       const js = (code) => wc.executeJavaScript(code);
@@ -254,6 +255,7 @@ tagline.commands.register('save-checks', async () => {
         throw new Error('Command never appeared: ' + label);
       };
       try {
+        win.show(); win.focus();
         await wait(`document.querySelectorAll('iframe[data-extension]').length === 2`, 'extension frames');
         assert.equal(await js(`document.querySelector('iframe[data-extension="demo"]').getAttribute('sandbox')`), 'allow-scripts');
 
@@ -306,6 +308,11 @@ tagline.commands.register('save-checks', async () => {
         await wait("JSON.parse(localStorage.getItem('tagline-extension:demo')).panelCheck?.reply === true", 'panel round-trip');
         await wait("JSON.parse(localStorage.getItem('tagline-extension:demo')).webviewCheck?.ready === true", 'webview messaging');
         await wait("JSON.parse(localStorage.getItem('tagline-extension:demo')).uiReport?.theme.id === 'dark'", 'UI kit initializes before extension scripts');
+        const uiReport = await js("JSON.parse(localStorage.getItem('tagline-extension:demo')).uiReport");
+        assert.equal(uiReport.labels.length, 3);
+        assert.ok(uiReport.labels.every(label => label.associated), 'kit inputs have associated native labels');
+        assert.equal(uiReport.notice, 'status');
+        assert.equal(uiReport.selectionText, 'rgb(255, 255, 255)');
         const capabilities = await js("JSON.parse(localStorage.getItem('tagline-extension:demo'))");
         assert.deepEqual(capabilities.eventCheck, { passed: true });
         assert.deepEqual(capabilities.selectionCheck, { from: 1, to: 3 });
@@ -371,6 +378,13 @@ tagline.commands.register('save-checks', async () => {
         await js("void document.querySelector('.extension-panel iframe').contentWindow.postMessage({type:'extension-ui-message',payload:{inspect:true}},'*')");
         await wait("JSON.parse(localStorage.getItem('tagline-extension:demo')).uiReport.button === 'rgb(18, 164, 217)'", 'shared primary button follows theme accent');
         assert.equal(await js("JSON.parse(localStorage.getItem('tagline-extension:demo')).uiReport.theme.metadata.accessibility.contrast"), 'high');
+        wc.debugger.attach('1.3');
+        await wc.debugger.sendCommand('Emulation.setEmulatedMedia', { features: [{ name: 'prefers-reduced-motion', value: 'reduce' }] });
+        assert.equal(await js("matchMedia('(prefers-reduced-motion: reduce)').matches"), true);
+        await wait("JSON.parse(localStorage.getItem('tagline-extension:demo')).uiReport?.theme.reducedMotion === true");
+        await wc.debugger.sendCommand('Emulation.setEmulatedMedia', { features: [] });
+        await wait("JSON.parse(localStorage.getItem('tagline-extension:demo')).uiReport?.theme.reducedMotion === false");
+        wc.debugger.detach();
         assert.match(await js("document.querySelector('.theme-metadata').textContent"), /author provided/);
         assert.equal(await js("document.querySelectorAll('[data-theme-setting]').length"), 2);
         await js(`(() => {

@@ -50,6 +50,8 @@ theme. Include all desired overrides when deriving from a high-contrast palette.
 | `mode` | Required; `"dark"` or `"light"`. Also controls the browser's native color scheme. |
 | `colors` | Required object; zero or more of the tokens listed below. |
 | `variables` | Optional object of CSS custom-property overrides; see below. |
+| `settings` | Optional declarative controls shown in Appearance while this theme is active. |
+| `metadata` | Optional author, description, license, tags, and accessibility information. |
 | `id` | Optional in an input file; not an author-controlled identity. Standalone imports normalize it to `"custom"`; extension loading assigns its own ID. |
 
 Colors must be strings in `#RRGGBB` or `#RRGGBBAA` notation, case-insensitively.
@@ -67,7 +69,7 @@ Keep shared themes at or below the default so they load for other users.
 
 ## Color tokens
 
-All 28 tokens below resolve to CSS custom properties named `--<token>`.
+All 29 tokens below resolve to CSS custom properties named `--<token>`.
 Colors apply across application components; exact layout and selectors are not
 a public styling API.
 
@@ -86,6 +88,7 @@ a public styling API.
 | `accent-text` | Text on accent-colored controls. |
 | `accent-dim` | Translucent accent surfaces and selected states. |
 | `selection` | Editor/text selection background. |
+| `selection-text` | Selected-text foreground, including extension surfaces. |
 | `highlight-bg` | Debate-highlight and search-match background. |
 | `highlight-text` | Text on highlighted content. |
 | `code` | Code foreground. |
@@ -176,3 +179,50 @@ Variable overrides take precedence over `colors` and, for `font-text` and
 are retained and resume when switching to a theme without those overrides.
 Switching themes clears previous variable overrides rather than leaking them
 into the next theme.
+
+## Optional settings and metadata
+
+Theme-only extensions need no script or permissions for these fields:
+
+```json
+{
+  "version": 1,
+  "name": "Readable",
+  "mode": "dark",
+  "colors": { "selection": "#334466", "selection-text": "#ffffff" },
+  "variables": { "editor-font-size": "20px" },
+  "settings": [
+    {
+      "id": "selection-color", "title": "Selection background",
+      "type": "string", "default": "#334466", "variable": "selection"
+    },
+    {
+      "id": "reading-size", "title": "Reading size",
+      "type": "number", "default": 20, "min": 12, "max": 30,
+      "variable": "editor-font-size", "unit": "px"
+    }
+  ],
+  "metadata": {
+    "author": "Example", "description": "A reading theme", "license": "MIT",
+    "tags": ["reading"],
+    "accessibility": {
+      "contrast": "high", "colorVision": ["deuteranopia"],
+      "reducedMotion": true, "notes": "Describe any testing and limitations."
+    }
+  }
+}
+```
+
+Settings use the [extension setting schema](./extension-api.md#typed-extension-settings)
+with `string` or `number` types, plus a unique `variable` target: a color token or
+a property declared in `variables`. Color settings require hex strings; string
+settings can use `enum`. Numeric `unit` may be `px`, `em`, `rem`, `%`, or empty.
+IDs and targets must be unique. The extension-setting count limit also applies.
+Apply/reset values in Appearance; values persist separately per theme ID.
+Export and Customize capture the current resolved values without live controls.
+
+Metadata text fields allow 500 characters each; `tags` allows 20 nonempty
+strings of up to 40 characters. Accessibility fields are optional:
+`contrast` is `standard` or `high`; `colorVision` lists `protanopia`,
+`deuteranopia`, `tritanopia`, or `achromatopsia`; `reducedMotion` is boolean;
+`notes` allows 1,000 characters.

@@ -98,6 +98,7 @@ input[type="checkbox"]:checked::after {
 .tl-notice { margin: 0; padding: 10px; border-inline-start: 3px solid var(--accent); background: var(--bg-elevated); }
 .tl-notice[data-tone="warning"] { border-color: var(--warning); }
 .tl-notice[data-tone="error"] { border-color: var(--danger); }
+.tl-theme-updating * { transition: none !important; }
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }

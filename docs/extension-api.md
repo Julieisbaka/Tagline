@@ -347,6 +347,46 @@ by the worker heartbeat guard; expensive synchronous scripts can harm renderer
 responsiveness. UI message rates are limited; exceeding the rate closes the
 surface. Enable UI extensions only if you trust their code.
 
+### Theme-aware UI kit
+
+Panels/webviews receive the app's colors, fonts, selection colors, and shared
+control stylesheet automatically. Updates follow the active theme and its
+settings without reloading the surface. Prefer the built-in `taglineUI` factories
+over hardcoded colors:
+
+```js
+const ui = taglineUI;
+document.body.append(ui.card({
+  title: 'Research',
+  children: [
+    ui.field({ label: 'Filename', description: 'Text match only', onChange: value => {} }),
+    ui.select({ label: 'Side', value: 'aff', options: [
+      { label: 'Affirmative', value: 'aff' }, { label: 'Negative', value: 'neg' }
+    ] }),
+    ui.toggle({ label: 'Include flows', checked: true, onChange: checked => {} }),
+    ui.notice({ text: 'Ready', tone: 'info' }),
+    ui.button({ label: 'Search', variant: 'primary', onClick: () => {} })
+  ]
+}));
+```
+
+Factories return native DOM elements with associated labels, keyboard behavior,
+focus indicators, and reduced-motion support. `stack({ children })` provides
+vertical layout; `card({ title, children })` adds a titled container.
+`field` supports `type` (`text`, `number`, `search`, `email`, `url`, `password`,
+`textarea`, `color`), `value`, `min`, `max`, `step`, `maxLength`, and `placeholder`.
+Fields/selects/toggles accept `description`, `disabled`, and `onChange`;
+changes return strings except toggles, which return booleans.
+Buttons accept `disabled` and `variant` (`default` or `primary`).
+Notice tones are `info`, `warning`, and `error`. Labels/text are inserted as text,
+not HTML. The kit lives inside surfaces, not in worker scripts.
+
+`taglineWebview.getTheme()` returns `{ id, mode, variables, metadata, reducedMotion }`;
+`variables` maps full CSS property names such as `--selection` to current values.
+`taglineWebview.onThemeChange(callback)` observes changes and returns an unsubscribe
+function. Read initial state with `getTheme()`. See the [Theme API](./theme-api.md)
+for tokens and accessibility metadata.
+
 ### Helpers and disposable subscriptions
 
 Helpers do not require a permission:

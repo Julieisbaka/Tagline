@@ -43,17 +43,21 @@ function validateMetadata(metadata = {}) {
 }
 
 function validateThemeSettings(definitions = [], theme, limits) {
-  if (!Array.isArray(definitions)) throw new Error('Theme settings must be a list.');
+  if (!Array.isArray(definitions) || definitions.length > limits.extensionSettings) {
+    throw new Error(`Theme settings must be a list of at most ${limits.extensionSettings}.`);
+  }
   const targets = new Set();
+  const ids = new Set();
   return definitions.map((definition) => {
     if (!definition || typeof definition !== 'object') throw new Error('Invalid theme setting.');
     const { variable, unit, ...setting } = definition;
-    if (typeof variable !== 'string' || targets.has(variable) ||
+    if (typeof variable !== 'string' || targets.has(variable) || ids.has(setting.id) ||
       !(COLOR_TOKENS.includes(variable) || Object.hasOwn(theme.variables, variable)) ||
       (unit !== undefined && (setting.type !== 'number' || !['px', 'em', 'rem', '%', ''].includes(unit)))) {
       throw new Error('Theme settings need unique declared CSS variables and valid numeric units.');
     }
     targets.add(variable);
+    ids.add(setting.id);
     const color = COLOR_TOKENS.includes(variable);
     if (color && (setting.type !== 'string' || !/^#[\da-f]{6}(?:[\da-f]{2})?$/i.test(setting.default))) {
       throw new Error('Theme color settings require a string with a hex color default.');
@@ -61,11 +65,6 @@ function validateThemeSettings(definitions = [], theme, limits) {
     if (!color && !['string', 'number'].includes(setting.type)) throw new Error('Theme variables require string or number settings.');
     const [validated] = validateSettingDefinitions([setting], limits);
     return { ...validated, variable, ...(unit !== undefined ? { unit } : {}) };
-  }).map((setting, index, all) => {
-    if (all.findIndex((item) => item.id === setting.id) !== index || all.length > limits.extensionSettings) {
-      throw new Error('Theme settings must have unique ids within the configured setting limit.');
-    }
-    return setting;
   });
 }
 
@@ -89,11 +88,11 @@ export function validateTheme(value, limits = getRuntimeLimits()) {
     metadata: validateMetadata(value.metadata),
   };
   theme.settings = validateThemeSettings(value.settings, theme, limits);
-  resolveThemeSettings(theme);
+  resolveThemeSettings(theme, {}, limits);
   return theme;
 }
 
-export function resolveThemeSettings(theme, values = {}) {
+export function resolveThemeSettings(theme, values = {}, limits = getRuntimeLimits()) {
   if (!values || typeof values !== 'object' || Array.isArray(values)) throw new Error('Theme setting values must be an object.');
   const definitions = theme.settings || [];
   if (Object.keys(values).some((id) => !definitions.some((setting) => setting.id === id))) {
@@ -108,7 +107,7 @@ export function resolveThemeSettings(theme, values = {}) {
       if (Object.hasOwn(result.variables, setting.variable)) result.variables[setting.variable] = value;
     } else {
       const text = `${value}${setting.unit || ''}`;
-      validateVariables({ [setting.variable]: text });
+      validateVariables({ [setting.variable]: text }, limits);
       result.variables[setting.variable] = text;
     }
   }

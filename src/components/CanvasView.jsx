@@ -352,7 +352,7 @@ function CanvasBoard({ canvas, onChange, paths, onOpenFile, onOpenUrl, onOpenLin
               return <g key={item.id} data-edge-id={item.id} className={selected ? 'selected' : ''}
                 tabIndex={0} role="button" aria-label={item.label || t('Canvas connection')}
                 onKeyDown={(event) => {
-                  if (event.key === 'ContextMenu' || event.key === 'Enter' || (event.key === 'F10' && event.shiftKey)) {
+                  if (['ContextMenu', 'Enter', ' '].includes(event.key) || (event.key === 'F10' && event.shiftKey)) {
                     event.preventDefault();
                     const rect = event.currentTarget.getBoundingClientRect();
                     contextMenu({ clientX: rect.left + rect.width / 2, clientY: rect.top + rect.height / 2 }, null, item.id);
