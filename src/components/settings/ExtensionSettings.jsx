@@ -9,7 +9,7 @@ const PERMISSION_LABELS = {
   settings: "Read and change only this extension's declared settings",
   'editor:active-note': 'Watch active-note paths without reading note content',
   events: 'Subscribe to application events and exchange custom extension events',
-  ui: 'Display sandboxed panels and webviews',
+  ui: 'Display sandboxed panels, webviews and ribbon shortcuts',
 };
 
 function ExtensionSettingsForm({ item, extensions }) {

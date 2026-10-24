@@ -2,7 +2,7 @@
 
 [Documentation home](./README.md) | [Theme API](./theme-api.md)
 
-Extensions can add commands, settings, themes, sidebar panels, and dialogs.
+Extensions can add commands, ribbon shortcuts, settings, themes, sidebar panels, and dialogs.
 Entry scripts run in a sandboxed worker and use the supplied `tagline` bridge;
 they have no access to the app DOM or Node.js.
 
@@ -97,6 +97,7 @@ self-contained script if necessary. There is no package loader.
 | `contributes.settings` | No | At most 32 typed setting declarations; requires `settings`. Defaults to `[]`. |
 | `contributes.panels` | No | At most 10 `{ id, title }` declarations for right-sidebar panels; requires `ui` and `main`. |
 | `contributes.webviews` | No | At most 10 `{ id, title }` declarations for sandboxed HTML dialogs; requires `ui` and `main`. |
+| `contributes.ribbonItems` | No | At most 10 `{ id, title, icon, command }` shortcuts; requires `ui` and a declared command. `icon` is an app icon name (for example `canvas`, `flow`, `file`, `graph`, `command`). Unknown names use the file icon. |
 
 Each command needs a unique `id` using the extension-ID character rules and a
 nonblank `title` of at most 80 characters. Its optional `key` is a shortcut string.
@@ -120,10 +121,10 @@ initialization and await their registration before the entry script finishes.
 | `editor` | Read the active note, document and selection; insert text, set selection, and run approved Tiptap commands. Reading the active note includes its entire content. |
 | `editor:active-note` | Subscribe only to active-note path changes, without content or selection access. Does not imply `editor`. |
 | `settings` | Read/write only this extension's declared, validated settings. No application or other extension settings access. |
-| `vault:read` | List/read loaded `.md`/`.flow` notes and watch their changes in the open vault. |
+| `vault:read` | List/read loaded `.md`, `.flow`, and `.canvas` documents and watch their changes in the open vault. |
 | `vault:write` | Create, replace, rename, trash, and flush supported notes. Append and compare-and-swap also require `vault:read`. |
 | `events` | Subscribe to application events (also requires each event's data permission); subscribe to custom events and emit events in this extension's namespace. |
-| `ui` | Display declared sandboxed panels and webviews and exchange messages with them. |
+| `ui` | Display declared ribbon shortcuts, sandboxed panels and webviews; exchange messages with surfaces. |
 | None | Register declared commands, notify the user, use private extension storage, contribute JSON themes. |
 
 Undeclared permission checks reject API calls. There is no direct Node.js,
@@ -140,7 +141,7 @@ extension. Changes require review and re-enabling on reload.
 - A worker keeps synchronous extension loops off the application UI thread.
 - The supervisor terminates a worker that misses heartbeats for 5 seconds.
   Startup also has a 10-second deadline.
-- More than 200 messages per second stops the extension. This includes API calls,
+- More than 200 messages in any rolling second stops the extension. This includes API calls,
   notifications, and error messages.
 - At most 32 bridge calls may be pending per extension; additional calls reject.
 - At most 32 vault watches may be registered per extension; disposal removes them.
@@ -187,7 +188,7 @@ Requires `editor`:
 const note = await tagline.editor.getActiveNote();
 // null, or:
 // { path, content, selection, selectionRange: { from, to } | null,
-//   editorKind: "tiptap" | "source" | null, mode }
+//   editorKind: "tiptap" | "source" | null, mode, kind: "markdown" | "flow" | "canvas" }
 
 await tagline.editor.insertText(markdown); // Promise<true>
 ```
@@ -474,7 +475,7 @@ require `vault:write`; `append` and `compareAndSwap` require both permissions.
 - `list` returns the currently loaded supported note paths, not arbitrary files
   or folders. `read` returns the application's current loaded content and rejects
   if the path is absent. Reload the vault through the app after external edits.
-- `write` only accepts `.md` and `.flow` paths. For an existing loaded note it
+- `write` only accepts `.md`, `.flow`, and `.canvas` paths. For an existing loaded note it
   replaces the entire content and schedules normal debounced autosaving.
   Resolution does **not** certify that the disk write has finished.
 - A new note is created through the normal file-creation path. Folder-space

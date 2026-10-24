@@ -18,6 +18,9 @@ Create canvases from the sidebar or command palette. Add and arrange text, file,
 link, and group nodes; connect nodes with labeled or colored arrows. Switch to
 **JSON source** to inspect or edit the Canvas file directly. Existing JSON
 Canvas fields that Tagline does not edit are preserved.
+File nodes suggest vault filenames as you type. Groups sit behind their cards;
+moving a group moves every fully enclosed node. Adding a group while a card is
+selected wraps that card.
 
 Tagline keeps up to 20 recent vaults. Switch from the sidebar or welcome screen.
 Removing a vault from the recent list only removes its saved path; it never
@@ -25,6 +28,10 @@ deletes the folder.
 
 Revision history is available from a note header. It is stored in the vault at
 `.tagline/history`; change its retention limit in **Settings > Files and folders**.
+Canvas history has two modes there: **Complete** saves exact JSON and layout;
+**Data** saves content changes without movement-only revisions and restores
+using the latest shared positions and sizes. Deleted cards retain their last
+layout for restoration. Invalid JSON edits use complete revisions.
 
 ## Editing
 
@@ -42,6 +49,8 @@ Fn with function keys.
 Customize the sidebar shortcut icons under **Settings > Appearance**. Drag
 icons to reorder them, or uncheck a shortcut to remove it. Use the up/down
 buttons for keyboard-accessible reordering; the Settings icon stays available.
+Right-click a shortcut to move or remove it. Extension shortcuts work the same
+way and can be restored in Appearance settings.
 
 Use `Mod+F` to find and replace text in the current note. Search supports
 case-sensitive and whole-word matching; replacements can be undone.
