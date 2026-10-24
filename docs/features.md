@@ -120,6 +120,32 @@ Tagline** in **Settings > Integrations** to use your default browser instead.
 Embedded sites cannot access the vault or app APIs; use the external browser
 for downloads.
 
+## OpenCaselist
+
+Open **Settings > Integrations > Open OpenCaselist**, or use its command-palette
+entry. Sign in on the official site in a separate window; choose its
+remember-me option to retain the session. Cookies stay in an isolated app
+session, never in notes, settings, or extension storage. When the cookie expires
+or the API rejects it, sign in again. Tagline does not save your password or
+silently renew sessions.
+
+Browse caselists, schools, teams, rounds, and citations, or search a selected
+caselist. Download disclosed files into the current vault; existing files are
+never overwritten. DOCX/PDF files are not editable notes: use **Show downloaded
+file** to find them.
+
+Add, edit, or delete rounds; add/delete citations; or publish a DOCX disclosure
+as a new round (up to 50 MB). Each server change requires native confirmation.
+Only a file explicitly selected for upload is sent. Editing round details
+preserves its attachment. Archived caselists are read-only, and publishing
+requires the account permissions/trusted status enforced by OpenCaselist.
+There are no background syncs or automatic write retries: after a connection
+failure, refresh before retrying to avoid duplicate publications.
+
+The integration follows the [OpenCaselist API](https://api.opencaselist.com/v1/docs).
+`npm run test:opencaselist` exercises a mocked API without live credentials or
+disclosure changes.
+
 ## Settings
 
 Settings save automatically on this device. Main options include:

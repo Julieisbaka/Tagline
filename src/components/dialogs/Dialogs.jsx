@@ -133,7 +133,7 @@ export function PromptDialog({ title, initial = '', onSubmit, onClose }) {
   );
 }
 
-export function SettingsDialog({ settings, update, onClose, extensions }) {
+export function SettingsDialog({ settings, update, onClose, extensions, onOpenCaselist }) {
   const { t } = useI18n();
   const [section, setSection] = useState('general');
   const sections = [
@@ -227,6 +227,9 @@ export function SettingsDialog({ settings, update, onClose, extensions }) {
               <p>{t('Installed builds register Tagline as an app for .flow files. To make it the default, use Open With in your file manager and select Tagline. On macOS choose Change All in Get Info.')}</p>
             </section>
             <section hidden={section !== 'integrations'} className="settings-panel">
+              <h3>OpenCaselist</h3>
+              <p>{t('Browse disclosures, download files, and publish changes using your OpenCaselist account.')}</p>
+              <button onClick={onOpenCaselist}>{t('Open OpenCaselist')}</button>
               <label className="setting-row"><span>{t('Open websites inside Tagline')}</span>
                 <input type="checkbox" data-setting="embedWebsites" checked={settings.embedWebsites}
                   onChange={(e) => update({ embedWebsites: e.target.checked })} />

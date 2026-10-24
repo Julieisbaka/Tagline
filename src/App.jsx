@@ -327,6 +327,7 @@ export default function App() {
       return setModal({ type: 'summary', title: baseName(path), content: content || '' });
     },
     importDocument: () => setModal({ type: 'import' }),
+    openCaselist: () => setModal({ type: 'opencaselist' }),
     toggleHighlightOnly: () => {
       setMode('read');
       setHighlightOnly((h) => !h);

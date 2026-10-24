@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, dialog, shell, Menu, safeStorage } = require('electron');
+const { app, BrowserWindow, ipcMain, dialog, shell, Menu, safeStorage, session } = require('electron');
 const path = require('path');
 const fs = require('fs/promises');
 const fssync = require('fs');
@@ -16,6 +16,7 @@ const { registerBrowser } = require('./browser.cjs');
 const { DEFAULT_RETENTION, createRevisionHistory } = require('./revisionHistory.cjs');
 const { NOTE_EXTS, listVault: walk, readVaultSnapshot } = require('./vaultFiles.cjs');
 const { installationInfo } = require('./installation.cjs');
+const { registerOpenCaselist } = require('./opencaselist.cjs');
 const keyDefinitions = require('../src/lib/keybindings.json');
 
 const isDev = process.argv.includes('--dev');
@@ -423,6 +424,7 @@ if (primary) app.whenReady().then(() => {
   app.setAboutPanelOptions({ applicationName: 'Tagline', applicationVersion: installationInfo(app).version });
   buildMenu();
   registerIpc();
+  registerOpenCaselist({ ipcMain, session, BrowserWindow, dialog, getWindow: () => win, getVaultRoot: () => vaultRoot });
   closeWebsiteView = registerBrowser({ ipcMain, shell, getWindow: () => win });
   registerPandoc({ ipcMain, dialog, getWindow: () => win, readConfig, writeConfig });
   registerDocuments({ ipcMain, dialog, getWindow: () => win, readConfig });

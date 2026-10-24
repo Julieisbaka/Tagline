@@ -332,7 +332,7 @@ test('macOS desktop wiring provides native window controls, menus and Dock react
           DEFAULT_RETENTION: 50,
           createRevisionHistory: () => ({ snapshot() { }, list() { return []; }, read() { }, rename() { } }),
         };
-        return Object.fromEntries(['registerPandoc', 'registerEmbeddings', 'registerDocuments', 'registerFonts', 'registerFlowFiles', 'registerExtensions', 'registerNli', 'registerSummarization']
+        return Object.fromEntries(['registerPandoc', 'registerEmbeddings', 'registerDocuments', 'registerFonts', 'registerFlowFiles', 'registerExtensions', 'registerNli', 'registerSummarization', 'registerOpenCaselist']
           .map((key) => [key, () => true]));
       }
       return require(name);

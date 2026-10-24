@@ -3,6 +3,16 @@ const { contextBridge, ipcRenderer } = require('electron');
 contextBridge.exposeInMainWorld('api', {
   platform: process.platform,
   getInstallationInfo: () => ipcRenderer.invoke('app:installation'),
+  openCaselist: {
+    status: () => ipcRenderer.invoke('opencaselist:status'),
+    login: () => ipcRenderer.invoke('opencaselist:login'),
+    logout: () => ipcRenderer.invoke('opencaselist:logout'),
+    list: (kind, selection) => ipcRenderer.invoke('opencaselist:list', kind, selection),
+    search: (caselist, query) => ipcRenderer.invoke('opencaselist:search', caselist, query),
+    write: (action, selection, value) => ipcRenderer.invoke('opencaselist:write', action, selection, value),
+    upload: (selection, value) => ipcRenderer.invoke('opencaselist:upload', selection, value),
+    download: (remotePath) => ipcRenderer.invoke('opencaselist:download', remotePath),
+  },
   onPrepareClose: (callback) => {
     const listener = () => callback();
     ipcRenderer.on('app:prepareClose', listener);

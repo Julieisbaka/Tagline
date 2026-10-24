@@ -23,6 +23,7 @@ export function buildCommands(ctx, overrides = {}) {
     c('vault-sample', 'Create sample vault', ctx.createSample),
     c('reload', 'Reload vault from disk', ctx.reload),
     c('import-document', 'Import document with Pandoc', ctx.importDocument),
+    c('opencaselist', 'OpenCaselist: browse and manage disclosures', ctx.openCaselist),
     c('citation', 'Create citation', ctx.createCitation),
   ];
   if (ctx.hasNote) {
