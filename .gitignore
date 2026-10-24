@@ -4,3 +4,4 @@ dist/
 .playwright-mcp/
 .env
 scripts/__pycache__/
+release/
