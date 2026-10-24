@@ -73,6 +73,7 @@ function TreeNode({ node, depth, activePath, expanded, toggle, onOpen, onContext
 
 export default function FileTree({ tree, activePath, onOpen, onContext, onDropMove, spaced = false, hideFlowExtension = true, showMarkdownExtension = false }) {
   const { t } = useI18n();
+  // TODO: Handle malformed persisted JSON so a corrupt expanded-folder list does not prevent the tree from mounting.
   const [expanded, setExpanded] = useState(() => new Set(JSON.parse(localStorage.getItem('expanded') || '[]')));
   const toggle = (p) => {
     setExpanded((prev) => {

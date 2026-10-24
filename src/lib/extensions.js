@@ -246,6 +246,7 @@ export class ExtensionHost {
     if (!this.frame || event.source !== this.frame.contentWindow || !event.data) return;
     const data = event.data;
     const now = performance.now();
+    // TODO: Use a rolling window or token bucket; fixed-window resets can allow boundary bursts above the intended rate.
     if (now - this.messageWindow >= 1000) { this.messageWindow = now; this.messageCount = 0; }
     if (++this.messageCount > this.limits.extensionMessagesPerSecond) {
       const error = new Error(`Extension exceeded ${this.limits.extensionMessagesPerSecond} messages per second and was stopped.`);
