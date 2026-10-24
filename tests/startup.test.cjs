@@ -14,10 +14,14 @@ async function fixture(t) {
 test('vault snapshots preserve document types, sorting, paths, timestamps and hidden-file rules', async (t) => {
   const dir = await fixture(t);
   for (const folder of ['Z folder', 'Empty', '.hidden']) await fs.mkdir(path.join(dir, folder));
-  const documents = { 'b.md': '# Beta', 'A.CANVAS': '{"nodes":[],"edges":[]}',
-    'Z folder/Flow.flow': '{"sheets":[]}', 'Z folder/a.md': 'Nested' };
-  for (const [name, text] of Object.entries({ ...documents, '.secret.md': 'Hidden',
-    '.hidden/Note.md': 'Hidden', 'ignore.txt': 'Not a note' })) await fs.writeFile(path.join(dir, name), text);
+  const documents = {
+    'b.md': '# Beta', 'A.CANVAS': '{"nodes":[],"edges":[]}',
+    'Z folder/Flow.flow': '{"sheets":[]}', 'Z folder/a.md': 'Nested'
+  };
+  for (const [name, text] of Object.entries({
+    ...documents, '.secret.md': 'Hidden',
+    '.hidden/Note.md': 'Hidden', 'ignore.txt': 'Not a note'
+  })) await fs.writeFile(path.join(dir, name), text);
   const snapshot = await readVaultSnapshot(dir);
   assert.deepEqual(snapshot.contents, documents);
   assert.deepEqual(snapshot.tree, await listVault(dir));

@@ -1,5 +1,5 @@
-import { baseName, isMarkdown } from './vault.js';
 import defaults from './defaultSettings.json' with { type: 'json' };
+import { baseName, isMarkdown } from './vault.js';
 
 const fold = (text) => text.normalize('NFKD').replace(/\p{M}/gu, '').toLowerCase();
 const words = (text) => fold(text).match(/[\p{L}\p{N}]+/gu) || [];

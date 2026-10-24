@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { binding, bindingConflict, displayBinding, eventBinding, KEYBINDINGS, reservedBinding, validBinding } from '../../lib/keybindings.js';
 import { useI18n } from '../../lib/i18n.js';
+import { binding, bindingConflict, displayBinding, eventBinding, KEYBINDINGS, reservedBinding, validBinding } from '../../lib/keybindings.js';
 
 export default function KeybindingSettings({ settings, update, extra = [] }) {
   const { t } = useI18n();

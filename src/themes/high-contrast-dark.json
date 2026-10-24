@@ -3,7 +3,11 @@
   "id": "high-contrast-dark",
   "name": "High contrast dark",
   "mode": "dark",
-  "metadata": { "accessibility": { "contrast": "high" } },
+  "metadata": {
+    "accessibility": {
+      "contrast": "high"
+    }
+  },
   "colors": {
     "bg": "#000000",
     "bg-secondary": "#000000",

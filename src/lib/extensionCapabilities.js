@@ -1,12 +1,12 @@
 import { marked } from 'marked';
+import { EMPTY_FLOW, parseFlow, serializeFlow, setFlowCell } from '../../electron/flow.mjs';
+import { canvasGroupMembers, createArgumentEdge, createCanvasNode, parseCanvas, serializeCanvas } from './canvas.js';
 import { cardStats, formatDuration, getSectionAt, spokenEvidence } from './card.js';
 import { createCitation } from './citation.js';
 import { renderMarkdown, slugify } from './markdown.js';
 import { readingSeconds, speechStats } from './readTime.js';
 import { fillTemplate } from './template.js';
 import { extractLinks, extractTags, fuzzyScore, outline, resolveLink } from './vault.js';
-import { canvasGroupMembers, createArgumentEdge, createCanvasNode, parseCanvas, serializeCanvas } from './canvas.js';
-import { EMPTY_FLOW, parseFlow, serializeFlow, setFlowCell } from '../../electron/flow.mjs';
 
 export const MAX_HELPER_TEXT = 100_000;
 

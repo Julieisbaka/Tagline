@@ -32,8 +32,10 @@ fs.writeFileSync(uploadFile, Buffer.from([80, 75, 3, 4, 255]));
 app.setPath('userData', profile);
 let apiRequests = [], confirmed = [], roundId = 1, loginWindows = 0;
 let allowChange = false, loginCookie = 0, expireWrite = false;
-let rounds = [{ round_id: 1, tournament: 'Example tournament', side: 'A', round: '1',
-  opponent: 'Other team', report: 'Public report', opensource: 'ndt2026/Disclosure.docx' }];
+let rounds = [{
+  round_id: 1, tournament: 'Example tournament', side: 'A', round: '1',
+  opponent: 'Other team', report: 'Public report', opensource: 'ndt2026/Disclosure.docx'
+}];
 let cites = [{ cite_id: 1, round_id: 1, title: 'Evidence citation', cites: '**Author** claim' }];
 const binary = Buffer.from([0, 255, 42, 13]);
 const loadURL = BrowserWindow.prototype.loadURL;
@@ -77,9 +79,11 @@ session.fromPartition = (partition, ...args) => {
     }
     if (route === '/v1/search') {
       if (parsed.searchParams.get('q') === 'expire') return reply({ message: 'Expired' }, 401);
-      return reply([{ id: 1, path: 'ndt2026/Example/AB', team_display_name: 'Example AB',
+      return reply([{
+        id: 1, path: 'ndt2026/Example/AB', team_display_name: 'Example AB',
         title: 'Disclosure', snippet: '<mark>Evidence</mark><img src=x onerror="window.attacked=true">',
-        download_path: 'ndt2026/Disclosure.docx' }]);
+        download_path: 'ndt2026/Disclosure.docx'
+      }]);
     }
     if (route === '/v1/caselists') return reply([{ slug: 'ndt2026', name: 'College Policy 2026', archived: false }]);
     if (route.endsWith('/schools')) return reply([{ name: 'Example', display_name: 'Example University' }]);

@@ -30,15 +30,19 @@ export default function Ribbon({ ctx, showLeft, keybindings, settings, updateSet
   const context = (event, id) => {
     event.preventDefault();
     const index = availableItems.indexOf(id);
-    setMenu({ x: event.clientX, y: event.clientY, items: [
-      { label: 'Move up', disabled: index === 0, run: () => moveItem(id, availableItems[index - 1]) },
-      { label: 'Move down', disabled: index === availableItems.length - 1, run: () => moveItem(id, availableItems[index + 1]) },
-      { label: 'Remove from sidebar', run: () => updateSettings({
-        ribbonItems: items.filter((item) => item !== id),
-        hiddenRibbonItems: [...new Set([...(settings.hiddenRibbonItems || []), id])],
-      }) },
-      { label: 'Settings', run: ctx.openSettings },
-    ] });
+    setMenu({
+      x: event.clientX, y: event.clientY, items: [
+        { label: 'Move up', disabled: index === 0, run: () => moveItem(id, availableItems[index - 1]) },
+        { label: 'Move down', disabled: index === availableItems.length - 1, run: () => moveItem(id, availableItems[index + 1]) },
+        {
+          label: 'Remove from sidebar', run: () => updateSettings({
+            ribbonItems: items.filter((item) => item !== id),
+            hiddenRibbonItems: [...new Set([...(settings.hiddenRibbonItems || []), id])],
+          })
+        },
+        { label: 'Settings', run: ctx.openSettings },
+      ]
+    });
   };
   return (
     <nav className="ribbon" aria-label={t('Sidebar shortcuts')}>

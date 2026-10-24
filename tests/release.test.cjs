@@ -4,10 +4,10 @@ const fs = require('node:fs');
 const path = require('node:path');
 const { createHash } = require('node:crypto');
 const workflow = require('js-yaml').load(fs.readFileSync(path.join(__dirname, '..', '.github', 'workflows', 'release.yml'), 'utf8'));
-const AsyncFunction = Object.getPrototypeOf(async function () {}).constructor;
+const AsyncFunction = Object.getPrototypeOf(async function () { }).constructor;
 const context = { repo: { owner: 'test', repo: 'tagline' }, sha: 'selected-commit' };
 const missing = () => { throw Object.assign(new Error('Not found'), { status: 404 }); };
-const core = { setOutput() {}, summary: { addLink() { return this; }, write() {} } };
+const core = { setOutput() { }, summary: { addLink() { return this; }, write() { } } };
 
 test('release workflow runs only manually, packages all architectures and publishes only after every build', () => {
   assert.deepEqual(Object.keys(workflow.on), ['workflow_dispatch']);
@@ -25,15 +25,25 @@ function preflight({ version = '1.2.3', lockVersion = version, tagCommit, releas
   const script = workflow.jobs.version.steps.find((step) => step.id === 'version').with.script;
   const outputs = {};
   return new AsyncFunction('require', 'github', 'context', 'core', script)((name) => {
-    if (name === 'node:fs') return { readFileSync: (file) => JSON.stringify(file === 'package.json'
-      ? { version } : { version: lockVersion, packages: { '': { version: lockVersion } } }) };
-    if (name === 'node:child_process') return { execFileSync: (_file, args) => args[0] === 'tag'
-      ? tagCommit ? `v${version}\n` : '' : tagCommit };
+    if (name === 'node:fs') return {
+      readFileSync: (file) => JSON.stringify(file === 'package.json'
+        ? { version } : { version: lockVersion, packages: { '': { version: lockVersion } } })
+    };
+    if (name === 'node:child_process') return {
+      execFileSync: (_file, args) => args[0] === 'tag'
+        ? tagCommit ? `v${version}\n` : '' : tagCommit
+    };
     throw new Error(`Unexpected import: ${name}`);
-  }, { rest: { repos: { getReleaseByTag: async () => {
-    if (!release) throw Object.assign(new Error('API error'), { status });
-    return { data: release };
-  } } } }, context, { setOutput: (key, value) => { outputs[key] = value; } }).then(() => outputs);
+  }, {
+    rest: {
+      repos: {
+        getReleaseByTag: async () => {
+          if (!release) throw Object.assign(new Error('API error'), { status });
+          return { data: release };
+        }
+      }
+    }
+  }, context, { setOutput: (key, value) => { outputs[key] = value; } }).then(() => outputs);
 }
 
 test('release preflight uses package version and refuses mismatched locks, tags and published releases', async () => {
@@ -60,7 +70,7 @@ async function publish({ draft, failUpload, extraFile } = {}) {
       calls.push(['create', options]);
       return { data: { id: 10, draft: true, html_url: 'https://example.test/release' } };
     },
-    listReleaseAssets() {},
+    listReleaseAssets() { },
     deleteReleaseAsset: async (options) => { calls.push(['delete', options]); },
     uploadReleaseAsset: async (options) => {
       if (failUpload) throw new Error('Upload failed');
@@ -77,7 +87,7 @@ async function publish({ draft, failUpload, extraFile } = {}) {
     };
     throw new Error(`Unexpected import: ${name}`);
   }, { rest: { repos }, paginate: async () => draft ? [{ id: 99 }] : [] }, context, core,
-  { env: { VERSION: '1.2.3', TAG: 'v1.2.3' } });
+    { env: { VERSION: '1.2.3', TAG: 'v1.2.3' } });
   return { execute, files, calls };
 }
 

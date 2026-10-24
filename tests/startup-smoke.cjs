@@ -22,9 +22,11 @@ if (!process.versions.electron) {
       const run = (seed, verify = false) => {
         const start = performance.now();
         const result = spawnSync(require('electron'), [__filename], {
-          env: { ...process.env, TAGLINE_STARTUP_PROFILE: profile, TAGLINE_STARTUP_VAULT: vault,
+          env: {
+            ...process.env, TAGLINE_STARTUP_PROFILE: profile, TAGLINE_STARTUP_VAULT: vault,
             TAGLINE_STARTUP_SCENARIO: scenario, TAGLINE_STARTUP_SEED: seed ? '1' : '',
-            TAGLINE_STARTUP_VERIFY: verify ? '1' : '' },
+            TAGLINE_STARTUP_VERIFY: verify ? '1' : ''
+          },
           encoding: 'utf8', timeout: 30000,
         });
         if (result.error) throw result.error;
@@ -37,8 +39,10 @@ if (!process.versions.electron) {
       run(true);
       const runs = Array.from({ length: samples }, () => run(false));
       const median = (key) => runs.map((run) => run[key]).sort((a, b) => a - b)[Math.floor(runs.length / 2)];
-      results.push({ scenario, mainMs: median('mainMs'), navigationMs: median('navigationMs'),
-        processExitMs: median('processExitMs'), initialJsBytes: median('initialJsBytes') });
+      results.push({
+        scenario, mainMs: median('mainMs'), navigationMs: median('navigationMs'),
+        processExitMs: median('processExitMs'), initialJsBytes: median('initialJsBytes')
+      });
       if (scenario === 'vault' && !process.env.TAGLINE_STARTUP_BASELINE) run(false, true);
     }
     console.log(JSON.stringify(results, null, 2));
@@ -82,8 +86,10 @@ app.on('browser-window-created', (_event, win) => {
         app.exit(0);
         return;
       }
-      const selector = { welcome: '.welcome', vault: '.sidebar .tree-item',
-        visual: '.ProseMirror[contenteditable="true"]', source: '.source-editor .cm-content[contenteditable="true"]' }[scenario];
+      const selector = {
+        welcome: '.welcome', vault: '.sidebar .tree-item',
+        visual: '.ProseMirror[contenteditable="true"]', source: '.source-editor .cm-content[contenteditable="true"]'
+      }[scenario];
       const report = await win.webContents.executeJavaScript(`new Promise((resolve, reject) => {
         const start = performance.now();
         const check = () => {

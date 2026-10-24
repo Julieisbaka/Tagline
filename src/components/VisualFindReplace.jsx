@@ -1,7 +1,7 @@
-import { useEffect, useRef, useState } from 'react';
 import { useEditorState } from '@tiptap/react';
-import { useI18n } from '../lib/i18n.js';
+import { useEffect, useRef, useState } from 'react';
 import { trapTabKey } from '../lib/focusScope.js';
+import { useI18n } from '../lib/i18n.js';
 
 export default function VisualFindReplace({ editor, onClose }) {
   const { t } = useI18n();

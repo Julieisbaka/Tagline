@@ -1,15 +1,15 @@
-import { baseName, dirName, displayName, isCanvas, isMarkdown } from '../../lib/vault.js';
 import { binding, displayBinding } from '../../lib/keybindings.js';
-import Sidebar, { renameTarget } from './Sidebar.jsx';
-import TabBar from './TabBar.jsx';
-import NoteView from '../NoteView.jsx';
+import { baseName, dirName, displayName, isCanvas, isMarkdown } from '../../lib/vault.js';
 import { deferred } from '../Deferred.jsx';
-import RightPanel from './RightPanel.jsx';
-import Splitter from './Splitter.jsx';
+import ModalBackdrop from '../dialogs/ModalBackdrop.jsx';
 import Welcome from '../dialogs/Welcome.jsx';
 import ExtensionSurface from '../ExtensionSurface.jsx';
+import NoteView from '../NoteView.jsx';
 import Ribbon from './Ribbon.jsx';
-import ModalBackdrop from '../dialogs/ModalBackdrop.jsx';
+import RightPanel from './RightPanel.jsx';
+import Sidebar, { renameTarget } from './Sidebar.jsx';
+import Splitter from './Splitter.jsx';
+import TabBar from './TabBar.jsx';
 
 const CanvasView = deferred(() => import('../CanvasView.jsx'));
 const GraphView = deferred(() => import('../GraphView.jsx'));

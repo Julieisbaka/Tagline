@@ -68,14 +68,16 @@ app.on('browser-window-created', (_event, win) => {
       assert.equal(info.electron, process.versions.electron);
       if (first) {
         const defaults = require('../src/lib/defaultSettings.json');
-        const settings = { ...defaults, wpm: 333, theme: 'high-contrast-dark', modelAutoload: false,
+        const settings = {
+          ...defaults, wpm: 333, theme: 'high-contrast-dark', modelAutoload: false,
           customCss: '.note-title { font-weight: 600; }', keybindings: { settings: 'Mod+,' },
-          themeSettings: { dark: { customOption: 'saved' } } };
+          themeSettings: { dark: { customOption: 'saved' } }
+        };
         await js(`localStorage.setItem('tagline-settings', ${JSON.stringify(JSON.stringify(settings))});
           localStorage.setItem('tagline-extension:upgrade-test', '{"saved":"extension data"}');
           localStorage.setItem(${JSON.stringify(`tabs:${vault}`)}, ${JSON.stringify(JSON.stringify({
-            tabs: [{ id: 'saved-card', kind: 'file', path: 'Card.md' }], activeId: 'saved-card',
-          }))});`);
+          tabs: [{ id: 'saved-card', kind: 'file', path: 'Card.md' }], activeId: 'saved-card',
+        }))});`);
         const retained = {
           'extensions/upgrade-test/manifest.json': JSON.stringify({
             manifestVersion: 1, id: 'upgrade-test', name: 'Upgrade test', version: '1.0.0', main: 'main.js',

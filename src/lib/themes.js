@@ -1,9 +1,9 @@
 import { getRuntimeLimits } from '../../electron/customization.mjs';
+import { validateSettingDefinitions, validateSettingValue } from '../../electron/extensionSettings.mjs';
 import dark from '../themes/dark.json' with { type: 'json' };
 import contrastDark from '../themes/high-contrast-dark.json' with { type: 'json' };
 import contrastLight from '../themes/high-contrast-light.json' with { type: 'json' };
 import light from '../themes/light.json' with { type: 'json' };
-import { validateSettingDefinitions, validateSettingValue } from '../../electron/extensionSettings.mjs';
 
 export const BUILTIN_THEMES = [dark, light, contrastDark, contrastLight];
 export const COLOR_TOKENS = Object.freeze(Object.keys(dark.colors));
@@ -163,6 +163,8 @@ export function themeSnapshot() {
   const computed = getComputedStyle(root);
   const variables = Object.fromEntries([...computed].filter((key) => key.startsWith('--'))
     .map((key) => [key, computed.getPropertyValue(key).trim()]));
-  return { id: root.dataset.theme, mode: root.style.colorScheme, variables,
-    metadata: activeTheme?.metadata || {}, reducedMotion: window.matchMedia('(prefers-reduced-motion: reduce)').matches };
+  return {
+    id: root.dataset.theme, mode: root.style.colorScheme, variables,
+    metadata: activeTheme?.metadata || {}, reducedMotion: window.matchMedia('(prefers-reduced-motion: reduce)').matches
+  };
 }

@@ -1,9 +1,9 @@
 import { useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { EMPTY_FLOW, FLOW_PRESETS as PRESETS, parseFlow } from '../../electron/flow.mjs';
 import { useI18n } from '../lib/i18n.js';
 import { binding, displayBinding, matchesBinding } from '../lib/keybindings.js';
 import ContextMenu from './dialogs/ContextMenu.jsx';
 import Icon from './Icon.jsx';
-import { EMPTY_FLOW, FLOW_PRESETS as PRESETS, parseFlow } from '../../electron/flow.mjs';
 
 const AFF = new Set(['1AC', '2AC', '1AR', '2AR', 'AC', 'AR']);
 export { EMPTY_FLOW } from '../../electron/flow.mjs';

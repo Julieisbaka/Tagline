@@ -324,7 +324,7 @@ body.resizing-panels * {
   flex-direction: column;
 }
 
-.source-editor > .editor {
+.source-editor>.editor {
   flex: 1;
   min-height: 0;
 }

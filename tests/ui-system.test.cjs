@@ -55,7 +55,7 @@ test('invalid theme settings and accessibility declarations fail explicitly', as
 test('theme option values are isolated by theme and unavailable theme choices retain their fallback', async () => {
   const { validateTheme, registerExtensionThemes, getTheme } = await import('../src/lib/themes.js');
   const old = global.window;
-  global.window = { dispatchEvent() {} };
+  global.window = { dispatchEvent() { } };
   try {
     registerExtensionThemes([
       { ...validateTheme(example), id: 'ext:readable:0' },

@@ -151,8 +151,10 @@ export function canvasGroupMembers(nodes, groupId) {
 
 export function moveCanvasNodes(canvas, ids, dx, dy) {
   const moving = new Set(ids);
-  return { ...canvas, nodes: canvas.nodes.map((node) => moving.has(node.id)
-    ? { ...node, x: node.x + dx, y: node.y + dy } : node) };
+  return {
+    ...canvas, nodes: canvas.nodes.map((node) => moving.has(node.id)
+      ? { ...node, x: node.x + dx, y: node.y + dy } : node)
+  };
 }
 
 export function suggestCanvasFiles(paths, query, limit = 20) {

@@ -4,8 +4,10 @@ import { EditorView } from '@codemirror/view';
 import { tags } from '@lezer/highlight';
 import CodeMirror from '@uiw/react-codemirror';
 import { useId, useMemo, useRef, useState } from 'react';
-import { canvasGroupMembers, createArgumentEdge, createCanvasId, createCanvasNode, moveCanvasNodes,
-  parseCanvas, serializeCanvas, suggestCanvasFiles } from '../lib/canvas.js';
+import {
+  canvasGroupMembers, createArgumentEdge, createCanvasId, createCanvasNode, moveCanvasNodes,
+  parseCanvas, serializeCanvas, suggestCanvasFiles
+} from '../lib/canvas.js';
 import { settingsCodeMirrorTheme } from '../lib/editorExtensions.js';
 import ContextMenu from './dialogs/ContextMenu.jsx';
 import { useI18n } from '../lib/i18n.js';
@@ -24,7 +26,7 @@ const JSON_EXTENSIONS = [json(), syntaxHighlighting(HighlightStyle.define([
   { tag: [tags.number, tags.bool, tags.null], color: 'var(--code)' },
   { tag: tags.punctuation, color: 'var(--text-muted)' },
 ])), settingsCodeMirrorTheme,
-  EditorView.lineWrapping, EditorView.contentAttributes.of({ 'aria-label': 'Canvas JSON', 'aria-multiline': 'true' })];
+EditorView.lineWrapping, EditorView.contentAttributes.of({ 'aria-label': 'Canvas JSON', 'aria-multiline': 'true' })];
 
 function nodeColor(color) {
   return color?.startsWith('#') ? color : PRESET_COLORS.find(([id]) => id === color)?.[1] || 'var(--border)';
@@ -86,7 +88,7 @@ function CanvasNode({
           ? <textarea aria-label={t('Canvas text')} value={node.text}
             onChange={(event) => onUpdate(node.id, { text: event.target.value })} />
           : <Preview className="canvas-node-preview" content={node.text} resolve={(target) => resolveLink(target, paths)}
-            onOpenLink={onOpenLink} onTagClick={() => {}} />)}
+            onOpenLink={onOpenLink} onTagClick={() => { }} />)}
         {node.type === 'file' && <>
           <input aria-label={t('File path')} placeholder={t('Vault-relative file path')} value={node.file} list={fileListId}
             onChange={(event) => onUpdate(node.id, { file: event.target.value })} />
@@ -151,8 +153,10 @@ function CanvasBoard({ canvas, onChange, paths, onOpenFile, onOpenUrl, onOpenLin
     nodes: canvas.nodes.map((item) => item.id === id ? { ...item, ...changes } : item),
   });
   const removeNode = (id) => {
-    update({ ...canvas, nodes: canvas.nodes.filter((item) => item.id !== id),
-      edges: canvas.edges.filter((item) => item.fromNode !== id && item.toNode !== id) });
+    update({
+      ...canvas, nodes: canvas.nodes.filter((item) => item.id !== id),
+      edges: canvas.edges.filter((item) => item.fromNode !== id && item.toNode !== id)
+    });
     setSelectedNode(null);
   };
   const addNode = (type, position, wrapped = node) => {
@@ -170,28 +174,42 @@ function CanvasBoard({ canvas, onChange, paths, onOpenFile, onOpenUrl, onOpenLin
     const targetNode = canvas.nodes.find((item) => item.id === nodeId);
     const targetEdge = canvas.edges.find((item) => item.id === edgeId);
     const items = targetNode ? [
-      ...(targetNode.type === 'file' ? [{ label: 'Open file', disabled: !resolveLink(targetNode.file, paths),
-        run: () => onOpenFile(resolveLink(targetNode.file, paths), targetNode.subpath) }] : []),
-      ...(targetNode.type === 'link' ? [{ label: 'Open link', disabled: !/^https?:\/\//i.test(targetNode.url),
-        run: () => onOpenUrl(targetNode.url) }] : []),
+      ...(targetNode.type === 'file' ? [{
+        label: 'Open file', disabled: !resolveLink(targetNode.file, paths),
+        run: () => onOpenFile(resolveLink(targetNode.file, paths), targetNode.subpath)
+      }] : []),
+      ...(targetNode.type === 'link' ? [{
+        label: 'Open link', disabled: !/^https?:\/\//i.test(targetNode.url),
+        run: () => onOpenUrl(targetNode.url)
+      }] : []),
       ...(targetNode.type !== 'group' ? [
-        { label: 'Duplicate node', run: () => {
-          const copy = { ...targetNode, id: createCanvasId(), x: targetNode.x + 32, y: targetNode.y + 32 };
-          update({ ...canvas, nodes: [...canvas.nodes, copy] });
-          setSelectedNode(copy.id);
-        } },
+        {
+          label: 'Duplicate node', run: () => {
+            const copy = { ...targetNode, id: createCanvasId(), x: targetNode.x + 32, y: targetNode.y + 32 };
+            update({ ...canvas, nodes: [...canvas.nodes, copy] });
+            setSelectedNode(copy.id);
+          }
+        },
         { label: 'Group node', run: () => addNode('group', undefined, targetNode) },
       ] : []),
       { label: 'Delete node', danger: true, run: () => removeNode(targetNode.id) },
     ] : targetEdge ? [
-      { label: 'Reverse connection', run: () => update({ ...canvas, edges: canvas.edges.map((item) =>
-        item.id === targetEdge.id ? { ...item, fromNode: item.toNode, toNode: item.fromNode,
-          fromSide: item.toSide || 'left', toSide: item.fromSide || 'right',
-          fromEnd: item.toEnd || 'arrow', toEnd: item.fromEnd || 'none' } : item) }) },
-      { label: 'Delete connection', danger: true, run: () => {
-        update({ ...canvas, edges: canvas.edges.filter((item) => item.id !== targetEdge.id) });
-        setSelectedEdge(null);
-      } },
+      {
+        label: 'Reverse connection', run: () => update({
+          ...canvas, edges: canvas.edges.map((item) =>
+            item.id === targetEdge.id ? {
+              ...item, fromNode: item.toNode, toNode: item.fromNode,
+              fromSide: item.toSide || 'left', toSide: item.fromSide || 'right',
+              fromEnd: item.toEnd || 'arrow', toEnd: item.fromEnd || 'none'
+            } : item)
+        })
+      },
+      {
+        label: 'Delete connection', danger: true, run: () => {
+          update({ ...canvas, edges: canvas.edges.filter((item) => item.id !== targetEdge.id) });
+          setSelectedEdge(null);
+        }
+      },
     ] : ['text', 'file', 'link', 'group'].map((type) => ({
       label: t('Add {type}', { type: t(type) }), run: () => addNode(type, position, null),
     }));
@@ -208,8 +226,10 @@ function CanvasBoard({ canvas, onChange, paths, onOpenFile, onOpenUrl, onOpenLin
       if (connectionStart !== id) {
         const next = mode === 'arguments'
           ? createArgumentEdge(connectionStart, id, relationType)
-          : { id: createCanvasId(), fromNode: connectionStart, toNode: id,
-            fromSide: 'right', toSide: 'left', toEnd: 'arrow' };
+          : {
+            id: createCanvasId(), fromNode: connectionStart, toNode: id,
+            fromSide: 'right', toSide: 'left', toEnd: 'arrow'
+          };
         update({ ...canvas, edges: [...canvas.edges, next] });
         setSelectedEdge(next.id);
         setSelectedNode(null);
@@ -303,18 +323,24 @@ function CanvasBoard({ canvas, onChange, paths, onOpenFile, onOpenUrl, onOpenLin
       </div>}
       {edge && <div className="canvas-inspector">
         <label>{t('Connection label')}<input aria-label={t('Connection label')} value={edge.label || ''}
-          onChange={(event) => update({ ...canvas, edges: canvas.edges.map((item) =>
-            item.id === edge.id ? { ...item, label: event.target.value } : item) })} /></label>
+          onChange={(event) => update({
+            ...canvas, edges: canvas.edges.map((item) =>
+              item.id === edge.id ? { ...item, label: event.target.value } : item)
+          })} /></label>
         <label>{t('Connection color')}<select aria-label={t('Connection color')} value={edge.color || ''}
-          onChange={(event) => update({ ...canvas, edges: canvas.edges.map((item) =>
-            item.id === edge.id ? { ...item, color: event.target.value || undefined } : item) })}>
+          onChange={(event) => update({
+            ...canvas, edges: canvas.edges.map((item) =>
+              item.id === edge.id ? { ...item, color: event.target.value || undefined } : item)
+          })}>
           <option value="">{t('Default')}</option>
           {edge.color?.startsWith('#') && <option value={edge.color}>{edge.color}</option>}
           {PRESET_COLORS.map(([value, , name]) => <option key={value} value={value}>{t(name)}</option>)}
         </select></label>
         <label>{t('Endpoint')}<select aria-label={t('Endpoint')} value={edge.toEnd || 'arrow'}
-          onChange={(event) => update({ ...canvas, edges: canvas.edges.map((item) =>
-            item.id === edge.id ? { ...item, toEnd: event.target.value } : item) })}>
+          onChange={(event) => update({
+            ...canvas, edges: canvas.edges.map((item) =>
+              item.id === edge.id ? { ...item, toEnd: event.target.value } : item)
+          })}>
           <option value="arrow">{t('Arrow')}</option><option value="none">{t('None')}</option>
         </select></label>
       </div>}
@@ -340,8 +366,8 @@ function CanvasBoard({ canvas, onChange, paths, onOpenFile, onOpenUrl, onOpenLin
           onClick={() => { setSelectedNode(null); setSelectedEdge(null); }}>
           <svg className="canvas-edges" width={width} height={height} aria-label={t('Canvas connections')}>
             <defs>{canvas.edges.map((item, index) => <marker key={item.id} id={`canvas-arrow-${index}`}
-            markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto-start-reverse"
-            markerUnits="strokeWidth"><path d="M0,0 L8,4 L0,8 z" fill={nodeColor(item.color)} /></marker>)}</defs>
+              markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto-start-reverse"
+              markerUnits="strokeWidth"><path d="M0,0 L8,4 L0,8 z" fill={nodeColor(item.color)} /></marker>)}</defs>
             {canvas.edges.map((item, index) => {
               const from = renderedNodes.find((candidate) => candidate.id === item.fromNode);
               const to = renderedNodes.find((candidate) => candidate.id === item.toNode);
@@ -376,11 +402,11 @@ function CanvasBoard({ canvas, onChange, paths, onOpenFile, onOpenUrl, onOpenLin
             {renderedNodes.filter((item) => (item.type === 'group') === (layer === 'group'))
               .sort((a, b) => layer === 'group' ? b.width * b.height - a.width * a.height : 0)
               .map((item, index) => <CanvasNode key={item.id} node={{ ...item, x: item.x + xOffset, y: item.y + yOffset }}
-              selected={item.id === selectedNode || (connecting && item.id === connectionStart)} order={index}
-              xOffset={xOffset} yOffset={yOffset} onStartGesture={startGesture}
-              onContextMenu={contextMenu}
-              onSelect={selectNode} onUpdate={updateNode} onRemove={removeNode}
-              onOpenFile={onOpenFile} onOpenUrl={onOpenUrl} onOpenLink={onOpenLink} paths={paths} t={t} />)}
+                selected={item.id === selectedNode || (connecting && item.id === connectionStart)} order={index}
+                xOffset={xOffset} yOffset={yOffset} onStartGesture={startGesture}
+                onContextMenu={contextMenu}
+                onSelect={selectNode} onUpdate={updateNode} onRemove={removeNode}
+                onOpenFile={onOpenFile} onOpenUrl={onOpenUrl} onOpenLink={onOpenLink} paths={paths} t={t} />)}
           </div>)}
         </div>
         {menu && <ContextMenu {...menu} onClose={() => setMenu(null)} />}

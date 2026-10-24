@@ -38,7 +38,15 @@
   "embedWebsites": true,
   "sidebarWidth": 260,
   "rightPanelWidth": 300,
-  "ribbonItems": ["fileExplorer", "switcher", "search", "graph", "commands", "import", "rightPanel"],
+  "ribbonItems": [
+    "fileExplorer",
+    "switcher",
+    "search",
+    "graph",
+    "commands",
+    "import",
+    "rightPanel"
+  ],
   "hiddenRibbonItems": [],
   "internalFlags": {
     "visualNoticeDismissed": false

@@ -75,8 +75,10 @@ export function useAppExtensions({
         selectionRange = { from, to };
         editorKind = 'source';
       }
-      return { path: activePath, content: activeContent ?? '', selection, selectionRange, editorKind, mode,
-        kind: isCanvas(activePath) ? 'canvas' : isFlow(activePath) ? 'flow' : 'markdown' };
+      return {
+        path: activePath, content: activeContent ?? '', selection, selectionRange, editorKind, mode,
+        kind: isCanvas(activePath) ? 'canvas' : isFlow(activePath) ? 'flow' : 'markdown'
+      };
     },
     insertText: (text) => insertAtCursor(text),
     setSelection: (value) => {

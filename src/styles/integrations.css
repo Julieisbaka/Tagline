@@ -2,19 +2,60 @@
   min-height: 100%;
 }
 
-.opencaselist-dialog { width: min(960px, 94vw); overflow-y: auto; }
-.opencaselist-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.opencaselist-dialog {
+  width: min(960px, 94vw);
+  overflow-y: auto;
+}
+
+.opencaselist-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
 .opencaselist-actions h3,
-.opencaselist-actions h4 { flex: 1; }
-.opencaselist-selectors { display: flex; flex-wrap: wrap; gap: 12px; margin: 12px 0; }
-.opencaselist-field { display: flex; flex: 1; flex-direction: column; gap: 4px; min-width: 140px; margin: 6px 0; }
+.opencaselist-actions h4 {
+  flex: 1;
+}
+
+.opencaselist-selectors {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin: 12px 0;
+}
+
+.opencaselist-field {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 140px;
+  margin: 6px 0;
+}
+
 .opencaselist-field input,
 .opencaselist-field select,
-.opencaselist-field textarea { width: 100%; }
+.opencaselist-field textarea {
+  width: 100%;
+}
+
 .opencaselist-form,
-.opencaselist-card { border: 1px solid var(--border); border-radius: 6px; padding: 12px; margin: 12px 0; }
-.opencaselist-card { overflow-wrap: anywhere; }
-.opencaselist-report { white-space: pre-wrap; }
+.opencaselist-card {
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 12px;
+  margin: 12px 0;
+}
+
+.opencaselist-card {
+  overflow-wrap: anywhere;
+}
+
+.opencaselist-report {
+  white-space: pre-wrap;
+}
 
 .extension-surface {
   width: 100%;
@@ -539,10 +580,26 @@
   font-size: 12px;
 }
 
-.theme-metadata dl > div { display: flex; gap: 12px; margin-block: 4px; }
-.theme-metadata dt { font-weight: 600; }
-.theme-metadata dd { margin: 0; overflow-wrap: anywhere; }
-.theme-options { margin-block: 12px; border: 1px solid var(--border); border-radius: 6px; }
+.theme-metadata dl>div {
+  display: flex;
+  gap: 12px;
+  margin-block: 4px;
+}
+
+.theme-metadata dt {
+  font-weight: 600;
+}
+
+.theme-metadata dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.theme-options {
+  margin-block: 12px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}
 
 .settings-actions {
   display: flex;

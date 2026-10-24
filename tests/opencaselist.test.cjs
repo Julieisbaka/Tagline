@@ -14,7 +14,7 @@ function setup(options = {}) {
   const cookies = new EventEmitter();
   let stored = [{ name: 'caselist_token', domain: '.opencaselist.com', value: 'private-test-cookie', expirationDate: Date.now() / 1000 + 1000 }];
   cookies.get = async () => stored;
-  cookies.flushStore = async () => {};
+  cookies.flushStore = async () => { };
   const session = {
     cookies,
     clearStorageData: async () => { stored = []; },
@@ -153,7 +153,7 @@ test('login uses an isolated sandbox with no preload and blocks off-site navigat
     constructor(options) { super(); this.options = options; this.webContents = new EventEmitter(); this.webContents.setWindowOpenHandler = (fn) => { this.popup = fn; }; windows.push(this); }
     async loadURL(url) { this.url = url; }
     close() { this.emit('closed'); }
-    focus() {}
+    focus() { }
   }
   const mock = setup({ BrowserWindow: LoginWindow });
   const login = mock.service.login();
@@ -179,7 +179,7 @@ test('login uses an isolated sandbox with no preload and blocks off-site navigat
 test('cancelling or failing sign-in cleans up listeners without retaining a rejected cookie', async () => {
   for (const cancelled of [true, false]) {
     class LoginWindow extends EventEmitter {
-      constructor() { super(); this.webContents = new EventEmitter(); this.webContents.setWindowOpenHandler = () => {}; }
+      constructor() { super(); this.webContents = new EventEmitter(); this.webContents.setWindowOpenHandler = () => { }; }
       async loadURL() { if (cancelled) this.close(); throw new Error('Navigation aborted'); }
       close() { this.emit('closed'); }
     }

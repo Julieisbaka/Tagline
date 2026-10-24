@@ -1,14 +1,17 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { registerExtensionThemes, validateTheme } from './themes.js';
-import { KEYBINDINGS, reservedBinding, validBinding } from './keybindings.js';
-import { getExtensionSetting, setExtensionSettings, resetExtensionSettings } from './extensionSettings.js';
 import { getRuntimeLimits, validateLimits } from '../../electron/customization.mjs';
-import {
-  APPLICATION_EVENTS, EDITOR_COMMANDS, applicationEvents, requireEventName,
-  requirePayload, requireSelection, pathHelper, extensionHelper
-} from './extensionCapabilities.js';
-import { parseCanvas, serializeCanvas } from './canvas.js';
 import { parseFlow, serializeFlow } from '../../electron/flow.mjs';
+import { parseCanvas, serializeCanvas } from './canvas.js';
+import {
+  APPLICATION_EVENTS, EDITOR_COMMANDS, applicationEvents,
+  extensionHelper,
+  pathHelper,
+  requireEventName,
+  requirePayload, requireSelection
+} from './extensionCapabilities.js';
+import { getExtensionSetting, resetExtensionSettings, setExtensionSettings } from './extensionSettings.js';
+import { KEYBINDINGS, reservedBinding, validBinding } from './keybindings.js';
+import { registerExtensionThemes, validateTheme } from './themes.js';
 
 // A worker runs extension code inside an opaque-origin supervisor iframe:
 // it cannot reach window.api, the DOM, app storage or the network (CSP connect-src 'none').

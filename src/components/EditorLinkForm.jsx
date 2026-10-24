@@ -1,6 +1,6 @@
 import { useId, useState } from 'react';
-import { useI18n } from '../lib/i18n.js';
 import { trapTabKey } from '../lib/focusScope.js';
+import { useI18n } from '../lib/i18n.js';
 
 export default function EditorLinkForm({ noteNames, onInsert, onClose }) {
   const { t } = useI18n();

@@ -45,6 +45,7 @@ body,
 }
 
 @media (prefers-reduced-motion: no-preference) {
+
   .theme-transition *,
   .theme-transition {
     transition: background-color 180ms ease, color 180ms ease, border-color 180ms ease !important;
@@ -151,6 +152,7 @@ kbd {
 }
 
 @media (prefers-reduced-motion: reduce) {
+
   *,
   *::before,
   *::after {

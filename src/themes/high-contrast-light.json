@@ -3,7 +3,11 @@
   "id": "high-contrast-light",
   "name": "High contrast light",
   "mode": "light",
-  "metadata": { "accessibility": { "contrast": "high" } },
+  "metadata": {
+    "accessibility": {
+      "contrast": "high"
+    }
+  },
   "colors": {
     "bg": "#ffffff",
     "bg-secondary": "#ffffff",

@@ -94,8 +94,10 @@ function validateManifest(value, root, limits = DEFAULT_LIMITS) {
     manifestVersion: 1, id: value.id, name: value.name.trim(), version: value.version.trim(),
     description: value.description || '', author: value.author || '', main: value.main || null,
     permissions: [...new Set(permissions)],
-    contributes: { commands: commands.map(({ id, title, key }) => ({ id, title: title.trim(), key: key || '' })), themes, settings,
-      ribbonItems: ribbonItems.map(({ id, title, icon, command }) => ({ id, title: title.trim(), icon, command })), ...surfaces },
+    contributes: {
+      commands: commands.map(({ id, title, key }) => ({ id, title: title.trim(), key: key || '' })), themes, settings,
+      ribbonItems: ribbonItems.map(({ id, title, icon, command }) => ({ id, title: title.trim(), icon, command })), ...surfaces
+    },
   };
 }
 

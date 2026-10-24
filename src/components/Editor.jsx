@@ -16,10 +16,10 @@ import {
   toggleWrap,
 } from '../lib/editorExtensions.js';
 import { applicationEvents } from '../lib/extensionCapabilities.js';
-import { binding, editorBinding, KEYBINDINGS } from '../lib/keybindings.js';
 import { useI18n } from '../lib/i18n.js';
-import EditorToolbar from './EditorToolbar.jsx';
+import { binding, editorBinding, KEYBINDINGS } from '../lib/keybindings.js';
 import EditorLinkForm from './EditorLinkForm.jsx';
+import EditorToolbar from './EditorToolbar.jsx';
 
 const SOURCE_ACTIONS = {
   pocket: setHeading(1), hat: setHeading(2), block: setHeading(3), tag: setHeading(4),

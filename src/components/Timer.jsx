@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { formatDuration } from '../lib/card.js';
-import { useI18n } from '../lib/i18n.js';
 import { remainingAt } from '../lib/countdown.js';
+import { useI18n } from '../lib/i18n.js';
 
 export const FORMATS = {
   policy: {

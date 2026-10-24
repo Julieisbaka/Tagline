@@ -1,5 +1,5 @@
-import { validateSettingValue } from '../../electron/extensionSettings.mjs';
 import { getRuntimeLimits } from '../../electron/customization.mjs';
+import { validateSettingValue } from '../../electron/extensionSettings.mjs';
 import { readStoredJson } from './storedJson.js';
 
 function definition(manifest, key) {
