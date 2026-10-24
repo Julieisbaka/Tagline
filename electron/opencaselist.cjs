@@ -134,8 +134,10 @@ function createOpenCaselist({ session, BrowserWindow, dialog, getWindow, getVaul
   };
 
   const request = async (route, { method = 'GET', body, binary = false } = {}) => {
-    if (!(await status()).signedIn) throw new Error('OpenCaselist session expired or missing. Sign in again.');
     const started = generation;
+    const current = await status();
+    if (generation !== started) throw new Error('OpenCaselist session changed. Try again.');
+    if (!current.signedIn) throw new Error('OpenCaselist session expired or missing. Sign in again.');
     let response;
     try {
       response = await session.fetch(`${API}${route}`, {

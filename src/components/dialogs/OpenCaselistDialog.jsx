@@ -165,9 +165,13 @@ export default function OpenCaselistDialog({ hasVault, onDownload, onClose }) {
               const parts = item.path.replace(/^\/+|\/+$/g, '').split('/');
               if (parts.length < 3 || parts[0] !== selection.caselist) throw new Error(t('Select a team using the browse controls.'));
               const current = { caselist: parts[0], school: parts[1], team: parts[2] };
+              const [schools, teams, rounds, cites] = await Promise.all([
+                api.list('schools', current), api.list('teams', current),
+                api.list('rounds', current), api.list('cites', current),
+              ]);
+              if (!active.current) return;
               setSelection(current);
-              setTeams(await api.list('teams', current));
-              await refreshTeam(current);
+              setSchools(schools); setTeams(teams); setRounds(rounds); setCites(cites);
               setResults(null);
             })}>{t('Browse team')}</button>}
           </article>)}

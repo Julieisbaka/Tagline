@@ -31,7 +31,7 @@ const uploadFile = path.join(root, 'Upload.docx');
 fs.writeFileSync(uploadFile, Buffer.from([80, 75, 3, 4, 255]));
 app.setPath('userData', profile);
 let apiRequests = [], confirmed = [], roundId = 1, loginWindows = 0;
-let allowChange = false, loginCookie = 0, expireWrite = false;
+let allowChange = false, loginCookie = 0, expireWrite = false, failTeamBrowse = false;
 let rounds = [{
   round_id: 1, tournament: 'Example tournament', side: 'A', round: '1',
   opponent: 'Other team', report: 'Public report', opensource: 'ndt2026/Disclosure.docx'
@@ -80,15 +80,18 @@ session.fromPartition = (partition, ...args) => {
     if (route === '/v1/search') {
       if (parsed.searchParams.get('q') === 'expire') return reply({ message: 'Expired' }, 401);
       return reply([{
-        id: 1, path: 'ndt2026/Example/AB', team_display_name: 'Example AB',
+        id: 1, path: 'ndt2026/Other/CD', team_display_name: 'Other CD',
         title: 'Disclosure', snippet: '<mark>Evidence</mark><img src=x onerror="window.attacked=true">',
         download_path: 'ndt2026/Disclosure.docx'
       }]);
     }
     if (route === '/v1/caselists') return reply([{ slug: 'ndt2026', name: 'College Policy 2026', archived: false }]);
-    if (route.endsWith('/schools')) return reply([{ name: 'Example', display_name: 'Example University' }]);
-    if (route.endsWith('/teams')) return reply([{ name: 'AB', display_name: 'Example AB' }]);
+    if (route.endsWith('/schools')) return reply([{ name: 'Example', display_name: 'Example University' }, { name: 'Other' }]);
+    if (route.endsWith('/teams')) return reply(route.includes('/Other/') ? [{ name: 'CD' }] : [{ name: 'AB', display_name: 'Example AB' }]);
     if (route === '/v1/download') return new Response(binary);
+    if (route.includes('/Other/') && route.endsWith('/rounds') && failTeamBrowse) return reply({ message: 'Unavailable' }, 503);
+    if (route.includes('/Other/') && route.endsWith('/rounds')) return reply([{ round_id: 9, tournament: 'Other tournament', side: 'N', round: '4' }]);
+    if (route.includes('/Other/') && route.endsWith('/cites')) return reply([]);
     if (route.endsWith('/rounds') && method === 'GET') return reply(rounds);
     if (route.endsWith('/cites') && method === 'GET') return reply(cites);
     if (route.endsWith('/rounds') && method === 'POST') {
@@ -192,8 +195,25 @@ app.on('browser-window-created', (_event, win) => {
       await click('Search');
       await wait("!!document.querySelector('section[aria-label=\"Search results\"]')");
       assert.equal(await js("!!document.querySelector('.opencaselist-card img') || !!window.attacked"), false);
+      failTeamBrowse = true;
+      await click('Browse team');
+      await wait("!!document.querySelector('.opencaselist-dialog [role=alert]')");
+      assert.equal(await js("document.querySelector('[data-caselist-select=school]').value"), 'Example',
+        'Failed search navigation must not change the selected school');
+      await click('Clear search');
+      assert.ok(await js("document.querySelector('.opencaselist-card').textContent.includes('Updated tournament')"),
+        'Failed navigation retains the original team and its disclosures together');
+      failTeamBrowse = false;
+      await click('Search');
+      await wait("!!document.querySelector('section[aria-label=\"Search results\"]')");
       await click('Browse team');
       await wait("!document.querySelector('section[aria-label=\"Search results\"]')");
+      assert.equal(await js("document.querySelector('[data-caselist-select=school]').value"), 'Other');
+      assert.equal(await js("document.querySelector('[data-caselist-select=team]').value"), 'CD');
+      assert.ok(await js("document.querySelector('.opencaselist-card').textContent.includes('Other tournament')"));
+      assert.equal(await js("document.querySelector('.opencaselist-dialog').textContent.includes('Updated tournament')"), false);
+      await select('school', 'Example');
+      await select('team', 'AB');
       await click('Add round');
       await input('Tournament', 'Preserved draft'); await input('Round', '3');
       expireWrite = true;

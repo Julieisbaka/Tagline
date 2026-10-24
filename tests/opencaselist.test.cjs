@@ -70,6 +70,29 @@ test('401 requires sign-in without retrying, while 403 preserves authentication'
   }
 });
 
+test('signing in again during a cookie lookup cancels requests from the previous session', async () => {
+  class LoginWindow extends EventEmitter {
+    constructor() { super(); this.webContents = new EventEmitter(); this.webContents.setWindowOpenHandler = () => {}; }
+    async loadURL() {
+      const cookie = { name: 'caselist_token', domain: '.opencaselist.com', value: 'new-session' };
+      mock.setCookies([cookie]);
+      mock.session.cookies.emit('changed', {}, cookie, 'explicit', false);
+    }
+    close() { this.emit('closed'); }
+  }
+  const mock = setup({ BrowserWindow: LoginWindow });
+  const getCookies = mock.session.cookies.get;
+  const cookieSnapshot = await mock.session.cookies.get();
+  let finishLookup;
+  mock.session.cookies.get = () => new Promise((resolve) => { finishLookup = resolve; });
+  const pending = mock.service.list('rounds', selection);
+  mock.session.cookies.get = getCookies;
+  await mock.service.login();
+  finishLookup(cookieSnapshot);
+  await assert.rejects(pending, /session changed/);
+  assert.equal(mock.requests.length, 0);
+});
+
 test('network failures and malformed responses surface errors without credential leakage or automatic writes', async () => {
   const network = setup({ response: () => { throw new Error('private-test-cookie'); } });
   await assert.rejects(network.service.write('create-round', selection, round),
