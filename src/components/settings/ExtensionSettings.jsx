@@ -84,7 +84,7 @@ function ExtensionSettingsForm({ item, extensions }) {
       <button onClick={() => apply(true)}>{t('Reset extension settings')}</button>
       <button disabled={!loaded} onClick={exportSettings}>{t('Export extension settings')}</button>
     </div>
-    <label>{t('Import extension settings')}<input type="file" accept=".json,application/json"
+    <label>{t('Import extension settings')}<input className="theme-file-input" type="file" accept=".json,application/json"
       aria-label={t('Import extension settings')} onChange={importSettings} /></label>
   </fieldset>;
 }
