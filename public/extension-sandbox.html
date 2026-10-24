@@ -8,8 +8,7 @@
     let watchdog;
     let started = false;
     let lastHeartbeat = 0;
-    let windowStart = 0;
-    let messages = 0;
+    const messageTimes = [];
     let limits;
     const fail = (message) => {
       worker?.terminate();
@@ -107,7 +106,28 @@
         }),
         panels: surfaceApi('panels'),
         webviews: surfaceApi('webviews'),
+        canvas: Object.freeze({
+          read: (path) => call('canvas.read', path),
+          write: (path, data) => call('canvas.write', path, data),
+        }),
+        flow: Object.freeze({
+          read: (path) => call('flow.read', path),
+          write: (path, data) => call('flow.write', path, data),
+        }),
         helpers: Object.freeze({
+          canvas: Object.freeze({
+            parse: (text) => call('helpers.canvas.parse', text),
+            serialize: (data) => call('helpers.canvas.serialize', data),
+            createNode: (type, index = 0) => call('helpers.canvas.createNode', type, index),
+            createArgumentEdge: (from, to, relation) => call('helpers.canvas.createArgumentEdge', from, to, relation),
+            groupMembers: (data, groupId) => call('helpers.canvas.groupMembers', data, groupId),
+          }),
+          flow: Object.freeze({
+            parse: (text) => call('helpers.flow.parse', text),
+            serialize: (data) => call('helpers.flow.serialize', data),
+            create: () => call('helpers.flow.create'),
+            setCell: (data, sheet, row, column, text) => call('helpers.flow.setCell', data, sheet, row, column, text),
+          }),
           path: paths,
           markdownToText: (markdown) => call('helpers.markdownToText', markdown),
           markdown: Object.freeze({
@@ -226,12 +246,13 @@
         try { worker = new Worker(url); }
         catch (error) { fail(String(error.message)); return; }
         finally { URL.revokeObjectURL(url); }
-        lastHeartbeat = windowStart = performance.now();
+        lastHeartbeat = performance.now();
         worker.onmessage = ({ data: message }) => {
           const now = performance.now();
           if (message.type === 'heartbeat') { lastHeartbeat = now; return; }
-          if (now - windowStart >= 1000) { windowStart = now; messages = 0; }
-          if (++messages > limits.extensionMessagesPerSecond) { fail(`Extension exceeded ${limits.extensionMessagesPerSecond} messages per second and was stopped.`); return; }
+          while (messageTimes.length && messageTimes[0] <= now - 1000) messageTimes.shift();
+          if (messageTimes.length >= limits.extensionMessagesPerSecond) { fail(`Extension exceeded ${limits.extensionMessagesPerSecond} messages per second and was stopped.`); return; }
+          messageTimes.push(now);
           parent.postMessage(message, '*');
         };
         worker.onerror = (event) => { event.preventDefault(); fail(event.message || 'Extension worker failed.'); };

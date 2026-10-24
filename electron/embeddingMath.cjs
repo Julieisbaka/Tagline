@@ -36,4 +36,19 @@ function lexicalAffinity(query, text) {
   return terms.length ? terms.filter((term) => tokens.has(term)).length / terms.length : 0;
 }
 
-module.exports = { digest, chunksFor, cosine, lexicalAffinity };
+function parseEmbeddingCache(content, model) {
+  const saved = JSON.parse(content);
+  if (!saved || typeof saved !== 'object' || Array.isArray(saved)) throw new Error('Invalid semantic index.');
+  if (saved.model !== model) return {};
+  if (!saved.documents || typeof saved.documents !== 'object' || Array.isArray(saved.documents)) {
+    throw new Error('Invalid semantic index documents.');
+  }
+  return saved.documents;
+}
+
+function validCachedVectors(entry, hash, count, dimensions) {
+  return !!entry && entry.hash === hash && Array.isArray(entry.vectors) && entry.vectors.length === count &&
+    entry.vectors.every((vector) => Array.isArray(vector) && vector.length === dimensions && vector.every(Number.isFinite));
+}
+
+module.exports = { digest, chunksFor, cosine, lexicalAffinity, parseEmbeddingCache, validCachedVectors };

@@ -2,6 +2,12 @@ const { contextBridge, ipcRenderer } = require('electron');
 
 contextBridge.exposeInMainWorld('api', {
   platform: process.platform,
+  onPrepareClose: (callback) => {
+    const listener = () => callback();
+    ipcRenderer.on('app:prepareClose', listener);
+    return () => ipcRenderer.removeListener('app:prepareClose', listener);
+  },
+  closeReady: (success) => ipcRenderer.send('app:closeReady', success),
   installPandoc: () => ipcRenderer.invoke('pandoc:install'),
   openWebsite: (url, bounds) => ipcRenderer.invoke('browser:open', url, bounds),
   resizeWebsite: (bounds) => ipcRenderer.invoke('browser:bounds', bounds),
@@ -52,7 +58,7 @@ contextBridge.exposeInMainWorld('api', {
   list: () => ipcRenderer.invoke('fs:list'),
   readAll: () => ipcRenderer.invoke('fs:readAll'),
   read: (p) => ipcRenderer.invoke('fs:read', p),
-  write: (p, c, retention) => ipcRenderer.invoke('fs:write', p, c, retention),
+  write: (p, c, retention, canvasMode) => ipcRenderer.invoke('fs:write', p, c, retention, canvasMode),
   create: (p, c) => ipcRenderer.invoke('fs:create', p, c),
   mkdir: (p, underscoreFolders) => ipcRenderer.invoke('fs:mkdir', p, underscoreFolders),
   rename: (a, b) => ipcRenderer.invoke('fs:rename', a, b),

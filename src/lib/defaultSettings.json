@@ -21,6 +21,7 @@
   "visualCacheCharacters": 4000000,
   "searchMaxResults": 200,
   "historyRetention": 50,
+  "canvasHistoryMode": "complete",
   "underscoreFolders": true,
   "hideFlowExtension": true,
   "showMarkdownExtension": false,
@@ -37,6 +38,7 @@
   "sidebarWidth": 260,
   "rightPanelWidth": 300,
   "ribbonItems": ["fileExplorer", "switcher", "search", "graph", "commands", "import", "rightPanel"],
+  "hiddenRibbonItems": [],
   "internalFlags": {
     "visualNoticeDismissed": false
   }

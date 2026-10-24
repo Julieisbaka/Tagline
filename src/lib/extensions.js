@@ -7,6 +7,8 @@ import {
   APPLICATION_EVENTS, EDITOR_COMMANDS, applicationEvents, requireEventName,
   requirePayload, requireSelection, pathHelper, extensionHelper
 } from './extensionCapabilities.js';
+import { parseCanvas, serializeCanvas } from './canvas.js';
+import { parseFlow, serializeFlow } from '../../electron/flow.mjs';
 
 // A worker runs extension code inside an opaque-origin supervisor iframe:
 // it cannot reach window.api, the DOM, app storage or the network (CSP connect-src 'none').
@@ -37,8 +39,7 @@ export class ExtensionHost {
     this.surfaceTransports = new Map();
     this.nextWatch = 0;
     this.pendingCalls = 0;
-    this.messageWindow = 0;
-    this.messageCount = 0;
+    this.messageTimes = [];
     this.onMessage = this.onMessage.bind(this);
   }
 
@@ -83,6 +84,24 @@ export class ExtensionHost {
         b.notify(`${this.manifest.name}: ${requireText(args[0], 'Message', 500)}`);
         return true;
       case 'editor.getActiveNote': this.require('editor'); return b.getActiveNote();
+      case 'canvas.read':
+      case 'flow.read': {
+        this.require('vault:read');
+        const kind = method.split('.')[0];
+        const path = requireText(args[0], 'Path', 1000);
+        if (!path.toLowerCase().endsWith(`.${kind}`)) throw new Error(`Expected a .${kind} path.`);
+        const content = await b.read(path);
+        return kind === 'canvas' ? parseCanvas(content) : parseFlow(content);
+      }
+      case 'canvas.write':
+      case 'flow.write': {
+        this.require('vault:write');
+        const kind = method.split('.')[0];
+        const path = requireText(args[0], 'Path', 1000);
+        if (!path.toLowerCase().endsWith(`.${kind}`)) throw new Error(`Expected a .${kind} path.`);
+        const content = kind === 'canvas' ? serializeCanvas(args[1]) : serializeFlow(args[1]);
+        return b.write(path, requireText(content, 'Content'));
+      }
       case 'editor.insertText': this.require('editor'); await b.insertText(requireText(args[0], 'Text')); return true;
       case 'editor.setSelection':
         this.require('editor');
@@ -145,6 +164,15 @@ export class ExtensionHost {
       case 'helpers.citations.create':
       case 'helpers.speech.analyze':
       case 'helpers.speech.estimate':
+      case 'helpers.canvas.parse':
+      case 'helpers.canvas.serialize':
+      case 'helpers.canvas.createNode':
+      case 'helpers.canvas.createArgumentEdge':
+      case 'helpers.canvas.groupMembers':
+      case 'helpers.flow.parse':
+      case 'helpers.flow.serialize':
+      case 'helpers.flow.create':
+      case 'helpers.flow.setCell':
         return extensionHelper(method, args);
       case 'ui.setHtml':
       case 'ui.show':
@@ -242,13 +270,18 @@ export class ExtensionHost {
     this.frame?.contentWindow?.postMessage({ type, id, event }, '*');
   }
 
+  acceptMessage(now) {
+    while (this.messageTimes.length && this.messageTimes[0] <= now - 1000) this.messageTimes.shift();
+    if (this.messageTimes.length >= this.limits.extensionMessagesPerSecond) return false;
+    this.messageTimes.push(now);
+    return true;
+  }
+
   async onMessage(event) {
     if (!this.frame || event.source !== this.frame.contentWindow || !event.data) return;
     const data = event.data;
     const now = performance.now();
-    // TODO: Use a rolling window or token bucket; fixed-window resets can allow boundary bursts above the intended rate.
-    if (now - this.messageWindow >= 1000) { this.messageWindow = now; this.messageCount = 0; }
-    if (++this.messageCount > this.limits.extensionMessagesPerSecond) {
+    if (!this.acceptMessage(now)) {
       const error = new Error(`Extension exceeded ${this.limits.extensionMessagesPerSecond} messages per second and was stopped.`);
       if (this.settle) this.settle(error);
       else { this.dispose(); this.bridge.notify(`${this.manifest.name}: ${error.message}`); }
@@ -295,6 +328,7 @@ export class ExtensionHost {
     this.frame?.remove();
     this.frame = null;
     this.registered.clear();
+    this.messageTimes = [];
   }
 }
 
@@ -344,7 +378,11 @@ export function useExtensions({ bridgeRef, notify }) {
       },
       closeSurface: (host, kind, id) => setSurfaces((previous) => previous.map((item) =>
         item.host === host && item.kind === kind && item.id === id ? { ...item, visible: false } : item)),
-      removeSurfaces: (host) => setSurfaces((previous) => previous.filter((item) => item.host !== host)),
+      removeSurfaces: (host) => {
+        setSurfaces((previous) => previous.filter((item) => item.host !== host));
+        setExtensions((previous) => previous.map((item) => item.id === host.manifest.id
+          ? { ...item, error: 'Extension stopped. Reload to restore its contributions.' } : item));
+      },
       postSurfaceMessage: (host, kind, id, payload) => {
         const send = host.surfaceTransports.get(`${kind}:${id}`);
         if (!send) throw new Error('Contribution is not mounted. Wait for its ready message before sending.');
@@ -407,7 +445,11 @@ export function useExtensions({ bridgeRef, notify }) {
   }, [reload]);
 
   const run = useCallback((item) => {
-    try { hosts.current.get(item.extensionId)?.run(item.command); }
+    try {
+      const host = hosts.current.get(item.extensionId);
+      if (!host) throw new Error('Extension is not running. Reload it in Settings > Extensions.');
+      host.run(item.command);
+    }
     catch (error) { notify(error.message); }
   }, [notify]);
 
@@ -418,8 +460,13 @@ export function useExtensions({ bridgeRef, notify }) {
   }, [reload, extensions]);
 
   const closeSurface = (surface) => surface.host.bridge.closeSurface(surface.host, surface.kind, surface.id);
+  const ribbonItems = extensions.filter((item) => item.enabled && !item.error).flatMap((item) =>
+    (item.contributes.ribbonItems || []).map((declaration) => ({
+      id: extensionCommandId(item.id, declaration.id), title: `${item.name}: ${declaration.title}`,
+      icon: declaration.icon, run: () => run({ extensionId: item.id, command: declaration.command }),
+    })));
   return {
-    extensions, commands, surfaces, closeSurface, run, reload, setEnabled,
+    extensions, commands, ribbonItems, surfaces, closeSurface, run, reload, setEnabled,
     settingsRevision, getSetting: getExtensionSetting, setSettings: setExtensionSettings, resetSettings: resetExtensionSettings
   };
 }

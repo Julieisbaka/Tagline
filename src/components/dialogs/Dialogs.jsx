@@ -211,7 +211,7 @@ export function SettingsDialog({ settings, update, onClose, extensions }) {
             <section hidden={section !== 'appearance'} className="settings-panel">
               <h3>{t('Theme and typography')}</h3>
               <ThemeSettings settings={settings} update={update} />
-              <RibbonSettings settings={settings} update={update} />
+              <RibbonSettings settings={settings} update={update} contributions={extensions?.ribbonItems} />
               {field('Editor font size', 'fontSize', 'number', { min: 10, max: 32 })}
               <AdvancedSettings settings={settings} update={update} section="fonts" />
               <CustomCssSettings settings={settings} update={update} />

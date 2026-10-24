@@ -2,10 +2,13 @@ import { useI18n } from '../../lib/i18n.js';
 import { binding, displayBinding } from '../../lib/keybindings.js';
 import { moveRibbonItem, normalizeRibbonItems, RIBBON_ITEMS } from '../../lib/ribbonItems.js';
 import Icon from '../Icon.jsx';
+import ContextMenu from '../dialogs/ContextMenu.jsx';
 
-export default function Ribbon({ ctx, showLeft, keybindings, settings, updateSettings }) {
+export default function Ribbon({ ctx, showLeft, keybindings, settings, updateSettings, contributions = [] }) {
   const { t } = useI18n();
-  const items = normalizeRibbonItems(settings.ribbonItems);
+  const [menu, setMenu] = useState(null);
+  const catalog = [...RIBBON_ITEMS, ...contributions];
+  const items = normalizeRibbonItems(settings.ribbonItems, contributions, settings.hiddenRibbonItems);
   const actions = {
     fileExplorer: ctx.toggleLeft,
     switcher: ctx.openSwitcher,
@@ -22,10 +25,23 @@ export default function Ribbon({ ctx, showLeft, keybindings, settings, updateSet
   const moveItem = (sourceId, targetId) => updateSettings({
     ribbonItems: moveRibbonItem(items, sourceId, targetId),
   });
+  const context = (event, id) => {
+    event.preventDefault();
+    const index = items.indexOf(id);
+    setMenu({ x: event.clientX, y: event.clientY, items: [
+      { label: 'Move up', disabled: index === 0, run: () => moveItem(id, items[index - 1]) },
+      { label: 'Move down', disabled: index === items.length - 1, run: () => moveItem(id, items[index + 1]) },
+      { label: 'Remove from sidebar', run: () => updateSettings({
+        ribbonItems: items.filter((item) => item !== id),
+        hiddenRibbonItems: [...new Set([...(settings.hiddenRibbonItems || []), id])],
+      }) },
+      { label: 'Settings', run: ctx.openSettings },
+    ] });
+  };
   return (
     <nav className="ribbon" aria-label={t('Sidebar shortcuts')}>
       {items.map((id) => {
-        const item = RIBBON_ITEMS.find(({ id: itemId }) => itemId === id);
+        const item = catalog.find(({ id: itemId }) => itemId === id);
         if (!item) return null;
         const label = item.keybinding ? title(item.title, item.keybinding) : t(item.title);
         const active = id === 'fileExplorer' && showLeft;
@@ -33,7 +49,14 @@ export default function Ribbon({ ctx, showLeft, keybindings, settings, updateSet
           className={`icon-btn${active ? ' active' : ''}`}
           title={`${label} — ${t('Drag to reorder; configure in Settings')}`}
           aria-label={label} draggable
-          onClick={actions[id]}
+          onClick={item.run || actions[id]}
+          onContextMenu={(event) => context(event, id)}
+          onKeyDown={(event) => {
+            if (event.key === 'ContextMenu' || (event.key === 'F10' && event.shiftKey)) {
+              const rect = event.currentTarget.getBoundingClientRect();
+              context({ preventDefault: () => event.preventDefault(), clientX: rect.right, clientY: rect.top }, id);
+            }
+          }}
           onDragStart={(event) => {
             event.dataTransfer.effectAllowed = 'move';
             event.dataTransfer.setData('text/plain', id);
@@ -53,6 +76,8 @@ export default function Ribbon({ ctx, showLeft, keybindings, settings, updateSet
         onClick={ctx.openSettings}>
         <Icon name="settings" size={18} />
       </button>
+      {menu && <ContextMenu {...menu} onClose={() => setMenu(null)} />}
     </nav>
   );
 }
+import { useState } from 'react';

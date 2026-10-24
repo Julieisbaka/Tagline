@@ -1,7 +1,7 @@
 const { parentPort, workerData } = require('node:worker_threads');
 const fs = require('node:fs/promises');
 const path = require('node:path');
-const { digest, chunksFor, cosine, lexicalAffinity } = require('./embeddingMath.cjs');
+const { digest, chunksFor, cosine, lexicalAffinity, parseEmbeddingCache, validCachedVectors } = require('./embeddingMath.cjs');
 
 const MODEL = 'Xenova/all-MiniLM-L6-v2';
 let pipelinePromise;
@@ -64,12 +64,15 @@ async function search({ query, documents, vault, maxResults = 200 }, report) {
   const indexDir = path.join(workerData.storage, 'indexes');
   const indexFile = path.join(indexDir, `${digest(vault)}.json`);
   let cache = {};
+  let saved;
   try {
-    // TODO: Validate cached document/vector shapes and rebuild invalid indexes instead of failing the search.
-    const saved = JSON.parse(await fs.readFile(indexFile, 'utf8'));
-    if (saved.model === MODEL) cache = saved.documents;
+    saved = await fs.readFile(indexFile, 'utf8');
   } catch (e) {
     if (e.code !== 'ENOENT') throw new Error(`Cannot read semantic index: ${e.message}`);
+  }
+  if (saved !== undefined) {
+    try { cache = parseEmbeddingCache(saved, MODEL); }
+    catch (error) { console.warn(`Rebuilding invalid semantic index: ${error.message}`); report('Rebuilding invalid semantic index.'); }
   }
   const nextCache = {};
   const queryVector = await embed(model, query);
@@ -78,7 +81,9 @@ async function search({ query, documents, vault, maxResults = 200 }, report) {
   for (const [file, content] of Object.entries(documents)) {
     const chunks = chunksFor(content);
     const hash = digest(content);
-    const cached = cache[file]?.hash === hash ? cache[file] : null;
+    const entry = Object.hasOwn(cache, file) ? cache[file] : null;
+    const cached = validCachedVectors(entry, hash, chunks.length, queryVector.length) ? entry : null;
+    if (entry?.hash === hash && !cached) console.warn(`Rebuilding invalid cached vectors for ${file}`);
     const vectors = cached ? cached.vectors : [];
     if (!cached) {
       for (const chunk of chunks) vectors.push(await embed(model, chunk.text));

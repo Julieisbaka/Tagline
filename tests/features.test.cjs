@@ -214,7 +214,8 @@ test('extension settings have validated types, bounds, defaults and scoped stora
   const other = new ExtensionHost({ ...manifest, id: 'other' }, '', {});
   assert.equal(await other.handle('settings.get', ['enabled']), true);
   storage.set('tagline-extension-settings:typed', '{invalid');
-  await assert.rejects(host.handle('settings.get', ['enabled']), SyntaxError);
+  assert.equal(await host.handle('settings.get', ['enabled']), true, 'malformed settings reset to defaults');
+  assert.equal(storage.has('tagline-extension-settings:typed'), false, 'only the corrupt entry is removed');
   resetExtensionSettings(manifest);
   assert.equal(await host.handle('settings.get', ['enabled']), true);
 });

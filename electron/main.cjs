@@ -214,9 +214,9 @@ function registerIpc() {
 
   ipcMain.handle('fs:read', async (_e, rel) => fs.readFile(resolveInVault(rel), 'utf8'));
 
-  ipcMain.handle('fs:write', async (_e, rel, content, retention = DEFAULT_RETENTION) => {
+  ipcMain.handle('fs:write', async (_e, rel, content, retention = DEFAULT_RETENTION, canvasMode = 'complete') => {
     const full = resolveInVault(rel);
-    await history.snapshot(rel, content, retention);
+    await history.snapshot(rel, content, retention, canvasMode);
     await fs.mkdir(path.dirname(full), { recursive: true });
     await fs.writeFile(full, content, 'utf8');
     return true;
@@ -315,7 +315,26 @@ function createWindow() {
       : [{ role: 'copy' }, { role: 'selectAll' }];
     Menu.buildFromTemplate(template).popup({ window: win });
   });
-  win.on('close', () => closeWebsiteView());
+  let readyToClose = false;
+  let preparingClose = false;
+  const closeReady = (event, success) => {
+    if (event.sender !== win?.webContents || !preparingClose) return;
+    preparingClose = false;
+    if (success === true) { readyToClose = true; win.close(); }
+  };
+  ipcMain.on('app:closeReady', closeReady);
+  win.once('closed', () => ipcMain.removeListener('app:closeReady', closeReady));
+  win.on('close', (event) => {
+    if (!readyToClose && !win.webContents.isDestroyed() && !win.webContents.isCrashed()) {
+      event.preventDefault();
+      if (!preparingClose) {
+        preparingClose = true;
+        win.webContents.send('app:prepareClose');
+      }
+      return;
+    }
+    closeWebsiteView();
+  });
   win.webContents.on('render-process-gone', () => closeWebsiteView());
   win.webContents.on('did-start-navigation', (_event, _url, isInPlace, isMainFrame) => {
     if (isMainFrame && !isInPlace) closeWebsiteView();

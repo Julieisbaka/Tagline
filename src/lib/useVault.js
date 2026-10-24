@@ -5,7 +5,7 @@ import { folderPaths, normalizeFolders } from './folderPaths.js';
 const api = window.api;
 const SAVE_DELAY = 400;
 
-export function useVault(underscoreFolders = true, autoRelink = true, historyRetention = 50) {
+export function useVault(underscoreFolders = true, autoRelink = true, historyRetention = 50, canvasHistoryMode = 'complete') {
   const [vault, setVault] = useState(null);
   const [tree, setTree] = useState([]);
   const [contents, setContents] = useState({});
@@ -21,6 +21,8 @@ export function useVault(underscoreFolders = true, autoRelink = true, historyRet
   contentsRef.current = contents;
   const historyRetentionRef = useRef(historyRetention);
   historyRetentionRef.current = historyRetention;
+  const canvasHistoryModeRef = useRef(canvasHistoryMode);
+  canvasHistoryModeRef.current = canvasHistoryMode;
   const directories = folderPaths(tree);
   const normalize = (path, folder = false) => underscoreFolders ? normalizeFolders(path, folder, directories) : path;
 
@@ -28,7 +30,8 @@ export function useVault(underscoreFolders = true, autoRelink = true, historyRet
 
   const writeDisk = useCallback((path, text) => {
     const previous = writes.current.get(path)?.task || Promise.resolve();
-    const task = previous.catch(() => { }).then(() => api.write(path, text, historyRetentionRef.current));
+    const task = previous.catch(() => { }).then(() =>
+      api.write(path, text, historyRetentionRef.current, canvasHistoryModeRef.current));
     writes.current.set(path, { task, text });
     const cleanup = () => {
       if (writes.current.get(path)?.task === task) writes.current.delete(path);
@@ -107,13 +110,23 @@ export function useVault(underscoreFolders = true, autoRelink = true, historyRet
   }, [writeDisk]);
 
   useEffect(() => {
-    const onUnload = () => {
-      // TODO: Make pending writes reliable on shutdown; these fire-and-forget IPC calls may be interrupted by window teardown.
-      for (const [p, c] of Object.entries(pending.current)) api.write(p, c, historyRetentionRef.current);
+    const onUnload = (event) => {
+      if (!Object.keys(pending.current).length && !writes.current.size) return;
+      event.preventDefault();
+      event.returnValue = false;
+      flush().then((saved) => {
+        if (saved) window.dispatchEvent(new CustomEvent('app-error', {
+          detail: 'Pending edits have been saved. Retry closing or reloading.',
+        }));
+      }).catch(report);
     };
+    const unsubscribe = api.onPrepareClose(async () => {
+      try { api.closeReady(await flush()); }
+      catch (error) { report(error); api.closeReady(false); }
+    });
     window.addEventListener('beforeunload', onUnload);
-    return () => window.removeEventListener('beforeunload', onUnload);
-  }, []);
+    return () => { unsubscribe(); window.removeEventListener('beforeunload', onUnload); };
+  }, [flush]);
 
   const updateContent = useCallback((path, text) => {
     contentsRef.current = { ...contentsRef.current, [path]: text };
@@ -176,7 +189,7 @@ export function useVault(underscoreFolders = true, autoRelink = true, historyRet
             updated = rewriteLinks(updated, oldPath, to + oldPath.slice(from.length), paths);
           }
           const destination = moved.includes(p) ? to + p.slice(from.length) : p;
-          if (updated !== all[p]) await api.write(destination, updated, historyRetentionRef.current);
+          if (updated !== all[p]) await api.write(destination, updated, historyRetentionRef.current, canvasHistoryModeRef.current);
         }
         await reload();
         return to;

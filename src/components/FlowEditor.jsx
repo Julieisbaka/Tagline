@@ -3,19 +3,10 @@ import { useI18n } from '../lib/i18n.js';
 import { binding, displayBinding, matchesBinding } from '../lib/keybindings.js';
 import ContextMenu from './dialogs/ContextMenu.jsx';
 import Icon from './Icon.jsx';
+import { EMPTY_FLOW, FLOW_PRESETS as PRESETS, parseFlow } from '../../electron/flow.mjs';
 
 const AFF = new Set(['1AC', '2AC', '1AR', '2AR', 'AC', 'AR']);
-const PRESETS = {
-  'On-case (Aff)': ['1AC', '1NC', '2AC', 'Block', '1AR', '2NR', '2AR'],
-  'Off-case (Neg)': ['1NC', '2AC', 'Block', '1AR', '2NR', '2AR'],
-  'CX notes': ['1AC CX', '1NC CX', '2AC CX', '2NC CX'],
-};
-
-export const EMPTY_FLOW = JSON.stringify(
-  { version: 1, sheets: [{ name: 'Case', columns: PRESETS['On-case (Aff)'], rows: [Array(7).fill('')] }] },
-  null,
-  2,
-);
+export { EMPTY_FLOW } from '../../electron/flow.mjs';
 
 const sideOf = (col) => (AFF.has(col.split(' ')[0].toUpperCase()) ? 'aff' : 'neg');
 
@@ -40,12 +31,7 @@ export default function FlowEditor({ content, onChange, focusNewFlowRow = true, 
 
   const parsed = useMemo(() => {
     try {
-      const data = JSON.parse(content || '{}');
-      if (!Array.isArray(data.sheets) || !data.sheets.length || data.sheets.some((s) =>
-        typeof s.name !== 'string' || !Array.isArray(s.columns) || !s.columns.length ||
-        s.columns.some((c) => typeof c !== 'string') || !Array.isArray(s.rows) ||
-        s.rows.some((r) => !Array.isArray(r) || r.length !== s.columns.length ||
-          r.some((c) => typeof c !== 'string')))) throw new Error('Invalid flow structure');
+      const data = parseFlow(content || '{}');
       return { data };
     } catch (e) {
       return { error: e.message };

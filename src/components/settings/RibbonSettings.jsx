@@ -1,12 +1,13 @@
 import { useI18n } from '../../lib/i18n.js';
 import { DEFAULT_RIBBON_ITEMS, normalizeRibbonItems, RIBBON_ITEMS } from '../../lib/ribbonItems.js';
 
-export default function RibbonSettings({ settings, update }) {
+export default function RibbonSettings({ settings, update, contributions = [] }) {
   const { t } = useI18n();
-  const visibleItems = normalizeRibbonItems(settings.ribbonItems);
+  const catalog = [...RIBBON_ITEMS, ...contributions];
+  const visibleItems = normalizeRibbonItems(settings.ribbonItems, contributions, settings.hiddenRibbonItems);
   const orderedItems = [
-    ...visibleItems.map((id) => RIBBON_ITEMS.find((item) => item.id === id)),
-    ...RIBBON_ITEMS.filter((item) => !visibleItems.includes(item.id)),
+    ...visibleItems.map((id) => catalog.find((item) => item.id === id)).filter(Boolean),
+    ...catalog.filter((item) => !visibleItems.includes(item.id)),
   ];
   const move = (id, offset) => {
     const index = visibleItems.indexOf(id);
@@ -21,6 +22,8 @@ export default function RibbonSettings({ settings, update }) {
       ribbonItems: checked
         ? [...visibleItems, id]
         : visibleItems.filter((item) => item !== id),
+      hiddenRibbonItems: checked ? (settings.hiddenRibbonItems || []).filter((item) => item !== id)
+        : [...new Set([...(settings.hiddenRibbonItems || []), id])],
     });
   };
 
@@ -50,7 +53,9 @@ export default function RibbonSettings({ settings, update }) {
           );
         })}
       </ol>
-      <button type="button" data-ribbon-reset onClick={() => update({ ribbonItems: [...DEFAULT_RIBBON_ITEMS] })}>
+      <button type="button" data-ribbon-reset onClick={() => update({
+        ribbonItems: [...DEFAULT_RIBBON_ITEMS, ...contributions.map((item) => item.id)], hiddenRibbonItems: [],
+      })}>
         {t('Restore default shortcuts')}
       </button>
     </div>

@@ -1,16 +1,29 @@
 import { json } from '@codemirror/lang-json';
+import { HighlightStyle, syntaxHighlighting } from '@codemirror/language';
+import { EditorView } from '@codemirror/view';
+import { tags } from '@lezer/highlight';
 import CodeMirror from '@uiw/react-codemirror';
-import { useMemo, useRef, useState } from 'react';
-import { createArgumentEdge, createCanvasId, createCanvasNode, parseCanvas, serializeCanvas } from '../lib/canvas.js';
+import { useId, useMemo, useRef, useState } from 'react';
+import { canvasGroupMembers, createArgumentEdge, createCanvasId, createCanvasNode, moveCanvasNodes,
+  parseCanvas, serializeCanvas, suggestCanvasFiles } from '../lib/canvas.js';
+import { settingsCodeMirrorTheme } from '../lib/editorExtensions.js';
 import { useI18n } from '../lib/i18n.js';
 import { baseName, resolveLink } from '../lib/vault.js';
 import Icon from './Icon.jsx';
 import Preview from './Preview.jsx';
 
 const PRESET_COLORS = [
-  ['1', '#e06c75'], ['2', '#d19a66'], ['3', '#e5c07b'],
-  ['4', '#98c379'], ['5', '#56b6c2'], ['6', '#c678dd'],
+  ['1', '#e06c75', 'Red'], ['2', '#d19a66', 'Orange'], ['3', '#e5c07b', 'Yellow'],
+  ['4', '#98c379', 'Green'], ['5', '#56b6c2', 'Cyan'], ['6', '#c678dd', 'Purple'],
 ];
+
+const JSON_EXTENSIONS = [json(), syntaxHighlighting(HighlightStyle.define([
+  { tag: tags.propertyName, color: 'var(--accent)' },
+  { tag: tags.string, color: 'var(--text-strong)' },
+  { tag: [tags.number, tags.bool, tags.null], color: 'var(--code)' },
+  { tag: tags.punctuation, color: 'var(--text-muted)' },
+])), settingsCodeMirrorTheme,
+  EditorView.lineWrapping, EditorView.contentAttributes.of({ 'aria-label': 'Canvas JSON', 'aria-multiline': 'true' })];
 
 function nodeColor(color) {
   return color?.startsWith('#') ? color : PRESET_COLORS.find(([id]) => id === color)?.[1] || 'var(--border)';
@@ -28,6 +41,7 @@ function CanvasNode({
   onStartGesture, paths, t,
 }) {
   const accent = nodeColor(node.color);
+  const fileListId = useId();
   const [editingText, setEditingText] = useState(node.type === 'text' && !node.text);
   return (
     <article
@@ -64,8 +78,10 @@ function CanvasNode({
           : <Preview className="canvas-node-preview" content={node.text} resolve={(target) => resolveLink(target, paths)}
             onOpenLink={onOpenLink} onTagClick={() => {}} />)}
         {node.type === 'file' && <>
-          <input aria-label={t('File path')} placeholder={t('Vault-relative file path')} value={node.file}
+          <input aria-label={t('File path')} placeholder={t('Vault-relative file path')} value={node.file} list={fileListId}
             onChange={(event) => onUpdate(node.id, { file: event.target.value })} />
+          <datalist id={fileListId}>{suggestCanvasFiles(paths, node.file)
+            .map((path) => <option key={path} value={path} />)}</datalist>
           {node.subpath !== undefined && <input aria-label={t('File subpath')} value={node.subpath}
             onChange={(event) => onUpdate(node.id, { subpath: event.target.value })} />}
           <button className="link-btn canvas-open-file" disabled={!resolveLink(node.file, paths)}
@@ -114,8 +130,8 @@ function CanvasBoard({ canvas, onChange, paths, onOpenFile, onOpenUrl, onOpenLin
   const xOffset = -minX;
   const yOffset = -minY;
   const renderedNodes = canvas.nodes.map((item) => {
-    if (!gesture || gesture.type !== 'move' || gesture.id !== item.id) return item;
-    return { ...item, x: gesture.x + gesture.dx, y: gesture.y + gesture.dy };
+    if (!gesture || gesture.type !== 'move' || !gesture.ids.includes(item.id)) return item;
+    return { ...item, x: item.x + gesture.dx, y: item.y + gesture.dy };
   });
 
   const update = (next) => onChange(serializeCanvas(next));
@@ -130,6 +146,9 @@ function CanvasBoard({ canvas, onChange, paths, onOpenFile, onOpenUrl, onOpenLin
   };
   const addNode = (type) => {
     const nextNode = createCanvasNode(type, canvas.nodes.length);
+    if (type === 'group' && node) Object.assign(nextNode, {
+      x: node.x - 24, y: node.y - 40, width: node.width + 48, height: node.height + 64,
+    });
     update({ ...canvas, nodes: [...canvas.nodes, nextNode] });
     setSelectedNode(nextNode.id);
     setSelectedEdge(null);
@@ -160,6 +179,7 @@ function CanvasBoard({ canvas, onChange, paths, onOpenFile, onOpenUrl, onOpenLin
     const { id, type, x, y, width: nodeWidth, height: nodeHeight } = data;
     const next = {
       id, type, clientX: event.clientX, clientY: event.clientY,
+      ids: [id, ...canvasGroupMembers(canvas.nodes, id)],
       x, y, width: nodeWidth, height: nodeHeight, dx: 0, dy: 0,
     };
     gestureRef.current = next;
@@ -175,9 +195,8 @@ function CanvasBoard({ canvas, onChange, paths, onOpenFile, onOpenUrl, onOpenLin
   const endGesture = () => {
     const current = gestureRef.current;
     if (current) {
-      if (current.type === 'move') updateNode(current.id, {
-        x: Math.round(current.x + current.dx), y: Math.round(current.y + current.dy),
-      });
+      if (current.type === 'move') update(moveCanvasNodes(canvas, current.ids,
+        Math.round(current.dx), Math.round(current.dy)));
       else updateNode(current.id, {
         width: Math.max(180, Math.round(current.width + current.dx)),
         height: Math.max(100, Math.round(current.height + current.dy)),
@@ -231,7 +250,8 @@ function CanvasBoard({ canvas, onChange, paths, onOpenFile, onOpenUrl, onOpenLin
           <select aria-label={t('Node color')} value={node.color || ''}
             onChange={(event) => updateNode(node.id, { color: event.target.value || undefined })}>
             <option value="">{t('Default')}</option>
-            {PRESET_COLORS.map(([value]) => <option key={value} value={value}>{t('Color {number}', { number: value })}</option>)}
+            {node.color?.startsWith('#') && <option value={node.color}>{node.color}</option>}
+            {PRESET_COLORS.map(([value, , name]) => <option key={value} value={value}>{t(name)}</option>)}
           </select>
         </label>
       </div>}
@@ -243,7 +263,8 @@ function CanvasBoard({ canvas, onChange, paths, onOpenFile, onOpenUrl, onOpenLin
           onChange={(event) => update({ ...canvas, edges: canvas.edges.map((item) =>
             item.id === edge.id ? { ...item, color: event.target.value || undefined } : item) })}>
           <option value="">{t('Default')}</option>
-          {PRESET_COLORS.map(([value]) => <option key={value} value={value}>{t('Color {number}', { number: value })}</option>)}
+          {edge.color?.startsWith('#') && <option value={edge.color}>{edge.color}</option>}
+          {PRESET_COLORS.map(([value, , name]) => <option key={value} value={value}>{t(name)}</option>)}
         </select></label>
         <label>{t('Endpoint')}<select aria-label={t('Endpoint')} value={edge.toEnd || 'arrow'}
           onChange={(event) => update({ ...canvas, edges: canvas.edges.map((item) =>
@@ -281,13 +302,15 @@ function CanvasBoard({ canvas, onChange, paths, onOpenFile, onOpenUrl, onOpenLin
               </g>;
             })}
           </svg>
-          <div className="canvas-nodes">
-            {renderedNodes.map((item, index) => <CanvasNode key={item.id} node={{ ...item, x: item.x + xOffset, y: item.y + yOffset }}
+          {['group', 'node'].map((layer) => <div key={layer} className={layer === 'group' ? 'canvas-groups' : 'canvas-nodes'}>
+            {renderedNodes.filter((item) => (item.type === 'group') === (layer === 'group'))
+              .sort((a, b) => layer === 'group' ? b.width * b.height - a.width * a.height : 0)
+              .map((item, index) => <CanvasNode key={item.id} node={{ ...item, x: item.x + xOffset, y: item.y + yOffset }}
               selected={item.id === selectedNode || (connecting && item.id === connectionStart)} order={index}
               xOffset={xOffset} yOffset={yOffset} onStartGesture={startGesture}
               onSelect={selectNode} onUpdate={updateNode} onRemove={removeNode}
               onOpenFile={onOpenFile} onOpenUrl={onOpenUrl} onOpenLink={onOpenLink} paths={paths} t={t} />)}
-          </div>
+          </div>)}
         </div>
       </div>
     </div>
@@ -326,7 +349,8 @@ export default function CanvasView({
       </div>
       {editorMode === 'source' ? <>
         {parsed.error && <div className="editor-notice source-fallback" role="alert">{parsed.error}</div>}
-        <CodeMirror className="canvas-json-editor" value={content} onChange={onChange} extensions={[json()]}
+        <CodeMirror className="canvas-json-editor" value={content} onChange={onChange} extensions={JSON_EXTENSIONS}
+          basicSetup={{ highlightActiveLine: false, highlightActiveLineGutter: false }}
           theme="none" height="100%" autoFocus />
       </> : parsed.error ? <div className="canvas-invalid" role="alert">
         <h2>{t('Invalid Canvas JSON')}</h2><p>{parsed.error}</p>

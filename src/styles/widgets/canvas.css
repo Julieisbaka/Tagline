@@ -93,11 +93,16 @@
   stroke-linejoin: round;
 }
 
-.canvas-nodes {
+.canvas-nodes,
+.canvas-groups {
   position: absolute;
   inset: 0;
   z-index: 2;
   pointer-events: none;
+}
+
+.canvas-groups {
+  z-index: 0;
 }
 
 .canvas-node {
@@ -236,6 +241,28 @@
 
 .canvas-json-editor .cm-editor {
   height: 100%;
+  background: var(--bg);
+  color: var(--text);
+}
+
+.canvas-json-editor .cm-scroller {
+  font-family: var(--font-mono);
+  line-height: var(--visual-line-height, 1.65);
+}
+
+.canvas-json-editor .cm-gutters {
+  color: var(--text-muted);
+  background: var(--bg-secondary);
+  border-color: var(--border);
+}
+
+.canvas-json-editor .cm-selectionBackground,
+.canvas-json-editor .cm-editor.cm-focused .cm-selectionBackground {
+  background: var(--selection) !important;
+}
+
+.canvas-json-editor .cm-content {
+  padding: 12px;
 }
 
 @media (prefers-reduced-motion: reduce) {

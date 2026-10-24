@@ -1,10 +1,14 @@
 const fs = require('node:fs/promises');
 const path = require('node:path');
 const { randomUUID } = require('node:crypto');
+const { isDeepStrictEqual } = require('node:util');
+const { parseCanvas, serializeCanvas } = require('./canvas.mjs');
 
 const DEFAULT_RETENTION = 50;
 const MAX_RETENTION = 5000;
 const SNAPSHOT_ID = /^\d{13}-[0-9a-f-]{36}\.snapshot$/;
+const DOCUMENT = /\.(md|flow|canvas)$/i;
+const HISTORY_TYPES = 'Revision history supports Markdown, flow and Canvas documents only.';
 
 function validateRetention(value) {
   if (!Number.isInteger(value) || value < 1 || value > MAX_RETENTION) {
@@ -17,7 +21,7 @@ function createRevisionHistory({ getVaultRoot, resolveInVault }) {
   const historyDir = (relativePath) => {
     const full = resolveInVault(relativePath);
     const rel = path.relative(getVaultRoot(), full);
-    if (!/\.(md|flow)$/i.test(rel)) throw new Error('Revision history supports Markdown and flow documents only.');
+    if (!DOCUMENT.test(rel)) throw new Error(HISTORY_TYPES);
     return path.join(resolveInVault('.tagline/history'), rel);
   };
 
@@ -33,11 +37,12 @@ function createRevisionHistory({ getVaultRoot, resolveInVault }) {
     }
   };
 
-  async function snapshot(relativePath, nextContent, retention = DEFAULT_RETENTION) {
+  async function snapshot(relativePath, nextContent, retention = DEFAULT_RETENTION, canvasMode = 'complete') {
     validateRetention(retention);
+    if (!['complete', 'data'].includes(canvasMode)) throw new Error('Canvas history mode must be complete or data.');
     if (typeof nextContent !== 'string') throw new Error('Document content must be text.');
     const currentPath = resolveInVault(relativePath);
-    if (!/\.(md|flow)$/i.test(currentPath)) return;
+    if (!DOCUMENT.test(currentPath)) return;
     let previous;
     try {
       previous = await fs.readFile(currentPath, 'utf8');
@@ -47,18 +52,42 @@ function createRevisionHistory({ getVaultRoot, resolveInVault }) {
     }
     if (previous === nextContent) return;
     const directory = historyDir(relativePath);
+    let snapshotContent = previous;
+    if (/\.canvas$/i.test(currentPath)) {
+      const layoutPath = path.join(directory, 'layout.json');
+      let layout = null;
+      try { layout = JSON.parse(await fs.readFile(layoutPath, 'utf8')); }
+      catch (error) { if (error.code !== 'ENOENT') throw error; }
+      let before;
+      let after;
+      try { before = parseCanvas(previous); } catch { /* Preserve invalid source as a complete revision. */ }
+      try { after = parseCanvas(nextContent); } catch { /* Preserve invalid source as a complete revision. */ }
+      if (after && (canvasMode === 'data' || layout)) {
+        const positions = Object.fromEntries([...(before?.nodes || []), ...after.nodes].map((node) =>
+          [node.id, { x: node.x, y: node.y, width: node.width, height: node.height }]));
+        await fs.mkdir(directory, { recursive: true });
+        await fs.writeFile(`${layoutPath}.tmp`, JSON.stringify({ ...layout, ...positions }), 'utf8');
+        await fs.rename(`${layoutPath}.tmp`, layoutPath);
+      }
+      if (canvasMode === 'data' && before && after) {
+        const dataOnly = (canvas) => ({ ...canvas, nodes: canvas.nodes.map(({ x, y, width, height, ...node }) => node) });
+        const data = dataOnly(before);
+        if (isDeepStrictEqual(data, dataOnly(after))) return;
+        snapshotContent = JSON.stringify({ taglineCanvasRevision: 1, mode: 'data', data });
+      }
+    }
     await fs.mkdir(directory, { recursive: true });
     const existing = await listFiles(directory);
     const lastTimestamp = existing.length ? Number(existing[0].slice(0, existing[0].indexOf('-'))) : 0;
     const id = `${Math.max(Date.now(), lastTimestamp + 1)}-${randomUUID()}.snapshot`;
-    await fs.writeFile(path.join(directory, id), previous, { encoding: 'utf8', flag: 'wx' });
+    await fs.writeFile(path.join(directory, id), snapshotContent, { encoding: 'utf8', flag: 'wx' });
     const snapshots = await listFiles(directory);
     await Promise.all(snapshots.slice(retention).map((file) => fs.unlink(path.join(directory, file))));
   }
 
   async function list(relativePath) {
     const documentPath = resolveInVault(relativePath);
-    if (!/\.(md|flow)$/i.test(documentPath)) throw new Error('Revision history supports Markdown and flow documents only.');
+    if (!DOCUMENT.test(documentPath)) throw new Error(HISTORY_TYPES);
     const directory = historyDir(relativePath);
     return (await listFiles(directory)).map((id) => ({
       id,
@@ -69,8 +98,18 @@ function createRevisionHistory({ getVaultRoot, resolveInVault }) {
   async function read(relativePath, id) {
     if (typeof id !== 'string' || !SNAPSHOT_ID.test(id)) throw new Error('Invalid revision history entry.');
     const documentPath = resolveInVault(relativePath);
-    if (!/\.(md|flow)$/i.test(documentPath)) throw new Error('Revision history supports Markdown and flow documents only.');
-    return fs.readFile(path.join(historyDir(relativePath), id), 'utf8');
+    if (!DOCUMENT.test(documentPath)) throw new Error(HISTORY_TYPES);
+    const directory = historyDir(relativePath);
+    const content = await fs.readFile(path.join(directory, id), 'utf8');
+    if (/\.canvas$/i.test(documentPath)) {
+      let saved;
+      try { saved = JSON.parse(content); } catch { return content; }
+      if (saved?.taglineCanvasRevision === 1 && saved.mode === 'data') {
+        const layout = JSON.parse(await fs.readFile(path.join(directory, 'layout.json'), 'utf8'));
+        return serializeCanvas({ ...saved.data, nodes: saved.data.nodes.map((node) => ({ ...node, ...layout[node.id] })) });
+      }
+    }
+    return content;
   }
 
   async function rename(from, to) {
@@ -85,7 +124,10 @@ function createRevisionHistory({ getVaultRoot, resolveInVault }) {
     await fs.mkdir(destination, { recursive: true });
     const moved = [];
     try {
-      for (const id of await listFiles(source)) {
+      const files = await listFiles(source);
+      try { await fs.access(path.join(source, 'layout.json')); files.push('layout.json'); }
+      catch (error) { if (error.code !== 'ENOENT') throw error; }
+      for (const id of files) {
         await fs.rename(path.join(source, id), path.join(destination, id));
         moved.push(id);
       }

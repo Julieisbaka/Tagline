@@ -75,19 +75,34 @@ function validateManifest(value, root, limits = DEFAULT_LIMITS) {
     if (command.key !== undefined && typeof command.key !== 'string') fail(`command ${command.id} key must be text.`);
   }
   if (commands.length && !value.main) fail('commands require a main script.');
+  const ribbonItems = contributes.ribbonItems ?? [];
+  if (!Array.isArray(ribbonItems) || ribbonItems.length > 10) fail('contributes.ribbonItems must be a list of at most 10.');
+  const ribbonIds = new Set();
+  for (const item of ribbonItems) {
+    if (!item || typeof item.id !== 'string' || !ID.test(item.id) || ribbonIds.has(item.id) ||
+      typeof item.title !== 'string' || !item.title.trim() || item.title.length > 80 ||
+      typeof item.icon !== 'string' || !/^[a-z-]{1,40}$/.test(item.icon) ||
+      !commands.some((command) => command.id === item.command)) {
+      fail('each ribbon item needs a unique id, title, icon name and declared command.');
+    }
+    ribbonIds.add(item.id);
+  }
+  if (ribbonItems.length && !permissions.includes('ui')) fail('ribbon items require ui permission.');
   if (value.main !== undefined) relativeFile(root, value.main, '.js');
   themes.forEach((theme) => relativeFile(root, theme, '.json'));
   return {
     manifestVersion: 1, id: value.id, name: value.name.trim(), version: value.version.trim(),
     description: value.description || '', author: value.author || '', main: value.main || null,
     permissions: [...new Set(permissions)],
-    contributes: { commands: commands.map(({ id, title, key }) => ({ id, title: title.trim(), key: key || '' })), themes, settings, ...surfaces },
+    contributes: { commands: commands.map(({ id, title, key }) => ({ id, title: title.trim(), key: key || '' })), themes, settings,
+      ribbonItems: ribbonItems.map(({ id, title, icon, command }) => ({ id, title: title.trim(), icon, command })), ...surfaces },
   };
 }
 
 function reviewSignature(manifest) {
   return JSON.stringify({
     permissions: [...manifest.permissions].sort(), settings: manifest.contributes.settings,
+    ...(manifest.contributes.ribbonItems.length ? { ribbonItems: manifest.contributes.ribbonItems } : {}),
     ...(manifest.contributes.panels.length || manifest.contributes.webviews.length
       ? { panels: manifest.contributes.panels, webviews: manifest.contributes.webviews } : {})
   });

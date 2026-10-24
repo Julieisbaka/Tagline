@@ -5,6 +5,8 @@ import { renderMarkdown, slugify } from './markdown.js';
 import { readingSeconds, speechStats } from './readTime.js';
 import { fillTemplate } from './template.js';
 import { extractLinks, extractTags, fuzzyScore, outline, resolveLink } from './vault.js';
+import { canvasGroupMembers, createArgumentEdge, createCanvasNode, parseCanvas, serializeCanvas } from './canvas.js';
+import { EMPTY_FLOW, parseFlow, serializeFlow, setFlowCell } from '../../electron/flow.mjs';
 
 export const MAX_HELPER_TEXT = 100_000;
 
@@ -121,6 +123,25 @@ function requirePaths(value) {
 
 export function extensionHelper(method, args) {
   switch (method) {
+    case 'helpers.canvas.parse':
+      return parseCanvas(requireHelperText(args[0], 'Canvas JSON'));
+    case 'helpers.canvas.serialize':
+      return requireHelperText(serializeCanvas(args[0]), 'Canvas JSON');
+    case 'helpers.canvas.createNode':
+      if (!Number.isSafeInteger(args[1]) || args[1] < 0 || args[1] > 10000) throw new Error('Node index must be from 0 to 10,000.');
+      return createCanvasNode(args[0], args[1]);
+    case 'helpers.canvas.createArgumentEdge':
+      return createArgumentEdge(requireHelperText(args[0], 'Source node'), requireHelperText(args[1], 'Target node'), args[2]);
+    case 'helpers.canvas.groupMembers':
+      return canvasGroupMembers(parseCanvas(serializeCanvas(args[0])).nodes, requireHelperText(args[1], 'Group id'));
+    case 'helpers.flow.parse':
+      return parseFlow(requireHelperText(args[0], 'Flow JSON'));
+    case 'helpers.flow.serialize':
+      return requireHelperText(serializeFlow(args[0]), 'Flow JSON');
+    case 'helpers.flow.create':
+      return parseFlow(EMPTY_FLOW);
+    case 'helpers.flow.setCell':
+      return setFlowCell(args[0], args[1], args[2], args[3], requireHelperText(args[4], 'Cell text'));
     case 'helpers.markdownToText':
     case 'helpers.markdown.toText':
       return markdownToText(requireHelperText(args[0], 'Markdown'));

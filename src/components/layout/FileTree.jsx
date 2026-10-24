@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useI18n } from '../../lib/i18n.js';
 import { displayName, isCanvas, isFlow } from '../../lib/vault.js';
 import Icon from '../Icon.jsx';
+import { readStoredJson } from '../../lib/storedJson.js';
 
 function TreeNode({ node, depth, activePath, expanded, toggle, onOpen, onContext, onDropMove, spaced, hideFlowExtension, showMarkdownExtension }) {
   // Folder underscores are an on-disk detail; show them as spaces only when the setting creates them.
@@ -73,8 +74,8 @@ function TreeNode({ node, depth, activePath, expanded, toggle, onOpen, onContext
 
 export default function FileTree({ tree, activePath, onOpen, onContext, onDropMove, spaced = false, hideFlowExtension = true, showMarkdownExtension = false }) {
   const { t } = useI18n();
-  // TODO: Handle malformed persisted JSON so a corrupt expanded-folder list does not prevent the tree from mounting.
-  const [expanded, setExpanded] = useState(() => new Set(JSON.parse(localStorage.getItem('expanded') || '[]')));
+  const [expanded, setExpanded] = useState(() => new Set(readStoredJson('expanded', [],
+    (value) => Array.isArray(value) && value.every((path) => typeof path === 'string'))));
   const toggle = (p) => {
     setExpanded((prev) => {
       const next = new Set(prev);

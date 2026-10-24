@@ -2,6 +2,7 @@ import { EditorSelection } from '@codemirror/state';
 import { useEffect, useRef } from 'react';
 import { applicationEvents, requireSelection } from './extensionCapabilities.js';
 import { useExtensions } from './extensions.js';
+import { isCanvas, isFlow } from './vault.js';
 
 export function useAppExtensions({
   v, paths, activePath, activeContent, mode, sourceFallback, editorRef, visualRef,
@@ -50,7 +51,7 @@ export function useAppExtensions({
     return task;
   };
   const requireNote = (path) => {
-    if (!/\.(md|flow)$/i.test(path)) throw new Error('Extensions can only modify .md and .flow files.');
+    if (!/\.(md|flow|canvas)$/i.test(path)) throw new Error('Extensions can only modify .md, .flow and .canvas files.');
     const content = v.getContent(path);
     if (content === undefined) throw new Error(`Note not found: ${path}`);
     return content;
@@ -63,18 +64,19 @@ export function useAppExtensions({
       let selection = '';
       let selectionRange = null;
       let editorKind = null;
-      if (mode === 'visual' && !sourceFallback && visualRef.current) {
+      if (/\.md$/i.test(activePath) && mode === 'visual' && !sourceFallback && visualRef.current) {
         const { from, to } = visualRef.current.state.selection;
         selection = visualRef.current.state.doc.textBetween(from, to, '\n');
         selectionRange = { from, to };
         editorKind = 'tiptap';
-      } else if (mode !== 'read' && editorRef.current) {
+      } else if (/\.md$/i.test(activePath) && mode !== 'read' && editorRef.current) {
         const { from, to } = editorRef.current.state.selection.main;
         selection = editorRef.current.state.sliceDoc(from, to);
         selectionRange = { from, to };
         editorKind = 'source';
       }
-      return { path: activePath, content: activeContent ?? '', selection, selectionRange, editorKind, mode };
+      return { path: activePath, content: activeContent ?? '', selection, selectionRange, editorKind, mode,
+        kind: isCanvas(activePath) ? 'canvas' : isFlow(activePath) ? 'flow' : 'markdown' };
     },
     insertText: (text) => insertAtCursor(text),
     setSelection: (value) => {
@@ -115,7 +117,7 @@ export function useAppExtensions({
       return content;
     },
     write: (path, content) => enqueueVault(async () => {
-      if (!/\.(md|flow)$/i.test(path)) throw new Error('Extensions can only write .md and .flow files.');
+      if (!/\.(md|flow|canvas)$/i.test(path)) throw new Error('Extensions can only write .md, .flow and .canvas files.');
       if (v.getContent(path) !== undefined) { v.updateContent(path, content); return path; }
       const created = await v.createFile(path, content);
       if (!created) throw new Error(`Could not create ${path}.`);
@@ -140,7 +142,7 @@ export function useAppExtensions({
     }),
     rename: (from, to) => enqueueVault(async () => {
       requireNote(from);
-      if (!/\.(md|flow)$/i.test(to)) throw new Error('Extensions can only rename to .md and .flow paths.');
+      if (!/\.(md|flow|canvas)$/i.test(to)) throw new Error('Extensions can only rename to .md, .flow and .canvas paths.');
       const result = await doRename(from, to);
       if (!result) throw new Error(`Could not rename ${from}.`);
       return result;

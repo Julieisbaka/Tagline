@@ -10,10 +10,13 @@ export const RIBBON_ITEMS = [
 
 export const DEFAULT_RIBBON_ITEMS = RIBBON_ITEMS.map(({ id }) => id);
 
-export function normalizeRibbonItems(value) {
-  if (!Array.isArray(value)) return [...DEFAULT_RIBBON_ITEMS];
+export function normalizeRibbonItems(value, contributions = [], hidden = []) {
+  if (!Array.isArray(value)) value = DEFAULT_RIBBON_ITEMS;
   const validIds = new Set(RIBBON_ITEMS.map(({ id }) => id));
-  return [...new Set(value.filter((id) => validIds.has(id)))];
+  const items = [...new Set(value.filter((id) => validIds.has(id) ||
+    (typeof id === 'string' && /^ext:[a-z0-9][a-z0-9-]{1,63}\.[a-z0-9][a-z0-9-]{1,63}$/.test(id))))];
+  for (const item of contributions) if (!items.includes(item.id) && !hidden.includes(item.id)) items.push(item.id);
+  return items;
 }
 
 export function moveRibbonItem(items, sourceId, targetId) {

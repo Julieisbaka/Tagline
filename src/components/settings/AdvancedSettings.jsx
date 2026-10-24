@@ -74,6 +74,14 @@ export default function AdvancedSettings({ settings, update, section = 'all' }) 
       <p>{t('When disabled, current tabs stay open but are not saved. Saved workspaces remain dormant and are restored when this is enabled again.')}</p>
       <h4>{t('Revision history')}</h4>
       {number('Maximum saved revisions per document', 'historyRetention', 5000)}
+      <label className="setting-row"><span>{t('Canvas history mode')}</span>
+        <select data-setting="canvasHistoryMode" value={settings.canvasHistoryMode}
+          onChange={(event) => update({ canvasHistoryMode: event.target.value })}>
+          <option value="complete">{t('Complete (JSON and layout)')}</option>
+          <option value="data">{t('Data (shared latest layout)')}</option>
+        </select>
+      </label>
+      <p>{t('Data history saves content changes only. Restoring uses the latest positions and sizes; moving nodes does not create revisions.')}</p>
       <p>{t('Older revisions are removed after the next document change. History is stored in each vault under .tagline/history.')}</p>
     </>}
     {error && <p role="alert" className="error-text">{error}</p>}
