@@ -41,7 +41,7 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
   app.setPath('userData', profile);
   const realHandle = ipcMain.handle.bind(ipcMain);
   let reloadDelay = 0, refreshCalls = 0;
-  ipcMain.handle = (channel, handler) => realHandle(channel, channel === 'fs:list' ? async (...args) => {
+  ipcMain.handle = (channel, handler) => realHandle(channel, channel === 'fs:snapshot' ? async (...args) => {
     refreshCalls++;
     await delay(reloadDelay);
     return handler(...args);

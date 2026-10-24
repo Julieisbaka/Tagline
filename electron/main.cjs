@@ -14,11 +14,11 @@ const { extractCitation } = require('./citationMetadata.cjs');
 const { registerFlowFiles } = require('./flowFiles.cjs');
 const { registerBrowser } = require('./browser.cjs');
 const { DEFAULT_RETENTION, createRevisionHistory } = require('./revisionHistory.cjs');
+const { NOTE_EXTS, listVault: walk, readVaultSnapshot } = require('./vaultFiles.cjs');
 const keyDefinitions = require('../src/lib/keybindings.json');
 
 const isDev = process.argv.includes('--dev');
 const configPath = () => path.join(app.getPath('userData'), 'config.json');
-const NOTE_EXTS = ['.md', '.flow', '.canvas'];
 
 let win;
 let vaultRoot = null;
@@ -65,23 +65,6 @@ function resolveInVault(rel = '') {
 }
 
 const toPosix = (p) => p.split(path.sep).join('/');
-
-async function walk(dir, base = '') {
-  const entries = await fs.readdir(dir, { withFileTypes: true });
-  const out = [];
-  for (const e of entries) {
-    if (e.name.startsWith('.')) continue;
-    const rel = base ? `${base}/${e.name}` : e.name;
-    if (e.isDirectory()) {
-      out.push({ type: 'folder', path: rel, name: e.name, children: await walk(path.join(dir, e.name), rel) });
-    } else if (NOTE_EXTS.includes(path.extname(e.name).toLowerCase())) {
-      const stat = await fs.stat(path.join(dir, e.name));
-      out.push({ type: 'file', path: rel, name: e.name, mtime: stat.mtimeMs });
-    }
-  }
-  out.sort((a, b) => (a.type === b.type ? a.name.localeCompare(b.name) : a.type === 'folder' ? -1 : 1));
-  return out;
-}
 
 function uniquePath(rel, folder = false, underscoreFolders = false) {
   const ext = folder ? '' : path.extname(rel);
@@ -199,18 +182,8 @@ function registerIpc() {
   });
 
   ipcMain.handle('fs:list', async () => walk(resolveInVault('')));
-
-  ipcMain.handle('fs:readAll', async () => {
-    const result = {};
-    const visit = async (nodes) => {
-      for (const n of nodes) {
-        if (n.type === 'folder') await visit(n.children);
-        else result[n.path] = await fs.readFile(resolveInVault(n.path), 'utf8');
-      }
-    };
-    await visit(await walk(resolveInVault('')));
-    return result;
-  });
+  ipcMain.handle('fs:snapshot', async () => readVaultSnapshot(resolveInVault('')));
+  ipcMain.handle('fs:readAll', async () => (await readVaultSnapshot(resolveInVault(''))).contents);
 
   ipcMain.handle('fs:read', async (_e, rel) => fs.readFile(resolveInVault(rel), 'utf8'));
 

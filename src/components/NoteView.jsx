@@ -1,17 +1,17 @@
-import { EditorSelection } from '@codemirror/state';
-import { EditorView } from '@codemirror/view';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { cardStats, formatDuration, getSectionAt } from '../lib/card.js';
 import { useI18n } from '../lib/i18n.js';
 import { binding, displayBinding } from '../lib/keybindings.js';
 import { calibrateReading, readingAssessment, readingSeconds } from '../lib/readTime.js';
 import { baseName, isFlow } from '../lib/vault.js';
-import { visualBlocker, visualSelection } from '../lib/visualExtensions.js';
-import Editor from './Editor.jsx';
-import FlowEditor from './FlowEditor.jsx';
+import { visualBlocker, visualSelection } from '../lib/visualHelpers.js';
+import { deferred } from './Deferred.jsx';
 import Icon from './Icon.jsx';
-import Preview from './Preview.jsx';
-import VisualEditor from './VisualEditor.jsx';
+
+const Editor = deferred(() => import('./Editor.jsx'));
+const FlowEditor = deferred(() => import('./FlowEditor.jsx'));
+const Preview = deferred(() => import('./Preview.jsx'));
+const VisualEditor = deferred(() => import('./VisualEditor.jsx'));
 
 export default function NoteView({
   path,
@@ -60,20 +60,6 @@ export default function NoteView({
   };
   const [title, setTitle] = useState(baseName(path));
   useEffect(() => setTitle(baseName(path)), [path]);
-
-  // Jump to a line (edit mode) or heading (read mode) when requested.
-  useEffect(() => {
-    if (!jump || jump.path !== path) return;
-    const view = viewRef.current;
-    if ((mode === 'edit' || blocker) && view && jump.line != null) {
-      const line = view.state.doc.line(Math.min(jump.line + 1, view.state.doc.lines));
-      view.dispatch({
-        selection: EditorSelection.cursor(line.from),
-        effects: EditorView.scrollIntoView(line.from, { y: 'start', yMargin: 40 }),
-      });
-      view.focus();
-    }
-  }, [jump, path, mode, blocker]);
 
   // Status-bar stats: whole document plus the card under the cursor.
   const docStats = useMemo(() => (isFlow(path) ? null : cardStats(content)), [content, path]);
@@ -190,6 +176,7 @@ export default function NoteView({
       <div className={`note-body${settings.readableWidth ? ' readable' : ''}`}>
         {sourceMode ? (
           <Editor
+            jump={jump?.path === path ? jump : null}
             keybindings={settings.keybindings}
             settings={settings}
             value={content}

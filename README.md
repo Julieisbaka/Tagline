@@ -29,3 +29,9 @@ Open a folder as a vault or create the sample vault on first launch.
 
 Run `npm test` for unit tests. Electron integration-test commands are listed in
 [package.json](./package.json).
+
+`npm run test:startup` measures welcome-screen, vault, and restored-editor
+startup with a temporary 200-note vault (three runs per scenario; build time
+excluded). Set `TAGLINE_STARTUP_SAMPLES` to change the sample count.
+Reports median main/renderer readiness, uncompressed JavaScript bytes, and
+process duration (including exit). Editors and dialogs load on demand.

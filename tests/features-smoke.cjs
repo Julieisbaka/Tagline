@@ -75,10 +75,11 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
         for (let i = 0; i < 100; i++) { if (await js(s)) return; await delay(100); }
         throw new Error('Timed out: ' + s);
       };
-      const click = (selector, text) => js(`(() => {
-        const el = [...document.querySelectorAll(${JSON.stringify(selector)})].find(e => e.textContent.trim() === ${JSON.stringify(text)});
-        if (!el) throw new Error('Missing ' + ${JSON.stringify(text)}); el.click();
-      })()`);
+      const click = async (selector, text) => {
+        const target = `[...document.querySelectorAll(${JSON.stringify(selector)})].find(e => e.textContent.trim() === ${JSON.stringify(text)})`;
+        await wait(`!!(${target})`);
+        return js(`(${target}).click()`);
+      };
       const primary = process.platform === 'darwin' ? 'meta' : 'control';
       const key = async (keyCode, modifiers = []) => {
         wc.sendInputEvent({ type: 'keyDown', keyCode, modifiers });

@@ -2,10 +2,10 @@ import { autocompletion } from '@codemirror/autocomplete';
 import { markdown, markdownLanguage } from '@codemirror/lang-markdown';
 import { languages } from '@codemirror/language-data';
 import { openSearchPanel, search, searchKeymap } from '@codemirror/search';
-import { Prec } from '@codemirror/state';
+import { EditorSelection, Prec } from '@codemirror/state';
 import { EditorView, highlightActiveLine, highlightActiveLineGutter, keymap, lineNumbers } from '@codemirror/view';
 import CodeMirror from '@uiw/react-codemirror';
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { createCodeMirrorFindReplacePanel } from '../lib/codeMirrorFindReplace.js';
 import {
   clearFormatting,
@@ -29,14 +29,24 @@ const SOURCE_ACTIONS = {
 };
 
 export default function Editor({
-  value, onChange, noteNames, onOpenLink, onSendCard, onCursor, viewRef, keybindings, settings,
+  value, onChange, noteNames, onOpenLink, onSendCard, onCursor, viewRef, keybindings, settings, jump,
 }) {
   const { t, locale } = useI18n();
   const ownViewRef = useRef(null);
+  const [view, setView] = useState(null);
   const [linkOpen, setLinkOpen] = useState(false);
   // Keep callbacks in a ref so extensions stay stable across renders.
   const cb = useRef({});
   cb.current = { noteNames, onOpenLink, onSendCard, onCursor };
+  useEffect(() => {
+    if (!view || jump?.line == null) return;
+    const line = view.state.doc.line(Math.min(jump.line + 1, view.state.doc.lines));
+    view.dispatch({
+      selection: EditorSelection.cursor(line.from),
+      effects: EditorView.scrollIntoView(line.from, { y: 'start', yMargin: 40 }),
+    });
+    view.focus();
+  }, [jump, view]);
 
   const extensions = useMemo(() => {
     const wikiComplete = (ctx) => {
@@ -137,6 +147,7 @@ export default function Editor({
         }}
         onCreateEditor={(view) => {
           ownViewRef.current = view;
+          setView(view);
           if (viewRef) viewRef.current = view;
           applicationEvents.emit('editor.ready', { mode: 'edit' });
         }}

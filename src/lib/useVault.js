@@ -62,8 +62,8 @@ export function useVault(underscoreFolders = true, autoRelink = true, historyRet
 
   const reload = useCallback(async () => {
     try {
-      const [t, all] = await Promise.all([api.list(), api.readAll()]);
-      setTree(t);
+      const { tree, contents: all } = await api.readSnapshot();
+      setTree(tree);
       // Keep edits that haven't been flushed to disk yet.
       const saving = Object.fromEntries([...writes.current].map(([path, entry]) => [path, entry.text]));
       const next = { ...all, ...saving, ...pending.current };

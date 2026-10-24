@@ -33,6 +33,7 @@ const delay = (ms) => new Promise((r) => setTimeout(r, ms));
       try {
         for (let i = 0; i < 100 && !(await js("!!document.querySelector('.ribbon-settings-button')")); i++) await delay(100);
         await js("document.querySelector('.ribbon-settings-button').click()");
+        for (let i = 0; i < 100 && !(await js("!!document.querySelector('.settings')")); i++) await delay(50);
         await js("document.querySelector('[data-section=\"appearance\"]').click()");
         await delay(100);
         const defaultItems = await js("JSON.parse(localStorage.getItem('tagline-settings')).ribbonItems");

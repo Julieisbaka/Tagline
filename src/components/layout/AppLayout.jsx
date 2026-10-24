@@ -3,24 +3,28 @@ import { binding, displayBinding } from '../../lib/keybindings.js';
 import Sidebar, { renameTarget } from './Sidebar.jsx';
 import TabBar from './TabBar.jsx';
 import NoteView from '../NoteView.jsx';
-import CanvasView from '../CanvasView.jsx';
-import GraphView from '../GraphView.jsx';
+import { deferred } from '../Deferred.jsx';
 import RightPanel from './RightPanel.jsx';
-import SearchModal from '../dialogs/SearchModal.jsx';
-import ExportDialog from '../dialogs/ExportDialog.jsx';
-import ImportDialog from '../dialogs/ImportDialog.jsx';
-import CitationDialog from '../dialogs/CitationDialog.jsx';
-import HypothesisDialog from '../dialogs/HypothesisDialog.jsx';
-import SummaryDialog from '../dialogs/SummaryDialog.jsx';
-import HistoryDialog from '../dialogs/HistoryDialog.jsx';
-import WebsiteView from '../dialogs/WebsiteView.jsx';
 import Splitter from './Splitter.jsx';
 import Welcome from '../dialogs/Welcome.jsx';
-import VaultManagerDialog from '../dialogs/VaultManagerDialog.jsx';
 import ExtensionSurface from '../ExtensionSurface.jsx';
 import Ribbon from './Ribbon.jsx';
 import ModalBackdrop from '../dialogs/ModalBackdrop.jsx';
-import { Palette, PromptDialog, SettingsDialog } from '../dialogs/Dialogs.jsx';
+
+const CanvasView = deferred(() => import('../CanvasView.jsx'));
+const GraphView = deferred(() => import('../GraphView.jsx'));
+const WebsiteView = deferred(() => import('../dialogs/WebsiteView.jsx'));
+const SearchModal = deferred(() => import('../dialogs/SearchModal.jsx'), true);
+const ExportDialog = deferred(() => import('../dialogs/ExportDialog.jsx'), true);
+const ImportDialog = deferred(() => import('../dialogs/ImportDialog.jsx'), true);
+const CitationDialog = deferred(() => import('../dialogs/CitationDialog.jsx'), true);
+const HypothesisDialog = deferred(() => import('../dialogs/HypothesisDialog.jsx'), true);
+const SummaryDialog = deferred(() => import('../dialogs/SummaryDialog.jsx'), true);
+const HistoryDialog = deferred(() => import('../dialogs/HistoryDialog.jsx'), true);
+const VaultManagerDialog = deferred(() => import('../dialogs/VaultManagerDialog.jsx'), true);
+const Palette = deferred(() => import('../dialogs/Dialogs.jsx').then((module) => ({ default: module.Palette })), true);
+const PromptDialog = deferred(() => import('../dialogs/Dialogs.jsx').then((module) => ({ default: module.PromptDialog })), true);
+const SettingsDialog = deferred(() => import('../dialogs/Dialogs.jsx').then((module) => ({ default: module.SettingsDialog })), true);
 
 export default function AppLayout({ app }) {
   const {

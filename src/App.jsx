@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { EMPTY_FLOW } from './components/FlowEditor.jsx';
+import { EMPTY_FLOW } from '../electron/flow.mjs';
 import AppLayout from './components/layout/AppLayout.jsx';
 import { clampPanel, PANEL_LIMITS } from './components/layout/Splitter.jsx';
 import { getSectionAt } from './lib/card.js';
@@ -13,7 +13,7 @@ import { useAppExtensions } from './lib/useAppExtensions.js';
 import { useTabs } from './lib/useTabs.js';
 import { useVault } from './lib/useVault.js';
 import { baseName, dirName, flattenTree, isCanvas, isMarkdown, joinPath, outline, resolveLink } from './lib/vault.js';
-import { visualBlocker, visualSelection } from './lib/visualExtensions.js';
+import { visualBlocker, visualSelection } from './lib/visualHelpers.js';
 
 export default function App() {
   const { t } = useI18n();

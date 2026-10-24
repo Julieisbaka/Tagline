@@ -60,6 +60,7 @@ contextBridge.exposeInMainWorld('api', {
   revealRecentVault: (root) => ipcRenderer.invoke('vault:revealRecent', root),
   createSampleVault: () => ipcRenderer.invoke('vault:createSample'),
   list: () => ipcRenderer.invoke('fs:list'),
+  readSnapshot: () => ipcRenderer.invoke('fs:snapshot'),
   readAll: () => ipcRenderer.invoke('fs:readAll'),
   read: (p) => ipcRenderer.invoke('fs:read', p),
   write: (p, c, retention, canvasMode) => ipcRenderer.invoke('fs:write', p, c, retention, canvasMode),

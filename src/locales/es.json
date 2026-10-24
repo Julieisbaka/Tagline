@@ -1,4 +1,5 @@
 {
+  "Could not load this view: {error}": "No se pudo cargar esta vista: {error}",
   "Canvas connection": "Conexión del lienzo",
   "Theme settings": "Ajustes del tema",
   "Apply theme settings": "Aplicar ajustes del tema",
