@@ -3,6 +3,7 @@ import defaults from '../../lib/defaultSettings.json' with { type: 'json' };
 import { useI18n } from '../../lib/i18n.js';
 import { filterSearchDocuments, HYBRID_CANDIDATE_LIMIT, mergeHybridResults, parseQuery, searchVault } from '../../lib/search.js';
 import { displayName } from '../../lib/vault.js';
+import ModalBackdrop from './ModalBackdrop.jsx';
 
 // Keyword and local embedding search share tag and phrase constraints.
 export default function SearchModal({ contents, index, initialQuery = '', maxResults = defaults.searchMaxResults, showMarkdownExtension = false, onOpen, onClose }) {
@@ -67,11 +68,13 @@ export default function SearchModal({ contents, index, initialQuery = '', maxRes
   };
 
   return (
-    <div className="modal-backdrop" onMouseDown={onClose}>
-      <div className="modal search" onMouseDown={(e) => e.stopPropagation()}>
+    <ModalBackdrop onMouseDown={onClose}>
+      <div className="modal search" role="dialog" aria-modal="true" aria-label={t('Search')}
+        onMouseDown={(e) => e.stopPropagation()}>
         <input
           autoFocus
           className="palette-input"
+          aria-label={t('Search')}
           placeholder={t('Search vault…  (try: tag:neg "political capital")')}
           value={query}
           onChange={(e) => setQuery(e.target.value)}
@@ -131,6 +134,6 @@ export default function SearchModal({ contents, index, initialQuery = '', maxRes
           ))}
         </div>
       </div>
-    </div>
+    </ModalBackdrop>
   );
 }

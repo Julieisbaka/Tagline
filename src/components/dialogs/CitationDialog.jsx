@@ -2,6 +2,8 @@ import { useState } from 'react';
 import { createCitation } from '../../lib/citation.js';
 import { useI18n } from '../../lib/i18n.js';
 
+import ModalBackdrop from './ModalBackdrop.jsx';
+
 export default function CitationDialog({ onInsert, onClose }) {
   const { t } = useI18n();
   const [values, setValues] = useState({
@@ -38,8 +40,9 @@ export default function CitationDialog({ onInsert, onClose }) {
       else { await onInsert(text); onClose(); }
     } catch (e) { setError(t(e.message)); }
   };
-  return <div className="modal-backdrop" onMouseDown={onClose}>
+  return <ModalBackdrop onMouseDown={onClose}>
     <form className="modal dialog citation-dialog" onMouseDown={(e) => e.stopPropagation()}
+      role="dialog" aria-modal="true" aria-label={t('Create citation')}
       onSubmit={(e) => { e.preventDefault(); perform(false); }}>
       <h3>{t('Create citation')}</h3>
       <p>{t('Paste a public article URL or DOI. Autofill reads public citation metadata only; it does not fetch full text or bypass access controls.')}</p>
@@ -68,5 +71,5 @@ export default function CitationDialog({ onInsert, onClose }) {
         <button type="submit" className="primary" disabled={!onInsert}>{t('Insert citation')}</button>
       </div>
     </form>
-  </div>;
+  </ModalBackdrop>;
 }

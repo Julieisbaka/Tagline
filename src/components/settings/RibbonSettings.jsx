@@ -4,6 +4,10 @@ import { DEFAULT_RIBBON_ITEMS, normalizeRibbonItems, RIBBON_ITEMS } from '../../
 export default function RibbonSettings({ settings, update }) {
   const { t } = useI18n();
   const visibleItems = normalizeRibbonItems(settings.ribbonItems);
+  const orderedItems = [
+    ...visibleItems.map((id) => RIBBON_ITEMS.find((item) => item.id === id)),
+    ...RIBBON_ITEMS.filter((item) => !visibleItems.includes(item.id)),
+  ];
   const move = (id, offset) => {
     const index = visibleItems.indexOf(id);
     const destination = index + offset;
@@ -25,7 +29,7 @@ export default function RibbonSettings({ settings, update }) {
       <h3>{t('Sidebar shortcuts')}</h3>
       <p>{t('Choose which shortcuts appear and change their order. Drag icons on the sidebar to reorder them. Settings stays available.')}</p>
       <ol>
-        {RIBBON_ITEMS.map(({ id, title }) => {
+        {orderedItems.map(({ id, title }) => {
           const index = visibleItems.indexOf(id);
           const checked = index >= 0;
           return (

@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
 import { useI18n } from '../../lib/i18n.js';
 
+import ModalBackdrop from './ModalBackdrop.jsx';
+
 export default function VaultManagerDialog({ onOpen, onChoose, onSample, onClose }) {
   const { t } = useI18n();
   const [vaults, setVaults] = useState([]);
@@ -25,7 +27,7 @@ export default function VaultManagerDialog({ onOpen, onChoose, onSample, onClose
     finally { setBusy(false); }
   };
 
-  return <div className="modal-backdrop" onMouseDown={() => !busy && onClose()}>
+  return <ModalBackdrop onMouseDown={() => !busy && onClose()}>
     <div className="modal dialog vault-manager-dialog" role="dialog" aria-modal="true"
       aria-labelledby="vault-manager-title" onMouseDown={(e) => e.stopPropagation()}
       onKeyDown={(e) => { if (e.key === 'Escape' && !busy) { e.preventDefault(); onClose(); } }}>
@@ -56,5 +58,5 @@ export default function VaultManagerDialog({ onOpen, onChoose, onSample, onClose
         <button onClick={onClose}>{t('Close')}</button>
       </div>
     </div>
-  </div>;
+  </ModalBackdrop>;
 }

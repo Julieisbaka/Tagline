@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useEditorState } from '@tiptap/react';
 import { useI18n } from '../lib/i18n.js';
+import { trapTabKey } from '../lib/focusScope.js';
 
 export default function VisualFindReplace({ editor, onClose }) {
   const { t } = useI18n();
@@ -23,6 +24,7 @@ export default function VisualFindReplace({ editor, onClose }) {
   const close = () => { onClose(); editor.commands.focus(); };
   return <div className="visual-find" role="search" aria-label={t('Find and replace in note')}
     onKeyDown={(event) => {
+      trapTabKey(event, event.currentTarget);
       if (event.key === 'Escape') { event.preventDefault(); event.stopPropagation(); close(); }
     }}>
     <form className="visual-find-row" onSubmit={(event) => {

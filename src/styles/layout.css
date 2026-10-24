@@ -17,11 +17,11 @@
   border-right: 1px solid var(--border);
 }
 
-.ribbon .icon-btn {
+.ribbon .icon-btn[draggable="true"] {
   cursor: grab;
 }
 
-.ribbon .icon-btn:active {
+.ribbon .icon-btn[draggable="true"]:active {
   cursor: grabbing;
 }
 
@@ -29,11 +29,8 @@
   opacity: 0.35;
 }
 
-.ribbon .ribbon-bottom-item {
-  margin-top: auto;
-}
-
 .ribbon .ribbon-settings-button {
+  margin-top: auto;
   cursor: pointer;
 }
 
@@ -319,6 +316,17 @@ body.resizing-panels * {
 
 .note-body .editor {
   height: 100%;
+}
+
+.source-editor {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.source-editor > .editor {
+  flex: 1;
+  min-height: 0;
 }
 
 .note-body.readable .cm-content,

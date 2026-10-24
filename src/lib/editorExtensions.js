@@ -152,8 +152,8 @@ export const editorTheme = [
   EditorView.theme(
     {
       '&': { height: '100%', backgroundColor: 'transparent', color: 'var(--text)' },
-      '.cm-scroller': { fontFamily: 'var(--font-text)', fontSize: 'var(--editor-font-size)', lineHeight: '1.6' },
-      '.cm-content': { padding: '24px 0 40vh', caretColor: 'var(--accent)', color: 'var(--text)' },
+      '.cm-scroller': { fontFamily: 'var(--font-text)', fontSize: 'var(--editor-font-size)', lineHeight: 'var(--visual-line-height, 1.65)' },
+      '.cm-content': { padding: '24px 28px 40vh', caretColor: 'var(--accent)', color: 'var(--text)' },
       '.cm-line': { padding: '0 4px' },
       '.cm-cursor, .cm-dropCursor': { borderLeftColor: 'var(--accent)', borderLeftWidth: '2px' },
       '&.cm-focused .cm-selectionBackground, .cm-selectionBackground, ::selection': {

@@ -9,6 +9,7 @@ import {
   setSearchQuery,
 } from '@codemirror/search';
 import { translate } from './i18n.js';
+import { trapTabKey } from './focusScope.js';
 
 function matchStatus(view, queryCache) {
   const query = getSearchQuery(view.state);
@@ -170,6 +171,7 @@ export function createCodeMirrorFindReplacePanel(view) {
     replaceNext(view);
   });
   dom.addEventListener('keydown', (event) => {
+    trapTabKey(event, dom);
     if (event.key === 'Escape') {
       event.preventDefault();
       event.stopPropagation();

@@ -5,7 +5,7 @@ import { openSearchPanel, search, searchKeymap } from '@codemirror/search';
 import { Prec } from '@codemirror/state';
 import { EditorView, highlightActiveLine, highlightActiveLineGutter, keymap, lineNumbers } from '@codemirror/view';
 import CodeMirror from '@uiw/react-codemirror';
-import { useMemo, useRef } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { createCodeMirrorFindReplacePanel } from '../lib/codeMirrorFindReplace.js';
 import {
   clearFormatting,
@@ -17,10 +17,16 @@ import {
 } from '../lib/editorExtensions.js';
 import { applicationEvents } from '../lib/extensionCapabilities.js';
 import { binding, editorBinding, KEYBINDINGS } from '../lib/keybindings.js';
+import { useI18n } from '../lib/i18n.js';
+import EditorToolbar from './EditorToolbar.jsx';
+import EditorLinkForm from './EditorLinkForm.jsx';
 
 export default function Editor({
   value, onChange, noteNames, onOpenLink, onSendCard, onCursor, viewRef, keybindings, settings,
 }) {
+  const { t, locale } = useI18n();
+  const ownViewRef = useRef(null);
+  const [linkOpen, setLinkOpen] = useState(false);
   // Keep callbacks in a ref so extensions stay stable across renders.
   const cb = useRef({});
   cb.current = { noteNames, onOpenLink, onSendCard, onCursor };
@@ -60,6 +66,7 @@ export default function Editor({
       debateKeys,
       ...debateDecorations,
       ...editorTheme,
+      EditorView.contentAttributes.of({ 'aria-label': t('Source note editor'), 'aria-multiline': 'true' }),
       ...(settings.sourceActiveLine ? [EditorView.theme({ '.cm-activeLine': { backgroundColor: 'var(--bg-hover)' } })] : []),
       EditorView.domEventHandlers({
         mousedown(e, view) {
@@ -80,9 +87,38 @@ export default function Editor({
         }
       }),
     ];
-  }, [keybindings, settings.sourceActiveLine, settings.sourceAutocomplete, settings.sourceLineNumbers, settings.sourceLineWrapping]);
+  }, [keybindings, settings.sourceActiveLine, settings.sourceAutocomplete, settings.sourceLineNumbers, settings.sourceLineWrapping, locale]);
 
+  const run = (command) => () => {
+    const view = ownViewRef.current;
+    if (!view || view.destroyed) return;
+    command(view);
+    view.focus();
+  };
   return (
+    <div className="source-editor">
+    {settings.visualToolbar && <EditorToolbar keybindings={keybindings} actions={{
+      pocket: run(setHeading(1)), hat: run(setHeading(2)), block: run(setHeading(3)), tag: run(setHeading(4)),
+      cite: run(toggleWrap('**')), underline: run(toggleWrap('++')),
+      emphasis: run(toggleWrap('**++', '++**')), highlight: run(toggleWrap('==')),
+      'clear-format': run(clearFormatting), link: () => setLinkOpen((open) => !open),
+      find: () => openSearchPanel(ownViewRef.current),
+      'send-card': () => {
+        const view = ownViewRef.current;
+        const { from, to, head } = view.state.selection.main;
+        onSendCard(head, view.state.sliceDoc(from, to));
+      },
+    }} />}
+    {linkOpen && <EditorLinkForm noteNames={noteNames} onClose={() => {
+      setLinkOpen(false); ownViewRef.current?.focus();
+    }} onInsert={(target) => {
+      const view = ownViewRef.current;
+      const { from, to } = view.state.selection.main;
+      const text = `[[${target}]]`;
+      view.dispatch({ changes: { from, to, insert: text }, selection: { anchor: from + text.length } });
+      setLinkOpen(false);
+      view.focus();
+    }} />}
     <CodeMirror
       className="editor"
       value={value}
@@ -98,11 +134,13 @@ export default function Editor({
         searchKeymap: false,
       }}
       onCreateEditor={(view) => {
+        ownViewRef.current = view;
         if (viewRef) viewRef.current = view;
         applicationEvents.emit('editor.ready', { mode: 'edit' });
       }}
       height="100%"
       autoFocus
     />
+    </div>
   );
 }

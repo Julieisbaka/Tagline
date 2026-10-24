@@ -81,6 +81,10 @@ export default function ThemeSettings({ settings, update }) {
           {settings.customTheme && <option value="custom">{settings.customTheme.name}</option>}
         </select>
       </label>
+      <label className="setting-row"><span>{t('Fade between themes')}</span>
+        <input type="checkbox" data-setting="themeTransition" checked={settings.themeTransition}
+          onChange={(event) => update({ themeTransition: event.target.checked })} />
+      </label>
       <label className="setting-row"><span>{t('Import JSON theme')}</span>
         <input className="theme-file-input" type="file" accept=".json,application/json"
           aria-label={t('Import JSON theme')} onChange={importTheme} />

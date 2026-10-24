@@ -57,14 +57,27 @@ export function registerExtensionThemes(themes) {
 }
 
 let appliedVariables = [];
+let appliedTheme = '';
+let transitionTimer;
 
-export function applyTheme(theme) {
+export function applyTheme(theme, animate = true) {
   const root = document.documentElement;
+  const signature = JSON.stringify(theme);
+  const changed = signature !== appliedTheme;
+  clearTimeout(transitionTimer);
+  root.classList.toggle('theme-transition', !!(animate && appliedTheme && changed &&
+    !window.matchMedia('(prefers-reduced-motion: reduce)').matches));
+  if (root.classList.contains('theme-transition')) {
+    // Commit the old colors before applying the new theme variables.
+    root.getBoundingClientRect();
+    transitionTimer = setTimeout(() => root.classList.remove('theme-transition'), 220);
+  }
   for (const key of appliedVariables) root.style.removeProperty(`--${key}`);
   for (const key of COLOR_TOKENS) root.style.setProperty(`--${key}`, theme.colors[key]);
   appliedVariables = Object.keys(theme.variables || {});
   for (const key of appliedVariables) root.style.setProperty(`--${key}`, theme.variables[key]);
   root.dataset.theme = theme.id;
   root.style.colorScheme = theme.mode;
+  appliedTheme = signature;
   window.dispatchEvent(new Event('themechange'));
 }

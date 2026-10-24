@@ -1,11 +1,13 @@
 import { EditorContent, useEditor, useEditorState } from '@tiptap/react';
 import { memo, useEffect, useMemo, useRef, useState } from 'react';
 import { useI18n } from '../lib/i18n.js';
-import { binding, displayBinding, KEYBINDINGS, matchesBinding } from '../lib/keybindings.js';
+import { binding, KEYBINDINGS, matchesBinding } from '../lib/keybindings.js';
 import { slugify } from '../lib/markdown.js';
 import { cachedDocument, cacheDocument } from '../lib/visualCache.js';
 import { visualExtensions, visualSelection } from '../lib/visualExtensions.js';
 import VisualFindReplace from './VisualFindReplace.jsx';
+import EditorToolbar from './EditorToolbar.jsx';
+import EditorLinkForm from './EditorLinkForm.jsx';
 
 export default function VisualEditor({
   value, onChange, onOpenLink, onSendCard, onSection, noteNames, visualRef, jump, keybindings,
@@ -27,8 +29,7 @@ function VisualDocument({ value, noteNames, visualRef, jump, live, keybindings, 
     initialContent.current = { content: cached || value, contentType: cached ? 'json' : 'markdown' };
   }
   const extensions = useMemo(visualExtensions, []);
-  const [error, setError] = useState('');
-  const [linkTarget, setLinkTarget] = useState(null);
+  const [linkOpen, setLinkOpen] = useState(false);
   const [findOpen, setFindOpen] = useState(false);
   const editor = useEditor({
     shouldRerenderOnTransaction: false,
@@ -47,7 +48,10 @@ function VisualDocument({ value, noteNames, visualRef, jump, live, keybindings, 
       live.current.onSection(visualSelection(ed, true));
     },
     editorProps: {
-      attributes: { class: 'markdown-body visual-document', 'aria-label': t('Visual note editor') },
+      attributes: {
+        class: 'markdown-body visual-document', role: 'textbox',
+        'aria-multiline': 'true', 'aria-label': t('Visual note editor')
+      },
       handleClick(view, pos, event) {
         const link = event.target.closest('[data-wiki-link]');
         if (link && (event.ctrlKey || event.metaKey)) {
@@ -124,49 +128,37 @@ function VisualDocument({ value, noteNames, visualRef, jump, live, keybindings, 
   }, [jump, editor]);
 
   if (!editor) return null;
-  const button = (label, command, active = false, title = label) => (
-    <button type="button" title={t(title)} className={active ? 'active' : ''}
-      onMouseDown={(e) => e.preventDefault()} onClick={command}>{t(label)}</button>
-  );
-  const shortcutTitle = (label, id) => `${t(label)} ${displayBinding(binding(id, keybindings))}`.trim();
-  const insertLink = () => {
-    setError('');
-    if (!linkTarget?.trim()) return;
-    const m = /^([^\]|#]+)(?:#([^\]|]*))?(?:\|([^\]]*))?$/.exec(linkTarget.trim());
-    if (!m) return setError(t('Use Note, Note#Heading, or Note|Label for a wiki link.'));
+  const insertLink = (target) => {
+    const m = /^([^\]|#]+)(?:#([^\]|]*))?(?:\|([^\]]*))?$/.exec(target);
     editor.chain().focus().insertContent({
       type: 'wikiLink', attrs: {
         target: m[1], heading: m[2] || '', alias: m[3] || '', embed: false,
       }
     }).run();
-    setLinkTarget(null);
+    setLinkOpen(false);
   };
   return (
     <div className="visual-editor">
-      {toolbarVisible && <div className="visual-toolbar" role="toolbar" aria-label={t('Card formatting')}>
-        {[['Pocket', 1], ['Hat', 2], ['Block', 3], ['Tag', 4]].map(([label, level]) => (
-          <span key={level}>{button(label, () => editor.chain().focus().toggleHeading({ level }).run(),
-            editor.isActive('heading', { level }), shortcutTitle(label, ['pocket', 'hat', 'block', 'tag'][level - 1]))}</span>
-        ))}
-        {button('Cite / Bold', () => editor.chain().focus().toggleBold().run(), editor.isActive('bold'), shortcutTitle('Cite / Bold', 'cite'))}
-        {button('Underline', () => editor.chain().focus().toggleUnderline().run(), editor.isActive('underline'), shortcutTitle('Underline', 'underline'))}
-        {button('Emphasis', () => editor.chain().focus().toggleBold().toggleUnderline().run(), false, shortcutTitle('Emphasis', 'emphasis'))}
-        {button('Highlight', () => editor.chain().focus().toggleHighlight().run(), editor.isActive('highlight'), shortcutTitle('Highlight', 'highlight'))}
-        {button('Link', () => setLinkTarget(''))}
-        {button('Find and replace', () => setFindOpen((open) => !open), findOpen, shortcutTitle('Find and replace', 'find'))}
-        {button('Send card', () => live.current.onSendCard())}
-      </div>}
+      {toolbarVisible && <EditorToolbar keybindings={keybindings} active={{
+        ...Object.fromEntries(['pocket', 'hat', 'block', 'tag'].map((id, index) =>
+          [id, editor.isActive('heading', { level: index + 1 })])),
+        cite: editor.isActive('bold'), underline: editor.isActive('underline'),
+        highlight: editor.isActive('highlight'), find: findOpen, link: linkOpen,
+      }} actions={{
+        ...Object.fromEntries(['pocket', 'hat', 'block', 'tag'].map((id, index) =>
+          [id, () => editor.chain().focus().toggleHeading({ level: index + 1 }).run()])),
+        cite: () => editor.chain().focus().toggleBold().run(),
+        underline: () => editor.chain().focus().toggleUnderline().run(),
+        emphasis: () => editor.chain().focus().toggleBold().toggleUnderline().run(),
+        highlight: () => editor.chain().focus().toggleHighlight().run(),
+        'clear-format': () => editor.chain().focus().unsetAllMarks().run(),
+        link: () => setLinkOpen((open) => !open),
+        find: () => setFindOpen((open) => !open),
+        'send-card': () => live.current.onSendCard(),
+      }} />}
       {findOpen && <VisualFindReplace editor={editor} onClose={() => setFindOpen(false)} />}
-      {linkTarget !== null && <form className="visual-link-form" onSubmit={(e) => { e.preventDefault(); insertLink(); }}>
-        <input autoFocus aria-label={t('Wiki link target')} placeholder="Note#Heading|Label" list="visual-note-targets"
-          value={linkTarget} onChange={(e) => setLinkTarget(e.target.value)} />
-        <datalist id="visual-note-targets">
-          {noteNames.map((name, i) => <option key={`${name}-${i}`} value={name} />)}
-        </datalist>
-        <button type="submit">{t('Insert link')}</button>
-        <button type="button" onClick={() => setLinkTarget(null)}>{t('Cancel')}</button>
-      </form>}
-      {error && <div className="error-text" role="alert">{error}</div>}
+      {linkOpen && <EditorLinkForm noteNames={noteNames} onInsert={insertLink}
+        onClose={() => { setLinkOpen(false); editor.commands.focus(); }} />}
       <EditorContent editor={editor} />
     </div>
   );

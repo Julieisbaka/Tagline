@@ -97,7 +97,60 @@ input:focus,
 select:focus,
 textarea:focus {
   border-color: var(--accent);
-  box-shadow: 0 0 0 2px var(--accent-dim);
+}
+
+select {
+  color: var(--text);
+  font: inherit;
+  cursor: pointer;
+}
+
+select option,
+select optgroup {
+  color: var(--text);
+  background: var(--bg-elevated);
+}
+
+@supports (appearance: base-select) {
+  select:not([multiple]):not([size]),
+  select:not([multiple]):not([size])::picker(select) {
+    appearance: base-select;
+  }
+
+  select:not([multiple]):not([size]) {
+    align-items: center;
+    gap: 8px;
+  }
+
+  select::picker-icon {
+    color: var(--text-muted);
+  }
+
+  select::picker(select) {
+    padding: 4px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: var(--bg-elevated);
+    color: var(--text);
+    box-shadow: 0 8px 24px #0003;
+  }
+
+  select option {
+    padding: 5px 8px;
+    border-radius: 4px;
+  }
+
+  select option:hover,
+  select option:checked {
+    background: var(--bg-hover);
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .theme-transition *,
+  .theme-transition {
+    transition: background-color 180ms ease, color 180ms ease, border-color 180ms ease !important;
+  }
 }
 
 .icon-btn {

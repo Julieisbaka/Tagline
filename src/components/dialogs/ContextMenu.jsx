@@ -1,9 +1,12 @@
 import { useEffect, useLayoutEffect, useRef } from 'react';
 import { useI18n } from '../../lib/i18n.js';
+import { containFocus } from '../../lib/focusScope.js';
 
 export default function ContextMenu({ x, y, items, onClose }) {
   const ref = useRef(null);
+  const previousFocus = useRef(document.activeElement);
   const { t } = useI18n();
+  useLayoutEffect(() => containFocus(ref.current, previousFocus.current), []);
   useLayoutEffect(() => {
     const el = ref.current;
     el.style.left = `${Math.max(4, Math.min(x, innerWidth - el.offsetWidth - 4))}px`;
@@ -23,7 +26,7 @@ export default function ContextMenu({ x, y, items, onClose }) {
     };
   }, [onClose]);
   return (
-    <div ref={ref} className="context-menu" role="menu" style={{ left: x, top: y }}
+    <div ref={ref} className="context-menu" role="menu" tabIndex={-1} style={{ left: x, top: y }}
       onContextMenu={(e) => e.preventDefault()} onKeyDown={(e) => {
         if (!['ArrowDown', 'ArrowUp', 'Home', 'End'].includes(e.key)) return;
         e.preventDefault();

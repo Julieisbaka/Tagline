@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react';
 import { baseName } from '../../lib/vault.js';
 import { useI18n } from '../../lib/i18n.js';
 
+import ModalBackdrop from './ModalBackdrop.jsx';
+
 export default function HistoryDialog({ path, onRestore, onClose }) {
   const { t, locale } = useI18n();
   const [revisions, setRevisions] = useState([]);
@@ -38,7 +40,7 @@ export default function HistoryDialog({ path, onRestore, onClose }) {
   }, [path, selected]);
 
   return (
-    <div className="modal-backdrop" onMouseDown={onClose}>
+    <ModalBackdrop onMouseDown={onClose}>
       <div className="modal dialog history-dialog" role="dialog" aria-modal="true"
         aria-labelledby="history-title" onMouseDown={(e) => e.stopPropagation()}>
         <h3 id="history-title">{t('Revision history')} — {baseName(path)}</h3>
@@ -65,6 +67,6 @@ export default function HistoryDialog({ path, onRestore, onClose }) {
           }}>{t('Restore this version')}</button>}
         </div>
       </div>
-    </div>
+    </ModalBackdrop>
   );
 }

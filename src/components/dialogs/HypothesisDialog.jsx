@@ -3,6 +3,8 @@ import { useI18n } from '../../lib/i18n.js';
 import { HYPOTHESIS_TEMPLATES, buildHypotheses, entailmentLabel, premiseText } from '../../lib/nli.js';
 
 // Explicit, on-demand stance/topic analysis with the Political DEBATE NLI model.
+import ModalBackdrop from './ModalBackdrop.jsx';
+
 export default function HypothesisDialog({ sources, onClose }) {
   const { t } = useI18n();
   const scopes = useMemo(() => Object.entries(sources)
@@ -43,7 +45,7 @@ export default function HypothesisDialog({ sources, onClose }) {
   const scopeLabels = { selection: 'Selection', card: 'Card under cursor', note: 'Whole note' };
 
   return (
-    <div className="modal-backdrop" onMouseDown={onClose}>
+    <ModalBackdrop onMouseDown={onClose}>
       <div className="modal dialog hypothesis-dialog" role="dialog" aria-modal="true" aria-labelledby="hypothesis-title"
         ref={dialog} onMouseDown={(e) => e.stopPropagation()}
         onKeyDown={(e) => { if (e.key === 'Escape') { e.preventDefault(); onClose(); } }}>
@@ -110,6 +112,6 @@ export default function HypothesisDialog({ sources, onClose }) {
           </div>)}
         </div>}
       </div>
-    </div>
+    </ModalBackdrop>
   );
 }

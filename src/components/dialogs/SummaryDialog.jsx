@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
 import { useI18n } from '../../lib/i18n.js';
 
+import ModalBackdrop from './ModalBackdrop.jsx';
+
 export default function SummaryDialog({ content, title, onClose }) {
   const { t } = useI18n();
   const [status, setStatus] = useState(null);
@@ -33,7 +35,7 @@ export default function SummaryDialog({ content, title, onClose }) {
   };
   const working = busy || status?.busy;
 
-  return <div className="modal-backdrop" onMouseDown={onClose}>
+  return <ModalBackdrop onMouseDown={onClose}>
     <div className="modal dialog summary-dialog" role="dialog" aria-modal="true"
       aria-labelledby="summary-title" onMouseDown={(e) => e.stopPropagation()}
       onKeyDown={(e) => { if (e.key === 'Escape') { e.preventDefault(); onClose(); } }}>
@@ -52,5 +54,5 @@ export default function SummaryDialog({ content, title, onClose }) {
       </section>}
       <div className="dialog-buttons"><button onClick={onClose}>{t('Close')}</button></div>
     </div>
-  </div>;
+  </ModalBackdrop>;
 }

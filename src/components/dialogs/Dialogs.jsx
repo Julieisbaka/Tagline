@@ -11,6 +11,7 @@ import KeybindingSettings from '../settings/KeybindingSettings.jsx';
 import ReadingSettings from '../settings/ReadingSettings.jsx';
 import RibbonSettings from '../settings/RibbonSettings.jsx';
 import ThemeSettings from '../settings/ThemeSettings.jsx';
+import ModalBackdrop from './ModalBackdrop.jsx';
 
 // Generic fuzzy-filtered list modal used for quick switcher, commands, templates.
 export function Palette({ items, placeholder, onSelect, onClose, onCreate, createLabel }) {
@@ -45,11 +46,12 @@ export function Palette({ items, placeholder, onSelect, onClose, onCreate, creat
   };
 
   return (
-    <div className="modal-backdrop" onMouseDown={onClose}>
-      <div className="modal palette" onMouseDown={(e) => e.stopPropagation()}>
+    <ModalBackdrop onMouseDown={onClose}>
+      <div className="modal palette" role="dialog" aria-modal="true" aria-label={placeholder} onMouseDown={(e) => e.stopPropagation()}>
         <input
           autoFocus
           className="palette-input"
+          aria-label={placeholder}
           placeholder={placeholder}
           value={query}
           onChange={(e) => setQuery(e.target.value)}
@@ -93,7 +95,7 @@ export function Palette({ items, placeholder, onSelect, onClose, onCreate, creat
           {!total && <div className="empty-hint">{t('No matches')}</div>}
         </div>
       </div>
-    </div>
+    </ModalBackdrop>
   );
 }
 
@@ -105,11 +107,12 @@ export function PromptDialog({ title, initial = '', onSubmit, onClose }) {
     onClose();
   };
   return (
-    <div className="modal-backdrop" onMouseDown={onClose}>
-      <div className="modal dialog" onMouseDown={(e) => e.stopPropagation()}>
+    <ModalBackdrop onMouseDown={onClose}>
+      <div className="modal dialog" role="dialog" aria-modal="true" aria-label={title} onMouseDown={(e) => e.stopPropagation()}>
         <h3>{title}</h3>
         <input
           autoFocus
+          aria-label={title}
           value={value}
           onFocus={(e) => e.target.select()}
           onChange={(e) => setValue(e.target.value)}
@@ -125,7 +128,7 @@ export function PromptDialog({ title, initial = '', onSubmit, onClose }) {
           </button>
         </div>
       </div>
-    </div>
+    </ModalBackdrop>
   );
 }
 
@@ -133,11 +136,6 @@ export function SettingsDialog({ settings, update, onClose, extensions }) {
   const { t } = useI18n();
   const [section, setSection] = useState('general');
   const shell = useRef(null);
-  const previousFocus = useRef(document.activeElement);
-  useEffect(() => {
-    shell.current?.focus();
-    return () => previousFocus.current?.focus();
-  }, []);
   const sections = [
     ['general', 'General', 'Your writing and debate workspace'],
     ['editors', 'Editors', 'Configure Tiptap and CodeMirror'],
@@ -164,17 +162,9 @@ export function SettingsDialog({ settings, update, onClose, extensions }) {
     </label>
   );
   return (
-    <div className="modal-backdrop settings-backdrop" onMouseDown={onClose}>
+    <ModalBackdrop className="modal-backdrop settings-backdrop" onMouseDown={onClose}>
       <div className="modal dialog settings" role="dialog" aria-modal="true" aria-labelledby="settings-title"
-        ref={shell} tabIndex={-1} onMouseDown={(e) => e.stopPropagation()} onKeyDown={(e) => {
-          if (e.key === 'Escape' && !e.defaultPrevented) { e.preventDefault(); onClose(); }
-          if (e.key !== 'Tab') return;
-          const controls = [...shell.current.querySelectorAll('button, input, select, textarea, [tabindex="0"]')]
-            .filter((element) => !element.disabled && element.getClientRects().length);
-          const first = controls[0]; const last = controls.at(-1);
-          if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last?.focus(); }
-          else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first?.focus(); }
-        }}>
+        ref={shell} tabIndex={-1} onMouseDown={(e) => e.stopPropagation()}>
         <aside className="settings-sidebar">
           <div className="settings-brand">Tagline <span>{t('Workspace preferences')}</span></div>
           <nav aria-label={t('Settings sections')}>
@@ -264,6 +254,6 @@ export function SettingsDialog({ settings, update, onClose, extensions }) {
           </footer>
         </div>
       </div>
-    </div>
+    </ModalBackdrop>
   );
 }

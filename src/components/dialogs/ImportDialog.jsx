@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { useI18n } from '../../lib/i18n.js';
 
+import ModalBackdrop from './ModalBackdrop.jsx';
+
 export default function ImportDialog({ onImport, onClose }) {
   const { t } = useI18n();
   const [busy, setBusy] = useState(false);
@@ -28,8 +30,9 @@ export default function ImportDialog({ onImport, onClose }) {
     finally { setBusy(false); }
   };
   return (
-    <div className="modal-backdrop" onMouseDown={() => !busy && onClose()}>
-      <div className="modal dialog import-dialog" onMouseDown={(e) => e.stopPropagation()}>
+    <ModalBackdrop onMouseDown={() => !busy && onClose()}>
+      <div className="modal dialog import-dialog" role="dialog" aria-modal="true"
+        aria-label={t('Import document with Pandoc')} onMouseDown={(e) => e.stopPropagation()}>
         <h3>{t('Import document with Pandoc')}</h3>
         <p>{t('Choose a DOCX, ODT, RTF, HTML, or EPUB document. Review the Markdown before adding it to this vault. The original is never changed.')}</p>
         <p>{t('Images and complex formatting may not survive conversion. DOCX tracked changes are imported in their accepted (final-document) state. Imported HTML stays in source mode when needed.')}</p>
@@ -54,6 +57,6 @@ export default function ImportDialog({ onImport, onClose }) {
           </button>
         </div>
       </div>
-    </div>
+    </ModalBackdrop>
   );
 }

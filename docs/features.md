@@ -45,6 +45,12 @@ buttons for keyboard-accessible reordering; the Settings icon stays available.
 
 Use `Mod+F` to find and replace text in the current note. Search supports
 case-sensitive and whole-word matching; replacements can be undone.
+Both editors share a formatting toolbar, link insertion, and line-height
+setting. Use arrow keys within the toolbar. Tab stays inside open dialogs
+and find panels; Escape closes them and returns focus.
+
+In **Settings > Appearance**, reorder sidebar shortcuts or disable the
+theme-change fade. Reduced-motion preferences always disable the fade.
 
 Wiki links support `[[Note]]`, `[[Note#Heading]]`, and `[[Note|Label]]`.
 Tagline also provides backlinks, mentions, an outline, tags, and a graph view.

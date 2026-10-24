@@ -35,6 +35,8 @@ export function standaloneHtml(title, content, resolve, language = 'en') {
   return '<!doctype html>\n' + doc.documentElement.outerHTML;
 }
 
+import ModalBackdrop from './ModalBackdrop.jsx';
+
 export default function ExportDialog({ title, content, resolve, onClose }) {
   const { t, locale } = useI18n();
   const [format, setFormat] = useState('html');
@@ -61,8 +63,9 @@ export default function ExportDialog({ title, content, resolve, onClose }) {
   };
 
   return (
-    <div className="modal-backdrop" onMouseDown={() => !busy && onClose()}>
-      <div className="modal dialog export-dialog" onMouseDown={(e) => e.stopPropagation()}>
+    <ModalBackdrop onMouseDown={() => !busy && onClose()}>
+      <div className="modal dialog export-dialog" role="dialog" aria-modal="true"
+        aria-label={t('Export {title}', { title })} onMouseDown={(e) => e.stopPropagation()}>
         <h3>{t('Export {title}', { title })}</h3>
         <p>{format === 'html' ? t('Built-in HTML export. Pandoc is not required.')
           : pandoc?.available ? pandoc.version : t('Pandoc is required for this format. Locate it in Settings.')}</p>
@@ -83,6 +86,6 @@ export default function ExportDialog({ title, content, resolve, onClose }) {
           </button>
         </div>
       </div>
-    </div>
+    </ModalBackdrop>
   );
 }

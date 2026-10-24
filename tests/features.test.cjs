@@ -12,8 +12,10 @@ test('sidebar shortcut order is normalized and drag reordering is stable', async
     await import('../src/lib/ribbonItems.js');
   assert.deepEqual(normalizeRibbonItems(['search', 'search', 'unknown']), ['search']);
   assert.deepEqual(normalizeRibbonItems(null), DEFAULT_RIBBON_ITEMS);
-  assert.deepEqual(moveRibbonItem(['a', 'b', 'c'], 'a', 'c'), ['b', 'a', 'c']);
+  assert.deepEqual(moveRibbonItem(['a', 'b', 'c'], 'a', 'c'), ['b', 'c', 'a']);
+  assert.deepEqual(moveRibbonItem(['a', 'b', 'c'], 'a', 'b'), ['b', 'a', 'c']);
   assert.deepEqual(moveRibbonItem(['a', 'b', 'c'], 'c', 'a'), ['c', 'a', 'b']);
+  assert.deepEqual(moveRibbonItem(['rightPanel', 'search', 'graph'], 'rightPanel', 'graph'), ['search', 'graph', 'rightPanel']);
   assert.deepEqual(moveRibbonItem(['a', 'b'], 'missing', 'b'), ['a', 'b']);
 });
 

@@ -22,6 +22,6 @@ export function moveRibbonItem(items, sourceId, targetId) {
   const targetIndex = next.indexOf(targetId);
   if (sourceIndex < 0 || targetIndex < 0 || sourceIndex === targetIndex) return next;
   next.splice(sourceIndex, 1);
-  next.splice(targetIndex - (sourceIndex < targetIndex ? 1 : 0), 0, sourceId);
+  next.splice(targetIndex, 0, sourceId);
   return next;
 }

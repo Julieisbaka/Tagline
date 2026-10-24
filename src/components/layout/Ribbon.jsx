@@ -30,7 +30,7 @@ export default function Ribbon({ ctx, showLeft, keybindings, settings, updateSet
         const label = item.keybinding ? title(item.title, item.keybinding) : t(item.title);
         const active = id === 'fileExplorer' && showLeft;
         return <button key={id} data-ribbon-item={id}
-          className={`icon-btn${active ? ' active' : ''}${id === items.at(-1) ? ' ribbon-bottom-item' : ''}`}
+          className={`icon-btn${active ? ' active' : ''}`}
           title={`${label} — ${t('Drag to reorder; configure in Settings')}`}
           aria-label={label} draggable
           onClick={actions[id]}

@@ -19,6 +19,7 @@ import Welcome from '../dialogs/Welcome.jsx';
 import VaultManagerDialog from '../dialogs/VaultManagerDialog.jsx';
 import ExtensionSurface from '../ExtensionSurface.jsx';
 import Ribbon from './Ribbon.jsx';
+import ModalBackdrop from '../dialogs/ModalBackdrop.jsx';
 import { Palette, PromptDialog, SettingsDialog } from '../dialogs/Dialogs.jsx';
 
 export default function AppLayout({ app }) {
@@ -34,13 +35,15 @@ export default function AppLayout({ app }) {
   const websiteView = website && !modal &&
     <WebsiteView key={website} url={website} onClose={() => setWebsite(null)} />;
   const extensionWebviews = ext.surfaces.filter((surface) => surface.kind === 'webviews' && surface.visible)
-    .map((surface) => <div className="modal-backdrop" key={`${surface.host.manifest.id}:${surface.id}`}>
+    .map((surface) => <ModalBackdrop key={`${surface.host.manifest.id}:${surface.id}`}
+      onMouseDown={() => ext.closeSurface(surface)}>
       <div className="modal dialog extension-webview-dialog" role="dialog" aria-modal="true" aria-label={surface.title}
+        onMouseDown={(event) => event.stopPropagation()}
         onKeyDown={(event) => { if (event.key === 'Escape') ext.closeSurface(surface); }}>
         <header><h3>{surface.title}</h3><button onClick={() => ext.closeSurface(surface)}>{t('Close')}</button></header>
         <ExtensionSurface surface={surface} onClose={ext.closeSurface} />
       </div>
-    </div>);
+    </ModalBackdrop>);
 
   if (!v.vault) return <>
     {window.api.platform === 'darwin' && <div className="mac-titlebar">Tagline</div>}

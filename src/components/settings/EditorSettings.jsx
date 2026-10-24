@@ -8,10 +8,9 @@ export default function EditorSettings({ settings, update }) {
       onChange={(event) => update({ [key]: event.target.checked })} />
   </label>;
   return <section className="editor-settings">
-    <h3>{t('Visual editor (Tiptap)')}</h3>
     {checkbox('Show formatting toolbar', 'visualToolbar')}
     <label className="setting-row">
-      <span>{t('Visual editor line height')}</span>
+      <span>{t('Editor line height')}</span>
       <input type="number" data-setting="visualLineHeight" min="1" max="2.5" step="0.05"
         value={settings.visualLineHeight} onChange={(event) => {
           if (event.target.validity.valid && event.target.value !== '') {

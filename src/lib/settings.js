@@ -34,10 +34,10 @@ export function useSettings() {
     };
   }, []);
   useLayoutEffect(() => {
-    try { applyTheme(getTheme(settings.theme, settings.customTheme)); }
+    try { applyTheme(getTheme(settings.theme, settings.customTheme), settings.themeTransition); }
     catch (error) { window.dispatchEvent(new CustomEvent('app-error', { detail: error.message })); }
     setLanguage(settings.language);
-  }, [settings.theme, settings.customTheme, settings.language, themeRevision]);
+  }, [settings.theme, settings.customTheme, settings.themeTransition, settings.language, themeRevision]);
   useLayoutEffect(() => {
     configureVisualCache(settings.visualCacheEntries, settings.visualCacheCharacters);
   }, [settings.visualCacheEntries, settings.visualCacheCharacters]);
