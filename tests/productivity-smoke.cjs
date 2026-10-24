@@ -53,6 +53,8 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
         throw new Error('Timed out: ' + code);
       };
       const click = async (selector, text) => {
+        await wait(`[...document.querySelectorAll(${JSON.stringify(selector)})]
+          .some(el => el.textContent.trim() === ${JSON.stringify(text)})`);
         const found = await js(`(() => { const el=[...document.querySelectorAll(${JSON.stringify(selector)})]
           .find(el => el.textContent.trim()===${JSON.stringify(text)}); if(!el)return false; el.click(); return true; })()`);
         assert.equal(found, true, `Missing ${text}`);
@@ -89,6 +91,7 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
         assert.equal(await js("document.querySelector('[name=author]').value"), 'Manual Author');
         assert.equal(await js("document.querySelector('[name=year]').value"), '2024');
         assert.equal(await js("document.querySelector('[name=publication]').value"), 'Reuters');
+        console.log('PASS: citation autofill preserves manually entered fields.');
         await click('.citation-dialog button', 'Cancel');
         await js("document.querySelector('.ribbon button:last-child').click()");
         await click('.settings-sidebar button', 'Appearance');
@@ -114,6 +117,7 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
         await js("document.querySelector('[data-binding=find]').focus(); document.querySelector('[data-binding=find]').click()");
         await key('K', [primary, 'shift']);
         await wait("JSON.parse(localStorage.getItem('tagline-settings')).keybindings.find === 'Mod+Shift+K'");
+        console.log('PASS: shortcut editing validates conflicts and retains remapped keys.');
         await click('.settings button', 'Done');
         await click('.tree-item', 'Card');
         await wait("!!document.querySelector('.visual-document')");
@@ -147,6 +151,7 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
         await key('Escape');
         await wait("!document.querySelector('.visual-find')");
         // Main-process menu labels update and removing a key survives a renderer reload.
+        console.log('PASS: source and visual editors share remapped shortcuts.');
         await js("document.querySelector('.ribbon button:last-child').click()");
         await click('.settings-sidebar button', 'Keyboard shortcuts');
         await js("document.querySelector('[data-binding=new-note]').focus(); document.querySelector('[data-binding=new-note]').click()");
@@ -178,6 +183,7 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
         await wait("window.api.listRecentVaults().then(items => items.length === 1)");
         assert.equal(await fs.stat(otherVault).then((info) => info.isDirectory()), true);
         await js("document.querySelector('.vault-manager-dialog .dialog-buttons button:last-child').click()");
+        console.log('PASS: vault switching and saved-vault removal preserve files.');
         // An actual second Electron instance forwards .flow to the primary process.
         const secondary = spawn(process.execPath, [__filename, warm], {
           env: { ...process.env, TAGLINE_SECONDARY: '1' }, stdio: 'inherit',

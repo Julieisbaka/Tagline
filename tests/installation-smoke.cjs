@@ -155,4 +155,6 @@ app.on('browser-window-created', (_event, win) => {
     } catch (error) { console.error(error); app.exit(1); }
   });
 });
-require('../electron/main.cjs');
+require(process.env.TAGLINE_INSTALLATION_APP
+  ? path.join(process.env.TAGLINE_INSTALLATION_APP, 'electron', 'main.cjs')
+  : '../electron/main.cjs');
