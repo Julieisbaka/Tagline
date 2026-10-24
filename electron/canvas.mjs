@@ -127,8 +127,8 @@ export function createArgumentEdge(fromNode, toNode, relation, id = createCanvas
     answers: { label: 'Answers', color: '2' },
     contradicts: { label: 'Contradicts', color: '1' },
   };
+  if (!Object.hasOwn(relations, relation)) throw new Error(`Unsupported argument relation: ${relation}`);
   const details = relations[relation];
-  if (!details) throw new Error(`Unsupported argument relation: ${relation}`);
   return {
     id,
     fromNode,

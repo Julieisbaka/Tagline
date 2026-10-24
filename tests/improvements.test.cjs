@@ -351,6 +351,7 @@ test('macOS desktop wiring provides native window controls, menus and Dock react
   assert.equal(file.find((item) => item.role === 'close').accelerator, 'Cmd+Shift+W');
   file.find((item) => item.label === 'New Note').click();
   assert.equal(windows[0].sent.command, 'newNote');
+  ipcMain.emit('app:saveHandlerReady', { sender: windows[0].webContents }, true);
   windows[0].close();
   assert.equal(windows[0].sent.channel, 'app:prepareClose');
   assert.equal(windows[0].destroyed, undefined, 'close waits for pending writes');
@@ -362,10 +363,19 @@ test('macOS desktop wiring provides native window controls, menus and Dock react
   ipcMain.emit('app:closeReady', { sender: windows[0].webContents }, true);
   assert.equal(windows[0].destroyed, true);
   assert.equal(ipcMain.listenerCount('app:closeReady'), 0, 'window recreation does not leak IPC handlers');
+  assert.equal(ipcMain.listenerCount('app:saveHandlerReady'), 0);
   app.emit('window-all-closed');
   assert.equal(quit, false);
   app.emit('activate');
   assert.equal(windows.length, 2);
+  windows[1].close();
+  assert.equal(windows[1].destroyed, true, 'closing before the editor mounts needs no save acknowledgement');
+  app.emit('activate');
+  ipcMain.emit('app:saveHandlerReady', { sender: windows[2].webContents }, true);
+  app.emit('before-quit');
+  windows[2].close();
+  ipcMain.emit('app:closeReady', { sender: windows[2].webContents }, true);
+  assert.equal(quit, true, 'app quit resumes after pending edits save, including on macOS');
 });
 
 test('Pandoc detection supports Apple Silicon and Intel Homebrew without relying on shell PATH', async () => {

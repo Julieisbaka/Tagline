@@ -1,12 +1,27 @@
+if (!process.versions.electron) {
+  const fs = require('node:fs');
+  const path = require('node:path');
+  const { spawnSync } = require('node:child_process');
+  const root = fs.mkdtempSync(path.join(require('node:os').tmpdir(), 'tagline-canvas-ui-'));
+  try {
+    const result = spawnSync(require('electron'), [__filename], {
+      env: { ...process.env, TAGLINE_CANVAS_ROOT: root }, stdio: 'inherit', timeout: 120000,
+    });
+    if (result.error) throw result.error;
+    process.exitCode = result.status ?? 1;
+  } finally { fs.rmSync(root, { recursive: true, force: true, maxRetries: 20, retryDelay: 100 }); }
+  return;
+}
+
 const { app } = require('electron');
 const fs = require('node:fs/promises');
 const path = require('node:path');
-const os = require('node:os');
 const assert = require('node:assert/strict');
 const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 (async () => {
-  const root = await fs.mkdtemp(path.join(os.tmpdir(), 'tagline-canvas-ui-'));
+  const root = process.env.TAGLINE_CANVAS_ROOT;
+  if (!root) throw new Error('Run through npm run test:canvas.');
   const vault = path.join(root, 'vault');
   const profile = path.join(root, 'profile');
   await fs.mkdir(vault);
@@ -26,6 +41,7 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
   app.setPath('userData', profile);
   app.on('before-quit', (event) => event.preventDefault());
   app.on('browser-window-created', (_event, win) => {
+    win.setIgnoreMouseEvents(true);
     win.webContents.once('did-finish-load', async () => {
       const wc = win.webContents;
       const js = (code) => wc.executeJavaScript(code);
@@ -130,7 +146,6 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
         saved = JSON.parse(await fs.readFile(path.join(vault, 'Map.canvas'), 'utf8'));
         assert.equal(saved.nodes.find(node => node.id === 'claim').text, 'Saved during immediate close');
         console.log('Canvas UI, Data history, filename suggestions, theme contrast and immediate-close saves passed');
-        await fs.rm(root, { recursive: true, force: true, maxRetries: 20, retryDelay: 100 });
         app.exit(0);
       } catch (error) { console.error(error); app.exit(1); }
     });

@@ -44,6 +44,8 @@ test('Canvas Complete history preserves JSON; Data history shares latest layout 
   canvas.nodes[0].x = 600;
   await save(canvas, 'complete');
   const [complete] = await history.list('Map.canvas');
+  assert.equal(await history.read('Map.canvas', complete.id),
+    serializeCanvas({ ...canvas, nodes: [createCanvasNode('text', 0, 'one')] }), 'Complete preserves the original JSON exactly');
   assert.equal(JSON.parse(await history.read('Map.canvas', complete.id)).nodes[0].x, 80);
   canvas.nodes[0].text = 'Version two';
   await save(canvas);
@@ -129,6 +131,7 @@ test('flow and Canvas extension document APIs validate structures and enforce va
   assert.equal((await host.handle('helpers.flow.create', [])).version, 1);
   assert.equal((await host.handle('helpers.canvas.createNode', ['group', 0])).type, 'group');
   assert.equal((await host.handle('helpers.canvas.createArgumentEdge', ['one', 'two', 'supports'])).label, 'Supports');
+  await assert.rejects(host.handle('helpers.canvas.createArgumentEdge', ['one', 'two', 'constructor']), /Unsupported argument relation/);
 });
 
 test('extension message limits use a rolling second instead of allowing boundary bursts', async () => {

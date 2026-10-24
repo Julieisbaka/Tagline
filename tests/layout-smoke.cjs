@@ -26,6 +26,7 @@ const delay = (ms) => new Promise((r) => setTimeout(r, ms));
   await fs.writeFile(path.join(profile, 'config.json'), JSON.stringify({ lastVault: vault, modelAutoload: false }));
   app.setPath('userData', profile);
   app.on('browser-window-created', (_e, win) => {
+    win.setIgnoreMouseEvents(true);
     win.webContents.once('did-finish-load', async () => {
       const js = (c) => win.webContents.executeJavaScript(c);
       const rect = (s) => js(`(() => { const b = document.querySelector(${JSON.stringify(s)}).getBoundingClientRect(); return { x: b.x, y: b.y, w: b.width, h: b.height }; })()`);
@@ -92,12 +93,15 @@ const delay = (ms) => new Promise((r) => setTimeout(r, ms));
           const actions = await rect('.note-actions'), main = await rect('.main');
           assert.ok(actions.x + actions.w <= main.x + main.w + 1, `note actions overflow at ${w}`);
         }
-        win.setContentSize(1280, 800); await delay(800);
+        win.setContentSize(1280, 800); win.show(); win.focus(); await delay(800);
         // Real mouse drag of the left splitter by +120px.
         const before = (await rect('.sidebar')).w;
         const s = await rect('.panel-splitter-left');
         const x = Math.round(s.x + s.w / 2), y = Math.round(s.y + 300);
+        win.webContents.sendInputEvent({ type: 'mouseMove', x, y });
+        await delay(50);
         win.webContents.sendInputEvent({ type: 'mouseDown', x, y, button: 'left', clickCount: 1 });
+        await delay(50);
         for (let dx = 20; dx <= 120; dx += 20) { win.webContents.sendInputEvent({ type: 'mouseMove', x: x + dx, y, button: 'left', modifiers: ['leftButtonDown'] }); await delay(30); }
         win.webContents.sendInputEvent({ type: 'mouseUp', x: x + 120, y, button: 'left', clickCount: 1 });
         await delay(400);
@@ -108,7 +112,10 @@ const delay = (ms) => new Promise((r) => setTimeout(r, ms));
         // Right splitter: drag left by 100 grows the right panel.
         const rb = (await rect('.right-panel')).w, r = await rect('.panel-splitter-right');
         const rx = Math.round(r.x + r.w / 2);
+        win.webContents.sendInputEvent({ type: 'mouseMove', x: rx, y });
+        await delay(50);
         win.webContents.sendInputEvent({ type: 'mouseDown', x: rx, y, button: 'left', clickCount: 1 });
+        await delay(50);
         for (let dx = 20; dx <= 100; dx += 20) { win.webContents.sendInputEvent({ type: 'mouseMove', x: rx - dx, y, button: 'left', modifiers: ['leftButtonDown'] }); await delay(30); }
         win.webContents.sendInputEvent({ type: 'mouseUp', x: rx - 100, y, button: 'left', clickCount: 1 });
         await delay(400);

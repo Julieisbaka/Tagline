@@ -317,15 +317,27 @@ function createWindow() {
   });
   let readyToClose = false;
   let preparingClose = false;
+  let hasSaveHandler = false;
+  const saveHandlerReady = (event, ready) => {
+    if (event.sender === win?.webContents) hasSaveHandler = ready === true;
+  };
   const closeReady = (event, success) => {
     if (event.sender !== win?.webContents || !preparingClose) return;
     preparingClose = false;
-    if (success === true) { readyToClose = true; win.close(); }
+    if (success === true) {
+      readyToClose = true;
+      if (quitRequested) app.quit();
+      else win.close();
+    } else quitRequested = false;
   };
   ipcMain.on('app:closeReady', closeReady);
-  win.once('closed', () => ipcMain.removeListener('app:closeReady', closeReady));
+  ipcMain.on('app:saveHandlerReady', saveHandlerReady);
+  win.once('closed', () => {
+    ipcMain.removeListener('app:closeReady', closeReady);
+    ipcMain.removeListener('app:saveHandlerReady', saveHandlerReady);
+  });
   win.on('close', (event) => {
-    if (!readyToClose && !win.webContents.isDestroyed() && !win.webContents.isCrashed()) {
+    if (!readyToClose && hasSaveHandler && !win.webContents.isDestroyed() && !win.webContents.isCrashed()) {
       event.preventDefault();
       if (!preparingClose) {
         preparingClose = true;
@@ -448,6 +460,8 @@ if (primary) app.whenReady().then(() => {
   });
 });
 
+let quitRequested = false;
+app.on('before-quit', () => { quitRequested = true; });
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') app.quit();
 });

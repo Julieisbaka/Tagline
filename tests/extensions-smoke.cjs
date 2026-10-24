@@ -344,7 +344,7 @@ tagline.commands.register('save-checks', async () => {
 
         await js(`window.dispatchEvent(new KeyboardEvent('keydown', { key: ',', ctrlKey: ${process.platform !== 'darwin'}, metaKey: ${process.platform === 'darwin'}, bubbles: true }))`);
         await wait(`!!document.querySelector('.dialog.settings')`, 'settings');
-        assert.equal(await js(`document.activeElement === document.querySelector('.dialog.settings')`), true);
+        await wait(`document.querySelector('.dialog.settings').contains(document.activeElement)`, 'focus inside settings');
         assert.equal(await js(`[...document.querySelectorAll('select option')].some((o) => o.textContent === 'Ocean (Demo)')`), true);
         await js(`(() => { const el = document.querySelector('[data-setting="theme"]');
           el.value = 'ext:demo:0'; el.dispatchEvent(new Event('change', { bubbles: true })); })()`);

@@ -5,7 +5,11 @@ contextBridge.exposeInMainWorld('api', {
   onPrepareClose: (callback) => {
     const listener = () => callback();
     ipcRenderer.on('app:prepareClose', listener);
-    return () => ipcRenderer.removeListener('app:prepareClose', listener);
+    ipcRenderer.send('app:saveHandlerReady', true);
+    return () => {
+      ipcRenderer.removeListener('app:prepareClose', listener);
+      ipcRenderer.send('app:saveHandlerReady', false);
+    };
   },
   closeReady: (success) => ipcRenderer.send('app:closeReady', success),
   installPandoc: () => ipcRenderer.invoke('pandoc:install'),
