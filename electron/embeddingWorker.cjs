@@ -65,6 +65,7 @@ async function search({ query, documents, vault, maxResults = 200 }, report) {
   const indexFile = path.join(indexDir, `${digest(vault)}.json`);
   let cache = {};
   try {
+    // TODO: Validate cached document/vector shapes and rebuild invalid indexes instead of failing the search.
     const saved = JSON.parse(await fs.readFile(indexFile, 'utf8'));
     if (saved.model === MODEL) cache = saved.documents;
   } catch (e) {
