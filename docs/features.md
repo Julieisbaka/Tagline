@@ -148,7 +148,7 @@ disclosure changes.
 
 ## Settings
 
-Settings save automatically on this device. Main options include:
+Settings save automatically on your device. Main options include:
 
 | Section | Options |
 | --- | --- |
