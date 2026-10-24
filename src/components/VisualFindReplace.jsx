@@ -21,7 +21,7 @@ export default function VisualFindReplace({ editor, onClose }) {
     input.current?.focus();
     return () => { if (!editor.isDestroyed) editor.commands.clearSearch(); };
   }, [editor]);
-  const close = () => { onClose(); editor.commands.focus(); };
+  const close = () => { onClose(); editor.view.focus(); };
   return <div className="visual-find" role="search" aria-label={t('Find and replace in note')}
     onKeyDown={(event) => {
       trapTabKey(event, event.currentTarget);

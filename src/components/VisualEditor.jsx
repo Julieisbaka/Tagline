@@ -158,7 +158,7 @@ function VisualDocument({ value, noteNames, visualRef, jump, live, keybindings, 
       }} />}
       {findOpen && <VisualFindReplace editor={editor} onClose={() => setFindOpen(false)} />}
       {linkOpen && <EditorLinkForm noteNames={noteNames} onInsert={insertLink}
-        onClose={() => { setLinkOpen(false); editor.commands.focus(); }} />}
+        onClose={() => { setLinkOpen(false); editor.view.focus(); }} />}
       <EditorContent editor={editor} />
     </div>
   );

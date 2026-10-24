@@ -2,9 +2,9 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useI18n } from '../../lib/i18n.js';
 import { HYPOTHESIS_TEMPLATES, buildHypotheses, entailmentLabel, premiseText } from '../../lib/nli.js';
 
-// Explicit, on-demand stance/topic analysis with the Political DEBATE NLI model.
 import ModalBackdrop from './ModalBackdrop.jsx';
 
+// Explicit, on-demand stance/topic analysis with the Political DEBATE NLI model.
 export default function HypothesisDialog({ sources, onClose }) {
   const { t } = useI18n();
   const scopes = useMemo(() => Object.entries(sources)
@@ -47,8 +47,7 @@ export default function HypothesisDialog({ sources, onClose }) {
   return (
     <ModalBackdrop onMouseDown={onClose}>
       <div className="modal dialog hypothesis-dialog" role="dialog" aria-modal="true" aria-labelledby="hypothesis-title"
-        ref={dialog} onMouseDown={(e) => e.stopPropagation()}
-        onKeyDown={(e) => { if (e.key === 'Escape') { e.preventDefault(); onClose(); } }}>
+        ref={dialog} onMouseDown={(e) => e.stopPropagation()}>
         <h3 id="hypothesis-title">{t('Test a hypothesis (Political DEBATE)')}</h3>
         <p className="hint">{t('The model reads the text as a premise and estimates whether each hypothesis follows from it. It runs only when you click Analyze, entirely on this computer.')}</p>
         <div className="hypothesis-model">

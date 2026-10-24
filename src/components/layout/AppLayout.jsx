@@ -38,8 +38,7 @@ export default function AppLayout({ app }) {
     .map((surface) => <ModalBackdrop key={`${surface.host.manifest.id}:${surface.id}`}
       onMouseDown={() => ext.closeSurface(surface)}>
       <div className="modal dialog extension-webview-dialog" role="dialog" aria-modal="true" aria-label={surface.title}
-        onMouseDown={(event) => event.stopPropagation()}
-        onKeyDown={(event) => { if (event.key === 'Escape') ext.closeSurface(surface); }}>
+        onMouseDown={(event) => event.stopPropagation()}>
         <header><h3>{surface.title}</h3><button onClick={() => ext.closeSurface(surface)}>{t('Close')}</button></header>
         <ExtensionSurface surface={surface} onClose={ext.closeSurface} />
       </div>

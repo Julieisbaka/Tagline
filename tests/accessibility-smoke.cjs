@@ -85,7 +85,7 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
           'settings rows follow the displayed sidebar order');
         await change('[data-setting="theme"]', 'light');
         assert.equal(await js("document.documentElement.classList.contains('theme-transition')"), true, 'theme fade is active');
-        await delay(250);
+        await wait("!document.documentElement.classList.contains('theme-transition')");
         assert.equal(await js("document.documentElement.classList.contains('theme-transition')"), false, 'theme fade cleans up');
         await wc.debugger.sendCommand('Emulation.setEmulatedMedia', {
           features: [{ name: 'prefers-reduced-motion', value: 'reduce' }],
@@ -133,7 +133,7 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
           assert.deepEqual(await js("[...document.querySelectorAll('[data-editor-action]')].map(el => el.dataset.editorAction)"),
             visualActions, 'editors expose the same toolbar actions');
           await js("document.querySelector('[data-editor-action=pocket]').focus()");
-          await key('ArrowRight');
+          await key('Right');
           assert.equal(await js("document.activeElement.dataset.editorAction"), 'hat', 'toolbar supports arrow keys');
           await js(`document.querySelector('${editor}').focus()`);
           assert.equal(await js(`document.querySelector('${editor}').getAttribute('aria-multiline')`), 'true');
@@ -143,12 +143,14 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
           await js('document.querySelector(\'.visual-find [aria-label="Find text"]\').focus()');
           const focusStyle = await js(`(() => {
             const style = getComputedStyle(document.activeElement);
-            return { outline: style.outlineStyle, shadow: style.boxShadow };
+            return { outline: style.outlineStyle, shadow: style.boxShadow,
+              element: document.activeElement.outerHTML, visible: document.activeElement.matches(':focus-visible') };
           })()`);
           assert.equal(focusStyle.shadow, 'none', 'find input has no second focus ring');
-          assert.equal(focusStyle.outline, 'solid', 'find input retains a visible focus ring');
+          assert.equal(focusStyle.outline, 'solid', `find input retains a visible focus ring (${mode}): ${JSON.stringify(focusStyle)}`);
           await key('Escape');
           await wait("!document.querySelector('.visual-find')");
+          await wait(`document.activeElement.matches('${editor}')`);
           assert.equal(await js(`document.activeElement.matches('${editor}')`), true, 'find returns focus to the editor');
           await js("document.querySelector('[data-editor-action=link]').click()");
           await wait("!!document.querySelector('.visual-link-form')");

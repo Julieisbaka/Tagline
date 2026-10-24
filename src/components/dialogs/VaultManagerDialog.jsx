@@ -29,8 +29,7 @@ export default function VaultManagerDialog({ onOpen, onChoose, onSample, onClose
 
   return <ModalBackdrop onMouseDown={() => !busy && onClose()}>
     <div className="modal dialog vault-manager-dialog" role="dialog" aria-modal="true"
-      aria-labelledby="vault-manager-title" onMouseDown={(e) => e.stopPropagation()}
-      onKeyDown={(e) => { if (e.key === 'Escape' && !busy) { e.preventDefault(); onClose(); } }}>
+      aria-labelledby="vault-manager-title" onMouseDown={(e) => e.stopPropagation()}>
       <h3 id="vault-manager-title">{t('Manage vaults')}</h3>
       <p>{t('Open a saved vault without browsing for its folder. Remove a vault from this list without deleting its files.')}</p>
       {vaults.length ? <ul className="vault-manager-list">

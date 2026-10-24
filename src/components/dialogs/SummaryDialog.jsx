@@ -37,8 +37,7 @@ export default function SummaryDialog({ content, title, onClose }) {
 
   return <ModalBackdrop onMouseDown={onClose}>
     <div className="modal dialog summary-dialog" role="dialog" aria-modal="true"
-      aria-labelledby="summary-title" onMouseDown={(e) => e.stopPropagation()}
-      onKeyDown={(e) => { if (e.key === 'Escape') { e.preventDefault(); onClose(); } }}>
+      aria-labelledby="summary-title" onMouseDown={(e) => e.stopPropagation()}>
       <h3 id="summary-title">{t('Summarize document')}</h3>
       <p className="hint">{t('Generate a summary of “{title}” with the Long-T5 model. The model runs only when you request it, and document text stays on this computer.', { title })}</p>
       <p>{status ? `${status.model} — ${t(status.ready ? 'loaded' : 'not loaded')}` : t('Checking model...')}</p>
