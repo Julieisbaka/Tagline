@@ -7,6 +7,7 @@ import CustomizationLimits from '../settings/CustomizationLimits.jsx';
 import EditorSettings from '../settings/EditorSettings.jsx';
 import ExtensionSettings from '../settings/ExtensionSettings.jsx';
 import IntegrationSettings from '../settings/IntegrationSettings.jsx';
+import InstallationSettings from '../settings/InstallationSettings.jsx';
 import KeybindingSettings from '../settings/KeybindingSettings.jsx';
 import ReadingSettings from '../settings/ReadingSettings.jsx';
 import RibbonSettings from '../settings/RibbonSettings.jsx';
@@ -145,6 +146,7 @@ export function SettingsDialog({ settings, update, onClose, extensions }) {
     ['shortcuts', 'Keyboard shortcuts', 'Your commands, your keys'],
     ['extensions', 'Extensions', 'Sandboxed commands and themes from your extensions folder'],
     ['advanced', 'Advanced settings', 'Inspect and reset internal application flags'],
+    ['installation', 'Installation', 'Version, runtime, and local data'],
   ];
   const field = (label, key, type = 'text', extra = {}) => (
     <label className="setting-row">
@@ -247,6 +249,7 @@ export function SettingsDialog({ settings, update, onClose, extensions }) {
                   onChange={(e) => update({ internalFlags: { ...settings.internalFlags, visualNoticeDismissed: e.target.checked } })} />
               </label>
             </section>
+            {section === 'installation' && <section className="settings-panel"><InstallationSettings /></section>}
           </div>
           <footer className="settings-footer"><span>{t('Settings are saved on this device')}</span>
             <button className="primary" onClick={onClose}>{t('Done')}</button>

@@ -133,6 +133,7 @@ Settings save automatically on this device. Main options include:
 | Integrations | Pandoc, local models, embedded websites |
 | Keyboard shortcuts | Built-in and extension command bindings |
 | Extensions | Install, reload, enable, and configure local extensions |
+| Installation | App/runtime versions, architecture, executable and profile location, manual update guidance |
 
 `Mod` means Ctrl on Windows/Linux and Cmd on macOS. Change shortcuts in
 **Settings > Keyboard shortcuts**.

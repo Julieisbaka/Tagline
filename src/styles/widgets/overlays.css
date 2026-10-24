@@ -1,6 +1,10 @@
 /* Modals */
 .deferred-dialog { display: contents; }
 
+.installation-details > div { margin-bottom: 12px; }
+.installation-details dt { color: var(--text-muted); }
+.installation-details dd { margin: 4px 0 0; overflow-wrap: anywhere; user-select: text; }
+
 .modal-backdrop {
   position: fixed;
   inset: 0;

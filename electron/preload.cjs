@@ -2,6 +2,7 @@ const { contextBridge, ipcRenderer } = require('electron');
 
 contextBridge.exposeInMainWorld('api', {
   platform: process.platform,
+  getInstallationInfo: () => ipcRenderer.invoke('app:installation'),
   onPrepareClose: (callback) => {
     const listener = () => callback();
     ipcRenderer.on('app:prepareClose', listener);

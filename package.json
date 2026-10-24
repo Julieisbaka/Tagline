@@ -9,8 +9,9 @@
     "build": "vite build",
     "package": "vite build && electron-builder",
     "start": "vite build && electron .",
-    "test": "node --test tests/core.test.cjs tests/features.test.cjs tests/canvas.test.cjs tests/ui-system.test.cjs tests/improvements.test.cjs tests/productivity.test.cjs tests/search.test.cjs tests/calibration.test.cjs tests/nli.test.cjs tests/startup.test.cjs",
+    "test": "node --test tests/core.test.cjs tests/features.test.cjs tests/canvas.test.cjs tests/ui-system.test.cjs tests/improvements.test.cjs tests/productivity.test.cjs tests/search.test.cjs tests/calibration.test.cjs tests/nli.test.cjs tests/startup.test.cjs tests/release.test.cjs",
     "test:startup": "vite build && node tests/startup-smoke.cjs",
+    "test:installation": "node tests/installation-smoke.cjs",
     "test:electron": "vite build && electron tests/electron-smoke.cjs",
     "test:semantic": "node tests/semantic-smoke.cjs",
     "test:search": "vite build && node tests/search-smoke.cjs",
@@ -32,6 +33,7 @@
   "build": {
     "appId": "app.tagline",
     "productName": "Tagline",
+    "artifactName": "Tagline-${version}-${os}-${arch}.${ext}",
     "directories": {
       "output": "release"
     },
@@ -58,6 +60,11 @@
     "win": {
       "target": "nsis",
       "icon": "build/icon.ico"
+    },
+    "nsis": {
+      "oneClick": true,
+      "perMachine": false,
+      "deleteAppDataOnUninstall": false
     },
     "mac": {
       "target": "dmg",

@@ -15,9 +15,12 @@ const { registerFlowFiles } = require('./flowFiles.cjs');
 const { registerBrowser } = require('./browser.cjs');
 const { DEFAULT_RETENTION, createRevisionHistory } = require('./revisionHistory.cjs');
 const { NOTE_EXTS, listVault: walk, readVaultSnapshot } = require('./vaultFiles.cjs');
+const { installationInfo } = require('./installation.cjs');
 const keyDefinitions = require('../src/lib/keybindings.json');
 
 const isDev = process.argv.includes('--dev');
+// Keep profile and OS credential identity stable across versions and install locations.
+app.setName('Tagline');
 const configPath = () => path.join(app.getPath('userData'), 'config.json');
 
 let win;
@@ -102,6 +105,7 @@ async function listRecentVaults() {
 }
 
 function registerIpc() {
+  ipcMain.handle('app:installation', () => installationInfo(app));
   const history = createRevisionHistory({
     getVaultRoot: () => vaultRoot,
     resolveInVault,
@@ -416,7 +420,7 @@ const primary = registerFlowFiles({
 
 if (primary) app.whenReady().then(() => {
   if (process.platform === 'darwin') app.dock.setIcon(path.join(__dirname, '..', 'build', 'icon.png'));
-  app.setAboutPanelOptions({ applicationName: 'Tagline', applicationVersion: '0.0.1' });
+  app.setAboutPanelOptions({ applicationName: 'Tagline', applicationVersion: installationInfo(app).version });
   buildMenu();
   registerIpc();
   closeWebsiteView = registerBrowser({ ipcMain, shell, getWindow: () => win });

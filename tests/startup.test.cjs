@@ -72,3 +72,25 @@ test('visual fallback checks do not depend on loading the visual editor', async 
     assert.equal(typeof visualBlocker(content), 'string');
   assert.equal(visualBlocker('```html\n<div>Example</div>\n```'), null);
 });
+
+test('release packaging keeps application identity and user data independent of version', () => {
+  const { build } = require('../package.json');
+  assert.equal(build.appId, 'app.tagline');
+  assert.equal(build.productName, 'Tagline');
+  assert.equal(build.nsis.deleteAppDataOnUninstall, false);
+  assert.equal(build.nsis.perMachine, false);
+  assert.equal(build.win.target, 'nsis');
+  assert.equal(build.mac.target, 'dmg');
+  assert.equal(build.artifactName, 'Tagline-${version}-${os}-${arch}.${ext}');
+  assert.ok(!build.publish, 'Publishing is controlled by the manual release workflow');
+});
+
+test('installation information uses packaged versions and the current profile without mutating them', () => {
+  const { installationInfo } = require('../electron/installation.cjs');
+  const app = { isPackaged: true, getVersion: () => '2.3.4', getPath: (name) => `/current/${name}` };
+  assert.equal(installationInfo(app).version, '2.3.4');
+  assert.equal(installationInfo(app).profile, '/current/userData');
+  assert.equal(installationInfo(app).executable, '/current/exe');
+  assert.equal(installationInfo(app).arch, process.arch);
+  assert.equal(installationInfo({ ...app, isPackaged: false }).version, require('../package.json').version);
+});

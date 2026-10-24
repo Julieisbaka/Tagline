@@ -1,0 +1,155 @@
+name: Release
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  version:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      tag: ${{ steps.version.outputs.tag }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Validate version and release
+        id: version
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('node:fs');
+            const { execFileSync } = require('node:child_process');
+            const { version } = JSON.parse(fs.readFileSync('package.json', 'utf8'));
+            const lock = JSON.parse(fs.readFileSync('package-lock.json', 'utf8'));
+            if (!/^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?$/.test(version))
+              throw new Error('Invalid package version');
+            if (lock.version !== version || lock.packages[''].version !== version)
+              throw new Error('Update package-lock.json along with package.json');
+            const tag = `v${version}`;
+            const tags = execFileSync('git', ['tag', '--list', tag], { encoding: 'utf8' }).trim();
+            if (tags && execFileSync('git', ['rev-parse', `${tag}^{commit}`], { encoding: 'utf8' }).trim() !== context.sha)
+              throw new Error(`${tag} already points to another commit`);
+            try {
+              const { data } = await github.rest.repos.getReleaseByTag({ ...context.repo, tag });
+              if (!data.draft) throw new Error(`${tag} is already published. Bump the package version.`);
+              if (!tags && data.target_commitish !== context.sha)
+                throw new Error(`${tag} has a draft for another commit. Delete that draft before retrying.`);
+            } catch (error) {
+              if (error.status !== 404) throw error;
+            }
+            core.setOutput('version', version);
+            core.setOutput('tag', tag);
+
+  build:
+    needs: version
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            platform: win
+            arch: x64
+          - os: macos-15-intel
+            platform: mac
+            arch: x64
+          - os: macos-15
+            platform: mac
+            arch: arm64
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 45
+    env:
+      CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci
+      - run: npm test
+      - run: npm run build
+      - run: npm run test:installation
+      - name: Package without publishing or signing
+        run: npx --no-install electron-builder --${{ matrix.platform }} --${{ matrix.arch }} --publish never
+      - uses: actions/upload-artifact@v4
+        with:
+          name: release-${{ matrix.platform }}-${{ matrix.arch }}
+          path: |
+            release/*.exe
+            release/*.dmg
+          if-no-files-found: error
+
+  publish:
+    needs: [version, build]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: release-*
+          path: artifacts
+          merge-multiple: true
+      - name: Publish complete release
+        uses: actions/github-script@v7
+        env:
+          VERSION: ${{ needs.version.outputs.version }}
+          TAG: ${{ needs.version.outputs.tag }}
+        with:
+          script: |
+            const fs = require('node:fs');
+            const { createHash } = require('node:crypto');
+            const { VERSION: version, TAG: tag } = process.env;
+            const files = [
+              `Tagline-${version}-win-x64.exe`,
+              `Tagline-${version}-mac-x64.dmg`,
+              `Tagline-${version}-mac-arm64.dmg`,
+            ];
+            const actual = fs.readdirSync('artifacts').sort();
+            if (JSON.stringify(actual) !== JSON.stringify([...files].sort()))
+              throw new Error(`Unexpected release files: ${actual.join(', ')}`);
+            const checksums = files.map(name => {
+              const hash = createHash('sha256').update(fs.readFileSync(`artifacts/${name}`)).digest('hex');
+              return `${hash}  ${name}`;
+            }).join('\n') + '\n';
+            fs.writeFileSync('artifacts/SHA256SUMS.txt', checksums);
+            let release;
+            try {
+              ({ data: release } = await github.rest.repos.getReleaseByTag({ ...context.repo, tag }));
+              if (!release.draft) throw new Error(`${tag} is already published`);
+            } catch (error) {
+              if (error.status !== 404) throw error;
+            }
+            if (!release) {
+              const { data: notes } = await github.rest.repos.generateReleaseNotes({
+                ...context.repo, tag_name: tag, target_commitish: context.sha,
+              });
+              ({ data: release } = await github.rest.repos.createRelease({
+                ...context.repo, tag_name: tag, target_commitish: context.sha,
+                name: `Tagline ${version}`, draft: true, prerelease: version.split('+')[0].includes('-'),
+                body: 'Unsigned builds: Windows and macOS may show security warnings.\n\n' +
+                  'Quit Tagline before updating. On Windows, run the installer using the same install scope and location. ' +
+                  'On macOS, replace Tagline in Applications. Do not delete the app profile; settings and vaults are retained. ' +
+                  'There is no automatic updater.\n\n' + notes.body,
+              }));
+            }
+            const assets = await github.paginate(github.rest.repos.listReleaseAssets, {
+              ...context.repo, release_id: release.id, per_page: 100,
+            });
+            for (const asset of assets) await github.rest.repos.deleteReleaseAsset({ ...context.repo, asset_id: asset.id });
+            for (const name of [...files, 'SHA256SUMS.txt']) {
+              await github.rest.repos.uploadReleaseAsset({
+                ...context.repo, release_id: release.id, name,
+                data: fs.readFileSync(`artifacts/${name}`),
+              });
+            }
+            await github.rest.repos.updateRelease({ ...context.repo, release_id: release.id, draft: false });
+            await core.summary.addLink(`Tagline ${version}`, release.html_url).write();

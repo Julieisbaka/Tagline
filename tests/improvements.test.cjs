@@ -289,6 +289,7 @@ test('macOS desktop wiring provides native window controls, menus and Dock react
   app.whenReady = () => Promise.resolve();
   app.dock = { setIcon: (icon) => { dockIcon = icon; } };
   app.setAboutPanelOptions = () => { };
+  app.setName = () => { };
   app.quit = () => { quit = true; };
   class BrowserWindow extends EventEmitter {
     constructor(options) {
@@ -325,6 +326,7 @@ test('macOS desktop wiring provides native window controls, menus and Dock react
       if (name === 'electron') return electron;
       if (name.startsWith('./')) {
         if (name === './sampleVault.cjs') return { SAMPLE_VAULT: {} };
+        if (name === './installation.cjs') return { installationInfo: () => ({ version: require('../package.json').version }) };
         if (name === './browser.cjs') return { registerBrowser: () => () => { } };
         if (name === './revisionHistory.cjs') return {
           DEFAULT_RETENTION: 50,
