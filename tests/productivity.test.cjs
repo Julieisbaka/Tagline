@@ -195,6 +195,7 @@ test('OS flow opens handle cold starts, second instances, macOS events and vault
   const { registerFlowFiles, flowArguments } = require('../electron/flowFiles.cjs');
   const root = await fs.mkdtemp(path.join(os.tmpdir(), 'tagline-flow-test-'));
   try {
+    const realRoot = await fs.realpath(root);
     const file = path.join(root, 'Round with spaces.flow');
     await fs.writeFile(file, '{"version":1,"sheets":[]}');
     const app = new EventEmitter();
@@ -217,13 +218,13 @@ test('OS flow opens handle cold starts, second instances, macOS events and vault
     assert.equal(handlers['flow:pending'](), file);
     let result = await handlers['flow:open'](null, file);
     assert.equal(result.path, 'Round with spaces.flow');
-    assert.equal(result.vault.root, root);
+    assert.equal(result.vault.root, realRoot);
     assert.equal(handlers['flow:pending'](), null);
     await assert.rejects(handlers['flow:open'](null, file), /not requested/);
     app.emit('second-instance', {}, ['tagline', file]);
     assert.equal(handlers['flow:pending'](), file);
     result = await handlers['flow:open'](null, file);
-    assert.equal(result.vault.root, root);
+    assert.equal(result.vault.root, realRoot);
     let prevented = false;
     app.emit('open-file', { preventDefault: () => { prevented = true; } }, file);
     assert.equal(prevented, true);
