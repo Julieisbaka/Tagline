@@ -70,7 +70,7 @@ marked.use({
   renderer: {
     heading({ tokens, depth }) {
       const text = this.parser.parseInline(tokens);
-      const id = slugify(text.replace(/<[^>]+>/g, ''));
+      const id = slugify(DOMPurify.sanitize(text, { ALLOWED_TAGS: [], ALLOWED_ATTR: [] }));
       return `<h${depth} id="${id}" class="debate-h${depth}">${text}</h${depth}>\n`;
     },
   },
