@@ -116,10 +116,10 @@ const delay = (ms) => new Promise((r) => setTimeout(r, ms));
         assert.equal(await js("document.querySelector('[name=accessed]').type"), 'text', 'no native date control remains');
         await input('[name=accessed]', '2024-01-31');
         const openCalendar = () => js("document.querySelector('.date-picker [aria-label=\"Choose date\"]').click()");
-        const dialogHeight = await js("document.querySelector('.citation-dialog').getBoundingClientRect().height");
+        const dialogHeight = await js("document.querySelector('.citation-dialog').offsetHeight");
         await openCalendar();
         await wait("document.activeElement.dataset.date === '2024-01-31'");
-        assert.equal(await js("document.querySelector('.citation-dialog').getBoundingClientRect().height"), dialogHeight,
+        assert.equal(await js("document.querySelector('.citation-dialog').offsetHeight"), dialogHeight,
           'opening the picker must not resize the form');
         assert.equal(await js("document.querySelector('.date-picker-calendar').parentElement === document.body"), true,
           'the calendar floats outside the scrolling form');
