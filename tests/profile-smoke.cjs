@@ -57,7 +57,20 @@ app.on('browser-window-created', (_event, win) => {
       assert.equal(settings.wpm, 250);
       assert.equal(settings.fontFamily, '');
       assert.equal(await js("JSON.parse(localStorage.getItem('debate-vault-settings')).wpm"), 499);
-      console.log('PASS: old profiles, credentials and settings are ignored and left untouched.');
+      await wait("!!document.querySelector('.welcome') && !!document.querySelector('.onboarding-dialog')");
+      assert.equal(settings.internalFlags.hasSeenOnboarding, false);
+      await js("document.querySelector('.onboarding-skip').click()");
+      await wait("!document.querySelector('.onboarding-dialog')");
+      assert.equal(await js("JSON.parse(localStorage.getItem('tagline-settings')).internalFlags.hasSeenOnboarding"), true);
+      assert.equal(await js("!!document.querySelector('.welcome')"), true, 'tour leaves vault choice to the user');
+      assert.equal(await js('window.api.getLastVault()'), null, 'tour never creates a vault');
+      await new Promise((resolve) => {
+        win.webContents.once('did-finish-load', resolve);
+        win.webContents.reload();
+      });
+      await wait("!!document.querySelector('.welcome') && !!localStorage.getItem('tagline-settings')");
+      assert.equal(await js("!!document.querySelector('.onboarding-dialog')"), false, 'dismissal persists without a vault');
+      console.log('PASS: legacy profiles stay untouched; first-run onboarding works and stays dismissed without a vault.');
       app.exit(0);
     } catch (e) {
       console.error('FAIL:', e.stack || e);

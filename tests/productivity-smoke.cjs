@@ -66,6 +66,8 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
       };
       const primary = process.platform === 'darwin' ? 'meta' : 'control';
       try {
+        await wait("!!document.querySelector('.onboarding-skip')");
+        await js("document.querySelector('.onboarding-skip').click()");
         await js("window.addEventListener('error', e => console.error(e.error?.stack || e.message))");
         await wait("!!document.querySelector('.flow-grid') || !!document.querySelector('.flow-editor textarea')");
         assert.equal(await js("document.querySelector('.note-title').value"), 'Cold');

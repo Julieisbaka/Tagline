@@ -23,7 +23,12 @@ Open a folder as a vault or create the sample vault on first launch.
 ## Releases and updates
 
 Builds are unsigned and not notarized, so OS security warnings are expected.
-There is no automatic updater. Quit Tagline, then run the newer Windows
+Use **Settings > Installation > Check for updates** to compare the installed
+version with the latest stable GitHub release. This contacts the public GitHub
+API only when requested; it sends no vault contents or account credentials.
+The same panel links to the repository and releases. Errors, including no
+published release or rate limiting, appear in the panel.
+There is no automatic checking, downloading, or installing. Quit Tagline, then run the newer Windows
 installer using the same scope/location, or replace Tagline in Applications
 on macOS. Keep the existing app ID, product name, and installation scope when
 packaging future versions: these identify the app and its persistent profile.

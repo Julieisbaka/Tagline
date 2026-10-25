@@ -77,7 +77,7 @@ app.on('browser-window-created', (_event, win) => {
           check();
         })`);
         await win.webContents.executeJavaScript(`(() => {
-          localStorage.setItem('tagline-settings', JSON.stringify({ modelAutoload: false, editorMode: ${JSON.stringify(scenario === 'source' ? 'edit' : 'visual')} }));
+          localStorage.setItem('tagline-settings', JSON.stringify({ modelAutoload: false, internalFlags: { hasSeenOnboarding: true }, editorMode: ${JSON.stringify(scenario === 'source' ? 'edit' : 'visual')} }));
           localStorage.setItem(${JSON.stringify(`tabs:${process.env.TAGLINE_STARTUP_VAULT}`)}, JSON.stringify({
             tabs: ${JSON.stringify(['visual', 'source'].includes(scenario) ? [{ id: 'startup-note', kind: 'file', path: 'Note 0.md' }] : [])},
             activeId: 'startup-note'

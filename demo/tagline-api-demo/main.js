@@ -262,6 +262,12 @@ async function demoHelpers() {
     `extname → ${await path.extname(joined)}`,
     `markdownToText → ${await tagline.helpers.markdownToText('## **Evidence** from _Smith 24_ [source](https://example.com)')}`,
   ];
+  const canvas = tagline.helpers.canvas;
+  const node = await canvas.createNode('text');
+  results.push(`canvas.createId → ${await canvas.createId()}`);
+  results.push(`canvas.resolveLink → ${describe(await canvas.resolveLink('[[Round.flow#Speech|Round]]', ['Round.flow']))}`);
+  results.push(`canvas.suggestFiles → ${describe(await canvas.suggestFiles(['Card.md', 'Round.flow'], 'Card'))}`);
+  results.push(`canvas.moveNodes → ${describe(await canvas.moveNodes({ nodes: [node], edges: [] }, [node.id], 40, 20))}`);
   try {
     await path.normalize('../outside.md');
     results.push('normalize("../outside.md") unexpectedly succeeded');
@@ -620,6 +626,13 @@ tagline.webviews.onMessage(WEBVIEW, async (message) => {
 
 await tagline.panels.setHtml(PANEL, PANEL_HTML);
 await tagline.webviews.setHtml(WEBVIEW, INSPECTOR_HTML);
+tagline.onInstall(async () => {
+  if (!(await tagline.storage.get('installedAt'))) {
+    await tagline.storage.set('installedAt', new Date().toISOString());
+  }
+  await openPanel();
+  await tagline.notify('Setup complete. Try the demos in the API dashboard.');
+});
 
 // ---------------------------------------------------------------------------
 // Command registration (every contributed command needs a handler)

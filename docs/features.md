@@ -10,6 +10,11 @@ Markdown files; speech flows use `.flow` files, and visual canvases use
 format. Settings and downloaded models are stored in the app profile, not the
 vault.
 
+On first launch, a short, skippable tour explains vaults, document types, and
+workspace customization. It does not create files or require an account.
+Completion is remembered in the app profile. Replay it from **Settings >
+Advanced settings > Internal flags > Show onboarding again**.
+
 Create, move, rename, and delete files in the sidebar. Open several documents
 in tabs, use `Mod+O` to switch files, or `Mod+P` to find a command. Edits
 autosave using a temporary file so failed writes leave the original intact.
@@ -86,7 +91,10 @@ Wiki links support `[[Note]]`, `[[Note#Heading]]`, and `[[Note|Label]]`.
 The link picker uses themed suggestions; use arrow keys and Enter to choose a
 note, then **Insert link** to confirm. Choosing a note preserves heading/label suffixes.
 Tagline also provides backlinks, mentions, an outline, tags, and a graph view.
-Dragged graph nodes stay where you drop them while that graph is open.
+Graph nodes follow the pointer while dragged and smoothly resume the force
+simulation after release. Refreshing preserves the current layout. Scrolling
+zooms around the pointer; further scrolling at either zoom limit leaves the
+camera unchanged.
 Put reusable Markdown in `Templates/`; placeholders include `{{date}}`,
 `{{time}}`, and `{{title}}`.
 
@@ -125,8 +133,8 @@ Choose **JSON source** in the flow header to edit the saved structure directly.
 Deleting a sheet or column asks for confirmation in Tagline.
 
 **Settings > Advanced settings > Internal flags** includes **Has seen onboarding**
-(`hasSeenOnboarding`, initially false). This only stores state; no onboarding
-experience is implemented yet.
+(`hasSeenOnboarding`, initially false). Completing, skipping, or dismissing the
+tour sets it to true. **Show onboarding again** resets it and closes Settings.
 
 ## Local analysis and summaries
 
@@ -198,7 +206,7 @@ Settings save automatically on your device. Main options include:
 | Integrations | Pandoc, local models, embedded websites |
 | Keyboard shortcuts | Built-in and extension command bindings |
 | Extensions | Install, reload, enable, and configure local extensions |
-| Installation | App/runtime versions, architecture, executable and profile location, manual update guidance |
+| Installation | App/runtime versions, architecture, executable and profile location, manual version checker, GitHub repository/releases links, uninstall options |
 
 `Mod` means Ctrl on Windows/Linux and Cmd on macOS. Change shortcuts in
 **Settings > Keyboard shortcuts**.

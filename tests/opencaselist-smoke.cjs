@@ -136,6 +136,10 @@ app.on('browser-window-created', (_event, win) => {
         setter.call(input,${JSON.stringify(value)}); input.dispatchEvent(new Event('input',{bubbles:true})); })()`);
     };
     try {
+      if (first) {
+        await wait("!!document.querySelector('.onboarding-skip')");
+        await js("document.querySelector('.onboarding-skip').click()");
+      }
       await wait("!!document.querySelector('.ribbon-settings-button')");
       await js("document.querySelector('.ribbon-settings-button').focus(); document.querySelector('.ribbon-settings-button').click()");
       await wait("!!document.querySelector('[data-section=integrations]')");

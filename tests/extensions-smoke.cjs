@@ -20,7 +20,18 @@ const assert = require('node:assert/strict');
 const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 const DEMO = `
+let invalidInstallRejected = false, duplicateInstallRejected = false;
+try { tagline.onInstall(null); } catch (error) { invalidInstallRejected = error.message.includes('function'); }
+tagline.onInstall(async () => {
+  await tagline.storage.set('installRuns', ((await tagline.storage.get('installRuns')) || 0) + 1);
+  await tagline.webviews.setHtml('details', '<h2>Extension setup complete</h2>');
+  await tagline.webviews.show('details');
+});
+try { tagline.onInstall(() => {}); } catch (error) { duplicateInstallRejected = error.message.includes('Only one'); }
 tagline.commands.register('capabilities', async () => {
+  let lateInstallRejected = false;
+  try { tagline.onInstall(() => {}); } catch (error) { lateInstallRejected = error.message.includes('initialization'); }
+  await tagline.storage.set('installRegistration', { invalidInstallRejected, duplicateInstallRejected, lateInstallRejected });
   const disposables = tagline.helpers.createDisposables();
   disposables.add(await tagline.events.on('ext.demo.check', payload => tagline.storage.set('eventCheck', payload)));
   disposables.add(await tagline.events.on('editor.selectionChanged', payload => tagline.storage.set('selectionEvent', payload)));
@@ -44,6 +55,10 @@ tagline.commands.register('capabilities', async () => {
     score: await tagline.helpers.search.fuzzyScore('deb', 'debate'),
     template: await tagline.helpers.templates.fill('{{title}}', 'Case'),
     html: await tagline.helpers.markdown.toHtml('**Safe**'),
+    canvasLink: await tagline.helpers.canvas.resolveLink('[[Round.flow|Round]]', ['Round.flow']),
+    suggestions: await tagline.helpers.canvas.suggestFiles(['Card.md', 'Round.flow'], 'Card'),
+    canvasId: await tagline.helpers.canvas.createId(),
+    moved: await tagline.helpers.canvas.moveNodes({nodes:[],edges:[]}, [], 20, 10),
   });
   tagline.panels.onMessage('status', async payload => {
     if (payload.ready) await tagline.panels.postMessage('status', { reply: true });
@@ -214,7 +229,16 @@ tagline.commands.register('save-checks', async () => {
     contributes: { commands: [{ id: 'peek', title: 'Peek' }] },
   }));
   await fs.writeFile(path.join(ext('nosy'), 'main.js'),
-    "tagline.commands.register('peek', async () => { await tagline.vault.list(); });");
+    `tagline.onInstall(async () => {
+      const attempts = ((await tagline.storage.get('installAttempts')) || 0) + 1;
+      await tagline.storage.set('installAttempts', attempts);
+      let denied = false;
+      try { await tagline.vault.list(); } catch (error) { denied = error.message.includes('Permission'); }
+      if (!denied) throw new Error('Install hook bypassed permissions');
+      await tagline.storage.set('installPermissionDenied', denied);
+      if (attempts === 1) throw new Error('Retry first install setup');
+    });
+    tagline.commands.register('peek', async () => { await tagline.vault.list(); });`);
   await fs.writeFile(path.join(vault, 'Card.md'), '# Card\n\nEvidence.\n');
   await fs.writeFile(path.join(vault, 'Round.flow'), JSON.stringify({ version: 1, sheets: [{ name: 'Case', columns: ['1AC'], rows: [['A']] }] }));
   const demoManifest = require('../electron/extensions.cjs').validateManifest(
@@ -259,7 +283,22 @@ tagline.commands.register('save-checks', async () => {
         win.show(); win.focus();
         await wait("!!document.querySelector('.onboarding-skip')");
         await js("document.querySelector('.onboarding-skip').click()");
+        await wait("document.querySelector('.extension-webview-dialog')?.textContent.includes('Details')");
+        await js("document.querySelector('.extension-webview-dialog button').click()");
+        await wait("JSON.parse(localStorage.getItem('tagline-extension:nosy'))?.installAttempts === 1");
+        await js("document.querySelector('.ribbon-settings-button').click()");
+        await wait("!!document.querySelector('.settings')");
+        await js("document.querySelector('[data-section=extensions]').click()");
+        await wait("document.querySelector('[data-extension=nosy]')?.textContent.includes('Retry first install setup')");
+        let installed = JSON.parse(await fs.readFile(path.join(profile, 'config.json'), 'utf8'));
+        assert.equal(installed.initializedExtensions.includes('nosy'), false, 'failed setup does not mark installation complete');
+        await js("[...document.querySelectorAll('.settings button')].find(el => el.textContent === 'Reload extensions').click()");
+        await wait("JSON.parse(localStorage.getItem('tagline-extension:nosy'))?.installAttempts === 2");
+        await wait("document.querySelector('[data-extension=nosy]') && !document.querySelector('[data-extension=nosy]').textContent.includes('Retry first install setup')");
+        await js("[...document.querySelectorAll('.settings button')].find(el => el.textContent === 'Done').click()");
         await wait(`document.querySelectorAll('iframe[data-extension]').length === 2`, 'extension frames');
+        assert.equal(await js("JSON.parse(localStorage.getItem('tagline-extension:demo')).installRuns"), 1);
+        assert.equal(await js("JSON.parse(localStorage.getItem('tagline-extension:nosy')).installPermissionDenied"), true);
         assert.equal(await js(`document.querySelector('iframe[data-extension="demo"]').getAttribute('sandbox')`), 'allow-scripts');
 
         assert.deepEqual(await js(`[...document.querySelectorAll('.tree-item')].map((el) => el.textContent.trim()).sort()`), ['Card', 'Round']);
@@ -317,6 +356,13 @@ tagline.commands.register('save-checks', async () => {
         assert.equal(uiReport.notice, 'status');
         assert.equal(uiReport.selectionText, 'rgb(255, 255, 255)');
         const capabilities = await js("JSON.parse(localStorage.getItem('tagline-extension:demo'))");
+        assert.deepEqual(capabilities.installRegistration, {
+          invalidInstallRejected: true, duplicateInstallRejected: true, lateInstallRejected: true,
+        });
+        assert.deepEqual(capabilities.helperLibraryCheck.canvasLink, { type: 'file', path: 'Round.flow', heading: '', label: 'Round' });
+        assert.deepEqual(capabilities.helperLibraryCheck.suggestions, ['Card.md']);
+        assert.ok(capabilities.helperLibraryCheck.canvasId);
+        assert.deepEqual(capabilities.helperLibraryCheck.moved, { nodes: [], edges: [] });
         assert.deepEqual(capabilities.eventCheck, { passed: true });
         assert.deepEqual(capabilities.selectionCheck, { from: 1, to: 3 });
         assert.deepEqual(capabilities.selectionEvent.selection, { from: 1, to: 3 });
@@ -333,6 +379,10 @@ tagline.commands.register('save-checks', async () => {
           score: 999.4,
           template: 'Case',
           html: '<p><strong>Safe</strong></p>\n',
+          canvasLink: { type: 'file', path: 'Round.flow', heading: '', label: 'Round' },
+          suggestions: ['Card.md'],
+          canvasId: capabilities.helperLibraryCheck.canvasId,
+          moved: { nodes: [], edges: [] },
         });
         assert.equal(capabilities.webviewCheck.networkBlocked, true);
         assert.equal(capabilities.webviewCheck.api, 'undefined');
@@ -442,6 +492,8 @@ tagline.commands.register('save-checks', async () => {
         await js(`document.querySelector('[data-section="extensions"]').click()`);
         await js(`[...document.querySelectorAll('.settings button')].find(el => el.textContent.trim() === 'Reload extensions').click()`);
         await wait(`!!document.querySelector('iframe[data-extension="demo"]')`, 'worker reloaded');
+        assert.equal(await js("JSON.parse(localStorage.getItem('tagline-extension:demo')).installRuns"), 1, 'install setup never repeats on reload');
+        assert.equal(await js("JSON.parse(localStorage.getItem('tagline-extension:nosy')).installAttempts"), 2, 'successful install remains complete when disabled');
         assert.equal(await js("!!document.querySelector('.ribbon [data-ribbon-item=\"ext:demo.documents\"]')"), false,
           'removed extension shortcuts stay hidden after extension reload');
         await js(`[...document.querySelectorAll('.settings button')].find(el => el.textContent.trim() === 'Done').click()`);

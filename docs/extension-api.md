@@ -80,6 +80,41 @@ so top-level `await` works. It is **not** an ES module: do not use top-level
 `import`/`export` or CommonJS `require`. Bundle dependencies into one
 self-contained script if necessary. There is no package loader.
 
+### First-install setup
+
+Register one `tagline.onInstall(handler)` during entry-script initialization.
+Registration is synchronous and returns nothing. After the entry script
+finishes, Tagline awaits the callback before marking the host ready:
+
+```js
+tagline.onInstall(async () => {
+  if (!(await tagline.storage.get('installedAt'))) {
+    await tagline.storage.set('installedAt', new Date().toISOString());
+  }
+  await tagline.webviews.setHtml('welcome', '<h2>Welcome!</h2><p>Configure this extension in Settings.</p>');
+  await tagline.webviews.show('welcome');
+});
+```
+
+This example requires `ui` permission and a declared `welcome` webview. Hooks
+have the same permissions and API limits as commands; storage alone needs no
+permission. Do not assume a vault or editor is open. Duplicate handlers or
+registration after the entry script finishes throw.
+
+The hook runs on first successful script activation in the current profile,
+including the first activation of extensions installed before this API existed.
+Successful setup is remembered by extension ID, independently of private
+extension storage. Reloads, version updates, disabling/re-enabling, and manually
+removing/replacing the same ID do not repeat it. Theme-only extensions have no
+script hook. An extension without a hook is also marked initialized after its
+first successful activation.
+
+Thrown/rejected setup appears on the extension card and is retried next load.
+Use idempotent setup: interruptions before completion is recorded can retry
+operations already performed. Entry evaluation and setup share the normal
+startup deadline (10 seconds by default). Show onboarding UI, then return;
+do not wait for the user to finish that UI inside the callback.
+
 ## Manifest reference
 
 | Field | Required | Contract |
@@ -503,12 +538,25 @@ Pure helpers require no permissions:
 
 - `helpers.canvas.parse(json)`, `serialize(document)`,
   `createNode(type, index = 0)`, `createArgumentEdge(from, to, relation)`,
-  `groupMembers(document, groupId)`.
+  `groupMembers(document, groupId)`, `createId()`,
+  `resolveLink(target, paths)`, `suggestFiles(paths, query, limit = 20)`,
+  `moveNodes(document, ids, dx, dy)`.
 - `helpers.flow.parse(json)`, `serialize(document)`, `create()`,
   `setCell(document, sheetIndex, rowIndex, columnIndex, text)`.
 
 Relations are `supports`, `answers`, or `contradicts`. `flow.create()` creates
 an empty on-case flow. Helpers return new values rather than mutating inputs.
+
+Canvas `resolveLink` uses the application's resolver for HTTP(S), exact vault
+paths, and `[[file#heading|label]]`. It returns `{type:'web', url}` or
+`{type:'file', path, heading, label?}`, or `null` for an unresolved/unsupported
+target. It only resolves supplied paths; it never opens links or reads files.
+`suggestFiles` returns up to `limit` matching paths (1–1,000), preferring prefix
+matches. Paths are limited to 10,000 entries of 1,000 characters each.
+`createId` returns a fresh node/edge identifier.
+`moveNodes` returns validated Canvas data with selected node IDs translated by
+safe-integer `dx`/`dy`. It preserves unrelated nodes, edges, and custom fields;
+it does not write to disk or implicitly move group members.
 
 ## Vault
 

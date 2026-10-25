@@ -89,6 +89,8 @@ const assert = require('node:assert/strict');
         el.dispatchEvent(new Event('change', { bubbles: true }));
       })()`);
       try {
+        await wait("!!document.querySelector('.onboarding-skip')");
+        await js("document.querySelector('.onboarding-skip').click()");
         await wait("!!document.querySelector('.tree-item[title=\"Evidence.md\"]')");
         assert.equal(await safeStorage.isAsyncEncryptionAvailable(), true, 'Smoke test needs OS credential encryption');
         await js("document.querySelector('.ribbon-settings-button').click()");

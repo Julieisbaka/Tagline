@@ -74,6 +74,8 @@ const delay = (ms) => new Promise((r) => setTimeout(r, ms));
         await wait("!!document.querySelector('.advanced-settings')");
       };
       try {
+        await wait("!!document.querySelector('.onboarding-skip')");
+        await js("document.querySelector('.onboarding-skip').click()");
         await wait("document.querySelectorAll('.tree-item').length >= 4");
         await click('.tree-item', 'HTML');
         await wait("!!document.querySelector('.source-fallback')");

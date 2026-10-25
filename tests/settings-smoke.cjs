@@ -105,8 +105,6 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
       };
       const reload = async () => {
         await new Promise((resolve) => { wc.once('did-finish-load', resolve); wc.reload(); });
-        await wait("!!document.querySelector('.onboarding-skip')");
-        await click('.onboarding-skip');
         await wait("!!document.querySelector('.file-tree')");
       };
       const rename = async (from, to) => {
@@ -119,6 +117,8 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
         await wait(`!!document.querySelector('.tree-item[title=${JSON.stringify(to + '.md')}]')`);
       };
       try {
+        await wait("!!document.querySelector('.onboarding-skip')");
+        await click('.onboarding-skip');
         await wait("document.querySelectorAll('.tree-item').length === 3");
         await open('Alpha.md');
         await wait("!!document.querySelector('[aria-label=\"Dismiss visual editor notice\"]')");

@@ -74,6 +74,8 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
         await wait("!document.querySelector('.search-options button').disabled");
       };
       try {
+        await wait("!!document.querySelector('.onboarding-skip')");
+        await js("document.querySelector('.onboarding-skip').click()");
         await wait("document.querySelectorAll('.tree-item').length === 6");
         // Stub only inference for deterministic UI/race checks. test:semantic covers the real model.
         ipcMain.removeHandler('embeddings:search');

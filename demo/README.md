@@ -13,6 +13,8 @@ each API area.
    (`Mod+P`). Show the right sidebar if needed.
 
 Each demo is available from the dashboard and command palette.
+On first activation, `onInstall` records an installation timestamp and opens
+the dashboard as a lightweight welcome. Reloading does not repeat setup.
 
 ## What each demo shows
 
@@ -26,7 +28,7 @@ Each demo is available from the dashboard and command palette.
 | Toggle active-note tracking | `editor.onActiveNoteChanged` | `editor:active-note` |
 | Toggle event log | `events.on` for every built-in event and a custom event; `helpers.createDisposables`; `settings.set` | `events` + `editor`, `editor:active-note`, `vault:read` |
 | Emit custom event | `events.emit` (`ext.tagline-api-demo.ping`) | `events` |
-| Run helper demos | `helpers.path.*`, `helpers.markdownToText`, `helpers.createDisposables` | None |
+| Run helper demos | `helpers.path.*`, `helpers.markdownToText`, `helpers.createDisposables`, `helpers.canvas.createNode/createId/resolveLink/suggestFiles/moveNodes` | None |
 | Show and validate settings | `settings.get`, rejected `settings.set` | `settings` |
 | Run storage demo | `storage.get`, `storage.set`, deleting with `null` | None |
 | Write vault index note | `vault.list`, `vault.read`, `vault.write` | `vault:read`, `vault:write` |

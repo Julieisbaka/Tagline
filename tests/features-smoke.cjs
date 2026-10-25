@@ -101,6 +101,8 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
         await wait("!!document.querySelector('.settings')");
       };
       try {
+        await wait("!!document.querySelector('.onboarding-skip')");
+        await js("document.querySelector('.onboarding-skip').click()");
         await wait("document.querySelectorAll('.tree-item').length === 4");
         assert.equal(await js("document.querySelectorAll('[title=\"Settings (Ctrl+,)\"], [title=\"Settings\"]').length"), 1);
         await click('.tree-item', 'Map');

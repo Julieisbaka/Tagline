@@ -134,7 +134,7 @@
         settings: Object.freeze({
           /** Read this extension's declared setting with its default. Requires settings. @returns {Promise<*>} */
           get: (key) => call('settings.get', key),
-          /** Validate and persist a declared setting. Requires settings. @returns {Promise<object>} */
+          /** Validate and persist a declared setting. Requires settings. @returns {Promise<boolean>} */
           set: (key, value) => call('settings.set', key, value),
         }),
         events: Object.freeze({
@@ -158,13 +158,13 @@
         canvas: Object.freeze({
           /** Read and validate a .canvas file. Requires vault:read. @returns {Promise<object>} */
           read: (path) => call('canvas.read', path),
-          /** Validate and save a Canvas object. Requires vault:write. @returns {Promise<*>} */
+          /** Validate and save a Canvas object. Requires vault:write. @returns {Promise<string>} Saved path. */
           write: (path, data) => call('canvas.write', path, data),
         }),
         flow: Object.freeze({
           /** Read and validate a .flow file. Requires vault:read. @returns {Promise<object>} */
           read: (path) => call('flow.read', path),
-          /** Validate and save a flow object. Requires vault:write. @returns {Promise<*>} */
+          /** Validate and save a flow object. Requires vault:write. @returns {Promise<string>} Saved path. */
           write: (path, data) => call('flow.write', path, data),
         }),
         helpers: Object.freeze({

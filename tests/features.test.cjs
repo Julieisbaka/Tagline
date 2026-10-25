@@ -63,6 +63,36 @@ test('JSON Canvas validates spec fields and round-trips unknown properties', asy
   ]) assert.throws(() => parseCanvas(invalid));
 });
 
+test('canvas extension helpers share resolution, suggestion and movement behavior without file access', async () => {
+  const { ExtensionHost } = await import('../src/lib/extensions.js');
+  const host = new ExtensionHost({ id: 'canvas-test', permissions: [], contributes: { commands: [] } }, '', {});
+  const call = (name, ...args) => host.handle(`helpers.canvas.${name}`, args);
+  const paths = ['Cards/Evidence.md', 'Round.flow', 'Map.canvas', 'OtherEvidence.md'];
+  assert.deepEqual(await call('resolveLink', '[[Round.flow#Speech|Round]]', paths),
+    { type: 'file', path: 'Round.flow', heading: 'Speech', label: 'Round' });
+  assert.deepEqual(await call('resolveLink', 'https://example.com', paths), { type: 'web', url: 'https://example.com/' });
+  for (const target of ['missing.md', 'javascript:alert(1)', 'file:///secret']) {
+    assert.equal(await call('resolveLink', target, paths), null);
+  }
+  assert.deepEqual(await call('suggestFiles', paths, 'evidence', 1), ['Cards/Evidence.md']);
+  const id = await call('createId');
+  assert.ok(typeof id === 'string' && id.length > 0);
+  assert.notEqual(await call('createId'), id);
+  const node = { id, type: 'text', x: 5, y: 8, width: 100, height: 100, text: 'Claim', custom: 'keep' };
+  const data = { nodes: [node, { ...node, id: 'other' }], edges: [], metadata: { keep: true } };
+  const moved = await call('moveNodes', data, [id], 40, -20);
+  assert.deepEqual(moved.nodes[0], { ...node, x: 45, y: -12 });
+  assert.deepEqual(moved.nodes[1], data.nodes[1]);
+  assert.deepEqual(moved.metadata, data.metadata);
+  assert.equal(data.nodes[0].x, 5, 'pure helper never mutates its input');
+  for (const limit of [0, -1, 1.5, 1001]) await assert.rejects(call('suggestFiles', paths, '', limit), /limit/);
+  await assert.rejects(call('resolveLink', 'Round.flow', [null]), /Paths/);
+  await assert.rejects(call('resolveLink', null, paths), /Link target/);
+  await assert.rejects(call('moveNodes', data, [id], 1.5, 0), /safe integers/);
+  await assert.rejects(call('moveNodes', { nodes: {} }, [], 0, 0), /arrays/);
+  await assert.rejects(call('moveNodes', data, [id], Number.MAX_SAFE_INTEGER, 0), /integer/);
+});
+
 test('extension capabilities validate selection, command, helper, event and UI contracts', async () => {
   const { ExtensionHost } = await import('../src/lib/extensions.js');
   const { applicationEvents, createEventBus, extensionHelper, pathHelper, markdownToText, requirePayload } =
@@ -283,6 +313,20 @@ test('settings and event permission changes require a fresh manifest review', as
     await assert.rejects(handlers['extensions:setEnabled'](null, 'review', true), /Reload and review/);
     await handlers['extensions:setEnabled'](null, 'review', true, item.reviewToken);
     assert.equal((await handlers['extensions:list']())[0].enabled, true);
+    const firstLoad = await handlers['extensions:load'](null, 'review');
+    assert.equal(firstLoad.firstInstall, true);
+    const retry = await handlers['extensions:load'](null, 'review');
+    assert.notEqual(retry.installToken, firstLoad.installToken);
+    await assert.rejects(handlers['extensions:completeInstall'](null, 'review', firstLoad.installToken), /Stale/);
+    await handlers['extensions:setEnabled'](null, 'review', false);
+    await assert.rejects(handlers['extensions:completeInstall'](null, 'review', retry.installToken), /Stale/);
+    await handlers['extensions:setEnabled'](null, 'review', true, item.reviewToken);
+    const activeLoad = await handlers['extensions:load'](null, 'review');
+    assert.equal(activeLoad.firstInstall, true, 'incomplete setup retries');
+    await handlers['extensions:completeInstall'](null, 'review', activeLoad.installToken);
+    assert.deepEqual(config.initializedExtensions, ['review']);
+    await assert.rejects(handlers['extensions:completeInstall'](null, 'review', activeLoad.installToken), /Stale/);
+    assert.equal((await handlers['extensions:load'](null, 'review')).firstInstall, false);
     manifest.contributes.settings[0].default = 'changed';
     await fsAsync.writeFile(file, JSON.stringify(manifest));
     assert.equal((await handlers['extensions:list']())[0].reviewRequired, true);
@@ -290,6 +334,7 @@ test('settings and event permission changes require a fresh manifest review', as
     const [changed] = await handlers['extensions:list']();
     await handlers['extensions:setEnabled'](null, 'review', true, changed.reviewToken);
     assert.equal((await handlers['extensions:load'](null, 'review')).source, 'void 0;');
+    assert.equal((await handlers['extensions:load'](null, 'review')).installToken, null, 'manifest updates do not repeat successful setup');
     manifest.permissions.push('vault:write');
     await fsAsync.writeFile(file, JSON.stringify(manifest));
     assert.equal((await handlers['extensions:list']())[0].enabled, false);

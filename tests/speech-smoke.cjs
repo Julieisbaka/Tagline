@@ -32,6 +32,8 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
         throw new Error('Speech doc not written as expected: ' + JSON.stringify(await exists()));
       };
       try {
+        await wait("!!document.querySelector('.onboarding-skip')");
+        await js("document.querySelector('.onboarding-skip').click()");
         await wait("document.querySelectorAll('.tree-item').length === 1");
         assert.equal(await js("document.querySelectorAll('.ribbon button').length"), 8);
         assert.equal(await js("!!document.querySelector('.ribbon [title=\"Open speech doc\"]')"), false);

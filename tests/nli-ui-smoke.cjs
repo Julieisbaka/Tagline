@@ -51,6 +51,8 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
         item.click();
       })()`);
       try {
+        await wait("!!document.querySelector('.onboarding-skip')");
+        await js("document.querySelector('.onboarding-skip').click()");
         await wait("document.querySelectorAll('.tree-item').length === 1");
         await js(`document.querySelector('.tree-item[title="Wage.md"]').click()`);
         await wait("!!document.querySelector('.note-actions')");

@@ -34,6 +34,7 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
     win.webContents.setBackgroundThrottling(false);
     win.webContents.once('did-finish-load', async () => {
       const wc = win.webContents;
+      wc.on('console-message', (details) => { if (details.level === 'error') console.error('Renderer:', details.message); });
       const js = (code) => wc.executeJavaScript(code);
       const wait = async (code) => {
         for (let i = 0; i < 160; i++) { if (await js(code)) return; await delay(50); }
@@ -41,7 +42,9 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
           graph: window.graphPaint, tabs: [...document.querySelectorAll('.tab')].map(el => el.title),
           files: [...document.querySelectorAll('.tree-item')].map(el => el.title),
           confirmation: document.querySelector('.confirm-dialog')?.textContent,
-          toast: document.querySelector('.toast')?.textContent
+          toast: document.querySelector('.toast')?.textContent,
+          graphCanvas: !!document.querySelector('.graph canvas'),
+          activeTab: document.querySelector('.tab.active')?.title
         })`)));
       };
       const click = (selector) => js(`document.querySelector(${JSON.stringify(selector)}).click()`);
@@ -221,26 +224,21 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
         await button('.visual-link-form button', 'Insert link');
         await wait("!document.querySelector('.visual-link-form')");
 
-        await js(`(() => {
-          const original = HTMLCanvasElement.prototype.getContext;
-          HTMLCanvasElement.prototype.getContext = function (...args) {
-            const ctx = original.apply(this, args);
-            if (args[0] !== '2d' || ctx.taglineRecorded) return ctx;
-            ctx.taglineRecorded = true;
-            for (const name of ['clearRect', 'translate', 'scale', 'arc']) {
-              const method = ctx[name].bind(ctx);
-              ctx[name] = (...values) => {
-                if (name === 'clearRect') window.graphPaint = { nodes: [] };
-                if (name === 'translate') window.graphPaint.offset = values;
-                if (name === 'scale') window.graphPaint.scale = values[0];
-                if (name === 'arc') window.graphPaint.nodes.push({ x: values[0], y: values[1], r: values[2] });
-                return method(...values);
-              };
-            }
-            return ctx;
-          };
-        })()`);
         await click('.ribbon [data-ribbon-item=graph]');
+        await wait("!!document.querySelector('.graph canvas')");
+        await js(`(() => {
+          const ctx = document.querySelector('.graph canvas').getContext('2d');
+          for (const name of ['clearRect', 'translate', 'scale', 'arc']) {
+            const method = ctx[name].bind(ctx);
+            ctx[name] = (...values) => {
+              if (name === 'clearRect') window.graphPaint = { nodes: [] };
+              if (name === 'translate') window.graphPaint.offset = values;
+              if (name === 'scale') window.graphPaint.scale = values[0];
+              if (name === 'arc') window.graphPaint.nodes.push({ x: values[0], y: values[1], r: values[2] });
+              return method(...values);
+            };
+          }
+        })()`);
         await wait("window.graphPaint?.nodes.length === 2");
         await delay(1000);
         const originalNode = await js("window.graphPaint.nodes[0]");
@@ -248,10 +246,15 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
           const p = window.graphPaint, n = p.nodes[0];
           return { x: Math.round(r.left + p.offset[0] + n.x * p.scale),
             y: Math.round(r.top + p.offset[1] + n.y * p.scale) }; })()`);
-        await drag(gp, 80, 50);
+        let held;
+        await drag(gp, 80, 50, async () => {
+          held = await js("window.graphPaint.nodes[0]");
+        });
         const dropped = await js("window.graphPaint.nodes[0]");
-        assert.ok(Math.abs(dropped.x - originalNode.x - 80) < 8 && Math.abs(dropped.y - originalNode.y - 50) < 8,
+        assert.ok(Math.abs(held.x - originalNode.x - 80) < 8 && Math.abs(held.y - originalNode.y - 50) < 8,
           'graph drag moves the node, rather than just panning');
+        assert.ok(Math.hypot(dropped.x - held.x, dropped.y - held.y) < 20,
+          'release resumes physics without snapping to the original layout');
         await delay(1200);
         const settled = await js("window.graphPaint.nodes[0]");
         assert.ok(Math.hypot(dropped.x - settled.x, dropped.y - settled.y) > 1,
@@ -299,6 +302,7 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
           await button('.confirm-dialog button', 'Confirm');
           await wait("!document.querySelector('.json-recovery button')");
           await wait("document.querySelector('.toast')?.textContent === 'Working save restored.'");
+          for (let i = 0; i < 40 && await fs.readFile(path.join(vault, file), 'utf8') !== valid; i++) await delay(50);
           assert.equal(await fs.readFile(path.join(vault, file), 'utf8'), valid);
           const latest = await js(`window.api.listHistory(${JSON.stringify(file)})`);
           assert.equal(await js(`window.api.readHistory(${JSON.stringify(file)}, ${JSON.stringify(latest[0].id)})`), '{"nodes":{}}');

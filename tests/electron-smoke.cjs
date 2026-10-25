@@ -79,6 +79,8 @@ const delay = (ms) => new Promise((r) => setTimeout(r, ms));
         input.dispatchEvent(new Event('input', { bubbles: true }));
       })()`);
       try {
+        await waitFor("!!document.querySelector('.onboarding-skip')");
+        await js("document.querySelector('.onboarding-skip').click()");
         await waitFor("document.querySelectorAll('.tree-item').length === 5");
         await click('.tree-item', 'Cards');
         await waitFor("!!document.querySelector('.visual-document')");
