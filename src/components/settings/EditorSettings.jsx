@@ -8,6 +8,9 @@ export default function EditorSettings({ settings, update }) {
       onChange={(event) => update({ [key]: event.target.checked })} />
   </label>;
   return <section className="editor-settings">
+    <h3>{t('Flow creation')}</h3>
+    {checkbox('Separate negative block in new flows (2NC and 1NR)', 'separateNegativeBlock')}
+    <p className="settings-help">{t('Only affects newly created flow files. Existing flows and their sheets are not changed.')}</p>
     {checkbox('Show formatting toolbar', 'visualToolbar')}
     {checkbox('Visual editor spellcheck', 'visualSpellcheck')}
     <label className="setting-row">

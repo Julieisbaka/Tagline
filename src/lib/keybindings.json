@@ -59,6 +59,7 @@
     "id": "test-hypothesis",
     "label": "Test a hypothesis against this note (Political DEBATE)",
     "action": "testHypothesis",
+    "markdown": true,
     "scope": "app",
     "key": "",
     "note": true
@@ -75,6 +76,7 @@
     "id": "highlight-only",
     "label": "Toggle highlighted-only reading",
     "action": "toggleHighlightOnly",
+    "markdown": true,
     "scope": "app",
     "key": "Mod+Shift+H",
     "note": true
@@ -83,6 +85,7 @@
     "id": "send-card",
     "label": "Send card to speech doc",
     "action": "sendCard",
+    "markdown": true,
     "scope": "app",
     "key": "Mod+Shift+S",
     "note": true
@@ -100,6 +103,268 @@
     "action": "nextTab",
     "scope": "app",
     "key": "Ctrl+Tab"
+  },
+  {
+    "id": "new-canvas",
+    "label": "Create new canvas",
+    "action": "newCanvas",
+    "scope": "app",
+    "key": ""
+  },
+  {
+    "id": "new-folder",
+    "label": "Create new folder",
+    "action": "newFolder",
+    "scope": "app",
+    "key": ""
+  },
+  {
+    "id": "from-template",
+    "label": "Create new note from template",
+    "action": "newFromTemplate",
+    "scope": "app",
+    "key": ""
+  },
+  {
+    "id": "toggle-left",
+    "label": "Toggle left sidebar",
+    "action": "toggleLeft",
+    "scope": "app",
+    "key": ""
+  },
+  {
+    "id": "toggle-right",
+    "label": "Toggle right sidebar",
+    "action": "toggleRight",
+    "scope": "app",
+    "key": ""
+  },
+  {
+    "id": "speech-open",
+    "label": "Speech doc: open current speech doc",
+    "action": "openSpeechDoc",
+    "scope": "app",
+    "key": ""
+  },
+  {
+    "id": "speech-new",
+    "label": "Speech doc: start a new speech doc",
+    "action": "newSpeechDoc",
+    "scope": "app",
+    "key": ""
+  },
+  {
+    "id": "vault-open",
+    "label": "Open another vault",
+    "action": "switchVault",
+    "scope": "app",
+    "key": ""
+  },
+  {
+    "id": "vault-sample",
+    "label": "Create sample vault",
+    "action": "createSample",
+    "scope": "app",
+    "key": ""
+  },
+  {
+    "id": "reload",
+    "label": "Reload vault from disk",
+    "action": "reload",
+    "scope": "app",
+    "key": ""
+  },
+  {
+    "id": "import-document",
+    "label": "Import document with Pandoc",
+    "action": "importDocument",
+    "scope": "app",
+    "key": ""
+  },
+  {
+    "id": "opencaselist",
+    "label": "OpenCaselist: browse and manage disclosures",
+    "action": "openCaselist",
+    "scope": "app",
+    "key": ""
+  },
+  {
+    "id": "source-mode",
+    "label": "Editor: source mode (CodeMirror)",
+    "action": "sourceMode",
+    "scope": "app",
+    "key": "",
+    "note": true
+  },
+  {
+    "id": "visual-mode",
+    "label": "Editor: visual mode (Tiptap)",
+    "action": "visualMode",
+    "scope": "app",
+    "key": "",
+    "note": true
+  },
+  {
+    "id": "read-mode",
+    "label": "Editor: reading mode",
+    "action": "readMode",
+    "scope": "app",
+    "key": "",
+    "note": true,
+    "markdown": true
+  },
+  {
+    "id": "export-note",
+    "label": "Export note",
+    "action": "exportNote",
+    "scope": "app",
+    "key": "",
+    "note": true,
+    "markdown": true
+  },
+  {
+    "id": "insert-template",
+    "label": "Insert template at cursor",
+    "action": "insertTemplate",
+    "scope": "app",
+    "key": "",
+    "note": true,
+    "markdown": true
+  },
+  {
+    "id": "set-speech",
+    "label": "Speech doc: use current file as speech doc",
+    "action": "setCurrentAsSpeechDoc",
+    "scope": "app",
+    "key": "",
+    "note": true,
+    "markdown": true
+  },
+  {
+    "id": "rename",
+    "label": "Rename current file",
+    "action": "renameCurrent",
+    "scope": "app",
+    "key": "",
+    "note": true
+  },
+  {
+    "id": "delete",
+    "label": "Delete current file",
+    "action": "deleteCurrent",
+    "scope": "app",
+    "key": "",
+    "note": true
+  },
+  {
+    "id": "reveal",
+    "label": "Reveal current file in file explorer",
+    "action": "revealCurrent",
+    "scope": "app",
+    "key": "",
+    "note": true
+  },
+  {
+    "id": "history",
+    "label": "Open revision history",
+    "action": "openHistory",
+    "scope": "app",
+    "key": "",
+    "note": true
+  },
+  {
+    "id": "summarize",
+    "label": "Summarize current note",
+    "action": "summarizeCurrent",
+    "scope": "app",
+    "key": "",
+    "note": true,
+    "markdown": true
+  },
+  {
+    "id": "previous-tab",
+    "label": "Previous tab",
+    "action": "previousTab",
+    "scope": "app",
+    "key": "Ctrl+Shift+Tab"
+  },
+  {
+    "id": "canvas-add-text",
+    "label": "Canvas: add text node",
+    "scope": "canvas",
+    "key": ""
+  },
+  {
+    "id": "canvas-add-file",
+    "label": "Canvas: add file node",
+    "scope": "canvas",
+    "key": ""
+  },
+  {
+    "id": "canvas-add-link",
+    "label": "Canvas: add link node",
+    "scope": "canvas",
+    "key": ""
+  },
+  {
+    "id": "canvas-add-group",
+    "label": "Canvas: add group",
+    "scope": "canvas",
+    "key": ""
+  },
+  {
+    "id": "canvas-connect",
+    "label": "Canvas: connect selected node",
+    "scope": "canvas",
+    "key": ""
+  },
+  {
+    "id": "canvas-fit",
+    "label": "Fit canvas",
+    "scope": "canvas",
+    "key": ""
+  },
+  {
+    "id": "canvas-zoom-in",
+    "label": "Canvas: zoom in",
+    "scope": "canvas",
+    "key": ""
+  },
+  {
+    "id": "canvas-zoom-out",
+    "label": "Canvas: zoom out",
+    "scope": "canvas",
+    "key": ""
+  },
+  {
+    "id": "canvas-delete",
+    "label": "Canvas: delete selection",
+    "scope": "canvas",
+    "key": ""
+  },
+  {
+    "id": "canvas-cancel",
+    "label": "Canvas: clear selection and cancel connection",
+    "scope": "canvas",
+    "key": ""
+  },
+  {
+    "id": "flow-add-column",
+    "label": "Add column",
+    "scope": "flow",
+    "key": ""
+  },
+  {
+    "id": "flow-select-all",
+    "label": "Select all cells",
+    "scope": "flow",
+    "key": "Mod+Shift+A"
+  },
+  {
+    "id": "flow-clear-selection",
+    "label": "Clear selected cells",
+    "scope": "flow",
+    "key": ""
   },
   {
     "id": "find",

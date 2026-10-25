@@ -133,6 +133,11 @@
   border: 1px dashed var(--canvas-node-accent);
   background: color-mix(in srgb, var(--canvas-node-accent) 8%, transparent);
   box-shadow: none;
+  pointer-events: none;
+}
+
+.canvas-node-group :is(.canvas-node-header, input, button) {
+  pointer-events: auto;
 }
 
 .canvas-node-header {

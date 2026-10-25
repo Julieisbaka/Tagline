@@ -111,6 +111,11 @@ async function listRecentVaults() {
 }
 
 function registerIpc() {
+  ipcMain.handle('app:editText', (event, action) => {
+    if (event.sender !== win?.webContents ||
+      !['undo', 'redo', 'cut', 'copy', 'paste', 'selectAll'].includes(action)) throw new Error('Invalid text editing action.');
+    event.sender[action]();
+  });
   const updates = createUpdateManager({
     app, shell, notify: (state) => {
       if (win && !win.isDestroyed()) win.webContents.send('app:updateState', state);
@@ -336,14 +341,6 @@ function createWindow() {
     },
   });
 
-  win.webContents.on('context-menu', (_event, params) => {
-    if (!params.isEditable && !params.selectionText) return;
-    const template = params.isEditable
-      ? [{ role: 'undo' }, { role: 'redo' }, { type: 'separator' },
-      { role: 'cut' }, { role: 'copy' }, { role: 'paste' }, { role: 'selectAll' }]
-      : [{ role: 'copy' }, { role: 'selectAll' }];
-    Menu.buildFromTemplate(template).popup({ window: win });
-  });
   let readyToClose = false;
   let preparingClose = false;
   let hasSaveHandler = false;

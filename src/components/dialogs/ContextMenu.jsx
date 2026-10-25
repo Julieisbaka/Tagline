@@ -1,12 +1,13 @@
 import { useEffect, useLayoutEffect, useRef } from 'react';
-import { containFocus } from '../../lib/focusScope.js';
+import { createPortal } from 'react-dom';
 import { useI18n } from '../../lib/i18n.js';
+import { containFocus } from '../../lib/focusScope.js';
 
 export default function ContextMenu({ x, y, items, onClose }) {
   const ref = useRef(null);
   const previousFocus = useRef(document.activeElement);
   const { t } = useI18n();
-  useLayoutEffect(() => containFocus(ref.current, previousFocus.current), []);
+  useLayoutEffect(() => containFocus(ref.current, previousFocus.current, false), []);
   useLayoutEffect(() => {
     const el = ref.current;
     el.style.left = `${Math.max(4, Math.min(x, innerWidth - el.offsetWidth - 4))}px`;
@@ -16,18 +17,21 @@ export default function ContextMenu({ x, y, items, onClose }) {
   useEffect(() => {
     const outside = (e) => { if (!ref.current?.contains(e.target)) onClose(); };
     const escape = (e) => { if (e.key === 'Escape') { e.preventDefault(); onClose(); } };
-    window.addEventListener('mousedown', outside);
+    window.addEventListener('pointerdown', outside, true);
     window.addEventListener('keydown', escape);
     window.addEventListener('blur', onClose);
     return () => {
-      window.removeEventListener('mousedown', outside);
+      window.removeEventListener('pointerdown', outside, true);
       window.removeEventListener('keydown', escape);
       window.removeEventListener('blur', onClose);
     };
   }, [onClose]);
-  return (
+  return createPortal(
     <div ref={ref} className="context-menu" role="menu" tabIndex={-1} style={{ left: x, top: y }}
-      onContextMenu={(e) => e.preventDefault()} onKeyDown={(e) => {
+      onPointerDown={(e) => e.stopPropagation()} onClick={(e) => e.stopPropagation()}
+      onContextMenu={(e) => { e.preventDefault(); e.stopPropagation(); }} onKeyDown={(e) => {
+        e.stopPropagation();
+        if (e.key === 'Tab' || e.key === 'Escape') { e.preventDefault(); onClose(); return; }
         if (!['ArrowDown', 'ArrowUp', 'Home', 'End'].includes(e.key)) return;
         e.preventDefault();
         const buttons = [...ref.current.querySelectorAll('button:not(:disabled)')];
@@ -39,8 +43,12 @@ export default function ContextMenu({ x, y, items, onClose }) {
       {items.map(({ label, run, disabled, danger }, i) => (
         <button key={i} role="menuitem" disabled={disabled}
           className={`context-item${danger ? ' danger' : ''}`}
-          onClick={() => { onClose(); run(); }}>{t(label)}</button>
+          onClick={() => {
+            onClose();
+            Promise.resolve().then(run).catch((error) =>
+              window.dispatchEvent(new CustomEvent('app-error', { detail: error.message })));
+          }}>{t(label)}</button>
       ))}
-    </div>
+    </div>, document.body
   );
 }

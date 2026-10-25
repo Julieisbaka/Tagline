@@ -13,6 +13,7 @@ import RightPanel from './RightPanel.jsx';
 import Sidebar, { renameTarget } from './Sidebar.jsx';
 import Splitter from './Splitter.jsx';
 import TabBar from './TabBar.jsx';
+import TextContextMenu from '../dialogs/TextContextMenu.jsx';
 
 const CanvasView = deferred(() => import('../CanvasView.jsx'));
 const GraphView = deferred(() => import('../GraphView.jsx'));
@@ -69,6 +70,7 @@ export default function AppLayout({ app }) {
     onFinish={() => updateSettings({ internalFlags: { ...settings.internalFlags, hasSeenOnboarding: true } })} />;
 
   if (!v.vault) return <>
+    <TextContextMenu />
     {window.api.platform === 'darwin' && <div className="mac-titlebar">Tagline</div>}
     <Welcome onOpen={v.chooseVault} onSample={v.createSample} onManage={() => setModal({ type: 'vaults' })} error={v.error} />
     {modal?.type === 'settings' && settingsDialog}
@@ -161,6 +163,7 @@ export default function AppLayout({ app }) {
   return (
     <div className={`app${window.api.platform === 'darwin' ? ' mac-app' : ''}`}
       style={{ '--sidebar-width': `${sidebarWidth}px`, '--right-panel-width': `${rightWidth}px` }}>
+      <TextContextMenu />
       {window.api.platform === 'darwin' && <div className="mac-titlebar">Tagline</div>}
       <Ribbon ctx={ctx} showLeft={showLeft} keybindings={settings.keybindings}
         settings={settings} updateSettings={updateSettings} contributions={ext.ribbonItems} />

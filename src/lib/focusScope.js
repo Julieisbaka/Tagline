@@ -22,11 +22,11 @@ export function trapTabKey(event, root) {
   }
 }
 
-export function containFocus(root, previousFocus = root.ownerDocument.activeElement) {
+export function containFocus(root, previousFocus = root.ownerDocument.activeElement, modal = true) {
   const document = root.ownerDocument;
   const scope = { root };
   const siblings = [];
-  for (let branch = root; branch.parentElement; branch = branch.parentElement) {
+  for (let branch = root; modal && branch.parentElement; branch = branch.parentElement) {
     for (const sibling of branch.parentElement.children) {
       if (sibling === branch || !(sibling instanceof HTMLElement)) continue;
       const state = inertElements.get(sibling) || { count: 0, original: sibling.inert };

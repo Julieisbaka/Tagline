@@ -22,8 +22,8 @@ export default function KeybindingSettings({ settings, update, extra = [] }) {
     <p>{t('Select a shortcut and press a key combination. Escape cancels; Delete removes it. Changes save automatically.')}</p>
     <button onClick={() => { update({ keybindings: {} }); setError(''); setRecording(null); }}>{t('Reset all shortcuts')}</button>
     {error && <p role="alert" className="error-text">{error}</p>}
-    {['app', 'editor', 'flow', 'extensions'].map((scope) => <section key={scope} hidden={scope === 'extensions' && !extra.length}>
-      <h4>{t({ app: 'Application', editor: 'Note editing', flow: 'Flow editing', extensions: 'Extensions' }[scope])}</h4>
+    {['app', 'editor', 'flow', 'canvas', 'extensions'].map((scope) => <section key={scope} hidden={scope === 'extensions' && !extra.length}>
+      <h4>{t({ app: 'Application', editor: 'Note editing', flow: 'Flow editing', canvas: 'Canvas editing', extensions: 'Extensions' }[scope])}</h4>
       {(scope === 'extensions' ? extra : KEYBINDINGS.filter((item) => item.scope === scope)).map((item) => <div className="setting-row keybinding-row" key={item.id}>
         <span>{t(item.label)}</span>
         <button className={recording === item.id ? 'recording' : ''} data-binding={item.id}

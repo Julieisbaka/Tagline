@@ -4,9 +4,19 @@ export const FLOW_PRESETS = {
   'CX notes': ['1AC CX', '1NC CX', '2AC CX', '2NC CX'],
 };
 
-export const EMPTY_FLOW = JSON.stringify({
-  version: 1, sheets: [{ name: 'Case', columns: FLOW_PRESETS['On-case (Aff)'], rows: [Array(7).fill('')] }],
-}, null, 2);
+export function flowColumns(preset, separateNegativeBlock = false) {
+  if (!Object.hasOwn(FLOW_PRESETS, preset) || typeof separateNegativeBlock !== 'boolean') throw new Error('Invalid flow creation options.');
+  return FLOW_PRESETS[preset].flatMap((column) => column === 'Block' && separateNegativeBlock ? ['2NC', '1NR'] : [column]);
+}
+
+export function createFlow(separateNegativeBlock = false) {
+  const columns = flowColumns('On-case (Aff)', separateNegativeBlock);
+  return JSON.stringify({
+    version: 1, sheets: [{ name: 'Case', columns, rows: [Array(columns.length).fill('')] }],
+  }, null, 2);
+}
+
+export const EMPTY_FLOW = createFlow();
 
 export function parseFlow(content) {
   if (typeof content !== 'string') throw new Error('Flow content must be JSON text.');

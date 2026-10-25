@@ -1,5 +1,5 @@
 import { translate } from './i18n.js';
-import { binding, displayBinding } from './keybindings.js';
+import { binding, displayBinding, KEYBINDINGS } from './keybindings.js';
 export { fillTemplate } from './template.js';
 
 // Command palette entries. `ctx` provides the actions implemented in App.
@@ -43,5 +43,16 @@ export function buildCommands(ctx, overrides = {}) {
       c('close-tab', 'Close current tab', ctx.closeTab, 'Ctrl+W'),
     );
   }
-  return list;
+  const markdownOnly = ['export-note', 'test-hypothesis', 'highlight-only', 'send-card', 'insert-template', 'set-speech'];
+  const available = list.filter((item) => ctx.isMarkdown !== false || !markdownOnly.includes(item.id));
+  for (const item of KEYBINDINGS) {
+    if (available.some((command) => command.id === item.id)) continue;
+    if (item.markdown && !ctx.isMarkdown) continue;
+    if (item.scope === 'app' && (!item.note || ctx.hasNote) && ctx[item.action]) {
+      available.push(c(item.id, item.label, ctx[item.action]));
+    } else if ((item.scope === 'canvas' && ctx.canCanvas) || (item.scope === 'flow' && ctx.canFlow)) {
+      available.push(c(item.id, item.label, () => ctx.workspaceAction(item.id)));
+    }
+  }
+  return available;
 }

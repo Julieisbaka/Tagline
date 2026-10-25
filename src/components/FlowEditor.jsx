@@ -1,5 +1,6 @@
-import { useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { EMPTY_FLOW, FLOW_PRESETS as PRESETS, parseFlow } from '../../electron/flow.mjs';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { EMPTY_FLOW, FLOW_PRESETS as PRESETS, flowColumns, parseFlow } from '../../electron/flow.mjs';
+import { cellBounds, copyFlowCells, parseFlowCells, pasteFlowCells } from '../lib/flowCells.js';
 import { useI18n } from '../lib/i18n.js';
 import { binding, displayBinding, matchesBinding } from '../lib/keybindings.js';
 import ContextMenu from './dialogs/ContextMenu.jsx';
@@ -21,6 +22,14 @@ export default function FlowEditor({ path, content, mode, onChange, onRestore, f
   const [menu, setMenu] = useState(null);
   const gridRef = useRef(null);
   const focusTarget = useRef(null);
+  const [selection, setSelection] = useState(null);
+  const keepSelection = useRef(false);
+  const liveActions = useRef({});
+  useEffect(() => {
+    const action = (event) => liveActions.current[event.detail]?.();
+    window.addEventListener('workspace-action', action);
+    return () => window.removeEventListener('workspace-action', action);
+  }, []);
   useLayoutEffect(() => {
     if (!focusTarget.current) return;
     const { row, column } = focusTarget.current;
@@ -41,6 +50,7 @@ export default function FlowEditor({ path, content, mode, onChange, onRestore, f
       return { error: e.message };
     }
   }, [content]);
+  liveActions.current = {};
 
   if (mode === 'edit') return <div className="flow">
     {parsed.error && <div className="editor-notice" role="alert">{parsed.error}
@@ -68,10 +78,11 @@ export default function FlowEditor({ path, content, mode, onChange, onRestore, f
   const updateSheet = (patch) => save(data.sheets.map((s, i) => (i === idx ? { ...s, ...patch } : s)));
 
   const addSheet = (preset) => {
-    const columns = PRESETS[preset];
+    const columns = flowColumns(preset, data.sheets.some((item) => item.columns.includes('2NC') && item.columns.includes('1NR')));
     const name = preset.startsWith('Off') ? 'Off-case' : preset.startsWith('CX') ? 'CX' : 'Case';
     save([...data.sheets, { name, columns, rows: [Array(columns.length).fill('')] }]);
     setActive(data.sheets.length);
+    setSelection(null);
   };
 
   const removeSheet = async (i) => {
@@ -85,6 +96,7 @@ export default function FlowEditor({ path, content, mode, onChange, onRestore, f
     updateSheet({ rows: sheet.rows.map((row, i) => (i === r ? row.map((v, j) => (j === c ? value : v)) : row)) });
 
   const addRow = (after = sheet.rows.length - 1, column = null) => {
+    setSelection(null);
     const rows = [...sheet.rows];
     rows.splice(after + 1, 0, Array(sheet.columns.length).fill(''));
     if (column !== null && focusNewFlowRow) focusTarget.current = { row: after + 1, column };
@@ -92,7 +104,10 @@ export default function FlowEditor({ path, content, mode, onChange, onRestore, f
   };
   const insertRowAbove = (row, column) => addRow(row - 1, column);
 
-  const removeRow = (r) => updateSheet({ rows: sheet.rows.filter((_, i) => i !== r) });
+  const removeRow = (r) => {
+    setSelection(null);
+    updateSheet({ rows: sheet.rows.filter((_, i) => i !== r) });
+  };
 
   const renameColumn = (c, name) => updateSheet({ columns: sheet.columns.map((v, i) => (i === c ? name : v)) });
 
@@ -102,10 +117,45 @@ export default function FlowEditor({ path, content, mode, onChange, onRestore, f
   const removeColumn = async (c) => {
     if (sheet.columns.length === 1) return;
     if (!await confirm(t('Delete column "{name}" and its contents?', { name: sheet.columns[c] }))) return;
+    setSelection(null);
     updateSheet({
       columns: sheet.columns.filter((_, i) => i !== c),
       rows: sheet.rows.map((row) => row.filter((_, i) => i !== c)),
     });
+  };
+  const selected = selection?.sheet === idx &&
+    Math.max(selection.anchor.row, selection.head.row) < sheet.rows.length &&
+    Math.max(selection.anchor.column, selection.head.column) < sheet.columns.length ? selection : null;
+  const bounds = selected && cellBounds(selected.anchor, selected.head);
+  const multi = bounds && (bounds.top !== bounds.bottom || bounds.left !== bounds.right);
+  const inside = (r, c) => bounds && r >= bounds.top && r <= bounds.bottom && c >= bounds.left && c <= bounds.right;
+  const choose = (row, column, extend = false) => setSelection({
+    sheet: idx, anchor: extend && selected ? selected.anchor : { row, column }, head: { row, column },
+  });
+  const clear = (area = bounds) => {
+    if (!area) return;
+    updateSheet({ rows: sheet.rows.map((row, r) => row.map((value, c) =>
+      r >= area.top && r <= area.bottom && c >= area.left && c <= area.right ? '' : value)) });
+  };
+  const clipboardError = (error) => window.dispatchEvent(new CustomEvent('app-error', { detail: error.message }));
+  const copy = async (area = bounds, cut = false) => {
+    if (!area) return;
+    await navigator.clipboard.writeText(copyFlowCells(sheet.rows, area));
+    if (cut) clear(area);
+  };
+  const paste = (text, row, column) => {
+    const cells = parseFlowCells(text);
+    updateSheet(pasteFlowCells(sheet, row, column, cells));
+    setSelection({ sheet: idx, anchor: { row, column },
+      head: { row: row + cells.length - 1, column: column + Math.max(...cells.map((item) => item.length)) - 1 } });
+  };
+  liveActions.current = {
+    'flow-row': () => addRow(selected?.head.row, selected?.head.column ?? 0),
+    'flow-row-above': () => insertRowAbove(selected?.head.row ?? 0, selected?.head.column ?? 0),
+    'flow-add-column': addColumn,
+    'flow-clear-selection': () => clear(),
+    'flow-select-all': () => setSelection({ sheet: idx, anchor: { row: 0, column: 0 },
+      head: { row: Math.max(0, sheet.rows.length - 1), column: sheet.columns.length - 1 } }),
   };
 
   return (
@@ -134,7 +184,7 @@ export default function FlowEditor({ path, content, mode, onChange, onRestore, f
               onKeyDown={(e) => {
                 if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setActive(i); }
               }}
-              onClick={() => setActive(i)}
+              onClick={() => { setActive(i); setSelection(null); }}
               onDoubleClick={() => setRenaming(i)}
               onContextMenu={(e) => context(e, [
                 { label: 'Rename sheet', run: () => setRenaming(i) },
@@ -168,7 +218,7 @@ export default function FlowEditor({ path, content, mode, onChange, onRestore, f
       </div>
 
       <div className="flow-grid-wrap" ref={gridRef}>
-        <table className="flow-grid" style={{ minWidth: `${sheet.columns.length * 160 + 32}px` }}>
+        <table className="flow-grid" aria-label={t('Flow cells')} style={{ minWidth: `${sheet.columns.length * 160 + 32}px` }}>
           <thead>
             <tr>
               {sheet.columns.map((col, c) => (
@@ -193,21 +243,79 @@ export default function FlowEditor({ path, content, mode, onChange, onRestore, f
             {sheet.rows.map((row, r) => (
               <tr key={r}>
                 {row.map((cell, c) => (
-                  <td key={c} className={`side-${sideOf(sheet.columns[c] || '')}`}
-                    onContextMenu={(e) => context(e, [
+                  <td key={c} className={`side-${sideOf(sheet.columns[c] || '')}${inside(r, c) ? ' cell-selected' : ''}`}
+                    onContextMenu={(e) => {
+                      if (!multi && e.target instanceof HTMLTextAreaElement &&
+                        e.target.selectionStart !== e.target.selectionEnd) return;
+                      const area = inside(r, c) ? bounds : cellBounds({ row: r, column: c }, { row: r, column: c });
+                      if (!inside(r, c)) choose(r, c);
+                      context(e, [
+                      { label: 'Copy cells', run: () => copy(area) },
+                      { label: 'Cut cells', run: () => copy(area, true) },
+                      { label: 'Paste cells', run: async () => paste(await navigator.clipboard.readText(), area.top, area.left) },
+                      { label: 'Clear selected cells', run: () => clear(area) },
+                      { label: 'Select all cells', run: liveActions.current['flow-select-all'] },
                       { label: 'Insert row above', run: () => insertRowAbove(r, c) },
                       { label: 'Insert row below', run: () => addRow(r, c) },
                       { label: 'Clear cell', run: () => setCell(r, c, '') },
                       { label: 'Remove row', run: () => removeRow(r), danger: true },
-                    ])}>
+                    ]); }}>
                     <textarea
                       data-row={r}
                       data-column={c}
                       aria-label={t('Row {row}, {column}', { row: r + 1, column: sheet.columns[c] })}
                       value={cell}
+                      onPointerDown={(event) => {
+                        if (event.button !== 0) return;
+                        if (event.shiftKey) { event.preventDefault(); choose(r, c, true); }
+                        else choose(r, c);
+                      }}
+                      onFocus={() => {
+                        if (keepSelection.current) { keepSelection.current = false; return; }
+                        if (!inside(r, c)) choose(r, c);
+                      }}
+                      onCopy={(event) => {
+                        if (!multi && event.currentTarget.selectionStart !== event.currentTarget.selectionEnd) return;
+                        event.preventDefault();
+                        event.clipboardData.setData('text/plain', copyFlowCells(sheet.rows, bounds || cellBounds({ row: r, column: c }, { row: r, column: c })));
+                      }}
+                      onCut={(event) => {
+                        if (!multi && event.currentTarget.selectionStart !== event.currentTarget.selectionEnd) return;
+                        event.preventDefault();
+                        const area = bounds || cellBounds({ row: r, column: c }, { row: r, column: c });
+                        event.clipboardData.setData('text/plain', copyFlowCells(sheet.rows, area));
+                        clear(area);
+                      }}
+                      onPaste={(event) => {
+                        const text = event.clipboardData.getData('text/plain');
+                        if (!multi && !text.includes('\t') && !text.includes('\n') && !text.includes('\r')) return;
+                        event.preventDefault();
+                        try { paste(text, multi ? bounds.top : r, multi ? bounds.left : c); }
+                        catch (error) { clipboardError(error); }
+                      }}
                       placeholder="…"
-                      onChange={(e) => setCell(r, c, e.target.value)}
+                      onChange={(e) => { choose(r, c); setCell(r, c, e.target.value); }}
                       onKeyDown={(e) => {
+                        if (e.shiftKey && !e.ctrlKey && !e.metaKey && !e.altKey && e.key.startsWith('Arrow')) {
+                          e.preventDefault();
+                          const head = selected?.head || { row: r, column: c };
+                          const row = Math.max(0, Math.min(sheet.rows.length - 1, head.row + (e.key === 'ArrowDown' ? 1 : e.key === 'ArrowUp' ? -1 : 0)));
+                          const column = Math.max(0, Math.min(sheet.columns.length - 1, head.column + (e.key === 'ArrowRight' ? 1 : e.key === 'ArrowLeft' ? -1 : 0)));
+                          choose(row, column, true);
+                          const target = gridRef.current.querySelector(`[data-row="${row}"][data-column="${column}"]`);
+                          if (target && target !== document.activeElement) {
+                            keepSelection.current = true;
+                            target.focus();
+                          }
+                          return;
+                        }
+                        if (e.key === 'Escape') { setSelection(null); return; }
+                        if (multi && ['Delete', 'Backspace'].includes(e.key)) { e.preventDefault(); clear(); return; }
+                        if (matchesBinding(e, binding('flow-select-all', keybindings))) {
+                          e.preventDefault(); liveActions.current['flow-select-all'](); return;
+                        }
+                        if (matchesBinding(e, binding('flow-clear-selection', keybindings))) { e.preventDefault(); clear(); return; }
+                        if (matchesBinding(e, binding('flow-add-column', keybindings))) { e.preventDefault(); addColumn(); return; }
                         if (e.key === 'Tab') {
                           const direction = e.shiftKey ? -1 : 1;
                           let nextRow = r;
@@ -224,6 +332,7 @@ export default function FlowEditor({ path, content, mode, onChange, onRestore, f
                           );
                           if (nextCell) {
                             e.preventDefault();
+                            choose(nextRow, nextColumn);
                             nextCell.focus();
                             nextCell.scrollIntoView({ block: 'nearest', inline: 'nearest' });
                           }
@@ -256,6 +365,8 @@ export default function FlowEditor({ path, content, mode, onChange, onRestore, f
             {t('+ Add argument row')} <span className="hint">{displayBinding(binding('flow-row', keybindings))}</span>
           </button>
           <span className="flow-keyboard-hint">{t('Tab moves between cells; Shift+Tab moves backward')}</span>
+          <span className="flow-keyboard-hint">{t('Shift-click or Shift+Arrow selects a cell range. Copy, cut and paste work across cells; Escape clears selection.')}</span>
+          {bounds && <button onClick={() => copy().catch(clipboardError)}>{t('Copy cells')}</button>}
         </div>
       </div>
       {menu && <ContextMenu {...menu} onClose={() => setMenu(null)} />}

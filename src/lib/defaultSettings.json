@@ -29,6 +29,7 @@
   "largerClickTargets": false,
   "underlineLinks": false,
   "focusNewFlowRow": true,
+  "separateNegativeBlock": false,
   "language": "en",
   "customTheme": null,
   "visualCacheEntries": 16,

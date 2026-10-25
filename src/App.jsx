@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { EMPTY_FLOW } from '../electron/flow.mjs';
+import { createFlow } from '../electron/flow.mjs';
 import { useConfirm } from './components/dialogs/ConfirmProvider.jsx';
 import AppLayout from './components/layout/AppLayout.jsx';
 import { renameTarget } from './components/layout/Sidebar.jsx';
@@ -15,7 +15,7 @@ import { useSettings } from './lib/settings.js';
 import { useAppExtensions } from './lib/useAppExtensions.js';
 import { useTabs } from './lib/useTabs.js';
 import { useVault } from './lib/useVault.js';
-import { baseName, dirName, flattenTree, isCanvas, isMarkdown, joinPath, outline, resolveLink } from './lib/vault.js';
+import { baseName, dirName, flattenTree, isCanvas, isFlow, isMarkdown, joinPath, outline, resolveLink } from './lib/vault.js';
 import { visualBlocker, visualSelection } from './lib/visualHelpers.js';
 
 export default function App() {
@@ -236,7 +236,7 @@ export default function App() {
     switchVault: () => setModal({ type: 'vaults' }),
     settings: () => setModal({ type: 'settings' }),
     newNote: (dir = activePath ? dirName(activePath) : '') => createAndOpen(joinPath(dir, 'Untitled.md'), ''),
-    newFlow: (dir = activePath ? dirName(activePath) : '') => createAndOpen(joinPath(dir, 'Untitled Flow.flow'), EMPTY_FLOW),
+    newFlow: (dir = activePath ? dirName(activePath) : '') => createAndOpen(joinPath(dir, 'Untitled Flow.flow'), createFlow(settings.separateNegativeBlock)),
     newFolder: (dir = activePath ? dirName(activePath) : '') =>
       prompt(t('New folder name'), t('New folder'), (name) => v.createFolder(joinPath(dir, name.replace(/[\\/:*?"<>|]/g, '-')))),
     newCanvas: (dir = activePath ? dirName(activePath) : '') => createAndOpen(joinPath(dir, 'Untitled.canvas'), EMPTY_CANVAS)
@@ -296,6 +296,26 @@ export default function App() {
   const ctx = {
     createCitation: () => setModal({ type: 'citation' }),
     hasNote: !!activePath && activeContent !== undefined,
+    isMarkdown: !!activePath && isMarkdown(activePath),
+    canCanvas: !!activePath && isCanvas(activePath) && mode !== 'edit',
+    canFlow: !!activePath && isFlow(activePath) && mode !== 'edit',
+    workspaceAction: (action) => window.dispatchEvent(new CustomEvent('workspace-action', { detail: action })),
+    readMode: () => setMode('read'),
+    openHistory: async () => {
+      try { if (activePath && await v.flush()) setModal({ type: 'history', path: activePath }); }
+      catch (error) { notify(error.message); }
+    },
+    summarizeCurrent: () => ctx.summarize(activePath, activeContent),
+    previousTab: () => {
+      const i = tabs.tabs.findIndex((tab) => tab.id === tabs.activeId);
+      const previous = tabs.tabs[(i - 1 + tabs.tabs.length) % tabs.tabs.length];
+      if (previous) tabs.setActiveId(previous.id);
+    },
+    nextTab: () => {
+      const i = tabs.tabs.findIndex((tab) => tab.id === tabs.activeId);
+      const next = tabs.tabs[(i + 1) % tabs.tabs.length];
+      if (next) tabs.setActiveId(next.id);
+    },
     openSwitcher: () => setModal({ type: 'switcher' }),
     openSearch: () => setModal({ type: 'search' }),
     newNote: () => actions.newNote(),
@@ -411,8 +431,8 @@ export default function App() {
       const c = ctxRef.current;
       const command = KEYBINDINGS.find((item) => item.scope === 'app' &&
         matchesBinding(e, binding(item.id, settings.keybindings)));
-      if (command && (!command.note || c.hasNote) &&
-        (v.vault || ['settings', 'citation'].includes(command.id))) {
+      if (command && (!command.note || c.hasNote) && (!command.markdown || c.isMarkdown) &&
+        (v.vault || ['settings', 'citation', 'vault-open'].includes(command.id))) {
         e.preventDefault();
         c[command.action]?.();
         return;
@@ -436,11 +456,6 @@ export default function App() {
     hotkey: displayBinding(binding(item.id, settings.keybindings, ext.commands)),
   }))];
   ctx.openCommands = () => setModal({ type: 'palette', placeholder: t('Type a command…'), items: commands, onSelect: (cmd) => cmd.run() });
-  ctx.nextTab = () => {
-    const i = tabs.tabs.findIndex((t) => t.id === tabs.activeId);
-    const next = tabs.tabs[(i + 1) % tabs.tabs.length];
-    if (next) tabs.setActiveId(next.id);
-  };
   return <AppLayout app={{
     t, settings, updateSettings, v, tabs, paths, noteNames, resolve, activePath, activeContent, mode,
     sourceFallback, stats, setStats, showLeft, showRight, sidebarWidth, rightWidth, lastFile, website,

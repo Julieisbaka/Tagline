@@ -15,7 +15,8 @@ export default function ConfigurableBar({ className, label, catalog, value, onCh
         ...(index < 0 ? [] : [
           { label: 'Move left', disabled: index === 0, run: () => onChange(moveWorkspaceItem(items, id, items[index - 1])) },
           { label: 'Move right', disabled: index === items.length - 1, run: () => onChange(moveWorkspaceItem(items, id, items[index + 1])) },
-          { label: 'Hide item', run: () => onChange(items.filter((item) => item !== id)) },
+          { label: t('Hide {name}', { name: t(catalog.find((item) => item.id === id).title) }),
+            run: () => onChange(items.filter((item) => item !== id)) },
         ]),
         ...catalog.filter((item) => !items.includes(item.id)).map((item) => ({
           label: t('Show {name}', { name: t(item.title) }), run: () => onChange([...items, item.id]),
