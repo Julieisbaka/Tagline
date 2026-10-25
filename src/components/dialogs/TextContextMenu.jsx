@@ -17,7 +17,9 @@ export default function TextContextMenu() {
       const range = !inputSelection && selection?.rangeCount ? selection.getRangeAt(0).cloneRange() : null;
       const selected = inputSelection ? inputSelection[0] !== inputSelection[1] : !!selection?.toString();
       const run = (action) => async () => {
+        await Promise.resolve();
         target?.focus({ preventScroll: true });
+        if (!target) document.activeElement?.blur();
         if (inputSelection) target.setSelectionRange(...inputSelection);
         else if (range) { selection.removeAllRanges(); selection.addRange(range); }
         await window.api.editText(action);

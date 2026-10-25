@@ -129,9 +129,11 @@ export default function FlowEditor({ path, content, mode, onChange, onRestore, f
   const bounds = selected && cellBounds(selected.anchor, selected.head);
   const multi = bounds && (bounds.top !== bounds.bottom || bounds.left !== bounds.right);
   const inside = (r, c) => bounds && r >= bounds.top && r <= bounds.bottom && c >= bounds.left && c <= bounds.right;
-  const choose = (row, column, extend = false) => setSelection({
-    sheet: idx, anchor: extend && selected ? selected.anchor : { row, column }, head: { row, column },
-  });
+  const choose = (row, column, extend = false) => {
+    const focused = document.activeElement?.matches('.flow-grid textarea') ? document.activeElement.dataset : null;
+    const anchor = extend ? selected?.anchor || (focused ? { row: Number(focused.row), column: Number(focused.column) } : { row, column }) : { row, column };
+    setSelection({ sheet: idx, anchor, head: { row, column } });
+  };
   const clear = (area = bounds) => {
     if (!area) return;
     updateSheet({ rows: sheet.rows.map((row, r) => row.map((value, c) =>
@@ -306,6 +308,7 @@ export default function FlowEditor({ path, content, mode, onChange, onRestore, f
                           if (target && target !== document.activeElement) {
                             keepSelection.current = true;
                             target.focus();
+                            target.scrollIntoView({ block: 'nearest', inline: 'nearest' });
                           }
                           return;
                         }

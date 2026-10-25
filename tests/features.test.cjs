@@ -39,10 +39,12 @@ test('flow rectangular clipboard data round-trips and expands without overwritin
 });
 
 test('palette exposes configured workspace actions only in the matching editor', async () => {
+  const { createServer } = await import('vite');
+  const server = await createServer({ configFile: false, server: { middlewareMode: true }, logLevel: 'silent' });
   global.window = { api: { platform: 'win32' } };
   try {
-    const { buildCommands } = await import('../src/lib/commands.js');
-    const { KEYBINDINGS } = await import('../src/lib/keybindings.js');
+    const { buildCommands } = await server.ssrLoadModule('/src/lib/commands.js');
+    const { KEYBINDINGS } = await server.ssrLoadModule('/src/lib/keybindings.js');
     const calls = [];
     const ctx = { hasNote: true, isMarkdown: false, canCanvas: true, workspaceAction: (id) => calls.push(id) };
     let commands = buildCommands(ctx, { 'canvas-fit': 'Mod+Shift+9' });
@@ -57,7 +59,7 @@ test('palette exposes configured workspace actions only in the matching editor',
     const appIds = new Set(KEYBINDINGS.filter((item) => item.scope === 'app').map((item) => item.id));
     const all = buildCommands({ hasNote: true, isMarkdown: true });
     for (const command of all) assert.ok(appIds.has(command.id), `${command.id} must be configurable`);
-  } finally { delete global.window; }
+  } finally { delete global.window; await server.close(); }
 });
 
 test('template placeholders use literal target paths, Markdown bodies and raw YAML properties', async () => {

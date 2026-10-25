@@ -1,7 +1,7 @@
 import { useEffect, useLayoutEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { useI18n } from '../../lib/i18n.js';
-import { containFocus } from '../../lib/focusScope.js';
+import { containFocus, trapTabKey } from '../../lib/focusScope.js';
 
 export default function ContextMenu({ x, y, items, onClose }) {
   const ref = useRef(null);
@@ -20,18 +20,22 @@ export default function ContextMenu({ x, y, items, onClose }) {
     window.addEventListener('pointerdown', outside, true);
     window.addEventListener('keydown', escape);
     window.addEventListener('blur', onClose);
+    window.addEventListener('resize', onClose);
     return () => {
       window.removeEventListener('pointerdown', outside, true);
       window.removeEventListener('keydown', escape);
       window.removeEventListener('blur', onClose);
+      window.removeEventListener('resize', onClose);
     };
   }, [onClose]);
   return createPortal(
     <div ref={ref} className="context-menu" role="menu" tabIndex={-1} style={{ left: x, top: y }}
-      onPointerDown={(e) => e.stopPropagation()} onClick={(e) => e.stopPropagation()}
+      onPointerDown={(e) => e.stopPropagation()} onMouseDown={(e) => e.stopPropagation()}
+      onClick={(e) => e.stopPropagation()}
       onContextMenu={(e) => { e.preventDefault(); e.stopPropagation(); }} onKeyDown={(e) => {
         e.stopPropagation();
-        if (e.key === 'Tab' || e.key === 'Escape') { e.preventDefault(); onClose(); return; }
+        if (e.key === 'Escape') { e.preventDefault(); onClose(); return; }
+        if (e.key === 'Tab') { trapTabKey(e, ref.current); return; }
         if (!['ArrowDown', 'ArrowUp', 'Home', 'End'].includes(e.key)) return;
         e.preventDefault();
         const buttons = [...ref.current.querySelectorAll('button:not(:disabled)')];
@@ -43,10 +47,10 @@ export default function ContextMenu({ x, y, items, onClose }) {
       {items.map(({ label, run, disabled, danger }, i) => (
         <button key={i} role="menuitem" disabled={disabled}
           className={`context-item${danger ? ' danger' : ''}`}
-          onClick={() => {
+          onClick={async () => {
             onClose();
-            Promise.resolve().then(run).catch((error) =>
-              window.dispatchEvent(new CustomEvent('app-error', { detail: error.message })));
+            try { await run(); }
+            catch (error) { window.dispatchEvent(new CustomEvent('app-error', { detail: error.message })); }
           }}>{t(label)}</button>
       ))}
     </div>, document.body

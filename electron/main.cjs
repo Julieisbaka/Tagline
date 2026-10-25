@@ -114,7 +114,7 @@ function registerIpc() {
   ipcMain.handle('app:editText', (event, action) => {
     if (event.sender !== win?.webContents ||
       !['undo', 'redo', 'cut', 'copy', 'paste', 'selectAll'].includes(action)) throw new Error('Invalid text editing action.');
-    event.sender[action]();
+    return event.sender[action]();
   });
   const updates = createUpdateManager({
     app, shell, notify: (state) => {

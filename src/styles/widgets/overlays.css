@@ -152,6 +152,9 @@
   position: fixed;
   z-index: 200;
   min-width: 180px;
+  max-width: calc(100vw - 8px);
+  max-height: calc(100vh - 8px);
+  overflow-y: auto;
   background: var(--bg-elevated);
   border: 1px solid var(--border);
   border-radius: 6px;
