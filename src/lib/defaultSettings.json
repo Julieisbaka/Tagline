@@ -36,6 +36,8 @@
   "keybindings": {},
   "modelAutoload": true,
   "embedWebsites": true,
+  "opencaselistRequirePasswordForWrites": false,
+  "opencaselistWritePassword": null,
   "sidebarWidth": 260,
   "rightPanelWidth": 300,
   "ribbonItems": [

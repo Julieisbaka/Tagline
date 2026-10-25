@@ -454,7 +454,7 @@ if (primary) app.whenReady().then(() => {
   app.setAboutPanelOptions({ applicationName: 'Tagline', applicationVersion: installationInfo(app).version });
   buildMenu();
   registerIpc();
-  registerOpenCaselist({ ipcMain, session, BrowserWindow, dialog, getWindow: () => win, getVaultRoot: () => vaultRoot });
+  registerOpenCaselist({ ipcMain, session, BrowserWindow, dialog, getWindow: () => win, getVaultRoot: () => vaultRoot, readConfig, writeConfig });
   closeWebsiteView = registerBrowser({ ipcMain, shell, getWindow: () => win });
   registerPandoc({ ipcMain, dialog, getWindow: () => win, readConfig, writeConfig });
   registerDocuments({ ipcMain, dialog, getWindow: () => win, readConfig });

@@ -18,7 +18,10 @@ export default function OpenCaselistDialog({ hasVault, onDownload, onClose }) {
   const [results, setResults] = useState(null);
   const [query, setQuery] = useState('');
   const [form, setForm] = useState(null);
-  const [busy, setBusy] = useState(false);
+  const [working, setBusy] = useState(false);
+  const [pendingWrite, setPendingWrite] = useState(null);
+  const [writePassword, setWritePassword] = useState('');
+  const busy = working || !!pendingWrite;
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
   const [downloaded, setDownloaded] = useState('');
@@ -34,6 +37,17 @@ export default function OpenCaselistDialog({ hasVault, onDownload, onClose }) {
       }
     } finally { if (active.current) setBusy(false); }
   };
+  const write = (action) => run(async () => {
+    const status = await api.writePasswordStatus();
+    if (status.enabled && !status.passwordSet)
+      throw new Error(t('Set an OpenCaselist write password in Settings > Integrations > OpenCaselist.'));
+    if (!status.unlocked) {
+      setWritePassword('');
+      setPendingWrite(() => action);
+      return;
+    }
+    await action();
+  });
   useEffect(() => {
     active.current = true;
     run(async () => {
@@ -71,7 +85,7 @@ export default function OpenCaselistDialog({ hasVault, onDownload, onClose }) {
     setDownloaded(result.path);
     setMessage(t('Saved disclosure: {path}', { path: result.path }));
   });
-  const save = () => run(async () => {
+  const save = () => write(async () => {
     let result;
     if (form.kind === 'cite') result = await api.write('create-cite', selection, form.data);
     else if (form.kind === 'upload') result = await api.upload(selection, form.data);
@@ -81,7 +95,7 @@ export default function OpenCaselistDialog({ hasVault, onDownload, onClose }) {
     setMessage(t('Change published to OpenCaselist.'));
     await refreshTeam();
   });
-  const remove = (kind, itemId) => run(async () => {
+  const remove = (kind, itemId) => write(async () => {
     const result = await api.write(`delete-${kind}`, { ...selection, [kind]: itemId });
     if (result.cancelled) return;
     setMessage(t('Change published to OpenCaselist.'));
@@ -120,6 +134,27 @@ export default function OpenCaselistDialog({ hasVault, onDownload, onClose }) {
       </div>
       {!hasVault && <p>{t('Open a vault to save downloaded files. Browsing and publishing are still available.')}</p>}
       {error && <p className="error-text" role="alert">{error}</p>}
+      {pendingWrite && <form className="opencaselist-write-unlock" onSubmit={(event) => {
+        event.preventDefault();
+        const password = writePassword;
+        setWritePassword('');
+        run(async () => {
+          await api.verifyWritePassword(password);
+          const action = pendingWrite;
+          setPendingWrite(null);
+          await action();
+        });
+      }}>
+        <p>{t('Enter your local write password to publish changes. Write access is remembered for 30 minutes of write activity.')}</p>
+        <label className="opencaselist-field"><span>{t('Write password')}</span>
+          <input type="password" autoComplete="current-password" autoFocus required maxLength={1024}
+            disabled={working} value={writePassword} onChange={(event) => setWritePassword(event.target.value)} />
+        </label>
+        <button type="button" disabled={working} onClick={() => {
+          setPendingWrite(null); setWritePassword(''); setError('');
+        }}>{t('Cancel')}</button>
+        <button type="submit" disabled={working}>{t('Unlock and continue')}</button>
+      </form>}
       {message && <p role="status">{message}</p>}
       {downloaded && <button disabled={busy} onClick={() => run(() => window.api.reveal(downloaded))}>
         {t('Show downloaded file')}</button>}
