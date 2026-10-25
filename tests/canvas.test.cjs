@@ -72,6 +72,32 @@ test('working-save recovery skips malformed and structurally invalid revisions a
   await assert.rejects(history.latestWorking('Note.md'), /flow and Canvas/);
 });
 
+test('experimental delta history preserves Canvas data mode, recovery and layout', async (t) => {
+  const { createRevisionHistory } = require('../electron/revisionHistory.cjs');
+  const root = await fs.mkdtemp(path.join(os.tmpdir(), 'tagline-canvas-delta-'));
+  t.after(() => fs.rm(root, { recursive: true, force: true }));
+  const history = createRevisionHistory({ getVaultRoot: () => root, resolveInVault: (rel) => path.join(root, rel) });
+  const canvas = { nodes: [{ id: 'n', type: 'text', x: 0, y: 0, width: 300, height: 200, text: 'a'.repeat(5000) }], edges: [] };
+  const file = path.join(root, 'Map.canvas');
+  await fs.writeFile(file, JSON.stringify(canvas));
+  for (const suffix of ['1', '2', '3']) {
+    canvas.nodes[0].text += suffix;
+    const content = JSON.stringify(canvas);
+    await history.snapshot('Map.canvas', content, 2, 'data', true);
+    await fs.writeFile(file, content);
+  }
+  const [latest] = await history.list('Map.canvas');
+  assert.ok(latest.id.endsWith('.delta'));
+  canvas.nodes[0].x = 900;
+  await history.snapshot('Map.canvas', JSON.stringify(canvas), 2, 'data', true);
+  assert.equal((await history.list('Map.canvas')).length, 2);
+  const restored = JSON.parse(await history.read('Map.canvas', latest.id));
+  assert.equal(restored.nodes[0].x, 900);
+  assert.equal(restored.nodes[0].text, 'a'.repeat(5000) + '12');
+  await fs.writeFile(file, '{broken');
+  assert.equal(JSON.parse((await history.latestWorking('Map.canvas')).content).nodes[0].text, restored.nodes[0].text);
+});
+
 test('Canvas Complete history preserves JSON; Data history shares latest layout and skips movement', async (t) => {
   const { createRevisionHistory } = require('../electron/revisionHistory.cjs');
   const { createCanvasNode, serializeCanvas } = await import('../src/lib/canvas.js');

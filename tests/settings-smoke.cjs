@@ -35,6 +35,7 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
   await fs.writeFile(path.join(vault, 'Links.md'), '[[Beta#Beta|alias]]');
   await fs.writeFile(path.join(profile, 'config.json'), JSON.stringify({ lastVault: vault, modelAutoload: false }));
   app.setPath('userData', profile);
+  app.setPath('sessionData', profile);
   // Keep deletion local to this temporary test vault rather than using the OS trash.
   shell.trashItem = async (file) => fs.rm(file);
   const externalUrls = [];
@@ -407,8 +408,48 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
         await wait("!!document.querySelector('.confirm-dialog')");
         await button('.confirm-dialog button', 'Confirm');
         await wait("!document.querySelector('.tab[title=\"Alpha.md\"]')");
+        await settings();
+        assert.equal(await js("document.querySelector('[data-setting=experimentalHistoryDeltas]').checked"), false);
+        await toggle('experimentalHistoryDeltas', true);
+        await done();
+        await reload();
+        await settings();
+        assert.equal(await js("document.querySelector('[data-setting=experimentalHistoryDeltas]').checked"), true);
+        await done();
+        await js(`window.api.create('History.md', ${JSON.stringify('Evidence '.repeat(1000))})`);
+        await click('.sidebar-header button[title="Refresh"]');
+        await wait("!!document.querySelector('.tree-item[title=\"History.md\"]')");
+        await open('History.md');
+        const appendHistory = async (text) => {
+          await wait("!!document.querySelector('.ProseMirror')");
+          await js(`(() => {
+            const editor = document.querySelector('.ProseMirror');
+            editor.focus();
+            const range = document.createRange();
+            range.selectNodeContents(editor);
+            range.collapse(false);
+            const selection = window.getSelection();
+            selection.removeAllRanges();
+            selection.addRange(range);
+          })()`);
+          await wc.insertText(text);
+          await wait(`window.api.read('History.md').then(content => content.includes(${JSON.stringify(text)}))`);
+        };
+        await appendHistory(' first-revision');
+        const previousHistoryContent = await js("window.api.read('History.md')");
+        await appendHistory(' second-revision');
+        const deltaRevisions = await js("window.api.listHistory('History.md')");
+        assert.ok(deltaRevisions[0].id.endsWith('.delta'), 'editor saves honor the opt-in setting');
+        assert.equal(await js(`window.api.readHistory('History.md', ${JSON.stringify(deltaRevisions[0].id)})`), previousHistoryContent);
+        await settings();
+        await toggle('experimentalHistoryDeltas', false);
+        await done();
+        await appendHistory(' third-revision');
+        assert.ok((await js("window.api.listHistory('History.md')"))[0].id.endsWith('.snapshot'));
+        assert.equal(await js(`window.api.readHistory('History.md', ${JSON.stringify(deltaRevisions[0].id)})`), previousHistoryContent,
+          'previous deltas stay readable when disabled');
         server.close();
-        console.log('PASS: notice dismissal/reset/reload, Pandoc install link, isolated embedded websites/navigation/resize/close/external toggle, extension labels, configurable relinking, missing tabs, dormant workspaces, and custom CSS.');
+        console.log('PASS: experimental delta history opt-in/persistence/editor saves/restores/disable, notice dismissal/reset/reload, Pandoc install link, isolated embedded websites/navigation/resize/close/external toggle, extension labels, configurable relinking, missing tabs, dormant workspaces, and custom CSS.');
         app.exit(0);
       } catch (error) {
         console.error('FAIL:', error.stack);

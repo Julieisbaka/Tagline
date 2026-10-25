@@ -23,6 +23,7 @@
   "visualCacheCharacters": 4000000,
   "searchMaxResults": 200,
   "historyRetention": 50,
+  "experimentalHistoryDeltas": false,
   "canvasHistoryMode": "complete",
   "underscoreFolders": true,
   "hideFlowExtension": true,

@@ -205,9 +205,9 @@ function registerIpc() {
 
   ipcMain.handle('fs:read', async (_e, rel) => fs.readFile(resolveInVault(rel), 'utf8'));
 
-  ipcMain.handle('fs:write', async (_e, rel, content, retention = DEFAULT_RETENTION, canvasMode = 'complete') => {
+  ipcMain.handle('fs:write', async (_e, rel, content, retention = DEFAULT_RETENTION, canvasMode = 'complete', experimentalHistoryDeltas = false) => {
     const full = resolveInVault(rel);
-    await history.snapshot(rel, content, retention, canvasMode);
+    await history.snapshot(rel, content, retention, canvasMode, experimentalHistoryDeltas);
     await fs.mkdir(path.dirname(full), { recursive: true });
     let mode;
     try { mode = (await fs.stat(full)).mode; }

@@ -98,7 +98,8 @@ contextBridge.exposeInMainWorld('api', {
   readSnapshot: () => ipcRenderer.invoke('fs:snapshot'),
   readAll: () => ipcRenderer.invoke('fs:readAll'),
   read: (p) => ipcRenderer.invoke('fs:read', p),
-  write: (p, c, retention, canvasMode) => ipcRenderer.invoke('fs:write', p, c, retention, canvasMode),
+  write: (p, c, retention, canvasMode, experimentalHistoryDeltas) =>
+    ipcRenderer.invoke('fs:write', p, c, retention, canvasMode, experimentalHistoryDeltas),
   create: (p, c) => ipcRenderer.invoke('fs:create', p, c),
   mkdir: (p, underscoreFolders) => ipcRenderer.invoke('fs:mkdir', p, underscoreFolders),
   rename: (a, b) => ipcRenderer.invoke('fs:rename', a, b),

@@ -1,15 +1,17 @@
 const fs = require('node:fs/promises');
 const path = require('node:path');
-const { randomUUID } = require('node:crypto');
+const { randomUUID, createHash } = require('node:crypto');
 const { isDeepStrictEqual } = require('node:util');
 const { parseCanvas, serializeCanvas } = require('./canvas.mjs');
 const { parseFlow } = require('./flow.mjs');
 
 const DEFAULT_RETENTION = 50;
 const MAX_RETENTION = 5000;
-const SNAPSHOT_ID = /^\d{13}-[0-9a-f-]{36}\.snapshot$/;
+const SNAPSHOT_ID = /^\d{13}-[0-9a-f-]{36}\.(snapshot|delta)$/;
+const MAX_DELTA_DEPTH = 9;
+const hash = (content) => createHash('sha256').update(content, 'utf8').digest('hex');
 const DOCUMENT = /\.(md|flow|canvas)$/i;
-const HISTORY_TYPES = 'Revision history supports Markdown, flow and Canvas documents only.';
+const HISTORY_TYPES = 'Revision history supports Markdown, flow, and Canvas documents only.';
 
 function validateRetention(value) {
   if (!Number.isInteger(value) || value < 1 || value > MAX_RETENTION) {
@@ -38,8 +40,42 @@ function createRevisionHistory({ getVaultRoot, resolveInVault }) {
     }
   };
 
-  async function snapshot(relativePath, nextContent, retention = DEFAULT_RETENTION, canvasMode = 'complete') {
+  async function readStored(directory, id, seen = new Set()) {
+    if (!SNAPSHOT_ID.test(id) || seen.has(id) || seen.size > MAX_DELTA_DEPTH) {
+      throw new Error('Invalid revision history dependency chain.');
+    }
+    seen.add(id);
+    const stored = await fs.readFile(path.join(directory, id), 'utf8');
+    if (id.endsWith('.snapshot')) return { content: stored, depth: 0 };
+    const delta = JSON.parse(stored);
+    if (delta?.version !== 1 || typeof delta.hash !== 'string') {
+      throw new Error('Invalid revision history delta.');
+    }
+    let content;
+    let depth = 0;
+    if (delta.base === null && typeof delta.content === 'string') {
+      content = delta.content;
+    } else {
+      if (typeof delta.base !== 'string' || !SNAPSHOT_ID.test(delta.base) ||
+          !Number.isSafeInteger(delta.start) || delta.start < 0 ||
+          !Number.isSafeInteger(delta.deleteCount) || delta.deleteCount < 0 ||
+          typeof delta.insert !== 'string') throw new Error('Invalid revision history delta.');
+      const base = await readStored(directory, delta.base, seen);
+      if (hash(base.content) !== delta.baseHash ||
+          delta.start + delta.deleteCount > base.content.length) {
+        throw new Error('Revision history delta base is damaged.');
+      }
+      content = base.content.slice(0, delta.start) + delta.insert +
+        base.content.slice(delta.start + delta.deleteCount);
+      depth = base.depth + 1;
+    }
+    if (hash(content) !== delta.hash) throw new Error('Revision history checksum does not match.');
+    return { content, depth };
+  }
+
+  async function snapshot(relativePath, nextContent, retention = DEFAULT_RETENTION, canvasMode = 'complete', experimentalHistoryDeltas = false) {
     validateRetention(retention);
+    if (typeof experimentalHistoryDeltas !== 'boolean') throw new Error('Experimental history deltas must be enabled or disabled.');
     if (!['complete', 'data'].includes(canvasMode)) throw new Error('Canvas history mode must be complete or data.');
     if (typeof nextContent !== 'string') throw new Error('Document content must be text.');
     const currentPath = resolveInVault(relativePath);
@@ -80,9 +116,44 @@ function createRevisionHistory({ getVaultRoot, resolveInVault }) {
     await fs.mkdir(directory, { recursive: true });
     const existing = await listFiles(directory);
     const lastTimestamp = existing.length ? Number(existing[0].slice(0, existing[0].indexOf('-'))) : 0;
-    const id = `${Math.max(Date.now(), lastTimestamp + 1)}-${randomUUID()}.snapshot`;
-    await fs.writeFile(path.join(directory, id), snapshotContent, { encoding: 'utf8', flag: 'wx' });
+    let stored = snapshotContent;
+    let extension = 'snapshot';
+    if (experimentalHistoryDeltas && existing.length && retention > 1) {
+      const base = await readStored(directory, existing[0]);
+      if (base.depth < MAX_DELTA_DEPTH) {
+        let start = 0;
+        while (start < base.content.length && start < snapshotContent.length &&
+            base.content[start] === snapshotContent[start]) start++;
+        let end = 0;
+        while (end < base.content.length - start && end < snapshotContent.length - start &&
+            base.content[base.content.length - end - 1] === snapshotContent[snapshotContent.length - end - 1]) end++;
+        const delta = JSON.stringify({
+          version: 1, base: existing[0], baseHash: hash(base.content), hash: hash(snapshotContent),
+          start, deleteCount: base.content.length - start - end,
+          insert: snapshotContent.slice(start, snapshotContent.length - end),
+        });
+        if (Buffer.byteLength(delta) < Buffer.byteLength(snapshotContent)) {
+          stored = delta;
+          extension = 'delta';
+        }
+      }
+    }
+    const id = `${Math.max(Date.now(), lastTimestamp + 1)}-${randomUUID()}.${extension}`;
+    await fs.writeFile(path.join(directory, id), stored, { encoding: 'utf8', flag: 'wx' });
     const snapshots = await listFiles(directory);
+    const oldestKept = snapshots[retention - 1];
+    if (snapshots.length > retention && oldestKept.endsWith('.delta')) {
+      // Rebase the retention boundary before deleting anything it could depend on.
+      const { content } = await readStored(directory, oldestKept);
+      const temporary = path.join(directory, `${randomUUID()}.tmp`);
+      try {
+        await fs.writeFile(temporary, JSON.stringify({ version: 1, base: null, content, hash: hash(content) }),
+          { encoding: 'utf8', flag: 'wx' });
+        await fs.rename(temporary, path.join(directory, oldestKept));
+      } finally {
+        await fs.rm(temporary, { force: true });
+      }
+    }
     await Promise.all(snapshots.slice(retention).map((file) => fs.unlink(path.join(directory, file))));
   }
 
@@ -101,7 +172,7 @@ function createRevisionHistory({ getVaultRoot, resolveInVault }) {
     const documentPath = resolveInVault(relativePath);
     if (!DOCUMENT.test(documentPath)) throw new Error(HISTORY_TYPES);
     const directory = historyDir(relativePath);
-    const content = await fs.readFile(path.join(directory, id), 'utf8');
+    const { content } = await readStored(directory, id);
     if (/\.canvas$/i.test(documentPath)) {
       let saved;
       try { saved = JSON.parse(content); } catch { return content; }

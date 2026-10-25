@@ -74,6 +74,11 @@ export default function AdvancedSettings({ settings, update, section = 'all' }) 
       <p>{t('When disabled, current tabs stay open but are not saved. Saved workspaces remain dormant and are restored when this is enabled again.')}</p>
       <h4>{t('Revision history')}</h4>
       {number('Maximum saved revisions per document', 'historyRetention', 5000)}
+      <label className="setting-row"><span>{t('Delta revision history (experimental)')}</span>
+        <input type="checkbox" data-setting="experimentalHistoryDeltas" checked={settings.experimentalHistoryDeltas}
+          onChange={(event) => update({ experimentalHistoryDeltas: event.target.checked })} />
+      </label>
+      <p>{t('Off by default. Saves smaller changes as deltas with periodic full snapshots. Existing revisions remain readable when disabled. Damaged dependencies can affect several revisions.')}</p>
       <label className="setting-row"><span>{t('Canvas history mode')}</span>
         <select data-setting="canvasHistoryMode" value={settings.canvasHistoryMode}
           onChange={(event) => update({ canvasHistoryMode: event.target.value })}>

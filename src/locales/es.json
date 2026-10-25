@@ -269,6 +269,8 @@
   "Show autocomplete suggestions": "Mostrar sugerencias de autocompletado",
   "History": "Historial",
   "Revision history": "Historial de revisiones",
+  "Delta revision history (experimental)": "Historial de revisiones con deltas (experimental)",
+  "Off by default. Saves smaller changes as deltas with periodic full snapshots. Existing revisions remain readable when disabled. Damaged dependencies can affect several revisions.": "Desactivado por defecto. Guarda los cambios menores como deltas con copias completas periódicas. Las revisiones existentes siguen siendo legibles al desactivarlo. Las dependencias dañadas pueden afectar a varias revisiones.",
   "Loading revision history…": "Cargando el historial de revisiones…",
   "No saved revisions yet. Revisions are created when this document changes.": "Aún no hay revisiones guardadas. Se crean al cambiar este documento.",
   "Saved versions": "Versiones guardadas",

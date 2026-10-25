@@ -22,7 +22,7 @@ export default function App() {
   const { t } = useI18n();
   const confirm = useConfirm();
   const [settings, updateSettings] = useSettings();
-  const v = useVault(settings.underscoreFolders, settings.autoRelink, settings.historyRetention, settings.canvasHistoryMode);
+  const v = useVault(settings.underscoreFolders, settings.autoRelink, settings.historyRetention, settings.canvasHistoryMode, settings.experimentalHistoryDeltas);
   const tabs = useTabs(v.vault?.root, settings.persistWorkspaceTabs);
   const [modes, setModes] = useState({});
   const [highlightOnly, setHighlightOnly] = useState(false);

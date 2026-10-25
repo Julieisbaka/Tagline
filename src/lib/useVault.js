@@ -5,7 +5,7 @@ import { buildIndex, isMarkdown, rewriteLinks } from './vault.js';
 const api = window.api;
 const SAVE_DELAY = 400;
 
-export function useVault(underscoreFolders = true, autoRelink = true, historyRetention = 50, canvasHistoryMode = 'complete') {
+export function useVault(underscoreFolders = true, autoRelink = true, historyRetention = 50, canvasHistoryMode = 'complete', experimentalHistoryDeltas = false) {
   const [vault, setVault] = useState(null);
   const [tree, setTree] = useState([]);
   const [contents, setContents] = useState({});
@@ -23,6 +23,8 @@ export function useVault(underscoreFolders = true, autoRelink = true, historyRet
   historyRetentionRef.current = historyRetention;
   const canvasHistoryModeRef = useRef(canvasHistoryMode);
   canvasHistoryModeRef.current = canvasHistoryMode;
+  const experimentalHistoryDeltasRef = useRef(experimentalHistoryDeltas);
+  experimentalHistoryDeltasRef.current = experimentalHistoryDeltas;
   const directories = folderPaths(tree);
   const normalize = (path, folder = false) => underscoreFolders ? normalizeFolders(path, folder, directories) : path;
 
@@ -31,7 +33,7 @@ export function useVault(underscoreFolders = true, autoRelink = true, historyRet
   const writeDisk = useCallback((path, text) => {
     const previous = writes.current.get(path)?.task || Promise.resolve();
     const task = previous.catch(() => { }).then(() =>
-      api.write(path, text, historyRetentionRef.current, canvasHistoryModeRef.current));
+      api.write(path, text, historyRetentionRef.current, canvasHistoryModeRef.current, experimentalHistoryDeltasRef.current));
     writes.current.set(path, { task, text });
     const cleanup = () => {
       if (writes.current.get(path)?.task === task) writes.current.delete(path);
@@ -194,7 +196,7 @@ export function useVault(underscoreFolders = true, autoRelink = true, historyRet
             updated = rewriteLinks(updated, oldPath, to + oldPath.slice(from.length), paths);
           }
           const destination = moved.includes(p) ? to + p.slice(from.length) : p;
-          if (updated !== all[p]) await api.write(destination, updated, historyRetentionRef.current, canvasHistoryModeRef.current);
+          if (updated !== all[p]) await api.write(destination, updated, historyRetentionRef.current, canvasHistoryModeRef.current, experimentalHistoryDeltasRef.current);
         }
         await reload();
         return to;
