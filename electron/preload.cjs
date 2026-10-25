@@ -4,6 +4,10 @@ contextBridge.exposeInMainWorld('api', {
   platform: process.platform,
   getInstallationInfo: () => ipcRenderer.invoke('app:installation'),
   openCaselist: {
+    writePasswordStatus: () => ipcRenderer.invoke('opencaselist:writePasswordStatus'),
+    verifyWritePassword: (password) => ipcRenderer.invoke('opencaselist:verifyWritePassword', password),
+    configureWritePassword: (enabled, password, currentPassword) =>
+      ipcRenderer.invoke('opencaselist:configureWritePassword', enabled, password, currentPassword),
     status: () => ipcRenderer.invoke('opencaselist:status'),
     login: () => ipcRenderer.invoke('opencaselist:login'),
     logout: () => ipcRenderer.invoke('opencaselist:logout'),

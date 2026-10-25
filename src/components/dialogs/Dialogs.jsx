@@ -9,6 +9,7 @@ import ExtensionSettings from '../settings/ExtensionSettings.jsx';
 import InstallationSettings from '../settings/InstallationSettings.jsx';
 import IntegrationSettings from '../settings/IntegrationSettings.jsx';
 import KeybindingSettings from '../settings/KeybindingSettings.jsx';
+import OpenCaselistSettings from '../settings/OpenCaselistSettings.jsx';
 import ReadingSettings from '../settings/ReadingSettings.jsx';
 import RibbonSettings from '../settings/RibbonSettings.jsx';
 import ThemeSettings from '../settings/ThemeSettings.jsx';
@@ -230,6 +231,7 @@ export function SettingsDialog({ settings, update, onClose, extensions, onOpenCa
               <h3>OpenCaselist</h3>
               <p>{t('Browse disclosures, download files, and publish changes using your OpenCaselist account.')}</p>
               <button onClick={onOpenCaselist}>{t('Open OpenCaselist')}</button>
+              <OpenCaselistSettings />
               <label className="setting-row"><span>{t('Open websites inside Tagline')}</span>
                 <input type="checkbox" data-setting="embedWebsites" checked={settings.embedWebsites}
                   onChange={(e) => update({ embedWebsites: e.target.checked })} />

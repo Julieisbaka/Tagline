@@ -11,6 +11,8 @@ const round = { tournament: 'Tournament', side: 'A', round: '1', opponent: 'Othe
 const json = (data, status = 200) => new Response(JSON.stringify(data), { status, headers: { 'Content-Type': 'application/json' } });
 function setup(options = {}) {
   const requests = [], confirmations = [];
+  let config = options.config || {};
+  let clock = Date.now();
   const cookies = new EventEmitter();
   let stored = [{ name: 'caselist_token', domain: '.opencaselist.com', value: 'private-test-cookie', expirationDate: Date.now() / 1000 + 1000 }];
   cookies.get = async () => stored;
@@ -25,8 +27,15 @@ function setup(options = {}) {
     showOpenDialog: async () => ({ canceled: !options.upload, filePaths: options.upload ? [options.upload] : [] }),
     showSaveDialog: async () => ({ canceled: !options.target, filePath: options.target }),
   };
-  const service = createOpenCaselist({ session, dialog, getWindow: () => ({}), getVaultRoot: () => options.root, BrowserWindow: options.BrowserWindow });
-  return { service, session, requests, confirmations, setCookies: (next) => { stored = next; } };
+  const serviceOptions = {
+    session, dialog, getWindow: () => ({}), getVaultRoot: () => options.root, BrowserWindow: options.BrowserWindow,
+    readConfig: () => config, writeConfig: (patch) => { config = { ...config, ...patch }; }, now: () => clock,
+  };
+  const service = createOpenCaselist(serviceOptions);
+  return {
+    service, session, requests, confirmations, setCookies: (next) => { stored = next; },
+    getConfig: () => config, advance: (ms) => { clock += ms; }, restart: () => createOpenCaselist(serviceOptions),
+  };
 }
 async function temporary(t) {
   const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'tagline-opencaselist-unit-'));
@@ -119,6 +128,111 @@ test('round and citation changes require confirmation and preserve existing atta
   await mock.service.write('create-cite', selection, { round_id: 10, title: 'Evidence', cites: 'Cite text' });
   assert.deepEqual(JSON.parse(mock.requests.at(-1).init.body), { round_id: 10, title: 'Evidence', cites: 'Cite text' });
   await assert.rejects(mock.service.write('delete-round', { ...selection, round: '../delete' }), /Invalid/);
+});
+
+test('write protection defaults off and stores only a randomly salted PBKDF2 hash', async () => {
+  const mock = setup();
+  assert.deepEqual(mock.service.writePasswordStatus(), { enabled: false, passwordSet: false, unlocked: true });
+  await mock.service.write('create-round', selection, round);
+  await mock.service.configureWritePassword(true, 'tournament password');
+  const config = mock.getConfig();
+  assert.equal(config.opencaselistRequirePasswordForWrites, true);
+  assert.match(config.opencaselistWritePassword.salt, /^[a-f0-9]{32}$/);
+  assert.match(config.opencaselistWritePassword.hash, /^[a-f0-9]{64}$/);
+  assert.ok(!JSON.stringify(config).includes('tournament password'));
+  const { pbkdf2Sync } = require('node:crypto');
+  assert.equal(config.opencaselistWritePassword.hash,
+    pbkdf2Sync('tournament password', config.opencaselistWritePassword.salt, 600000, 32, 'sha256').toString('hex'));
+  const previous = config.opencaselistWritePassword;
+  await mock.service.configureWritePassword(true, 'tournament password', 'tournament password');
+  assert.notEqual(mock.getConfig().opencaselistWritePassword.salt, previous.salt);
+});
+
+test('all round, citation and upload writes are guarded in the main process, but reads are not', async () => {
+  const mock = setup();
+  await mock.service.configureWritePassword(true, 'tournament password');
+  for (const action of ['create-round', 'update-round', 'delete-round', 'create-cite', 'delete-cite']) {
+    await assert.rejects(mock.service.write(action, selection, round), /password required/);
+  }
+  await assert.rejects(mock.service.upload(selection, round), /password required/);
+  assert.equal(mock.confirmations.length, 0);
+  assert.equal(mock.requests.length, 0);
+  await mock.service.list('rounds', selection);
+  await mock.service.search('ndt2026', 'evidence');
+  assert.equal(mock.requests.length, 2);
+  await assert.rejects(mock.service.verifyWritePassword('wrong'), /Incorrect/);
+  assert.equal(mock.service.writePasswordStatus().unlocked, false);
+  await mock.service.verifyWritePassword('tournament password');
+  await mock.service.write('create-round', selection, round);
+  assert.equal(mock.requests.at(-1).init.method, 'POST');
+  assert.ok(!mock.requests.at(-1).init.body.includes('tournament password'));
+});
+
+test('write unlock lasts for 30 minutes of write activity and is not persisted across restart or logout', async () => {
+  const mock = setup();
+  await mock.service.configureWritePassword(true, 'tournament password');
+  await mock.service.verifyWritePassword('tournament password');
+  mock.advance(29 * 60 * 1000);
+  await mock.service.write('create-round', selection, round);
+  mock.advance(29 * 60 * 1000);
+  assert.equal(mock.service.writePasswordStatus().unlocked, true);
+  assert.equal(mock.restart().writePasswordStatus().unlocked, false);
+  await mock.service.list('rounds', selection);
+  mock.advance(60 * 1000);
+  await assert.rejects(mock.service.write('delete-round', { ...selection, round: 1 }), /password required/);
+  await mock.service.verifyWritePassword('tournament password');
+  await mock.service.logout();
+  assert.equal(mock.service.writePasswordStatus().unlocked, false);
+});
+
+test('changing or disabling protection always requires the current password and relocks writes', async () => {
+  const mock = setup();
+  await mock.service.configureWritePassword(true, 'first password');
+  await mock.service.verifyWritePassword('first password');
+  await assert.rejects(mock.service.configureWritePassword(false), /Invalid write password/);
+  await assert.rejects(mock.service.configureWritePassword(false, undefined, 'wrong'), /Incorrect/);
+  await assert.rejects(mock.service.configureWritePassword(true, 'replacement', 'wrong'), /Incorrect/);
+  await assert.rejects(mock.service.configureWritePassword(true, '', 'first password'), /Invalid new/);
+  assert.equal(mock.getConfig().opencaselistRequirePasswordForWrites, true);
+  await mock.service.configureWritePassword(true, 'replacement', 'first password');
+  assert.equal(mock.service.writePasswordStatus().unlocked, false);
+  await assert.rejects(mock.service.verifyWritePassword('first password'), /Incorrect/);
+  await mock.service.configureWritePassword(false, undefined, 'replacement');
+  await mock.service.write('create-round', selection, round);
+  await assert.rejects(mock.service.configureWritePassword(true, undefined, 'wrong'), /Incorrect/);
+});
+
+test('enabled protection without a password fails closed and can be configured in Settings', async () => {
+  const mock = setup({ config: { opencaselistRequirePasswordForWrites: true } });
+  await assert.rejects(mock.service.write('create-round', selection, round), /Settings > Integrations/);
+  await assert.rejects(mock.service.upload(selection, round), /Settings > Integrations/);
+  await assert.rejects(mock.service.verifyWritePassword('anything'), /Settings > Integrations/);
+  await mock.service.list('rounds', selection);
+  await mock.service.configureWritePassword(true, 'new password');
+  await mock.service.verifyWritePassword('new password');
+  await mock.service.write('create-round', selection, round);
+  await assert.rejects(setup().service.configureWritePassword(true), /Set a password/);
+});
+
+test('password authorization cannot outlive a configuration or session change during hashing', async () => {
+  const mock = setup();
+  await mock.service.configureWritePassword(true, 'tournament password');
+  const pending = mock.service.verifyWritePassword('tournament password');
+  await mock.service.logout();
+  await assert.rejects(pending, /session changed/);
+  assert.equal(mock.service.writePasswordStatus().unlocked, false);
+});
+
+test('write authorization is checked again after confirmation, immediately before sending', async () => {
+  const mock = setup();
+  await mock.service.configureWritePassword(true, 'tournament password');
+  await mock.service.verifyWritePassword('tournament password');
+  mock.session.cookies.get = async () => {
+    mock.advance(30 * 60 * 1000);
+    return [{ value: 'valid-session' }];
+  };
+  await assert.rejects(mock.service.write('create-round', selection, round), /password required/);
+  assert.equal(mock.requests.length, 0);
 });
 
 test('uploads publish only a user-selected DOCX after confirmation using verified base64 fields', async (t) => {

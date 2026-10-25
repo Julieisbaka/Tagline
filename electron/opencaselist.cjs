@@ -1,5 +1,12 @@
 const fs = require('node:fs/promises');
 const path = require('node:path');
+const crypto = require('node:crypto');
+const { promisify } = require('node:util');
+const defaults = require('../src/lib/defaultSettings.json');
+
+const pbkdf2 = promisify(crypto.pbkdf2);
+const PASSWORD_ITERATIONS = 600000;
+const WRITE_TIMEOUT = 30 * 60 * 1000;
 
 const ORIGIN = 'https://opencaselist.com';
 const API = 'https://api.opencaselist.com/v1';
@@ -64,11 +71,65 @@ async function responseBytes(response, limit) {
   return Buffer.concat(chunks);
 }
 
-function createOpenCaselist({ session, BrowserWindow, dialog, getWindow, getVaultRoot }) {
+function createOpenCaselist({ session, BrowserWindow, dialog, getWindow, getVaultRoot, readConfig = () => ({}), writeConfig, now = Date.now }) {
   let loginWindow;
   let loginOpening = false;
   let invalidSession = false;
   let generation = 0;
+  let unlockedUntil = 0;
+  const protection = () => {
+    const config = readConfig();
+    return {
+      enabled: config.opencaselistRequirePasswordForWrites ?? defaults.opencaselistRequirePasswordForWrites,
+      password: config.opencaselistWritePassword ?? defaults.opencaselistWritePassword,
+    };
+  };
+  const writePasswordStatus = () => {
+    const { enabled, password } = protection();
+    return { enabled: !!enabled, passwordSet: !!password, unlocked: !enabled || (!!password && now() < unlockedUntil) };
+  };
+  const checkPassword = async (password, stored) => {
+    text(password, 'write password', 1024);
+    if (!stored || !/^[a-f0-9]{32}$/.test(stored.salt) || !/^[a-f0-9]{64}$/.test(stored.hash))
+      throw new Error('Set an OpenCaselist write password in Settings > Integrations > OpenCaselist.');
+    const hash = await pbkdf2(password, stored.salt, PASSWORD_ITERATIONS, 32, 'sha256');
+    if (!crypto.timingSafeEqual(hash, Buffer.from(stored.hash, 'hex'))) throw new Error('Incorrect OpenCaselist write password.');
+  };
+  const unchanged = (before, started) => {
+    if (generation !== started || JSON.stringify(protection()) !== JSON.stringify(before))
+      throw new Error('OpenCaselist protection or session changed. Try again.');
+  };
+  const verifyWritePassword = async (password) => {
+    const before = protection(), started = generation;
+    await checkPassword(password, before.password);
+    unchanged(before, started);
+    unlockedUntil = now() + WRITE_TIMEOUT;
+    return writePasswordStatus();
+  };
+  const configureWritePassword = async (enabled, password, currentPassword) => {
+    if (typeof enabled !== 'boolean') throw new Error('Invalid write password setting.');
+    const before = protection(), started = generation;
+    if (before.password) await checkPassword(currentPassword, before.password);
+    let stored = before.password;
+    if (password !== undefined) {
+      text(password, 'new write password', 1024);
+      const salt = crypto.randomBytes(16).toString('hex');
+      const hash = (await pbkdf2(password, salt, PASSWORD_ITERATIONS, 32, 'sha256')).toString('hex');
+      stored = { salt, hash };
+    }
+    if (enabled && !stored) throw new Error('Set a password before enabling OpenCaselist write protection.');
+    unchanged(before, started);
+    writeConfig({ opencaselistRequirePasswordForWrites: enabled, opencaselistWritePassword: stored });
+    unlockedUntil = 0;
+    return writePasswordStatus();
+  };
+  const requireWritePassword = (touch = false) => {
+    const state = writePasswordStatus();
+    if (!state.enabled) return;
+    if (!state.passwordSet) throw new Error('Set an OpenCaselist write password in Settings > Integrations > OpenCaselist.');
+    if (!state.unlocked) throw new Error('OpenCaselist write password required. Unlock write access and try again.');
+    if (touch) unlockedUntil = now() + WRITE_TIMEOUT;
+  };
   const status = async () => {
     const cookies = await session.cookies.get({ url: API, name: 'caselist_token' });
     const token = cookies.find((cookie) => cookie.value && (!cookie.expirationDate || cookie.expirationDate * 1000 > Date.now()));
@@ -76,6 +137,7 @@ function createOpenCaselist({ session, BrowserWindow, dialog, getWindow, getVaul
   };
   const logout = async () => {
     generation++;
+    unlockedUntil = 0;
     invalidSession = true;
     loginWindow?.close();
     await session.clearStorageData();
@@ -85,6 +147,7 @@ function createOpenCaselist({ session, BrowserWindow, dialog, getWindow, getVaul
   const login = async () => {
     if (loginOpening) { loginWindow?.focus(); throw new Error('OpenCaselist sign-in is already open.'); }
     loginOpening = true;
+    unlockedUntil = 0;
     invalidSession = true;
     const attempt = ++generation;
     try {
@@ -138,6 +201,7 @@ function createOpenCaselist({ session, BrowserWindow, dialog, getWindow, getVaul
     const current = await status();
     if (generation !== started) throw new Error('OpenCaselist session changed. Try again.');
     if (!current.signedIn) throw new Error('OpenCaselist session expired or missing. Sign in again.');
+    if (method !== 'GET') requireWritePassword(true);
     let response;
     try {
       response = await session.fetch(`${API}${route}`, {
@@ -148,7 +212,7 @@ function createOpenCaselist({ session, BrowserWindow, dialog, getWindow, getVaul
       throw new Error('OpenCaselist request failed. Check your connection. Before retrying a change, refresh to check whether it was saved.');
     }
     if (response.status === 401) {
-      if (generation === started) invalidSession = true;
+      if (generation === started) { invalidSession = true; unlockedUntil = 0; }
       await response.body?.cancel();
       throw new Error('OpenCaselist session expired. Sign in again.');
     }
@@ -200,6 +264,7 @@ function createOpenCaselist({ session, BrowserWindow, dialog, getWindow, getVaul
     return result.response === 1;
   };
   const write = async (action, selection, value) => {
+    requireWritePassword();
     const base = teamRoute(selection);
     let route, method, body;
     if (action === 'create-round' || action === 'update-round') {
@@ -226,6 +291,7 @@ function createOpenCaselist({ session, BrowserWindow, dialog, getWindow, getVaul
     return { saved: true };
   };
   const upload = async (selection, value) => {
+    requireWritePassword();
     const route = `${teamRoute(selection)}/rounds`;
     const body = roundData(value);
     const result = await dialog.showOpenDialog(getWindow(), {
@@ -270,10 +336,10 @@ function createOpenCaselist({ session, BrowserWindow, dialog, getWindow, getVaul
     await fs.writeFile(target, bytes, { flag: 'wx' });
     return { path: relative.split(path.sep).join('/') };
   };
-  return { status, login, logout, list, search, write, upload, download };
+  return { status, login, logout, list, search, write, upload, download, writePasswordStatus, verifyWritePassword, configureWritePassword };
 }
 
-function registerOpenCaselist({ ipcMain, session, BrowserWindow, dialog, getWindow, getVaultRoot }) {
+function registerOpenCaselist({ ipcMain, session, BrowserWindow, dialog, getWindow, getVaultRoot, readConfig, writeConfig }) {
   let service;
   const getService = () => {
     if (!service) {
@@ -282,11 +348,12 @@ function registerOpenCaselist({ ipcMain, session, BrowserWindow, dialog, getWind
       isolated.setPermissionCheckHandler(() => false);
       isolated.setDevicePermissionHandler(() => false);
       isolated.on('will-download', (event) => event.preventDefault());
-      service = createOpenCaselist({ session: isolated, BrowserWindow, dialog, getWindow, getVaultRoot });
+      service = createOpenCaselist({ session: isolated, BrowserWindow, dialog, getWindow, getVaultRoot, readConfig, writeConfig });
     }
     return service;
   };
-  for (const action of ['status', 'login', 'logout', 'list', 'search', 'write', 'upload', 'download']) {
+  for (const action of ['status', 'login', 'logout', 'list', 'search', 'write', 'upload', 'download',
+    'writePasswordStatus', 'verifyWritePassword', 'configureWritePassword']) {
     ipcMain.handle(`opencaselist:${action}`, (event, ...args) => {
       if (event.sender !== getWindow()?.webContents || event.senderFrame !== event.sender.mainFrame)
         throw new Error('OpenCaselist is only available to the application.');

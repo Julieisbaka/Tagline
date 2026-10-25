@@ -26,7 +26,7 @@ const profile = path.join(root, 'profile'), vault = path.join(root, 'vault');
 fs.mkdirSync(profile, { recursive: true });
 fs.mkdirSync(vault, { recursive: true });
 fs.writeFileSync(path.join(vault, 'Keep.md'), '# Local evidence');
-fs.writeFileSync(path.join(profile, 'config.json'), JSON.stringify({ lastVault: vault, modelAutoload: false }));
+if (first) fs.writeFileSync(path.join(profile, 'config.json'), JSON.stringify({ lastVault: vault, modelAutoload: false }));
 const uploadFile = path.join(root, 'Upload.docx');
 fs.writeFileSync(uploadFile, Buffer.from([80, 75, 3, 4, 255]));
 app.setPath('userData', profile);
@@ -130,8 +130,8 @@ app.on('browser-window-created', (_event, win) => {
         select.value = ${JSON.stringify(value)}; select.dispatchEvent(new Event('change', { bubbles: true })); })()`);
       await wait("!document.querySelector('.opencaselist-selectors').disabled");
     };
-    const input = async (label, value) => {
-      await js(`(() => { const label = [...document.querySelectorAll('.opencaselist-dialog label')].find(label => label.querySelector('span')?.textContent === ${JSON.stringify(label)});
+    const input = async (label, value, scope = '.opencaselist-dialog') => {
+      await js(`(() => { const label = [...document.querySelectorAll(${JSON.stringify(`${scope} label`)})].find(label => label.querySelector('span')?.textContent === ${JSON.stringify(label)});
         const input = label.querySelector('input,textarea'); const setter = Object.getOwnPropertyDescriptor(input.tagName === 'TEXTAREA' ? HTMLTextAreaElement.prototype : HTMLInputElement.prototype,'value').set;
         setter.call(input,${JSON.stringify(value)}); input.dispatchEvent(new Event('input',{bubbles:true})); })()`);
     };
@@ -141,6 +141,42 @@ app.on('browser-window-created', (_event, win) => {
       await wait("!!document.querySelector('[data-section=integrations]')");
       await js("document.querySelector('[data-section=integrations]').click()");
       assert.equal(apiRequests.length, 0, 'Opening Settings never contacts OpenCaselist');
+      await wait("!document.querySelector('.opencaselist-password-settings fieldset').disabled");
+      if (first) {
+        assert.equal(await js("document.querySelector('[data-setting=opencaselistRequirePasswordForWrites]').checked"), false);
+        await js("document.querySelector('[data-setting=opencaselistRequirePasswordForWrites]').click()");
+        await input('New write password', 'local tournament password', '.opencaselist-password-settings');
+        await input('Confirm new write password', 'mismatched', '.opencaselist-password-settings');
+        await click('Save write protection', '.opencaselist-password-settings');
+        await wait("document.querySelector('.opencaselist-password-settings [role=alert]')?.textContent.includes('do not match')");
+        assert.equal(await js("window.api.openCaselist.writePasswordStatus().then(value => value.enabled)"), false);
+        await input('Confirm new write password', 'local tournament password', '.opencaselist-password-settings');
+        await click('Save write protection', '.opencaselist-password-settings');
+        await wait("!!document.querySelector('.opencaselist-password-settings [role=status]')");
+        const config = JSON.parse(fs.readFileSync(path.join(profile, 'config.json'), 'utf8'));
+        assert.equal(config.opencaselistRequirePasswordForWrites, true);
+        assert.ok(config.opencaselistWritePassword.hash);
+        assert.ok(!JSON.stringify(config).includes('local tournament password'));
+        await js("document.querySelector('[data-setting=opencaselistRequirePasswordForWrites]').click()");
+        await input('Current write password', 'wrong password', '.opencaselist-password-settings');
+        await click('Save write protection', '.opencaselist-password-settings');
+        await wait("document.querySelector('.opencaselist-password-settings [role=alert]')?.textContent.includes('Incorrect')");
+        assert.equal(await js("window.api.openCaselist.writePasswordStatus().then(value => value.enabled)"), true);
+        await input('Current write password', 'local tournament password', '.opencaselist-password-settings');
+        await click('Save write protection', '.opencaselist-password-settings');
+        await wait("!!document.querySelector('.opencaselist-password-settings [role=status]')");
+        assert.equal(await js("window.api.openCaselist.writePasswordStatus().then(value => value.enabled)"), false);
+        await js("document.querySelector('[data-setting=opencaselistRequirePasswordForWrites]').click()");
+        await input('Current write password', 'local tournament password', '.opencaselist-password-settings');
+        await input('New write password', 'updated tournament password', '.opencaselist-password-settings');
+        await input('Confirm new write password', 'updated tournament password', '.opencaselist-password-settings');
+        await click('Save write protection', '.opencaselist-password-settings');
+        await wait("!!document.querySelector('.opencaselist-password-settings [role=status]')");
+        assert.equal(await js("document.querySelector('.opencaselist-password-settings input[type=password]').value"), '');
+      } else {
+        assert.deepEqual(await js("window.api.openCaselist.writePasswordStatus()"), { enabled: true, passwordSet: true, unlocked: false });
+        await assert.rejects(js("window.api.openCaselist.write('delete-round', { caselist: 'ndt2026', school: 'Example', team: 'AB', round: 1 })"), /password required/);
+      }
       await click('Open OpenCaselist', '.settings');
       await wait("!!document.querySelector('.opencaselist-dialog')");
       if (!first) {
@@ -168,6 +204,20 @@ app.on('browser-window-created', (_event, win) => {
       assert.equal(fs.readFileSync(path.join(vault, 'Keep.md'), 'utf8'), '# Local evidence');
       const writes = () => apiRequests.filter((request) => request.method !== 'GET');
       await click('Delete round');
+      await wait("!!document.querySelector('.opencaselist-write-unlock')");
+      assert.equal(writes().length, 0);
+      await click('Cancel', '.opencaselist-write-unlock');
+      await wait("!document.querySelector('.opencaselist-write-unlock')");
+      assert.equal(writes().length, 0, 'Cancelling the password prompt prevents writes');
+      await click('Delete round');
+      await wait("!!document.querySelector('.opencaselist-write-unlock')");
+      await input('Write password', 'wrong password');
+      await click('Unlock and continue');
+      await wait("document.querySelector('.opencaselist-dialog [role=alert]')?.textContent.includes('Incorrect')");
+      assert.equal(writes().length, 0);
+      await input('Write password', 'updated tournament password');
+      await click('Unlock and continue');
+      await wait("!document.querySelector('.opencaselist-write-unlock')");
       await wait("!document.querySelector('.opencaselist-selectors').disabled");
       assert.equal(writes().length, 0, 'Native cancellation prevents server changes');
       allowChange = true;
@@ -177,6 +227,7 @@ app.on('browser-window-created', (_event, win) => {
       await wait("!document.querySelector('.opencaselist-form')");
       assert.equal(rounds[0].tournament, 'Updated tournament');
       assert.equal(rounds[0].opensource, 'ndt2026/Disclosure.docx');
+      assert.equal(await js("!!document.querySelector('.opencaselist-write-unlock')"), false, 'Write activity reuses the unlock');
       await click('Upload disclosure');
       await input('Tournament', 'Uploaded tournament'); await input('Round', '2');
       await click('Choose file and publish…');
