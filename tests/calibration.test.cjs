@@ -85,6 +85,11 @@ test('theme and extension limits validate ceilings and apply to manifest and the
   const { validateTheme } = await import('../src/lib/themes.js');
   const { validateManifest } = require('../electron/extensions.cjs');
   assert.deepEqual(validateLimits(), DEFAULT_LIMITS);
+  assert.equal(DEFAULT_LIMITS.themeVariables, 512);
+  const variables = Object.fromEntries(Array.from({ length: 512 }, (_, index) => [`override-${index}`, '1px']));
+  const expandedTheme = { version: 1, name: 'Expanded', mode: 'dark', colors: {}, variables };
+  assert.equal(Object.keys(validateTheme(expandedTheme).variables).length, 512);
+  assert.throws(() => validateTheme({ ...expandedTheme, variables: { ...variables, overflow: '1px' } }), /at most 512/);
   for (const value of [null, [], { unknown: 1 }, { extensionWatches: 0 }, { extensionWatches: 257 },
     { themeFileBytes: 1.2 }, { extensionStartupMs: Infinity }]) assert.throws(() => validateLimits(value));
   const limits = validateLimits({ themeVariables: 1, extensionCommands: 1, extensionSettings: 1 });

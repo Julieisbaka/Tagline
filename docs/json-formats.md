@@ -34,9 +34,7 @@ document is next to a `schemas` folder:
 {
   "$schema": "./schemas/flow.schema.json",
   "version": 1,
-  "sheets": [
-    { "name": "Case", "columns": ["1AC", "1NC"], "rows": [["Claim", "Answer"]] }
-  ]
+  "sheets": [{ "name": "Case", "columns": ["1AC", "1NC"], "rows": [["Claim", "Answer"]] }]
 }
 ```
 

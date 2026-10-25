@@ -4,10 +4,10 @@
 
 A local-first workspace for debate research, Markdown evidence, and `.flow`
 speech grids. Includes visual/source editing, citations, search, revision
-history, speech tools, themes, and extensions.
+history, speech tools, and more.
 
 Vaults are ordinary folders. HTML export is built in; other import/export
-formats use the optional [Pandoc](https://pandoc.org/).
+formats use the optional [Pandoc](https://pandoc.org/) intergration.
 
 ## Run
 

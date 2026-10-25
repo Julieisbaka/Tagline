@@ -95,7 +95,10 @@ tagline.onInstall(async () => {
   if (!(await tagline.storage.get('installedAt'))) {
     await tagline.storage.set('installedAt', new Date().toISOString());
   }
-  await tagline.webviews.setHtml('welcome', '<h2>Welcome!</h2><p>Configure this extension in Settings.</p>');
+  await tagline.webviews.setHtml(
+    'welcome',
+    '<h2>Welcome!</h2><p>Configure this extension in Settings.</p>',
+  );
   await tagline.webviews.show('welcome');
 });
 ```
@@ -199,7 +202,7 @@ command errors are surfaced as extension notifications.
 
 ```js
 await tagline.commands.register(id, handler); // Promise<true>
-await tagline.notify(message);               // Promise<true>
+await tagline.notify(message); // Promise<true>
 ```
 
 - `id` must appear in this extension's `contributes.commands`.
@@ -341,9 +344,12 @@ characters. Use the same methods on `tagline.panels` or `tagline.webviews`:
 
 ```js
 const stopMessages = tagline.webviews.onMessage('source-details', async (message) => {
-  if (message.ready) await tagline.webviews.postMessage('source-details', { title: 'Example source' });
+  if (message.ready)
+    await tagline.webviews.postMessage('source-details', { title: 'Example source' });
 });
-await tagline.webviews.setHtml('source-details', `
+await tagline.webviews.setHtml(
+  'source-details',
+  `
   <h1 id="title"></h1>
   <script>
     taglineWebview.onMessage(message => {
@@ -351,7 +357,8 @@ await tagline.webviews.setHtml('source-details', `
     });
     taglineWebview.postMessage({ ready: true });
   </script>
-`);
+`,
+);
 await tagline.webviews.show('source-details');
 // Later:
 await tagline.webviews.close('source-details');
@@ -386,18 +393,25 @@ over hardcoded colors:
 
 ```js
 const ui = taglineUI;
-document.body.append(ui.card({
-  title: 'Research',
-  children: [
-    ui.field({ label: 'Filename', description: 'Text match only', onChange: value => {} }),
-    ui.select({ label: 'Side', value: 'aff', options: [
-      { label: 'Affirmative', value: 'aff' }, { label: 'Negative', value: 'neg' }
-    ] }),
-    ui.toggle({ label: 'Include flows', checked: true, onChange: checked => {} }),
-    ui.notice({ text: 'Ready', tone: 'info' }),
-    ui.button({ label: 'Search', variant: 'primary', onClick: () => {} })
-  ]
-}));
+document.body.append(
+  ui.card({
+    title: 'Research',
+    children: [
+      ui.field({ label: 'Filename', description: 'Text match only', onChange: (value) => {} }),
+      ui.select({
+        label: 'Side',
+        value: 'aff',
+        options: [
+          { label: 'Affirmative', value: 'aff' },
+          { label: 'Negative', value: 'neg' },
+        ],
+      }),
+      ui.toggle({ label: 'Include flows', checked: true, onChange: (checked) => {} }),
+      ui.notice({ text: 'Ready', tone: 'info' }),
+      ui.button({ label: 'Search', variant: 'primary', onClick: () => {} }),
+    ],
+  }),
+);
 ```
 
 Factories return native DOM elements with associated labels, keyboard behavior,
@@ -425,8 +439,8 @@ Helpers do not require a permission:
 const path = await tagline.helpers.path.join('Research', 'Energy.md');
 await tagline.helpers.path.normalize('Research/../Energy.md'); // "Energy.md"
 await tagline.helpers.path.basename(path); // "Energy.md"
-await tagline.helpers.path.dirname(path);  // "Research"
-await tagline.helpers.path.extname(path);  // ".md"
+await tagline.helpers.path.dirname(path); // "Research"
+await tagline.helpers.path.extname(path); // ".md"
 const text = await tagline.helpers.markdownToText('**Evidence**'); // "Evidence"
 
 const outline = await tagline.helpers.markdown.outline('# Case\n\n#### Card');
@@ -499,9 +513,22 @@ Declare `settings` permission and `contributes.settings` in the manifest:
   "permissions": ["settings"],
   "contributes": {
     "settings": [
-      {"id":"enabled","title":"Enable reminders","type":"boolean","default":true},
-      {"id":"limit","title":"Result limit","type":"number","min":1,"max":20,"default":5},
-      {"id":"style","title":"Style","type":"string","enum":["brief","full"],"default":"brief"}
+      { "id": "enabled", "title": "Enable reminders", "type": "boolean", "default": true },
+      {
+        "id": "limit",
+        "title": "Result limit",
+        "type": "number",
+        "min": 1,
+        "max": 20,
+        "default": 5
+      },
+      {
+        "id": "style",
+        "title": "Style",
+        "type": "string",
+        "enum": ["brief", "full"],
+        "default": "brief"
+      }
     ]
   }
 }
@@ -523,13 +550,13 @@ For example, the string `"5"` is not a number setting value.
 
 ```js
 const limit = await tagline.settings.get('limit'); // saved value, or declared default
-await tagline.settings.set('limit', 10);          // Promise<true>
+await tagline.settings.set('limit', 10); // Promise<true>
 ```
 
 Users can edit, save, and reset these settings on the extension card under
 **Settings > Extensions**. Values live in extension-ID-scoped profile storage
 separate from private `storage`, with a configurable size limit (100,000 serialized characters by default).
-They are not encrypted and must not be used for secrets. Invalid stored values
+They are not encrypted and should not be used for secrets. Invalid stored values
 surface errors; the user can reset the extension's settings to recover.
 
 ### Canvas and flow documents
@@ -568,18 +595,18 @@ it does not write to disk or implicitly move group members.
 ## Vault
 
 ```js
-const paths = await tagline.vault.list();          // Promise<string[]>
-const content = await tagline.vault.read(path);    // Promise<string>
+const paths = await tagline.vault.list(); // Promise<string[]>
+const content = await tagline.vault.read(path); // Promise<string>
 const actualPath = await tagline.vault.write(path, content); // Promise<string>
-await tagline.vault.append(path, text);            // Promise<string> (existing note)
-await tagline.vault.delete(path);                  // Promise<true> (move to trash)
+await tagline.vault.append(path, text); // Promise<string> (existing note)
+await tagline.vault.delete(path); // Promise<true> (move to trash)
 const renamed = await tagline.vault.rename(path, newPath); // Promise<string>
-await tagline.vault.flush();                       // Promise<true> (disk writes completed)
+await tagline.vault.flush(); // Promise<true> (disk writes completed)
 const changed = await tagline.vault.compareAndSwap(path, expected, replacement); // Promise<boolean>
-const stop = await tagline.vault.watch(event => {
+const stop = await tagline.vault.watch((event) => {
   // { type: 'create' | 'change' | 'delete', path: string }, or { type: 'reset' }
 });
-await stop();                                     // unsubscribe
+await stop(); // unsubscribe
 ```
 
 `list`, `read`, and `watch` require `vault:read`. All mutations and `flush`
@@ -637,7 +664,7 @@ await tagline.commands.register('create-index', async () => {
   const paths = await tagline.vault.list();
   const savedPath = await tagline.vault.write(
     'Extension Index.md',
-    '# Vault index\n\n' + paths.map((path) => '- ' + path).join('\n') + '\n'
+    '# Vault index\n\n' + paths.map((path) => '- ' + path).join('\n') + '\n',
   );
   await tagline.notify('Wrote ' + savedPath);
 });
@@ -649,9 +676,9 @@ Declare `create-index` in the manifest before using this example. If
 ### Private storage
 
 ```js
-const value = await tagline.storage.get('key');       // value or null
+const value = await tagline.storage.get('key'); // value or null
 await tagline.storage.set('key', { enabled: true }); // Promise<true>
-await tagline.storage.set('key', null);              // delete the key
+await tagline.storage.set('key', null); // delete the key
 ```
 
 No permission is required. Keys are strings up to 200 characters. Values should

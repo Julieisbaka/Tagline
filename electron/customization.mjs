@@ -1,6 +1,6 @@
 export const LIMIT_DEFINITIONS = Object.freeze({
   themeFileBytes: { label: 'Theme file bytes', default: 65536, min: 1024, max: 1048576 },
-  themeVariables: { label: 'Theme CSS variable count', default: 256, min: 1, max: 2048 },
+  themeVariables: { label: 'Theme CSS variable count', default: 512, min: 1, max: 2048 },
   themeValueLength: { label: 'Theme CSS value characters', default: 2048, min: 32, max: 16384 },
   extensionSourceBytes: { label: 'Extension script bytes', default: 1048576, min: 1024, max: 8388608 },
   extensionCommands: { label: 'Commands per extension', default: 50, min: 1, max: 500 },

@@ -169,7 +169,7 @@ The app also defines `font-text`, `font-ui`, `font-mono`, and
 `editor-font-size`. Unknown variable names are accepted, but only affect the
 app when a stylesheet uses them.
 
-By default, up to 256 overrides are allowed, each with a name up to 100
+By default, up to 512 overrides are allowed, each with a name up to 100
 characters and a value up to 2,048 characters. Names must start with a lowercase
 letter and contain only lowercase letters, digits, or hyphens. Values cannot
 contain semicolons, braces, null bytes, `url(...)`, or `@import`. Limits are
@@ -194,21 +194,33 @@ Theme-only extensions need no script or permissions for these fields:
   "variables": { "editor-font-size": "20px" },
   "settings": [
     {
-      "id": "selection-color", "title": "Selection background",
-      "type": "string", "default": "#334466", "variable": "selection"
+      "id": "selection-color",
+      "title": "Selection background",
+      "type": "string",
+      "default": "#334466",
+      "variable": "selection"
     },
     {
-      "id": "reading-size", "title": "Reading size",
-      "type": "number", "default": 20, "min": 12, "max": 30,
-      "variable": "editor-font-size", "unit": "px"
+      "id": "reading-size",
+      "title": "Reading size",
+      "type": "number",
+      "default": 20,
+      "min": 12,
+      "max": 30,
+      "variable": "editor-font-size",
+      "unit": "px"
     }
   ],
   "metadata": {
-    "author": "Example", "description": "A reading theme", "license": "MIT",
+    "author": "Example",
+    "description": "A reading theme",
+    "license": "MIT",
     "tags": ["reading"],
     "accessibility": {
-      "contrast": "high", "colorVision": ["deuteranopia"],
-      "reducedMotion": true, "notes": "Describe any testing and limitations."
+      "contrast": "high",
+      "colorVision": ["deuteranopia"],
+      "reducedMotion": true,
+      "notes": "Describe any testing and limitations."
     }
   }
 }
