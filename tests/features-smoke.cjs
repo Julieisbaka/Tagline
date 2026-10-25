@@ -20,7 +20,7 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
     }]
   };
   await fs.writeFile(path.join(vault, 'Cards.md'), source);
-  await fs.writeFile(path.join(vault, 'Other.md'), '# Other');
+  await fs.writeFile(path.join(vault, 'Other.md'), '# Safe <script>window.injected = true</script> Heading');
   await fs.writeFile(path.join(vault, 'Round.flow'), JSON.stringify(flow));
   await fs.writeFile(path.join(vault, 'Map.canvas'), JSON.stringify({
     nodes: [
@@ -105,6 +105,13 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
         await js("document.querySelector('.onboarding-skip').click()");
         await wait("document.querySelectorAll('.tree-item').length === 4");
         assert.equal(await js("document.querySelectorAll('[title=\"Settings (Ctrl+,)\"], [title=\"Settings\"]').length"), 1);
+        await click('.tree-item', 'Other');
+        await select('[aria-label="Editor mode"]', 'read');
+        await wait("!!document.querySelector('.markdown-body h1')");
+        assert.equal(await js("document.querySelector('.markdown-body h1')?.id"), 'safe-heading');
+        await click('.tree-item', 'Cards');
+        await select('[aria-label="Editor mode"]', 'visual');
+        await wait("!!document.querySelector('.visual-document')");
         await click('.tree-item', 'Map');
         await wait("document.querySelectorAll('.canvas-node').length === 2 && document.querySelectorAll('.canvas-edge-line').length === 1");
         await click('button', 'Add text');
