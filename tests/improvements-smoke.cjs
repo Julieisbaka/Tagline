@@ -39,6 +39,7 @@ const delay = (ms) => new Promise((r) => setTimeout(r, ms));
   await fs.writeFile(path.join(vault, 'Old Folder', 'Sub Folder', 'Nested.md'), '# Nested\n[[Card]]');
   await fs.writeFile(path.join(vault, 'Links.md'), '[[Old Folder/Sub Folder/Nested#Nested|alias]]');
   app.setPath('userData', profile);
+  app.setPath('sessionData', profile);
   const output = path.join(root, 'export.html');
   dialog.showSaveDialog = async (_window, options) => ({
     canceled: false, filePath: options.defaultPath.endsWith('.docx') ? path.join(root, 'converted.docx') : output,
@@ -112,9 +113,53 @@ const delay = (ms) => new Promise((r) => setTimeout(r, ms));
         await input('[name=author]', 'Smith');
         await input('[name=year]', '2024');
         await input('[name=title]', 'A study');
+        assert.equal(await js("document.querySelector('[name=accessed]').type"), 'text', 'no native date control remains');
+        await input('[name=accessed]', '2024-01-31');
+        await click('.date-picker button', 'Calendar');
+        await wait("document.activeElement.dataset.date === '2024-01-31'");
+        await js("document.activeElement.dispatchEvent(new KeyboardEvent('keydown', { key: 'PageDown', bubbles: true, cancelable: true }))");
+        await wait("document.activeElement.dataset.date === '2024-02-29'");
+        await js("document.activeElement.click()");
+        await wait("!document.querySelector('.date-picker-calendar')");
+        assert.equal(await js("document.querySelector('[name=accessed]').value"), '2024-02-29');
+        assert.equal(await js("document.activeElement.getAttribute('aria-label')"), 'Choose date');
+        await click('.date-picker button', 'Calendar');
+        await wait("!!document.querySelector('.date-picker-calendar')");
+        await js("document.activeElement.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true, cancelable: true }))");
+        await wait("document.activeElement.dataset.date === '2024-03-01'");
+        await js("document.activeElement.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }))");
+        await wait("!document.querySelector('.date-picker-calendar')");
+        assert.ok(await js("!!document.querySelector('.citation-dialog')"), 'Escape closes the calendar, not the citation dialog');
+        assert.equal(await js("document.querySelector('[name=accessed]').value"), '2024-02-29', 'navigation without selection does not change the value');
+        await click('.date-picker button', 'Calendar');
+        await click('.date-picker-actions button', 'Clear');
+        assert.equal(await js("document.querySelector('[name=accessed]').value"), '');
+        await click('.date-picker button', 'Calendar');
+        await click('.date-picker-actions button', 'Today');
+        assert.equal(await js("document.querySelector('[name=accessed]').value"), await js(`(() => {
+          const now = new Date();
+          return [now.getFullYear(), String(now.getMonth() + 1).padStart(2, '0'), String(now.getDate()).padStart(2, '0')].join('-');
+        })()`));
+        await input('[name=accessed]', '2023-02-29');
+        await click('.citation-dialog button', 'Copy citation');
+        await wait("document.querySelector('.citation-dialog [role=alert]')?.textContent.includes('valid date')");
+        await input('[name=accessed]', '2024-02-29');
+        await click('.date-picker button', 'Calendar');
+        assert.equal(await js(`(() => {
+          const calendar = document.querySelector('.date-picker-calendar');
+          const probe = document.createElement('span');
+          probe.style.backgroundColor = 'var(--bg-elevated)';
+          calendar.append(probe);
+          const matches = getComputedStyle(calendar).backgroundColor === getComputedStyle(probe).backgroundColor;
+          probe.remove();
+          return matches;
+        })()`), true, 'calendar uses theme tokens');
+        await js("document.querySelector('[name=author]').focus()");
+        await wait("!document.querySelector('.date-picker-calendar')");
         await click('.citation-dialog button', 'Insert citation');
         await wait("!document.querySelector('.citation-dialog')");
         await wait("document.querySelector('.visual-document').textContent.includes('Smith 2024')");
+        assert.ok(await js("document.querySelector('.visual-document').textContent.includes('Accessed 2024-02-29')"));
         // The spoken year adds several syllables; a word-only estimate was 0:01.
         await wait("document.querySelector('.status-bar').textContent.includes('2 highlighted (~0:02 read)')");
 

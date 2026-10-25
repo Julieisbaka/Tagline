@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { createCitation } from '../../lib/citation.js';
 import { useI18n } from '../../lib/i18n.js';
+import DatePicker from '../DatePicker.jsx';
+import { dateValue, parseDate } from '../../lib/calendar.js';
 
 import ModalBackdrop from './ModalBackdrop.jsx';
 
@@ -8,7 +10,7 @@ export default function CitationDialog({ onInsert, onClose }) {
   const { t } = useI18n();
   const [values, setValues] = useState({
     author: '', year: '', title: '', publication: '', url: '',
-    accessed: new Date().toISOString().slice(0, 10)
+    accessed: dateValue(new Date())
   });
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
@@ -35,6 +37,7 @@ export default function CitationDialog({ onInsert, onClose }) {
   const perform = async (copy) => {
     setError('');
     try {
+      if (values.accessed && !parseDate(values.accessed)) throw new Error(t('Enter a valid date in YYYY-MM-DD format.'));
       const text = createCitation(values);
       if (copy) { await navigator.clipboard.writeText(text); setMessage(t('Copied citation')); }
       else { await onInsert(text); onClose(); }
@@ -56,10 +59,14 @@ export default function CitationDialog({ onInsert, onClose }) {
       {Object.entries({
         author: 'Author', year: 'Year', title: 'Title', publication: 'Publication',
         accessed: 'Access date'
-      }).map(([key, label]) => <label className="setting-row" key={key}>
+      }).map(([key, label]) => key === 'accessed' ? <div className="setting-row date-setting-row" key={key}>
+        <span>{t(label)}</span>
+        <DatePicker name={key} label={t(label)} value={values[key]}
+          onChange={(value) => setValues((current) => ({ ...current, [key]: value }))} />
+      </div> : <label className="setting-row" key={key}>
         <span>{t(label)}</span>
         <input name={key} value={values[key]} autoFocus={key === 'author'}
-          type={key === 'accessed' ? 'date' : 'text'} required={['author', 'year'].includes(key)}
+          type="text" required={['author', 'year'].includes(key)}
           onChange={(e) => setValues({ ...values, [key]: e.target.value })} />
       </label>)}
       <pre className="citation-preview">{citation}</pre>

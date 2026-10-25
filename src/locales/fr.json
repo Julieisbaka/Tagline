@@ -1,4 +1,10 @@
 {
+  "Choose date": "Choisir une date",
+  "Calendar": "Calendrier",
+  "Previous month": "Mois précédent",
+  "Next month": "Mois suivant",
+  "Today": "Aujourd’hui",
+  "Enter a valid date in YYYY-MM-DD format.": "Saisissez une date valide au format AAAA-MM-JJ.",
   "Undo": "Annuler",
   "Redo": "Rétablir",
   "Cut": "Couper",

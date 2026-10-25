@@ -109,6 +109,97 @@
 }
 
 /* Search */
+.date-setting-row {
+  align-items: flex-start;
+}
+
+.date-picker {
+  width: 280px;
+  max-width: 100%;
+  min-width: 0;
+}
+
+.date-picker-field {
+  display: flex;
+  gap: 4px;
+}
+
+.date-picker-field input {
+  flex: 1;
+  min-width: 0;
+}
+
+.setting-row .date-picker input {
+  width: 100%;
+}
+
+.date-picker-calendar {
+  margin-top: 6px;
+  padding: 8px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg-elevated);
+  color: var(--text);
+}
+
+.date-picker-navigation,
+.date-picker-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px;
+}
+
+.date-picker-navigation span {
+  text-align: center;
+}
+
+.date-picker-calendar table {
+  width: 100%;
+  table-layout: fixed;
+  border-collapse: collapse;
+  margin: 8px 0;
+}
+
+.date-picker-calendar :is(td, th) {
+  padding: 1px;
+  text-align: center;
+  border: 0;
+}
+
+.date-picker-calendar th {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.date-picker-calendar td button {
+  width: 100%;
+  min-height: 30px;
+  padding: 3px 0;
+}
+
+.date-picker-calendar button.selected {
+  background: var(--accent-dim);
+  color: var(--text-strong);
+  box-shadow: inset 0 0 0 2px var(--accent);
+}
+
+.date-picker-calendar button[aria-current='date'] {
+  text-decoration: underline;
+}
+
+.citation-dialog {
+  overflow-y: auto;
+}
+
+.large-click-targets .date-setting-row {
+  flex-wrap: wrap;
+}
+
+.large-click-targets .date-picker {
+  width: 370px;
+}
+
 .search-count {
   padding: 0 14px 6px;
   font-size: 12px;

@@ -420,3 +420,23 @@ test('Pandoc detection supports Apple Silicon and Intel Homebrew without relying
     assert.equal(tried[0], 'pandoc');
   }
 });
+test('calendar dates stay local, validate leap years and clamp month navigation', async () => {
+  const { dateValue, parseDate, moveMonth, monthDays } = await import('../src/lib/calendar.js');
+  assert.equal(dateValue(new Date(2024, 0, 1, 23, 59)), '2024-01-01');
+  for (const value of ['2024-02-29', '2000-02-29', '0001-01-01', '0099-12-31', '9999-12-31']) {
+    assert.equal(dateValue(parseDate(value)), value);
+  }
+  for (const value of ['', '2023-02-29', '1900-02-29', '2024-04-31', '2024-13-01', '0000-01-01', '2024-1-01']) {
+    assert.equal(parseDate(value), null);
+  }
+  assert.equal(dateValue(moveMonth(parseDate('2024-01-31'), 1)), '2024-02-29');
+  assert.equal(dateValue(moveMonth(parseDate('2024-02-29'), 12)), '2025-02-28');
+  assert.equal(dateValue(moveMonth(parseDate('2024-01-31'), -1)), '2023-12-31');
+  assert.equal(dateValue(moveMonth(parseDate('0001-01-01'), -1)), '0001-01-01');
+  assert.equal(dateValue(moveMonth(parseDate('9999-12-31'), 1)), '9999-12-31');
+  const days = monthDays(parseDate('2024-02-01'));
+  assert.equal(days.length % 7, 0);
+  assert.equal(days.filter(Boolean).length, 29);
+  assert.equal(days.findIndex(Boolean), 4);
+  assert.equal(dateValue(days.filter(Boolean).at(-1)), '2024-02-29');
+});
