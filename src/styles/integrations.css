@@ -499,6 +499,40 @@
   font-size: 12px;
   color: var(--text-muted);
   line-height: 1.6;
+  margin: 8px 0 16px;
+}
+
+.settings-panel > section + section {
+  margin-top: 24px;
+}
+
+.settings-panel > section > :first-child {
+  margin-top: 0;
+}
+
+.settings .setting-row > span small {
+  display: block;
+  color: var(--text-muted);
+  margin-top: 4px;
+}
+
+.confirm-dialog {
+  width: min(440px, 90vw);
+}
+
+.confirm-dialog p {
+  margin: 12px 0 20px;
+  overflow-wrap: anywhere;
+}
+
+.history-json-preview {
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.json-recovery:empty {
+  display: none;
 }
 
 .ribbon-settings {

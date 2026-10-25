@@ -3,6 +3,7 @@ const path = require('node:path');
 const { randomUUID } = require('node:crypto');
 const { isDeepStrictEqual } = require('node:util');
 const { parseCanvas, serializeCanvas } = require('./canvas.mjs');
+const { parseFlow } = require('./flow.mjs');
 
 const DEFAULT_RETENTION = 50;
 const MAX_RETENTION = 5000;
@@ -140,7 +141,26 @@ function createRevisionHistory({ getVaultRoot, resolveInVault }) {
     await fs.rm(source, { recursive: true });
   }
 
-  return { snapshot, list, read, rename };
+  async function latestWorking(relativePath) {
+    const documentPath = resolveInVault(relativePath);
+    const validate = /\.canvas$/i.test(documentPath) ? parseCanvas : /\.flow$/i.test(documentPath) ? parseFlow : null;
+    if (!validate) throw new Error('Working-save recovery supports flow and Canvas documents only.');
+    const working = (content) => {
+      try { validate(content); return true; }
+      catch { return false; } // Invalid revisions are deliberately skipped, newest first.
+    };
+    try {
+      const content = await fs.readFile(documentPath, 'utf8');
+      if (working(content)) return { content };
+    } catch (error) { if (error.code !== 'ENOENT') throw error; }
+    for (const revision of await list(relativePath)) {
+      const content = await read(relativePath, revision.id);
+      if (working(content)) return { ...revision, content };
+    }
+    return null;
+  }
+
+  return { snapshot, list, read, rename, latestWorking };
 }
 
 module.exports = { DEFAULT_RETENTION, MAX_RETENTION, createRevisionHistory, validateRetention };

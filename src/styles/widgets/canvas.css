@@ -183,6 +183,40 @@
   font-size: 13px;
 }
 
+.canvas-file-flow table {
+  border-collapse: collapse;
+  width: 100%;
+}
+
+.canvas-file-flow td,
+.canvas-file-flow th {
+  border: 1px solid var(--border);
+  padding: 4px 8px;
+  white-space: pre-wrap;
+  min-width: 100px;
+  vertical-align: top;
+}
+
+.canvas-file-map {
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+}
+
+.canvas-file-map rect {
+  fill: var(--bg-secondary);
+  stroke: var(--border);
+}
+
+.canvas-file-map line {
+  stroke: var(--text-muted);
+}
+
+.canvas-file-map text {
+  fill: var(--text);
+  font-size: 14px;
+}
+
 .canvas-node-content input {
   width: 100%;
 }

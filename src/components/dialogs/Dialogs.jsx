@@ -247,12 +247,18 @@ export function SettingsDialog({ settings, update, onClose, extensions, onOpenCa
             </section>
             <section hidden={section !== 'advanced'} className="settings-panel">
               <CustomizationLimits settings={settings} />
-              <h3>{t('Internal flags')}</h3>
-              <p>{t('These flags record dismissed notices. Clear a flag to show its notice again.')}</p>
-              <label className="setting-row"><span>{t('Visual editor notice dismissed')}</span>
-                <input type="checkbox" data-flag="visualNoticeDismissed" checked={!!settings.internalFlags?.visualNoticeDismissed}
-                  onChange={(e) => update({ internalFlags: { ...settings.internalFlags, visualNoticeDismissed: e.target.checked } })} />
-              </label>
+              <section className="internal-flags">
+                <h4>{t('Internal flags')}</h4>
+                <p>{t('These flags record workspace state and dismissed notices.')}</p>
+                <label className="setting-row"><span>{t('Visual editor notice dismissed')}</span>
+                  <input type="checkbox" data-flag="visualNoticeDismissed" checked={!!settings.internalFlags?.visualNoticeDismissed}
+                    onChange={(e) => update({ internalFlags: { ...settings.internalFlags, visualNoticeDismissed: e.target.checked } })} />
+                </label>
+                <label className="setting-row"><span>{t('Has seen onboarding')}</span>
+                  <input type="checkbox" data-flag="hasSeenOnboarding" checked={!!settings.internalFlags?.hasSeenOnboarding}
+                    onChange={(event) => update({ internalFlags: { ...settings.internalFlags, hasSeenOnboarding: event.target.checked } })} />
+                </label>
+              </section>
             </section>
             {section === 'installation' && <section className="settings-panel"><InstallationSettings /></section>}
           </div>

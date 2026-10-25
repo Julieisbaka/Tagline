@@ -107,6 +107,7 @@ contextBridge.exposeInMainWorld('api', {
   importDocument: (options) => ipcRenderer.invoke('documents:import', options),
   listHistory: (p) => ipcRenderer.invoke('history:list', p),
   readHistory: (p, id) => ipcRenderer.invoke('history:read', p, id),
+  latestWorkingHistory: (p) => ipcRenderer.invoke('history:latest-working', p),
   importReadingSamples: () => ipcRenderer.invoke('documents:readingSamples'),
   saveTheme: (theme) => ipcRenderer.invoke('themes:save', theme),
   embeddingStatus: () => ipcRenderer.invoke('embeddings:status'),

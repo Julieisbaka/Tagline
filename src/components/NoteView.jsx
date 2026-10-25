@@ -38,6 +38,7 @@ export default function NoteView({
   onSummarize,
   onCreateCitation,
   onOpenHistory,
+  onRestore,
   settings,
   onDismissVisualNotice,
 }) {
@@ -112,9 +113,15 @@ export default function NoteView({
             onKeyDown={(e) => e.key === 'Enter' && e.target.blur()} />
           <div className="note-actions">
             <button onClick={onOpenHistory}>{t('History')}</button>
+            <select aria-label={t('Flow mode')} value={mode === 'edit' ? 'source' : 'visual'}
+              onChange={(event) => setMode(event.target.value === 'source' ? 'edit' : 'visual')}>
+              <option value="visual">{t('Visual')}</option>
+              <option value="source">{t('JSON source')}</option>
+            </select>
           </div>
         </div>
-        <FlowEditor content={content} onChange={onChange} focusNewFlowRow={settings.focusNewFlowRow} keybindings={settings.keybindings} />
+        <FlowEditor path={path} mode={mode} content={content} onChange={onChange} onRestore={onRestore}
+          focusNewFlowRow={settings.focusNewFlowRow} keybindings={settings.keybindings} />
       </div>
     );
   }

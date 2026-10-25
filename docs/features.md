@@ -23,6 +23,10 @@ Canvas fields that Tagline does not edit are preserved.
 File nodes suggest vault filenames as you type. Groups sit behind their cards;
 moving a group moves every fully enclosed node. Adding a group while a card is
 selected wraps that card.
+File nodes render the linked Markdown, flow grid, or canvas preview; their open
+button opens the full document. Link nodes provide shortcuts to HTTP(S) websites
+or vault files, including `Folder/Note.md#Heading` and `[[Round.flow|Round]]`.
+Resizing nodes updates their dimensions and connections throughout the drag.
 Right-click the board to add nodes at the pointer, or a node/connection for
 context actions. Keyboard users can focus one and press `Shift+F10`.
 
@@ -36,6 +40,12 @@ Canvas history has two modes there: **Complete** saves exact JSON and layout;
 **Data** saves content changes without movement-only revisions and restores
 using the latest shared positions and sizes. Deleted cards retain their last
 layout for restoration. Invalid JSON edits use complete revisions.
+Flow and Canvas history use the same syntax-highlighted, read-only JSON viewer
+as their source editors. If a flow or canvas has invalid JSON or structure,
+**Restore most recent working save** appears when a valid saved version exists.
+Recovery skips broken revisions, saves the current source in history, and
+persists the restored document. It is available in both visual and JSON source
+views. Confirmations use themed in-app dialogs rather than browser alerts.
 
 ## Editing
 
@@ -111,6 +121,12 @@ high-school (8-3-5) and college (9-3-6) formats.
 
 Flows are multi-sheet speech grids. Use `Tab` and `Shift+Tab` to move between
 cells; `Mod+Enter` adds a row below and `Mod+Shift+Enter` adds one above.
+Choose **JSON source** in the flow header to edit the saved structure directly.
+Deleting a sheet or column asks for confirmation in Tagline.
+
+**Settings > Advanced settings > Internal flags** includes **Has seen onboarding**
+(`hasSeenOnboarding`, initially false). This only stores state; no onboarding
+experience is implemented yet.
 
 ## Local analysis and summaries
 

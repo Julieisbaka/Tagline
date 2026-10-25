@@ -68,6 +68,7 @@
     "mode"
   ],
   "internalFlags": {
+    "hasSeenOnboarding": false,
     "visualNoticeDismissed": false
   }
 }

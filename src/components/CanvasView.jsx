@@ -1,14 +1,11 @@
-import { json } from '@codemirror/lang-json';
-import { HighlightStyle, syntaxHighlighting } from '@codemirror/language';
-import { EditorView } from '@codemirror/view';
-import { tags } from '@lezer/highlight';
-import CodeMirror from '@uiw/react-codemirror';
 import { useEffect, useId, useMemo, useRef, useState } from 'react';
 import {
   canvasGroupMembers, createArgumentEdge, createCanvasId, createCanvasNode, moveCanvasNodes,
-  parseCanvas, serializeCanvas, suggestCanvasFiles
+  parseCanvas, serializeCanvas, suggestCanvasFiles, resolveCanvasLink
 } from '../lib/canvas.js';
-import { settingsCodeMirrorTheme } from '../lib/editorExtensions.js';
+import JsonEditor from './JsonEditor.jsx';
+import JsonRecovery from './JsonRecovery.jsx';
+import CanvasFilePreview from './CanvasFilePreview.jsx';
 import ContextMenu from './dialogs/ContextMenu.jsx';
 import { useI18n } from '../lib/i18n.js';
 import { baseName, resolveLink } from '../lib/vault.js';
@@ -19,14 +16,6 @@ const PRESET_COLORS = [
   ['1', '#e06c75', 'Red'], ['2', '#d19a66', 'Orange'], ['3', '#e5c07b', 'Yellow'],
   ['4', '#98c379', 'Green'], ['5', '#56b6c2', 'Cyan'], ['6', '#c678dd', 'Purple'],
 ];
-
-const JSON_EXTENSIONS = [json(), syntaxHighlighting(HighlightStyle.define([
-  { tag: tags.propertyName, color: 'var(--accent)' },
-  { tag: tags.string, color: 'var(--text-strong)' },
-  { tag: [tags.number, tags.bool, tags.null], color: 'var(--code)' },
-  { tag: tags.punctuation, color: 'var(--text-muted)' },
-])), settingsCodeMirrorTheme,
-EditorView.lineWrapping, EditorView.contentAttributes.of({ 'aria-label': 'Canvas JSON', 'aria-multiline': 'true' })];
 
 function nodeColor(color) {
   return color?.startsWith('#') ? color : PRESET_COLORS.find(([id]) => id === color)?.[1] || 'var(--border)';
@@ -41,11 +30,16 @@ function sidePoint(node, side) {
 
 function CanvasNode({
   node, selected, order, onSelect, onUpdate, onRemove, onOpenFile, onOpenUrl, onOpenLink,
-  onStartGesture, onContextMenu, paths, t,
+  onStartGesture, onContextMenu, paths, contents, t,
 }) {
   const accent = nodeColor(node.color);
   const fileListId = useId();
   const [editingText, setEditingText] = useState(node.type === 'text' && !node.text);
+  const link = node.type === 'link' ? resolveCanvasLink(node.url, paths) : null;
+  const openLinkNode = () => {
+    if (link?.type === 'file') onOpenFile(link.path, link.heading ? `#${link.heading}` : undefined);
+    else if (link?.type === 'web') onOpenUrl(link.url);
+  };
   return (
     <article
       className={`canvas-node canvas-node-${node.type}${selected ? ' selected' : ''}`}
@@ -100,12 +94,15 @@ function CanvasNode({
               const path = resolveLink(node.file, paths);
               if (path) onOpenFile(path, node.subpath);
             }}>{node.file || t('Open file')}</button>
+          <CanvasFilePreview path={resolveLink(node.file, paths)} subpath={node.subpath}
+            contents={contents} paths={paths} onOpenLink={onOpenLink} />
         </>}
         {node.type === 'link' && <>
-          <input aria-label={t('URL')} placeholder="https://" value={node.url}
+          <input aria-label={t('URL')} placeholder={t('Web URL or vault file path')} value={node.url}
             onChange={(event) => onUpdate(node.id, { url: event.target.value })} />
-          <button className="link-btn canvas-open-file" disabled={!/^https?:\/\//i.test(node.url)}
-            onClick={() => onOpenUrl(node.url)}>{node.url || t('Open link')}</button>
+          <button className="link-btn canvas-open-file" disabled={!link}
+            onClick={openLinkNode}>{link?.label || node.url || t('Open link')}</button>
+          {!!node.url && !link && <span className="error-text" role="status">{t('Link target not found or unsupported.')}</span>}
         </>}
         {node.type === 'group' && <>
           <input aria-label={t('Group label')} placeholder={t('Group label')} value={node.label || ''}
@@ -124,7 +121,7 @@ function CanvasNode({
   );
 }
 
-function CanvasBoard({ canvas, onChange, paths, onOpenFile, onOpenUrl, onOpenLink, onEditSource, t }) {
+function CanvasBoard({ canvas, onChange, paths, contents, onOpenFile, onOpenUrl, onOpenLink, onEditSource, t }) {
   const gestureRef = useRef(null);
   const viewportRef = useRef(null);
   const [gesture, setGesture] = useState(null);
@@ -167,8 +164,13 @@ function CanvasBoard({ canvas, onChange, paths, onOpenFile, onOpenUrl, onOpenLin
     return () => viewport.removeEventListener('wheel', wheel);
   }, []);
   const renderedNodes = canvas.nodes.map((item) => {
-    if (!gesture || gesture.type !== 'move' || !gesture.ids.includes(item.id)) return item;
-    return { ...item, x: item.x + gesture.dx, y: item.y + gesture.dy };
+    if (!gesture || !gesture.ids.includes(item.id)) return item;
+    if (gesture.type === 'move') return { ...item, x: item.x + gesture.dx, y: item.y + gesture.dy };
+    if (gesture.type === 'resize' && item.id === gesture.id) return {
+      ...item, width: Math.max(180, Math.round(gesture.width + gesture.dx)),
+      height: Math.max(100, Math.round(gesture.height + gesture.dy)),
+    };
+    return item;
   });
 
   const update = (next) => onChange(serializeCanvas(next));
@@ -207,8 +209,12 @@ function CanvasBoard({ canvas, onChange, paths, onOpenFile, onOpenUrl, onOpenLin
         run: () => onOpenFile(resolveLink(targetNode.file, paths), targetNode.subpath)
       }] : []),
       ...(targetNode.type === 'link' ? [{
-        label: 'Open link', disabled: !/^https?:\/\//i.test(targetNode.url),
-        run: () => onOpenUrl(targetNode.url)
+        label: 'Open link', disabled: !resolveCanvasLink(targetNode.url, paths),
+        run: () => {
+          const link = resolveCanvasLink(targetNode.url, paths);
+          if (link.type === 'file') onOpenFile(link.path, link.heading ? `#${link.heading}` : undefined);
+          else onOpenUrl(link.url);
+        }
       }] : []),
       ...(targetNode.type !== 'group' ? [
         {
@@ -452,7 +458,7 @@ function CanvasBoard({ canvas, onChange, paths, onOpenFile, onOpenUrl, onOpenLin
                 onStartGesture={startGesture}
                 onContextMenu={contextMenu}
                 onSelect={selectNode} onUpdate={updateNode} onRemove={removeNode}
-                onOpenFile={onOpenFile} onOpenUrl={onOpenUrl} onOpenLink={onOpenLink} paths={paths} t={t} />)}
+                onOpenFile={onOpenFile} onOpenUrl={onOpenUrl} onOpenLink={onOpenLink} paths={paths} contents={contents} t={t} />)}
           </div>)}
         </div>
         {menu && <ContextMenu {...menu} onClose={() => setMenu(null)} />}
@@ -462,7 +468,7 @@ function CanvasBoard({ canvas, onChange, paths, onOpenFile, onOpenUrl, onOpenLin
 }
 
 export default function CanvasView({
-  path, content, mode, setMode, onChange, onRename, onOpenHistory, paths, onOpenFile, onOpenUrl, onOpenLink,
+  path, content, mode, setMode, onChange, onRestore, onRename, onOpenHistory, paths, contents, onOpenFile, onOpenUrl, onOpenLink,
 }) {
   const { t } = useI18n();
   const [title, setTitle] = useState(baseName(path));
@@ -492,14 +498,17 @@ export default function CanvasView({
         </div>
       </div>
       {editorMode === 'source' ? <>
-        {parsed.error && <div className="editor-notice source-fallback" role="alert">{parsed.error}</div>}
-        <CodeMirror className="canvas-json-editor" value={content} onChange={onChange} extensions={JSON_EXTENSIONS}
-          basicSetup={{ highlightActiveLine: false, highlightActiveLineGutter: false }}
-          theme="none" height="100%" autoFocus />
+        {parsed.error && <div className="editor-notice source-fallback" role="alert">{parsed.error}
+          <JsonRecovery path={path} content={content} onRestore={onRestore} />
+        </div>}
+        <JsonEditor className="canvas-json-editor" label={t('Canvas JSON')} value={content} onChange={onChange}
+          height="100%" autoFocus />
       </> : parsed.error ? <div className="canvas-invalid" role="alert">
         <h2>{t('Invalid Canvas JSON')}</h2><p>{parsed.error}</p>
         <button onClick={() => setMode('edit')}>{t('Open JSON source')}</button>
+        <JsonRecovery path={path} content={content} onRestore={onRestore} />
       </div> : <CanvasBoard canvas={parsed.canvas} onChange={onChange} paths={paths} onEditSource={() => setMode('edit')}
+        contents={contents}
         onOpenFile={onOpenFile} onOpenUrl={onOpenUrl} onOpenLink={onOpenLink} t={t} />}
     </div>
   );

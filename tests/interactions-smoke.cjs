@@ -37,7 +37,12 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
       const js = (code) => wc.executeJavaScript(code);
       const wait = async (code) => {
         for (let i = 0; i < 160; i++) { if (await js(code)) return; await delay(50); }
-        throw new Error(`Timed out: ${code}`);
+        throw new Error(`Timed out: ${code}\n` + JSON.stringify(await js(`({
+          graph: window.graphPaint, tabs: [...document.querySelectorAll('.tab')].map(el => el.title),
+          files: [...document.querySelectorAll('.tree-item')].map(el => el.title),
+          confirmation: document.querySelector('.confirm-dialog')?.textContent,
+          toast: document.querySelector('.toast')?.textContent
+        })`)));
       };
       const click = (selector) => js(`document.querySelector(${JSON.stringify(selector)}).click()`);
       const button = (selector, text) => js(`(() => {
@@ -59,12 +64,13 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
         wc.sendInputEvent({ type: 'mouseUp', ...p, button: 'left', clickCount: 1 });
         await delay(100);
       };
-      const drag = async (p, dx, dy) => {
+      const drag = async (p, dx, dy, during) => {
         wc.sendInputEvent({ type: 'mouseMove', ...p });
         wc.sendInputEvent({ type: 'mouseDown', ...p, button: 'left', clickCount: 1 });
         await delay(50);
         wc.sendInputEvent({ type: 'mouseMove', x: p.x + dx, y: p.y + dy, button: 'left', modifiers: ['leftButtonDown'] });
         await delay(100);
+        if (during) await during();
         wc.sendInputEvent({ type: 'mouseUp', x: p.x + dx, y: p.y + dy, button: 'left', clickCount: 1 });
         await delay(100);
       };
@@ -86,6 +92,19 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
           await press(await point('.flow-add-row', fx, fy));
           assert.equal(await js("document.querySelectorAll('.flow-grid tbody tr').length"), count + 1, 'full add-row button must activate');
         }
+        await js("window.confirm = () => { throw new Error('Native confirmations must not be used'); }; true");
+        await click('.flow-grid th button[title="Remove column"]');
+        await wait("!!document.querySelector('.confirm-dialog')");
+        await button('.confirm-dialog button', 'Cancel');
+        assert.equal(await js("document.querySelectorAll('.flow-grid thead input').length"), 2);
+        await click('.flow-grid th button[title="Remove column"]');
+        await wait("!!document.querySelector('.confirm-dialog')");
+        await button('.confirm-dialog button', 'Confirm');
+        await wait("document.querySelectorAll('.flow-grid thead input').length === 1");
+        await button('.note-actions button', 'History');
+        await wait("!!document.querySelector('.history-json-preview .cm-content span')");
+        assert.equal(await js("document.querySelector('.history-json-preview .cm-content').isContentEditable"), false);
+        await button('.history-dialog button', 'Close');
 
         await open('Map.canvas');
         await wait("!!document.querySelector('.canvas-board-wrap')");
@@ -121,6 +140,14 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
         await click('.canvas-toolbar [aria-label="Reset zoom"]');
         await wait("document.querySelector('.canvas-toolbar [aria-label=\"Reset zoom\"]').textContent === '100%'");
         assert.equal(await js("getComputedStyle(document.querySelector('.canvas-board-wrap')).overflow"), 'clip');
+        const size = await js("({ w: parseFloat(document.querySelector('.canvas-node').style.width), h: parseFloat(document.querySelector('.canvas-node').style.height) })");
+        const resizeCamera = await camera();
+        await drag(await point('.canvas-resize-handle'), 30, 20, async () => {
+          const during = await js("({ w: parseFloat(document.querySelector('.canvas-node').style.width), h: parseFloat(document.querySelector('.canvas-node').style.height) })");
+          assert.equal(during.w, size.w + 30, 'node width updates before release');
+          assert.equal(during.h, size.h + 20, 'node height updates before release');
+          assert.equal(await camera(), resizeCamera);
+        });
         await button('.canvas-toolbar button', 'Add text');
         await wait("document.querySelectorAll('.canvas-node').length === 2");
         await js(`(() => { const el = document.querySelector('[aria-label="Relation"]'); el.value = 'supports';
@@ -225,7 +252,89 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
         const refreshed = await js("window.graphPaint.nodes[0]");
         assert.ok(Math.abs(pinned.x - refreshed.x) < 0.01 && Math.abs(pinned.y - refreshed.y) < 0.01,
           'refreshing the vault does not reset a dropped graph node');
-        console.log('PASS: flow edge hit targets, square focus, canvas viewport placement/stable drag/zoom/relations, persistent configurable bars, themed link picker and pinned graph drag.');
+        for (const file of ['Round.flow', 'Map.canvas']) {
+          const valid = await fs.readFile(path.join(vault, file), 'utf8');
+          await js(`window.api.write(${JSON.stringify(file)}, '{broken')`);
+          await js(`window.api.write(${JSON.stringify(file)}, '{"nodes":{}}')`);
+          await click('.sidebar-header [aria-label="Refresh"]');
+          await wait("document.querySelector('.sidebar-header [aria-label=\"Refresh\"]').getAttribute('aria-busy') === 'false'");
+          await open(file);
+          await wait("!!document.querySelector('.json-recovery button')");
+          await click('.json-recovery button');
+          await wait("!!document.querySelector('.confirm-dialog')");
+          await button('.confirm-dialog button', 'Cancel');
+          assert.equal(await fs.readFile(path.join(vault, file), 'utf8'), '{"nodes":{}}');
+          await click('.json-recovery button');
+          await wait("!!document.querySelector('.confirm-dialog')");
+          await button('.confirm-dialog button', 'Confirm');
+          await wait("!document.querySelector('.json-recovery button')");
+          await wait("document.querySelector('.toast')?.textContent === 'Working save restored.'");
+          assert.equal(await fs.readFile(path.join(vault, file), 'utf8'), valid);
+          const latest = await js(`window.api.listHistory(${JSON.stringify(file)})`);
+          assert.equal(await js(`window.api.readHistory(${JSON.stringify(file)}, ${JSON.stringify(latest[0].id)})`), '{"nodes":{}}');
+          const selector = file.endsWith('flow') ? '[aria-label="Flow mode"]' : '[aria-label="Canvas mode"]';
+          await js(`(() => { const el = document.querySelector(${JSON.stringify(selector)});
+            el.value = 'source'; el.dispatchEvent(new Event('change', { bubbles: true })); })()`);
+          await wait("!!document.querySelector('.canvas-json-editor .cm-content')");
+          await js("document.querySelector('.canvas-json-editor .cm-content').focus()");
+          wc.sendInputEvent({ type: 'keyDown', keyCode: 'A', modifiers: [process.platform === 'darwin' ? 'meta' : 'control'] });
+          wc.sendInputEvent({ type: 'keyUp', keyCode: 'A', modifiers: [process.platform === 'darwin' ? 'meta' : 'control'] });
+          await wc.insertText('{invalid source');
+          await wait("!!document.querySelector('.json-recovery button')");
+          await click('.json-recovery button');
+          await wait("!!document.querySelector('.confirm-dialog')");
+          await button('.confirm-dialog button', 'Confirm');
+          await wait("!document.querySelector('.json-recovery button')");
+          for (let i = 0; i < 40 && await fs.readFile(path.join(vault, file), 'utf8') !== valid; i++) await delay(50);
+          assert.equal(await fs.readFile(path.join(vault, file), 'utf8'), valid, 'source mode can recover too');
+        }
+        const previewCanvas = {
+          nodes: [
+            { id: 'embedded', type: 'file', file: 'Alpha.md', x: 0, y: 0, width: 280, height: 240 },
+            { id: 'linked', type: 'link', url: '[[Round.flow|Open round]]', x: 320, y: 0, width: 240, height: 180 },
+          ], edges: [],
+        };
+        await js(`window.api.write('Map.canvas', ${JSON.stringify(JSON.stringify(previewCanvas))})`);
+        await click('.sidebar-header [aria-label="Refresh"]');
+        await wait("document.querySelector('.sidebar-header [aria-label=\"Refresh\"]').getAttribute('aria-busy') === 'false'");
+        await js(`(() => { const el = document.querySelector('[aria-label="Canvas mode"]');
+          el.value = 'visual'; el.dispatchEvent(new Event('change', { bubbles: true })); })()`);
+        await wait("document.querySelector('[data-node-id=embedded] .canvas-node-preview')?.textContent.includes('Evidence text')");
+        assert.equal(await js("document.querySelector('[data-node-id=linked] .canvas-open-file').disabled"), false);
+        for (const [file, selector] of [['Round.flow', '.canvas-file-flow table'], ['Map.canvas', '.canvas-file-map']]) {
+          await js(`(() => { const el = document.querySelector('[data-node-id=embedded] [aria-label="File path"]');
+            Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set.call(el, ${JSON.stringify(file)});
+            el.dispatchEvent(new Event('input', { bubbles: true })); })()`);
+          await wait(`!!document.querySelector('[data-node-id=embedded] ${selector}')`);
+        }
+        await click('[data-node-id=linked] .canvas-open-file');
+        await wait("document.querySelector('.tab.active')?.title === 'Round.flow'");
+        await button('.note-actions button', 'History');
+        await wait("!!document.querySelector('.history-json-preview .cm-content')");
+        await button('.history-dialog button', 'Close');
+        await click('.ribbon-settings-button');
+        await wait("!!document.querySelector('.settings')");
+        await click('[data-section=advanced]');
+        const spacing = await js(`(() => {
+          const limits = document.querySelector('.customization-limits').getBoundingClientRect();
+          const flags = document.querySelector('.internal-flags').getBoundingClientRect();
+          return { gap: flags.top - limits.bottom,
+            headingMargin: getComputedStyle(document.querySelector('.internal-flags h4')).marginTop,
+            rangeDisplay: getComputedStyle(document.querySelector('.customization-limits .setting-row small')).display };
+        })()`);
+        assert.ok(Math.abs(spacing.gap - 24) < 1, 'settings groups use consistent 24px separation');
+        assert.equal(spacing.headingMargin, '0px', 'section headings do not double their top spacing');
+        assert.equal(spacing.rangeDisplay, 'block', 'advanced ranges are distinct helper text, not cramped inline labels');
+        assert.equal(await js("document.querySelector('[data-flag=hasSeenOnboarding]').checked"), false);
+        await click('[data-flag=hasSeenOnboarding]');
+        assert.equal(await js("JSON.parse(localStorage.getItem('tagline-settings')).internalFlags.hasSeenOnboarding"), true);
+        assert.equal(await js("JSON.parse(localStorage.getItem('tagline-settings')).internalFlags.visualNoticeDismissed"), false);
+        await button('.settings-footer button', 'Done');
+        await delay(1200);
+        await new Promise((resolve) => { wc.once('did-finish-load', resolve); wc.reload(); });
+        await wait("!!document.querySelector('.ribbon-settings-button')");
+        assert.equal(await js("JSON.parse(localStorage.getItem('tagline-settings')).internalFlags.hasSeenOnboarding"), true);
+        console.log('PASS: flow/canvas recovery in visual and source modes, themed confirmations, JSON history, live resize, file previews and links, onboarding flag, viewport/bar/link/graph regressions.');
         app.exit(0);
       } catch (error) { console.error(error); app.exit(1); }
     });

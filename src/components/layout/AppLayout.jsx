@@ -41,6 +41,12 @@ export default function AppLayout({ app }) {
     try { if (await v.flush()) setModal({ type: 'history', path }); }
     catch (error) { notify(error.message); }
   };
+  const restoreWorking = async (path, content) => {
+    if (!await v.flush()) throw new Error(t('Could not save the current source before restoring.'));
+    v.updateContent(path, content);
+    if (!await v.flush()) throw new Error(t('Could not save the restored document.'));
+    notify(t('Working save restored.'));
+  };
   const settingsDialog = <SettingsDialog settings={settings} update={updateSettings} extensions={ext}
     onOpenCaselist={ctx.openCaselist}
     onClose={() => setModal(null)} />;
@@ -101,9 +107,11 @@ export default function AppLayout({ app }) {
       mode={mode}
       setMode={setMode}
       onChange={(text) => v.updateContent(activePath, text)}
+      onRestore={(content) => restoreWorking(activePath, content)}
       onRename={(path, title) => doRename(path, renameTarget({ type: 'file', path }, title))}
       onOpenHistory={() => openHistory(activePath)}
       paths={paths}
+      contents={v.contents}
       onOpenFile={(file, subpath) => openLink(file, subpath?.slice(1), false)}
       onOpenLink={(target, heading, newTab) => openLink(target, heading, newTab)}
       onOpenUrl={(url) => window.api.websiteAction('external', url).catch((error) => notify(error.message))}
@@ -135,6 +143,7 @@ export default function AppLayout({ app }) {
         onSummarize={() => ctx.summarize(activePath, activeContent)}
         onCreateCitation={ctx.createCitation}
         onOpenHistory={() => openHistory(tab.path)}
+        onRestore={(content) => restoreWorking(tab.path, content)}
         settings={settings}
         onDismissVisualNotice={() => updateSettings({
           internalFlags: { ...settings.internalFlags, visualNoticeDismissed: true },

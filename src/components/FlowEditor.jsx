@@ -4,14 +4,18 @@ import { useI18n } from '../lib/i18n.js';
 import { binding, displayBinding, matchesBinding } from '../lib/keybindings.js';
 import ContextMenu from './dialogs/ContextMenu.jsx';
 import Icon from './Icon.jsx';
+import { useConfirm } from './dialogs/ConfirmProvider.jsx';
+import JsonRecovery from './JsonRecovery.jsx';
+import JsonEditor from './JsonEditor.jsx';
 
 const AFF = new Set(['1AC', '2AC', '1AR', '2AR', 'AC', 'AR']);
 export { EMPTY_FLOW } from '../../electron/flow.mjs';
 
 const sideOf = (col) => (AFF.has(col.split(' ')[0].toUpperCase()) ? 'aff' : 'neg');
 
-export default function FlowEditor({ content, onChange, focusNewFlowRow = true, keybindings }) {
+export default function FlowEditor({ path, content, mode, onChange, onRestore, focusNewFlowRow = true, keybindings }) {
   const { t } = useI18n();
+  const confirm = useConfirm();
   const [active, setActive] = useState(0);
   const [renaming, setRenaming] = useState(null);
   const [menu, setMenu] = useState(null);
@@ -38,11 +42,21 @@ export default function FlowEditor({ content, onChange, focusNewFlowRow = true, 
     }
   }, [content]);
 
+  if (mode === 'edit') return <div className="flow">
+    {parsed.error && <div className="editor-notice" role="alert">{parsed.error}
+      <JsonRecovery path={path} content={content} onRestore={onRestore} />
+    </div>}
+    <JsonEditor className="canvas-json-editor" label={t('Flow JSON')} value={content} onChange={onChange} height="100%" />
+  </div>;
+
   if (parsed.error) {
     return (
       <div className="flow-error">
         <p>{t('This flow file could not be parsed ({error}).', { error: parsed.error })}</p>
-        <button onClick={() => onChange(EMPTY_FLOW)}>{t('Reset to an empty flow')}</button>
+        <JsonRecovery path={path} content={content} onRestore={onRestore} />
+        <button onClick={async () => {
+          if (await confirm(t('Reset to an empty flow?'))) onChange(EMPTY_FLOW);
+        }}>{t('Reset to an empty flow')}</button>
       </div>
     );
   }
@@ -60,9 +74,9 @@ export default function FlowEditor({ content, onChange, focusNewFlowRow = true, 
     setActive(data.sheets.length);
   };
 
-  const removeSheet = (i) => {
+  const removeSheet = async (i) => {
     if (data.sheets.length === 1) return;
-    if (!window.confirm(t('Delete sheet "{name}"?', { name: data.sheets[i].name }))) return;
+    if (!await confirm(t('Delete sheet "{name}"?', { name: data.sheets[i].name }))) return;
     save(data.sheets.filter((_, j) => j !== i));
     setActive(Math.max(0, i - 1));
   };
@@ -85,8 +99,9 @@ export default function FlowEditor({ content, onChange, focusNewFlowRow = true, 
   const addColumn = () =>
     updateSheet({ columns: [...sheet.columns, 'New'], rows: sheet.rows.map((row) => [...row, '']) });
 
-  const removeColumn = (c) => {
+  const removeColumn = async (c) => {
     if (sheet.columns.length === 1) return;
+    if (!await confirm(t('Delete column "{name}" and its contents?', { name: sheet.columns[c] }))) return;
     updateSheet({
       columns: sheet.columns.filter((_, i) => i !== c),
       rows: sheet.rows.map((row) => row.filter((_, i) => i !== c)),

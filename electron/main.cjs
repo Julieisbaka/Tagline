@@ -294,6 +294,7 @@ function registerIpc() {
   });
   ipcMain.handle('history:list', (_e, rel) => history.list(rel));
   ipcMain.handle('history:read', (_e, rel, id) => history.read(rel, id));
+  ipcMain.handle('history:latest-working', (_e, rel) => history.latestWorking(rel));
 }
 
 function createWindow() {

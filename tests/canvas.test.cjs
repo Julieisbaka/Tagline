@@ -26,6 +26,52 @@ test('Canvas suggestions match filenames textually, with prefix matches first an
   assert.deepEqual(suggestCanvasFiles(paths, 'unknown'), []);
 });
 
+test('Canvas links open vault files, wiki headings and web URLs without allowing executable schemes', async () => {
+  const { resolveCanvasLink } = await import('../src/lib/canvas.js');
+  const paths = ['Folder/Note.md', 'Round.flow', 'Map.canvas'];
+  assert.deepEqual(resolveCanvasLink('Folder/Note.md#Claim', paths), {
+    type: 'file', path: 'Folder/Note.md', heading: 'Claim', label: undefined,
+  });
+  assert.deepEqual(resolveCanvasLink('[[Round.flow|Flow]]', paths), {
+    type: 'file', path: 'Round.flow', heading: '', label: 'Flow',
+  });
+  assert.equal(resolveCanvasLink('Map.canvas', paths).path, 'Map.canvas');
+  assert.equal(resolveCanvasLink('http://example.com', paths).url, 'http://example.com/');
+  for (const value of ['', 'missing.md', 'javascript:alert(1)', 'data:text/html,test', 'https://']) {
+    assert.equal(resolveCanvasLink(value, paths), null);
+  }
+});
+
+test('working-save recovery skips malformed and structurally invalid revisions and prefers latest saved content', async (t) => {
+  const { createRevisionHistory } = require('../electron/revisionHistory.cjs');
+  const { EMPTY_FLOW } = await import('../electron/flow.mjs');
+  const root = await fs.mkdtemp(path.join(os.tmpdir(), 'tagline-json-recovery-'));
+  t.after(() => fs.rm(root, { recursive: true, force: true }));
+  const history = createRevisionHistory({ getVaultRoot: () => root, resolveInVault: (rel) => path.join(root, rel) });
+  for (const [file, valid] of [['Round.flow', EMPTY_FLOW], ['Map.canvas', '{"nodes":[],"edges":[]}']]) {
+    assert.equal(await history.latestWorking(file), null);
+    await fs.writeFile(path.join(root, file), '{broken first save');
+    assert.equal(await history.latestWorking(file), null, 'no false recovery for a file with no valid saves');
+    const save = async (content) => {
+      await history.snapshot(file, content);
+      await fs.writeFile(path.join(root, file), content);
+    };
+    await save(valid);
+    assert.equal((await history.latestWorking(file)).content, valid, 'saved file is newer than history');
+    const latestValid = JSON.stringify({ ...JSON.parse(valid), extra: 'latest working' });
+    await save(latestValid);
+    await save('{invalid');
+    await save('{"nodes":{}}');
+    await save('[1,2,3]');
+    const recovery = await history.latestWorking(file);
+    assert.equal(recovery.content, latestValid, 'skips both invalid syntax and invalid document schema');
+    assert.ok(recovery.id);
+    await save(recovery.content);
+    assert.equal(await history.read(file, (await history.list(file))[0].id), '[1,2,3]', 'restoration retains the broken source');
+  }
+  await assert.rejects(history.latestWorking('Note.md'), /flow and Canvas/);
+});
+
 test('Canvas Complete history preserves JSON; Data history shares latest layout and skips movement', async (t) => {
   const { createRevisionHistory } = require('../electron/revisionHistory.cjs');
   const { createCanvasNode, serializeCanvas } = await import('../src/lib/canvas.js');
@@ -59,6 +105,7 @@ test('Canvas Complete history preserves JSON; Data history shares latest layout 
   assert.equal(restored.nodes[0].width, 500);
   assert.equal(restored.nodes[0].text, '');
   assert.deepEqual(restored.extra, { keep: true });
+  assert.equal(JSON.parse((await history.latestWorking('Map.canvas')).content).nodes[0].x, 900);
   const rawSnapshot = JSON.parse(await fs.readFile(path.join(root, '.tagline', 'history', 'Map.canvas', dataRevision.id), 'utf8'));
   assert.equal(rawSnapshot.data.nodes[0].x, undefined, 'Data snapshot does not store positions');
   assert.equal(rawSnapshot.data.nodes[0].width, undefined, 'Data snapshot does not store sizes');

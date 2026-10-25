@@ -15,9 +15,11 @@ import { useTabs } from './lib/useTabs.js';
 import { useVault } from './lib/useVault.js';
 import { baseName, dirName, flattenTree, isCanvas, isMarkdown, joinPath, outline, resolveLink } from './lib/vault.js';
 import { visualBlocker, visualSelection } from './lib/visualHelpers.js';
+import { useConfirm } from './components/dialogs/ConfirmProvider.jsx';
 
 export default function App() {
   const { t } = useI18n();
+  const confirm = useConfirm();
   const [settings, updateSettings] = useSettings();
   const v = useVault(settings.underscoreFolders, settings.autoRelink, settings.historyRetention, settings.canvasHistoryMode);
   const tabs = useTabs(v.vault?.root, settings.persistWorkspaceTabs);
@@ -221,7 +223,7 @@ export default function App() {
     rename: (node) => prompt(t('Rename “{name}”', { name: node.name }), node.name.replace(/\.(md|flow|canvas)$/i, ''), (name) => doRename(node.path, renameTarget(node, name))),
     move: doRename,
     remove: async (node) => {
-      if (!window.confirm(t('Move “{name}” to the trash?', { name: node.name }))) return;
+      if (!await confirm(t('Move “{name}” to the trash?', { name: node.name }))) return;
       if (await v.remove(node.path)) tabs.removePath(node.path);
     },
     setSpeechDoc: (path) => {

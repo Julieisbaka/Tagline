@@ -1,11 +1,14 @@
 import { useEffect, useState } from 'react';
-import { baseName } from '../../lib/vault.js';
+import { baseName, isCanvas, isFlow } from '../../lib/vault.js';
 import { useI18n } from '../../lib/i18n.js';
+import JsonEditor from '../JsonEditor.jsx';
+import { useConfirm } from './ConfirmProvider.jsx';
 
 import ModalBackdrop from './ModalBackdrop.jsx';
 
 export default function HistoryDialog({ path, onRestore, onClose }) {
   const { t, locale } = useI18n();
+  const confirm = useConfirm();
   const [revisions, setRevisions] = useState([]);
   const [selected, setSelected] = useState(null);
   const [content, setContent] = useState('');
@@ -58,13 +61,16 @@ export default function HistoryDialog({ path, onRestore, onClose }) {
                 </option>)}
               </select>
             </label>
-            <textarea className="history-preview" aria-label={t('Revision preview')} readOnly value={content} />
+            {isFlow(path) || isCanvas(path)
+              ? <JsonEditor className="history-json-preview" label={t('Revision preview')} readOnly editable={false}
+                value={content} height="280px" />
+              : <textarea className="history-preview" aria-label={t('Revision preview')} readOnly value={content} />}
           </>}
         {error && <p role="alert" className="error-text">{error}</p>}
         <div className="dialog-buttons">
           <button onClick={onClose}>{t('Close')}</button>
-          {!!selected && <button className="primary" disabled={busy || reading || !!error} onClick={() => {
-            if (window.confirm(t('Restore this saved version? The current document will be kept in revision history.'))) {
+          {!!selected && <button className="primary" disabled={busy || reading || !!error} onClick={async () => {
+            if (await confirm(t('Restore this saved version? The current document will be kept in revision history.'))) {
               onRestore(content);
             }
           }}>{t('Restore this version')}</button>}

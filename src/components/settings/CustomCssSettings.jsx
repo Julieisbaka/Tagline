@@ -5,9 +5,11 @@ import CodeMirror from '@uiw/react-codemirror';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { settingsCodeMirrorTheme } from '../../lib/editorExtensions.js';
 import { useI18n } from '../../lib/i18n.js';
+import { useConfirm } from '../dialogs/ConfirmProvider.jsx';
 
 export default function CustomCssSettings({ settings, update }) {
   const { t } = useI18n();
+  const confirm = useConfirm();
   const [draft, setDraft] = useState(settings.customCss);
   const [error, setError] = useState('');
   useEffect(() => setDraft(settings.customCss), [settings.customCss]);
@@ -27,9 +29,9 @@ export default function CustomCssSettings({ settings, update }) {
     <p>{t(warning)}</p>
     <label className="setting-row"><span>{t('Enable custom CSS')}</span>
       <input type="checkbox" data-setting="customCssEnabled" checked={settings.customCssEnabled}
-        onChange={(event) => {
+        onChange={async (event) => {
           const enabled = event.target.checked;
-          if (!enabled || window.confirm(t(warning))) update({ customCssEnabled: enabled });
+          if (!enabled || await confirm(t(warning))) update({ customCssEnabled: enabled });
         }} />
     </label>
     <label className="setting-row"><span>{t('Import CSS file')}</span>

@@ -47,6 +47,8 @@ export function extractTags(content) {
 
 // Map a link target ("Note", "Folder/Note", "Note.md") to a vault path.
 export function resolveLink(target, paths) {
+  const exact = paths.find((path) => path.toLowerCase() === target.trim().toLowerCase());
+  if (exact) return exact;
   const t = target.trim().toLowerCase().replace(/\.md$/, '');
   if (!t) return null;
   let best = null;
