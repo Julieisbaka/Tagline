@@ -506,8 +506,9 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
         await done();
         await wait("document.querySelector('.ProseMirror')?.spellcheck === true");
         const setMode = async (mode) => {
+          await wait("!!document.querySelector('.note-header select, select[aria-label=\"Canvas mode\"]')");
           await js(`(() => {
-            const el = document.querySelector('.note-header select');
+            const el = document.querySelector('.note-header select, select[aria-label="Canvas mode"]');
             Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value').set.call(el, ${JSON.stringify(mode)});
             el.dispatchEvent(new Event('change', { bubbles: true }));
           })()`);
@@ -524,7 +525,13 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
           await wc.insertText(text);
         };
         await insertSource('\n\n```js\nfunction example() {\n  return 1;\n}\n```\n\n');
-        await wait("!!document.querySelector('.cm-foldGutter .cm-gutterElement[title]')");
+        await wait("!!document.querySelector('.cm-foldGutter [title=\"Fold line\"]')");
+        await js("document.querySelector('.source-editor .cm-content').focus()");
+        wc.sendInputEvent({ type: 'keyDown', keyCode: '[', modifiers: ['control', 'alt'] });
+        wc.sendInputEvent({ type: 'keyUp', keyCode: '[', modifiers: ['control', 'alt'] });
+        await wait("!!document.querySelector('.cm-foldPlaceholder')");
+        await click('.cm-foldPlaceholder');
+        await wait("!document.querySelector('.cm-foldPlaceholder')");
         await insertSource('(');
         assert.ok((await js("document.querySelector('.source-editor .cm-content').textContent")).endsWith('('),
           'automatic closing is disabled');
@@ -535,6 +542,10 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
         await toggle('sourceCodeFolding', false);
         await done();
         await wait("!document.querySelector('.cm-foldGutter')");
+        await insertSource('\n\n');
+        wc.sendInputEvent({ type: 'char', keyCode: '(' });
+        await wait("document.querySelector('.source-editor .cm-content').textContent.endsWith('()')");
+        await wait("!!document.querySelector('.cm-matchingBracket')");
         await insertSource('\n');
         await js("document.querySelector('.source-editor .cm-content').focus()");
         wc.sendInputEvent({ type: 'keyDown', keyCode: 'Tab' });
@@ -547,13 +558,43 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
         wc.sendInputEvent({ type: 'keyDown', keyCode: 'Tab' });
         wc.sendInputEvent({ type: 'keyUp', keyCode: 'Tab' });
         await wait("document.querySelector('.source-editor .cm-content').textContent.endsWith('\\t')");
+        await setMode('read');
+        await wait("!!document.querySelector('.preview')");
+        assert.equal(await js("getComputedStyle(document.querySelector('.preview')).maxWidth"), '600px');
+        for (const [file, content, label] of [
+          ['Settings.flow', JSON.stringify({ version: 1, sheets: [] }), 'Flow JSON'],
+          ['Settings.canvas', JSON.stringify({ nodes: [], edges: [] }), 'Canvas JSON'],
+        ]) {
+          await js(`window.api.create(${JSON.stringify(file)}, ${JSON.stringify(content)})`);
+          await click('.sidebar-header button[title="Refresh"]');
+          await wait(`!!document.querySelector('.tree-item[title="${file}"]')`);
+          await open(file);
+          await setMode('source');
+          await wait(`!!document.querySelector('[aria-label="${label}"]')`);
+          assert.equal(await js(`getComputedStyle(document.querySelector('[aria-label="${label}"]')).tabSize`), '4');
+          assert.equal(await js("!!document.querySelector('.cm-foldGutter')"), false);
+          await settings('editors');
+          await toggle('sourceCodeFolding', true);
+          await done();
+          await wait("!!document.querySelector('.cm-foldGutter')");
+          await settings('editors');
+          await toggle('sourceCodeFolding', false);
+          await done();
+        }
+        wc.sendInputEvent({ type: 'keyDown', keyCode: 'G', modifiers: ['control'] });
+        wc.sendInputEvent({ type: 'keyUp', keyCode: 'G', modifiers: ['control'] });
+        await wait("!!document.querySelector('.graph canvas')");
+        await delay(100);
+        const stationaryGraph = await js("document.querySelector('.graph canvas').toDataURL()");
+        await delay(150);
+        assert.equal(await js("document.querySelector('.graph canvas').toDataURL()"), stationaryGraph, 'reduced motion stops automatic graph movement');
         await settings('accessibility');
         for (const key of accessibilityKeys) await toggle(key, false);
         await done();
         assert.equal(await js("document.documentElement.classList.contains('reduce-motion')"), false);
         assert.equal(await js("document.documentElement.classList.contains('large-click-targets')"), false);
         server.close();
-        console.log('PASS: experimental delta history opt-in/persistence/editor saves/restores/disable, notice dismissal/reset/reload, Pandoc install link, isolated embedded websites/navigation/resize/close/external toggle, extension labels, configurable relinking, missing tabs, dormant workspaces, and custom CSS.');
+        console.log('PASS: editor settings, accessibility settings, revision deltas, notices, integrations, relinking, workspaces and custom CSS.');
         app.exit(0);
       } catch (error) {
         console.error('FAIL:', error.stack);
@@ -561,7 +602,9 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
           files: [...document.querySelectorAll('.tree-item')].map(el => el.title),
           toast: document.querySelector('.toast')?.textContent,
           prompt: document.querySelector('.dialog input')?.value,
-          dialog: document.querySelector('.dialog')?.textContent
+          dialog: document.querySelector('.dialog')?.textContent,
+          foldGutter: document.querySelector('.cm-foldGutter')?.innerHTML,
+          sourceTail: document.querySelector('.source-editor .cm-content')?.textContent.slice(-300)
         })`));
         for (const view of win.contentView.children) {
           if (view.webContents) console.error('Website history:', view.webContents.navigationHistory.canGoBack(),

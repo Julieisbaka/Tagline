@@ -123,7 +123,7 @@ export default function NoteView({
           </div>
         </div>
         <FlowEditor path={path} mode={mode} content={content} onChange={onChange} onRestore={onRestore}
-          focusNewFlowRow={settings.focusNewFlowRow} keybindings={settings.keybindings} />
+          focusNewFlowRow={settings.focusNewFlowRow} keybindings={settings.keybindings} settings={settings} />
       </div>
     );
   }

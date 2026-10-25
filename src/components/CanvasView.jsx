@@ -501,7 +501,7 @@ function CanvasBoard({ canvas, onChange, paths, contents, onOpenFile, onOpenUrl,
 }
 
 export default function CanvasView({
-  path, content, mode, setMode, onChange, onRestore, onRename, onOpenHistory, paths, contents, onOpenFile, onOpenUrl, onOpenLink,
+  path, content, mode, setMode, onChange, onRestore, onRename, onOpenHistory, paths, contents, onOpenFile, onOpenUrl, onOpenLink, settings,
 }) {
   const { t } = useI18n();
   const [title, setTitle] = useState(baseName(path));
@@ -535,7 +535,7 @@ export default function CanvasView({
           <JsonRecovery path={path} content={content} onRestore={onRestore} />
         </div>}
         <JsonEditor className="canvas-json-editor" label={t('Canvas JSON')} value={content} onChange={onChange}
-          height="100%" autoFocus />
+          height="100%" autoFocus settings={settings} />
       </> : parsed.error ? <div className="canvas-invalid" role="alert">
         <h2>{t('Invalid Canvas JSON')}</h2><p>{parsed.error}</p>
         <button onClick={() => setMode('edit')}>{t('Open JSON source')}</button>

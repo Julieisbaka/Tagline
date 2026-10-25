@@ -1,5 +1,6 @@
 import { json } from '@codemirror/lang-json';
-import { HighlightStyle, syntaxHighlighting } from '@codemirror/language';
+import { codeFolding, HighlightStyle, indentUnit, syntaxHighlighting } from '@codemirror/language';
+import { EditorState } from '@codemirror/state';
 import { EditorView } from '@codemirror/view';
 import { tags } from '@lezer/highlight';
 import CodeMirror from '@uiw/react-codemirror';
@@ -13,10 +14,21 @@ const extensions = [json(), syntaxHighlighting(HighlightStyle.define([
   { tag: tags.punctuation, color: 'var(--text-muted)' },
 ])), settingsCodeMirrorTheme, EditorView.lineWrapping];
 
-export default function JsonEditor({ label, ...props }) {
+export default function JsonEditor({ label, settings, ...props }) {
   const labeled = useMemo(() => [...extensions,
+  ...(settings ? [
+    EditorState.tabSize.of(settings.sourceTabSize),
+    indentUnit.of(settings.sourceIndentWithTabs ? '\t' : ' '.repeat(settings.sourceTabSize)),
+    ...(settings.sourceCodeFolding ? [codeFolding()] : []),
+  ] : []),
   EditorView.contentAttributes.of({ 'aria-label': label, 'aria-multiline': 'true' }),
-  ], [label]);
+  ], [label, settings?.sourceTabSize, settings?.sourceIndentWithTabs, settings?.sourceCodeFolding]);
   return <CodeMirror {...props} extensions={labeled} theme="none"
-    basicSetup={{ highlightActiveLine: false, highlightActiveLineGutter: false }} />;
+    basicSetup={{ highlightActiveLine: false, highlightActiveLineGutter: false,
+      ...(settings ? {
+        bracketMatching: settings.sourceBracketMatching, closeBrackets: settings.sourceCloseBrackets,
+        closeBracketsKeymap: settings.sourceCloseBrackets,
+        foldGutter: settings.sourceCodeFolding, foldKeymap: settings.sourceCodeFolding,
+      } : {}),
+    }} />;
 }

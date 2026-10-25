@@ -106,6 +106,7 @@ export default function AppLayout({ app }) {
       </> : t('Loading…')}
     </div>;
     if (isCanvas(activePath)) return <CanvasView
+      settings={settings}
       key={activePath}
       path={activePath}
       content={activeContent}

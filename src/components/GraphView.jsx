@@ -158,11 +158,7 @@ export default function GraphView({ index, activePath, onOpen, showMarkdownExten
     const motionPreference = window.matchMedia('(prefers-reduced-motion: reduce)');
     let reducedMotion = false;
     const updateMotion = () => {
-      const next = motionPreference.matches || document.documentElement.classList.contains('reduce-motion');
-      if (next && !reducedMotion) {
-        for (let i = 0; i < 200; i++) step();
-      }
-      reducedMotion = next;
+      reducedMotion = motionPreference.matches || document.documentElement.classList.contains('reduce-motion');
     };
     updateMotion();
     motionPreference.addEventListener('change', updateMotion);

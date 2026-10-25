@@ -13,7 +13,7 @@ export { EMPTY_FLOW } from '../../electron/flow.mjs';
 
 const sideOf = (col) => (AFF.has(col.split(' ')[0].toUpperCase()) ? 'aff' : 'neg');
 
-export default function FlowEditor({ path, content, mode, onChange, onRestore, focusNewFlowRow = true, keybindings }) {
+export default function FlowEditor({ path, content, mode, onChange, onRestore, focusNewFlowRow = true, keybindings, settings }) {
   const { t } = useI18n();
   const confirm = useConfirm();
   const [active, setActive] = useState(0);
@@ -46,7 +46,7 @@ export default function FlowEditor({ path, content, mode, onChange, onRestore, f
     {parsed.error && <div className="editor-notice" role="alert">{parsed.error}
       <JsonRecovery path={path} content={content} onRestore={onRestore} />
     </div>}
-    <JsonEditor className="canvas-json-editor" label={t('Flow JSON')} value={content} onChange={onChange} height="100%" />
+    <JsonEditor className="canvas-json-editor" label={t('Flow JSON')} value={content} onChange={onChange} height="100%" settings={settings} />
   </div>;
 
   if (parsed.error) {

@@ -182,7 +182,8 @@ html.large-click-targets :is(button, select, input:not([type="checkbox"]):not([t
   min-height: 48px;
 }
 
-html.large-click-targets :is(.setting-row, .settings-panel label) {
+html.large-click-targets :is(.setting-row, label:has(input[type="checkbox"]), label:has(input[type="radio"])) {
+  min-width: 48px;
   min-height: 48px;
 }
 
