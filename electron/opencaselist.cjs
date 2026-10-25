@@ -246,7 +246,7 @@ function createOpenCaselist({ session, BrowserWindow, dialog, getWindow, getVaul
       if (!item || typeof item !== 'object' || Array.isArray(item)) return false;
       if (kind === 'rounds' || kind === 'cites')
         return Number.isSafeInteger(item[kind === 'rounds' ? 'round_id' : 'cite_id']) && item[kind === 'rounds' ? 'round_id' : 'cite_id'] > 0;
-      return typeof item[kind === 'caselists' ? 'slug' : 'name'] === 'string';
+      return typeof item.name === 'string' && item.name.trim().length > 0;
     };
     if (!Array.isArray(result) || !result.every(validItem)) throw new Error('OpenCaselist returned an invalid list.');
     return result;
@@ -318,21 +318,20 @@ function createOpenCaselist({ session, BrowserWindow, dialog, getWindow, getVaul
     text(remotePath, 'download path', 2048);
     const root = getVaultRoot();
     if (!root) throw new Error('Open a vault before downloading disclosures.');
-    const name = remotePath.split(/[\\/]/).at(-1).replace(/[<>:"|?*\x00-\x1f]/g, '-');
-    if (!name || name === '.' || name === '..') throw new Error('Invalid disclosure filename.');
-    const result = await dialog.showSaveDialog(getWindow(), { title: 'Save disclosure in vault', defaultPath: path.join(root, name) });
-    if (result.canceled || !result.filePath) return { cancelled: true };
+    const name = remotePath.split(/[\\/]/).at(-1).replace(/[<>:"|?*\x00-\x1f]/g, '-').replace(/[. ]+$/, '');
+    if (!name || /^(?:con|prn|aux|nul|com[1-9]|lpt[1-9])(?:\.|$)/i.test(name))
+      throw new Error('Invalid disclosure filename.');
     const rootReal = await fs.realpath(root);
-    const parent = await fs.realpath(path.dirname(result.filePath));
-    const target = path.join(parent, path.basename(result.filePath));
+    const target = path.join(rootReal, name);
     const relative = path.relative(rootReal, target);
     if (!relative || relative.startsWith('..') || path.isAbsolute(relative)) throw new Error('Save disclosures inside the current vault.');
     if (!['.docx', '.doc', '.pdf', '.rtf', '.txt', '.md', '.zip'].includes(path.extname(target).toLowerCase()))
       throw new Error('Unsupported disclosure file type.');
-    try { await fs.lstat(target); throw new Error('That file already exists. Choose a different filename.'); }
+    try { await fs.lstat(target); throw new Error('That file already exists in the vault. Rename or move it before downloading again.'); }
     catch (error) { if (error.code !== 'ENOENT') throw error; }
     const { bytes } = await request(`/download?${new URLSearchParams({ path: remotePath })}`, { binary: true });
-    if (getVaultRoot() !== root) throw new Error('The vault changed. Download again in the current vault.');
+    if (getVaultRoot() !== root || await fs.realpath(root) !== rootReal)
+      throw new Error('The vault changed. Download again in the current vault.');
     await fs.writeFile(target, bytes, { flag: 'wx' });
     return { path: relative.split(path.sep).join('/') };
   };

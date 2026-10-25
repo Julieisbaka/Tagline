@@ -25,10 +25,10 @@ function setup(options = {}) {
   const dialog = {
     showMessageBox: async (_win, value) => { confirmations.push(value); return { response: options.confirm ?? 1 }; },
     showOpenDialog: async () => ({ canceled: !options.upload, filePaths: options.upload ? [options.upload] : [] }),
-    showSaveDialog: async () => ({ canceled: !options.target, filePath: options.target }),
+    showSaveDialog: async () => { throw new Error('Vault downloads must not open a system file picker.'); },
   };
   const serviceOptions = {
-    session, dialog, getWindow: () => ({}), getVaultRoot: () => options.root, BrowserWindow: options.BrowserWindow,
+    session, dialog, getWindow: () => ({}), getVaultRoot: options.getVaultRoot || (() => options.root), BrowserWindow: options.BrowserWindow,
     readConfig: () => config, writeConfig: (patch) => { config = { ...config, ...patch }; }, now: () => clock,
   };
   const service = createOpenCaselist(serviceOptions);
@@ -68,6 +68,20 @@ test('authenticated API requests use only fixed HTTPS endpoints and the isolated
   assert.throws(() => teamRoute({ ...selection, school: '..' }), /Invalid/);
   assert.throws(() => teamRoute({ ...selection, school: '../private' }), /Invalid/);
   assert.throws(() => roundData({ ...round, tournament: '' }), /Invalid/);
+});
+
+test('caselist lists use the API name identifier and retain display and archive metadata', async () => {
+  const caselists = [
+    { caselist_id: 1, name: 'ndt2026', display_name: 'College Policy 2026', year: 2026, archived: false },
+    { caselist_id: 2, name: 'ndt2025', display_name: 'College Policy 2025', year: 2025, archived: true },
+  ];
+  const mock = setup({ response: () => json(caselists) });
+  assert.deepEqual(await mock.service.list('caselists'), caselists);
+  assert.equal(mock.requests[0].url, 'https://api.opencaselist.com/v1/caselists?archived=true');
+  for (const item of [{ slug: 'ndt2026' }, { name: '' }, { name: ' ' }, { name: 1 }, null, []]) {
+    const invalid = setup({ response: () => json([item]) });
+    await assert.rejects(invalid.service.list('caselists'), /invalid list/);
+  }
 });
 
 test('401 requires sign-in without retrying, while 403 preserves authentication', async () => {
@@ -257,28 +271,46 @@ test('downloads stay inside the vault, never overwrite and preserve exact binary
   const root = await temporary(t);
   const bytes = Buffer.from([0, 255, 11, 22]);
   const target = path.join(root, 'Evidence.docx');
-  const mock = setup({ root, target, response: () => new Response(bytes) });
+  const mock = setup({ root, response: () => new Response(bytes) });
   assert.deepEqual(await mock.service.download('caselist/Evidence.docx'), { path: 'Evidence.docx' });
   assert.deepEqual(await fs.readFile(target), bytes);
   await assert.rejects(mock.service.download('caselist/Evidence.docx'), /already exists/);
   assert.equal(mock.requests.length, 1);
-  const outside = setup({ root, target: path.join(path.dirname(root), 'outside.docx') });
-  await assert.rejects(outside.service.download('file.docx'), /inside the current vault/);
-  assert.equal(outside.requests.length, 0);
-  const executable = setup({ root, target: path.join(root, 'danger.exe') });
+  assert.deepEqual(await mock.service.download('../../Nested/Other.docx'), { path: 'Other.docx' });
+  assert.deepEqual(await fs.readFile(path.join(root, 'Other.docx')), bytes);
+  const executable = setup({ root });
   await assert.rejects(executable.service.download('danger.exe'), /Unsupported/);
   await assert.rejects(setup().service.download('file.docx'), /Open a vault/);
 });
 
-test('download containment rejects symlinked folders', async (t) => {
+test('downloads reject existing directory links and unsafe filenames without opening a picker', async (t) => {
   const root = await temporary(t);
   const outside = await temporary(t);
-  await fs.symlink(outside, path.join(root, 'link'), process.platform === 'win32' ? 'junction' : 'dir');
-  const mock = setup({ root, target: path.join(root, 'link', 'Evidence.docx') });
-  await assert.rejects(mock.service.download('Evidence.docx'), /inside the current vault/);
+  await fs.symlink(outside, path.join(root, 'Evidence.docx'), process.platform === 'win32' ? 'junction' : 'dir');
+  const mock = setup({ root });
+  await assert.rejects(mock.service.download('Evidence.docx'), /already exists/);
+  for (const name of ['..', 'folder/', 'CON.docx', 'NUL.pdf']) {
+    await assert.rejects(mock.service.download(name), /Invalid disclosure filename/);
+  }
   assert.equal(mock.requests.length, 0);
 });
 
+test('downloads do not save after a vault switch and cannot overwrite a file created during transfer', async (t) => {
+  const root = await temporary(t);
+  let current = root;
+  const changed = setup({ root, getVaultRoot: () => current, response: () => {
+    current = null;
+    return new Response('download');
+  } });
+  await assert.rejects(changed.service.download('Evidence.docx'), /vault changed/);
+  assert.deepEqual(await fs.readdir(root), []);
+  const racing = setup({ root, response: async () => {
+    await fs.writeFile(path.join(root, 'Evidence.docx'), 'keep');
+    return new Response('download');
+  } });
+  await assert.rejects(racing.service.download('Evidence.docx'), { code: 'EEXIST' });
+  assert.equal(await fs.readFile(path.join(root, 'Evidence.docx'), 'utf8'), 'keep');
+});
 test('response limits apply while streaming even when Content-Length is absent', async () => {
   await assert.rejects(responseBytes(new Response('12345'), 4), /too large/);
   await assert.rejects(responseBytes(new Response('1', { headers: { 'Content-Length': '100' } }), 4), /too large/);

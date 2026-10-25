@@ -3,7 +3,7 @@ import { useI18n } from '../../lib/i18n.js';
 import ModalBackdrop from './ModalBackdrop.jsx';
 
 const api = window.api.openCaselist;
-const nameOf = (item) => item.display_name || item.displayName || item.name || item.slug;
+const nameOf = (item) => item.display_name || item.name;
 const blankRound = { tournament: '', side: 'A', round: '', opponent: '', judge: '', report: '' };
 
 export default function OpenCaselistDialog({ hasVault, onDownload, onClose }) {
@@ -76,7 +76,7 @@ export default function OpenCaselistDialog({ hasVault, onDownload, onClose }) {
     if (kind === 'school') setTeams(await api.list('teams', current));
     if (kind === 'team') await refreshTeam(current);
   });
-  const selectedCase = caselists.find((item) => item.slug === selection.caselist);
+  const selectedCase = caselists.find((item) => item.name === selection.caselist);
   const canWrite = selection.team && !selectedCase?.archived;
   const download = (path) => run(async () => {
     const result = await api.download(path);
@@ -163,7 +163,7 @@ export default function OpenCaselistDialog({ hasVault, onDownload, onClose }) {
         <fieldset disabled={busy || !!form} className="opencaselist-selectors">
           <legend>{t('Browse disclosures')}</legend>
           {[
-            ['caselist', 'Caselist', caselists, (item) => item.slug],
+            ['caselist', 'Caselist', caselists, (item) => item.name],
             ['school', 'School', schools, (item) => item.name],
             ['team', 'Team', teams, (item) => item.name],
           ].map(([key, label, items, valueOf]) => <label key={key} className="opencaselist-field">

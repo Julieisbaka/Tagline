@@ -57,7 +57,7 @@ dialog.showMessageBox = async (_win, options) => {
   assert.equal(options.defaultId, 0);
   return { response: allowChange ? 1 : 0 };
 };
-dialog.showSaveDialog = async () => ({ canceled: false, filePath: path.join(vault, 'Disclosure.docx') });
+dialog.showSaveDialog = async () => { throw new Error('Download to vault must not open a system file picker.'); };
 dialog.showOpenDialog = async () => ({ canceled: false, filePaths: [uploadFile] });
 const fromPartition = session.fromPartition.bind(session);
 session.fromPartition = (partition, ...args) => {
@@ -85,7 +85,7 @@ session.fromPartition = (partition, ...args) => {
         download_path: 'ndt2026/Disclosure.docx'
       }]);
     }
-    if (route === '/v1/caselists') return reply([{ slug: 'ndt2026', name: 'College Policy 2026', archived: false }]);
+    if (route === '/v1/caselists') return reply([{ caselist_id: 1, name: 'ndt2026', display_name: 'College Policy 2026', year: 2026, archived: false }]);
     if (route.endsWith('/schools')) return reply([{ name: 'Example', display_name: 'Example University' }, { name: 'Other' }]);
     if (route.endsWith('/teams')) return reply(route.includes('/Other/') ? [{ name: 'CD' }] : [{ name: 'AB', display_name: 'Example AB' }]);
     if (route === '/v1/download') return new Response(binary);
