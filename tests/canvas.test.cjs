@@ -69,7 +69,28 @@ test('working-save recovery skips malformed and structurally invalid revisions a
     await save(recovery.content);
     assert.equal(await history.read(file, (await history.list(file))[0].id), '[1,2,3]', 'restoration retains the broken source');
   }
-  await assert.rejects(history.latestWorking('Note.md'), /flow and Canvas/);
+  await assert.rejects(history.latestWorking('Image.png'), /Markdown, flow and Canvas/);
+});
+
+test('working-save recovery accepts all Markdown content and falls back to history for missing files', async (t) => {
+  const { createRevisionHistory } = require('../electron/revisionHistory.cjs');
+  const root = await fs.mkdtemp(path.join(os.tmpdir(), 'tagline-markdown-recovery-'));
+  t.after(() => fs.rm(root, { recursive: true, force: true }));
+  const history = createRevisionHistory({ getVaultRoot: () => root, resolveInVault: (rel) => path.join(root, rel) });
+  const file = 'Note.MD';
+  const documentPath = path.join(root, file);
+  assert.equal(await history.latestWorking(file), null);
+  for (const content of ['', '# Note\n\n**unfinished', '---\nbroken: [\n---\nBody']) {
+    await fs.writeFile(documentPath, content);
+    assert.deepEqual(await history.latestWorking(file), { content });
+  }
+  const previous = await fs.readFile(documentPath, 'utf8');
+  await history.snapshot(file, '# Newer');
+  await fs.writeFile(documentPath, '# Newer');
+  assert.deepEqual(await history.latestWorking(file), { content: '# Newer' });
+  await fs.unlink(documentPath);
+  const [revision] = await history.list(file);
+  assert.deepEqual(await history.latestWorking(file), { ...revision, content: previous });
 });
 
 test('experimental delta history preserves Canvas data mode, recovery and layout', async (t) => {

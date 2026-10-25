@@ -214,9 +214,10 @@ function createRevisionHistory({ getVaultRoot, resolveInVault }) {
 
   async function latestWorking(relativePath) {
     const documentPath = resolveInVault(relativePath);
+    if (!DOCUMENT.test(documentPath)) throw new Error(HISTORY_TYPES);
     const validate = /\.canvas$/i.test(documentPath) ? parseCanvas : /\.flow$/i.test(documentPath) ? parseFlow : null;
-    if (!validate) throw new Error('Working-save recovery supports flow and Canvas documents only.');
     const working = (content) => {
+      if (!validate) return true;
       try { validate(content); return true; }
       catch { return false; } // Invalid revisions are deliberately skipped, newest first.
     };
