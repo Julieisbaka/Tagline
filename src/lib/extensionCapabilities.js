@@ -161,7 +161,6 @@ export function extensionHelper(method, args) {
       return parseFlow(EMPTY_FLOW);
     case 'helpers.flow.setCell':
       return setFlowCell(args[0], args[1], args[2], args[3], requireHelperText(args[4], 'Cell text'));
-    case 'helpers.markdownToText':
     case 'helpers.markdown.toText':
       return markdownToText(requireHelperText(args[0], 'Markdown'));
     case 'helpers.markdown.frontmatter': {

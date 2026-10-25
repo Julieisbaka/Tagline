@@ -40,18 +40,18 @@ test('all public schemas compile offline and every editor association points to 
 test('flow schema matches supported structures and preserves extension fields', async () => {
   const { EMPTY_FLOW, parseFlow } = await import('../electron/flow.mjs');
   check('flow', JSON.parse(EMPTY_FLOW));
-  const legacy = { sheets: [{ name: '', columns: ['1AC'], rows: [[''], ['Argument']] }], custom: true };
-  check('flow', legacy);
-  assert.deepEqual(parseFlow(JSON.stringify(legacy)), legacy);
+  const flow = { version: 1, sheets: [{ name: '', columns: ['1AC'], rows: [[''], ['Argument']] }], custom: true };
+  check('flow', flow);
+  assert.deepEqual(parseFlow(JSON.stringify(flow)), flow);
   for (const invalid of [
-    {}, [], { sheets: [] }, { version: 2, sheets: legacy.sheets },
+    {}, [], { sheets: [] }, { sheets: flow.sheets }, { version: 2, sheets: flow.sheets },
     { sheets: [{ name: 'Round', columns: [], rows: [] }] },
     { sheets: [{ name: 'Round', columns: ['1AC'], rows: [[true]] }] },
   ]) {
     check('flow', invalid, false);
     assert.throws(() => parseFlow(JSON.stringify(invalid)));
   }
-  const unequalRow = { sheets: [{ name: 'Round', columns: ['1AC', '1NC'], rows: [['Only one cell']] }] };
+  const unequalRow = { version: 1, sheets: [{ name: 'Round', columns: ['1AC', '1NC'], rows: [['Only one cell']] }] };
   check('flow', unequalRow);
   assert.throws(() => parseFlow(JSON.stringify(unequalRow)), /structure/, 'cross-field row length remains a runtime check');
 });

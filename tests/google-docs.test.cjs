@@ -214,7 +214,7 @@ test('Google Docs configuration is encrypted, persists, hides secrets, and can b
   assert.ok(!persisted.includes(SECRET));
   assert.ok(JSON.parse(persisted).connections[0].encryptedSecret);
   await mock.service.save(ENDPOINT, '', status.connections[0].id);
-  await mock.service.disconnect();
+  await mock.service.disconnect(status.connections[0].id);
   assert.equal((await mock.service.status()).configured, false);
   await assert.rejects(mock.service.save(ENDPOINT, ''), /Enter the WEBHOOK_SECRET/);
 });
@@ -239,8 +239,8 @@ test('note uploads require confirmation and follow only the expected redirect wi
       ? new Response(null, { status: 302, headers: { location: 'https://script.googleusercontent.com/macros/echo?user_content_key=test' } })
       : success(),
   });
-  await mock.service.save(ENDPOINT, SECRET);
-  assert.deepEqual(await mock.service.sendNote({ title: 'Evidence', html: '<p>Hello \u00e9</p>' }),
+  const saved = await mock.service.save(ENDPOINT, SECRET);
+  assert.deepEqual(await mock.service.sendNote({ title: 'Evidence', html: '<p>Hello \u00e9</p>', connectionId: saved.savedConnectionId }),
     { canceled: false, code: 201, account: ACCOUNT, document: { ...DOCUMENT, accountEmail: ACCOUNT.email } });
   assert.equal(mock.confirmations.length, 2);
   assert.match(mock.confirmations[1].detail, /creates a new Google Doc/);
@@ -263,8 +263,8 @@ test('note uploads require confirmation and follow only the expected redirect wi
 
 test('canceling a transfer never uploads or creates documents', async (t) => {
   const mock = await client(t, { confirm: 0 });
-  await mock.service.save(ENDPOINT, SECRET);
-  assert.deepEqual(await mock.service.sendNote({ title: 'Evidence', html: 'document' }), { canceled: true });
+  const saved = await mock.service.save(ENDPOINT, SECRET);
+  assert.deepEqual(await mock.service.sendNote({ title: 'Evidence', html: 'document', connectionId: saved.savedConnectionId }), { canceled: true });
   assert.equal(mock.requests.filter(({ init }) => JSON.parse(init.body || '{}').action === 'upload').length, 0);
 });
 
@@ -281,8 +281,8 @@ test('uploads reject external redirects, authentication pages, and malformed rep
     () => { throw new Error(SECRET); },
   ]) {
     const mock = await client(t, { response });
-    await mock.service.save(ENDPOINT, SECRET);
-    await assert.rejects(mock.service.sendNote({ title: 'Evidence', html: 'document' }),
+    const saved = await mock.service.save(ENDPOINT, SECRET);
+    await assert.rejects(mock.service.sendNote({ title: 'Evidence', html: 'document', connectionId: saved.savedConnectionId }),
       (error) => !error.message.includes(SECRET) && !error.message.includes('private echoed text'));
     assert.equal(mock.requests.length, 3, 'Account lookup on save and upload, then one upload without unsafe redirects or retries');
   }
@@ -296,8 +296,8 @@ test('DOCX and HTML file uploads preserve bytes and share the result contract', 
     const bytes = Buffer.from(extension === 'docx' ? [80, 75, 3, 4, 0, 255] : '<p>HTML evidence</p>');
     await fs.writeFile(file, bytes);
     const mock = await client(t, { file });
-    await mock.service.save(ENDPOINT, SECRET);
-    assert.equal((await mock.service.uploadFile()).code, 201);
+    const saved = await mock.service.save(ENDPOINT, SECRET);
+    assert.equal((await mock.service.uploadFile(saved.savedConnectionId)).code, 201);
     const payload = JSON.parse(mock.requests.at(-1).init.body);
     assert.equal(payload.mimeType, mimeType);
     assert.deepEqual(Buffer.from(payload.contentBase64, 'base64'), bytes);
@@ -356,9 +356,9 @@ test('multiple connections keep secrets separate and require an explicit upload 
 
 test('account changes block uploads before document contents leave Tagline', async (t) => {
   const mock = await client(t);
-  await mock.service.save(ENDPOINT, SECRET);
+  const saved = await mock.service.save(ENDPOINT, SECRET);
   mock.accounts.set(ENDPOINT, { email: 'unexpected@example.com', displayName: 'Unexpected account' });
-  await assert.rejects(mock.service.sendNote({ title: 'Private', html: 'private document text' }), /different Google account/);
+  await assert.rejects(mock.service.sendNote({ title: 'Private', html: 'private document text', connectionId: saved.savedConnectionId }), /different Google account/);
   assert.equal(mock.requests.length, 2, 'Only read-only account lookups');
   assert.equal(mock.requests.some(({ init }) => init.body.includes('contentBase64')), false);
   assert.equal(mock.confirmations.length, 1, 'No upload confirmation after identity mismatch');
@@ -368,27 +368,30 @@ test('server-side account binding rejects changes between verification and uploa
   const mock = await client(t, {
     response: () => new Response(JSON.stringify({ ok: false, code: 409, document: null, account: null })),
   });
-  await mock.service.save(ENDPOINT, SECRET);
-  await assert.rejects(mock.service.sendNote({ title: 'Evidence', html: 'text' }), /409.*different Google account/);
+  const saved = await mock.service.save(ENDPOINT, SECRET);
+  await assert.rejects(mock.service.sendNote({ title: 'Evidence', html: 'text', connectionId: saved.savedConnectionId }), /409.*different Google account/);
   const payload = JSON.parse(mock.requests.at(-1).init.body);
   assert.equal(payload.expectedAccount, ACCOUNT.email);
   assert.equal(mock.requests.length, 3, 'No retry after account mismatch');
 });
 
-test('legacy connections retain their secret but require verification and script upgrade before uploads', async (t) => {
+test('versionless Google Docs configurations are rejected without migration or upload', async (t) => {
   const mock = await client(t);
   const encryptedSecret = Buffer.from(`encrypted:${SECRET}`).toString('base64');
   await fs.writeFile(path.join(mock.root, 'google-docs.json'), JSON.stringify({ endpoint: ENDPOINT, encryptedSecret }));
-  const status = await mock.service.status();
-  assert.equal(status.connections[0].id, 'legacy');
-  assert.equal(status.connections[0].account, null);
-  assert.equal(status.configured, false);
-  await assert.rejects(mock.service.sendNote({ title: 'Private', html: 'text' }), /Verify this connection/);
+  await assert.rejects(mock.service.status(), /configuration is invalid/);
+  await assert.rejects(mock.service.sendNote({ title: 'Private', html: 'text' }), /configuration is invalid/);
   assert.equal(mock.requests.length, 0);
-  const saved = await mock.service.save(ENDPOINT, '', 'legacy');
-  assert.equal(saved.savedConnectionId, 'legacy');
-  assert.deepEqual(saved.connections[0].account, ACCOUNT);
-  assert.equal(JSON.parse(await fs.readFile(path.join(mock.root, 'google-docs.json'), 'utf8')).version, 2);
+  assert.deepEqual(JSON.parse(await fs.readFile(path.join(mock.root, 'google-docs.json'), 'utf8')),
+    { endpoint: ENDPOINT, encryptedSecret });
+});
+
+test('even a single Google Docs connection requires an explicit destination', async (t) => {
+  const mock = await client(t);
+  await mock.service.save(ENDPOINT, SECRET);
+  await assert.rejects(mock.service.sendNote({ title: 'Evidence', html: 'text' }), /Select a saved Google account/);
+  await assert.rejects(mock.service.disconnect(), /Select a saved Google account/);
+  assert.equal(mock.requests.length, 1);
 });
 
 test('canceling verification preserves saved destinations and old scripts cannot be trusted', async (t) => {

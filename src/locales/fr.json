@@ -1,4 +1,8 @@
 {
+  "Select a marked speech document before sending cards.": "Sélectionnez un document de discours marqué avant d’envoyer des cartes.",
+  "Unsupported timer preset. Select a current preset.": "Préréglage du minuteur non pris en charge. Sélectionnez un préréglage actuel.",
+  "Timer preset": "Préréglage du minuteur",
+  "Select a preset": "Sélectionner un préréglage",
   "Search settings": "Rechercher dans les paramètres",
   "Clear settings search": "Effacer la recherche de paramètres",
   "Search results": "Résultats de recherche",

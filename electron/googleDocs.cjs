@@ -95,10 +95,6 @@ function createGoogleDocs({ app, safeStorage, dialog, shell, getWindow, fetchImp
     try { contents = await fs.readFile(configFile, 'utf8'); }
     catch (error) { if (error.code === 'ENOENT') return { version: 2, connections: [] }; throw error; }
     const config = JSON.parse(contents);
-    if (config && !config.version && typeof config.endpoint === 'string' && typeof config.encryptedSecret === 'string') {
-      const endpoint = validateEndpoint(config.endpoint);
-      return { version: 2, connections: [{ id: 'legacy', endpoint, encryptedSecret: config.encryptedSecret, account: null }] };
-    }
     if (!config || config.version !== 2 || !Array.isArray(config.connections) ||
       config.connections.some((connection) => !connection || typeof connection.id !== 'string' ||
         !/^[A-Za-z0-9_-]+$/.test(connection.id) || typeof connection.encryptedSecret !== 'string' || !connection.encryptedSecret) ||
@@ -106,7 +102,7 @@ function createGoogleDocs({ app, safeStorage, dialog, shell, getWindow, fetchImp
       throw new Error('The saved Google Docs configuration is invalid. Disconnect and configure it again.');
     for (const connection of config.connections) {
       connection.endpoint = validateEndpoint(connection.endpoint);
-      if (connection.account !== null) connection.account = validateAccount(connection.account);
+      connection.account = validateAccount(connection.account);
     }
     return config;
   };
@@ -119,7 +115,6 @@ function createGoogleDocs({ app, safeStorage, dialog, shell, getWindow, fetchImp
     } finally { await fs.rm(temporary, { force: true }); }
   };
   const connectionFor = (config, id) => {
-    if (id === undefined && config.connections.length === 1) return config.connections[0];
     const connection = config.connections.find((item) => item.id === id);
     if (!connection) throw new Error('Select a saved Google account connection in Settings > Integrations.');
     return connection;

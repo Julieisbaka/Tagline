@@ -127,7 +127,7 @@ async function demoDescribeNote() {
   const isFlow = /\.flow$/i.test(note.path);
   const words = isFlow
     ? null
-    : (await tagline.helpers.markdownToText(note.content.slice(0, 100000))).split(/\s+/).filter(Boolean).length;
+    : (await tagline.helpers.markdown.toText(note.content.slice(0, 100000))).split(/\s+/).filter(Boolean).length;
   return [
     note.path,
     `mode=${note.mode}`,
@@ -260,7 +260,7 @@ async function demoHelpers() {
     `basename → ${await path.basename(joined)}`,
     `dirname → ${await path.dirname(joined)}`,
     `extname → ${await path.extname(joined)}`,
-    `markdownToText → ${await tagline.helpers.markdownToText('## **Evidence** from _Smith 24_ [source](https://example.com)')}`,
+    `markdown.toText → ${await tagline.helpers.markdown.toText('## **Evidence** from _Smith 24_ [source](https://example.com)')}`,
   ];
   const canvas = tagline.helpers.canvas;
   const node = await canvas.createNode('text');
@@ -326,7 +326,7 @@ async function demoVaultIndex() {
     const content = await tagline.vault.read(path);
     const detail = /\.flow$/i.test(path)
       ? 'flow'
-      : `${(await tagline.helpers.markdownToText(content.slice(0, 100000))).split(/\s+/).filter(Boolean).length} words`;
+      : `${(await tagline.helpers.markdown.toText(content.slice(0, 100000))).split(/\s+/).filter(Boolean).length} words`;
     const name = await tagline.helpers.path.basename(path);
     lines.push(`- [[${path.replace(/\.md$/i, '')}|${name}]] (${detail})`);
   }

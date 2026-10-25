@@ -1,4 +1,8 @@
 {
+  "Select a marked speech document before sending cards.": "Selecciona un documento de discurso marcado antes de enviar tarjetas.",
+  "Unsupported timer preset. Select a current preset.": "Preajuste de temporizador no compatible. Selecciona uno actual.",
+  "Timer preset": "Preajuste del temporizador",
+  "Select a preset": "Seleccionar un preajuste",
   "Search settings": "Buscar ajustes",
   "Clear settings search": "Borrar búsqueda de ajustes",
   "Search results": "Resultados de búsqueda",

@@ -14,7 +14,6 @@ function load() {
     const parsed = JSON.parse(saved || '{}');
     return {
       ...DEFAULTS, ...parsed, language: initialLanguage(parsed?.language, window.api.systemLanguages),
-      format: parsed?.format === 'policy' ? 'highschool' : parsed?.format ?? DEFAULTS.format,
       internalFlags: { ...DEFAULTS.internalFlags, ...parsed?.internalFlags }
     };
   } catch {

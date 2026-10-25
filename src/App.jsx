@@ -56,7 +56,7 @@ export default function App() {
   const activePath = tabs.activeTab?.kind === 'file' ? tabs.activeTab.path : null;
   const activeContent = activePath ? v.contents[activePath] : undefined;
   const speechDocuments = useMemo(() => speechDocumentPaths(v.contents), [v.contents]);
-  const speechDoc = v.contents[settings.speechDoc] !== undefined ? settings.speechDoc
+  const speechDoc = speechDocuments.includes(settings.speechDoc) ? settings.speechDoc
     : speechDocuments[0] || settings.speechDoc;
   const mode = (activePath && modes[activePath]) || settings.editorMode;
   const sourceFallback = mode === 'visual' && !(activePath && isCanvas(activePath)) && !!visualBlocker(activeContent || '');
@@ -266,7 +266,8 @@ export default function App() {
         let doc = speechDoc;
         if (!isMarkdown(doc)) throw new Error(t('Speech documents must be Markdown files.'));
         if (v.contents[doc] != null) {
-          const destination = markSpeechDocument(v.contents[doc]);
+          if (!speechDocuments.includes(doc)) throw new Error(t('Select a marked speech document before sending cards.'));
+          const destination = v.contents[doc];
           v.updateContent(doc, `${destination.trimEnd()}\n\n${text}\n`);
           if (!await v.flush()) return;
         } else {
@@ -278,7 +279,7 @@ export default function App() {
       } catch (error) { notify(error.message); }
       return undefined;
     },
-    [activePath, activeContent, mode, speechDoc, v, notify, updateSettings],
+    [activePath, activeContent, mode, speechDoc, speechDocuments, v, notify, updateSettings],
   );
 
   const templates = paths.filter((p) => p.toLowerCase().startsWith('templates/') && isMarkdown(p));
@@ -332,6 +333,9 @@ export default function App() {
     toggleRight: () => setShowRight((s) => !s),
     openSpeechDoc: async () => {
       try {
+        if (v.contents[speechDoc] !== undefined && !speechDocuments.includes(speechDoc)) {
+          throw new Error(t('Select a marked speech document before sending cards.'));
+        }
         const path = await ensureSpeechDoc(speechDoc);
         if (path) open(path, true);
       } catch (error) { notify(error.message); }

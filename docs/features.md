@@ -11,8 +11,7 @@ format. Settings and downloaded models are stored in the app profile, not the
 vault.
 
 On first launch, a short, skippable tour explains vaults, document types, and
-workspace customization. It does not create files or require an account.
-Completion is remembered in the app profile. Replay it from **Settings >
+workspace customization. Replay it from **Settings >
 Advanced settings > Internal flags > Show onboarding again**.
 
 Create, move, rename, and delete files in the sidebar. Open several documents
@@ -34,9 +33,6 @@ or vault files, including `Folder/Note.md#Heading` and `[[Round.flow|Round]]`.
 Resizing nodes updates their dimensions and connections throughout the drag.
 Panning reuses existing cards and previews; dragging updates at most once per
 animation frame. Linked-file changes still refresh their previews.
-Developers can run `npm run test:canvas-performance` for the 301-node/300-edge
-interaction benchmark, including preview reuse, immediate release, cancellation,
-and live file/language updates.
 Right-click the board to add nodes at the pointer, or a node/connection for
 context actions. Keyboard users can focus one and press `Shift+F10`.
 
@@ -109,10 +105,6 @@ Wiki links support `[[Note]]`, `[[Note#Heading]]`, and `[[Note|Label]]`.
 The link picker uses themed suggestions; use arrow keys and Enter to choose a
 note, then **Insert link** to confirm. Choosing a note preserves heading/label suffixes.
 Tagline also provides backlinks, mentions, an outline, tags, and a graph view.
-Graph nodes follow the pointer while dragged and smoothly resume the force
-simulation after release. Refreshing preserves the current layout. Scrolling
-zooms around the pointer; further scrolling at either zoom limit leaves the
-camera unchanged.
 Put reusable Markdown in `Templates/`; placeholders include `{{date}}`,
 `{{time}}`, `{{title}}`, `{{path}}`, `{{content}}`, and `{{properties}}`.
 `{{path}}` is the target note's vault-relative filename (including `.md`).
@@ -129,7 +121,7 @@ Canvas edges, stored in that canvas file.
 
 Canvas additions appear in the current viewport. Drag the background or scroll
 to pan; use the zoom buttons or Ctrl/Cmd+scroll to zoom around the pointer.
-**Fit canvas** shows all nodes. Moving or resizing nodes does not recenter the view.
+**Fit canvas** shows all nodes.
 
 ## Search and citations
 
@@ -169,12 +161,11 @@ the designation and update the selected path.
 The timer supports speech and affirmative/negative preparation clocks for
 high-school (8-3-5) and college (9-3-6) formats.
 Both presets are policy debate; their saved `format` identifiers are `highschool`
-and `college`. Older `policy` preferences migrate to `highschool` automatically.
+and `college`.
 
 Flows are multi-sheet speech grids. Use `Tab` and `Shift+Tab` to move between
 cells; `Mod+Enter` adds a row below and `Mod+Shift+Enter` adds one above.
 Choose **JSON source** in the flow header to edit the saved structure directly.
-Deleting a sheet or column asks for confirmation in Tagline.
 
 **Settings > Advanced settings > Internal flags** includes **Has seen onboarding**
 (`hasSeenOnboarding`, initially false). Completing, skipping, or dismissing the
@@ -237,8 +228,6 @@ The integration follows the [OpenCaselist API](https://api.opencaselist.com/v1/d
 The local write-protection form groups password fields in a responsive card.
 Its password is separate from your OpenCaselist login; leave the new password
 blank to keep the current one when saving protection settings.
-`npm run test:opencaselist` exercises a mocked API without live credentials or
-disclosure changes.
 
 ## Settings
 
@@ -255,11 +244,6 @@ Settings save automatically on your device. Main options include:
 | Keyboard shortcuts | Built-in and extension command bindings |
 | Extensions | Install, reload, enable, and configure local extensions |
 | Installation | App/runtime versions, architecture, executable and profile location, manual version checker, GitHub repository/releases links, uninstall options |
-
-The manual version checker accesses GitHub anonymously, without using your
-browser's signed-in session. A GitHub 404 can mean a private repository or no
-publicly accessible stable release; it does not prove that no release exists.
-Use **View releases** to check with your signed-in browser account.
 
 Use **Search settings** to find labels and help text across all settings
 sections in the current language. Select a result (or press Enter for the first)

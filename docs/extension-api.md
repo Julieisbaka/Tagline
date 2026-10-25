@@ -169,11 +169,6 @@ initialization and await their registration before the entry script finishes.
 Undeclared permission checks reject API calls. There is no direct Node.js,
 Electron `window.api`, application DOM, profile storage, arbitrary filesystem,
 or network access. The sandbox CSP blocks network requests and external resources.
-Browser APIs available within the sandbox are not a supported way to access
-application data.
-
-Users review permissions, settings, and UI declarations when enabling an
-extension. Changes require review and re-enabling on reload.
 
 ### Resource safeguards
 
@@ -191,10 +186,6 @@ extension. Changes require review and re-enabling on reload.
 Runtime failures are shown in notifications; startup failures appear on the
 extension card. A stopped extension's commands report that it must be reloaded
 or disabled in **Settings > Extensions**.
-
-These safeguards are not hard CPU or memory quotas. Enable only extensions you
-trust; permitted writes can overwrite notes, and stopping a worker does not
-reverse operations already in progress.
 
 ## JavaScript API reference
 
@@ -384,7 +375,7 @@ it. Use `textContent` for data sent over messages.
 Unlike worker entry scripts, webview scripts have DOM access and are not covered
 by the worker heartbeat guard; expensive synchronous scripts can harm renderer
 responsiveness. UI message rates are limited; exceeding the rate closes the
-surface. Enable UI extensions only if you trust their code.
+surface.
 
 ### Theme-aware UI kit
 

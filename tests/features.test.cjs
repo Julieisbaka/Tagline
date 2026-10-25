@@ -116,6 +116,8 @@ test('extension capabilities validate selection, command, helper, event and UI c
     await import('../src/lib/extensionCapabilities.js');
   const cardMarkdown = '#### Climate impact\n\n**Smith 2024**\n\n==The impact is significant.==';
   assert.equal(extensionHelper('helpers.markdown.slugify', ['Climate Impact']), 'climate-impact');
+  await assert.rejects(new ExtensionHost({ permissions: [] }, '', {}).handle('helpers.markdownToText', ['text']),
+    /Unknown/);
   assert.deepEqual(extensionHelper('helpers.markdown.outline', [`# Case\n${cardMarkdown}`]), [
     { level: 1, text: 'Case', line: 0 },
     { level: 4, text: 'Climate impact', line: 1 },

@@ -47,8 +47,8 @@ app.on('browser-window-created', (_event, win) => {
         es: 'Te damos la bienvenida a Tagline', fr: 'Bienvenue dans Tagline', en: 'Welcome to Tagline',
       }[expected]);
       assert.equal(await js("JSON.parse(localStorage.getItem('tagline-settings')).language"), expected);
-      assert.equal(await js("JSON.parse(localStorage.getItem('tagline-settings')).format"), 'highschool',
-        'new profiles and legacy policy preferences use the highschool timer preset');
+      assert.equal(await js("JSON.parse(localStorage.getItem('tagline-settings')).format"),
+        locale === 'saved-en' ? 'policy' : 'highschool', 'unsupported old values are not migrated');
       console.log(`PASS first-run language: ${locale} -> ${expected}`);
       app.exit(0);
     } catch (error) { console.error(error); app.exit(1); }

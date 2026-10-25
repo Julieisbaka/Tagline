@@ -88,11 +88,11 @@ function useCountdown(initial) {
 
 export default function Timer({ format, onFormatChange }) {
   const { t } = useI18n();
-  const fmt = FORMATS[format] || FORMATS.highschool;
+  const fmt = FORMATS[format];
   const [speech, setSpeech] = useState(0);
-  const main = useCountdown(fmt.speeches[0][1] * 60);
-  const aff = useCountdown(fmt.prep * 60);
-  const neg = useCountdown(fmt.prep * 60);
+  const main = useCountdown(fmt ? fmt.speeches[0][1] * 60 : 0);
+  const aff = useCountdown(fmt ? fmt.prep * 60 : 0);
+  const neg = useCountdown(fmt ? fmt.prep * 60 : 0);
 
   const selectSpeech = (i) => {
     setSpeech(i);
@@ -115,6 +115,14 @@ export default function Timer({ format, onFormatChange }) {
   };
 
   const low = main.remaining <= 30 && main.remaining > 0;
+
+  if (!fmt) return <div className="timer">
+    <p role="alert">{t('Unsupported timer preset. Select a current preset.')}</p>
+    <select aria-label={t('Timer preset')} value="" onChange={(event) => changeFormat(event.target.value)}>
+      <option value="" disabled>{t('Select a preset')}</option>
+      {Object.entries(FORMATS).map(([key, value]) => <option key={key} value={key}>{t(value.label)}</option>)}
+    </select>
+  </div>;
 
   return (
     <div className="timer">

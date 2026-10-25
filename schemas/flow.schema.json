@@ -4,6 +4,7 @@
   "description": "Speech-by-speech argument sheets. Runtime validation also checks that each row has exactly as many cells as its sheet has columns.",
   "type": "object",
   "required": [
+    "version",
     "sheets"
   ],
   "properties": {

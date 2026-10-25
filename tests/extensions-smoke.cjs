@@ -42,7 +42,7 @@ tagline.commands.register('capabilities', async () => {
   await tagline.editor.tiptap.runCommand('toggleBold');
   await tagline.storage.set('selectionCheck', (await tagline.editor.tiptap.getSnapshot()).selection);
   await tagline.storage.set('helperCheck', await tagline.helpers.path.join('Folder', '..', 'Card.md'));
-  await tagline.storage.set('textCheck', await tagline.helpers.markdownToText('**Evidence**'));
+  await tagline.storage.set('textCheck', await tagline.helpers.markdown.toText('**Evidence**'));
   await tagline.storage.set('helperLibraryCheck', {
     slug: await tagline.helpers.markdown.slugify('Climate Impact'),
     outline: await tagline.helpers.markdown.outline('# Case\\n\\n#### Card'),

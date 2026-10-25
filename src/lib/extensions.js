@@ -153,7 +153,6 @@ export class ExtensionHost {
         return true;
       }
       case 'helpers.path': return pathHelper(args[0], args.slice(1));
-      case 'helpers.markdownToText':
       case 'helpers.markdown.toText':
       case 'helpers.markdown.frontmatter':
       case 'helpers.markdown.slugify':

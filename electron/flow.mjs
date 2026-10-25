@@ -17,7 +17,7 @@ export function parseFlow(content) {
       sheet.columns.some((column) => typeof column !== 'string') || !Array.isArray(sheet.rows) ||
       sheet.rows.some((row) => !Array.isArray(row) || row.length !== sheet.columns.length ||
         row.some((cell) => typeof cell !== 'string')))) throw new Error('Invalid flow structure.');
-  if (data.version !== undefined && data.version !== 1) throw new Error('Unsupported flow version.');
+  if (data.version !== 1) throw new Error('Unsupported flow version.');
   return data;
 }
 

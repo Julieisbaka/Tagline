@@ -201,8 +201,6 @@
             setCell: (data, sheet, row, column, text) => call('helpers.flow.setCell', data, sheet, row, column, text),
           }),
           path: paths,
-          /** Strip Markdown formatting into readable text; alias of markdown.toText. @returns {Promise<string>} */
-          markdownToText: (markdown) => call('helpers.markdownToText', markdown),
           markdown: Object.freeze({
             /** Convert Markdown to readable plain text. @returns {Promise<string>} */
             toText: (markdown) => call('helpers.markdown.toText', markdown),
