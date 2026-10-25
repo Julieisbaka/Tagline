@@ -251,6 +251,7 @@ export default function FlowEditor({ path, content, mode, onChange, onRestore, f
                         e.target.selectionStart !== e.target.selectionEnd) return;
                       const area = inside(r, c) ? bounds : cellBounds({ row: r, column: c }, { row: r, column: c });
                       if (!inside(r, c)) choose(r, c);
+                      e.currentTarget.querySelector('textarea')?.focus({ preventScroll: true });
                       context(e, [
                       { label: 'Copy cells', run: () => copy(area) },
                       { label: 'Cut cells', run: () => copy(area, true) },
@@ -290,7 +291,8 @@ export default function FlowEditor({ path, content, mode, onChange, onRestore, f
                       }}
                       onPaste={(event) => {
                         const text = event.clipboardData.getData('text/plain');
-                        if (!multi && !text.includes('\t') && !text.includes('\n') && !text.includes('\r')) return;
+                        const quotedCell = event.currentTarget.value === '' && /^"(?:[^"]|"")*"$/s.test(text);
+                        if (!multi && !quotedCell && !/[\t\r\n]/.test(text)) return;
                         event.preventDefault();
                         try { paste(text, multi ? bounds.top : r, multi ? bounds.left : c); }
                         catch (error) { clipboardError(error); }

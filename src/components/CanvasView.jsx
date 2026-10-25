@@ -50,6 +50,11 @@ const CanvasNode = memo(function CanvasNode({
       tabIndex={0} aria-label={t('Canvas node: {type}', { type: t(node.type) })}
       onKeyDown={(event) => {
         if (event.target !== event.currentTarget) return;
+        if (event.key === 'Enter' || event.key === ' ') {
+          event.preventDefault();
+          onSelect(node.id);
+          return;
+        }
         if (event.key === 'ContextMenu' || (event.key === 'F10' && event.shiftKey)) {
           event.preventDefault();
           const rect = event.currentTarget.getBoundingClientRect();
@@ -371,7 +376,8 @@ function CanvasBoard({ canvas, onChange, paths, contents, onOpenFile, onOpenUrl,
     if (connecting && data.type === 'move') {
       selectNode(data.id);
       suppressClick.current = true;
-      event.currentTarget.focus({ preventScroll: true });
+      event.currentTarget.setPointerCapture(event.pointerId);
+      event.currentTarget.closest('[data-node-id]')?.focus({ preventScroll: true });
       return;
     }
     const { id, type, width: nodeWidth, height: nodeHeight } = data;
@@ -410,7 +416,6 @@ function CanvasBoard({ canvas, onChange, paths, contents, onOpenFile, onOpenUrl,
     const current = gestureRef.current;
     if (current) {
       suppressClick.current = !!current.moved || current.type === 'resize';
-      setTimeout(() => { suppressClick.current = false; }, 0);
       if (current.type === 'move' && current.moved) update(moveCanvasNodes(canvas, current.ids,
         Math.round(current.dx), Math.round(current.dy)));
       else if (current.type === 'resize') updateNode(current.id, {
@@ -419,6 +424,7 @@ function CanvasBoard({ canvas, onChange, paths, contents, onOpenFile, onOpenUrl,
       });
     }
     gestureRef.current = null;
+    setTimeout(() => { suppressClick.current = false; }, 0);
     setGesture(null);
   };
   const cancelConnection = () => {

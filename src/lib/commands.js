@@ -44,7 +44,7 @@ export function buildCommands(ctx, overrides = {}) {
     );
   }
   const markdownOnly = ['export-note', 'test-hypothesis', 'highlight-only', 'send-card', 'insert-template', 'set-speech'];
-  const available = list.filter((item) => ctx.isMarkdown !== false || !markdownOnly.includes(item.id));
+  const available = list.filter((item) => ctx.isMarkdown || !markdownOnly.includes(item.id));
   for (const item of KEYBINDINGS) {
     if (available.some((command) => command.id === item.id)) continue;
     if (item.markdown && !ctx.isMarkdown) continue;

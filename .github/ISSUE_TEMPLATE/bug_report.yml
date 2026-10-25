@@ -1,0 +1,85 @@
+name: Bug report
+description: Report a problem with Tagline.
+title: "[Bug]: "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for helping improve Tagline! Search existing issues before submitting.
+        Issues and attachments are public. Remove private debate material, credentials,
+        webhook secrets, and personal information from examples, screenshots, and logs.
+  - type: textarea
+    id: problem
+    attributes:
+      label: What went wrong?
+      description: Describe the problem and how it affects your work.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: Include the steps needed to reproduce the problem. If it is intermittent, describe when it happens.
+      placeholder: |
+        1. Open...
+        2. Click...
+        3. Observe...
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+      description: What should have happened instead?
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Tagline version
+      description: Find the version in Settings > Installation. For development builds, include the commit if known.
+      placeholder: "Version number or development commit"
+    validations:
+      required: true
+  - type: dropdown
+    id: platform
+    attributes:
+      label: Operating system
+      options:
+        - Windows
+        - macOS (Apple Silicon)
+        - macOS (Intel)
+        - Other
+    validations:
+      required: true
+  - type: input
+    id: os_version
+    attributes:
+      label: Operating system version
+      placeholder: "For example, Windows 11 24H2 or macOS 15.0"
+    validations:
+      required: true
+  - type: dropdown
+    id: installation
+    attributes:
+      label: Installation type
+      options:
+        - Published release
+        - Development build / running from source
+        - Other / not sure
+    validations:
+      required: true
+  - type: textarea
+    id: context
+    attributes:
+      label: Relevant settings and context
+      description: |
+        If relevant, include the file type (Markdown, flow, or Canvas), editor mode,
+        theme, extensions, custom CSS, experimental settings, and whether this started after an update.
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Screenshots, logs, or minimal example
+      description: |
+        Add screenshots, exact error messages, or a small sanitized example file if helpful.
+        Do not upload an entire private vault. Back up files before testing a possible data-loss bug.

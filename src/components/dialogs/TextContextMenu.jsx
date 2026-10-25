@@ -18,13 +18,18 @@ export default function TextContextMenu() {
       const selected = inputSelection ? inputSelection[0] !== inputSelection[1] : !!selection?.toString();
       const run = (action) => async () => {
         await Promise.resolve();
+        if ((target && !target.isConnected) || (range && !range.startContainer.isConnected)) {
+          throw new Error('The selected text is no longer available.');
+        }
         target?.focus({ preventScroll: true });
         if (!target) document.activeElement?.blur();
         if (inputSelection) target.setSelectionRange(...inputSelection);
         else if (range) { selection.removeAllRanges(); selection.addRange(range); }
         await window.api.editText(action);
       };
-      setMenu({ x: event.clientX, y: event.clientY, items: [
+      const rect = event.target.getBoundingClientRect();
+      const keyboard = event.clientX === 0 && event.clientY === 0;
+      setMenu({ x: keyboard ? rect.left + 16 : event.clientX, y: keyboard ? rect.top + 16 : event.clientY, items: [
         ...(editable ? [{ label: 'Undo', run: run('undo') }, { label: 'Redo', run: run('redo') }] : []),
         ...(editable ? [{ label: 'Cut', disabled: !selected, run: run('cut') }] : []),
         { label: 'Copy', disabled: !selected, run: run('copy') },
