@@ -165,6 +165,42 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
         assert.equal(await js("JSON.parse(localStorage.getItem('tagline-settings')).speechDoc"), 'Legacy.md');
         await js("document.querySelector('[title=\"Current speech document\"]').click()");
         await wait("document.querySelector('.note-title')?.value === 'Legacy'");
+        await fs.mkdir(path.join(vault, 'Templates'));
+        await fs.writeFile(path.join(vault, 'Templates', 'Context.md'),
+          '\n\nPATH={{path}}\nBODY={{content}}\nPROPERTIES={{properties}}\nEND\n');
+        await reload();
+        await open('Legacy.md');
+        await wait("!!document.querySelector('.visual-document')");
+        const beforeTemplate = await fs.readFile(path.join(vault, 'Legacy.md'), 'utf8');
+        const choosePalette = async (label) => {
+          await wait(`!![...document.querySelectorAll('.palette-item')].find(el => el.querySelector('span')?.textContent === ${JSON.stringify(label)})`);
+          await js(`[...document.querySelectorAll('.palette-item')].find(el => el.querySelector('span')?.textContent === ${JSON.stringify(label)}).click()`);
+        };
+        await js("document.querySelector('.ribbon [data-ribbon-item=commands]').click()");
+        await choosePalette('Insert template at cursor');
+        await choosePalette('Context');
+        let templated;
+        for (let i = 0; i < 100; i++) {
+          templated = await fs.readFile(path.join(vault, 'Legacy.md'), 'utf8');
+          if (templated.includes('PATH=Legacy.md')) break;
+          await delay(50);
+        }
+        assert.ok(templated.includes('PATH=Legacy.md'));
+        assert.ok(templated.includes('Existing speech'), 'target body is available to the template');
+        assert.ok(templated.includes('PROPERTIES='), 'target YAML is available to the template');
+        assert.equal(templated.split('---')[1], beforeTemplate.split('---')[1],
+          'template insertion preserves the target frontmatter');
+        await js("document.querySelector('.ribbon [data-ribbon-item=commands]').click()");
+        await choosePalette('Create new note from template');
+        await choosePalette('Context');
+        await wait("!!document.querySelector('.dialog input')");
+        await js("document.querySelector('.dialog input').focus(); document.querySelector('.dialog input').select()");
+        await wc.insertText('Created Target');
+        await js("[...document.querySelectorAll('.dialog button')].find(b => b.textContent === 'OK').click()");
+        await wait("document.querySelector('.note-title')?.value === 'Created Target'");
+        const newNote = await fs.readFile(path.join(vault, 'Created Target.md'), 'utf8');
+        assert.ok(newNote.includes('PATH=Created Target.md'));
+        assert.ok(newNote.includes('BODY=\nPROPERTIES=\nEND'), 'new-note body and properties start empty');
         assert.deepEqual(errors, []);
         console.log('PASS: YAML survives visual edits, speech files are discovered/selected/marked, invalid metadata is preserved, and source/visual send-card saves persist.');
         app.exit(0);

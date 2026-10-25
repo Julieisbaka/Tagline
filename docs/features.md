@@ -114,7 +114,13 @@ simulation after release. Refreshing preserves the current layout. Scrolling
 zooms around the pointer; further scrolling at either zoom limit leaves the
 camera unchanged.
 Put reusable Markdown in `Templates/`; placeholders include `{{date}}`,
-`{{time}}`, and `{{title}}`.
+`{{time}}`, `{{title}}`, `{{path}}`, `{{content}}`, and `{{properties}}`.
+`{{path}}` is the target note's vault-relative filename (including `.md`).
+`{{content}}` is its Markdown body without frontmatter; `{{properties}}` is its
+raw YAML without `---` delimiters, preserving comments and formatting.
+When creating a new note, content and properties are empty. When inserting into
+an existing note, they come from that note before insertion. Placeholder values
+are inserted literally without recursively expanding placeholders inside them.
 
 Use any `.canvas` file to connect nodes as supporting, answering, or contradicting
 arguments; no separate mode is needed. Choose a relation, select

@@ -482,8 +482,13 @@ preceding heading. Speech helpers provide `analyze(text)` and
 `estimate(text, wordsPerMinute = 250)`; estimates include the analysis fields
 and `seconds`. `citations.create(details)` formats citation Markdown;
 `search.fuzzyScore(query, text)` returns a relevance score; and
-`templates.fill(template, title)` replaces `{{date}}`, `{{time}}`, and
-`{{title}}`.
+`templates.fill(template, title, context = {})` replaces `{{date}}`, `{{time}}`,
+`{{title}}`, `{{path}}`, `{{content}}`, and `{{properties}}`. Supply the target
+note's vault-relative `path` and full Markdown `content` in the optional context.
+`{{content}}` expands to the body without frontmatter; `{{properties}}` expands
+to raw YAML without delimiter lines, preserving comments and formatting.
+Omitted values expand to empty strings. Values are substituted literally in
+one pass, not recursively. Unknown placeholders remain unchanged.
 
 Text inputs are limited to 100,000 characters; estimates accept speaking rates
 from 50 to 1,000 WPM. These helpers are pure and require no permission. Use the

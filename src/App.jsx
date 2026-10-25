@@ -303,14 +303,19 @@ export default function App() {
     newFolder: () => actions.newFolder(),
     newFromTemplate: () =>
       pickTemplate((tp) =>
-        prompt(t('Name for the new note'), baseName(tp), (name) =>
-          createAndOpen(`${name.replace(/[\\/:*?"<>|]/g, '-')}.md`, fillTemplate(v.contents[tp] || '', name)),
-        ),
+        prompt(t('Name for the new note'), baseName(tp), (name) => {
+          const path = `${name.replace(/[\\/:*?"<>|]/g, '-')}.md`;
+          return createAndOpen(path, fillTemplate(v.contents[tp] || '', name, { path }));
+        }),
       ),
-    insertTemplate: () =>
-      pickTemplate((tp) => {
-        const template = fillTemplate(v.contents[tp] || '', baseName(activePath));
-        if (mode === 'visual' && visualRef.current) {
+    insertTemplate: () => {
+      if (!activePath || !isMarkdown(activePath) || mode === 'read') {
+        return notify(t('Switch to an editing mode to insert a template'));
+      }
+      return pickTemplate((tp) => {
+        const template = fillTemplate(v.contents[tp] || '', baseName(activePath),
+          { path: activePath, content: activeContent || '' });
+        if (mode === 'visual' && !sourceFallback && visualRef.current) {
           visualRef.current.chain().focus().insertContent(template, { contentType: 'markdown' }).run();
           return;
         }
@@ -319,7 +324,8 @@ export default function App() {
         view.dispatch(view.state.replaceSelection(template));
         view.focus();
         return undefined;
-      }),
+      });
+    },
     openGraph: tabs.openGraph,
     openSettings: actions.settings,
     toggleLeft: () => setShowLeft((s) => !s),

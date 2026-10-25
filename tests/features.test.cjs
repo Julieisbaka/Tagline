@@ -7,6 +7,23 @@ const fsAsync = require('node:fs/promises');
 const os = require('node:os');
 const { promisify } = require('node:util');
 
+test('template placeholders use literal target paths, Markdown bodies and raw YAML properties', async () => {
+  const { fillTemplate } = await import('../src/lib/template.js');
+  const prefix = '---\r\n# Keep this\r\ntitle: "Speech"\r\nspeech: true\r\n---\r\n';
+  const body = '# Evidence\n\nLiteral {{title}} and $& and {{path}}.\n';
+  assert.equal(fillTemplate('{{path}}\n{{properties}}{{content}}', 'Target',
+    { path: 'Cards/Target.md', content: prefix + body }),
+  'Cards/Target.md\n# Keep this\r\ntitle: "Speech"\r\nspeech: true\r\n' + body);
+  assert.equal(fillTemplate('{{path}}|{{content}}|{{properties}}', 'New', { path: 'New.md' }), 'New.md||');
+  assert.equal(fillTemplate('{{content}}|{{properties}}', 'Plain', { content: '# Plain' }), '# Plain|');
+  assert.equal(fillTemplate('{{title}} {{title}} {{unknown}}', '$& {{path}}'), '$& {{path}} $& {{path}} {{unknown}}');
+  assert.match(fillTemplate('{{date}} {{time}}', ''), /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}$/);
+  assert.equal(fillTemplate('{{path}}{{content}}{{properties}}', 'Legacy'), '');
+  const invalid = '---\nbroken: [\n---\n# Body';
+  assert.equal(fillTemplate('{{properties}}{{content}}', '', { content: invalid }), 'broken: [\n# Body',
+    'raw properties are not parsed or rewritten');
+});
+
 test('sidebar shortcut order is normalized and drag reordering is stable', async () => {
   const { DEFAULT_RIBBON_ITEMS, moveRibbonItem, normalizeRibbonItems } =
     await import('../src/lib/ribbonItems.js');
@@ -119,6 +136,12 @@ test('extension capabilities validate selection, command, helper, event and UI c
     '**Smith 2024** — "A claim"');
   assert.equal(extensionHelper('helpers.search.fuzzyScore', ['deb', 'debate']), 999.4);
   assert.equal(extensionHelper('helpers.templates.fill', ['{{title}}', 'Case']), 'Case');
+  assert.equal(extensionHelper('helpers.templates.fill', ['{{path}}\n{{properties}}\n{{content}}', 'Case',
+    { path: 'Cards/Case.md', content: '---\nspeech: true\n---\n# Case' }]),
+  'Cards/Case.md\nspeech: true\n\n# Case');
+  for (const context of [null, [], 'bad', { path: 42 }, { content: false }]) {
+    assert.throws(() => extensionHelper('helpers.templates.fill', ['', 'Case', context]), /Template context|Path|Content/);
+  }
   assert.ok(extensionHelper('helpers.speech.analyze', ['A short speech.']).spokenWords > 0);
   assert.ok(extensionHelper('helpers.speech.estimate', ['A short speech.', 250]).seconds > 0);
   assert.throws(() => extensionHelper('helpers.cards.getAt', [cardMarkdown, -1]), /Offset/);

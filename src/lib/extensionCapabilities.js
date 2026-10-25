@@ -202,8 +202,16 @@ export function extensionHelper(method, args) {
     }
     case 'helpers.search.fuzzyScore':
       return fuzzyScore(requireHelperText(args[0], 'Query'), requireHelperText(args[1], 'Text'));
-    case 'helpers.templates.fill':
-      return fillTemplate(requireHelperText(args[0], 'Template'), requireHelperText(args[1], 'Title'));
+    case 'helpers.templates.fill': {
+      const context = args[2] === undefined ? {} : args[2];
+      if (!context || typeof context !== 'object' || Array.isArray(context)) {
+        throw new Error('Template context must be an object.');
+      }
+      return fillTemplate(requireHelperText(args[0], 'Template'), requireHelperText(args[1], 'Title'), {
+        path: requireHelperText(context.path === undefined ? '' : context.path, 'Path'),
+        content: requireHelperText(context.content === undefined ? '' : context.content, 'Content'),
+      });
+    }
     case 'helpers.citations.create': {
       const input = args[0];
       if (!input || typeof input !== 'object' || Array.isArray(input)) {

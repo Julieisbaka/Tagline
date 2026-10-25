@@ -240,8 +240,8 @@
             fuzzyScore: (query, text) => call('helpers.search.fuzzyScore', query, text),
           }),
           templates: Object.freeze({
-            /** Expand template placeholders such as title and date. @returns {Promise<string>} */
-            fill: (template, title) => call('helpers.templates.fill', template, title),
+            /** Expand date/time/title and target path/body/YAML properties; context is optional {path,content} with full Markdown content. @returns {Promise<string>} */
+            fill: (template, title, context) => call('helpers.templates.fill', template, title, context),
           }),
           speech: Object.freeze({
             /** Analyze spoken words, syllables and reading effort. @returns {Promise<object>} */
