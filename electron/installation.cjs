@@ -36,7 +36,9 @@ async function checkForUpdates(currentVersion, fetchImpl = fetch) {
     headers: { Accept: 'application/vnd.github+json', 'User-Agent': 'Tagline-release-check' },
     signal: AbortSignal.timeout(15000), redirect: 'error', credentials: 'omit',
   });
-  if (response.status === 404) throw new Error('No published GitHub release is available yet.');
+  if (response.status === 404) {
+    throw new Error("GitHub could not find a release accessible without signing in (HTTP 404). The repository may be private, or no stable release may be publicly available. This check does not use your browser's GitHub sign-in. Open View releases to check with your signed-in account.");
+  }
   if (response.status === 403 || response.status === 429) throw new Error('GitHub rate limit reached. Try again later.');
   if (!response.ok) throw new Error(`GitHub release check failed (HTTP ${response.status}).`);
   const release = await response.json();

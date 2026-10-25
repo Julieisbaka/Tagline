@@ -29,7 +29,7 @@ test('manual release checks use the public GitHub endpoint and report failures e
   assert.deepEqual(result, { currentVersion: '1.0.0', latestVersion: 'v1.1.0', updateAvailable: true });
   const current = await checkForUpdates('2.0.0', async () => ({ ok: true, json: async () => ({ tag_name: 'v1.0.0' }) }));
   assert.equal(current.updateAvailable, false, 'a development build ahead of releases is not an update');
-  for (const [status, message] of [[404, /No published/], [403, /rate limit/], [429, /rate limit/], [500, /HTTP 500/]]) {
+  for (const [status, message] of [[404, /accessible without signing in.*HTTP 404.*repository may be private/], [403, /rate limit/], [429, /rate limit/], [500, /HTTP 500/]]) {
     await assert.rejects(checkForUpdates('1.0.0', async () => ({ ok: false, status })), message);
   }
   await assert.rejects(checkForUpdates('1.0.0', async () => ({ ok: true, json: async () => ({ tag_name: 'broken' }) })), /semantic/);

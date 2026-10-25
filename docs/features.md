@@ -256,6 +256,11 @@ Settings save automatically on your device. Main options include:
 | Extensions | Install, reload, enable, and configure local extensions |
 | Installation | App/runtime versions, architecture, executable and profile location, manual version checker, GitHub repository/releases links, uninstall options |
 
+The manual version checker accesses GitHub anonymously, without using your
+browser's signed-in session. A GitHub 404 can mean a private repository or no
+publicly accessible stable release; it does not prove that no release exists.
+Use **View releases** to check with your signed-in browser account.
+
 `Mod` means Ctrl on Windows/Linux and Cmd on macOS. Change shortcuts in
 **Settings > Keyboard shortcuts**.
 
