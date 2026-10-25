@@ -1,6 +1,9 @@
 import { useEffect, useId, useLayoutEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { dateValue, monthDays, moveMonth, parseDate } from '../lib/calendar.js';
+import { containFocus, trapTabKey } from '../lib/focusScope.js';
 import { useI18n } from '../lib/i18n.js';
+import Icon from './Icon.jsx';
 
 export default function DatePicker({ name, label, value, onChange }) {
   const { t, locale } = useI18n();
@@ -8,6 +11,7 @@ export default function DatePicker({ name, label, value, onChange }) {
   const root = useRef(null);
   const toggle = useRef(null);
   const input = useRef(null);
+  const popup = useRef(null);
   const [open, setOpen] = useState(false);
   const [focused, setFocused] = useState(() => parseDate(value) || new Date());
   const focusDay = useRef(false);
@@ -19,13 +23,46 @@ export default function DatePicker({ name, label, value, onChange }) {
   }, [value, t, locale]);
   useEffect(() => {
     if (!open) return;
-    const outside = (event) => { if (!root.current.contains(event.target)) setOpen(false); };
+    const outside = (event) => {
+      if (!root.current.contains(event.target) && !popup.current?.contains(event.target)) setOpen(false);
+    };
+    const blur = () => setOpen(false);
     document.addEventListener('pointerdown', outside, true);
-    return () => document.removeEventListener('pointerdown', outside, true);
+    window.addEventListener('blur', blur);
+    return () => {
+      document.removeEventListener('pointerdown', outside, true);
+      window.removeEventListener('blur', blur);
+    };
+  }, [open]);
+  useLayoutEffect(() => {
+    if (!open) return;
+    const position = () => {
+      const field = root.current.getBoundingClientRect();
+      const calendar = popup.current;
+      const gap = 4;
+      const below = innerHeight - field.bottom - gap;
+      const above = field.top - gap;
+      calendar.style.maxHeight = `${Math.max(0, Math.max(below, above) - gap)}px`;
+      const height = calendar.offsetHeight;
+      calendar.style.left = `${Math.max(gap, Math.min(field.right - calendar.offsetWidth, innerWidth - calendar.offsetWidth - gap))}px`;
+      calendar.style.top = `${Math.max(gap, below >= height || below >= above ? field.bottom + gap : field.top - height - gap)}px`;
+    };
+    position();
+    const observer = new ResizeObserver(position);
+    observer.observe(popup.current);
+    window.addEventListener('resize', position);
+    document.addEventListener('scroll', position, true);
+    const releaseFocus = containFocus(popup.current, toggle.current, false);
+    return () => {
+      observer.disconnect();
+      window.removeEventListener('resize', position);
+      document.removeEventListener('scroll', position, true);
+      releaseFocus();
+    };
   }, [open]);
   useLayoutEffect(() => {
     if (open && focusDay.current) {
-      root.current.querySelector(`[data-date="${dateValue(focused)}"]`)?.focus({ preventScroll: true });
+      popup.current.querySelector(`[data-date="${dateValue(focused)}"]`)?.focus({ preventScroll: true });
       focusDay.current = false;
     }
   }, [open, focused]);
@@ -34,7 +71,7 @@ export default function DatePicker({ name, label, value, onChange }) {
   const monthLabel = focused.toLocaleDateString(locale, { month: 'long', year: 'numeric' });
   const weekday = new Intl.DateTimeFormat(locale, { weekday: 'short' });
   return <div className="date-picker" ref={root} onBlur={(event) => {
-    if (!event.currentTarget.contains(event.relatedTarget)) setOpen(false);
+    if (!event.currentTarget.contains(event.relatedTarget) && !popup.current?.contains(event.relatedTarget)) setOpen(false);
   }} onKeyDown={(event) => {
     if (open && event.key === 'Escape') {
       event.preventDefault(); event.stopPropagation(); close();
@@ -51,12 +88,18 @@ export default function DatePicker({ name, label, value, onChange }) {
           }
         }} />
       <button ref={toggle} type="button" aria-label={t('Choose date')} aria-expanded={open}
+        aria-haspopup="dialog" title={t('Choose date')}
         aria-controls={`${id}-calendar`} onClick={() => {
           if (open) return close();
           focusDay.current = true; setFocused(parseDate(value) || new Date()); setOpen(true);
-        }}>{t('Calendar')}</button>
+        }}><Icon name="calendar" /></button>
     </div>
-    {open && <div id={`${id}-calendar`} className="date-picker-calendar" role="group" aria-label={t('Choose date')}>
+    {open && createPortal(<div ref={popup} id={`${id}-calendar`} className="date-picker-calendar"
+      role="dialog" aria-label={t('Choose date')} tabIndex={-1}
+      onMouseDown={(event) => event.stopPropagation()}
+      onKeyDown={(event) => {
+        if (event.key === 'Tab') { trapTabKey(event, popup.current); event.stopPropagation(); }
+      }}>
       <div className="date-picker-navigation">
         <button type="button" aria-label={t('Previous month')} onClick={() => setFocused(moveMonth(focused, -1))}>&lt;</button>
         <span aria-live="polite">{monthLabel}</span>
@@ -97,6 +140,6 @@ export default function DatePicker({ name, label, value, onChange }) {
         <button type="button" onClick={() => select(new Date())}>{t('Today')}</button>
         <button type="button" onClick={() => { onChange(''); close(); }}>{t('Clear')}</button>
       </div>
-    </div>}
+    </div>, document.body)}
   </div>;
 }

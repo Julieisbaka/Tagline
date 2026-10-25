@@ -115,26 +115,49 @@ const delay = (ms) => new Promise((r) => setTimeout(r, ms));
         await input('[name=title]', 'A study');
         assert.equal(await js("document.querySelector('[name=accessed]').type"), 'text', 'no native date control remains');
         await input('[name=accessed]', '2024-01-31');
-        await click('.date-picker button', 'Calendar');
+        const openCalendar = () => js("document.querySelector('.date-picker [aria-label=\"Choose date\"]').click()");
+        const dialogHeight = await js("document.querySelector('.citation-dialog').getBoundingClientRect().height");
+        await openCalendar();
         await wait("document.activeElement.dataset.date === '2024-01-31'");
+        assert.equal(await js("document.querySelector('.citation-dialog').getBoundingClientRect().height"), dialogHeight,
+          'opening the picker must not resize the form');
+        assert.equal(await js("document.querySelector('.date-picker-calendar').parentElement === document.body"), true,
+          'the calendar floats outside the scrolling form');
+        assert.ok(await js(`(() => {
+          const r = document.querySelector('.date-picker-calendar').getBoundingClientRect();
+          return r.left >= 0 && r.top >= 0 && r.right <= innerWidth && r.bottom <= innerHeight;
+        })()`), 'popup stays inside the viewport');
+        assert.equal(await js("getComputedStyle(document.querySelector('.date-picker')).width"), '200px');
         await js("document.activeElement.dispatchEvent(new KeyboardEvent('keydown', { key: 'PageDown', bubbles: true, cancelable: true }))");
         await wait("document.activeElement.dataset.date === '2024-02-29'");
         await js("document.activeElement.click()");
         await wait("!document.querySelector('.date-picker-calendar')");
         assert.equal(await js("document.querySelector('[name=accessed]').value"), '2024-02-29');
         assert.equal(await js("document.activeElement.getAttribute('aria-label')"), 'Choose date');
-        await click('.date-picker button', 'Calendar');
+        await openCalendar();
         await wait("!!document.querySelector('.date-picker-calendar')");
+        await js(`document.querySelector('.date-picker-calendar [aria-label="Next month"]').click()`);
+        await wait("document.querySelector('.date-picker-calendar [role=grid]').getAttribute('aria-label').includes('March')");
+        assert.equal(await js("document.querySelector('[name=accessed]').value"), '2024-02-29',
+          'browsing months does not commit a date');
+        await js(`document.querySelector('.date-picker-calendar [aria-label="Previous month"]').click()`);
+        await js(`(() => {
+          const last = document.querySelector('.date-picker-actions button:last-child'); last.focus();
+          last.dispatchEvent(new KeyboardEvent('keydown', { key: 'Tab', bubbles: true, cancelable: true }));
+        })()`);
+        assert.equal(await js("document.activeElement.getAttribute('aria-label')"), 'Previous month',
+          'Tab stays inside the open calendar');
+        await js(`document.querySelector('.date-picker-calendar [data-date="2024-02-29"]').focus()`);
         await js("document.activeElement.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true, cancelable: true }))");
         await wait("document.activeElement.dataset.date === '2024-03-01'");
         await js("document.activeElement.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }))");
         await wait("!document.querySelector('.date-picker-calendar')");
         assert.ok(await js("!!document.querySelector('.citation-dialog')"), 'Escape closes the calendar, not the citation dialog');
         assert.equal(await js("document.querySelector('[name=accessed]').value"), '2024-02-29', 'navigation without selection does not change the value');
-        await click('.date-picker button', 'Calendar');
+        await openCalendar();
         await click('.date-picker-actions button', 'Clear');
         assert.equal(await js("document.querySelector('[name=accessed]').value"), '');
-        await click('.date-picker button', 'Calendar');
+        await openCalendar();
         await click('.date-picker-actions button', 'Today');
         assert.equal(await js("document.querySelector('[name=accessed]').value"), await js(`(() => {
           const now = new Date();
@@ -144,7 +167,7 @@ const delay = (ms) => new Promise((r) => setTimeout(r, ms));
         await click('.citation-dialog button', 'Copy citation');
         await wait("document.querySelector('.citation-dialog [role=alert]')?.textContent.includes('valid date')");
         await input('[name=accessed]', '2024-02-29');
-        await click('.date-picker button', 'Calendar');
+        await openCalendar();
         assert.equal(await js(`(() => {
           const calendar = document.querySelector('.date-picker-calendar');
           const probe = document.createElement('span');
@@ -154,6 +177,17 @@ const delay = (ms) => new Promise((r) => setTimeout(r, ms));
           probe.remove();
           return matches;
         })()`), true, 'calendar uses theme tokens');
+        await js(`(() => {
+          const el = document.querySelector('[name=author]');
+          el.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true })); el.focus();
+        })()`);
+        await wait("!document.querySelector('.date-picker-calendar')");
+        assert.ok(await js("!!document.querySelector('.citation-dialog')"), 'clicking elsewhere dismisses only the calendar');
+        await js(`(() => {
+          const el = document.querySelector('[name=accessed]'); el.focus();
+          el.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', altKey: true, bubbles: true, cancelable: true }));
+        })()`);
+        await wait("document.activeElement.dataset.date === '2024-02-29'");
         await js("document.querySelector('[name=author]').focus()");
         await wait("!document.querySelector('.date-picker-calendar')");
         await click('.citation-dialog button', 'Insert citation');
