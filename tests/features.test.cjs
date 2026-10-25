@@ -462,6 +462,13 @@ test('extension vault mutation and watch APIs enforce permissions and clean up s
 });
 
 test('translations have matching keys and preserve every interpolation', () => {
+  const { parseDocument } = require('yaml');
+  for (const file of fs.readdirSync(path.join(__dirname, '../src/locales')).filter((name) => name.endsWith('.json'))) {
+    const source = fs.readFileSync(path.join(__dirname, '../src/locales', file), 'utf8');
+    JSON.parse(source);
+    const document = parseDocument(source, { uniqueKeys: true });
+    assert.deepEqual(document.errors.map((error) => error.message), [], `${file} must not contain duplicate keys`);
+  }
   const es = require('../src/locales/es.json');
   const fr = require('../src/locales/fr.json');
   assert.deepEqual(Object.keys(es).sort(), Object.keys(fr).sort());

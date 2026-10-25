@@ -1,0 +1,67 @@
+.modal-backdrop.google-docs-backdrop {
+  align-items: center;
+  padding: 24px;
+}
+
+.google-docs-setup {
+  width: min(700px, calc(100vw - 48px));
+  max-height: calc(100vh - 48px);
+  overflow-y: auto;
+}
+
+.google-docs-setup li {
+  margin-block: 10px;
+}
+
+.google-docs-script,
+.google-docs-script textarea {
+  display: block;
+  width: 100%;
+}
+
+.google-docs-script textarea {
+  margin-top: 8px;
+  min-height: 180px;
+  resize: vertical;
+  font-family: monospace;
+  font-size: 12px;
+}
+
+.google-docs-setup p {
+  overflow-wrap: anywhere;
+  color: var(--text-muted);
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.google-docs-setup .error-text {
+  color: var(--danger);
+}
+
+.uninstall-dialog label {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin: 14px 0;
+  cursor: pointer;
+}
+
+.uninstall-dialog label input {
+  margin-top: 3px;
+  accent-color: var(--accent);
+}
+
+.uninstall-dialog label span,
+.uninstall-dialog label small {
+  display: block;
+}
+
+.uninstall-dialog label small {
+  margin-top: 4px;
+  color: var(--text-muted);
+}
+
+.uninstall-dialog .danger,
+.installation-settings>.danger {
+  color: var(--danger);
+}

@@ -1,0 +1,241 @@
+.note-header {
+  flex-wrap: wrap;
+}
+
+.note-title {
+  min-width: 120px;
+}
+
+.note-actions {
+  margin-left: auto;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  min-width: 0;
+}
+
+.visual-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 8px 16px;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg);
+  position: sticky;
+  top: 0;
+  z-index: 2;
+}
+
+.visual-toolbar button {
+  font-size: 12px;
+  padding: 3px 7px;
+}
+
+.visual-toolbar button.active {
+  background: var(--bg-hover);
+  color: var(--text-strong);
+  border-color: var(--accent);
+}
+
+.visual-document {
+  padding: 24px 32px 40vh;
+  min-height: 70vh;
+  font-size: var(--editor-font-size);
+  line-height: var(--visual-line-height, 1.65);
+  outline: none;
+  user-select: text;
+}
+
+.editor .cm-editor.cm-focused {
+  outline: none;
+}
+
+.visual-document:focus-visible,
+.editor .cm-content:focus-visible {
+  outline: none;
+}
+
+.editor-focus-outline .visual-document:focus-visible,
+.editor-focus-outline .editor .cm-content:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+
+.note-properties {
+  padding: 8px 20px;
+  border-bottom: 1px solid var(--border);
+  color: var(--text-muted);
+}
+
+.note-properties pre {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  user-select: text;
+}
+
+.readable .visual-document {
+  max-width: var(--readable-content-width, 820px);
+  margin: 0 auto;
+}
+
+.visual-document .internal-link {
+  color: var(--accent);
+  cursor: pointer;
+}
+
+.visual-document .ProseMirror-selectednode {
+  outline: 1px solid var(--accent);
+}
+
+.visual-document ul[data-type="taskList"] {
+  list-style: none;
+  padding-left: 8px;
+}
+
+.visual-document li[data-type="taskItem"] {
+  display: flex;
+  gap: 8px;
+}
+
+.visual-document li[data-type="taskItem"]>div {
+  flex: 1;
+}
+
+.visual-link-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 8px 16px;
+}
+
+.visual-link-form input {
+  flex: 1;
+}
+
+.wiki-link-picker {
+  position: relative;
+  flex: 1;
+  min-width: 180px;
+}
+
+.wiki-link-picker input {
+  width: 100%;
+}
+
+.wiki-link-options {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  max-height: 240px;
+  overflow-y: auto;
+  z-index: 20;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 4px;
+  background: var(--bg-elevated);
+  box-shadow: 0 8px 24px var(--shadow);
+}
+
+.wiki-link-options button {
+  display: block;
+  width: 100%;
+  text-align: left;
+  border: 0;
+  background: transparent;
+  overflow-wrap: anywhere;
+}
+
+.wiki-link-options button[aria-selected="true"] {
+  background: var(--accent-dim);
+  color: var(--accent);
+}
+
+.wiki-link-options button:active {
+  transform: none;
+}
+
+.visual-find {
+  padding: 8px 16px;
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--border);
+}
+
+.visual-find-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin: 4px 0;
+  font-size: 12px;
+}
+
+.visual-find-row>input {
+  flex: 1 1 180px;
+  min-width: 100px;
+}
+
+.visual-find-row label {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.visual-find-row input[type="checkbox"] {
+  accent-color: var(--accent);
+}
+
+.custom-css-editor {
+  display: grid;
+  gap: 8px;
+  font-size: 13px;
+  margin: 12px 0;
+}
+
+.custom-css-editor small {
+  color: var(--text-muted);
+  font-weight: normal;
+}
+
+.custom-css-editor .cm-editor {
+  font-family: var(--font-mono);
+  background: var(--bg-secondary);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}
+
+.custom-css-editor .cm-editor.cm-focused {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.custom-css-editor .cm-gutters {
+  background: var(--bg-secondary);
+  color: var(--text-muted);
+  border-right: 1px solid var(--border);
+}
+
+.custom-css-editor .cm-activeLine,
+.custom-css-editor .cm-activeLineGutter {
+  background: color-mix(in srgb, var(--accent) 8%, transparent);
+}
+
+.custom-css-editor .cm-content {
+  caret-color: var(--accent);
+}
+
+.find-and-replace-result {
+  background: var(--highlight-bg);
+  color: var(--highlight-text);
+  outline: 1px solid var(--border);
+}
+
+.find-and-replace-result-current {
+  outline: 2px solid var(--accent);
+}
+
+.editor-notice {
+  padding: 8px 16px;
+  background: var(--accent-dim);
+  font-size: 12px;
+}
