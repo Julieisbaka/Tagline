@@ -255,7 +255,7 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
           const editor = document.querySelector('.visual-document');
           editor.focus();
           const range = document.createRange();
-          range.selectNodeContents(editor.querySelector('p'));
+          range.selectNodeContents(editor.querySelector('mark'));
           const selection = window.getSelection(); selection.removeAllRanges(); selection.addRange(range);
           window.expectedTextCopy = selection.toString();
         })()`);
