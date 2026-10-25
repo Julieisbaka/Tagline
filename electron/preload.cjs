@@ -4,6 +4,16 @@ contextBridge.exposeInMainWorld('api', {
   platform: process.platform,
   getInstallationInfo: () => ipcRenderer.invoke('app:installation'),
   uninstallApp: (removeProfile) => ipcRenderer.invoke('app:uninstall', removeProfile),
+  googleDocs: {
+    status: () => ipcRenderer.invoke('googleDocs:status'),
+    save: (endpoint, secret) => ipcRenderer.invoke('googleDocs:save', endpoint, secret),
+    disconnect: () => ipcRenderer.invoke('googleDocs:disconnect'),
+    sendNote: (document) => ipcRenderer.invoke('googleDocs:sendNote', document),
+    uploadFile: () => ipcRenderer.invoke('googleDocs:uploadFile'),
+    saveScript: () => ipcRenderer.invoke('googleDocs:saveScript'),
+    openSetup: () => ipcRenderer.invoke('googleDocs:openSetup'),
+    openDocument: (url) => ipcRenderer.invoke('googleDocs:openDocument', url),
+  },
   openCaselist: {
     status: () => ipcRenderer.invoke('opencaselist:status'),
     login: () => ipcRenderer.invoke('opencaselist:login'),

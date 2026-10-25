@@ -19,6 +19,7 @@ const { NOTE_EXTS, listVault: walk, readVaultSnapshot } = require('./vaultFiles.
 const { installationInfo } = require('./installation.cjs');
 const { uninstallApplication } = require('./uninstall.cjs');
 const { registerOpenCaselist } = require('./opencaselist.cjs');
+const { registerGoogleDocs } = require('./googleDocs.cjs');
 const keyDefinitions = require('../src/lib/keybindings.json');
 
 const isDev = process.argv.includes('--dev');
@@ -457,6 +458,7 @@ if (primary) app.whenReady().then(() => {
   closeWebsiteView = registerBrowser({ ipcMain, shell, getWindow: () => win });
   registerPandoc({ ipcMain, dialog, getWindow: () => win, readConfig, writeConfig });
   registerDocuments({ ipcMain, dialog, getWindow: () => win, readConfig });
+  registerGoogleDocs({ app, ipcMain, safeStorage, dialog, shell, getWindow: () => win });
   registerFonts({ app, ipcMain, dialog, getWindow: () => win });
   registerExtensions({ app, ipcMain, shell, readConfig, writeConfig, dialog, getWindow: () => win });
   const { readToken } = registerEmbeddings({ app, ipcMain, safeStorage, getVaultRoot: () => vaultRoot, readConfig, writeConfig });

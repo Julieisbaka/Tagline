@@ -117,6 +117,12 @@ Standalone HTML export is built in. Other formats use the separately installed
 [Pandoc](https://pandoc.org/); PDF export also needs a LaTeX engine. Import
 converts DOCX, ODT, RTF, HTML, and EPUB to Markdown for review before saving.
 
+Send a note to your Drive with **Export > Google Docs**, or upload DOCX/HTML
+from **Settings > Integrations > Google Docs / Drive**. Use **Set up Google
+Docs transfer** there to deploy the bundled webhook in your own Google account.
+Each transfer creates a new Google Doc and requires confirmation. See
+[Google Docs setup and response codes](./google-docs.md).
+
 HTTP/HTTPS links open inside Tagline by default. Turn off **Open websites inside
 Tagline** in **Settings > Integrations** to use your default browser instead.
 Embedded sites cannot access the vault or app APIs; use the external browser

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useI18n } from '../../lib/i18n.js';
+import GoogleDocsSettings from './GoogleDocsSettings.jsx';
 
 export default function IntegrationSettings() {
   const { t } = useI18n();
@@ -46,6 +47,7 @@ export default function IntegrationSettings() {
         })}>{t('Locate Pandoc')}</button>
         <button disabled={busy} onClick={() => run(async () => setPandoc(await window.api.pandocStatus()))}>{t('Check again')}</button>
       </div>
+      <GoogleDocsSettings />
       <h4>{t('Semantic search (local embeddings)')}</h4>
       <label className="setting-row">
         <span>{t('Automatically load downloaded model at startup')}</span>

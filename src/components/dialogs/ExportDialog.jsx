@@ -4,6 +4,7 @@ import { renderMarkdown } from '../../lib/markdown.js';
 import ModalBackdrop from './ModalBackdrop.jsx';
 
 const FORMATS = [
+  ['google-docs', 'Google Docs'],
   ['docx', 'Word (.docx)'], ['odt', 'OpenDocument (.odt)'], ['rtf', 'Rich text (.rtf)'],
   ['html', 'HTML (.html)'], ['epub', 'EPUB (.epub)'], ['pdf', 'PDF (requires a PDF engine)'],
 ];
@@ -43,6 +44,7 @@ export default function ExportDialog({ title, content, resolve, onClose }) {
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
   const [result, setResult] = useState(null);
+  const googleDocs = format === 'google-docs';
 
   useEffect(() => {
     window.api.pandocStatus().then(setPandoc).catch((e) => setError(e.message));
@@ -53,9 +55,11 @@ export default function ExportDialog({ title, content, resolve, onClose }) {
     setError('');
     setResult(null);
     try {
-      const result = format === 'html'
-        ? await window.api.exportHtml({ title, html: standaloneHtml(title, content, resolve, locale) })
-        : await window.api.exportDocument({ title, format, html: exportHtml(content, resolve) });
+      const result = googleDocs
+        ? await window.api.googleDocs.sendNote({ title, html: standaloneHtml(title, content, resolve, locale) })
+        : format === 'html'
+          ? await window.api.exportHtml({ title, html: standaloneHtml(title, content, resolve, locale) })
+          : await window.api.exportDocument({ title, format, html: exportHtml(content, resolve) });
       if (!result.canceled) setResult(result);
     } catch (e) { setError(e.message); }
     finally { setBusy(false); }
@@ -66,22 +70,33 @@ export default function ExportDialog({ title, content, resolve, onClose }) {
       <div className="modal dialog export-dialog" role="dialog" aria-modal="true"
         aria-label={t('Export {title}', { title })} onMouseDown={(e) => e.stopPropagation()}>
         <h3>{t('Export {title}', { title })}</h3>
-        <p>{format === 'html' ? t('Built-in HTML export. Pandoc is not required.')
-          : pandoc?.available ? pandoc.version : t('Pandoc is required for this format. Locate it in Settings.')}</p>
+        <p>{googleDocs ? t('Creates a new Google Doc using your webhook. Set it up in Settings > Integrations. Pandoc is not required.')
+          : format === 'html' ? t('Built-in HTML export. Pandoc is not required.')
+            : pandoc?.available ? pandoc.version : t('Pandoc is required for this format. Locate it in Settings.')}</p>
         <label className="setting-row"><span>{t('Format')}</span>
-          <select value={format} onChange={(e) => setFormat(e.target.value)}>
+          <select value={format} disabled={busy} onChange={(e) => {
+            setFormat(e.target.value);
+            setResult(null);
+            setError('');
+          }}>
             {FORMATS.map(([id, label]) => <option key={id} value={id}>{t(label)}</option>)}
           </select>
         </label>
         <p>{t('Exports the entire note, including unsaved edits. Wiki links become labels; images are omitted. Formatting support varies by format.')}</p>
         {format === 'pdf' && <p>{t('PDF also needs a Pandoc-compatible LaTeX engine on PATH.')}</p>}
         {error && <p className="error-text" role="alert">{error}</p>}
-        {result && <div role="status"><p>{t('Exported to {path}', { path: result.path })}</p>
+        {result && <div role="status">{result.document
+          ? <><p>{t('Google Doc created (code 201): {title}', { title: result.document.title })}</p>
+            <button onClick={async () => {
+              try { await window.api.googleDocs.openDocument(result.document.url); }
+              catch (failure) { setError(failure.message); }
+            }}>{t('Open Google Doc')}</button></>
+          : <p>{t('Exported to {path}', { path: result.path })}</p>}
           {result.warnings && <pre>{result.warnings}</pre>}</div>}
         <div className="dialog-buttons">
           <button disabled={busy} onClick={onClose}>{t('Close')}</button>
-          <button className="primary" disabled={busy || (format !== 'html' && !pandoc?.available)} onClick={perform}>
-            {t(busy ? 'Exporting...' : 'Save export')}
+          <button className="primary" disabled={busy || (!googleDocs && format !== 'html' && !pandoc?.available)} onClick={perform}>
+            {t(busy ? 'Exporting...' : googleDocs ? 'Send to Google Docs' : 'Save export')}
           </button>
         </div>
       </div>
