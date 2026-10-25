@@ -4,7 +4,7 @@ import { remainingAt } from '../lib/countdown.js';
 import { useI18n } from '../lib/i18n.js';
 
 export const FORMATS = {
-  policy: {
+  highschool: {
     label: 'High school policy (8-3-5)',
     prep: 8,
     speeches: [
@@ -88,7 +88,7 @@ function useCountdown(initial) {
 
 export default function Timer({ format, onFormatChange }) {
   const { t } = useI18n();
-  const fmt = FORMATS[format] || FORMATS.policy;
+  const fmt = FORMATS[format] || FORMATS.highschool;
   const [speech, setSpeech] = useState(0);
   const main = useCountdown(fmt.speeches[0][1] * 60);
   const aff = useCountdown(fmt.prep * 60);

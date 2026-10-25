@@ -162,6 +162,8 @@ the designation and update the selected path.
 
 The timer supports speech and affirmative/negative preparation clocks for
 high-school (8-3-5) and college (9-3-6) formats.
+Both presets are policy debate; their saved `format` identifiers are `highschool`
+and `college`. Older `policy` preferences migrate to `highschool` automatically.
 
 Flows are multi-sheet speech grids. Use `Tab` and `Shift+Tab` to move between
 cells; `Mod+Enter` adds a row below and `Mod+Shift+Enter` adds one above.

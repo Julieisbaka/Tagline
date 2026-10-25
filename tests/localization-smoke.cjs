@@ -33,7 +33,7 @@ app.on('browser-window-created', (_event, win) => {
     try {
       await wait("!!document.querySelector('.onboarding-dialog')");
       if (locale === 'saved-en') {
-        await js(`localStorage.setItem('tagline-settings', JSON.stringify({language: 'en'}))`);
+        await js(`localStorage.setItem('tagline-settings', JSON.stringify({language: 'en', format: 'policy'}))`);
         await new Promise((resolve) => {
           win.webContents.once('did-finish-load', resolve);
           win.webContents.reload();
@@ -47,6 +47,8 @@ app.on('browser-window-created', (_event, win) => {
         es: 'Te damos la bienvenida a Tagline', fr: 'Bienvenue dans Tagline', en: 'Welcome to Tagline',
       }[expected]);
       assert.equal(await js("JSON.parse(localStorage.getItem('tagline-settings')).language"), expected);
+      assert.equal(await js("JSON.parse(localStorage.getItem('tagline-settings')).format"), 'highschool',
+        'new profiles and legacy policy preferences use the highschool timer preset');
       console.log(`PASS first-run language: ${locale} -> ${expected}`);
       app.exit(0);
     } catch (error) { console.error(error); app.exit(1); }

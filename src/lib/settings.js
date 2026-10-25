@@ -12,8 +12,11 @@ function load() {
   try {
     const saved = localStorage.getItem(KEY);
     const parsed = JSON.parse(saved || '{}');
-    return { ...DEFAULTS, ...parsed, language: initialLanguage(parsed?.language, window.api.systemLanguages),
-      internalFlags: { ...DEFAULTS.internalFlags, ...parsed?.internalFlags } };
+    return {
+      ...DEFAULTS, ...parsed, language: initialLanguage(parsed?.language, window.api.systemLanguages),
+      format: parsed?.format === 'policy' ? 'highschool' : parsed?.format ?? DEFAULTS.format,
+      internalFlags: { ...DEFAULTS.internalFlags, ...parsed?.internalFlags }
+    };
   } catch {
     return { ...DEFAULTS, language: initialLanguage(undefined, window.api.systemLanguages) };
   }
