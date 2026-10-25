@@ -440,6 +440,8 @@ const text = await tagline.helpers.markdownToText('**Evidence**'); // "Evidence"
 
 const outline = await tagline.helpers.markdown.outline('# Case\n\n#### Card');
 const html = await tagline.helpers.markdown.toHtml('**Safe**'); // sanitized HTML
+const metadata = await tagline.helpers.markdown.frontmatter('---\nspeech: true\n---\n# Speech');
+// metadata.data.speech === true; metadata.body === '# Speech'
 const tags = await tagline.helpers.markdown.extractTags('Debate #aff');
 const paths = await tagline.vault.list(); // Requires vault:read
 const target = await tagline.helpers.markdown.resolveLink('Energy', paths);
@@ -460,13 +462,18 @@ await disposables.dispose();
 
 Path helpers operate on vault-relative paths, normalize separators, and reject
 absolute paths and `..` traversal above the vault root. They do not access files.
-The Markdown helpers are `toText`, `slugify`, `outline`, `extractLinks`,
-`extractTags`, and `resolveLink(target, paths)`. Link resolution only checks
+The Markdown helpers are `toText`, `toHtml`, `frontmatter`, `slugify`, `outline`,
+`extractLinks`, `extractTags`, and `resolveLink(target, paths)`. Link resolution only checks
 the supplied list (at most 10,000 paths); listing vault paths requires
 `vault:read`. The legacy
 `helpers.markdownToText` method remains available. `toText` omits HTML and is a
 plain-text approximation, not a round-trip serializer. `outline` reports
-zero-based line numbers. Link and tag extraction skip fenced and inline code.
+zero-based source line numbers, including frontmatter lines. Rendering, plain
+text, link/tag extraction, card analysis, and speech timing exclude the metadata
+block. Link and tag extraction also skip fenced and inline code.
+`frontmatter(markdown)` returns `{ data, body, prefix }`: parsed properties,
+Markdown body, and the exact original metadata block. Without metadata, `data`
+is empty and `prefix` is `''`. Invalid YAML rejects rather than discarding it.
 
 Card helpers provide `getAt(markdown, offset)`, `stats(markdown)`, and
 `spokenEvidence(markdown)`, and `formatDuration(seconds)`. `getAt` returns the

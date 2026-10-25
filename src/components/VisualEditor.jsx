@@ -1,6 +1,7 @@
 import { EditorContent, useEditor, useEditorState } from '@tiptap/react';
 import { memo, useEffect, useMemo, useRef, useState } from 'react';
 import { useI18n } from '../lib/i18n.js';
+import { splitFrontmatter } from '../lib/frontmatter.js';
 import { binding, KEYBINDINGS, matchesBinding } from '../lib/keybindings.js';
 import { slugify } from '../lib/markdown.js';
 import { cachedDocument, cacheDocument } from '../lib/visualCache.js';
@@ -14,9 +15,14 @@ export default function VisualEditor({
   value, onChange, onOpenLink, onSendCard, onSection, noteNames, visualRef, jump, keybindings,
   toolbarVisible = true, onReady,
 }) {
+  const metadata = useMemo(() => splitFrontmatter(value), [value]);
   const live = useRef({});
-  live.current = { onChange, onOpenLink, onSendCard, onSection, keybindings };
-  return <MemoizedDocument value={value} noteNames={noteNames} visualRef={visualRef} jump={jump}
+  live.current = {
+    onChange: (body) => onChange(metadata.prefix +
+      (metadata.prefix && !metadata.prefix.endsWith('\n') && body ? '\n' : '') + body),
+    onOpenLink, onSendCard, onSection, keybindings,
+  };
+  return <MemoizedDocument value={metadata.body} noteNames={noteNames} visualRef={visualRef} jump={jump}
     live={live} keybindings={keybindings} toolbarVisible={toolbarVisible} onReady={onReady} />;
 }
 

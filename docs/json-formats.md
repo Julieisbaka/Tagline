@@ -7,7 +7,6 @@ Tagline ships draft-07 JSON Schemas for its user-authored and exchanged formats:
 | Format | Schema |
 | --- | --- |
 | Speech flow (`.flow`) | [flow.schema.json](../schemas/flow.schema.json) |
-| JSON Canvas (`.canvas`) | [canvas.schema.json](../schemas/canvas.schema.json) |
 | Extension `manifest.json` | [extension-manifest.schema.json](../schemas/extension-manifest.schema.json) |
 | Imported, exported, or extension theme | [theme.schema.json](../schemas/theme.schema.json) |
 | Exported extension settings (`<extension-id>-settings.json`) | [extension-settings.schema.json](../schemas/extension-settings.schema.json) |
@@ -15,17 +14,21 @@ Tagline ships draft-07 JSON Schemas for its user-authored and exchanged formats:
 Internal profile configuration, credentials, caches, private extension storage,
 and app settings are not public interchange formats and are not covered.
 
+Canvas files follow the [JSON Canvas specification](https://jsoncanvas.org/spec/1.0/).
+Tagline does not ship a separate Canvas schema.
+
 ## Editor support
 
 This repository's [VS Code settings](../.vscode/settings.json) associate flows,
-canvases, bundled/demo themes, extension manifests, and exported settings with
+bundled/demo themes, extension manifests, and exported settings with
 local schemas. No network access is needed for these associations or schema
 tests. Schemas are also included in packaged applications.
 
 In another workspace, copy the schemas together and add `json.schemas`
 associations pointing to that folder. The theme and settings-export schemas
 reference definitions in the manifest schema, so keep their relative locations.
-Associate `.flow` and `.canvas` with the JSON language mode, too.
+Associate `.flow` with the JSON language mode, too. Canvas files also use JSON
+language mode, without a Tagline-specific schema association.
 
 Alternatively, add a `$schema` property to a document. For example, when the
 document is next to a `schemas` folder:

@@ -21,7 +21,8 @@
     "test:features": "vite build && electron tests/features-smoke.cjs",
     "test:canvas": "vite build && node tests/canvas-smoke.cjs",
     "icons": "electron scripts/generate-icons.cjs",
-    "test:speech": "vite build && electron tests/speech-smoke.cjs",
+    "test:speech": "vite build && node tests/speech-smoke.cjs",
+    "test:localization": "vite build && node tests/localization-smoke.cjs",
     "test:profile": "vite build && node tests/profile-smoke.cjs",
     "test:improvements": "vite build && node tests/improvements-smoke.cjs",
     "test:productivity": "vite build && node tests/productivity-smoke.cjs",
@@ -109,7 +110,8 @@
     "marked": "^18.1.1",
     "react": "^19.3.1",
     "react-dom": "^19.3.1",
-    "syllable": "^5.0.1"
+    "syllable": "^5.0.1",
+    "yaml": "^2.8.1"
   },
   "devDependencies": {
     "@vitejs/plugin-react": "^6.1.2",

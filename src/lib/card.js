@@ -1,5 +1,6 @@
 import { spokenCitations } from './citation.js';
 import { speechStats } from './readTime.js';
+import { splitFrontmatter } from './frontmatter.js';
 
 const HEADING_RE = /^(#{1,6})\s/;
 
@@ -7,6 +8,10 @@ const HEADING_RE = /^(#{1,6})\s/;
 // If the cursor is under a higher-level heading (block/hat/pocket), that
 // whole section is returned instead.
 export function getSectionAt(content, offset) {
+  const metadata = splitFrontmatter(content);
+  if (offset < metadata.offset) return null;
+  content = metadata.body;
+  offset -= metadata.offset;
   const lines = content.split('\n');
   let pos = 0;
   let cursorLine = 0;
@@ -44,6 +49,7 @@ const countWords = (s) => (s.replace(/<[^>]*>/g, '').replace(/&(?:#\d+|#x[\da-f]
   .match(/[\p{L}\p{N}]+(?:['’-][\p{L}\p{N}]+)*/gu) || []).length;
 
 function evidenceParts(content) {
+  content = splitFrontmatter(content).body;
   // Strip headings, cites and markup so we only count evidence text.
   const body = content
     .split('\n')
@@ -61,6 +67,7 @@ export function spokenEvidence(content) {
 }
 
 export function cardStats(content) {
+  content = splitFrontmatter(content).body;
   const { body, highlighted, citations } = evidenceParts(content);
   const citationWords = countWords(citations);
   const underlined = [...body.matchAll(/\+\+([\s\S]*?)\+\+/g)].map((m) => m[1].replace(/==/g, '')).join(' ');

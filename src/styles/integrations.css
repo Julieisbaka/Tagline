@@ -246,8 +246,25 @@
 
 .visual-document:focus-visible,
 .editor .cm-content:focus-visible {
+  outline: none;
+}
+
+.editor-focus-outline .visual-document:focus-visible,
+.editor-focus-outline .editor .cm-content:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: -2px;
+}
+
+.note-properties {
+  padding: 8px 20px;
+  border-bottom: 1px solid var(--border);
+  color: var(--text-muted);
+}
+
+.note-properties pre {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  user-select: text;
 }
 
 .readable .visual-document {

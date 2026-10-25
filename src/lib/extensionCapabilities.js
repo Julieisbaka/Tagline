@@ -6,6 +6,7 @@ import {
 } from './canvas.js';
 import { cardStats, formatDuration, getSectionAt, spokenEvidence } from './card.js';
 import { createCitation } from './citation.js';
+import { readFrontmatter, splitFrontmatter } from './frontmatter.js';
 import { renderMarkdown, slugify } from './markdown.js';
 import { readingSeconds, speechStats } from './readTime.js';
 import { fillTemplate } from './template.js';
@@ -106,7 +107,7 @@ export function markdownToText(markdown) {
     if (token.tokens) return collect(token.tokens);
     return token.text || (token.type === 'br' || token.type === 'space' ? '\n' : token.raw || '');
   }).join(' ');
-  return collect(marked.lexer(markdown)).replace(/[ \t]+/g, ' ').replace(/[ \t]*\n[ \t]*/g, '\n').trim();
+  return collect(marked.lexer(splitFrontmatter(markdown).body)).replace(/[ \t]+/g, ' ').replace(/[ \t]*\n[ \t]*/g, '\n').trim();
 }
 
 function requireHelperText(value, label) {
@@ -163,6 +164,11 @@ export function extensionHelper(method, args) {
     case 'helpers.markdownToText':
     case 'helpers.markdown.toText':
       return markdownToText(requireHelperText(args[0], 'Markdown'));
+    case 'helpers.markdown.frontmatter': {
+      const metadata = readFrontmatter(requireHelperText(args[0], 'Markdown'));
+      if (metadata.error) throw new Error(`Invalid YAML frontmatter: ${metadata.error}`);
+      return { data: metadata.data, body: metadata.body, prefix: metadata.prefix };
+    }
     case 'helpers.markdown.slugify':
       return slugify(requireHelperText(args[0], 'Heading'));
     case 'helpers.markdown.toHtml':

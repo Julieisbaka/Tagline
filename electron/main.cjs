@@ -318,6 +318,7 @@ function createWindow() {
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: true,
+      additionalArguments: [`--tagline-languages=${encodeURIComponent(JSON.stringify(app.getPreferredSystemLanguages()))}`],
     },
   });
 

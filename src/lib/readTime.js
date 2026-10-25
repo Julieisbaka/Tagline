@@ -1,4 +1,5 @@
 import { syllable } from 'syllable';
+import { splitFrontmatter } from './frontmatter.js';
 
 const SMALL = ['zero', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine',
   'ten', 'eleven', 'twelve', 'thirteen', 'fourteen', 'fifteen', 'sixteen', 'seventeen', 'eighteen', 'nineteen'];
@@ -32,7 +33,7 @@ function spokenNumber(value) {
 }
 
 export function spokenText(value) {
-  return value.replace(/<!--[\s\S]*?-->|<(script|style)\b[^>]*>[\s\S]*?<\/\1>/gi, '')
+  return splitFrontmatter(value).body.replace(/<!--[\s\S]*?-->|<(script|style)\b[^>]*>[\s\S]*?<\/\1>/gi, '')
     .replace(/<(?:br\b[^>]*|\/(?:p|div|li|h[1-6]))>/gi, '\n')
     .replace(/<[^>]*>/g, '')
     .replace(/!?\[([^\]]*)\]\([^)]*\)/g, '$1')

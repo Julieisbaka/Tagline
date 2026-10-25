@@ -1,10 +1,11 @@
 import { useSyncExternalStore } from 'react';
 import es from '../locales/es.json';
 import fr from '../locales/fr.json';
+import { LANGUAGES, systemLanguage } from './localization.js';
 
-export const LANGUAGES = { en: 'English', es: 'Español', fr: 'Français' };
+export { LANGUAGES };
 const catalogs = { en: {}, es, fr };
-let language = 'en';
+let language = systemLanguage(globalThis.window?.api?.systemLanguages);
 const listeners = new Set();
 const subscribe = (fn) => { listeners.add(fn); return () => listeners.delete(fn); };
 export function setLanguage(next) {

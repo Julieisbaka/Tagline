@@ -1,5 +1,6 @@
 import DOMPurify from 'dompurify';
 import { Marked } from 'marked';
+import { splitFrontmatter } from './frontmatter.js';
 
 let resolver = () => null;
 
@@ -86,7 +87,7 @@ export function slugify(text) {
 
 export function renderMarkdown(src, resolve) {
   resolver = resolve || (() => null);
-  const html = marked.parse(src || '');
+  const html = marked.parse(splitFrontmatter(src || '').body);
   return DOMPurify.sanitize(html, {
     USE_PROFILES: { html: true },
     FORBID_TAGS: ['style', 'form', 'input', 'button', 'textarea', 'select'],

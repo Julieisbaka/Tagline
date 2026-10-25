@@ -36,7 +36,7 @@ export default function AppLayout({ app }) {
     mode, sourceFallback, stats, setStats, showLeft, showRight, sidebarWidth, rightWidth, lastFile,
     website, setWebsite, modal, setModal, jump, setJump, highlightOnly, setHighlightOnly, toast, ext, ctx, actions,
     open, openLink, sendCard, setMode, editorRef, visualRef, cursorRef, createAndOpen, doRename,
-    notify, insertCitation, setVisualEditor,
+    notify, insertCitation, setVisualEditor, speechDoc, speechDocuments,
   } = app;
   const openHistory = async (path) => {
     try { if (await v.flush()) setModal({ type: 'history', path }); }
@@ -49,6 +49,7 @@ export default function AppLayout({ app }) {
     notify(t('Working save restored.'));
   };
   const settingsDialog = <SettingsDialog settings={settings} update={updateSettings} extensions={ext}
+    speechDoc={speechDoc} speechDocuments={speechDocuments} onSelectSpeechDoc={actions.setSpeechDoc}
     onOpenCaselist={ctx.openCaselist}
     onClose={() => setModal(null)} />;
   const caselistDialog = modal?.type === 'opencaselist' && <OpenCaselistDialog hasVault={!!v.vault}
@@ -177,7 +178,7 @@ export default function AppLayout({ app }) {
         <ConfigurableBar className="status-bar" label="Status bar" catalog={STATUS_ITEMS} value={settings.statusBarItems}
           onChange={(statusBarItems) => updateSettings({ statusBarItems })} renderItem={(id) => {
             if (id === 'speechDoc') return <button className="link-btn" title={t('Current speech document')} onClick={ctx.openSpeechDoc}>
-              {t('Speech doc')}: {baseName(settings.speechDoc)}
+              {t('Speech doc')}: {baseName(speechDoc)}
             </button>;
             if (!activePath) return null;
             if (id === 'mode') return <span>{t(mode === 'edit' || sourceFallback ? 'Source editing' : mode === 'visual' ? 'Visual editing'

@@ -7,6 +7,7 @@ import { EMPTY_CANVAS } from './lib/canvas.js';
 import { getSectionAt } from './lib/card.js';
 import { buildCommands, fillTemplate } from './lib/commands.js';
 import { useI18n } from './lib/i18n.js';
+import { markSpeechDocument, speechDocumentPaths } from './lib/frontmatter.js';
 import { binding, displayBinding, KEYBINDINGS, matchesBinding } from './lib/keybindings.js';
 import { slugify } from './lib/markdown.js';
 import { useSettings } from './lib/settings.js';
@@ -54,6 +55,9 @@ export default function App() {
   const resolve = useCallback((t) => resolveLink(t, paths), [paths]);
   const activePath = tabs.activeTab?.kind === 'file' ? tabs.activeTab.path : null;
   const activeContent = activePath ? v.contents[activePath] : undefined;
+  const speechDocuments = useMemo(() => speechDocumentPaths(v.contents), [v.contents]);
+  const speechDoc = v.contents[settings.speechDoc] !== undefined ? settings.speechDoc
+    : speechDocuments[0] || settings.speechDoc;
   const mode = (activePath && modes[activePath]) || settings.editorMode;
   const sourceFallback = mode === 'visual' && !(activePath && isCanvas(activePath)) && !!visualBlocker(activeContent || '');
 
@@ -164,6 +168,23 @@ export default function App() {
 
   const prompt = (title, initial, onSubmit) => setModal({ type: 'prompt', title, initial, onSubmit });
 
+  const ensureSpeechDoc = useCallback(async (path) => {
+    if (!path || !isMarkdown(path)) throw new Error(t('Speech documents must be Markdown files.'));
+    let result = path;
+    if (v.contents[path] !== undefined) {
+      const content = markSpeechDocument(v.contents[path]);
+      if (content !== v.contents[path]) {
+        v.updateContent(path, content);
+        if (!await v.flush()) return null;
+      }
+    } else {
+      result = await v.createFile(path, markSpeechDocument('# Speech Document\n\n'));
+      if (!result) return null;
+    }
+    updateSettings({ speechDoc: result });
+    return result;
+  }, [v, updateSettings]);
+
   const doRename = async (from, to) => {
     const result = await v.rename(from, to);
     if (!result) return;
@@ -226,30 +247,38 @@ export default function App() {
       if (!await confirm(t('Move “{name}” to the trash?', { name: node.name }))) return;
       if (await v.remove(node.path)) tabs.removePath(node.path);
     },
-    setSpeechDoc: (path) => {
-      updateSettings({ speechDoc: path });
-      notify(t('Speech doc set to “{name}”', { name: baseName(path) }));
+    setSpeechDoc: async (path) => {
+      try {
+        const selected = await ensureSpeechDoc(path);
+        if (selected) notify(t('Speech doc set to “{name}”', { name: baseName(selected) }));
+      } catch (error) { notify(error.message); }
     },
   };
 
   const sendCard = useCallback(
     async (offset = cursorRef.current, selection = '') => {
       if (!activePath || !isMarkdown(activePath)) return;
-      const doc = settings.speechDoc;
-      if (doc === activePath) return notify(t('This note is the speech doc'));
+      if (speechDoc === activePath) return notify(t('This note is the speech doc'));
       const text = selection || (mode === 'visual' && visualRef.current
         ? visualSelection(visualRef.current) : getSectionAt(activeContent || '', offset)?.text);
       if (!text) return notify(t('Put the cursor inside a card (under a heading) first'));
-      if (v.contents[doc] != null) {
-        v.updateContent(doc, `${v.contents[doc].trimEnd()}\n\n${text}\n`);
-      } else {
-        const created = await v.createFile(doc, `# Speech Document\n\n${text}\n`);
-        if (created && created !== doc) updateSettings({ speechDoc: created });
-      }
-      notify(t('Sent to {name}', { name: baseName(doc) }));
+      try {
+        let doc = speechDoc;
+        if (!isMarkdown(doc)) throw new Error(t('Speech documents must be Markdown files.'));
+        if (v.contents[doc] != null) {
+          const destination = markSpeechDocument(v.contents[doc]);
+          v.updateContent(doc, `${destination.trimEnd()}\n\n${text}\n`);
+          if (!await v.flush()) return;
+        } else {
+          doc = await v.createFile(doc, markSpeechDocument(`# Speech Document\n\n${text}\n`));
+          if (!doc) return;
+        }
+        updateSettings({ speechDoc: doc });
+        notify(t('Sent to {name}', { name: baseName(doc) }));
+      } catch (error) { notify(error.message); }
       return undefined;
     },
-    [activePath, activeContent, mode, settings.speechDoc, v, notify, updateSettings],
+    [activePath, activeContent, mode, speechDoc, v, notify, updateSettings],
   );
 
   const templates = paths.filter((p) => p.toLowerCase().startsWith('templates/') && isMarkdown(p));
@@ -295,14 +324,16 @@ export default function App() {
     openSettings: actions.settings,
     toggleLeft: () => setShowLeft((s) => !s),
     toggleRight: () => setShowRight((s) => !s),
-    openSpeechDoc: () =>
-      v.contents[settings.speechDoc] != null
-        ? open(settings.speechDoc, true)
-        : createAndOpen(settings.speechDoc, '# Speech Document\n\n').then((p) => p && updateSettings({ speechDoc: p })),
+    openSpeechDoc: async () => {
+      try {
+        const path = await ensureSpeechDoc(speechDoc);
+        if (path) open(path, true);
+      } catch (error) { notify(error.message); }
+    },
     newSpeechDoc: async () => {
       const stamp = new Date().toISOString().slice(0, 16).replace('T', ' ').replace(':', '-');
-      const p = await createAndOpen(`Speech Docs/Speech ${stamp}.md`, `# Speech – ${stamp}\n\n`);
-      if (p) actions.setSpeechDoc(p);
+      const p = await createAndOpen(`Speech Docs/Speech ${stamp}.md`, markSpeechDocument(`# Speech – ${stamp}\n\n`));
+      if (p) updateSettings({ speechDoc: p });
     },
     switchVault: v.chooseVault,
     createSample: v.createSample,
@@ -405,6 +436,6 @@ export default function App() {
     sourceFallback, stats, setStats, showLeft, showRight, sidebarWidth, rightWidth, lastFile, website,
     setWebsite, modal, setModal, jump, setJump, highlightOnly, setHighlightOnly, toast, ext, ctx, actions,
     open, openLink, sendCard, setMode, editorRef, visualRef, cursorRef, createAndOpen, doRename, notify,
-    insertCitation, setVisualEditor,
+    insertCitation, setVisualEditor, speechDoc, speechDocuments,
   }} />;
 }

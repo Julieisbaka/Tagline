@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { cardStats, formatDuration, getSectionAt } from '../lib/card.js';
 import { useI18n } from '../lib/i18n.js';
+import { readFrontmatter } from '../lib/frontmatter.js';
 import { binding, displayBinding } from '../lib/keybindings.js';
 import { calibrateReading, readingAssessment, readingSeconds } from '../lib/readTime.js';
 import { baseName, isFlow } from '../lib/vault.js';
@@ -43,6 +44,7 @@ export default function NoteView({
   onDismissVisualNotice,
 }) {
   const { t, locale } = useI18n();
+  const metadata = useMemo(() => isFlow(path) ? null : readFrontmatter(content), [path, content]);
   const localRef = useRef(null);
   const viewRef = editorRef || localRef;
   const blocker = mode === 'visual' ? visualBlocker(content) : null;
@@ -180,7 +182,15 @@ export default function NoteView({
       {blocker && <div className="editor-notice source-fallback" role="status">
         {t('This note contains {kind}. Showing source to preserve it; visual mode will not rewrite this note.', { kind: t(blocker) })}
       </div>}
-      <div className={`note-body${settings.readableWidth ? ' readable' : ''}`}>
+      {metadata?.error && <div className="editor-notice error-text" role="alert">
+        {t('Invalid YAML frontmatter: {error}', { error: metadata.error })}
+      </div>}
+      {!sourceMode && metadata?.raw !== null && metadata?.prefix && <details className="note-properties">
+        <summary>{t('Properties')}</summary>
+        <pre>{metadata.raw}</pre>
+        <button onClick={() => setMode('edit')}>{t('Edit properties in Source')}</button>
+      </details>}
+      <div className={`note-body${settings.readableWidth ? ' readable' : ''}${settings.editorFocusOutline ? ' editor-focus-outline' : ''}`}>
         {sourceMode ? (
           <Editor
             jump={jump?.path === path ? jump : null}

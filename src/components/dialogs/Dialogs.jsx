@@ -134,13 +134,15 @@ export function PromptDialog({ title, initial = '', onSubmit, onClose }) {
   );
 }
 
-export function SettingsDialog({ settings, update, onClose, extensions, onOpenCaselist }) {
+export function SettingsDialog({ settings, update, onClose, extensions, onOpenCaselist,
+  speechDoc, speechDocuments = [], onSelectSpeechDoc }) {
   const { t } = useI18n();
   const [section, setSection] = useState('general');
   const sections = [
     ['general', 'General', 'Your writing and debate workspace'],
     ['editors', 'Editors', 'Configure Tiptap and CodeMirror'],
     ['appearance', 'Appearance', 'Make Tagline feel like yours'],
+    ['accessibility', 'Accessibility', 'Focus indicators and editor accessibility'],
     ['performance', 'Performance and search', 'Control resource usage and results'],
     ['files', 'Files and folders', 'Portable paths and file associations'],
     ['integrations', 'Integrations', 'Document conversion and local models'],
@@ -187,7 +189,13 @@ export function SettingsDialog({ settings, update, onClose, extensions, onOpenCa
               <h3>{t('Writing and debate')}</h3>
               {field('Speaking rate (words per minute)', 'wpm', 'number', { min: 50, max: 1000 })}
               <ReadingSettings settings={settings} update={update} />
-              {field('Speech document path', 'speechDoc')}
+              <label className="setting-row"><span>{t('Active speech document')}</span>
+                <select data-setting="speechDoc" value={speechDoc} onChange={(event) => onSelectSpeechDoc(event.target.value)}>
+                  {[...new Set([speechDoc, ...speechDocuments])].filter(Boolean).map((path) =>
+                    <option key={path} value={path}>{path}</option>)}
+                </select>
+              </label>
+              <p className="settings-help">{t('Speech documents use speech: true in YAML frontmatter. Right-click a Markdown file and choose Set as speech doc to mark it and make it the active destination.')}</p>
               <label className="setting-row">
                 <span>{t('Default editor')}</span>
                 <select value={settings.editorMode} onChange={(e) => update({ editorMode: e.target.value })}>
@@ -210,6 +218,13 @@ export function SettingsDialog({ settings, update, onClose, extensions, onOpenCa
             </section>
             <section hidden={section !== 'editors'} className="settings-panel">
               <EditorSettings settings={settings} update={update} />
+            </section>
+            <section hidden={section !== 'accessibility'} className="settings-panel">
+              <label className="setting-row"><span>{t('Show note editor focus outline')}</span>
+                <input type="checkbox" data-setting="editorFocusOutline" checked={settings.editorFocusOutline}
+                  onChange={(event) => update({ editorFocusOutline: event.target.checked })} />
+              </label>
+              <p className="settings-help">{t('Highlight the focused visual or source note editor. Keyboard focus indicators on other controls remain enabled.')}</p>
             </section>
             <section hidden={section !== 'appearance'} className="settings-panel">
               <h3>{t('Theme and typography')}</h3>

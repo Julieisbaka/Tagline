@@ -72,9 +72,80 @@ test('snapshot propagates filesystem errors instead of returning a partial vault
 test('visual fallback checks do not depend on loading the visual editor', async () => {
   const { visualBlocker } = await import('../src/lib/visualHelpers.js');
   assert.equal(visualBlocker('# Markdown\n\n**Evidence**'), null);
-  for (const content of ['---\na: b\n---', '<div>HTML</div>', '[^a]: Footnote', '![Image](image.png)', '$$\na+b'])
+  assert.equal(visualBlocker('---\na: b\n---'), null);
+  for (const content of ['---\na: [\n---', '<div>HTML</div>', '[^a]: Footnote', '![Image](image.png)', '$$\na+b'])
     assert.equal(typeof visualBlocker(content), 'string');
   assert.equal(visualBlocker('```html\n<div>Example</div>\n```'), null);
+});
+
+test('first-run language matches supported OS locales and respects saved choices', async () => {
+  const { systemLanguage, initialLanguage } = await import('../src/lib/localization.js');
+  for (const [locales, expected] of [
+    [['fr-CA'], 'fr'], [['es_MX'], 'es'], [['EN-us'], 'en'],
+    [['ja-JP', 'fr-FR'], 'fr'], [['ja-JP'], 'en'], [[], 'en'], [[null, 12], 'en'],
+  ]) assert.equal(systemLanguage(locales), expected);
+  assert.equal(initialLanguage('en', ['es-ES']), 'en', 'explicit English remains English');
+  assert.equal(initialLanguage('fr', ['es-ES']), 'fr');
+  assert.equal(initialLanguage(undefined, ['es-ES']), 'es');
+  assert.equal(initialLanguage('unsupported', ['fr-CA']), 'fr');
+});
+
+test('YAML frontmatter supports mappings, preserves exact prefixes and reports invalid metadata', async () => {
+  const { readFrontmatter, splitFrontmatter } = await import('../src/lib/frontmatter.js');
+  const prefix = '\uFEFF---\r\n# Keep this comment\r\ntitle: Example\r\nnested:\r\n  choices: [one, two]\r\n---\r\n';
+  const body = '\r\n#### Card\r\n==Evidence==\r\n';
+  const metadata = readFrontmatter(prefix + body);
+  assert.equal(metadata.error, '');
+  assert.equal(metadata.prefix, prefix);
+  assert.equal(metadata.body, body);
+  assert.deepEqual(metadata.data, { title: 'Example', nested: { choices: ['one', 'two'] } });
+  assert.equal(splitFrontmatter('---\na: 1\n...').body, '');
+  assert.equal(readFrontmatter('---\n---').error, '');
+  assert.equal(splitFrontmatter('# Note\n\n---\n').prefix, '', 'body thematic breaks are not metadata');
+  for (const invalid of [
+    '---\na: [\n---\n# Note', '---\na: 1\na: 2\n---',
+    '---\n- list\n---', '---\na: 1', '---\nvalue: !unknown something\n---',
+  ]) assert.ok(readFrontmatter(invalid).error, invalid);
+});
+
+test('speech markers preserve other properties and discover only boolean-marked Markdown files', async () => {
+  const { markSpeechDocument, readFrontmatter, speechDocumentPaths } = await import('../src/lib/frontmatter.js');
+  const body = '\r\n# Speech\r\n\r\nEvidence.\r\n';
+  const source = '---\r\n# My properties\r\ntitle: "Final"\r\nspeech: false\r\nnested:\r\n  value: 5\r\n---\r\n' + body;
+  const marked = markSpeechDocument(source);
+  assert.ok(marked.includes('# My properties'));
+  assert.ok(marked.includes('title: "Final"'));
+  assert.equal(readFrontmatter(marked).body, body);
+  assert.deepEqual(readFrontmatter(marked).data, { title: 'Final', speech: true, nested: { value: 5 } });
+  assert.equal(markSpeechDocument(marked), marked, 'existing markers preserve every byte');
+  assert.equal(readFrontmatter(markSpeechDocument('# Existing\n')).body, '\n# Existing\n');
+  assert.deepEqual(speechDocumentPaths({
+    'B.md': marked, 'A.MD': '---\nspeech: true\n---\n# A',
+    'String.md': '---\nspeech: "true"\n---', 'False.md': source,
+    'Invalid.md': '---\nspeech: [\n---', 'Other.canvas': marked,
+  }), ['A.MD', 'B.md']);
+  assert.throws(() => markSpeechDocument('---\na: [\n---'), /Invalid YAML/);
+});
+
+test('metadata is excluded from note structure, evidence statistics and spoken text', async () => {
+  const { cardStats, getSectionAt, spokenEvidence } = await import('../src/lib/card.js');
+  const { outline, extractTags, extractLinks } = await import('../src/lib/vault.js');
+  const { speechStats } = await import('../src/lib/readTime.js');
+  const { visualBlocker } = await import('../src/lib/visualHelpers.js');
+  const prefix = '---\ntitle: "#### Fake #metadata [[Hidden]] ==not evidence=="\nhtml: "<div>metadata</div>"\n---\n';
+  const body = '# Case\n\n#### Card\n**Author 24**\n==Real evidence== #body [[Visible]]\n';
+  assert.deepEqual(cardStats(prefix + body), cardStats(body));
+  assert.deepEqual(speechStats(prefix + body), speechStats(body));
+  assert.equal(spokenEvidence(prefix + body), spokenEvidence(body));
+  assert.deepEqual(extractTags(prefix + body), ['body']);
+  assert.deepEqual(extractLinks(prefix + body), ['Visible']);
+  assert.deepEqual(outline(prefix + body), [
+    { level: 1, text: 'Case', line: 4 }, { level: 4, text: 'Card', line: 6 },
+  ]);
+  assert.equal(getSectionAt(prefix + body, 5), null);
+  assert.deepEqual(getSectionAt(prefix + body, prefix.length + body.indexOf('Real')), getSectionAt(body, body.indexOf('Real')));
+  assert.equal(visualBlocker(prefix + body), null);
+  assert.equal(visualBlocker(prefix + '<div>Body HTML</div>'), 'embedded HTML');
 });
 
 test('release packaging keeps application identity and user data independent of version', () => {

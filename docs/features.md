@@ -59,11 +59,24 @@ views. Confirmations use themed in-app dialogs rather than browser alerts.
 
 ## Editing
 
+On first launch, Tagline uses the first supported language from the operating
+system's preferred languages (English, Spanish, or French), falling back to
+English. The onboarding tour uses this language too. A saved language choice
+always takes precedence; change it under **Settings > Appearance**.
+
 Choose **Visual**, **Source**, or **Read** in a note header. Visual mode edits
 formatted Markdown; Source mode edits literal Markdown; Read mode displays the
-rendered note. Markdown stays the source of truth. Notes with unsupported
-structures, such as frontmatter, raw HTML, footnotes, or math, open in Source
-mode to avoid losing content.
+rendered note. Markdown stays the source of truth. YAML frontmatter is supported:
+start a note with a `---`-delimited YAML mapping. Visual edits preserve the exact
+metadata block, and Read mode, previews, outlines, card counts, and speech timing
+use only the Markdown body. Expand **Properties** to inspect metadata or open it
+in Source to edit. Invalid YAML shows an error and stays in Source rather than
+being rewritten. Other unsupported structures, such as raw HTML, footnotes, or
+math, also open in Source mode to avoid losing content.
+
+Note editors do not show a focus outline by default. Enable **Settings >
+Accessibility > Show note editor focus outline** if desired. Focus indicators
+for buttons, inputs, and other keyboard controls remain available.
 
 Debate-card shortcuts are configurable in **Settings > Keyboard shortcuts**:
 `F4`–`F7` apply card headings, `F8` citation/bold, `F9` underline, `F10`
@@ -128,6 +141,24 @@ Send selected or highlighted evidence to the configured speech document with
 `Mod+Shift+S`. Tagline estimates speaking time from highlighted evidence and
 citations. **Personal speech calibration** in **Settings > General** can tune
 estimates using your own timed samples.
+
+Speech documents carry their designation in YAML frontmatter:
+
+```yaml
+---
+speech: true
+---
+```
+
+Right-click a Markdown file and choose **Set as speech doc** to add this property
+without discarding other metadata and select it as the destination. New speech
+documents include it automatically. **Settings > General > Active speech
+document** lists marked files, including documents copied from another vault.
+Several files can be marked; only the selected destination receives cards.
+The selected path is a local preference; if it is unavailable, the first marked
+file in path order is used. Existing configured speech documents retain their
+contents and receive the marker when next opened or sent to. Renames preserve
+the designation and update the selected path.
 
 The timer supports speech and affirmative/negative preparation clocks for
 high-school (8-3-5) and college (9-3-6) formats.
@@ -208,6 +239,7 @@ Settings save automatically on your device. Main options include:
 | Section | Options |
 | --- | --- |
 | General | Speech timing, editor mode, flow behavior, readable line width |
+| Accessibility | Optional note-editor focus outline |
 | Editors | Visual toolbar, line height, source editor options |
 | Appearance | Language, themes, fonts, optional custom CSS |
 | Files and folders | Wiki-link updates, workspace tabs, revision history |

@@ -69,10 +69,23 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
         await wait('!!document.querySelector(\'.tree-item[title="Card.md"]\')');
         await js('document.querySelector(\'.tree-item[title="Card.md"]\').click()');
         await wait("!!document.querySelector('.visual-document')");
+        await js("document.querySelector('.visual-document').focus()");
+        assert.equal(await js("getComputedStyle(document.activeElement).outlineStyle"), 'none',
+          'note focus outline is disabled by default');
+        await change('[aria-label="Editor mode"]', 'edit');
+        await wait("!!document.querySelector('.editor .cm-content')");
+        await js("document.querySelector('.editor .cm-content').focus()");
+        assert.equal(await js("getComputedStyle(document.activeElement).outlineStyle"), 'none',
+          'source note focus outline is also disabled by default');
+        await change('[aria-label="Editor mode"]', 'visual');
+        await wait("!!document.querySelector('.visual-document')");
         const visualActions = await js("[...document.querySelectorAll('[data-editor-action]')].map(el => el.dataset.editorAction)");
         await js("document.querySelector('.ribbon-settings-button').focus(); document.querySelector('.ribbon-settings-button').click()");
         await wait("!!document.querySelector('.settings')");
         await checkTabLoop('.settings');
+        await js("document.querySelector('[data-section=accessibility]').click()");
+        await js("document.querySelector('[data-setting=editorFocusOutline]').click()");
+        assert.equal(await js("JSON.parse(localStorage.getItem('tagline-settings')).editorFocusOutline"), true);
         assert.equal(await js("!!document.querySelector('.ribbon').closest('[inert]')"), true, 'background is inert');
         await js("document.querySelector('.visual-document').focus()");
         assert.equal(await js("!!document.activeElement.closest('.modal-backdrop')"), true, 'background cannot steal focus');
@@ -161,6 +174,8 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
           await key('Right');
           assert.equal(await js("document.activeElement.dataset.editorAction"), 'hat', 'toolbar supports arrow keys');
           await js(`document.querySelector('${editor}').focus()`);
+          assert.equal(await js("getComputedStyle(document.activeElement).outlineStyle"), 'solid',
+            'opt-in editor focus outline works in both modes');
           assert.equal(await js(`document.querySelector('${editor}').getAttribute('aria-multiline')`), 'true');
           await key('F', [primary]);
           await wait("!!document.querySelector('.visual-find')");
@@ -202,6 +217,15 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
         assert.equal((saved.match(/\[\[Card#claim\|Evidence link\]\]/g) || []).length, 2,
           'links inserted in both editing modes survive switching and save to disk');
         assert.equal(await js("document.querySelectorAll('[inert]').length"), 0);
+        await js("document.querySelector('.ribbon-settings-button').click()");
+        await wait("!!document.querySelector('.settings')");
+        await js("document.querySelector('[data-section=accessibility]').click()");
+        await js("document.querySelector('[data-setting=editorFocusOutline]').click()");
+        await key('Escape');
+        await js("document.querySelector('.visual-document').focus()");
+        assert.equal(await js("getComputedStyle(document.activeElement).outlineStyle"), 'none',
+          'disabling the setting removes the note outline immediately');
+        assert.equal(await js("JSON.parse(localStorage.getItem('tagline-settings')).editorFocusOutline"), false);
         wc.debugger.detach();
         console.log('PASS accessibility: focus scopes, sidebar ordering, theme fade, and editor parity');
         app.exit(0);

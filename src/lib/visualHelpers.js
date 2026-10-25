@@ -1,6 +1,10 @@
+import { readFrontmatter } from './frontmatter.js';
+
 // Keep unsupported structures in source mode rather than silently deleting them.
 export function visualBlocker(content) {
-  if (/^---\r?\n[\s\S]*?\r?\n---/.test(content)) return 'YAML frontmatter';
+  const metadata = readFrontmatter(content);
+  if (metadata.error) return 'invalid YAML frontmatter';
+  content = metadata.body;
   if (/<!--|<\/?[a-z][^>]*>/i.test(content.replace(/```[\s\S]*?```/g, ''))) return 'embedded HTML';
   if (/^\[\^[^\]]+\]:/m.test(content)) return 'footnotes';
   if (/!\[[^\]]*\]\(/.test(content)) return 'Markdown images';

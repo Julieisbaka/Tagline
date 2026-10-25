@@ -6,7 +6,7 @@ const Ajv = require('ajv');
 
 const root = path.join(__dirname, '..');
 const directory = path.join(root, 'schemas');
-const names = ['flow', 'canvas', 'extension-manifest', 'theme', 'extension-settings'];
+const names = ['flow', 'extension-manifest', 'theme', 'extension-settings'];
 const schemas = Object.fromEntries(names.map((name) => [
   name, JSON.parse(fs.readFileSync(path.join(directory, `${name}.schema.json`), 'utf8')),
 ]));
@@ -32,6 +32,8 @@ test('all public schemas compile offline and every editor association points to 
   }
   assert.equal(readJson('.vscode\\settings.json')['files.associations']['*.flow'], 'json');
   assert.equal(readJson('.vscode\\settings.json')['files.associations']['*.canvas'], 'json');
+  assert.equal(associations.some((item) => item.fileMatch.includes('*.canvas')), false,
+    'JSON Canvas follows the upstream specification rather than a Tagline schema');
   assert.ok(readJson('package.json').build.files.includes('schemas/**/*'), 'schemas ship with the app for offline use');
 });
 
@@ -52,35 +54,6 @@ test('flow schema matches supported structures and preserves extension fields', 
   const unequalRow = { sheets: [{ name: 'Round', columns: ['1AC', '1NC'], rows: [['Only one cell']] }] };
   check('flow', unequalRow);
   assert.throws(() => parseFlow(JSON.stringify(unequalRow)), /structure/, 'cross-field row length remains a runtime check');
-});
-
-test('canvas schema validates node variants, endpoints and safe integer geometry', async () => {
-  const { parseCanvas, createCanvasNode, createArgumentEdge } = await import('../electron/canvas.mjs');
-  check('canvas', {});
-  const nodes = ['text', 'file', 'link', 'group'].map((type, index) => createCanvasNode(type, index, type));
-  nodes[1].file = 'Round.flow';
-  nodes[2].url = '[[Round.flow|Round]]';
-  const canvas = { nodes, edges: [createArgumentEdge('text', 'file', 'supports', 'edge')], custom: { keep: true } };
-  check('canvas', canvas);
-  assert.deepEqual(parseCanvas(JSON.stringify(canvas)), canvas);
-  for (const invalid of [
-    { nodes: {} },
-    { nodes: [{ ...nodes[0], width: 0 }] },
-    { nodes: [{ ...nodes[0], x: 0.5 }] },
-    { nodes: [{ ...nodes[0], y: 9007199254740992 }] },
-    { nodes: [{ ...nodes[0], id: '  ' }] },
-    { nodes: [{ ...nodes[0], color: '#12345' }] },
-    { nodes: [{ ...nodes[1], subpath: 'Heading' }] },
-    { nodes: [{ ...nodes[2], url: 42 }] },
-    { nodes: [{ ...nodes[3], backgroundStyle: 'stretch' }] },
-    { ...canvas, edges: [{ ...canvas.edges[0], toEnd: 'circle' }] },
-  ]) {
-    check('canvas', invalid, false);
-    assert.throws(() => parseCanvas(JSON.stringify(invalid)));
-  }
-  const brokenReference = { ...canvas, edges: [{ ...canvas.edges[0], toNode: 'missing' }] };
-  check('canvas', brokenReference);
-  assert.throws(() => parseCanvas(JSON.stringify(brokenReference)), /existing nodes/);
 });
 
 test('extension manifest schema accepts the demo and checks declarations, permissions and typed settings', () => {

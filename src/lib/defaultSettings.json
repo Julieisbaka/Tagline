@@ -15,6 +15,7 @@
   "sourceLineWrapping": true,
   "sourceActiveLine": false,
   "sourceAutocomplete": true,
+  "editorFocusOutline": false,
   "focusNewFlowRow": true,
   "language": "en",
   "customTheme": null,

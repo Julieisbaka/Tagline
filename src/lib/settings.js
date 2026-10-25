@@ -2,6 +2,7 @@ import { useCallback, useEffect, useLayoutEffect, useState } from 'react';
 import { setRuntimeLimits } from '../../electron/customization.mjs';
 import DEFAULTS from './defaultSettings.json' with { type: 'json' };
 import { setLanguage } from './i18n.js';
+import { initialLanguage } from './localization.js';
 import { applyTheme, getTheme } from './themes.js';
 import { configureVisualCache } from './visualCache.js';
 
@@ -11,9 +12,10 @@ function load() {
   try {
     const saved = localStorage.getItem(KEY);
     const parsed = JSON.parse(saved || '{}');
-    return { ...DEFAULTS, ...parsed, internalFlags: { ...DEFAULTS.internalFlags, ...parsed?.internalFlags } };
+    return { ...DEFAULTS, ...parsed, language: initialLanguage(parsed?.language, window.api.systemLanguages),
+      internalFlags: { ...DEFAULTS.internalFlags, ...parsed?.internalFlags } };
   } catch {
-    return { ...DEFAULTS };
+    return { ...DEFAULTS, language: initialLanguage(undefined, window.api.systemLanguages) };
   }
 }
 

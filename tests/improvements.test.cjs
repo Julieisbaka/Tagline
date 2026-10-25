@@ -287,6 +287,7 @@ test('macOS desktop wiring provides native window controls, menus and Dock react
   const ipcMain = new EventEmitter();
   ipcMain.handle = () => { };
   app.whenReady = () => Promise.resolve();
+  app.getPreferredSystemLanguages = () => ['fr-CA', 'en-US'];
   app.dock = { setIcon: (icon) => { dockIcon = icon; } };
   app.setAboutPanelOptions = () => { };
   app.setName = () => { };
@@ -344,6 +345,8 @@ test('macOS desktop wiring provides native window controls, menus and Dock react
   assert.equal(windows[0].options.titleBarStyle, 'hiddenInset');
   assert.equal(windows[0].options.trafficLightPosition.x, 14);
   assert.equal(windows[0].options.webPreferences.sandbox, true);
+  assert.equal(windows[0].options.webPreferences.additionalArguments[0],
+    `--tagline-languages=${encodeURIComponent(JSON.stringify(['fr-CA', 'en-US']))}`);
   assert.ok(dockIcon.endsWith(path.join('build', 'icon.png')));
   assert.equal(menu[0].label, 'Tagline');
   assert.ok(menu[0].submenu.some((item) => item.role === 'services'));

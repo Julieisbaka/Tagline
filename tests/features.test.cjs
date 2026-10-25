@@ -105,6 +105,11 @@ test('extension capabilities validate selection, command, helper, event and UI c
   ]);
   assert.deepEqual(extensionHelper('helpers.markdown.extractLinks', ['[[Evidence]]']), ['Evidence']);
   assert.deepEqual(extensionHelper('helpers.markdown.extractTags', ['#aff #impact']), ['aff', 'impact']);
+  const metadata = '---\nspeech: true\n---\n# Speech';
+  assert.deepEqual(await new ExtensionHost({ permissions: [] }, '', {}).handle('helpers.markdown.frontmatter', [metadata]),
+    { data: { speech: true }, body: '# Speech', prefix: '---\nspeech: true\n---\n' });
+  assert.equal(markdownToText(metadata), 'Speech');
+  assert.throws(() => extensionHelper('helpers.markdown.frontmatter', ['---\nbroken: [\n---']), /Invalid YAML/);
   assert.equal(extensionHelper('helpers.markdown.resolveLink', ['Evidence', ['Evidence.md']]), 'Evidence.md');
   assert.equal(extensionHelper('helpers.cards.getAt', [cardMarkdown, 24]).title, 'Climate impact');
   assert.equal(extensionHelper('helpers.cards.spokenEvidence', [cardMarkdown]), 'The impact is significant.\nSmith 2024');

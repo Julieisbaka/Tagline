@@ -206,6 +206,8 @@
           markdown: Object.freeze({
             /** Convert Markdown to readable plain text. @returns {Promise<string>} */
             toText: (markdown) => call('helpers.markdown.toText', markdown),
+            /** Read YAML metadata and Markdown body as {data,body,prefix}; reject invalid YAML. @returns {Promise<object>} */
+            frontmatter: (markdown) => call('helpers.markdown.frontmatter', markdown),
             /** Render sanitized Markdown HTML using Tagline's renderer. @returns {Promise<string>} */
             toHtml: (markdown) => call('helpers.markdown.toHtml', markdown),
             /** Produce Tagline's heading anchor slug. @returns {Promise<string>} */

@@ -12,12 +12,6 @@
     },
     {
       "fileMatch": [
-        "*.canvas"
-      ],
-      "url": "./schemas/canvas.schema.json"
-    },
-    {
-      "fileMatch": [
         "/demo/*/manifest.json",
         "**/extensions/*/manifest.json"
       ],

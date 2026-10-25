@@ -2,6 +2,7 @@ const { contextBridge, ipcRenderer } = require('electron');
 
 contextBridge.exposeInMainWorld('api', {
   platform: process.platform,
+  systemLanguages: JSON.parse(decodeURIComponent(process.argv.find((arg) => arg.startsWith('--tagline-languages=')).split('=')[1])),
   getInstallationInfo: () => ipcRenderer.invoke('app:installation'),
   checkForUpdates: () => ipcRenderer.invoke('app:checkUpdates'),
   openProjectPage: (page) => ipcRenderer.invoke('app:openProjectPage', page),

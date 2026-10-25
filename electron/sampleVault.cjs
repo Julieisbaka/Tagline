@@ -187,7 +187,11 @@ Evidence text. ++Underline the warrant++ and ==highlight what you read==.
 ## RFD notes
 `,
 
-  'Speech Docs/Speech.md': `# Speech Document
+  'Speech Docs/Speech.md': `---
+speech: true
+---
+
+# Speech Document
 
 `,
 

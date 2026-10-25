@@ -1,4 +1,5 @@
 // Pure helpers for indexing a vault: names, links, tags, backlinks.
+import { splitFrontmatter } from './frontmatter.js';
 
 /** Test a case-insensitive flow-document extension. @param {string} p @returns {boolean} */
 export const isFlow = (p) => p.toLowerCase().endsWith('.flow');
@@ -36,7 +37,7 @@ const WIKILINK_RE = /(!?)\[\[([^\]|#]+)(#[^\]|]*)?(\|[^\]]*)?\]\]/g;
 const TAG_RE = /(^|[\s(])#([A-Za-z][\w/-]*)/g;
 
 function stripCode(content) {
-  return content.replace(/```[\s\S]*?```/g, '').replace(/`[^`\n]*`/g, '');
+  return splitFrontmatter(content).body.replace(/```[\s\S]*?```/g, '').replace(/`[^`\n]*`/g, '');
 }
 
 /** Extract wiki-link targets outside code, without headings or aliases. @returns {string[]} */
@@ -112,6 +113,8 @@ export function rewriteLinks(content, oldPath, newPath, allPaths) {
 
 /** Extract {level,text,line} headings outside fenced code; line is zero-based. @returns {object[]} */
 export function outline(content) {
+  const metadata = splitFrontmatter(content);
+  content = metadata.prefix.replace(/[^\n]/g, '') + metadata.body;
   const out = [];
   let inCode = false;
   content.split('\n').forEach((line, i) => {
