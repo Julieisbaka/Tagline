@@ -62,6 +62,10 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
         await delay(30);
       };
       try {
+        await wait("!!document.querySelector('.onboarding-skip')");
+        await checkTabLoop('.onboarding-dialog');
+        await key('Escape');
+        await wait("!document.querySelector('.onboarding-dialog')");
         await wait('!!document.querySelector(\'.tree-item[title="Card.md"]\')');
         await js('document.querySelector(\'.tree-item[title="Card.md"]\').click()');
         await wait("!!document.querySelector('.visual-document')");

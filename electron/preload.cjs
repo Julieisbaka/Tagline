@@ -3,6 +3,8 @@ const { contextBridge, ipcRenderer } = require('electron');
 contextBridge.exposeInMainWorld('api', {
   platform: process.platform,
   getInstallationInfo: () => ipcRenderer.invoke('app:installation'),
+  checkForUpdates: () => ipcRenderer.invoke('app:checkUpdates'),
+  openProjectPage: (page) => ipcRenderer.invoke('app:openProjectPage', page),
   uninstallApp: (removeProfile) => ipcRenderer.invoke('app:uninstall', removeProfile),
   googleDocs: {
     status: () => ipcRenderer.invoke('googleDocs:status'),
@@ -74,6 +76,7 @@ contextBridge.exposeInMainWorld('api', {
   },
   listExtensions: () => ipcRenderer.invoke('extensions:list'),
   loadExtension: (id) => ipcRenderer.invoke('extensions:load', id),
+  completeExtensionInstall: (id, token) => ipcRenderer.invoke('extensions:completeInstall', id, token),
   setExtensionEnabled: (id, enabled, reviewToken) => ipcRenderer.invoke('extensions:setEnabled', id, enabled, reviewToken),
   openExtensionsFolder: () => ipcRenderer.invoke('extensions:openFolder'),
   getCustomizationLimits: () => ipcRenderer.invoke('customization:get'),

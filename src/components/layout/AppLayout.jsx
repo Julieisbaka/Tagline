@@ -12,6 +12,7 @@ import Splitter from './Splitter.jsx';
 import TabBar from './TabBar.jsx';
 import ConfigurableBar from './ConfigurableBar.jsx';
 import { STATUS_ITEMS } from '../../lib/workspaceItems.js';
+import Onboarding from '../dialogs/Onboarding.jsx';
 
 const CanvasView = deferred(() => import('../CanvasView.jsx'));
 const GraphView = deferred(() => import('../GraphView.jsx'));
@@ -63,6 +64,8 @@ export default function AppLayout({ app }) {
         <ExtensionSurface surface={surface} onClose={ext.closeSurface} />
       </div>
     </ModalBackdrop>);
+  const onboarding = v.initialized && !settings.internalFlags?.hasSeenOnboarding && !modal && <Onboarding
+    onFinish={() => updateSettings({ internalFlags: { ...settings.internalFlags, hasSeenOnboarding: true } })} />;
 
   if (!v.vault) return <>
     {window.api.platform === 'darwin' && <div className="mac-titlebar">Tagline</div>}
@@ -74,6 +77,7 @@ export default function AppLayout({ app }) {
     {modal?.type === 'citation' && <CitationDialog onClose={() => setModal(null)} />}
     {websiteView && <div className="welcome-website">{websiteView}</div>}
     {extensionWebviews}
+    {onboarding}
     {toast && <div className="toast">{toast}</div>}
   </>;
 
@@ -242,6 +246,7 @@ export default function AppLayout({ app }) {
         ? insertCitation : null} onClose={() => setModal(null)} />}
       {toast && <div className="toast">{toast}</div>}
       {extensionWebviews}
+      {onboarding}
     </div>
   );
 }

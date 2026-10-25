@@ -16,7 +16,7 @@ const { registerFlowFiles } = require('./flowFiles.cjs');
 const { registerBrowser } = require('./browser.cjs');
 const { DEFAULT_RETENTION, createRevisionHistory } = require('./revisionHistory.cjs');
 const { NOTE_EXTS, listVault: walk, readVaultSnapshot } = require('./vaultFiles.cjs');
-const { installationInfo } = require('./installation.cjs');
+const { installationInfo, checkForUpdates, REPOSITORY_URL, RELEASES_URL } = require('./installation.cjs');
 const { uninstallApplication } = require('./uninstall.cjs');
 const { registerOpenCaselist } = require('./opencaselist.cjs');
 const { registerGoogleDocs } = require('./googleDocs.cjs');
@@ -110,6 +110,11 @@ async function listRecentVaults() {
 
 function registerIpc() {
   ipcMain.handle('app:installation', () => installationInfo(app));
+  ipcMain.handle('app:checkUpdates', () => checkForUpdates(installationInfo(app).version));
+  ipcMain.handle('app:openProjectPage', (_event, page) => {
+    if (!['repository', 'releases'].includes(page)) throw new Error('Unknown project page.');
+    return shell.openExternal(page === 'repository' ? REPOSITORY_URL : RELEASES_URL);
+  });
   ipcMain.handle('app:uninstall', async (_event, removeProfile) => {
     const result = await uninstallApplication({ app, shell, removeProfile });
     if (!result.manual) app.quit();

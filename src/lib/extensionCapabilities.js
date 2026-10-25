@@ -1,6 +1,9 @@
 import { marked } from 'marked';
 import { EMPTY_FLOW, parseFlow, serializeFlow, setFlowCell } from '../../electron/flow.mjs';
-import { canvasGroupMembers, createArgumentEdge, createCanvasNode, parseCanvas, serializeCanvas } from './canvas.js';
+import {
+  canvasGroupMembers, createArgumentEdge, createCanvasId, createCanvasNode, moveCanvasNodes,
+  parseCanvas, resolveCanvasLink, serializeCanvas, suggestCanvasFiles,
+} from './canvas.js';
 import { cardStats, formatDuration, getSectionAt, spokenEvidence } from './card.js';
 import { createCitation } from './citation.js';
 import { renderMarkdown, slugify } from './markdown.js';
@@ -134,6 +137,21 @@ export function extensionHelper(method, args) {
       return createArgumentEdge(requireHelperText(args[0], 'Source node'), requireHelperText(args[1], 'Target node'), args[2]);
     case 'helpers.canvas.groupMembers':
       return canvasGroupMembers(parseCanvas(serializeCanvas(args[0])).nodes, requireHelperText(args[1], 'Group id'));
+    case 'helpers.canvas.resolveLink':
+      return resolveCanvasLink(requireHelperText(args[0], 'Link target'), requirePaths(args[1]));
+    case 'helpers.canvas.suggestFiles':
+      if (!Number.isSafeInteger(args[2]) || args[2] < 1 || args[2] > 1000) throw new Error('Suggestion limit must be from 1 to 1,000.');
+      return suggestCanvasFiles(requirePaths(args[0]), requireHelperText(args[1], 'Query'), args[2]);
+    case 'helpers.canvas.createId':
+      return createCanvasId();
+    case 'helpers.canvas.moveNodes': {
+      const canvas = parseCanvas(serializeCanvas(args[0]));
+      const ids = requirePaths(args[1]);
+      if (args.slice(2, 4).length !== 2 || args.slice(2, 4).some((value) => !Number.isSafeInteger(value))) {
+        throw new Error('Movement deltas must be safe integers.');
+      }
+      return parseCanvas(serializeCanvas(moveCanvasNodes(canvas, ids, args[2], args[3])));
+    }
     case 'helpers.flow.parse':
       return parseFlow(requireHelperText(args[0], 'Flow JSON'));
     case 'helpers.flow.serialize':

@@ -520,6 +520,24 @@
   width: min(440px, 90vw);
 }
 
+.onboarding-dialog {
+  width: min(540px, 92vw);
+}
+
+.onboarding-dialog h2 {
+  margin: 12px 0;
+}
+
+.onboarding-dialog p {
+  margin: 12px 0;
+  line-height: 1.6;
+}
+
+.onboarding-progress {
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
 .confirm-dialog p {
   margin: 12px 0 20px;
   overflow-wrap: anywhere;

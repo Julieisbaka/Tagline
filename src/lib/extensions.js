@@ -29,11 +29,12 @@ function requireText(value, label, max = MAX_TEXT) {
 }
 
 export class ExtensionHost {
-  constructor(manifest, source, bridge, limits = getRuntimeLimits()) {
+  constructor(manifest, source, bridge, limits = getRuntimeLimits(), firstInstall = false) {
     this.manifest = manifest;
     this.source = source;
     this.bridge = bridge;
     this.limits = Object.freeze(validateLimits(limits));
+    this.firstInstall = firstInstall;
     this.registered = new Set();
     this.watches = new Map();
     this.activeNoteWatches = new Map();
@@ -61,7 +62,9 @@ export class ExtensionHost {
         if (error) { this.dispose(); reject(error); } else resolve();
       };
       window.addEventListener('message', this.onMessage);
-      this.frame.addEventListener('load', () => this.frame?.contentWindow.postMessage({ type: 'start', source: this.source, limits: this.limits }, '*'), { once: true });
+      this.frame.addEventListener('load', () => this.frame?.contentWindow.postMessage({
+        type: 'start', source: this.source, limits: this.limits, firstInstall: this.firstInstall,
+      }, '*'), { once: true });
       document.body.append(this.frame);
     });
   }
@@ -172,6 +175,10 @@ export class ExtensionHost {
       case 'helpers.canvas.createNode':
       case 'helpers.canvas.createArgumentEdge':
       case 'helpers.canvas.groupMembers':
+      case 'helpers.canvas.resolveLink':
+      case 'helpers.canvas.suggestFiles':
+      case 'helpers.canvas.createId':
+      case 'helpers.canvas.moveNodes':
       case 'helpers.flow.parse':
       case 'helpers.flow.serialize':
       case 'helpers.flow.create':
@@ -410,13 +417,19 @@ export function useExtensions({ bridgeRef, notify }) {
     const loaded = await Promise.all(list.map(async (item) => {
       if (item.error || !item.enabled) return item;
       try {
-        const { source, themes: files, limits } = await window.api.loadExtension(item.id);
+        const { source, themes: files, limits, firstInstall, installToken } = await window.api.loadExtension(item.id);
+        if (current !== generation.current) return item;
         files.forEach((theme, index) => themes.push({
           ...validateTheme(theme, limits), id: `ext:${item.id}:${index}`, extension: item.name,
         }));
         if (source) {
-          const host = new ExtensionHost(item, source, bridge, limits);
+          const host = new ExtensionHost(item, source, bridge, limits, firstInstall);
           await host.start();
+          if (current !== generation.current) { host.dispose(); return item; }
+          if (installToken) {
+            try { await window.api.completeExtensionInstall(item.id, installToken); }
+            catch (error) { host.dispose(); throw error; }
+          }
           if (current !== generation.current) { host.dispose(); return item; }
           hosts.current.set(item.id, host);
           for (const command of item.contributes.commands) {

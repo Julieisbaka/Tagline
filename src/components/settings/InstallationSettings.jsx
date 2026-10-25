@@ -11,6 +11,20 @@ export default function InstallationSettings() {
   const [uninstalling, setUninstalling] = useState(false);
   const [uninstallError, setUninstallError] = useState('');
   const [uninstallMessage, setUninstallMessage] = useState('');
+  const [checking, setChecking] = useState(false);
+  const [release, setRelease] = useState(null);
+  const [updateError, setUpdateError] = useState('');
+  const openPage = async (page) => {
+    setUpdateError('');
+    try { await window.api.openProjectPage(page); }
+    catch (failure) { setUpdateError(failure.message); }
+  };
+  const checkUpdates = async () => {
+    setChecking(true); setUpdateError(''); setRelease(null);
+    try { setRelease(await window.api.checkForUpdates()); }
+    catch (failure) { setUpdateError(failure.message); }
+    finally { setChecking(false); }
+  };
   useEffect(() => {
     let active = true;
     window.api.getInstallationInfo().then((value) => { if (active) setInfo(value); })
@@ -54,6 +68,17 @@ export default function InstallationSettings() {
     </dl>}
     <h3>{t('Manual updates')}</h3>
     <p>{t('Tagline does not check for or install updates automatically.')}</p>
+    <div className="settings-actions">
+      <button disabled={checking} aria-busy={checking} onClick={checkUpdates}>
+        {t(checking ? 'Checking for updates…' : 'Check for updates')}
+      </button>
+      <button className="link-btn" onClick={() => openPage('repository')}>{t('GitHub repository')}</button>
+      <button className="link-btn" onClick={() => openPage('releases')}>{t('View releases')}</button>
+    </div>
+    {release && <p role="status">{t(release.updateAvailable
+      ? 'Version {version} is available. Download it from GitHub releases.'
+      : 'You are up to date (latest release: {version}).', { version: release.latestVersion })}</p>}
+    {updateError && <p className="error-text" role="alert">{updateError}</p>}
     <p>{t('Quit Tagline before updating. On Windows, run the newer installer using the same install scope and location. On macOS, replace Tagline in Applications.')}</p>
     <p>{t('Keep your profile folder to preserve settings, themes, extensions, and downloaded models. Vaults and revision history remain in their own folders. Back up your profile and vaults before updating.')}</p>
     <h3>{t('Uninstall Tagline')}</h3>

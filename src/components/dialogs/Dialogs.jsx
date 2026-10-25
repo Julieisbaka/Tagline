@@ -258,6 +258,10 @@ export function SettingsDialog({ settings, update, onClose, extensions, onOpenCa
                   <input type="checkbox" data-flag="hasSeenOnboarding" checked={!!settings.internalFlags?.hasSeenOnboarding}
                     onChange={(event) => update({ internalFlags: { ...settings.internalFlags, hasSeenOnboarding: event.target.checked } })} />
                 </label>
+                <button onClick={() => {
+                  update({ internalFlags: { ...settings.internalFlags, hasSeenOnboarding: false } });
+                  onClose();
+                }}>{t('Show onboarding again')}</button>
               </section>
             </section>
             {section === 'installation' && <section className="settings-panel"><InstallationSettings /></section>}

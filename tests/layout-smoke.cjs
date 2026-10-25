@@ -31,6 +31,8 @@ const delay = (ms) => new Promise((r) => setTimeout(r, ms));
       const js = (c) => win.webContents.executeJavaScript(c);
       const rect = (s) => js(`(() => { const b = document.querySelector(${JSON.stringify(s)}).getBoundingClientRect(); return { x: b.x, y: b.y, w: b.width, h: b.height }; })()`);
       try {
+        for (let i = 0; i < 100 && !(await js("!!document.querySelector('.onboarding-skip')")); i++) await delay(50);
+        await js("document.querySelector('.onboarding-skip').click()");
         for (let i = 0; i < 100 && !(await js("!!document.querySelector('.ribbon-settings-button')")); i++) await delay(100);
         await js("document.querySelector('.ribbon-settings-button').click()");
         for (let i = 0; i < 100 && !(await js("!!document.querySelector('.settings')")); i++) await delay(50);

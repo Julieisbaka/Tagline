@@ -2,6 +2,39 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const { EventEmitter } = require('node:events');
 const { uninstallApplication } = require('../electron/uninstall.cjs');
+const { checkForUpdates, compareVersions } = require('../electron/installation.cjs');
+
+test('release comparison handles numeric versions, prereleases, prefixes and build metadata', () => {
+  for (const [left, right, order] of [
+    ['v1.10.0', '1.9.9', 1], ['1.0.0', 'v1.0.0', 0], ['1.0.0+build.2', '1.0.0+build.1', 0],
+    ['1.0.0-beta.10', '1.0.0-beta.2', 1], ['1.0.0', '1.0.0-rc.1', 1],
+    ['1.0.0-alpha', '1.0.0-alpha.1', -1], ['1.0.0-1', '1.0.0-alpha', -1],
+    ['0.9.0', '1.0.0', -1],
+  ]) assert.equal(compareVersions(left, right), order);
+  for (const invalid of ['latest', '1.0', '01.0.0', '1.0.0-beta.01', null]) {
+    assert.throws(() => compareVersions(invalid, '1.0.0'), /semantic version/);
+  }
+});
+
+test('manual release checks use the public GitHub endpoint and report failures explicitly', async () => {
+  let request;
+  const result = await checkForUpdates('1.0.0', async (url, options) => {
+    request = { url, options };
+    return { ok: true, json: async () => ({ tag_name: 'v1.1.0', draft: false, prerelease: false }) };
+  });
+  assert.equal(request.url, 'https://api.github.com/repos/Julieisbaka/Tagline/releases/latest');
+  assert.equal(request.options.credentials, 'omit');
+  assert.equal(request.options.redirect, 'error');
+  assert.ok(request.options.signal);
+  assert.deepEqual(result, { currentVersion: '1.0.0', latestVersion: 'v1.1.0', updateAvailable: true });
+  const current = await checkForUpdates('2.0.0', async () => ({ ok: true, json: async () => ({ tag_name: 'v1.0.0' }) }));
+  assert.equal(current.updateAvailable, false, 'a development build ahead of releases is not an update');
+  for (const [status, message] of [[404, /No published/], [403, /rate limit/], [429, /rate limit/], [500, /HTTP 500/]]) {
+    await assert.rejects(checkForUpdates('1.0.0', async () => ({ ok: false, status })), message);
+  }
+  await assert.rejects(checkForUpdates('1.0.0', async () => ({ ok: true, json: async () => ({ tag_name: 'broken' }) })), /semantic/);
+  await assert.rejects(checkForUpdates('1.0.0', async () => { throw new Error('Network unavailable'); }), /Network unavailable/);
+});
 
 function harness() {
   const calls = [];

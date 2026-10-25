@@ -257,6 +257,8 @@ tagline.commands.register('save-checks', async () => {
       };
       try {
         win.show(); win.focus();
+        await wait("!!document.querySelector('.onboarding-skip')");
+        await js("document.querySelector('.onboarding-skip').click()");
         await wait(`document.querySelectorAll('iframe[data-extension]').length === 2`, 'extension frames');
         assert.equal(await js(`document.querySelector('iframe[data-extension="demo"]').getAttribute('sandbox')`), 'allow-scripts');
 

@@ -1,7 +1,7 @@
 const fs = require('node:fs/promises');
 const path = require('node:path');
 const { validateSettingDefinitions, validateSettingValue } = require('./extensionSettings.mjs');
-const { createHash } = require('node:crypto');
+const { createHash, randomUUID } = require('node:crypto');
 const { DEFAULT_LIMITS, validateLimits } = require('./customization.mjs');
 
 // Extensions live in <userData>/extensions/<folder>/manifest.json. The main process only reads and
@@ -118,6 +118,7 @@ function needsReview(manifest, config) {
 }
 
 function registerExtensions({ app, ipcMain, shell, readConfig, writeConfig, dialog, getWindow }) {
+  const installTokens = new Map();
   const limits = () => validateLimits(readConfig().customizationLimits);
   ipcMain.handle('customization:get', () => limits());
   ipcMain.handle('customization:set', (_event, value) => {
@@ -191,7 +192,21 @@ function registerExtensions({ app, ipcMain, shell, readConfig, writeConfig, dial
       if ((await fs.stat(file)).size > limits().themeFileBytes) throw new Error(`Theme file exceeds ${limits().themeFileBytes} bytes.`);
       themes.push(JSON.parse(await fs.readFile(file, 'utf8')));
     }
-    return { source, themes, limits: limits() };
+    const initialized = readConfig().initializedExtensions;
+    const firstInstall = !!source && !(Array.isArray(initialized) && initialized.includes(item.id));
+    const installToken = firstInstall ? randomUUID() : null;
+    if (installToken) installTokens.set(item.id, installToken);
+    return { source, themes, limits: limits(), firstInstall, installToken };
+  });
+
+  ipcMain.handle('extensions:completeInstall', async (_event, id, token) => {
+    if (typeof token !== 'string' || installTokens.get(id) !== token) throw new Error('Stale extension installation.');
+    const item = (await scan()).find((extension) => extension.id === id && extension.enabled && !extension.error);
+    if (!item) throw new Error('Extension is no longer enabled.');
+    const initialized = readConfig().initializedExtensions;
+    writeConfig({ initializedExtensions: [...new Set([...(Array.isArray(initialized) ? initialized : []), id])] });
+    installTokens.delete(id);
+    return true;
   });
 
   ipcMain.handle('extensions:setEnabled', async (_e, id, enabled, reviewToken) => {
@@ -204,6 +219,7 @@ function registerExtensions({ app, ipcMain, shell, readConfig, writeConfig, dial
       throw new Error('Extension permissions or settings changed. Reload and review before enabling.');
     }
     const next = enabledIds().filter((item) => item !== id);
+    if (!enabled) installTokens.delete(id);
     if (enabled) next.push(id);
     const extensionReviews = { ...readConfig().extensionReviews };
     if (enabled) extensionReviews[id] = reviewSignature(item);

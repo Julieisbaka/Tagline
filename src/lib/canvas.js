@@ -1,6 +1,12 @@
 export * from '../../electron/canvas.mjs';
 import { resolveLink } from './vault.js';
 
+/**
+ * Resolve a web URL, vault path, or [[file#heading|label]] without opening it.
+ * @param {string} value Link text.
+ * @param {string[]} paths Candidate vault-relative file paths.
+ * @returns {{type:'web', url:string}|{type:'file', path:string, heading:string, label:string|undefined}|null}
+ */
 export function resolveCanvasLink(value, paths) {
   const target = value.trim();
   if (/^https?:\/\//i.test(target)) {

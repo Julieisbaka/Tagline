@@ -134,7 +134,7 @@ export default function GraphView({ index, activePath, onOpen, showMarkdownExten
       }
       for (const n of ns) {
         const p = pos.get(n.id);
-        if (p.pinned || (drag && drag.node === n)) {
+        if (drag && drag.node === n) {
           p.vx = 0;
           p.vy = 0;
           continue;
@@ -216,7 +216,6 @@ export default function GraphView({ index, activePath, onOpen, showMarkdownExten
           p.y = wpt.y;
           p.vx = 0;
           p.vy = 0;
-          p.pinned = true;
           alpha = Math.max(alpha, 0.3);
         } else if (!drag.node) {
           view.x = drag.vx + (e.clientX - drag.sx);
@@ -229,6 +228,12 @@ export default function GraphView({ index, activePath, onOpen, showMarkdownExten
     };
     const onUp = (e) => {
       if (drag && drag.node && !drag.moved) live.current.onOpen(drag.node.path || drag.node.id, e.ctrlKey || e.metaKey);
+      if (drag?.node && drag.moved) {
+        const p = pos.get(drag.node.id);
+        p.vx = 0;
+        p.vy = 0;
+        alpha = Math.max(alpha, 0.15);
+      }
       drag = null;
     };
     const onWheel = (e) => {
@@ -236,7 +241,9 @@ export default function GraphView({ index, activePath, onOpen, showMarkdownExten
       const r = rect();
       const cx = e.clientX - r.left - w / 2;
       const cy = e.clientY - r.top - h / 2;
+      if (!e.deltaY) return;
       const k = Math.min(4, Math.max(0.2, view.k * (e.deltaY < 0 ? 1.1 : 0.9)));
+      if (k === view.k) return;
       Object.assign(view, { k, x: cx - ((cx - view.x) * k) / view.k, y: cy - ((cy - view.y) * k) / view.k });
     };
 

@@ -105,6 +105,8 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
       };
       const reload = async () => {
         await new Promise((resolve) => { wc.once('did-finish-load', resolve); wc.reload(); });
+        await wait("!!document.querySelector('.onboarding-skip')");
+        await click('.onboarding-skip');
         await wait("!!document.querySelector('.file-tree')");
       };
       const rename = async (from, to) => {

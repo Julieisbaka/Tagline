@@ -14,13 +14,19 @@
       type: 'extension-ui-error', message: String(error?.message || error)
     }, '*');
     window.taglineWebview = Object.freeze({
+      /** Send JSON to this surface's extension worker. No app DOM or filesystem access.
+       * @param {*} payload JSON-serializable message (up to 65,536 characters). @returns {void}
+       */
       postMessage: (payload) => parent.postMessage({ type: 'extension-ui-message', payload }, '*'),
+      /** Subscribe to worker messages. @param {function} listener JSON handler. @returns {() => boolean} Disposer. */
       onMessage: (listener) => {
         if (typeof listener !== 'function') throw new TypeError('Expected a listener.');
         listeners.add(listener);
         return () => listeners.delete(listener);
       },
+      /** Return a clone of the current theme, including variables and reduced-motion preference. @returns {object} */
       getTheme: () => structuredClone(theme),
+      /** Subscribe to theme changes without reloading the surface. @returns {() => boolean} Disposer. */
       onThemeChange: (listener) => {
         if (typeof listener !== 'function') throw new TypeError('Expected a listener.');
         themeListeners.add(listener);
@@ -56,6 +62,9 @@
       return label;
     };
     window.taglineUI = Object.freeze({
+      /** Build a themed button. @param {{label:string,variant?:'default'|'primary',onClick?:function,disabled?:boolean}} options
+       * @returns {HTMLButtonElement}
+       */
       button: ({ label, variant = 'default', onClick, disabled = false }) => {
         if (!['default', 'primary'].includes(variant)) throw new TypeError('Unknown button variant.');
         const el = element('button', variant === 'primary' ? 'primary' : '', [text(label)]);
@@ -63,6 +72,10 @@
         if (onClick) el.addEventListener('click', onClick);
         return el;
       },
+      /** Build a labeled input/textarea; onChange receives its string value.
+       * @param {{label:string,type?:string,value?:string,description?:string,disabled?:boolean,onChange?:function}} options
+       * Also accepts min, max, step, maxLength and placeholder. @returns {HTMLLabelElement}
+       */
       field: (options) => {
         const { type = 'text', value = '' } = options;
         if (!['text', 'number', 'search', 'email', 'url', 'password', 'textarea', 'color'].includes(type)) throw new TypeError('Unknown field type.');
@@ -74,6 +87,10 @@
         }
         return field(options, control, 'input');
       },
+      /** Build a labeled select; options contains {label,value} entries and onChange receives a string.
+       * @param {{label:string,options:object[],value:string,onChange?:function,description?:string,disabled?:boolean}} options
+       * @returns {HTMLLabelElement}
+       */
       select: (options) => {
         const control = document.createElement('select');
         for (const option of options.options) {
@@ -82,6 +99,10 @@
         control.value = options.value;
         return field(options, control, 'change');
       },
+      /** Build a labeled checkbox; onChange receives a boolean.
+       * @param {{label:string,checked?:boolean,onChange?:function,description?:string,disabled?:boolean}} options
+       * @returns {HTMLLabelElement}
+       */
       toggle: (options) => {
         const control = document.createElement('input');
         control.type = 'checkbox'; control.checked = !!options.checked;
@@ -89,10 +110,15 @@
         label.classList.add('tl-toggle');
         return label;
       },
+      /** Stack child DOM nodes with shared app spacing. @param {{children?:Node[]}} options @returns {HTMLDivElement} */
       stack: ({ children = [] } = {}) => element('div', 'tl-stack', children),
+      /** Group a title and child nodes in a themed card. @param {{title:string,children?:Node[]}} options @returns {HTMLElement} */
       card: ({ title, children = [] }) => element('section', 'tl-card', [
         element('h3', '', [text(title)]), element('div', 'tl-stack', children),
       ]),
+      /** Build a status message (or alert for errors). @param {{text:string,tone?:'info'|'warning'|'error'}} options
+       * @returns {HTMLParagraphElement}
+       */
       notice: ({ text: message, tone = 'info' }) => {
         if (!['info', 'warning', 'error'].includes(tone)) throw new TypeError('Unknown notice tone.');
         const el = element('p', 'tl-notice', [text(message)]);

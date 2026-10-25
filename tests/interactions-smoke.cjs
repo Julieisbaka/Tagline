@@ -82,6 +82,15 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
       const saved = (key) => js(`JSON.parse(localStorage.getItem('tagline-settings'))[${JSON.stringify(key)}]`);
       try {
         win.show(); win.focus();
+        await wait("!!document.querySelector('.onboarding-dialog')");
+        assert.equal(await js("document.querySelector('.onboarding-dialog').getAttribute('aria-modal')"), 'true');
+        assert.equal(await js("JSON.parse(localStorage.getItem('tagline-settings')).internalFlags.hasSeenOnboarding"), false);
+        for (let step = 1; step <= 3; step++) {
+          assert.ok((await js("document.querySelector('.onboarding-progress').textContent")).includes(`${step}`));
+          await button('.onboarding-dialog .primary', step === 3 ? 'Get started' : 'Next');
+        }
+        await wait("!document.querySelector('.onboarding-dialog')");
+        assert.equal(await js("JSON.parse(localStorage.getItem('tagline-settings')).internalFlags.hasSeenOnboarding"), true);
         await wait("document.querySelectorAll('.tree-item').length === 4");
         await open('Round.flow');
         await wait("!!document.querySelector('.flow-add-row')");
@@ -240,18 +249,39 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
           return { x: Math.round(r.left + p.offset[0] + n.x * p.scale),
             y: Math.round(r.top + p.offset[1] + n.y * p.scale) }; })()`);
         await drag(gp, 80, 50);
-        const pinned = await js("window.graphPaint.nodes[0]");
-        assert.ok(Math.abs(pinned.x - originalNode.x - 80) < 2 && Math.abs(pinned.y - originalNode.y - 50) < 2,
+        const dropped = await js("window.graphPaint.nodes[0]");
+        assert.ok(Math.abs(dropped.x - originalNode.x - 80) < 8 && Math.abs(dropped.y - originalNode.y - 50) < 8,
           'graph drag moves the node, rather than just panning');
         await delay(1200);
         const settled = await js("window.graphPaint.nodes[0]");
-        assert.ok(Math.abs(pinned.x - settled.x) < 0.01 && Math.abs(pinned.y - settled.y) < 0.01,
-          'graph node remains at its dropped position');
+        assert.ok(Math.hypot(dropped.x - settled.x, dropped.y - settled.y) > 1,
+          'released graph nodes resume the force simulation rather than staying pinned');
         await click('.sidebar-header [aria-label="Refresh"]');
         await wait("document.querySelector('.sidebar-header [aria-label=\"Refresh\"]').getAttribute('aria-busy') === 'false'");
         const refreshed = await js("window.graphPaint.nodes[0]");
-        assert.ok(Math.abs(pinned.x - refreshed.x) < 0.01 && Math.abs(pinned.y - refreshed.y) < 0.01,
-          'refreshing the vault does not reset a dropped graph node');
+        assert.ok(Math.hypot(refreshed.x - settled.x, refreshed.y - settled.y) < 25,
+          'refreshing preserves the graph layout while physics continues');
+        await js(`(() => { const canvas = document.querySelector('.graph canvas'), r = canvas.getBoundingClientRect();
+          for (let index = 0; index < 30; index++) canvas.dispatchEvent(new WheelEvent('wheel', {
+            clientX: r.left + r.width / 2, clientY: r.top + r.height / 2, deltaY: -100, bubbles: true, cancelable: true
+          })); })()`);
+        await wait("window.graphPaint.scale === 4");
+        const zoomOffset = await js("window.graphPaint.offset");
+        await js(`(() => { const canvas = document.querySelector('.graph canvas'), r = canvas.getBoundingClientRect();
+          for (let index = 0; index < 20; index++) canvas.dispatchEvent(new WheelEvent('wheel', {
+            clientX: r.left + 40 + index * 8, clientY: r.top + 40, deltaY: -100, bubbles: true, cancelable: true
+          })); })()`);
+        await delay(100);
+        assert.deepEqual(await js("window.graphPaint.offset"), zoomOffset, 'zooming at maximum scale never shifts the camera');
+        await js(`(() => { const canvas = document.querySelector('.graph canvas'), r = canvas.getBoundingClientRect();
+          for (let index = 0; index < 60; index++) canvas.dispatchEvent(new WheelEvent('wheel', {
+            clientX: r.left + r.width / 2, clientY: r.top + r.height / 2, deltaY: 100, bubbles: true, cancelable: true
+          })); })()`);
+        await wait("window.graphPaint.scale === 0.2");
+        const minOffset = await js("window.graphPaint.offset");
+        await js("document.querySelector('.graph canvas').dispatchEvent(new WheelEvent('wheel', {clientX: 100, clientY: 200, deltaY: 100, bubbles: true, cancelable: true}))");
+        await delay(100);
+        assert.deepEqual(await js("window.graphPaint.offset"), minOffset, 'zooming at minimum scale is also stable');
         for (const file of ['Round.flow', 'Map.canvas']) {
           const valid = await fs.readFile(path.join(vault, file), 'utf8');
           await js(`window.api.write(${JSON.stringify(file)}, '{broken')`);
@@ -325,8 +355,7 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
         assert.ok(Math.abs(spacing.gap - 24) < 1, 'settings groups use consistent 24px separation');
         assert.equal(spacing.headingMargin, '0px', 'section headings do not double their top spacing');
         assert.equal(spacing.rangeDisplay, 'block', 'advanced ranges are distinct helper text, not cramped inline labels');
-        assert.equal(await js("document.querySelector('[data-flag=hasSeenOnboarding]').checked"), false);
-        await click('[data-flag=hasSeenOnboarding]');
+        assert.equal(await js("document.querySelector('[data-flag=hasSeenOnboarding]').checked"), true);
         assert.equal(await js("JSON.parse(localStorage.getItem('tagline-settings')).internalFlags.hasSeenOnboarding"), true);
         assert.equal(await js("JSON.parse(localStorage.getItem('tagline-settings')).internalFlags.visualNoticeDismissed"), false);
         await button('.settings-footer button', 'Done');
@@ -334,6 +363,14 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
         await new Promise((resolve) => { wc.once('did-finish-load', resolve); wc.reload(); });
         await wait("!!document.querySelector('.ribbon-settings-button')");
         assert.equal(await js("JSON.parse(localStorage.getItem('tagline-settings')).internalFlags.hasSeenOnboarding"), true);
+        assert.equal(await js("!!document.querySelector('.onboarding-dialog')"), false, 'onboarding stays dismissed after reload');
+        await click('.ribbon-settings-button');
+        await wait("!!document.querySelector('.settings')");
+        await click('[data-section=advanced]');
+        await button('.internal-flags button', 'Show onboarding again');
+        await wait("!!document.querySelector('.onboarding-dialog')");
+        await button('.onboarding-dialog button', 'Skip tour');
+        await wait("!document.querySelector('.onboarding-dialog')");
         console.log('PASS: flow/canvas recovery in visual and source modes, themed confirmations, JSON history, live resize, file previews and links, onboarding flag, viewport/bar/link/graph regressions.');
         app.exit(0);
       } catch (error) { console.error(error); app.exit(1); }

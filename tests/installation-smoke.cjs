@@ -21,13 +21,22 @@ if (!process.versions.electron) {
   return;
 }
 
-const { app, BrowserWindow, safeStorage } = require('electron');
+const { app, BrowserWindow, safeStorage, ipcMain, shell } = require('electron');
 const root = process.env.TAGLINE_INSTALLATION_ROOT;
 assert.ok(root, 'Run through npm run test:installation after building.');
 const version = process.env.TAGLINE_INSTALLATION_VERSION;
 const first = version === '1.0.0';
 const profile = path.join(root, 'Tagline');
 const vault = path.join(root, 'vault');
+const openedUrls = [];
+shell.openExternal = async (url) => { openedUrls.push(url); };
+const handle = ipcMain.handle.bind(ipcMain);
+let releaseCalls = 0;
+ipcMain.handle = (channel, callback) => handle(channel, channel === 'app:checkUpdates' ? async () => {
+  releaseCalls++;
+  if (releaseCalls === 2) throw new Error('Simulated GitHub rate limit');
+  return { currentVersion: version, latestVersion: 'v9.0.0', updateAvailable: true };
+} : callback);
 app.setPath('appData', root);
 app.setPath('userData', profile);
 // Exercise packaged version reporting without requiring an installer inside the test harness.
@@ -58,6 +67,8 @@ app.on('browser-window-created', (_event, win) => {
       throw new Error(`Timed out: ${code}`);
     };
     try {
+      await wait("!!document.querySelector('.onboarding-skip') || JSON.parse(localStorage.getItem('tagline-settings'))?.internalFlags.hasSeenOnboarding");
+      await js("document.querySelector('.onboarding-skip')?.click()");
       await wait("!!document.querySelector('.tree-item[title=\"Card.md\"]')");
       assert.equal(app.getName(), 'Tagline');
       const info = await js('window.api.getInstallationInfo()');
@@ -95,7 +106,7 @@ app.on('browser-window-created', (_event, win) => {
           'Failed saves clean up temporary files');
         const defaults = require('../src/lib/defaultSettings.json');
         const settings = {
-          ...defaults, wpm: 333, theme: 'high-contrast-dark', modelAutoload: false,
+          ...defaults, internalFlags: { ...defaults.internalFlags, hasSeenOnboarding: true }, wpm: 333, theme: 'high-contrast-dark', modelAutoload: false,
           customCss: '.note-title { font-weight: 600; }', keybindings: { settings: 'Mod+,' },
           themeSettings: { dark: { customOption: 'saved' } }
         };
@@ -150,6 +161,15 @@ app.on('browser-window-created', (_event, win) => {
         assert.ok(displayed.includes(version));
         assert.ok(displayed.includes(profile));
         assert.ok(displayed.includes('does not check for or install updates automatically'));
+        assert.equal(releaseCalls, 0, 'opening settings never contacts GitHub automatically');
+        await js("[...document.querySelectorAll('.installation-settings button')].find(el => el.textContent === 'Check for updates').click()");
+        await wait("document.querySelector('.installation-settings [role=status]')?.textContent.includes('v9.0.0')");
+        await js("[...document.querySelectorAll('.installation-settings button')].find(el => el.textContent === 'Check for updates').click()");
+        await wait("document.querySelector('.installation-settings [role=alert]')?.textContent.includes('Simulated GitHub rate limit')");
+        await js("[...document.querySelectorAll('.installation-settings button')].find(el => el.textContent === 'GitHub repository').click()");
+        await js("[...document.querySelectorAll('.installation-settings button')].find(el => el.textContent === 'View releases').click()");
+        assert.deepEqual(openedUrls, ['https://github.com/Julieisbaka/Tagline', 'https://github.com/Julieisbaka/Tagline/releases']);
+        await assert.rejects(js("window.api.openProjectPage('https://example.com')"), /Unknown project page/);
         await js("document.querySelector('.installation-settings > button.danger').click()");
         await wait("!!document.querySelector('.uninstall-dialog')");
         const uninstallChoices = await js("document.querySelector('.uninstall-dialog').textContent");

@@ -5,6 +5,7 @@ const BACKGROUND_STYLES = new Set(['cover', 'ratio', 'repeat']);
 
 export const EMPTY_CANVAS = `${JSON.stringify({ nodes: [], edges: [] }, null, 2)}\n`;
 
+/** Generate a fresh node or edge identifier. @returns {string} */
 export function createCanvasId() {
   return globalThis.crypto?.randomUUID?.() || `canvas-${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`;
 }
@@ -25,6 +26,7 @@ function validateColor(value, label) {
   }
 }
 
+/** Parse and validate JSON Canvas 1.0 text while retaining unknown fields. @returns {object} */
 export function parseCanvas(content) {
   if (typeof content !== 'string') throw new Error('Canvas content must be JSON text.');
   let canvas;
@@ -100,10 +102,12 @@ export function parseCanvas(content) {
   return { ...canvas, nodes, edges };
 }
 
+/** Validate and pretty-print Canvas data, ending with a newline. @returns {string} */
 export function serializeCanvas(canvas) {
   return `${JSON.stringify(parseCanvas(JSON.stringify(canvas)), null, 2)}\n`;
 }
 
+/** Create a text/file/link/group node at a default grid position. @returns {object} */
 export function createCanvasNode(type, index, id = createCanvasId()) {
   if (!NODE_TYPES.has(type)) throw new Error(`Unsupported Canvas node type: ${type}`);
   const node = {
@@ -121,6 +125,7 @@ export function createCanvasNode(type, index, id = createCanvasId()) {
   return node;
 }
 
+/** Create a supports/answers/contradicts JSON Canvas edge. @returns {object} */
 export function createArgumentEdge(fromNode, toNode, relation, id = createCanvasId()) {
   const relations = {
     supports: { label: 'Supports', color: '4' },
@@ -140,6 +145,7 @@ export function createArgumentEdge(fromNode, toNode, relation, id = createCanvas
   };
 }
 
+/** Return IDs of nodes fully contained in the specified group's bounds. @returns {string[]} */
 export function canvasGroupMembers(nodes, groupId) {
   const group = nodes.find((node) => node.id === groupId && node.type === 'group');
   if (!group) return [];
@@ -149,6 +155,7 @@ export function canvasGroupMembers(nodes, groupId) {
     node.y + node.height <= group.y + group.height).map((node) => node.id);
 }
 
+/** Return new Canvas data translating only the listed nodes; does not mutate input. @returns {object} */
 export function moveCanvasNodes(canvas, ids, dx, dy) {
   const moving = new Set(ids);
   return {
@@ -157,6 +164,7 @@ export function moveCanvasNodes(canvas, ids, dx, dy) {
   };
 }
 
+/** Match filenames case-insensitively, prefix-first, bounded by limit. @returns {string[]} */
 export function suggestCanvasFiles(paths, query, limit = 20) {
   const text = query.trim().toLocaleLowerCase();
   return paths.filter((path) => path.split(/[\\/]/).at(-1).toLocaleLowerCase().includes(text))

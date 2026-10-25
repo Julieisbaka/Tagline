@@ -1,14 +1,19 @@
 // Pure helpers for indexing a vault: names, links, tags, backlinks.
 
+/** Test a case-insensitive flow-document extension. @param {string} p @returns {boolean} */
 export const isFlow = (p) => p.toLowerCase().endsWith('.flow');
+/** Test a case-insensitive Markdown-document extension. @param {string} p @returns {boolean} */
 export const isMarkdown = (p) => p.toLowerCase().endsWith('.md');
+/** Test a case-insensitive JSON Canvas extension. @param {string} p @returns {boolean} */
 export const isCanvas = (p) => p.toLowerCase().endsWith('.canvas');
 
+/** Return the filename without a supported document extension. @param {string} p @returns {string} */
 export function baseName(p) {
   const file = p.split('/').pop();
   return file.replace(/\.(md|flow|canvas)$/i, '');
 }
 
+/** Format a filename using the workspace's extension-visibility preferences. @returns {string} */
 export function displayName(p, hideFlowExtension = true, showMarkdownExtension = false) {
   const file = p.split('/').pop();
   if (isMarkdown(p)) return showMarkdownExtension ? file : baseName(p);
@@ -16,11 +21,13 @@ export function displayName(p, hideFlowExtension = true, showMarkdownExtension =
   return hideFlowExtension ? baseName(p) : file;
 }
 
+/** Return a vault-relative parent directory, or empty string at the vault root. @returns {string} */
 export function dirName(p) {
   const i = p.lastIndexOf('/');
   return i === -1 ? '' : p.slice(0, i);
 }
 
+/** Join a vault directory and filename; this does not validate containment. @returns {string} */
 export function joinPath(dir, name) {
   return dir ? `${dir}/${name}` : name;
 }
@@ -32,12 +39,14 @@ function stripCode(content) {
   return content.replace(/```[\s\S]*?```/g, '').replace(/`[^`\n]*`/g, '');
 }
 
+/** Extract wiki-link targets outside code, without headings or aliases. @returns {string[]} */
 export function extractLinks(content) {
   const out = [];
   for (const m of stripCode(content).matchAll(WIKILINK_RE)) out.push(m[2].trim());
   return out;
 }
 
+/** Extract unique tag names outside code and Markdown heading markers. @returns {string[]} */
 export function extractTags(content) {
   const out = new Set();
   const text = stripCode(content).replace(/^#{1,6}\s/gm, '');
@@ -45,7 +54,12 @@ export function extractTags(content) {
   return [...out];
 }
 
-// Map a link target ("Note", "Folder/Note", "Note.md") to a vault path.
+/**
+ * Map a note name or path to a candidate vault path; exact paths take precedence.
+ * @param {string} target Note name or vault-relative path.
+ * @param {string[]} paths Candidate document paths.
+ * @returns {string|null} Matched path, or null when unresolved.
+ */
 export function resolveLink(target, paths) {
   const exact = paths.find((path) => path.toLowerCase() === target.trim().toLowerCase());
   if (exact) return exact;
@@ -60,6 +74,7 @@ export function resolveLink(target, paths) {
   return best;
 }
 
+/** Build paths, links, backlinks, tags and unresolved-link maps from Markdown contents. @returns {object} */
 export function buildIndex(contents) {
   const paths = Object.keys(contents);
   const links = {};
@@ -85,7 +100,7 @@ export function buildIndex(contents) {
   return { paths, links, backlinks: toArrays(backlinks), tags, unresolved: toArrays(unresolved) };
 }
 
-// Rewrite [[links]] pointing at oldPath so they point at newPath after a rename.
+/** Rewrite wiki links resolving to oldPath after a rename, preserving headings and aliases. @returns {string} */
 export function rewriteLinks(content, oldPath, newPath, allPaths) {
   const newName = newPath.replace(/\.(md|flow)$/i, '');
   return content.replace(WIKILINK_RE, (full, bang, target, heading = '', alias = '') => {
@@ -95,6 +110,7 @@ export function rewriteLinks(content, oldPath, newPath, allPaths) {
   });
 }
 
+/** Extract {level,text,line} headings outside fenced code; line is zero-based. @returns {object[]} */
 export function outline(content) {
   const out = [];
   let inCode = false;
@@ -106,6 +122,7 @@ export function outline(content) {
   return out;
 }
 
+/** Flatten a vault tree into its document paths. @returns {string[]} */
 export function flattenTree(tree, acc = []) {
   for (const n of tree) {
     if (n.type === 'folder') flattenTree(n.children, acc);
@@ -114,6 +131,7 @@ export function flattenTree(tree, acc = []) {
   return acc;
 }
 
+/** Return Tagline's case-insensitive substring/subsequence match score. @returns {number} */
 export function fuzzyScore(query, text) {
   const q = query.toLowerCase();
   const t = text.toLowerCase();

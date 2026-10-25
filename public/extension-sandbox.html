@@ -26,6 +26,8 @@
       const activeNoteWatches = new Map();
       const eventWatches = new Map();
       const surfaceListeners = new Map();
+      let installHandler = null;
+      let registering = true;
       let next = 0;
       let started = false;
       let limits;
@@ -46,10 +48,18 @@
         send({ type: 'call', id, method, args });
       });
       const surfaceApi = (kind) => Object.freeze({
+        /** Set a declared surface's HTML. Requires ui. @returns {Promise<boolean>} */
         setHtml: (id, html) => call('ui.setHtml', kind, id, html),
+        /** Show a declared surface after setHtml. Requires ui. @returns {Promise<boolean>} */
         show: (id) => call('ui.show', kind, id),
+        /** Hide a declared surface. Requires ui. @returns {Promise<boolean>} */
         close: (id) => call('ui.close', kind, id),
+        /** Send JSON to a mounted surface after its ready message. Requires ui. @returns {Promise<boolean>} */
         postMessage: (id, payload) => call('ui.postMessage', kind, id, payload),
+        /** Subscribe to surface messages; returns a synchronous disposer. Requires ui.
+         * @param {string} id Declared surface ID. @param {function} listener JSON message handler.
+         * @returns {() => void}
+         */
         onMessage(id, listener) {
           if (typeof listener !== 'function') throw new TypeError('Message listener must be a function.');
           const key = `${kind}:${id}`;
@@ -60,10 +70,35 @@
           return () => { group.delete(listener); if (!group.size) surfaceListeners.delete(key); };
         },
       });
-      const paths = Object.freeze(Object.fromEntries(['join', 'normalize', 'basename', 'dirname', 'extname']
-        .map(operation => [operation, (...args) => call('helpers.path', operation, ...args)])));
+      const paths = Object.freeze({
+        /** Join vault-relative segments; rejects paths escaping the vault. @returns {Promise<string>} */
+        join: (...parts) => call('helpers.path', 'join', ...parts),
+        /** Normalize . and .. segments and separators within the vault. @returns {Promise<string>} */
+        normalize: (path) => call('helpers.path', 'normalize', path),
+        /** Return the filename including its extension. @returns {Promise<string>} */
+        basename: (path) => call('helpers.path', 'basename', path),
+        /** Return the parent directory or an empty string. @returns {Promise<string>} */
+        dirname: (path) => call('helpers.path', 'dirname', path),
+        /** Return the final filename extension including the dot, or empty string. @returns {Promise<string>} */
+        extname: (path) => call('helpers.path', 'extname', path),
+      });
       const tagline = Object.freeze({
+        /** Register one async first-install handler during entry-script initialization.
+         * Runs after the entry script on first successful enablement, before readiness.
+         * Failed setup retries next load; use idempotent operations. Uses normal permissions.
+         * @param {() => (void|Promise<void>)} handler Setup or declared UI onboarding callback.
+         * @returns {void}
+         */
+        onInstall(handler) {
+          if (!registering) throw new Error('Register onInstall during initialization.');
+          if (typeof handler !== 'function') throw new TypeError('Install handler must be a function.');
+          if (installHandler) throw new Error('Only one install handler may be registered.');
+          installHandler = handler;
+        },
         commands: Object.freeze({
+          /** Register an async command declared in the manifest. @param {string} id Command ID.
+           * @param {function} handler Callback invoked by Tagline. @returns {Promise<boolean>}
+           */
           register(id, handler) {
             if (typeof handler !== 'function') throw new TypeError('Command handler must be a function.');
             handlers.set(id, handler);
@@ -71,13 +106,21 @@
           },
         }),
         editor: Object.freeze({
+          /** Read the active note, content and selection, or null. Requires editor. @returns {Promise<object|null>} */
           getActiveNote: () => call('editor.getActiveNote'),
+          /** Replace the current editable Markdown selection with text. Requires editor. @returns {Promise<boolean>} */
           insertText: (text) => call('editor.insertText', text),
+          /** Set {from,to}; CodeMirror offsets or Tiptap positions. Requires editor. @returns {Promise<boolean>} */
           setSelection: (selection) => call('editor.setSelection', selection),
           tiptap: Object.freeze({
+            /** Read a serializable visual-editor document and selection. Requires editor. @returns {Promise<object>} */
             getSnapshot: () => call('editor.getTiptapSnapshot'),
+            /** Run an allowlisted visual-editor command; toggleHeading takes {level:1..6}. Requires editor. @returns {Promise<boolean>} */
             runCommand: (command, options) => call('editor.runTiptapCommand', command, options),
           }),
+          /** Subscribe to {path} active-note events without content. Requires editor:active-note.
+           * @param {function} listener Event handler. @returns {Promise<() => Promise<boolean>>} Async disposer.
+           */
           onActiveNoteChanged: async (listener) => {
             if (typeof listener !== 'function') throw new TypeError('Active-note listener must be a function.');
             const id = await call('editor.watchActiveNote');
@@ -89,10 +132,15 @@
           },
         }),
         settings: Object.freeze({
+          /** Read this extension's declared setting with its default. Requires settings. @returns {Promise<*>} */
           get: (key) => call('settings.get', key),
+          /** Validate and persist a declared setting. Requires settings. @returns {Promise<object>} */
           set: (key, value) => call('settings.set', key, value),
         }),
         events: Object.freeze({
+          /** Subscribe to permitted application or ext.ID.name events. Requires events and event data permissions.
+           * @returns {Promise<() => Promise<boolean>>} Async disposer.
+           */
           on: async (name, listener) => {
             if (typeof listener !== 'function') throw new TypeError('Event listener must be a function.');
             const id = await call('events.subscribe', name);
@@ -102,70 +150,116 @@
               return call('events.unsubscribe', id);
             };
           },
+          /** Emit JSON (up to 65,536 characters) in this extension's namespace. Requires events. @returns {Promise<boolean>} */
           emit: (name, payload) => call('events.emit', name, payload),
         }),
         panels: surfaceApi('panels'),
         webviews: surfaceApi('webviews'),
         canvas: Object.freeze({
+          /** Read and validate a .canvas file. Requires vault:read. @returns {Promise<object>} */
           read: (path) => call('canvas.read', path),
+          /** Validate and save a Canvas object. Requires vault:write. @returns {Promise<*>} */
           write: (path, data) => call('canvas.write', path, data),
         }),
         flow: Object.freeze({
+          /** Read and validate a .flow file. Requires vault:read. @returns {Promise<object>} */
           read: (path) => call('flow.read', path),
+          /** Validate and save a flow object. Requires vault:write. @returns {Promise<*>} */
           write: (path, data) => call('flow.write', path, data),
         }),
         helpers: Object.freeze({
           canvas: Object.freeze({
+            /** Parse and validate JSON Canvas text, preserving unknown fields. @returns {Promise<object>} */
             parse: (text) => call('helpers.canvas.parse', text),
+            /** Validate and pretty-print Canvas data with a trailing newline. @returns {Promise<string>} */
             serialize: (data) => call('helpers.canvas.serialize', data),
+            /** Create a text/file/link/group node with a unique ID and default bounds. @returns {Promise<object>} */
             createNode: (type, index = 0) => call('helpers.canvas.createNode', type, index),
+            /** Create a supports/answers/contradicts edge. @returns {Promise<object>} */
             createArgumentEdge: (from, to, relation) => call('helpers.canvas.createArgumentEdge', from, to, relation),
+            /** Return IDs fully enclosed in a group from a Canvas object. @returns {Promise<string[]>} */
             groupMembers: (data, groupId) => call('helpers.canvas.groupMembers', data, groupId),
+            /** Resolve a URL, vault path or [[file#heading|label]] using supplied paths; never opens it.
+             * @returns {Promise<{type:'web',url:string}|{type:'file',path:string,heading:string,label?:string}|null>}
+             */
+            resolveLink: (target, paths) => call('helpers.canvas.resolveLink', target, paths),
+            /** Suggest matching filenames, prefix-first; limit 1..1000 (default 20). @returns {Promise<string[]>} */
+            suggestFiles: (paths, query, limit = 20) => call('helpers.canvas.suggestFiles', paths, query, limit),
+            /** Generate a fresh Canvas node/edge identifier. @returns {Promise<string>} */
+            createId: () => call('helpers.canvas.createId'),
+            /** Copy Canvas data with listed nodes moved by integer dx/dy; no disk write. @returns {Promise<object>} */
+            moveNodes: (data, ids, dx, dy) => call('helpers.canvas.moveNodes', data, ids, dx, dy),
           }),
           flow: Object.freeze({
+            /** Parse and validate flow JSON text. @returns {Promise<object>} */
             parse: (text) => call('helpers.flow.parse', text),
+            /** Validate and pretty-print a flow object. @returns {Promise<string>} */
             serialize: (data) => call('helpers.flow.serialize', data),
+            /** Create an empty, valid flow using the default speech columns. @returns {Promise<object>} */
             create: () => call('helpers.flow.create'),
+            /** Copy a flow with one cell updated; indexes are zero-based. @returns {Promise<object>} */
             setCell: (data, sheet, row, column, text) => call('helpers.flow.setCell', data, sheet, row, column, text),
           }),
           path: paths,
+          /** Strip Markdown formatting into readable text; alias of markdown.toText. @returns {Promise<string>} */
           markdownToText: (markdown) => call('helpers.markdownToText', markdown),
           markdown: Object.freeze({
+            /** Convert Markdown to readable plain text. @returns {Promise<string>} */
             toText: (markdown) => call('helpers.markdown.toText', markdown),
+            /** Render sanitized Markdown HTML using Tagline's renderer. @returns {Promise<string>} */
             toHtml: (markdown) => call('helpers.markdown.toHtml', markdown),
+            /** Produce Tagline's heading anchor slug. @returns {Promise<string>} */
             slugify: (heading) => call('helpers.markdown.slugify', heading),
+            /** Extract headings as {level,text,line}, skipping fenced code. @returns {Promise<object[]>} */
             outline: (markdown) => call('helpers.markdown.outline', markdown),
+            /** Extract wiki-link target names outside code. @returns {Promise<string[]>} */
             extractLinks: (markdown) => call('helpers.markdown.extractLinks', markdown),
+            /** Extract unique tag names outside code. @returns {Promise<string[]>} */
             extractTags: (markdown) => call('helpers.markdown.extractTags', markdown),
+            /** Resolve a note name or exact path against supplied vault paths. @returns {Promise<string|null>} */
             resolveLink: (target, paths) => call('helpers.markdown.resolveLink', target, paths),
           }),
           cards: Object.freeze({
+            /** Find the card section at a Markdown character offset. @returns {Promise<object|null>} */
             getAt: (markdown, offset) => call('helpers.cards.getAt', markdown, offset),
+            /** Count cards, words and highlighted evidence in Markdown. @returns {Promise<object>} */
             stats: (markdown) => call('helpers.cards.stats', markdown),
+            /** Extract highlighted evidence and citation text for speaking. @returns {Promise<string>} */
             spokenEvidence: (markdown) => call('helpers.cards.spokenEvidence', markdown),
+            /** Format a nonnegative duration in seconds as minutes:seconds. @returns {Promise<string>} */
             formatDuration: (seconds) => call('helpers.cards.formatDuration', seconds),
           }),
           citations: Object.freeze({
+            /** Format citation details into Markdown. @returns {Promise<string>} */
             create: (details) => call('helpers.citations.create', details),
           }),
           search: Object.freeze({
+            /** Score a query against text using Tagline's fuzzy matcher. @returns {Promise<number>} */
             fuzzyScore: (query, text) => call('helpers.search.fuzzyScore', query, text),
           }),
           templates: Object.freeze({
+            /** Expand template placeholders such as title and date. @returns {Promise<string>} */
             fill: (template, title) => call('helpers.templates.fill', template, title),
           }),
           speech: Object.freeze({
+            /** Analyze spoken words, syllables and reading effort. @returns {Promise<object>} */
             analyze: (text) => call('helpers.speech.analyze', text),
+            /** Estimate speech duration at the provided words-per-minute rate. @returns {Promise<object>} */
             estimate: (text, wordsPerMinute) => call('helpers.speech.estimate', text, wordsPerMinute),
           }),
+          /** Create a synchronous registration group with an async disposer; no permissions needed.
+           * @returns {{add:function,dispose:function}}
+           */
           createDisposables() {
             const disposables = new Set();
             return Object.freeze({
+              /** Register and return a disposer function. @param {function} dispose Cleanup callback. @returns {function} */
               add(dispose) {
                 if (typeof dispose !== 'function') throw new TypeError('Disposer must be a function.');
                 disposables.add(dispose);
                 return dispose;
               },
+              /** Run all registered disposers once and reject if any cleanup fails. @returns {Promise<void>} */
               async dispose() {
                 const tasks = [...disposables];
                 disposables.clear();
@@ -177,14 +271,25 @@
           },
         }),
         vault: Object.freeze({
+          /** List supported document paths in the open vault. Requires vault:read. @returns {Promise<string[]>} */
           list: () => call('vault.list'),
+          /** Read a supported document as text. Requires vault:read. @returns {Promise<string>} */
           read: (path) => call('vault.read', path),
+          /** Create/replace supported document text. Requires vault:write. @returns {Promise<string>} Saved path. */
           write: (path, content) => call('vault.write', path, content),
+          /** Atomically append text to a supported document. Requires vault:read and vault:write. @returns {Promise<string>} */
           append: (path, content) => call('vault.append', path, content),
+          /** Trash a vault document; removes open tabs. Requires vault:write. @returns {Promise<boolean>} */
           delete: (path) => call('vault.delete', path),
+          /** Rename/move a document inside the vault. Requires vault:write. @returns {Promise<string>} */
           rename: (from, to) => call('vault.rename', from, to),
+          /** Persist queued edits; rejects on failure. Requires vault:write. @returns {Promise<boolean>} */
           flush: () => call('vault.flush'),
+          /** Replace text only if it still equals expected; requires vault:read and vault:write. @returns {Promise<boolean>} */
           compareAndSwap: (path, expected, content) => call('vault.compareAndSwap', path, expected, content),
+          /** Subscribe to vault create/change/delete/reset events. Requires vault:read.
+           * @returns {Promise<() => Promise<boolean>>} Async disposer.
+           */
           watch: async (listener) => {
             if (typeof listener !== 'function') throw new TypeError('Watch listener must be a function.');
             const id = await call('vault.watch');
@@ -196,9 +301,12 @@
           },
         }),
         storage: Object.freeze({
+          /** Read this extension's private JSON value, or null. No permission required. @returns {Promise<*>} */
           get: (key) => call('storage.get', key),
+          /** Persist private JSON; null/undefined deletes a key. Subject to storage limits. @returns {Promise<boolean>} */
           set: (key, value) => call('storage.set', key, value),
         }),
+        /** Display a themed in-app notification prefixed with the extension name (max 500 characters). @returns {Promise<boolean>} */
         notify: (message) => call('notify', message),
       });
       addEventListener('message', async (event) => {
@@ -210,6 +318,8 @@
           try {
             const AsyncFunction = Object.getPrototypeOf(async function () { }).constructor;
             await new AsyncFunction('tagline', '"use strict";\n' + data.source)(tagline);
+            registering = false;
+            if (data.firstInstall && installHandler) await installHandler();
             send({ type: 'ready' });
           } catch (error) { send({ type: 'failed', message: describe(error) }); }
         } else if (data.type === 'result' && pending.has(data.id)) {

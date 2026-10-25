@@ -86,6 +86,8 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
       };
       try {
         win.show(); win.focus();
+        await wait("!!document.querySelector('.onboarding-skip')");
+        await js("document.querySelector('.onboarding-skip').click()");
         await wait("document.querySelectorAll('.tree-item').length === 2");
         const refresh = async (duration) => {
           reloadDelay = duration;
