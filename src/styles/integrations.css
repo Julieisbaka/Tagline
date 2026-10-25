@@ -247,6 +247,49 @@
   flex: 1;
 }
 
+.wiki-link-picker {
+  position: relative;
+  flex: 1;
+  min-width: 180px;
+}
+
+.wiki-link-picker input {
+  width: 100%;
+}
+
+.wiki-link-options {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  max-height: 240px;
+  overflow-y: auto;
+  z-index: 20;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 4px;
+  background: var(--bg-elevated);
+  box-shadow: 0 8px 24px var(--shadow);
+}
+
+.wiki-link-options button {
+  display: block;
+  width: 100%;
+  text-align: left;
+  border: 0;
+  background: transparent;
+  overflow-wrap: anywhere;
+}
+
+.wiki-link-options button[aria-selected="true"] {
+  background: var(--accent-dim);
+  color: var(--accent);
+}
+
+.wiki-link-options button:active {
+  transform: none;
+}
+
 .visual-find {
   padding: 8px 16px;
   background: var(--bg-secondary);

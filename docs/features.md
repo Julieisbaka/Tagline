@@ -56,6 +56,10 @@ buttons for keyboard-accessible reordering; the Settings icon stays available.
 Right-click a shortcut to move or remove it. Extension shortcuts work the same
 way and can be restored in Appearance settings.
 
+Right-click file-explorer toolbar actions or bottom status items to hide, restore,
+or move them left and right. Drag items to reorder them. Layouts are saved across
+restarts, and **Restore default items** is available even when every item is hidden.
+
 Use `Mod+F` to find and replace text in the current note. Search supports
 case-sensitive and whole-word matching; replacements can be undone.
 Both editors share a formatting toolbar, link insertion, and line-height
@@ -69,14 +73,21 @@ information. The file-refresh icon spins in complete turns until reload finishes
 reduced-motion preferences disable the spin.
 
 Wiki links support `[[Note]]`, `[[Note#Heading]]`, and `[[Note|Label]]`.
+The link picker uses themed suggestions; use arrow keys and Enter to choose a
+note, then **Insert link** to confirm. Choosing a note preserves heading/label suffixes.
 Tagline also provides backlinks, mentions, an outline, tags, and a graph view.
+Dragged graph nodes stay where you drop them while that graph is open.
 Put reusable Markdown in `Templates/`; placeholders include `{{date}}`,
 `{{time}}`, and `{{title}}`.
 
-Use **Argument map** mode inside a `.canvas` file to connect text nodes as
-supporting, answering, or contradicting arguments. Choose a relation, select
+Use any `.canvas` file to connect nodes as supporting, answering, or contradicting
+arguments; no separate mode is needed. Choose a relation, select
 **Connect nodes**, then click the source and target. These are standard JSON
 Canvas edges, stored in that canvas file.
+
+Canvas additions appear in the current viewport. Drag the background or scroll
+to pan; use the zoom buttons or Ctrl/Cmd+scroll to zoom around the pointer.
+**Fit canvas** shows all nodes. Moving or resizing nodes does not recenter the view.
 
 ## Search and citations
 

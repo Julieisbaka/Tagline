@@ -50,6 +50,23 @@
     "rightPanel"
   ],
   "hiddenRibbonItems": [],
+  "fileManagerItems": [
+    "newNote",
+    "newFlow",
+    "newCanvas",
+    "newFolder",
+    "refresh"
+  ],
+  "statusBarItems": [
+    "section",
+    "cards",
+    "words",
+    "highlighted",
+    "estimate",
+    "readability",
+    "speechDoc",
+    "mode"
+  ],
   "internalFlags": {
     "visualNoticeDismissed": false
   }

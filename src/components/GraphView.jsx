@@ -44,6 +44,8 @@ export default function GraphView({ index, activePath, onOpen, showMarkdownExten
   const { t } = useI18n();
   const canvasRef = useRef(null);
   const wrapRef = useRef(null);
+  const positionsRef = useRef(new Map());
+  const viewRef = useRef({ x: 0, y: 0, k: 1 });
   const [local, setLocal] = useState(false);
   const [showOrphans, setShowOrphans] = useState(true);
   const live = useRef({});
@@ -59,15 +61,18 @@ export default function GraphView({ index, activePath, onOpen, showMarkdownExten
     const pos = new Map();
     graph.nodes.forEach((n, i) => {
       const a = (i / Math.max(1, graph.nodes.length)) * Math.PI * 2;
-      pos.set(n.id, { x: Math.cos(a) * 150 + Math.random() * 10, y: Math.sin(a) * 150 + Math.random() * 10, vx: 0, vy: 0 });
+      pos.set(n.id, positionsRef.current.get(n.id) || {
+        x: Math.cos(a) * 150 + Math.random() * 10, y: Math.sin(a) * 150 + Math.random() * 10, vx: 0, vy: 0,
+      });
     });
+    positionsRef.current = pos;
     const neighbors = new Map(graph.nodes.map((n) => [n.id, new Set()]));
     for (const [a, b] of graph.edges) {
       neighbors.get(a).add(b);
       neighbors.get(b).add(a);
     }
 
-    let view = { x: 0, y: 0, k: 1 };
+    const view = viewRef.current;
     let hover = null;
     let drag = null;
     let alpha = 1;
@@ -129,7 +134,11 @@ export default function GraphView({ index, activePath, onOpen, showMarkdownExten
       }
       for (const n of ns) {
         const p = pos.get(n.id);
-        if (drag && drag.node === n) continue;
+        if (p.pinned || (drag && drag.node === n)) {
+          p.vx = 0;
+          p.vy = 0;
+          continue;
+        }
         p.vx *= 0.6;
         p.vy *= 0.6;
         p.x += p.vx;
@@ -189,6 +198,7 @@ export default function GraphView({ index, activePath, onOpen, showMarkdownExten
 
     const rect = () => canvas.getBoundingClientRect();
     const onDown = (e) => {
+      if (e.button !== 0) return;
       const r = rect();
       const n = nodeAt(e.clientX - r.left, e.clientY - r.top);
       drag = { node: n, sx: e.clientX, sy: e.clientY, vx: view.x, vy: view.y, moved: false };
@@ -199,13 +209,16 @@ export default function GraphView({ index, activePath, onOpen, showMarkdownExten
       const cy = e.clientY - r.top;
       if (drag) {
         if (Math.abs(e.clientX - drag.sx) + Math.abs(e.clientY - drag.sy) > 3) drag.moved = true;
-        if (drag.node) {
+        if (drag.node && drag.moved) {
           const p = pos.get(drag.node.id);
           const wpt = toWorld(cx, cy);
           p.x = wpt.x;
           p.y = wpt.y;
+          p.vx = 0;
+          p.vy = 0;
+          p.pinned = true;
           alpha = Math.max(alpha, 0.3);
-        } else {
+        } else if (!drag.node) {
           view.x = drag.vx + (e.clientX - drag.sx);
           view.y = drag.vy + (e.clientY - drag.sy);
         }
@@ -224,7 +237,7 @@ export default function GraphView({ index, activePath, onOpen, showMarkdownExten
       const cx = e.clientX - r.left - w / 2;
       const cy = e.clientY - r.top - h / 2;
       const k = Math.min(4, Math.max(0.2, view.k * (e.deltaY < 0 ? 1.1 : 0.9)));
-      view = { k, x: cx - ((cx - view.x) * k) / view.k, y: cy - ((cy - view.y) * k) / view.k };
+      Object.assign(view, { k, x: cx - ((cx - view.x) * k) / view.k, y: cy - ((cy - view.y) * k) / view.k });
     };
 
     canvas.addEventListener('mousedown', onDown);

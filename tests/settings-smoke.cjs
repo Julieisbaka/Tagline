@@ -47,6 +47,7 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
   await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
   const website = `http://127.0.0.1:${server.address().port}/one`;
   app.on('browser-window-created', (_event, win) => {
+    win.webContents.setBackgroundThrottling(false);
     win.webContents.once('did-finish-load', async () => {
       const wc = win.webContents;
       const js = (code) => wc.executeJavaScript(code).catch((error) => {
@@ -59,6 +60,7 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
           style: document.querySelector('#tagline-custom-css')?.textContent,
           outline: getComputedStyle(document.querySelector('.sidebar')).outline,
           draft: document.querySelector('.custom-css-editor .cm-content')?.textContent,
+          cssApplyDisabled: [...document.querySelectorAll('.custom-css-settings button')].find(el => el.textContent.trim() === 'Apply CSS')?.disabled,
           website: document.querySelector('.website-status')?.textContent,
           browserUpdates: window.browserUpdates,
           browserButtons: [...document.querySelectorAll('.website-toolbar button')].map(el => [el.textContent, el.disabled])

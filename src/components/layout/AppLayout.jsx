@@ -10,6 +10,8 @@ import RightPanel from './RightPanel.jsx';
 import Sidebar, { renameTarget } from './Sidebar.jsx';
 import Splitter from './Splitter.jsx';
 import TabBar from './TabBar.jsx';
+import ConfigurableBar from './ConfigurableBar.jsx';
+import { STATUS_ITEMS } from '../../lib/workspaceItems.js';
 
 const CanvasView = deferred(() => import('../CanvasView.jsx'));
 const GraphView = deferred(() => import('../GraphView.jsx'));
@@ -148,6 +150,7 @@ export default function AppLayout({ app }) {
       <Ribbon ctx={ctx} showLeft={showLeft} keybindings={settings.keybindings}
         settings={settings} updateSettings={updateSettings} contributions={ext.ribbonItems} />
       {showLeft && <Sidebar vault={v.vault} tree={v.tree} activePath={activePath} actions={actions}
+        settings={settings} updateSettings={updateSettings}
         spacedFolders={settings.underscoreFolders} hideFlowExtension={settings.hideFlowExtension}
         showMarkdownExtension={settings.showMarkdownExtension} />}
       {showLeft && <Splitter panel="sidebarWidth" side="left" width={sidebarWidth} otherWidth={showRight ? rightWidth : 0}
@@ -158,15 +161,16 @@ export default function AppLayout({ app }) {
           showMarkdownExtension={settings.showMarkdownExtension} onFileAction={(action, path) => action === 'rename'
             ? actions.rename({ type: 'file', path, name: path.split('/').pop() }) : v.reveal(path)} />
         <div className="workspace">{renderWorkspace()}{websiteView}</div>
-        <footer className="status-bar">
-          {activePath && stats?.map((stat, i) => <span key={i}>{stat}</span>)}
-          <span className="spacer" />
-          <span title={t('Current speech document')} className="clickable" onClick={ctx.openSpeechDoc}>
-            {t('Speech doc')}: {baseName(settings.speechDoc)}
-          </span>
-          {activePath && <span>{t(mode === 'edit' || sourceFallback ? 'Source editing' : mode === 'visual' ? 'Visual editing'
-            : highlightOnly ? 'Reading (highlights)' : 'Reading')}</span>}
-        </footer>
+        <ConfigurableBar className="status-bar" label="Status bar" catalog={STATUS_ITEMS} value={settings.statusBarItems}
+          onChange={(statusBarItems) => updateSettings({ statusBarItems })} renderItem={(id) => {
+            if (id === 'speechDoc') return <button className="link-btn" title={t('Current speech document')} onClick={ctx.openSpeechDoc}>
+              {t('Speech doc')}: {baseName(settings.speechDoc)}
+            </button>;
+            if (!activePath) return null;
+            if (id === 'mode') return <span>{t(mode === 'edit' || sourceFallback ? 'Source editing' : mode === 'visual' ? 'Visual editing'
+              : highlightOnly ? 'Reading (highlights)' : 'Reading')}</span>;
+            return stats?.[id] ? <span>{stats[id]}</span> : null;
+          }}>{stats?.error && <span role="alert">{stats.error}</span>}</ConfigurableBar>
       </main>
       <div style={{ display: showRight ? 'contents' : 'none' }}>
         <Splitter panel="rightPanelWidth" side="right" width={rightWidth} otherWidth={showLeft ? sidebarWidth : 0}

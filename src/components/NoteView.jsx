@@ -79,21 +79,21 @@ export default function NoteView({
     const wpm = settings.wpm || 250;
     const profile = calibration.profile;
     const assessment = readingAssessment(docStats, wpm, profile);
-    const parts = [
-      t('{count} cards', { count: docStats.cards }),
-      t('{count} words', { count: docStats.words }),
-      t('{count} highlighted (~{time} read)', { count: docStats.highlighted, time: formatDuration(assessment.seconds) }),
-      t(profile ? 'Personal speech estimate' : 'Default speech estimate'),
-    ];
-    if (assessment.readingEase !== null) parts.push(t('Readability {score} / effort {effort}', {
+    const parts = {
+      cards: t('{count} cards', { count: docStats.cards }),
+      words: t('{count} words', { count: docStats.words }),
+      highlighted: t('{count} highlighted (~{time} read)', { count: docStats.highlighted, time: formatDuration(assessment.seconds) }),
+      estimate: t(profile ? 'Personal speech estimate' : 'Default speech estimate'),
+    };
+    if (assessment.readingEase !== null) parts.readability = t('Readability {score} / effort {effort}', {
       score: assessment.readingEase.toFixed(0), effort: assessment.effort.toFixed(0),
-    }));
-    if (calibration.error) parts.push(calibration.error);
+    });
+    if (calibration.error) parts.error = calibration.error;
     if (section && sectionStats) {
-      parts.unshift(t('“{title}”: {count} hl / ~{time}', {
+      parts.section = t('“{title}”: {count} hl / ~{time}', {
         title: section.title.slice(0, 30), count: sectionStats.highlighted,
         time: formatDuration(readingSeconds(sectionStats, wpm, profile)),
-      }));
+      });
     }
     onCursorStats(parts);
   }, [docStats, sectionStats, section, settings.wpm, calibration, onCursorStats, locale]);

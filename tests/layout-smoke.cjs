@@ -61,10 +61,8 @@ const delay = (ms) => new Promise((r) => setTimeout(r, ms));
           'copy path action reports success');
         await js(`document.querySelector('.tree-item[title="Map.canvas"]').click()`);
         await delay(300);
-        await js(`(() => {
-          document.querySelector('.canvas-mode-control select').value = 'arguments';
-          document.querySelector('.canvas-mode-control select').dispatchEvent(new Event('change', { bubbles: true }));
-        })()`);
+        assert.equal(await js("!!document.querySelector('.canvas-toolbar [aria-label=\"Canvas mode\"]')"), false,
+          'argument relations are available on the canvas without a separate mode');
         await js(`(() => {
           const relation = [...document.querySelectorAll('.canvas-mode-control select')].find((select) =>
             select.getAttribute('aria-label') === 'Relation');

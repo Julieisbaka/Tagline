@@ -75,3 +75,16 @@ test('refresh animation rounds to complete turns with a one-turn minimum', async
     assert.ok(refreshTurns(elapsed) * REFRESH_TURN_MS >= elapsed);
   }
 });
+
+test('workspace bars preserve hidden items, validate saved order, and reject foreign drag IDs', async () => {
+  const { FILE_ACTIONS, STATUS_ITEMS, normalizeWorkspaceItems, moveWorkspaceItem } = await import('../src/lib/workspaceItems.js');
+  for (const catalog of [FILE_ACTIONS, STATUS_ITEMS]) {
+    const defaults = catalog.map((item) => item.id);
+    assert.deepEqual(normalizeWorkspaceItems(undefined, catalog), defaults);
+    assert.deepEqual(normalizeWorkspaceItems([], catalog), [], 'all items can be hidden');
+    assert.deepEqual(normalizeWorkspaceItems([defaults[1], 'unknown', defaults[1], defaults[0]], catalog), [defaults[1], defaults[0]]);
+    assert.deepEqual(moveWorkspaceItem(defaults, defaults[0], defaults[1]).slice(0, 2), [defaults[1], defaults[0]]);
+    assert.deepEqual(moveWorkspaceItem(defaults, 'foreign-file-path', defaults[0]), defaults);
+    assert.deepEqual(moveWorkspaceItem(defaults, defaults[0], 'missing'), defaults);
+  }
+});

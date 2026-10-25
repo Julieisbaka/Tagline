@@ -44,16 +44,21 @@
 .canvas-board-wrap {
   flex: 1;
   min-height: 0;
-  overflow: auto;
-  background: var(--bg);
+  overflow: clip;
+  position: relative;
+  touch-action: none;
+  overflow-anchor: none;
+  background-color: var(--bg);
+  background-image: radial-gradient(var(--border) 0.8px, transparent 0.8px);
+  cursor: grab;
 }
 
 .canvas-board {
   position: relative;
   isolation: isolate;
-  background-color: var(--bg);
-  background-image: radial-gradient(var(--border) 0.8px, transparent 0.8px);
-  background-size: 22px 22px;
+  width: 100%;
+  height: 100%;
+  transform-origin: 0 0;
 }
 
 .canvas-edges {
@@ -205,6 +210,10 @@
   background: linear-gradient(135deg, transparent 50%, var(--text-muted) 50%, var(--text-muted) 57%, transparent 57%);
   cursor: nwse-resize;
   touch-action: none;
+}
+
+.canvas-resize-handle:active:not(:disabled) {
+  transform: none;
 }
 
 .canvas-hint {

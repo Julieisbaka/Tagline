@@ -200,7 +200,7 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
           const x = wrap.left + 100, y = wrap.top + 100;
           const event = new MouseEvent('contextmenu',{bubbles:true,clientX:x,clientY:y});
           board.dispatchEvent(event);
-          return { x: Math.round(event.clientX - rect.left - 240), y: Math.round(event.clientY - rect.top - 180) };
+          return { x: Math.round(event.clientX - rect.left), y: Math.round(event.clientY - rect.top) };
         })()`);
         await click('.context-menu button', 'Add link');
         await wait("document.querySelectorAll('.canvas-node').length === 5");

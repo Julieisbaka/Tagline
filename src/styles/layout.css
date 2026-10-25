@@ -227,19 +227,22 @@ body.resizing-panels * {
   border-top: 1px solid var(--border);
   white-space: nowrap;
   flex-shrink: 0;
+  min-height: 28px;
 }
 
-/* Wrap whole statistics rather than clipping them; keep the right-hand group together. */
-.status-bar .spacer {
-  flex: 1 0 0;
+.configurable-bar-item {
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
 }
 
-.status-bar .clickable {
-  cursor: pointer;
+.status-bar .link-btn {
+  font: inherit;
+  padding: 0;
 }
 
-.status-bar .clickable:hover {
-  color: var(--accent);
+.sidebar-header {
+  min-height: 40px;
 }
 
 /* Right panel */

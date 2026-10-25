@@ -5,6 +5,8 @@ import Menu from '../dialogs/ContextMenu.jsx';
 import Icon from '../Icon.jsx';
 import RefreshButton from '../RefreshButton.jsx';
 import FileTree from './FileTree.jsx';
+import ConfigurableBar from './ConfigurableBar.jsx';
+import { FILE_ACTIONS } from '../../lib/workspaceItems.js';
 
 function ContextMenu({ menu, onClose, actions }) {
   const { node } = menu;
@@ -37,7 +39,7 @@ function ContextMenu({ menu, onClose, actions }) {
   );
 }
 
-export default function Sidebar({ vault, tree, activePath, actions, spacedFolders = false, hideFlowExtension = true, showMarkdownExtension = false }) {
+export default function Sidebar({ vault, tree, activePath, actions, settings, updateSettings, spacedFolders = false, hideFlowExtension = true, showMarkdownExtension = false }) {
   const { t } = useI18n();
   const [menu, setMenu] = useState(null);
   const activeDir = activePath ? dirName(activePath) : '';
@@ -51,21 +53,14 @@ export default function Sidebar({ vault, tree, activePath, actions, spacedFolder
 
   return (
     <aside className="sidebar">
-      <div className="sidebar-header">
-        <button className="icon-btn" title={t('New note')} aria-label={t('New note')} onClick={() => actions.newNote(activeDir)}>
-          <Icon name="file-plus" />
-        </button>
-        <button className="icon-btn" title={t('New flow')} aria-label={t('New flow')} onClick={() => actions.newFlow(activeDir)}>
-          <Icon name="flow" />
-        </button>
-        <button className="icon-btn" title={t('New canvas')} aria-label={t('New canvas')} onClick={() => actions.newCanvas(activeDir)}>
-          <Icon name="canvas" />
-        </button>
-        <button className="icon-btn" title={t('New folder')} aria-label={t('New folder')} onClick={() => actions.newFolder(activeDir)}>
-          <Icon name="folder-plus" />
-        </button>
-        <RefreshButton onRefresh={actions.reload} />
-      </div>
+      <ConfigurableBar className="sidebar-header" label="File manager actions" catalog={FILE_ACTIONS}
+        value={settings.fileManagerItems} onChange={(fileManagerItems) => updateSettings({ fileManagerItems })}
+        renderItem={(id) => {
+          if (id === 'refresh') return <RefreshButton onRefresh={actions.reload} />;
+          const item = FILE_ACTIONS.find((item) => item.id === id);
+          return <button className="icon-btn" title={t(item.title)} aria-label={t(item.title)}
+            onClick={() => actions[id](activeDir)}><Icon name={item.icon} /></button>;
+        }} />
       <FileTree
         tree={tree}
         activePath={activePath}
