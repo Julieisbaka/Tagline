@@ -268,7 +268,7 @@
 }
 
 .readable .visual-document {
-  max-width: 820px;
+  max-width: var(--readable-content-width, 820px);
   margin: 0 auto;
 }
 

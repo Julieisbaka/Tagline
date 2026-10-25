@@ -151,14 +151,77 @@ kbd {
   background: var(--accent-dim);
 }
 
+html.reduce-motion *,
+html.reduce-motion *::before,
+html.reduce-motion *::after {
+  scroll-behavior: auto !important;
+  animation: none !important;
+  transition: none !important;
+}
+
+html.reduce-motion button:active {
+  transform: none !important;
+}
+
+html.strong-focus :focus-visible {
+  outline: 3px solid var(--accent) !important;
+  outline-offset: -3px !important;
+  box-shadow: inset 0 0 0 1px var(--bg) !important;
+}
+
+html.large-interface-text :is(body, #root, .sidebar, .right-panel, .tab-bar, .status-bar,
+  .dialog, .settings, .context-menu, .note-header, .editor-toolbar),
+html.large-interface-text :is(button, input, select, textarea, label, kbd, .tree-item, .tab,
+  .settings-help, .empty-hint, .mini) {
+  font-size: 16px;
+}
+
+html.large-click-targets :is(button, select, input:not([type="checkbox"]):not([type="radio"]),
+  [role="button"], .tree-item, .tab) {
+  min-width: 48px;
+  min-height: 48px;
+}
+
+html.large-click-targets :is(.setting-row, .settings-panel label) {
+  min-height: 48px;
+}
+
+html.large-click-targets .ribbon {
+  width: auto;
+  min-width: 56px;
+  overflow-y: auto;
+}
+
+html.large-click-targets :is(input[type="checkbox"], input[type="radio"]) {
+  min-width: 24px;
+  min-height: 24px;
+}
+
+html.large-click-targets :is(.tab-bar, .note-header, .sidebar-header, .editor-toolbar, .status-bar) {
+  height: auto;
+  min-height: 48px;
+}
+
+html.large-click-targets :is(.sidebar-header, .note-header, .editor-toolbar, .status-bar) {
+  flex-wrap: wrap;
+}
+
+html.underline-links :is(a, [data-wiki-link], .wiki-link, .link-btn, .cm-link, .cm-url, .cm-wikilink) {
+  text-decoration: underline !important;
+  text-underline-offset: 0.15em;
+}
+
 @media (prefers-reduced-motion: reduce) {
 
   *,
   *::before,
   *::after {
     scroll-behavior: auto !important;
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
+    animation: none !important;
+    transition: none !important;
+  }
+
+  button:active {
+    transform: none !important;
   }
 }

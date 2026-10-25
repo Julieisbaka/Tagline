@@ -288,6 +288,18 @@ export function SettingsDialog({ settings, update, onClose, extensions, onOpenCa
                   onChange={(event) => update({ editorFocusOutline: event.target.checked })} />
               </label>
               <p className="settings-help">{t('Highlight the focused visual or source note editor. Keyboard focus indicators on other controls remain enabled.')}</p>
+              {[
+                ['Reduce motion', 'reduceMotion'],
+                ['Stronger keyboard focus indicators', 'strongFocusIndicators'],
+                ['Larger interface text', 'largerInterfaceText'],
+                ['Larger buttons and click targets', 'largerClickTargets'],
+                ['Always underline links', 'underlineLinks'],
+              ].map(([label, key]) => <label className="setting-row" key={key}>
+                <span>{t(label)}</span>
+                <input type="checkbox" data-setting={key} checked={settings[key]}
+                  onChange={(event) => update({ [key]: event.target.checked })} />
+              </label>)}
+              <p className="settings-help">{t('Reduce motion also respects your operating system preference. Larger targets use a minimum of 48 pixels. Stronger focus includes note editors during keyboard navigation.')}</p>
             </section>
             <section data-settings-panel="appearance" hidden={section !== 'appearance'} className="settings-panel">
               <h3>{t('Theme and typography')}</h3>

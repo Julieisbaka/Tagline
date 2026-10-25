@@ -155,9 +155,21 @@ export default function GraphView({ index, activePath, onOpen, showMarkdownExten
     };
     readColors();
     window.addEventListener('themechange', readColors);
+    const motionPreference = window.matchMedia('(prefers-reduced-motion: reduce)');
+    let reducedMotion = false;
+    const updateMotion = () => {
+      const next = motionPreference.matches || document.documentElement.classList.contains('reduce-motion');
+      if (next && !reducedMotion) {
+        for (let i = 0; i < 200; i++) step();
+      }
+      reducedMotion = next;
+    };
+    updateMotion();
+    motionPreference.addEventListener('change', updateMotion);
+    window.addEventListener('accessibilitychange', updateMotion);
 
     const draw = () => {
-      step();
+      if (!reducedMotion) step();
       ctx.clearRect(0, 0, w, h);
       ctx.save();
       ctx.translate(w / 2 + view.x, h / 2 + view.y);
@@ -254,6 +266,8 @@ export default function GraphView({ index, activePath, onOpen, showMarkdownExten
     return () => {
       cancelAnimationFrame(raf);
       window.removeEventListener('themechange', readColors);
+      motionPreference.removeEventListener('change', updateMotion);
+      window.removeEventListener('accessibilitychange', updateMotion);
       ro.disconnect();
       canvas.removeEventListener('mousedown', onDown);
       window.removeEventListener('mousemove', onMove);

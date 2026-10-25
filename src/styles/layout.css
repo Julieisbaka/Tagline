@@ -334,7 +334,7 @@ body.resizing-panels * {
 
 .note-body.readable .cm-content,
 .note-body.readable .preview {
-  max-width: 820px;
+  max-width: var(--readable-content-width, 820px);
   margin: 0 auto;
 }
 

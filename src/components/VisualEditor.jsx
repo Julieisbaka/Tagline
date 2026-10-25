@@ -13,7 +13,7 @@ import VisualFindReplace from './VisualFindReplace.jsx';
 
 export default function VisualEditor({
   value, onChange, onOpenLink, onSendCard, onSection, noteNames, visualRef, jump, keybindings,
-  toolbarVisible = true, onReady,
+  toolbarVisible = true, spellcheck = true, onReady,
 }) {
   const metadata = useMemo(() => splitFrontmatter(value), [value]);
   const live = useRef({});
@@ -23,10 +23,10 @@ export default function VisualEditor({
     onOpenLink, onSendCard, onSection, keybindings,
   };
   return <MemoizedDocument value={metadata.body} noteNames={noteNames} visualRef={visualRef} jump={jump}
-    live={live} keybindings={keybindings} toolbarVisible={toolbarVisible} onReady={onReady} />;
+    live={live} keybindings={keybindings} toolbarVisible={toolbarVisible} spellcheck={spellcheck} onReady={onReady} />;
 }
 
-function VisualDocument({ value, noteNames, visualRef, jump, live, keybindings, toolbarVisible, onReady }) {
+function VisualDocument({ value, noteNames, visualRef, jump, live, keybindings, toolbarVisible, spellcheck, onReady }) {
   const { t } = useI18n();
   const lastMarkdown = useRef(value);
   const lastProp = useRef(value);
@@ -99,6 +99,14 @@ function VisualDocument({ value, noteNames, visualRef, jump, live, keybindings, 
       ed.isActive('bold'), ed.isActive('underline'), ed.isActive('highlight'),
     ] : [],
   });
+
+  useEffect(() => {
+    if (!editor) return;
+    editor.setOptions({ editorProps: {
+      ...editor.options.editorProps,
+      attributes: { ...editor.options.editorProps.attributes, spellcheck: String(spellcheck) },
+    } });
+  }, [editor, spellcheck]);
 
   useEffect(() => {
     visualRef.current = editor;

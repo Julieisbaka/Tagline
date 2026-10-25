@@ -16,12 +16,14 @@ export default function RefreshButton({ onRefresh }) {
     setBusy(true);
     const icon = button.current.querySelector('svg');
     const motion = window.matchMedia('(prefers-reduced-motion: reduce)');
-    const spin = motion.matches ? null : icon.animate([
+    const prefersReducedMotion = () => motion.matches || document.documentElement.classList.contains('reduce-motion');
+    const spin = prefersReducedMotion() ? null : icon.animate([
       { transform: 'rotate(0deg)' }, { transform: 'rotate(360deg)' },
     ], { duration: REFRESH_TURN_MS, iterations: Infinity });
     animation.current = spin;
-    const stopMotion = () => { if (motion.matches) spin?.cancel(); };
+    const stopMotion = () => { if (prefersReducedMotion()) spin?.cancel(); };
     motion.addEventListener('change', stopMotion);
+    window.addEventListener('accessibilitychange', stopMotion);
     try { await onRefresh(); }
     catch (error) { window.dispatchEvent(new CustomEvent('app-error', { detail: error.message })); }
     finally {
@@ -34,6 +36,7 @@ export default function RefreshButton({ onRefresh }) {
       }
       spin?.cancel();
       motion.removeEventListener('change', stopMotion);
+      window.removeEventListener('accessibilitychange', stopMotion);
       animation.current = null;
       running.current = false;
       setBusy(false);

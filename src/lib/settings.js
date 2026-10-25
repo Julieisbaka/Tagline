@@ -38,10 +38,21 @@ export function useSettings() {
     };
   }, []);
   useLayoutEffect(() => {
-    try { applyTheme(getTheme(settings.theme, settings.customTheme, settings.themeSettings), settings.themeTransition); }
+    try { applyTheme(getTheme(settings.theme, settings.customTheme, settings.themeSettings), settings.themeTransition && !settings.reduceMotion); }
     catch (error) { window.dispatchEvent(new CustomEvent('app-error', { detail: error.message })); }
     setLanguage(settings.language);
-  }, [settings.theme, settings.customTheme, settings.themeSettings, settings.themeTransition, settings.language, themeRevision]);
+  }, [settings.theme, settings.customTheme, settings.themeSettings, settings.themeTransition, settings.reduceMotion, settings.language, themeRevision]);
+  useLayoutEffect(() => {
+    const root = document.documentElement;
+    for (const [name, enabled] of [
+      ['reduce-motion', settings.reduceMotion], ['strong-focus', settings.strongFocusIndicators],
+      ['large-interface-text', settings.largerInterfaceText], ['large-click-targets', settings.largerClickTargets],
+      ['underline-links', settings.underlineLinks],
+    ]) root.classList.toggle(name, enabled);
+    root.style.setProperty('--readable-content-width', `${settings.readableWidthPixels}px`);
+    window.dispatchEvent(new Event('accessibilitychange'));
+  }, [settings.reduceMotion, settings.strongFocusIndicators, settings.largerInterfaceText,
+    settings.largerClickTargets, settings.underlineLinks, settings.readableWidthPixels]);
   useLayoutEffect(() => {
     configureVisualCache(settings.visualCacheEntries, settings.visualCacheCharacters);
   }, [settings.visualCacheEntries, settings.visualCacheCharacters]);

@@ -448,6 +448,110 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
         assert.ok((await js("window.api.listHistory('History.md')"))[0].id.endsWith('.snapshot'));
         assert.equal(await js(`window.api.readHistory('History.md', ${JSON.stringify(deltaRevisions[0].id)})`), previousHistoryContent,
           'previous deltas stay readable when disabled');
+        await settings('editors');
+        const editorDefaults = {
+          visualSpellcheck: true, sourceIndentWithTabs: false, sourceBracketMatching: true,
+          sourceCloseBrackets: true, sourceCodeFolding: false,
+        };
+        for (const [key, value] of Object.entries(editorDefaults)) {
+          assert.equal(await js(`document.querySelector('[data-setting="${key}"]').checked`), value);
+        }
+        for (const [key, value] of Object.entries(editorDefaults)) await toggle(key, !value);
+        await input('[data-setting=sourceTabSize]', '4');
+        await input('[data-setting=readableWidthPixels]', '600');
+        await done();
+        await wait("document.querySelector('.ProseMirror')?.spellcheck === false");
+        assert.equal(await js("document.querySelector('.ProseMirror').getAttribute('role')"), 'textbox');
+        assert.equal(await js("getComputedStyle(document.querySelector('.visual-document')).maxWidth"), '600px');
+        const visualText = await js("document.querySelector('.ProseMirror').textContent");
+        await settings('accessibility');
+        const accessibilityKeys = ['reduceMotion', 'strongFocusIndicators', 'largerInterfaceText', 'largerClickTargets', 'underlineLinks'];
+        for (const key of accessibilityKeys) {
+          assert.equal(await js(`document.querySelector('[data-setting="${key}"]').checked`), false);
+          await toggle(key, true);
+        }
+        const doneButtonSize = await js(`(() => {
+          const el = [...document.querySelectorAll('.settings button')].find(el => el.textContent.trim() === 'Done');
+          const box = el.getBoundingClientRect();
+          return { width: box.width, height: box.height, fontSize: getComputedStyle(el).fontSize,
+            transitionDuration: getComputedStyle(el).transitionDuration };
+        })()`);
+        assert.ok(doneButtonSize.width >= 47.99 && doneButtonSize.height >= 47.99, JSON.stringify(doneButtonSize));
+        assert.equal(doneButtonSize.fontSize, '16px');
+        assert.ok(doneButtonSize.transitionDuration.split(',').every((part) => parseFloat(part) <= 0.00001));
+        await done();
+        assert.equal(await js("document.querySelector('.ProseMirror').textContent"), visualText, 'settings do not replace editor content');
+        await js(`(() => {
+          const el = document.createElement('a');
+          el.id = 'accessibility-test-link';
+          el.href = '#';
+          el.textContent = 'Link';
+          document.body.append(el);
+        })()`);
+        assert.match(await js("getComputedStyle(document.querySelector('#accessibility-test-link')).textDecorationLine"), /underline/);
+        await js("document.querySelector('#accessibility-test-link').focus()");
+        wc.sendInputEvent({ type: 'keyDown', keyCode: 'Tab', modifiers: ['shift'] });
+        wc.sendInputEvent({ type: 'keyUp', keyCode: 'Tab', modifiers: ['shift'] });
+        await delay(100);
+        assert.ok(await js("parseFloat(getComputedStyle(document.activeElement).outlineWidth) >= 2.4"));
+        await js("document.querySelector('#accessibility-test-link').remove()");
+        await reload();
+        await wait("document.documentElement.classList.contains('large-click-targets')");
+        await open('History.md');
+        await wait("document.querySelector('.ProseMirror')?.spellcheck === false");
+        await settings('editors');
+        assert.equal(await js("document.querySelector('[data-setting=sourceTabSize]').value"), '4');
+        assert.equal(await js("document.querySelector('[data-setting=readableWidthPixels]').value"), '600');
+        await toggle('visualSpellcheck', true);
+        await done();
+        await wait("document.querySelector('.ProseMirror')?.spellcheck === true");
+        const setMode = async (mode) => {
+          await js(`(() => {
+            const el = document.querySelector('.note-header select');
+            Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value').set.call(el, ${JSON.stringify(mode)});
+            el.dispatchEvent(new Event('change', { bubbles: true }));
+          })()`);
+        };
+        await setMode('edit');
+        await wait("!!document.querySelector('.source-editor .cm-content')");
+        assert.equal(await js("getComputedStyle(document.querySelector('.source-editor .cm-content')).tabSize"), '4');
+        assert.equal(await js("getComputedStyle(document.querySelector('.source-editor .cm-content')).maxWidth"), '600px');
+        await wait("!!document.querySelector('.cm-foldGutter')");
+        const insertSource = async (text) => {
+          await js("document.querySelector('.source-editor .cm-content').focus()");
+          wc.sendInputEvent({ type: 'keyDown', keyCode: 'End', modifiers: ['control'] });
+          wc.sendInputEvent({ type: 'keyUp', keyCode: 'End', modifiers: ['control'] });
+          await wc.insertText(text);
+        };
+        await insertSource('\n\n```js\nfunction example() {\n  return 1;\n}\n```\n\n');
+        await wait("!!document.querySelector('.cm-foldGutter .cm-gutterElement[title]')");
+        await insertSource('(');
+        assert.ok((await js("document.querySelector('.source-editor .cm-content').textContent")).endsWith('('),
+          'automatic closing is disabled');
+        await settings('editors');
+        await toggle('sourceCloseBrackets', true);
+        await toggle('sourceBracketMatching', true);
+        await toggle('sourceIndentWithTabs', false);
+        await toggle('sourceCodeFolding', false);
+        await done();
+        await wait("!document.querySelector('.cm-foldGutter')");
+        await insertSource('\n');
+        await js("document.querySelector('.source-editor .cm-content').focus()");
+        wc.sendInputEvent({ type: 'keyDown', keyCode: 'Tab' });
+        wc.sendInputEvent({ type: 'keyUp', keyCode: 'Tab' });
+        await wait("document.querySelector('.source-editor .cm-content').textContent.endsWith('    ')");
+        await settings('editors');
+        await toggle('sourceIndentWithTabs', true);
+        await done();
+        await insertSource('\n');
+        wc.sendInputEvent({ type: 'keyDown', keyCode: 'Tab' });
+        wc.sendInputEvent({ type: 'keyUp', keyCode: 'Tab' });
+        await wait("document.querySelector('.source-editor .cm-content').textContent.endsWith('\\t')");
+        await settings('accessibility');
+        for (const key of accessibilityKeys) await toggle(key, false);
+        await done();
+        assert.equal(await js("document.documentElement.classList.contains('reduce-motion')"), false);
+        assert.equal(await js("document.documentElement.classList.contains('large-click-targets')"), false);
         server.close();
         console.log('PASS: experimental delta history opt-in/persistence/editor saves/restores/disable, notice dismissal/reset/reload, Pandoc install link, isolated embedded websites/navigation/resize/close/external toggle, extension labels, configurable relinking, missing tabs, dormant workspaces, and custom CSS.');
         app.exit(0);

@@ -1,8 +1,9 @@
 import { autocompletion } from '@codemirror/autocomplete';
 import { markdown, markdownLanguage } from '@codemirror/lang-markdown';
 import { languages } from '@codemirror/language-data';
+import { codeFolding, indentUnit } from '@codemirror/language';
 import { openSearchPanel, search, searchKeymap } from '@codemirror/search';
-import { EditorSelection, Prec } from '@codemirror/state';
+import { EditorSelection, EditorState, Prec } from '@codemirror/state';
 import { EditorView, highlightActiveLine, highlightActiveLineGutter, keymap, lineNumbers } from '@codemirror/view';
 import CodeMirror from '@uiw/react-codemirror';
 import { useEffect, useMemo, useRef, useState } from 'react';
@@ -72,6 +73,9 @@ export default function Editor({
       search({ top: true, createPanel: createCodeMirrorFindReplacePanel }),
       keymap.of(searchKeymap.filter((item) => item.key !== 'Mod-f')),
       markdown({ base: markdownLanguage, codeLanguages: languages }),
+      EditorState.tabSize.of(settings.sourceTabSize),
+      indentUnit.of(settings.sourceIndentWithTabs ? '\t' : ' '.repeat(settings.sourceTabSize)),
+      ...(settings.sourceCodeFolding ? [codeFolding()] : []),
       ...(settings.sourceLineNumbers ? [lineNumbers()] : []),
       ...(settings.sourceLineWrapping ? [EditorView.lineWrapping] : []),
       ...(settings.sourceActiveLine ? [highlightActiveLine()] : []),
@@ -101,7 +105,8 @@ export default function Editor({
         }
       }),
     ];
-  }, [keybindings, settings.sourceActiveLine, settings.sourceAutocomplete, settings.sourceLineNumbers, settings.sourceLineWrapping, locale]);
+  }, [keybindings, settings.sourceActiveLine, settings.sourceAutocomplete, settings.sourceLineNumbers, settings.sourceLineWrapping,
+    settings.sourceTabSize, settings.sourceIndentWithTabs, settings.sourceCodeFolding, locale]);
 
   const run = (command) => () => {
     const view = ownViewRef.current;
@@ -139,7 +144,11 @@ export default function Editor({
         theme="none"
         basicSetup={{
           lineNumbers: false,
-          foldGutter: false,
+          foldGutter: settings.sourceCodeFolding,
+          foldKeymap: settings.sourceCodeFolding,
+          bracketMatching: settings.sourceBracketMatching,
+          closeBrackets: settings.sourceCloseBrackets,
+          closeBracketsKeymap: settings.sourceCloseBrackets,
           highlightActiveLine: false,
           highlightActiveLineGutter: false,
           autocompletion: false,

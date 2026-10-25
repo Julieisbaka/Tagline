@@ -165,6 +165,7 @@ export function themeSnapshot() {
     .map((key) => [key, computed.getPropertyValue(key).trim()]));
   return {
     id: root.dataset.theme, mode: root.style.colorScheme, variables,
-    metadata: activeTheme?.metadata || {}, reducedMotion: window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    metadata: activeTheme?.metadata || {}, reducedMotion: root.classList.contains('reduce-motion') ||
+      window.matchMedia('(prefers-reduced-motion: reduce)').matches
   };
 }
