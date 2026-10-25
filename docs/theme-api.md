@@ -6,8 +6,7 @@ Themes are JSON color palettes with optional CSS variable overrides. The format 
 and extension contributions.
 
 Use the [theme JSON schema](../schemas/theme.schema.json) for editor completion.
-See [JSON formats and schemas](./json-formats.md) for offline associations and
-the additional checks performed at runtime.
+See [JSON formats and schemas](./json-formats.md) for more information on the structure, validation, and usage of JSON files within the application.
 
 ## Create, import, and export
 

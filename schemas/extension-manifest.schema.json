@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Tagline extension manifest",
-  "description": "Authoring schema. Collection limits use the configurable maximums; actual profile limits, ID uniqueness, declared command references and filesystem containment are checked by Tagline.",
+  "description": "Authoring schema. Collection limits use the configurable maximums; actual profile limits, ID uniqueness, declared command references, and filesystem containment are checked by Tagline.",
   "type": "object",
   "required": [
     "manifestVersion",

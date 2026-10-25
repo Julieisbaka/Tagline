@@ -7,10 +7,9 @@ Entry scripts run in a sandboxed worker and use the supplied `tagline` bridge;
 they have no access to the app DOM or Node.js.
 
 For editor completion and validation, see the [JSON schemas](./json-formats.md)
-for manifests, themes, and exported extension settings. Runtime permission,
-filesystem, and cross-field checks still apply.
+for manifests, themes, and exported extension settings.
 
-For a complete working example of every API in this reference, see the
+For a complete working example of almost every API in this reference, see the
 [API demo extension](../demo/README.md).
 
 ## Install and reload
@@ -82,7 +81,7 @@ application command ID is `ext:debate-tools.insert-reminder`.
 The entry script is evaluated as an async function with a `tagline` parameter,
 so top-level `await` works. It is **not** an ES module: do not use top-level
 `import`/`export` or CommonJS `require`. Bundle dependencies into one
-self-contained script if necessary. There is no package loader.
+self-contained script if necessary.
 
 ### First-install setup
 
@@ -266,8 +265,7 @@ the broader `editor` permission has been declared and approved.
 
 ### Editor selection and Tiptap bridge
 
-Requires `editor`. Extensions do not receive the live editor object, execute
-arbitrary editor methods, or install ProseMirror plugins.
+Requires `editor`.
 
 ```js
 await tagline.editor.setSelection({ from: 1, to: 12 });
@@ -284,7 +282,7 @@ with `from <= to`; positions outside the current document reject. Reading mode
 and flows reject. Tiptap snapshots and commands require an active visual Markdown
 editor; source fallback rejects. Snapshots include unsaved edits.
 
-Approved commands: `toggleBold`, `toggleItalic`, `toggleUnderline`,
+Commands: `toggleBold`, `toggleItalic`, `toggleUnderline`,
 `toggleHighlight`, `toggleStrike`, `toggleHeading`, `setParagraph`,
 `toggleBulletList`, `toggleOrderedList`, `toggleBlockquote`, `undo`, `redo`,
 `unsetAllMarks`. Only `toggleHeading` takes options (`{ level: 1..6 }`).
@@ -316,9 +314,8 @@ All subscriptions require `events`; built-in events also require:
 | `editor.ready` | `editor` | `{ mode, path? }`. |
 
 Subscriptions do not replay initial state. All listeners are removed on
-disable/reload/worker failure. At most the configured listener limit (default
-32) can be registered per extension. Custom names use
-`ext.<extension-id>.<event-name>`; extensions may subscribe to other namespaces
+disable/reload/worker failure. At most the configured listener limit (default 32) can be registered per extension.
+Custom names use`ext.<extension-id>.<event-name>`; extensions may subscribe to other namespaces
 but emit only their own. Names are at most 128 characters. Custom event and UI
 message payloads must be JSON-serializable and at most 65,536 characters.
 Payloads are copied for each listener, and application events cannot be spoofed.
@@ -423,7 +420,7 @@ Fields/selects/toggles accept `description`, `disabled`, and `onChange`;
 changes return strings except toggles, which return booleans.
 Buttons accept `disabled` and `variant` (`default` or `primary`).
 Notice tones are `info`, `warning`, and `error`. Labels/text are inserted as text,
-not HTML. The kit lives inside surfaces, not in worker scripts.
+not HTML.
 
 `taglineWebview.getTheme()` returns `{ id, mode, variables, metadata, reducedMotion }`;
 `variables` maps full CSS property names such as `--selection` to current values.
@@ -470,10 +467,7 @@ absolute paths and `..` traversal above the vault root. They do not access files
 The Markdown helpers are `toText`, `toHtml`, `frontmatter`, `slugify`, `outline`,
 `extractLinks`, `extractTags`, and `resolveLink(target, paths)`. Link resolution only checks
 the supplied list (at most 10,000 paths); listing vault paths requires
-`vault:read`. The legacy
-`helpers.markdownToText` method remains available. `toText` omits HTML and is a
-plain-text approximation, not a round-trip serializer. `outline` reports
-zero-based source line numbers, including frontmatter lines. Rendering, plain
+`vault:read`.`toText` omits HTML and is a plain-text approximation. `outline` reports zero-based source line numbers, including frontmatter lines. Rendering, plain
 text, link/tag extraction, card analysis, and speech timing exclude the metadata
 block. Link and tag extraction also skip fenced and inline code.
 `frontmatter(markdown)` returns `{ data, body, prefix }`: parsed properties,
@@ -497,8 +491,7 @@ one pass, not recursively. Unknown placeholders remain unchanged.
 
 Text inputs are limited to 100,000 characters; estimates accept speaking rates
 from 50 to 1,000 WPM. These helpers are pure and require no permission. Use the
-vault API separately to read files; vault access still requires its declared
-permissions.
+vault API separately to read files.
 
 `createDisposables` is synchronous; `add` returns the supplied function, and
 `dispose` invokes all registered disposers, clears the group, and surfaces any
@@ -633,29 +626,20 @@ require `vault:write`; `append` and `compareAndSwap` require both permissions.
   extension mutations are serialized across extensions.
 - `flush` waits for queued autosaves and in-flight writes for the current vault.
   It rejects on save failure. It flushes all pending notes, including user edits,
-  not just this extension's writes. It is not an OS-level `fsync` guarantee.
-  Edits made after a flush starts may require another flush.
-- `rename` accepts an existing supported note, not a folder. It uses the app's
+  not just this extension's writes. Edits made after a flush starts may require another flush.
+- `rename` accepts an existing note, not a folder. It uses the app's
   normal rename workflow, including folder-space normalization, configured wiki
   relinking, open-tab updates, and speech-document path updates. Existing
   destinations reject. The returned path is the actual normalized path.
-- `delete` accepts an existing supported note and moves it to the OS trash,
+- `delete` accepts an existing note and moves it to the OS trash,
   closing its tabs regardless of the missing-tab setting. Rename and delete
-  first flush pending edits and reject if saving fails. There is no built-in
-  confirmation dialog for extension calls: confirm destructive actions in the
-  command's workflow before invoking them.
+  first flush pending edits and reject if saving fails.
 - `watch` takes a callback and resolves to an async unsubscribe function.
   Events describe loaded text changes from the editor, extensions, and vault
   reloads. Events may be coalesced within a render; renames appear as delete/create
   events, with change events for relinked notes. Switching vaults emits `reset`;
   the subscription then observes the newly active vault. Events do not contain
   content; use `read` for a current snapshot.
-- Watch is not an OS filesystem watcher: external changes are reported only
-  after the app reloads the vault. Unsubscribing or unloading the extension stops
-  delivery; callback failures are shown as extension errors.
-- Append results and replacement text are also limited to 5,000,000 characters.
-  Use compare-and-swap rather than separate read/write calls when preserving
-  concurrent edits matters. Its guarantee covers app state, not external writers.
 
 For example, a command with both vault permissions can create a fresh index:
 

@@ -3,8 +3,7 @@
 [Documentation home](./README.md)
 
 Tagline can send notes and DOCX/HTML files to a Google Apps Script web app that
-you deploy in your own account. The script converts each upload into a **new
-Google Doc** in your Drive. It never overwrites existing documents or changes
+you deploy in your own account. The script converts each upload into a **new Google Doc** in your Drive. It never overwrites existing documents or changes
 their sharing permissions. Destination-folder permissions can be inherited.
 No document is sent until you explicitly confirm an upload.
 
@@ -63,7 +62,6 @@ in the note export dialog. With multiple verified connections the export
 dialog does not silently select the first one. The upload confirmation includes
 the email and deployment URL; emails identify the executing account, while
 different deployment IDs distinguish connections targeting different folders.
-Folder access and shared-drive ownership still follow Google Drive's rules.
 
 Before sending document content, Tagline checks the executing account again.
 Each upload also carries `expectedAccount`; the script checks it before
@@ -77,18 +75,6 @@ than assuming `/u/0` is correct. This is a navigation hint, not authentication:
 Google may still require sign-in or account selection. If Google opens the
 wrong session, use a dedicated browser profile signed into that account.
 
-Existing single-connection settings are retained as **Unverified connection**.
-To upgrade, replace your deployed script with the latest bundled version,
-deploy it, select the existing connection, and save to verify its account.
-The old encrypted secret can be retained by leaving the secret field blank
-when the deployment URL is unchanged. Uploads are blocked until verification;
-older scripts lacking account verification are not silently accepted.
-
-Keep the URL and secret private. Anyone with both can create documents in the
-script owner's Drive and consume their quotas. Rotate `WEBHOOK_SECRET` and
-update Tagline to revoke a leaked secret, or disable the deployment entirely.
-Do not put the secret in URLs, source code, screenshots, or version control.
-
 ## Send documents
 
 - On a note, choose **Export > Google Docs > Send to Google Docs**. This sends
@@ -99,10 +85,6 @@ Do not put the secret in URLs, source code, screenshots, or version control.
   file. Maximum unencoded size: **5 MiB**.
 - Confirm the document name and destination deployment in the native dialog.
   The app displays success code **201** and an **Open Google Doc** button.
-
-Google's conversion can change formatting. Local files remain unchanged.
-Uploads are never retried automatically: a timeout can happen after Drive
-created the document. Check Drive before retrying to avoid duplicates.
 
 ## Webhook contract
 
@@ -182,12 +164,6 @@ Errors use `ok: false`, a numeric `code`, a descriptive `message`, and
 | 500 | Unexpected script/configuration error. |
 | 502 | Drive account lookup or creation/conversion failed, or returned no valid document ID. Check authorization, folder access, storage, and quotas. |
 | 503 | Missing/invalid script properties, advanced Drive service not enabled, or executing account could not be identified. |
-
-**These are application result codes, not HTTP statuses.** Apps Script
-`ContentService` cannot set custom HTTP status codes. Its JSON responses
-normally arrive over HTTP 200. Google-controlled failures before/after script
-execution (permissions, runtime quotas, outages) can instead return HTTP errors
-or HTML pages; no script can guarantee JSON for those platform failures.
 
 Clients must follow the ContentService redirect to
 `script.googleusercontent.com` to retrieve the JSON. Send the secret only in
