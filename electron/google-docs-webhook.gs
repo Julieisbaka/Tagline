@@ -2,12 +2,13 @@
 var TAGLINE_MAX_BYTES = 5 * 1024 * 1024;
 var TAGLINE_MAX_BASE64 = 4 * Math.ceil(TAGLINE_MAX_BYTES / 3);
 
-function taglineReply(code, message, document) {
+function taglineReply(code, message, document, account) {
   return ContentService.createTextOutput(JSON.stringify({
-    ok: code === 201,
+    ok: code === 200 || code === 201,
     code: code,
     message: message,
-    document: document || null
+    document: document || null,
+    account: account || null
   })).setMimeType(ContentService.MimeType.JSON);
 }
 
@@ -43,6 +44,34 @@ function doPost(event) {
     if (typeof request.secret !== 'string' || request.secret !== expectedSecret) {
       return taglineReply(401, 'The webhook secret is incorrect.');
     }
+    if (typeof Drive === 'undefined' || !Drive.Files || !Drive.Files.create || !Drive.About) {
+      return taglineReply(503, 'Enable the advanced Google Drive service (v3).');
+    }
+    var account;
+    try {
+      var user = Drive.About.get({ fields: 'user(emailAddress,displayName)' }).user;
+      if (!user || typeof user.emailAddress !== 'string' ||
+          !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(user.emailAddress) || user.emailAddress.length > 254) {
+        return taglineReply(503, 'Drive did not identify the executing Google account.');
+      }
+      account = {
+        email: user.emailAddress.toLowerCase(),
+        displayName: typeof user.displayName === 'string' ? user.displayName.slice(0, 200) : ''
+      };
+    } catch (error) {
+      return taglineReply(502, 'Could not verify the executing Google account. Check Drive authorization and quotas.');
+    }
+    if (request.action === 'account') {
+      return taglineReply(200, 'Google account verified.', null, account);
+    }
+    if (request.action !== undefined && request.action !== 'upload') {
+      return taglineReply(400, 'Use the account or upload action.');
+    }
+    // Bind uploads to the verified executor, never the browser's active account.
+    if (typeof request.expectedAccount !== 'string' ||
+        request.expectedAccount.toLowerCase() !== account.email) {
+      return taglineReply(409, 'The executing Google account does not match the selected destination. No document was created.');
+    }
     if (typeof request.title !== 'string' || !request.title.trim() ||
         request.title.length > 200 || /[\u0000-\u001f]/.test(request.title)) {
       return taglineReply(400, 'Provide a title of 1-200 characters without control characters.');
@@ -72,9 +101,6 @@ function doPost(event) {
     }
     if (!bytes.length) return taglineReply(422, 'Document content is empty.');
     if (bytes.length > TAGLINE_MAX_BYTES) return taglineReply(413, 'Documents must not exceed 5 MiB.');
-    if (typeof Drive === 'undefined' || !Drive.Files || !Drive.Files.create) {
-      return taglineReply(503, 'Enable the advanced Google Drive service (v3).');
-    }
     var metadata = {
       name: request.title.trim(),
       mimeType: 'application/vnd.google-apps.document'
@@ -98,7 +124,7 @@ function doPost(event) {
       id: file.id,
       title: metadata.name,
       url: 'https://docs.google.com/document/d/' + file.id + '/edit'
-    });
+    }, account);
   } catch (error) {
     return taglineReply(500, 'The webhook encountered an unexpected error. Check the Apps Script configuration.');
   }
@@ -106,5 +132,5 @@ function doPost(event) {
 
 function authorizeGoogleDocs() {
   // Run once in the editor to authorize the Drive service before deployment.
-  Drive.About.get({ fields: 'user(displayName)' });
+  Drive.About.get({ fields: 'user(emailAddress,displayName)' });
 }

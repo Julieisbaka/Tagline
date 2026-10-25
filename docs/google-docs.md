@@ -32,15 +32,57 @@ No document is sent until you explicitly confirm an upload.
    shared secret itself. If your Workspace administrator prohibits anonymous
    web apps, this integration will not work; a sign-in-only deployment cannot
    be called by Tagline.
-8. Copy the deployment URL ending in `/exec` into Tagline, enter the same
-   secret, and select **Save Google Docs connection**. Do not use the `/dev`
-   test URL or add query parameters. After editing the script, deploy a new
-   version using **Deploy > Manage deployments**.
+8. Select **Add a connection / choose an account** in Tagline, enter the
+   deployment URL ending in `/exec` and the same secret, and select **Save
+   Google Docs connection**. Tagline makes an authenticated, read-only account
+   lookup and asks you to confirm the executing Google account's email before
+   saving. No document is uploaded during verification. Do not use the `/dev`
+   test URL. Copied `/macros/u/2/s/.../exec` URLs and `authuser` hints are
+   normalized to the account-independent deployment URL; other query
+   parameters are rejected. After editing the script, deploy a new version
+   using **Deploy > Manage deployments**.
 
 The secret is encrypted with the OS credential service in the app profile,
 not saved in note settings or the vault. If OS encryption is unavailable,
 Tagline will not save the connection. **Disconnect Google Docs** removes only
-local credentials, not the deployment or any documents.
+the selected local connection, not other connections, deployments, or documents.
+
+## Multiple Google accounts
+
+Create a separate Apps Script deployment and secret for each Google account,
+then add each connection in Tagline. Use a **separate browser profile**, or a
+private window signed into only the intended account, to create and authorize
+each deployment. Google documents
+[Apps Script problems with simultaneous Google logins](https://developers.google.com/apps-script/guides/support/troubleshooting#issues_with_multiple_google_accounts).
+Selecting a different browser account later does **not** change the upload
+destination: **Execute as: Me** runs as the account that deployed the script.
+
+Tagline shows the verified email next to each saved connection. Select the
+connection before uploading a file, and choose **Destination Google account**
+in the note export dialog. With multiple verified connections the export
+dialog does not silently select the first one. The upload confirmation includes
+the email and deployment URL; emails identify the executing account, while
+different deployment IDs distinguish connections targeting different folders.
+Folder access and shared-drive ownership still follow Google Drive's rules.
+
+Before sending document content, Tagline checks the executing account again.
+Each upload also carries `expectedAccount`; the script checks it before
+creating anything and returns **409** on a mismatch. Account changes require
+explicit reverification and confirmation through **Save Google Docs connection**.
+No browser cookies or numeric browser-account indices determine the upload.
+
+**Open Google Doc** uses the account from the completed upload, even if you
+subsequently switch connections. It adds an email-based `authuser` hint rather
+than assuming `/u/0` is correct. This is a navigation hint, not authentication:
+Google may still require sign-in or account selection. If Google opens the
+wrong session, use a dedicated browser profile signed into that account.
+
+Existing single-connection settings are retained as **Unverified connection**.
+To upgrade, replace your deployed script with the latest bundled version,
+deploy it, select the existing connection, and save to verify its account.
+The old encrypted secret can be retained by leaving the secret field blank
+when the deployment URL is unchanged. Uploads are blocked until verification;
+older scripts lacking account verification are not silently accepted.
 
 Keep the URL and secret private. Anyone with both can create documents in the
 script owner's Drive and consume their quotas. Rotate `WEBHOOK_SECRET` and
@@ -69,6 +111,8 @@ Send `POST` with `Content-Type: application/json`:
 ```json
 {
   "secret": "<your WEBHOOK_SECRET>",
+  "action": "upload",
+  "expectedAccount": "you@example.com",
   "title": "Evidence",
   "mimeType": "text/html",
   "contentBase64": "<standard base64-encoded file bytes>"
@@ -82,8 +126,25 @@ Supported MIME types:
 
 `title` must be 1-200 characters without control characters. Content must be
 non-empty standard base64 with padding and decode to at most 5 MiB.
+`expectedAccount` must match the executing account returned by the authenticated
+account lookup; it is mandatory even if `action` is omitted for an upload.
 This accepts uploaded files, not `.gdoc` shortcut files, Google Doc URLs, or
 arbitrary remote download URLs.
+
+Before uploading, verify the account with a read-only POST:
+
+```json
+{
+  "secret": "<your WEBHOOK_SECRET>",
+  "action": "account"
+}
+```
+
+It returns `ok: true`, `code: 200`, `document: null`, and
+`account: { "email": "you@example.com", "displayName": "Your name" }`.
+The account comes from `Drive.About.get`, not the active browser user, request
+parameters, or a manually entered label. An incorrect secret cannot retrieve
+account information.
 
 Every response generated by the script has the same JSON shape:
 
@@ -92,6 +153,10 @@ Every response generated by the script has the same JSON shape:
   "ok": true,
   "code": 201,
   "message": "Google Doc created.",
+  "account": {
+    "email": "you@example.com",
+    "displayName": "Your name"
+  },
   "document": {
     "id": "<new Google Doc ID>",
     "title": "Evidence",
@@ -101,20 +166,22 @@ Every response generated by the script has the same JSON shape:
 ```
 
 Errors use `ok: false`, a numeric `code`, a descriptive `message`, and
-`document: null`:
+`document: null`, and `account: null`:
 
 | Code | Meaning |
 | --- | --- |
+| 200 | Executing account verified; no document was created. |
 | 201 | A new Google Doc was created. |
 | 400 | Missing/malformed JSON body or invalid title. |
 | 401 | Missing or incorrect shared secret. |
 | 405 | GET is unsupported; use POST. |
+| 409 | Missing/mismatched expected Google account. No document was created. |
 | 413 | Request or decoded file exceeds the size limit. |
 | 415 | Unsupported request Content-Type or document MIME type. |
 | 422 | Missing, empty, or malformed base64 content. |
 | 500 | Unexpected script/configuration error. |
-| 502 | Drive creation/conversion failed or returned no valid ID. Check authorization, folder access, storage, and quotas. |
-| 503 | Missing/invalid script properties or advanced Drive service not enabled. |
+| 502 | Drive account lookup or creation/conversion failed, or returned no valid document ID. Check authorization, folder access, storage, and quotas. |
+| 503 | Missing/invalid script properties, advanced Drive service not enabled, or executing account could not be identified. |
 
 **These are application result codes, not HTTP statuses.** Apps Script
 `ContentService` cannot set custom HTTP status codes. Its JSON responses

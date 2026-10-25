@@ -6,13 +6,13 @@ contextBridge.exposeInMainWorld('api', {
   uninstallApp: (removeProfile) => ipcRenderer.invoke('app:uninstall', removeProfile),
   googleDocs: {
     status: () => ipcRenderer.invoke('googleDocs:status'),
-    save: (endpoint, secret) => ipcRenderer.invoke('googleDocs:save', endpoint, secret),
-    disconnect: () => ipcRenderer.invoke('googleDocs:disconnect'),
+    save: (endpoint, secret, connectionId) => ipcRenderer.invoke('googleDocs:save', endpoint, secret, connectionId),
+    disconnect: (connectionId) => ipcRenderer.invoke('googleDocs:disconnect', connectionId),
     sendNote: (document) => ipcRenderer.invoke('googleDocs:sendNote', document),
-    uploadFile: () => ipcRenderer.invoke('googleDocs:uploadFile'),
+    uploadFile: (connectionId) => ipcRenderer.invoke('googleDocs:uploadFile', connectionId),
     saveScript: () => ipcRenderer.invoke('googleDocs:saveScript'),
     openSetup: () => ipcRenderer.invoke('googleDocs:openSetup'),
-    openDocument: (url) => ipcRenderer.invoke('googleDocs:openDocument', url),
+    openDocument: (url, accountEmail) => ipcRenderer.invoke('googleDocs:openDocument', url, accountEmail),
   },
   openCaselist: {
     writePasswordStatus: () => ipcRenderer.invoke('opencaselist:writePasswordStatus'),

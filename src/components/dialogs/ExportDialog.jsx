@@ -44,11 +44,24 @@ export default function ExportDialog({ title, content, resolve, onClose }) {
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
   const [result, setResult] = useState(null);
+  const [connections, setConnections] = useState([]);
+  const [connectionId, setConnectionId] = useState('');
   const googleDocs = format === 'google-docs';
 
   useEffect(() => {
     window.api.pandocStatus().then(setPandoc).catch((e) => setError(e.message));
   }, []);
+  useEffect(() => {
+    if (!googleDocs) return;
+    let active = true;
+    window.api.googleDocs.status().then((value) => {
+      if (!active) return;
+      const verified = value.connections.filter((connection) => connection.account);
+      setConnections(verified);
+      setConnectionId(verified.length === 1 ? verified[0].id : '');
+    }).catch((failure) => { if (active) setError(failure.message); });
+    return () => { active = false; };
+  }, [googleDocs]);
 
   const perform = async () => {
     setBusy(true);
@@ -56,7 +69,7 @@ export default function ExportDialog({ title, content, resolve, onClose }) {
     setResult(null);
     try {
       const result = googleDocs
-        ? await window.api.googleDocs.sendNote({ title, html: standaloneHtml(title, content, resolve, locale) })
+        ? await window.api.googleDocs.sendNote({ title, html: standaloneHtml(title, content, resolve, locale), connectionId })
         : format === 'html'
           ? await window.api.exportHtml({ title, html: standaloneHtml(title, content, resolve, locale) })
           : await window.api.exportDocument({ title, format, html: exportHtml(content, resolve) });
@@ -82,20 +95,30 @@ export default function ExportDialog({ title, content, resolve, onClose }) {
             {FORMATS.map(([id, label]) => <option key={id} value={id}>{t(label)}</option>)}
           </select>
         </label>
+        {googleDocs && <label className="setting-row"><span>{t('Destination Google account')}</span>
+          <select value={connectionId} disabled={busy} data-setting="googleDocsDestination"
+            onChange={(event) => { setConnectionId(event.target.value); setResult(null); setError(''); }}>
+            <option value="">{t('Choose a Google account')}</option>
+            {connections.map((connection) => <option key={connection.id} value={connection.id}>
+              {connection.account.email} — {connection.endpoint.split('/').at(-2)}
+            </option>)}
+          </select>
+        </label>}
         <p>{t('Exports the entire note, including unsaved edits. Wiki links become labels; images are omitted. Formatting support varies by format.')}</p>
         {format === 'pdf' && <p>{t('PDF also needs a Pandoc-compatible LaTeX engine on PATH.')}</p>}
         {error && <p className="error-text" role="alert">{error}</p>}
         {result && <div role="status">{result.document
           ? <><p>{t('Google Doc created (code 201): {title}', { title: result.document.title })}</p>
+            <p>{t('Destination account: {email}', { email: result.document.accountEmail })}</p>
             <button onClick={async () => {
-              try { await window.api.googleDocs.openDocument(result.document.url); }
+              try { await window.api.googleDocs.openDocument(result.document.url, result.document.accountEmail); }
               catch (failure) { setError(failure.message); }
             }}>{t('Open Google Doc')}</button></>
           : <p>{t('Exported to {path}', { path: result.path })}</p>}
           {result.warnings && <pre>{result.warnings}</pre>}</div>}
         <div className="dialog-buttons">
           <button disabled={busy} onClick={onClose}>{t('Close')}</button>
-          <button className="primary" disabled={busy || (!googleDocs && format !== 'html' && !pandoc?.available)} onClick={perform}>
+          <button className="primary" disabled={busy || (googleDocs ? !connectionId : format !== 'html' && !pandoc?.available)} onClick={perform}>
             {t(busy ? 'Exporting...' : googleDocs ? 'Send to Google Docs' : 'Save export')}
           </button>
         </div>

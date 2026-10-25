@@ -122,6 +122,10 @@ from **Settings > Integrations > Google Docs / Drive**. Use **Set up Google
 Docs transfer** there to deploy the bundled webhook in your own Google account.
 Each transfer creates a new Google Doc and requires confirmation. See
 [Google Docs setup and response codes](./google-docs.md).
+Save separate verified webhook connections for multiple Google accounts, then
+choose the destination for each transfer. Account mismatches block uploads;
+document links include the destination account rather than assuming the
+browser's default Google login.
 
 HTTP/HTTPS links open inside Tagline by default. Turn off **Open websites inside
 Tagline** in **Settings > Integrations** to use your default browser instead.
