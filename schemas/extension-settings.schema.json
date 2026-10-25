@@ -1,0 +1,36 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Tagline exported extension settings",
+  "description": "Portable settings export, not private extension storage or app settings. On import Tagline checks that extensionId matches and each key/value conforms to that extension's manifest.",
+  "type": "object",
+  "required": [
+    "version",
+    "extensionId",
+    "values"
+  ],
+  "properties": {
+    "$schema": {
+      "type": "string"
+    },
+    "version": {
+      "const": 1
+    },
+    "extensionId": {
+      "$ref": "extension-manifest.schema.json#/definitions/id"
+    },
+    "values": {
+      "type": "object",
+      "propertyNames": {
+        "$ref": "extension-manifest.schema.json#/definitions/id"
+      },
+      "additionalProperties": {
+        "type": [
+          "string",
+          "number",
+          "boolean"
+        ]
+      }
+    }
+  },
+  "additionalProperties": true
+}

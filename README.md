@@ -40,3 +40,4 @@ Do not delete the profile when updating. Back up the profile and vaults first.
 - [Features and settings](./docs/features.md)
 - [Extension API](./docs/extension-api.md)
 - [Theme API and custom CSS](./docs/theme-api.md)
+- [JSON formats and schemas](./docs/json-formats.md)

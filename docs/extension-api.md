@@ -6,6 +6,10 @@ Extensions can add commands, ribbon shortcuts, settings, themes, sidebar panels,
 Entry scripts run in a sandboxed worker and use the supplied `tagline` bridge;
 they have no access to the app DOM or Node.js.
 
+For editor completion and validation, see the [JSON schemas](./json-formats.md)
+for manifests, themes, and exported extension settings. Runtime permission,
+filesystem, and cross-field checks still apply.
+
 For a complete working example of every API in this reference, see the
 [API demo extension](../demo/README.md).
 

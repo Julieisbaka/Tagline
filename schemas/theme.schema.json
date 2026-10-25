@@ -1,0 +1,258 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Tagline theme",
+  "description": "Custom or extension theme. Omitted colors inherit from the dark/light base. Runtime also validates setting targets/defaults and profile-specific resource limits.",
+  "type": "object",
+  "required": [
+    "version",
+    "name",
+    "mode",
+    "colors"
+  ],
+  "properties": {
+    "$schema": {
+      "type": "string"
+    },
+    "version": {
+      "const": 1
+    },
+    "id": {
+      "type": "string",
+      "description": "Built-in/exported identifier; extension theme IDs are assigned by Tagline."
+    },
+    "name": {
+      "type": "string",
+      "pattern": "\\S",
+      "maxLength": 80
+    },
+    "mode": {
+      "enum": [
+        "dark",
+        "light"
+      ]
+    },
+    "colors": {
+      "type": "object",
+      "propertyNames": {
+        "$ref": "#/definitions/colorToken"
+      },
+      "additionalProperties": {
+        "type": "string",
+        "pattern": "^#(?:[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$"
+      }
+    },
+    "variables": {
+      "type": "object",
+      "maxProperties": 2048,
+      "propertyNames": {
+        "pattern": "^[a-z][a-z0-9-]{0,99}$"
+      },
+      "additionalProperties": {
+        "type": "string",
+        "maxLength": 16384,
+        "pattern": "\\S",
+        "not": {
+          "pattern": "[;{}\\u0000]|[uU][rR][lL]\\s*\\(|@[iI][mM][pP][oO][rR][tT]"
+        }
+      }
+    },
+    "metadata": {
+      "type": "object",
+      "properties": {
+        "author": {
+          "type": "string",
+          "maxLength": 500
+        },
+        "description": {
+          "type": "string",
+          "maxLength": 500
+        },
+        "license": {
+          "type": "string",
+          "maxLength": 500
+        },
+        "tags": {
+          "type": "array",
+          "maxItems": 20,
+          "items": {
+            "type": "string",
+            "pattern": "\\S",
+            "maxLength": 40
+          }
+        },
+        "accessibility": {
+          "type": "object",
+          "properties": {
+            "contrast": {
+              "enum": [
+                "standard",
+                "high"
+              ]
+            },
+            "colorVision": {
+              "type": "array",
+              "maxItems": 4,
+              "items": {
+                "enum": [
+                  "protanopia",
+                  "deuteranopia",
+                  "tritanopia",
+                  "achromatopsia"
+                ]
+              }
+            },
+            "reducedMotion": {
+              "type": "boolean"
+            },
+            "notes": {
+              "type": "string",
+              "maxLength": 1000
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    "settings": {
+      "type": "array",
+      "maxItems": 256,
+      "items": {
+        "$ref": "#/definitions/setting"
+      }
+    }
+  },
+  "additionalProperties": true,
+  "definitions": {
+    "colorToken": {
+      "enum": [
+        "bg",
+        "bg-secondary",
+        "bg-elevated",
+        "bg-hover",
+        "border",
+        "text",
+        "text-strong",
+        "text-muted",
+        "text-faint",
+        "accent",
+        "accent-text",
+        "accent-dim",
+        "selection",
+        "selection-text",
+        "highlight-bg",
+        "highlight-text",
+        "code",
+        "h1",
+        "h2",
+        "h3",
+        "h4",
+        "aff",
+        "neg",
+        "aff-bg",
+        "neg-bg",
+        "danger",
+        "warning",
+        "shadow",
+        "backdrop"
+      ]
+    },
+    "setting": {
+      "allOf": [
+        {
+          "$ref": "extension-manifest.schema.json#/definitions/settingBase"
+        },
+        {
+          "type": "object",
+          "required": [
+            "variable"
+          ],
+          "properties": {
+            "type": {
+              "enum": [
+                "string",
+                "number"
+              ]
+            },
+            "variable": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9-]{0,99}$"
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "type": {
+                "const": "number"
+              }
+            }
+          },
+          "then": {
+            "propertyNames": {
+              "enum": [
+                "id",
+                "title",
+                "description",
+                "type",
+                "default",
+                "min",
+                "max",
+                "variable",
+                "unit"
+              ]
+            },
+            "properties": {
+              "unit": {
+                "enum": [
+                  "px",
+                  "em",
+                  "rem",
+                  "%",
+                  ""
+                ]
+              }
+            }
+          },
+          "else": {
+            "propertyNames": {
+              "enum": [
+                "id",
+                "title",
+                "description",
+                "type",
+                "default",
+                "maxLength",
+                "enum",
+                "variable"
+              ]
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "variable": {
+                "$ref": "#/definitions/colorToken"
+              }
+            },
+            "required": [
+              "variable"
+            ]
+          },
+          "then": {
+            "properties": {
+              "type": {
+                "const": "string"
+              },
+              "default": {
+                "type": "string",
+                "pattern": "^#(?:[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$"
+              }
+            }
+          }
+        }
+      ]
+    }
+  }
+}

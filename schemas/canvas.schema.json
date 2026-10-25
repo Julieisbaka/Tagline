@@ -1,0 +1,229 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Tagline JSON Canvas",
+  "description": "JSON Canvas 1.0 as supported by Tagline, including local-file link nodes. Unknown fields are preserved. Runtime validation additionally checks unique node/edge IDs and existing edge endpoints.",
+  "type": "object",
+  "properties": {
+    "$schema": {
+      "type": "string"
+    },
+    "nodes": {
+      "type": "array",
+      "default": [],
+      "items": {
+        "$ref": "#/definitions/node"
+      }
+    },
+    "edges": {
+      "type": "array",
+      "default": [],
+      "items": {
+        "$ref": "#/definitions/edge"
+      }
+    }
+  },
+  "additionalProperties": true,
+  "definitions": {
+    "id": {
+      "type": "string",
+      "pattern": "\\S"
+    },
+    "integer": {
+      "type": "integer",
+      "minimum": -9007199254740991,
+      "maximum": 9007199254740991
+    },
+    "dimension": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 9007199254740991
+    },
+    "color": {
+      "type": "string",
+      "pattern": "^(?:[1-6]|#[0-9a-fA-F]{3,4}|#[0-9a-fA-F]{6}|#[0-9a-fA-F]{8})$"
+    },
+    "side": {
+      "enum": [
+        "top",
+        "right",
+        "bottom",
+        "left"
+      ]
+    },
+    "end": {
+      "enum": [
+        "none",
+        "arrow"
+      ]
+    },
+    "node": {
+      "type": "object",
+      "required": [
+        "id",
+        "type",
+        "x",
+        "y",
+        "width",
+        "height"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/definitions/id"
+        },
+        "type": {
+          "enum": [
+            "text",
+            "file",
+            "link",
+            "group"
+          ]
+        },
+        "x": {
+          "$ref": "#/definitions/integer"
+        },
+        "y": {
+          "$ref": "#/definitions/integer"
+        },
+        "width": {
+          "$ref": "#/definitions/dimension"
+        },
+        "height": {
+          "$ref": "#/definitions/dimension"
+        },
+        "color": {
+          "$ref": "#/definitions/color"
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "type": {
+                "const": "text"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "text"
+            ],
+            "properties": {
+              "text": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "type": {
+                "const": "file"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "file"
+            ],
+            "properties": {
+              "file": {
+                "type": "string",
+                "description": "Vault-relative file path."
+              },
+              "subpath": {
+                "type": "string",
+                "pattern": "^#"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "type": {
+                "const": "link"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "url"
+            ],
+            "properties": {
+              "url": {
+                "type": "string",
+                "description": "HTTP(S), vault-relative file path, or [[file#heading|label]]. Empty strings are allowed while editing."
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "type": {
+                "const": "group"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "label": {
+                "type": "string"
+              },
+              "background": {
+                "type": "string"
+              },
+              "backgroundStyle": {
+                "enum": [
+                  "cover",
+                  "ratio",
+                  "repeat"
+                ]
+              }
+            }
+          }
+        }
+      ],
+      "additionalProperties": true
+    },
+    "edge": {
+      "type": "object",
+      "required": [
+        "id",
+        "fromNode",
+        "toNode"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/definitions/id"
+        },
+        "fromNode": {
+          "type": "string"
+        },
+        "toNode": {
+          "type": "string"
+        },
+        "fromSide": {
+          "$ref": "#/definitions/side"
+        },
+        "toSide": {
+          "$ref": "#/definitions/side"
+        },
+        "fromEnd": {
+          "$ref": "#/definitions/end"
+        },
+        "toEnd": {
+          "$ref": "#/definitions/end"
+        },
+        "color": {
+          "$ref": "#/definitions/color"
+        },
+        "label": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": true
+    }
+  }
+}

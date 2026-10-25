@@ -32,6 +32,11 @@ File nodes render the linked Markdown, flow grid, or canvas preview; their open
 button opens the full document. Link nodes provide shortcuts to HTTP(S) websites
 or vault files, including `Folder/Note.md#Heading` and `[[Round.flow|Round]]`.
 Resizing nodes updates their dimensions and connections throughout the drag.
+Panning reuses existing cards and previews; dragging updates at most once per
+animation frame. Linked-file changes still refresh their previews.
+Developers can run `npm run test:canvas-performance` for the 301-node/300-edge
+interaction benchmark, including preview reuse, immediate release, cancellation,
+and live file/language updates.
 Right-click the board to add nodes at the pointer, or a node/connection for
 context actions. Keyboard users can focus one and press `Shift+F10`.
 
@@ -190,6 +195,9 @@ There are no background syncs or automatic write retries: after a connection
 failure, refresh before retrying to avoid duplicate publications.
 
 The integration follows the [OpenCaselist API](https://api.opencaselist.com/v1/docs).
+The local write-protection form groups password fields in a responsive card.
+Its password is separate from your OpenCaselist login; leave the new password
+blank to keep the current one when saving protection settings.
 `npm run test:opencaselist` exercises a mocked API without live credentials or
 disclosure changes.
 

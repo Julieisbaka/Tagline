@@ -1,4 +1,4 @@
-import { useEffect, useId, useMemo, useRef, useState } from 'react';
+import { memo, useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
 import {
   canvasGroupMembers, createArgumentEdge, createCanvasId, createCanvasNode, moveCanvasNodes,
   parseCanvas, serializeCanvas, suggestCanvasFiles, resolveCanvasLink
@@ -28,13 +28,15 @@ function sidePoint(node, side) {
   return { x: node.x + node.width, y: node.y + node.height / 2 };
 }
 
-function CanvasNode({
+const CanvasNode = memo(function CanvasNode({
   node, selected, order, onSelect, onUpdate, onRemove, onOpenFile, onOpenUrl, onOpenLink,
-  onStartGesture, onContextMenu, paths, contents, t,
+  onStartGesture, onContextMenu, paths, contents,
 }) {
+  const { t } = useI18n();
   const accent = nodeColor(node.color);
   const fileListId = useId();
   const [editingText, setEditingText] = useState(node.type === 'text' && !node.text);
+  const resolve = useCallback((target) => resolveLink(target, paths), [paths]);
   const link = node.type === 'link' ? resolveCanvasLink(node.url, paths) : null;
   const openLinkNode = () => {
     if (link?.type === 'file') onOpenFile(link.path, link.heading ? `#${link.heading}` : undefined);
@@ -80,7 +82,7 @@ function CanvasNode({
         {node.type === 'text' && (editingText
           ? <textarea aria-label={t('Canvas text')} value={node.text}
             onChange={(event) => onUpdate(node.id, { text: event.target.value })} />
-          : <Preview className="canvas-node-preview" content={node.text} resolve={(target) => resolveLink(target, paths)}
+          : <Preview className="canvas-node-preview" content={node.text} resolve={resolve}
             onOpenLink={onOpenLink} onTagClick={() => { }} />)}
         {node.type === 'file' && <>
           <input aria-label={t('File path')} placeholder={t('Vault-relative file path')} value={node.file} list={fileListId}
@@ -119,10 +121,43 @@ function CanvasNode({
         }} />}
     </article>
   );
-}
+});
+
+const CanvasEdges = memo(function CanvasEdges({ edges, nodes, selectedEdge, onSelect, onContextMenu }) {
+  const { t } = useI18n();
+  return <svg className="canvas-edges" width="100%" height="100%" aria-label={t('Canvas connections')}>
+    <defs>{edges.map((item, index) => <marker key={item.id} id={`canvas-arrow-${index}`}
+      markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto-start-reverse"
+      markerUnits="strokeWidth"><path d="M0,0 L8,4 L0,8 z" fill={nodeColor(item.color)} /></marker>)}</defs>
+    {edges.map((item, index) => {
+      const from = nodes.get(item.fromNode), to = nodes.get(item.toNode);
+      if (!from || !to) return null;
+      const a = sidePoint(from, item.fromSide || 'right');
+      const b = sidePoint(to, item.toSide || 'left');
+      return <g key={item.id} data-edge-id={item.id} className={item.id === selectedEdge ? 'selected' : ''}
+        tabIndex={0} role="button" aria-label={item.label || t('Canvas connection')}
+        onKeyDown={(event) => {
+          if (['ContextMenu', 'Enter', ' '].includes(event.key) || (event.key === 'F10' && event.shiftKey)) {
+            event.preventDefault();
+            const rect = event.currentTarget.getBoundingClientRect();
+            onContextMenu({ clientX: rect.left + rect.width / 2, clientY: rect.top + rect.height / 2 }, null, item.id);
+          }
+        }}
+        onClick={(event) => { event.stopPropagation(); onSelect(item.id); }}>
+        <line className="canvas-edge-hit" x1={a.x} y1={a.y} x2={b.x} y2={b.y} />
+        <line className="canvas-edge-line" x1={a.x} y1={a.y} x2={b.x} y2={b.y}
+          stroke={nodeColor(item.color)}
+          markerStart={item.fromEnd === 'arrow' ? `url(#canvas-arrow-${index})` : undefined}
+          markerEnd={(item.toEnd || 'arrow') === 'arrow' ? `url(#canvas-arrow-${index})` : undefined} />
+        {item.label && <text className="canvas-edge-label" x={(a.x + b.x) / 2} y={(a.y + b.y) / 2 - 6}>{item.label}</text>}
+      </g>;
+    })}
+  </svg>;
+});
 
 function CanvasBoard({ canvas, onChange, paths, contents, onOpenFile, onOpenUrl, onOpenLink, onEditSource, t }) {
   const gestureRef = useRef(null);
+  const gestureFrame = useRef(0);
   const viewportRef = useRef(null);
   const [gesture, setGesture] = useState(null);
   const [camera, setCamera] = useState(() => ({
@@ -146,6 +181,7 @@ function CanvasBoard({ canvas, onChange, paths, contents, onOpenFile, onOpenUrl,
     const anchor = point || { x: viewport.clientWidth / 2, y: viewport.clientHeight / 2 };
     setCamera((current) => {
       const k = Math.min(4, Math.max(0.2, current.k * factor));
+      if (k === current.k) return current;
       return { k, x: anchor.x - (anchor.x - current.x) * k / current.k,
         y: anchor.y - (anchor.y - current.y) * k / current.k };
     });
@@ -163,31 +199,43 @@ function CanvasBoard({ canvas, onChange, paths, contents, onOpenFile, onOpenUrl,
     viewport.addEventListener('wheel', wheel, { passive: false });
     return () => viewport.removeEventListener('wheel', wheel);
   }, []);
-  const renderedNodes = canvas.nodes.map((item) => {
-    if (!gesture || !gesture.ids.includes(item.id)) return item;
-    if (gesture.type === 'move') return { ...item, x: item.x + gesture.dx, y: item.y + gesture.dy };
-    if (gesture.type === 'resize' && item.id === gesture.id) return {
-      ...item, width: Math.max(180, Math.round(gesture.width + gesture.dx)),
-      height: Math.max(100, Math.round(gesture.height + gesture.dy)),
-    };
-    return item;
-  });
+  useEffect(() => () => cancelAnimationFrame(gestureFrame.current), []);
+  const renderedNodes = useMemo(() => {
+    if (!gesture) return canvas.nodes;
+    const moving = new Set(gesture.ids);
+    return canvas.nodes.map((item) => {
+      if (!moving.has(item.id)) return item;
+      if (gesture.type === 'move') return { ...item, x: item.x + gesture.dx, y: item.y + gesture.dy };
+      if (gesture.type === 'resize' && item.id === gesture.id) return {
+        ...item, width: Math.max(180, Math.round(gesture.width + gesture.dx)),
+        height: Math.max(100, Math.round(gesture.height + gesture.dy)),
+      };
+      return item;
+    });
+  }, [canvas.nodes, gesture]);
+  const nodesById = useMemo(() => new Map(renderedNodes.map((item) => [item.id, item])), [renderedNodes]);
+  const layers = useMemo(() => [
+    { name: 'canvas-groups', nodes: renderedNodes.filter((item) => item.type === 'group')
+      .sort((a, b) => b.width * b.height - a.width * a.height) },
+    { name: 'canvas-nodes', nodes: renderedNodes.filter((item) => item.type !== 'group') },
+  ], [renderedNodes]);
 
-  const update = (next) => onChange(serializeCanvas(next));
-  const updateNode = (id, changes) => update({
+  const update = useCallback((next) => onChange(serializeCanvas(next)), [onChange]);
+  const updateNode = useCallback((id, changes) => update({
     ...canvas,
     nodes: canvas.nodes.map((item) => item.id === id ? { ...item, ...changes } : item),
-  });
-  const removeNode = (id) => {
+  }), [canvas, update]);
+  const removeNode = useCallback((id) => {
     update({
       ...canvas, nodes: canvas.nodes.filter((item) => item.id !== id),
       edges: canvas.edges.filter((item) => item.fromNode !== id && item.toNode !== id)
     });
     setSelectedNode(null);
-  };
-  const addNode = (type, position, wrapped = node) => {
+  }, [canvas, update]);
+  const addNode = useCallback((type, position, wrapped = node) => {
     const nextNode = createCanvasNode(type, canvas.nodes.length);
     const viewport = viewportRef.current;
+    const camera = cameraRef.current;
     Object.assign(nextNode, position || {
       x: Math.round((viewport.clientWidth / 2 - camera.x) / camera.k - nextNode.width / 2),
       y: Math.round((viewport.clientHeight / 2 - camera.y) / camera.k - nextNode.height / 2),
@@ -198,8 +246,8 @@ function CanvasBoard({ canvas, onChange, paths, contents, onOpenFile, onOpenUrl,
     update({ ...canvas, nodes: [...canvas.nodes, nextNode] });
     setSelectedNode(nextNode.id);
     setSelectedEdge(null);
-  };
-  const contextMenu = (event, nodeId, edgeId, position) => {
+  }, [canvas, node, update]);
+  const contextMenu = useCallback((event, nodeId, edgeId, position) => {
     event.preventDefault?.();
     const targetNode = canvas.nodes.find((item) => item.id === nodeId);
     const targetEdge = canvas.edges.find((item) => item.id === edgeId);
@@ -250,8 +298,9 @@ function CanvasBoard({ canvas, onChange, paths, contents, onOpenFile, onOpenUrl,
     setSelectedNode(targetNode?.id || null);
     setSelectedEdge(targetEdge?.id || null);
     setMenu({ x: event.clientX, y: event.clientY, items: [...items, { label: 'Open JSON source', run: onEditSource }] });
-  };
-  const selectNode = (id) => {
+  }, [canvas, paths, onOpenFile, onOpenUrl, update, addNode, removeNode, onEditSource, t]);
+  const selectEdge = useCallback((id) => { setSelectedEdge(id); setSelectedNode(null); }, []);
+  const selectNode = useCallback((id) => {
     if (connecting) {
       if (!connectionStart) {
         setConnectionStart(id);
@@ -274,8 +323,8 @@ function CanvasBoard({ canvas, onChange, paths, contents, onOpenFile, onOpenUrl,
     }
     setSelectedNode(id);
     setSelectedEdge(null);
-  };
-  const startGesture = (event, data) => {
+  }, [canvas, connecting, connectionStart, relationType, update]);
+  const startGesture = useCallback((event, data) => {
     const { id, type, width: nodeWidth, height: nodeHeight } = data;
     const next = {
       id, type, clientX: event.clientX, clientY: event.clientY,
@@ -284,7 +333,7 @@ function CanvasBoard({ canvas, onChange, paths, contents, onOpenFile, onOpenUrl,
     };
     gestureRef.current = next;
     setGesture(next);
-  };
+  }, [canvas.nodes]);
   const moveGesture = (event) => {
     const current = gestureRef.current;
     if (!current) return;
@@ -295,9 +344,14 @@ function CanvasBoard({ canvas, onChange, paths, contents, onOpenFile, onOpenUrl,
     }
     const next = { ...current, dx: dx / current.camera.k, dy: dy / current.camera.k };
     gestureRef.current = next;
-    setGesture(next);
+    if (!gestureFrame.current) gestureFrame.current = requestAnimationFrame(() => {
+      gestureFrame.current = 0;
+      setGesture(gestureRef.current);
+    });
   };
   const endGesture = () => {
+    cancelAnimationFrame(gestureFrame.current);
+    gestureFrame.current = 0;
     const current = gestureRef.current;
     if (current) {
       if (current.type === 'move') update(moveCanvasNodes(canvas, current.ids,
@@ -397,7 +451,12 @@ function CanvasBoard({ canvas, onChange, paths, contents, onOpenFile, onOpenUrl,
               y: Math.round((event.clientY - rect.top - camera.y) / camera.k) });
         }}
         onPointerMove={moveGesture} onPointerUp={endGesture}
-        onPointerCancel={() => { gestureRef.current = null; setGesture(null); }}
+        onPointerCancel={() => {
+          cancelAnimationFrame(gestureFrame.current);
+          gestureFrame.current = 0;
+          gestureRef.current = null;
+          setGesture(null);
+        }}
         onPointerDown={(event) => {
           if (event.button !== 0 || event.target.closest('.canvas-node, [data-edge-id], .context-menu, input, textarea, button')) return;
           event.preventDefault();
@@ -416,49 +475,15 @@ function CanvasBoard({ canvas, onChange, paths, contents, onOpenFile, onOpenUrl,
               { x: Math.round((x - rect.left) / camera.k), y: Math.round((y - rect.top) / camera.k) });
           }}
           onClick={() => { setSelectedNode(null); setSelectedEdge(null); }}>
-          <svg className="canvas-edges" width="100%" height="100%" aria-label={t('Canvas connections')}>
-            <defs>{canvas.edges.map((item, index) => <marker key={item.id} id={`canvas-arrow-${index}`}
-              markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto-start-reverse"
-              markerUnits="strokeWidth"><path d="M0,0 L8,4 L0,8 z" fill={nodeColor(item.color)} /></marker>)}</defs>
-            {canvas.edges.map((item, index) => {
-              const from = renderedNodes.find((candidate) => candidate.id === item.fromNode);
-              const to = renderedNodes.find((candidate) => candidate.id === item.toNode);
-              if (!from || !to) return null;
-              const a = sidePoint(from, item.fromSide || 'right');
-              const b = sidePoint(to, item.toSide || 'left');
-              const selected = item.id === selectedEdge;
-              return <g key={item.id} data-edge-id={item.id} className={selected ? 'selected' : ''}
-                tabIndex={0} role="button" aria-label={item.label || t('Canvas connection')}
-                onKeyDown={(event) => {
-                  if (['ContextMenu', 'Enter', ' '].includes(event.key) || (event.key === 'F10' && event.shiftKey)) {
-                    event.preventDefault();
-                    const rect = event.currentTarget.getBoundingClientRect();
-                    contextMenu({ clientX: rect.left + rect.width / 2, clientY: rect.top + rect.height / 2 }, null, item.id);
-                  }
-                }}
-                onClick={(event) => {
-                  event.stopPropagation();
-                  setSelectedEdge(item.id);
-                  setSelectedNode(null);
-                }}>
-                <line className="canvas-edge-hit" x1={a.x} y1={a.y} x2={b.x} y2={b.y} />
-                <line className="canvas-edge-line" x1={a.x} y1={a.y} x2={b.x} y2={b.y}
-                  stroke={nodeColor(item.color)}
-                  markerStart={item.fromEnd === 'arrow' ? `url(#canvas-arrow-${index})` : undefined}
-                  markerEnd={(item.toEnd || 'arrow') === 'arrow' ? `url(#canvas-arrow-${index})` : undefined} />
-                {item.label && <text className="canvas-edge-label" x={(a.x + b.x) / 2} y={(a.y + b.y) / 2 - 6}>{item.label}</text>}
-              </g>;
-            })}
-          </svg>
-          {['group', 'node'].map((layer) => <div key={layer} className={layer === 'group' ? 'canvas-groups' : 'canvas-nodes'}>
-            {renderedNodes.filter((item) => (item.type === 'group') === (layer === 'group'))
-              .sort((a, b) => layer === 'group' ? b.width * b.height - a.width * a.height : 0)
-              .map((item, index) => <CanvasNode key={item.id} node={item}
+          <CanvasEdges edges={canvas.edges} nodes={nodesById} selectedEdge={selectedEdge}
+            onSelect={selectEdge} onContextMenu={contextMenu} />
+          {layers.map((layer) => <div key={layer.name} className={layer.name}>
+            {layer.nodes.map((item, index) => <CanvasNode key={item.id} node={item}
                 selected={item.id === selectedNode || (connecting && item.id === connectionStart)} order={index}
                 onStartGesture={startGesture}
                 onContextMenu={contextMenu}
                 onSelect={selectNode} onUpdate={updateNode} onRemove={removeNode}
-                onOpenFile={onOpenFile} onOpenUrl={onOpenUrl} onOpenLink={onOpenLink} paths={paths} contents={contents} t={t} />)}
+                onOpenFile={onOpenFile} onOpenUrl={onOpenUrl} onOpenLink={onOpenLink} paths={paths} contents={contents} />)}
           </div>)}
         </div>
         {menu && <ContextMenu {...menu} onClose={() => setMenu(null)} />}

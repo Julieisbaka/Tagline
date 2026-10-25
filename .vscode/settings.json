@@ -1,0 +1,40 @@
+{
+  "files.associations": {
+    "*.flow": "json",
+    "*.canvas": "json"
+  },
+  "json.schemas": [
+    {
+      "fileMatch": [
+        "*.flow"
+      ],
+      "url": "./schemas/flow.schema.json"
+    },
+    {
+      "fileMatch": [
+        "*.canvas"
+      ],
+      "url": "./schemas/canvas.schema.json"
+    },
+    {
+      "fileMatch": [
+        "/demo/*/manifest.json",
+        "**/extensions/*/manifest.json"
+      ],
+      "url": "./schemas/extension-manifest.schema.json"
+    },
+    {
+      "fileMatch": [
+        "/src/themes/*.json",
+        "/demo/*/themes/*.json"
+      ],
+      "url": "./schemas/theme.schema.json"
+    },
+    {
+      "fileMatch": [
+        "**/*-settings.json"
+      ],
+      "url": "./schemas/extension-settings.schema.json"
+    }
+  ]
+}

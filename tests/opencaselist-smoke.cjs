@@ -147,6 +147,34 @@ app.on('browser-window-created', (_event, win) => {
       assert.equal(apiRequests.length, 0, 'Opening Settings never contacts OpenCaselist');
       await wait("!document.querySelector('.opencaselist-password-settings fieldset').disabled");
       if (first) {
+        const originalSize = win.getSize();
+        for (const width of [1100, 700]) {
+          win.setSize(width, 850);
+          await new Promise((resolve) => setTimeout(resolve, 100));
+          const layout = await js(`(() => {
+            const form = document.querySelector('.opencaselist-password-settings');
+            const fieldset = form.querySelector('fieldset');
+            const bounds = fieldset.getBoundingClientRect();
+            return {
+              border: getComputedStyle(fieldset).borderTopStyle,
+              overflow: form.scrollWidth > form.clientWidth + 1,
+              labels: [...form.querySelectorAll('input[type=password]')].every(input => {
+                const rect = input.getBoundingClientRect(), label = input.closest('label');
+                return label?.querySelector('span')?.textContent && rect.width > 100 &&
+                  rect.left >= bounds.left && rect.right <= bounds.right;
+              })
+            };
+          })()`);
+          assert.deepEqual(layout, { border: 'solid', overflow: false, labels: true }, `password layout at ${width}px`);
+        }
+        win.setSize(...originalSize);
+        if (process.env.TAGLINE_SETTINGS_SCREENSHOT) {
+          await js("document.querySelector('.opencaselist-password-settings').scrollIntoView({block:'center'})");
+          await new Promise((resolve) => setTimeout(resolve, 100));
+          fs.writeFileSync(process.env.TAGLINE_SETTINGS_SCREENSHOT, (await wc.capturePage()).toPNG());
+        }
+      }
+      if (first) {
         assert.equal(await js("document.querySelector('[data-setting=opencaselistRequirePasswordForWrites]').checked"), false);
         await js("document.querySelector('[data-setting=opencaselistRequirePasswordForWrites]').click()");
         await input('New write password', 'local tournament password', '.opencaselist-password-settings');

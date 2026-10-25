@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { memo, useCallback, useMemo } from 'react';
 import { parseFlow } from '../../electron/flow.mjs';
 import { parseCanvas } from '../lib/canvas.js';
 import { isCanvas, isFlow, isMarkdown, outline, resolveLink } from '../lib/vault.js';
@@ -6,9 +6,10 @@ import { slugify } from '../lib/markdown.js';
 import { useI18n } from '../lib/i18n.js';
 import Preview from './Preview.jsx';
 
-export default function CanvasFilePreview({ path, subpath, contents, paths, onOpenLink }) {
+export default memo(function CanvasFilePreview({ path, subpath, contents, paths, onOpenLink }) {
   const { t } = useI18n();
   const content = path ? contents[path] : undefined;
+  const resolve = useCallback((target) => resolveLink(target, paths), [paths]);
   const parsed = useMemo(() => {
     if (content === undefined) return {};
     try {
@@ -26,11 +27,12 @@ export default function CanvasFilePreview({ path, subpath, contents, paths, onOp
       return { text };
     } catch (error) { return { error: error.message }; }
   }, [path, content, subpath]);
+  const nodesById = useMemo(() => new Map(parsed.canvas?.nodes.map((node) => [node.id, node])), [parsed.canvas]);
   if (!path) return null;
   if (content === undefined) return <p role="status">{t('Loading…')}</p>;
   if (parsed.error) return <p className="error-text" role="alert">{parsed.error}</p>;
   if (isMarkdown(path)) return <Preview className="canvas-node-preview" content={parsed.text}
-    resolve={(target) => resolveLink(target, paths)} onOpenLink={onOpenLink} onTagClick={() => { }} />;
+    resolve={resolve} onOpenLink={onOpenLink} onTagClick={() => { }} />;
   if (parsed.flow) return <div className="canvas-node-preview canvas-file-flow">
     {parsed.flow.sheets.map((sheet, index) => <section key={index}>
       <strong>{sheet.name}</strong>
@@ -47,8 +49,8 @@ export default function CanvasFilePreview({ path, subpath, contents, paths, onOp
   return <svg className="canvas-file-map" role="img" aria-label={t('Canvas preview')}
     viewBox={`${left - 10} ${top - 10} ${width + 20} ${height + 20}`}>
     {parsed.canvas?.edges.map((edge) => {
-      const from = nodes.find((node) => node.id === edge.fromNode);
-      const to = nodes.find((node) => node.id === edge.toNode);
+      const from = nodesById.get(edge.fromNode);
+      const to = nodesById.get(edge.toNode);
       return <line key={edge.id} x1={from.x + from.width / 2} y1={from.y + from.height / 2}
         x2={to.x + to.width / 2} y2={to.y + to.height / 2} />;
     })}
@@ -57,4 +59,4 @@ export default function CanvasFilePreview({ path, subpath, contents, paths, onOp
       <text x={node.x + 8} y={node.y + 20}>{(node.text || node.file || node.url || node.label || '').slice(0, 40)}</text>
     </g>)}
   </svg>;
-}
+});

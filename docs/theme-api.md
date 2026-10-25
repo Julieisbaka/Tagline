@@ -6,6 +6,10 @@ Themes are JSON color palettes with optional CSS variable overrides. They are
 not executable plugins or stylesheets. The format is shared by imported themes
 and extension contributions.
 
+Use the [theme JSON schema](../schemas/theme.schema.json) for editor completion.
+See [JSON formats and schemas](./json-formats.md) for offline associations and
+the additional checks performed at runtime.
+
 ## Create, import, and export
 
 1. In **Settings > Appearance**, select a theme close to your desired result.

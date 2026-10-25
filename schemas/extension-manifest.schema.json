@@ -1,0 +1,447 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Tagline extension manifest",
+  "description": "Authoring schema. Collection limits use the configurable maximums; actual profile limits, ID uniqueness, declared command references and filesystem containment are checked by Tagline.",
+  "type": "object",
+  "required": [
+    "manifestVersion",
+    "id",
+    "name",
+    "version"
+  ],
+  "properties": {
+    "$schema": {
+      "type": "string"
+    },
+    "manifestVersion": {
+      "const": 1
+    },
+    "id": {
+      "$ref": "#/definitions/id"
+    },
+    "name": {
+      "$ref": "#/definitions/title"
+    },
+    "version": {
+      "$ref": "#/definitions/title"
+    },
+    "description": {
+      "type": "string",
+      "maxLength": 500
+    },
+    "author": {
+      "type": "string",
+      "maxLength": 500
+    },
+    "main": {
+      "type": "string",
+      "pattern": "^(?![/\\\\]|[a-zA-Z]:).+\\.[jJ][sS]$",
+      "description": "A .js file inside this extension's folder; escaping paths and symlinks are rejected at runtime."
+    },
+    "permissions": {
+      "type": "array",
+      "items": {
+        "enum": [
+          "editor",
+          "editor:active-note",
+          "vault:read",
+          "vault:write",
+          "settings",
+          "events",
+          "ui"
+        ]
+      }
+    },
+    "contributes": {
+      "type": "object",
+      "properties": {
+        "commands": {
+          "type": "array",
+          "maxItems": 500,
+          "items": {
+            "$ref": "#/definitions/command"
+          }
+        },
+        "themes": {
+          "type": "array",
+          "maxItems": 200,
+          "items": {
+            "type": "string",
+            "pattern": "^(?![/\\\\]|[a-zA-Z]:).+\\.[jJ][sS][oO][nN]$"
+          }
+        },
+        "settings": {
+          "type": "array",
+          "maxItems": 256,
+          "items": {
+            "$ref": "#/definitions/setting"
+          }
+        },
+        "panels": {
+          "type": "array",
+          "maxItems": 10,
+          "items": {
+            "$ref": "#/definitions/surface"
+          }
+        },
+        "webviews": {
+          "type": "array",
+          "maxItems": 10,
+          "items": {
+            "$ref": "#/definitions/surface"
+          }
+        },
+        "ribbonItems": {
+          "type": "array",
+          "maxItems": 10,
+          "items": {
+            "allOf": [
+              {
+                "$ref": "#/definitions/surface"
+              }
+            ],
+            "required": [
+              "icon",
+              "command"
+            ],
+            "properties": {
+              "icon": {
+                "type": "string",
+                "pattern": "^[a-z-]{1,40}$"
+              },
+              "command": {
+                "$ref": "#/definitions/id"
+              }
+            }
+          }
+        }
+      },
+      "additionalProperties": true
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "required": [
+          "contributes"
+        ],
+        "properties": {
+          "contributes": {
+            "required": [
+              "commands"
+            ],
+            "properties": {
+              "commands": {
+                "minItems": 1
+              }
+            }
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "main"
+        ]
+      }
+    },
+    {
+      "if": {
+        "required": [
+          "contributes"
+        ],
+        "properties": {
+          "contributes": {
+            "anyOf": [
+              {
+                "required": [
+                  "panels"
+                ],
+                "properties": {
+                  "panels": {
+                    "minItems": 1
+                  }
+                }
+              },
+              {
+                "required": [
+                  "webviews"
+                ],
+                "properties": {
+                  "webviews": {
+                    "minItems": 1
+                  }
+                }
+              },
+              {
+                "required": [
+                  "ribbonItems"
+                ],
+                "properties": {
+                  "ribbonItems": {
+                    "minItems": 1
+                  }
+                }
+              }
+            ]
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "main",
+          "permissions"
+        ],
+        "properties": {
+          "permissions": {
+            "contains": {
+              "const": "ui"
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "required": [
+          "contributes"
+        ],
+        "properties": {
+          "contributes": {
+            "required": [
+              "settings"
+            ],
+            "properties": {
+              "settings": {
+                "minItems": 1
+              }
+            }
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "permissions"
+        ],
+        "properties": {
+          "permissions": {
+            "contains": {
+              "const": "settings"
+            }
+          }
+        }
+      }
+    }
+  ],
+  "additionalProperties": true,
+  "definitions": {
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9-]{1,63}$"
+    },
+    "title": {
+      "type": "string",
+      "pattern": "\\S",
+      "maxLength": 80
+    },
+    "surface": {
+      "type": "object",
+      "required": [
+        "id",
+        "title"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/definitions/id"
+        },
+        "title": {
+          "$ref": "#/definitions/title"
+        }
+      }
+    },
+    "command": {
+      "allOf": [
+        {
+          "$ref": "#/definitions/surface"
+        }
+      ],
+      "properties": {
+        "key": {
+          "type": "string",
+          "description": "Optional app shortcut such as Mod+Alt+K."
+        }
+      }
+    },
+    "settingBase": {
+      "type": "object",
+      "required": [
+        "id",
+        "title",
+        "type",
+        "default"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/definitions/id"
+        },
+        "title": {
+          "$ref": "#/definitions/title"
+        },
+        "description": {
+          "type": "string",
+          "maxLength": 500
+        },
+        "type": {
+          "enum": [
+            "boolean",
+            "number",
+            "string"
+          ]
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "type": {
+                "const": "boolean"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "default": {
+                "type": "boolean"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "type": {
+                "const": "number"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "default": {
+                "type": "number"
+              },
+              "min": {
+                "type": "number"
+              },
+              "max": {
+                "type": "number"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "type": {
+                "const": "string"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "default": {
+                "type": "string",
+                "maxLength": 10000
+              },
+              "maxLength": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 10000
+              },
+              "enum": {
+                "type": "array",
+                "minItems": 1,
+                "maxItems": 50,
+                "uniqueItems": true,
+                "items": {
+                  "type": "string",
+                  "maxLength": 10000
+                }
+              }
+            }
+          }
+        }
+      ],
+      "description": "Runtime checks default values against bounds, enum membership and maxLength (1,000 by default), and checks min <= max."
+    },
+    "setting": {
+      "allOf": [
+        {
+          "$ref": "#/definitions/settingBase"
+        },
+        {
+          "if": {
+            "properties": {
+              "type": {
+                "const": "boolean"
+              }
+            }
+          },
+          "then": {
+            "propertyNames": {
+              "enum": [
+                "id",
+                "title",
+                "description",
+                "type",
+                "default"
+              ]
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "type": {
+                "const": "number"
+              }
+            }
+          },
+          "then": {
+            "propertyNames": {
+              "enum": [
+                "id",
+                "title",
+                "description",
+                "type",
+                "default",
+                "min",
+                "max"
+              ]
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "type": {
+                "const": "string"
+              }
+            }
+          },
+          "then": {
+            "propertyNames": {
+              "enum": [
+                "id",
+                "title",
+                "description",
+                "type",
+                "default",
+                "maxLength",
+                "enum"
+              ]
+            }
+          }
+        }
+      ]
+    }
+  }
+}
