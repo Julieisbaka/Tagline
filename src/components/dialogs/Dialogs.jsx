@@ -144,12 +144,18 @@ export function SettingsDialog({ settings, update, onClose, extensions, onOpenCa
   const searchRef = useRef(null);
   useEffect(() => {
     const content = contentRef.current;
-    const index = () => setSearchIndex([...content.querySelectorAll('[data-settings-panel]')].map((panel) => ({
-      id: panel.dataset.settingsPanel,
-      entries: [...panel.querySelectorAll('label, h3, h4, p, button, dt')].map((element) => ({
-        element, text: element.textContent.replace(/\s+/g, ' ').trim(),
-      })).filter((entry) => entry.text),
-    })));
+    const index = () => {
+      const next = [...content.querySelectorAll('[data-settings-panel]')].map((panel) => ({
+        id: panel.dataset.settingsPanel,
+        entries: [...panel.querySelectorAll('label, h3, h4, p, button, dt')].map((element) => ({
+          element, text: element.textContent.replace(/\s+/g, ' ').trim(),
+        })).filter((entry) => entry.text),
+      }));
+      setSearchIndex((previous) => previous.length === next.length && next.every((panel, i) =>
+        panel.id === previous[i].id && panel.entries.length === previous[i].entries.length &&
+        panel.entries.every((entry, j) => entry.element === previous[i].entries[j].element &&
+          entry.text === previous[i].entries[j].text)) ? previous : next);
+    };
     index();
     const observer = new MutationObserver(index);
     observer.observe(content, { childList: true, characterData: true, subtree: true });

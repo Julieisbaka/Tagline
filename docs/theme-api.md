@@ -2,8 +2,7 @@
 
 [Documentation home](./README.md) | [Extension API](./extension-api.md)
 
-Themes are JSON color palettes with optional CSS variable overrides. They are
-not executable plugins or stylesheets. The format is shared by imported themes
+Themes are JSON color palettes with optional CSS variable overrides. The format is shared by imported themes
 and extension contributions.
 
 Use the [theme JSON schema](../schemas/theme.schema.json) for editor completion.
@@ -74,8 +73,6 @@ Keep shared themes at or below the default so they load for other users.
 ## Color tokens
 
 All 29 tokens below resolve to CSS custom properties named `--<token>`.
-Colors apply across application components; exact layout and selectors are not
-a public styling API.
 
 | Token | Intended use |
 | --- | --- |

@@ -212,7 +212,6 @@ function createGoogleDocs({ app, safeStorage, dialog, shell, getWindow, fetchImp
     sending = true;
     try {
       const config = connectionFor(await readConfig(), connectionId);
-      if (!config.account) throw new Error('Verify this connection in Settings > Integrations before uploading. Update and redeploy the bundled script first.');
       const secret = await decrypt(config);
       const { account } = await request(config.endpoint, { action: 'account', secret }, 200);
       if (account.email !== config.account.email) throw new Error(ERROR_MESSAGES[409]);

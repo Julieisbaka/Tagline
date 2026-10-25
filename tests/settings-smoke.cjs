@@ -154,6 +154,17 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
         await js(`(() => { const select = document.querySelector('[data-setting=language]');
           select.value = 'en'; select.dispatchEvent(new Event('change', {bubbles: true})); })()`);
         await done();
+        await js(`(() => { const saved = JSON.parse(localStorage.getItem('tagline-settings'));
+          saved.format = 'policy'; localStorage.setItem('tagline-settings', JSON.stringify(saved)); })()`);
+        await reload();
+        await click('.right-panel [title="Timer"]');
+        await wait("document.querySelector('.timer [role=alert]')?.textContent.includes('Unsupported timer preset')");
+        assert.equal(await js("JSON.parse(localStorage.getItem('tagline-settings')).format"), 'policy',
+          'old timer values are rejected rather than migrated');
+        await js(`(() => { const select = document.querySelector('.timer select');
+          select.value = 'college'; select.dispatchEvent(new Event('change', {bubbles: true})); })()`);
+        await wait("!!document.querySelector('.timer-display') && !document.querySelector('.timer [role=alert]')");
+        assert.equal(await js("JSON.parse(localStorage.getItem('tagline-settings')).format"), 'college');
         await open('Alpha.md');
         await wait("!!document.querySelector('[aria-label=\"Dismiss visual editor notice\"]')");
         await click('[aria-label="Dismiss visual editor notice"]');
