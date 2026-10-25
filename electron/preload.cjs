@@ -3,6 +3,7 @@ const { contextBridge, ipcRenderer } = require('electron');
 contextBridge.exposeInMainWorld('api', {
   platform: process.platform,
   getInstallationInfo: () => ipcRenderer.invoke('app:installation'),
+  uninstallApp: (removeProfile) => ipcRenderer.invoke('app:uninstall', removeProfile),
   openCaselist: {
     status: () => ipcRenderer.invoke('opencaselist:status'),
     login: () => ipcRenderer.invoke('opencaselist:login'),

@@ -546,6 +546,34 @@
   margin: 14px 0;
 }
 
+.uninstall-dialog label {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin: 14px 0;
+  cursor: pointer;
+}
+
+.uninstall-dialog label input {
+  margin-top: 3px;
+  accent-color: var(--accent);
+}
+
+.uninstall-dialog label span,
+.uninstall-dialog label small {
+  display: block;
+}
+
+.uninstall-dialog label small {
+  margin-top: 4px;
+  color: var(--text-muted);
+}
+
+.uninstall-dialog .danger,
+.installation-settings>.danger {
+  color: var(--danger);
+}
+
 .settings-footer {
   display: flex;
   align-items: center;

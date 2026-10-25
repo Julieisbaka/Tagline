@@ -150,6 +150,15 @@ app.on('browser-window-created', (_event, win) => {
         assert.ok(displayed.includes(version));
         assert.ok(displayed.includes(profile));
         assert.ok(displayed.includes('does not check for or install updates automatically'));
+        await js("document.querySelector('.installation-settings > button.danger').click()");
+        await wait("!!document.querySelector('.uninstall-dialog')");
+        const uninstallChoices = await js("document.querySelector('.uninstall-dialog').textContent");
+        assert.ok(uninstallChoices.includes('Keep profile data'));
+        assert.ok(uninstallChoices.includes('Remove profile data'));
+        assert.ok(uninstallChoices.includes('vault files and revision history'));
+        assert.equal(await js("document.querySelector('.uninstall-dialog input[type=radio]').checked"), true);
+        await js("document.querySelector('.uninstall-dialog button').click()");
+        await wait("!document.querySelector('.uninstall-dialog')");
       }
       app.exit(0);
     } catch (error) { console.error(error); app.exit(1); }

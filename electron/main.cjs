@@ -17,6 +17,7 @@ const { registerBrowser } = require('./browser.cjs');
 const { DEFAULT_RETENTION, createRevisionHistory } = require('./revisionHistory.cjs');
 const { NOTE_EXTS, listVault: walk, readVaultSnapshot } = require('./vaultFiles.cjs');
 const { installationInfo } = require('./installation.cjs');
+const { uninstallApplication } = require('./uninstall.cjs');
 const { registerOpenCaselist } = require('./opencaselist.cjs');
 const keyDefinitions = require('../src/lib/keybindings.json');
 
@@ -108,6 +109,11 @@ async function listRecentVaults() {
 
 function registerIpc() {
   ipcMain.handle('app:installation', () => installationInfo(app));
+  ipcMain.handle('app:uninstall', async (_event, removeProfile) => {
+    const result = await uninstallApplication({ app, shell, removeProfile });
+    if (!result.manual) app.quit();
+    return result;
+  });
   const history = createRevisionHistory({
     getVaultRoot: () => vaultRoot,
     resolveInVault,
