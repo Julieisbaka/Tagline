@@ -1,15 +1,15 @@
 import { EditorContent, useEditor, useEditorState } from '@tiptap/react';
 import { memo, useEffect, useMemo, useRef, useState } from 'react';
-import { useI18n } from '../lib/i18n.js';
 import { splitFrontmatter } from '../lib/frontmatter.js';
+import { useI18n } from '../lib/i18n.js';
 import { binding, KEYBINDINGS, matchesBinding } from '../lib/keybindings.js';
 import { slugify } from '../lib/markdown.js';
 import { cachedDocument, cacheDocument } from '../lib/visualCache.js';
 import { visualExtensions } from '../lib/visualExtensions.js';
 import { visualSelection } from '../lib/visualHelpers.js';
-import VisualFindReplace from './VisualFindReplace.jsx';
-import EditorToolbar from './EditorToolbar.jsx';
 import EditorLinkForm from './EditorLinkForm.jsx';
+import EditorToolbar from './EditorToolbar.jsx';
+import VisualFindReplace from './VisualFindReplace.jsx';
 
 export default function VisualEditor({
   value, onChange, onOpenLink, onSendCard, onSection, noteNames, visualRef, jump, keybindings,

@@ -1,9 +1,9 @@
 import { memo, useCallback, useMemo } from 'react';
 import { parseFlow } from '../../electron/flow.mjs';
 import { parseCanvas } from '../lib/canvas.js';
-import { isCanvas, isFlow, isMarkdown, outline, resolveLink } from '../lib/vault.js';
-import { slugify } from '../lib/markdown.js';
 import { useI18n } from '../lib/i18n.js';
+import { slugify } from '../lib/markdown.js';
+import { isCanvas, isFlow, isMarkdown, outline, resolveLink } from '../lib/vault.js';
 import Preview from './Preview.jsx';
 
 export default memo(function CanvasFilePreview({ path, subpath, contents, paths, onOpenLink }) {

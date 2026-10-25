@@ -62,7 +62,7 @@ test('Windows uninstall waits for app exit and removes profile only after succes
     removeProfile: true,
     platform: 'win32',
     processId: 4321,
-    fileSystem: { access: async () => {} },
+    fileSystem: { access: async () => { } },
     environment: {},
   });
 

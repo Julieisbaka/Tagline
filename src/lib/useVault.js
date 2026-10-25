@@ -1,6 +1,6 @@
 ﻿import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { buildIndex, isMarkdown, rewriteLinks } from './vault.js';
 import { folderPaths, normalizeFolders } from './folderPaths.js';
+import { buildIndex, isMarkdown, rewriteLinks } from './vault.js';
 
 const api = window.api;
 const SAVE_DELAY = 400;

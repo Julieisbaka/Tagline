@@ -1,11 +1,11 @@
-import { useEffect, useMemo, useState } from 'react';
-import CodeMirror from '@uiw/react-codemirror';
 import { json } from '@codemirror/lang-json';
 import { EditorView } from '@codemirror/view';
-import { LANGUAGES, useI18n } from '../../lib/i18n.js';
-import { BUILTIN_THEMES, COLOR_TOKENS, extensionThemes, getTheme, resolveThemeSettings, validateTheme } from '../../lib/themes.js';
+import CodeMirror from '@uiw/react-codemirror';
+import { useEffect, useMemo, useState } from 'react';
 import { getRuntimeLimits } from '../../../electron/customization.mjs';
 import { settingsCodeMirrorTheme } from '../../lib/editorExtensions.js';
+import { LANGUAGES, useI18n } from '../../lib/i18n.js';
+import { BUILTIN_THEMES, COLOR_TOKENS, extensionThemes, getTheme, resolveThemeSettings, validateTheme } from '../../lib/themes.js';
 import SettingControl from './SettingControl.jsx';
 
 function ThemeOptions({ theme, settings, update }) {

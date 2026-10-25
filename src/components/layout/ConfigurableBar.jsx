@@ -10,17 +10,19 @@ export default function ConfigurableBar({ className, label, catalog, value, onCh
   const context = (event, id) => {
     event.preventDefault();
     const index = items.indexOf(id);
-    setMenu({ x: event.clientX, y: event.clientY, items: [
-      ...(index < 0 ? [] : [
-        { label: 'Move left', disabled: index === 0, run: () => onChange(moveWorkspaceItem(items, id, items[index - 1])) },
-        { label: 'Move right', disabled: index === items.length - 1, run: () => onChange(moveWorkspaceItem(items, id, items[index + 1])) },
-        { label: 'Hide item', run: () => onChange(items.filter((item) => item !== id)) },
-      ]),
-      ...catalog.filter((item) => !items.includes(item.id)).map((item) => ({
-        label: t('Show {name}', { name: t(item.title) }), run: () => onChange([...items, item.id]),
-      })),
-      { label: 'Restore default items', run: () => onChange(catalog.map((item) => item.id)) },
-    ] });
+    setMenu({
+      x: event.clientX, y: event.clientY, items: [
+        ...(index < 0 ? [] : [
+          { label: 'Move left', disabled: index === 0, run: () => onChange(moveWorkspaceItem(items, id, items[index - 1])) },
+          { label: 'Move right', disabled: index === items.length - 1, run: () => onChange(moveWorkspaceItem(items, id, items[index + 1])) },
+          { label: 'Hide item', run: () => onChange(items.filter((item) => item !== id)) },
+        ]),
+        ...catalog.filter((item) => !items.includes(item.id)).map((item) => ({
+          label: t('Show {name}', { name: t(item.title) }), run: () => onChange([...items, item.id]),
+        })),
+        { label: 'Restore default items', run: () => onChange(catalog.map((item) => item.id)) },
+      ]
+    });
   };
   return <div className={className} role="group" aria-label={t(label)} tabIndex={0}
     onContextMenu={(event) => {

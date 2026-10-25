@@ -81,7 +81,7 @@ test('401 requires sign-in without retrying, while 403 preserves authentication'
 
 test('signing in again during a cookie lookup cancels requests from the previous session', async () => {
   class LoginWindow extends EventEmitter {
-    constructor() { super(); this.webContents = new EventEmitter(); this.webContents.setWindowOpenHandler = () => {}; }
+    constructor() { super(); this.webContents = new EventEmitter(); this.webContents.setWindowOpenHandler = () => { }; }
     async loadURL() {
       const cookie = { name: 'caselist_token', domain: '.opencaselist.com', value: 'new-session' };
       mock.setCookies([cookie]);

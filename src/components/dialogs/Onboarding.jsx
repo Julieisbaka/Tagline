@@ -1,7 +1,7 @@
 import { useState } from 'react';
+import logo from '../../../build/icon.svg';
 import { useI18n } from '../../lib/i18n.js';
 import ModalBackdrop from './ModalBackdrop.jsx';
-import logo from '../../../build/icon.svg';
 
 const STEPS = [
   ['Welcome to Tagline', 'Keep your debate workspace on your computer.',

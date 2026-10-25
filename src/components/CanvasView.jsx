@@ -182,8 +182,10 @@ function CanvasBoard({ canvas, onChange, paths, contents, onOpenFile, onOpenUrl,
     setCamera((current) => {
       const k = Math.min(4, Math.max(0.2, current.k * factor));
       if (k === current.k) return current;
-      return { k, x: anchor.x - (anchor.x - current.x) * k / current.k,
-        y: anchor.y - (anchor.y - current.y) * k / current.k };
+      return {
+        k, x: anchor.x - (anchor.x - current.x) * k / current.k,
+        y: anchor.y - (anchor.y - current.y) * k / current.k
+      };
     });
   };
   useEffect(() => {
@@ -215,8 +217,10 @@ function CanvasBoard({ canvas, onChange, paths, contents, onOpenFile, onOpenUrl,
   }, [canvas.nodes, gesture]);
   const nodesById = useMemo(() => new Map(renderedNodes.map((item) => [item.id, item])), [renderedNodes]);
   const layers = useMemo(() => [
-    { name: 'canvas-groups', nodes: renderedNodes.filter((item) => item.type === 'group')
-      .sort((a, b) => b.width * b.height - a.width * a.height) },
+    {
+      name: 'canvas-groups', nodes: renderedNodes.filter((item) => item.type === 'group')
+        .sort((a, b) => b.width * b.height - a.width * a.height)
+    },
     { name: 'canvas-nodes', nodes: renderedNodes.filter((item) => item.type !== 'group') },
   ], [renderedNodes]);
 
@@ -369,8 +373,8 @@ function CanvasBoard({ canvas, onChange, paths, contents, onOpenFile, onOpenUrl,
     <div className="canvas-editor">
       <div className="canvas-toolbar">
         {['text', 'file', 'link', 'group'].map((type) => <button key={type} onClick={() => addNode(type)}>
-            {t('Add {type}', { type: t(type) })}
-          </button>)}
+          {t('Add {type}', { type: t(type) })}
+        </button>)}
         <button className={connecting ? 'active' : ''} onClick={() => {
           setConnecting((value) => !value);
           setConnectionStart(null);
@@ -399,8 +403,10 @@ function CanvasBoard({ canvas, onChange, paths, contents, onOpenFile, onOpenUrl,
           const right = Math.max(...canvas.nodes.map((item) => item.x + item.width));
           const bottom = Math.max(...canvas.nodes.map((item) => item.y + item.height));
           const k = Math.max(0.2, Math.min(1, (viewport.clientWidth - 80) / (right - left), (viewport.clientHeight - 80) / (bottom - top)));
-          setCamera({ k, x: viewport.clientWidth / 2 - (left + right) / 2 * k,
-            y: viewport.clientHeight / 2 - (top + bottom) / 2 * k });
+          setCamera({
+            k, x: viewport.clientWidth / 2 - (left + right) / 2 * k,
+            y: viewport.clientHeight / 2 - (top + bottom) / 2 * k
+          });
         }}>{t('Fit canvas')}</button>
         {connecting && <span className="canvas-hint" role="status">
           {t(connectionStart ? 'Select the target node.' : 'Select a starting node.')}
@@ -447,8 +453,10 @@ function CanvasBoard({ canvas, onChange, paths, contents, onOpenFile, onOpenUrl,
           const rect = event.currentTarget.getBoundingClientRect();
           contextMenu(event, event.target.closest('[data-node-id]')?.dataset.nodeId,
             event.target.closest('[data-edge-id]')?.dataset.edgeId,
-            { x: Math.round((event.clientX - rect.left - camera.x) / camera.k),
-              y: Math.round((event.clientY - rect.top - camera.y) / camera.k) });
+            {
+              x: Math.round((event.clientX - rect.left - camera.x) / camera.k),
+              y: Math.round((event.clientY - rect.top - camera.y) / camera.k)
+            });
         }}
         onPointerMove={moveGesture} onPointerUp={endGesture}
         onPointerCancel={() => {
@@ -479,11 +487,11 @@ function CanvasBoard({ canvas, onChange, paths, contents, onOpenFile, onOpenUrl,
             onSelect={selectEdge} onContextMenu={contextMenu} />
           {layers.map((layer) => <div key={layer.name} className={layer.name}>
             {layer.nodes.map((item, index) => <CanvasNode key={item.id} node={item}
-                selected={item.id === selectedNode || (connecting && item.id === connectionStart)} order={index}
-                onStartGesture={startGesture}
-                onContextMenu={contextMenu}
-                onSelect={selectNode} onUpdate={updateNode} onRemove={removeNode}
-                onOpenFile={onOpenFile} onOpenUrl={onOpenUrl} onOpenLink={onOpenLink} paths={paths} contents={contents} />)}
+              selected={item.id === selectedNode || (connecting && item.id === connectionStart)} order={index}
+              onStartGesture={startGesture}
+              onContextMenu={contextMenu}
+              onSelect={selectNode} onUpdate={updateNode} onRemove={removeNode}
+              onOpenFile={onOpenFile} onOpenUrl={onOpenUrl} onOpenLink={onOpenLink} paths={paths} contents={contents} />)}
           </div>)}
         </div>
         {menu && <ContextMenu {...menu} onClose={() => setMenu(null)} />}

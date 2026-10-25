@@ -8,8 +8,8 @@ import {
   SearchQuery,
   setSearchQuery,
 } from '@codemirror/search';
-import { translate } from './i18n.js';
 import { trapTabKey } from './focusScope.js';
+import { translate } from './i18n.js';
 
 function matchStatus(view, queryCache) {
   const query = getSearchQuery(view.state);

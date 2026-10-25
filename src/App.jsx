@@ -1,13 +1,14 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { EMPTY_FLOW } from '../electron/flow.mjs';
+import { useConfirm } from './components/dialogs/ConfirmProvider.jsx';
 import AppLayout from './components/layout/AppLayout.jsx';
 import { renameTarget } from './components/layout/Sidebar.jsx';
 import { clampPanel, PANEL_LIMITS } from './components/layout/Splitter.jsx';
 import { EMPTY_CANVAS } from './lib/canvas.js';
 import { getSectionAt } from './lib/card.js';
 import { buildCommands, fillTemplate } from './lib/commands.js';
-import { useI18n } from './lib/i18n.js';
 import { markSpeechDocument, speechDocumentPaths } from './lib/frontmatter.js';
+import { useI18n } from './lib/i18n.js';
 import { binding, displayBinding, KEYBINDINGS, matchesBinding } from './lib/keybindings.js';
 import { slugify } from './lib/markdown.js';
 import { useSettings } from './lib/settings.js';
@@ -16,7 +17,6 @@ import { useTabs } from './lib/useTabs.js';
 import { useVault } from './lib/useVault.js';
 import { baseName, dirName, flattenTree, isCanvas, isMarkdown, joinPath, outline, resolveLink } from './lib/vault.js';
 import { visualBlocker, visualSelection } from './lib/visualHelpers.js';
-import { useConfirm } from './components/dialogs/ConfirmProvider.jsx';
 
 export default function App() {
   const { t } = useI18n();

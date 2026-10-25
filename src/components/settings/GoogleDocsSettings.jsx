@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
+import webhookScript from '../../../electron/google-docs-webhook.gs?raw';
 import { useI18n } from '../../lib/i18n.js';
 import ModalBackdrop from '../dialogs/ModalBackdrop.jsx';
-import webhookScript from '../../../electron/google-docs-webhook.gs?raw';
 
 export default function GoogleDocsSettings() {
   const { t } = useI18n();

@@ -45,8 +45,10 @@ async function checkForUpdates(currentVersion, fetchImpl = fetch) {
   if (!release || release.draft || release.prerelease || typeof release.tag_name !== 'string') {
     throw new Error('GitHub returned an invalid release.');
   }
-  return { currentVersion, latestVersion: release.tag_name,
-    updateAvailable: compareVersions(release.tag_name, currentVersion) > 0 };
+  return {
+    currentVersion, latestVersion: release.tag_name,
+    updateAvailable: compareVersions(release.tag_name, currentVersion) > 0
+  };
 }
 
 function installationInfo(app) {

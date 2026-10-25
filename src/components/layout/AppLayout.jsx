@@ -1,18 +1,18 @@
 import { binding, displayBinding } from '../../lib/keybindings.js';
 import { baseName, dirName, displayName, isCanvas, isMarkdown } from '../../lib/vault.js';
+import { STATUS_ITEMS } from '../../lib/workspaceItems.js';
 import { deferred } from '../Deferred.jsx';
 import ModalBackdrop from '../dialogs/ModalBackdrop.jsx';
+import Onboarding from '../dialogs/Onboarding.jsx';
 import Welcome from '../dialogs/Welcome.jsx';
 import ExtensionSurface from '../ExtensionSurface.jsx';
 import NoteView from '../NoteView.jsx';
+import ConfigurableBar from './ConfigurableBar.jsx';
 import Ribbon from './Ribbon.jsx';
 import RightPanel from './RightPanel.jsx';
 import Sidebar, { renameTarget } from './Sidebar.jsx';
 import Splitter from './Splitter.jsx';
 import TabBar from './TabBar.jsx';
-import ConfigurableBar from './ConfigurableBar.jsx';
-import { STATUS_ITEMS } from '../../lib/workspaceItems.js';
-import Onboarding from '../dialogs/Onboarding.jsx';
 
 const CanvasView = deferred(() => import('../CanvasView.jsx'));
 const GraphView = deferred(() => import('../GraphView.jsx'));

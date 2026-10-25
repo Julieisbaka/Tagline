@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { cardStats, formatDuration, getSectionAt } from '../lib/card.js';
-import { useI18n } from '../lib/i18n.js';
 import { readFrontmatter } from '../lib/frontmatter.js';
+import { useI18n } from '../lib/i18n.js';
 import { binding, displayBinding } from '../lib/keybindings.js';
 import { calibrateReading, readingAssessment, readingSeconds } from '../lib/readTime.js';
 import { baseName, isFlow } from '../lib/vault.js';

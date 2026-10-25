@@ -1,12 +1,12 @@
 import { useState } from 'react';
 import { useI18n } from '../../lib/i18n.js';
 import { dirName, isMarkdown, joinPath } from '../../lib/vault.js';
+import { FILE_ACTIONS } from '../../lib/workspaceItems.js';
 import Menu from '../dialogs/ContextMenu.jsx';
 import Icon from '../Icon.jsx';
 import RefreshButton from '../RefreshButton.jsx';
-import FileTree from './FileTree.jsx';
 import ConfigurableBar from './ConfigurableBar.jsx';
-import { FILE_ACTIONS } from '../../lib/workspaceItems.js';
+import FileTree from './FileTree.jsx';
 
 function ContextMenu({ menu, onClose, actions }) {
   const { node } = menu;

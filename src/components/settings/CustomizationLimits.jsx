@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { DEFAULT_LIMITS, LIMIT_DEFINITIONS, setRuntimeLimits, validateLimits } from '../../../electron/customization.mjs';
-import { validateTheme } from '../../lib/themes.js';
 import { useI18n } from '../../lib/i18n.js';
+import { validateTheme } from '../../lib/themes.js';
 
 export default function CustomizationLimits({ settings }) {
   const { t } = useI18n();

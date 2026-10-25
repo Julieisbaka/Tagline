@@ -1,6 +1,6 @@
 import { spokenCitations } from './citation.js';
-import { speechStats } from './readTime.js';
 import { splitFrontmatter } from './frontmatter.js';
+import { speechStats } from './readTime.js';
 
 const HEADING_RE = /^(#{1,6})\s/;
 

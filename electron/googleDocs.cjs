@@ -25,7 +25,7 @@ function validateEndpoint(value) {
   catch { throw new Error('Enter a valid Google Apps Script deployment URL.'); }
   const match = /^\/macros\/(?:u\/\d+\/)?s\/([A-Za-z0-9_-]+)\/exec$/.exec(url.pathname);
   if (url.origin !== 'https://script.google.com' || url.username || url.password || url.hash || !match ||
-      [...url.searchParams.keys()].some((key) => key !== 'authuser') || url.searchParams.getAll('authuser').length > 1)
+    [...url.searchParams.keys()].some((key) => key !== 'authuser') || url.searchParams.getAll('authuser').length > 1)
     throw new Error('Use the https://script.google.com/macros/s/DEPLOYMENT_ID/exec web app URL. Only an optional authuser account hint is accepted.');
   // Browser account indices do not select a web app's executing account.
   return `https://script.google.com/macros/s/${match[1]}/exec`;
@@ -39,8 +39,8 @@ function validateTitle(value) {
 
 function validateAccount(value) {
   if (!value || typeof value.email !== 'string' || value.email.length > 254 ||
-      !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.email) ||
-      typeof value.displayName !== 'string' || value.displayName.length > 200 || /[\u0000-\u001f]/.test(value.displayName))
+    !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.email) ||
+    typeof value.displayName !== 'string' || value.displayName.length > 200 || /[\u0000-\u001f]/.test(value.displayName))
     throw new Error('The webhook did not identify a valid Google account. Update and redeploy the bundled script, then verify the connection.');
   return { email: value.email.toLowerCase(), displayName: value.displayName };
 }
@@ -81,7 +81,7 @@ async function readReply(response, expectedCode) {
   if (expectedCode === 200) return { account };
   const doc = result.document;
   if (!doc || typeof doc.id !== 'string' || !/^[A-Za-z0-9_-]+$/.test(doc.id) ||
-      doc.url !== `https://docs.google.com/document/d/${doc.id}/edit` || typeof doc.title !== 'string')
+    doc.url !== `https://docs.google.com/document/d/${doc.id}/edit` || typeof doc.title !== 'string')
     throw new Error('The webhook returned invalid document details. Check Drive before retrying.');
   return { canceled: false, code: 201, account, document: { id: doc.id, title: doc.title, url: doc.url, accountEmail: account.email } };
 }
@@ -100,9 +100,9 @@ function createGoogleDocs({ app, safeStorage, dialog, shell, getWindow, fetchImp
       return { version: 2, connections: [{ id: 'legacy', endpoint, encryptedSecret: config.encryptedSecret, account: null }] };
     }
     if (!config || config.version !== 2 || !Array.isArray(config.connections) ||
-        config.connections.some((connection) => !connection || typeof connection.id !== 'string' ||
-          !/^[A-Za-z0-9_-]+$/.test(connection.id) || typeof connection.encryptedSecret !== 'string' || !connection.encryptedSecret) ||
-        new Set(config.connections.map((connection) => connection.id)).size !== config.connections.length)
+      config.connections.some((connection) => !connection || typeof connection.id !== 'string' ||
+        !/^[A-Za-z0-9_-]+$/.test(connection.id) || typeof connection.encryptedSecret !== 'string' || !connection.encryptedSecret) ||
+      new Set(config.connections.map((connection) => connection.id)).size !== config.connections.length)
       throw new Error('The saved Google Docs configuration is invalid. Disconnect and configure it again.');
     for (const connection of config.connections) {
       connection.endpoint = validateEndpoint(connection.endpoint);

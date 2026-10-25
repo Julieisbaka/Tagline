@@ -13,7 +13,7 @@ test('template placeholders use literal target paths, Markdown bodies and raw YA
   const body = '# Evidence\n\nLiteral {{title}} and $& and {{path}}.\n';
   assert.equal(fillTemplate('{{path}}\n{{properties}}{{content}}', 'Target',
     { path: 'Cards/Target.md', content: prefix + body }),
-  'Cards/Target.md\n# Keep this\r\ntitle: "Speech"\r\nspeech: true\r\n' + body);
+    'Cards/Target.md\n# Keep this\r\ntitle: "Speech"\r\nspeech: true\r\n' + body);
   assert.equal(fillTemplate('{{path}}|{{content}}|{{properties}}', 'New', { path: 'New.md' }), 'New.md||');
   assert.equal(fillTemplate('{{content}}|{{properties}}', 'Plain', { content: '# Plain' }), '# Plain|');
   assert.equal(fillTemplate('{{title}} {{title}} {{unknown}}', '$& {{path}}'), '$& {{path}} $& {{path}} {{unknown}}');
@@ -138,7 +138,7 @@ test('extension capabilities validate selection, command, helper, event and UI c
   assert.equal(extensionHelper('helpers.templates.fill', ['{{title}}', 'Case']), 'Case');
   assert.equal(extensionHelper('helpers.templates.fill', ['{{path}}\n{{properties}}\n{{content}}', 'Case',
     { path: 'Cards/Case.md', content: '---\nspeech: true\n---\n# Case' }]),
-  'Cards/Case.md\nspeech: true\n\n# Case');
+    'Cards/Case.md\nspeech: true\n\n# Case');
   for (const context of [null, [], 'bad', { path: 42 }, { content: false }]) {
     assert.throws(() => extensionHelper('helpers.templates.fill', ['', 'Case', context]), /Template context|Path|Content/);
   }
