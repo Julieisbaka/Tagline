@@ -69,7 +69,7 @@ test('working-save recovery skips malformed and structurally invalid revisions a
     await save(recovery.content);
     assert.equal(await history.read(file, (await history.list(file))[0].id), '[1,2,3]', 'restoration retains the broken source');
   }
-  await assert.rejects(history.latestWorking('Image.png'), /Markdown, flow and Canvas/);
+  await assert.rejects(history.latestWorking('Image.png'), /Revision history supports Markdown/);
 });
 
 test('working-save recovery accepts all Markdown content and falls back to history for missing files', async (t) => {
