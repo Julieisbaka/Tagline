@@ -254,9 +254,8 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
         await js(`(() => {
           const editor = document.querySelector('.visual-document');
           editor.focus();
-          const node = editor.querySelector('p').firstChild;
           const range = document.createRange();
-          range.setStart(node, 0); range.setEnd(node, node.textContent.length);
+          range.selectNodeContents(editor.querySelector('p'));
           const selection = window.getSelection(); selection.removeAllRanges(); selection.addRange(range);
           window.expectedTextCopy = selection.toString();
         })()`);
