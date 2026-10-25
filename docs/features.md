@@ -261,6 +261,12 @@ browser's signed-in session. A GitHub 404 can mean a private repository or no
 publicly accessible stable release; it does not prove that no release exists.
 Use **View releases** to check with your signed-in browser account.
 
+Use **Search settings** to find labels and help text across all settings
+sections in the current language. Select a result (or press Enter for the first)
+to open its section and jump to the matching control. Escape clears the search;
+the clear button returns focus to the search field. Search does not change
+preferences or inspect entered field values.
+
 `Mod` means Ctrl on Windows/Linux and Cmd on macOS. Change shortcuts in
 **Settings > Keyboard shortcuts**.
 

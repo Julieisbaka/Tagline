@@ -1,4 +1,9 @@
 {
+  "Search settings": "Rechercher dans les paramètres",
+  "Clear settings search": "Effacer la recherche de paramètres",
+  "Search results": "Résultats de recherche",
+  "{count} matching sections": "{count} sections correspondantes",
+  "No matching settings": "Aucun paramètre correspondant",
   "Accessibility": "Accessibilité",
   "Focus indicators and editor accessibility": "Indicateurs de focus et accessibilité de l’éditeur",
   "Show note editor focus outline": "Afficher le contour de focus de l’éditeur de notes",

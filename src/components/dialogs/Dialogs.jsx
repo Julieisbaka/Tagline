@@ -138,6 +138,23 @@ export function SettingsDialog({ settings, update, onClose, extensions, onOpenCa
   speechDoc, speechDocuments = [], onSelectSpeechDoc }) {
   const { t } = useI18n();
   const [section, setSection] = useState('general');
+  const [query, setQuery] = useState('');
+  const [searchIndex, setSearchIndex] = useState([]);
+  const contentRef = useRef(null);
+  const searchRef = useRef(null);
+  useEffect(() => {
+    const content = contentRef.current;
+    const index = () => setSearchIndex([...content.querySelectorAll('[data-settings-panel]')].map((panel) => ({
+      id: panel.dataset.settingsPanel,
+      entries: [...panel.querySelectorAll('label, h3, h4, p, button, dt')].map((element) => ({
+        element, text: element.textContent.replace(/\s+/g, ' ').trim(),
+      })).filter((entry) => entry.text),
+    })));
+    index();
+    const observer = new MutationObserver(index);
+    observer.observe(content, { childList: true, characterData: true, subtree: true });
+    return () => observer.disconnect();
+  }, []);
   const sections = [
     ['general', 'General', 'Your writing and debate workspace'],
     ['editors', 'Editors', 'Configure Tiptap and CodeMirror'],
@@ -151,6 +168,25 @@ export function SettingsDialog({ settings, update, onClose, extensions, onOpenCa
     ['advanced', 'Advanced settings', 'Inspect and reset internal application flags'],
     ['installation', 'Installation', 'Version, runtime, and local data'],
   ];
+  const terms = query.trim().toLocaleLowerCase().split(/\s+/).filter(Boolean);
+  const results = terms.length ? sections.flatMap(([id, label, description]) => {
+    const entries = searchIndex.find((panel) => panel.id === id)?.entries || [];
+    const matches = (text) => terms.every((term) => text.toLocaleLowerCase().includes(term));
+    const entry = entries.find((item) => item.text.toLocaleLowerCase().includes(terms.join(' ')))
+      || entries.find((item) => matches(item.text));
+    return entry || matches(`${t(label)} ${t(description)}`)
+      ? [{ id, label: t(label), entry }] : [];
+  }) : [];
+  const openResult = ({ id, entry }) => {
+    setSection(id);
+    setQuery('');
+    requestAnimationFrame(() => {
+      const target = entry?.element;
+      target?.scrollIntoView({ block: 'center' });
+      const control = target?.matches('button') ? target : target?.querySelector('input, select, textarea, button');
+      if (control && !control.disabled) control.focus({ preventScroll: true });
+    });
+  };
   const field = (label, key, type = 'text', extra = {}) => (
     <label className="setting-row">
       <span>{t(label)}</span>
@@ -171,10 +207,22 @@ export function SettingsDialog({ settings, update, onClose, extensions, onOpenCa
         tabIndex={-1} onMouseDown={(e) => e.stopPropagation()}>
         <aside className="settings-sidebar">
           <div className="settings-brand">Tagline <span>{t('Workspace preferences')}</span></div>
+          <div className="settings-search">
+            <input ref={searchRef} type="search" aria-label={t('Search settings')}
+              placeholder={t('Search settings')} value={query} onChange={(event) => setQuery(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === 'Escape' && query) {
+                  event.preventDefault(); event.stopPropagation(); setQuery('');
+                }
+                if (event.key === 'Enter' && results.length) { event.preventDefault(); openResult(results[0]); }
+              }} />
+            {query && <button className="icon-btn" aria-label={t('Clear settings search')}
+              onClick={() => { setQuery(''); searchRef.current.focus(); }}>&times;</button>}
+          </div>
           <nav aria-label={t('Settings sections')}>
             {sections.map(([id, label]) => <button key={id} data-section={id}
               aria-current={section === id ? 'page' : undefined} className={section === id ? 'active' : ''}
-              onClick={() => setSection(id)}>{t(label)}</button>)}
+              onClick={() => { setSection(id); setQuery(''); }}>{t(label)}</button>)}
           </nav>
           <p>{t('Changes save automatically')}</p>
         </aside>
@@ -184,8 +232,17 @@ export function SettingsDialog({ settings, update, onClose, extensions, onOpenCa
               <p>{t(sections.find(([id]) => id === section)[2])}</p></div>
             <button className="settings-close" aria-label={t('Close settings')} onClick={onClose}>&times;</button>
           </header>
-          <div className="settings-content">
-            <section hidden={section !== 'general'} className="settings-panel">
+          {terms.length > 0 && <div className="settings-search-results">
+            <h3>{t('Search results')}</h3>
+            <p role="status">{t('{count} matching sections', { count: results.length })}</p>
+            {!results.length && <p>{t('No matching settings')}</p>}
+            {results.map((result) => <button key={result.id} onClick={() => openResult(result)}>
+              <strong>{result.label}</strong>
+              {result.entry && <span>{result.entry.text}</span>}
+            </button>)}
+          </div>}
+          <div className="settings-content" ref={contentRef} hidden={terms.length > 0}>
+            <section data-settings-panel="general" hidden={section !== 'general'} className="settings-panel">
               <h3>{t('Writing and debate')}</h3>
               {field('Speaking rate (words per minute)', 'wpm', 'number', { min: 50, max: 1000 })}
               <ReadingSettings settings={settings} update={update} />
@@ -216,17 +273,17 @@ export function SettingsDialog({ settings, update, onClose, extensions, onOpenCa
                 />
               </label>
             </section>
-            <section hidden={section !== 'editors'} className="settings-panel">
+            <section data-settings-panel="editors" hidden={section !== 'editors'} className="settings-panel">
               <EditorSettings settings={settings} update={update} />
             </section>
-            <section hidden={section !== 'accessibility'} className="settings-panel">
+            <section data-settings-panel="accessibility" hidden={section !== 'accessibility'} className="settings-panel">
               <label className="setting-row"><span>{t('Show note editor focus outline')}</span>
                 <input type="checkbox" data-setting="editorFocusOutline" checked={settings.editorFocusOutline}
                   onChange={(event) => update({ editorFocusOutline: event.target.checked })} />
               </label>
               <p className="settings-help">{t('Highlight the focused visual or source note editor. Keyboard focus indicators on other controls remain enabled.')}</p>
             </section>
-            <section hidden={section !== 'appearance'} className="settings-panel">
+            <section data-settings-panel="appearance" hidden={section !== 'appearance'} className="settings-panel">
               <h3>{t('Theme and typography')}</h3>
               <ThemeSettings settings={settings} update={update} />
               <RibbonSettings settings={settings} update={update} contributions={extensions?.ribbonItems} />
@@ -234,15 +291,15 @@ export function SettingsDialog({ settings, update, onClose, extensions, onOpenCa
               <AdvancedSettings settings={settings} update={update} section="fonts" />
               <CustomCssSettings settings={settings} update={update} />
             </section>
-            <section hidden={section !== 'performance'} className="settings-panel">
+            <section data-settings-panel="performance" hidden={section !== 'performance'} className="settings-panel">
               <AdvancedSettings settings={settings} update={update} section="performance" />
             </section>
-            <section hidden={section !== 'files'} className="settings-panel">
+            <section data-settings-panel="files" hidden={section !== 'files'} className="settings-panel">
               <AdvancedSettings settings={settings} update={update} section="files" />
               <h4>{t('Flow file association')}</h4>
               <p>{t('Installed builds register Tagline as an app for .flow files. To make it the default, use Open With in your file manager and select Tagline. On macOS choose Change All in Get Info.')}</p>
             </section>
-            <section hidden={section !== 'integrations'} className="settings-panel">
+            <section data-settings-panel="integrations" hidden={section !== 'integrations'} className="settings-panel">
               <h3>OpenCaselist</h3>
               <p>{t('Browse disclosures, download files, and publish changes using your OpenCaselist account.')}</p>
               <button onClick={onOpenCaselist}>{t('Open OpenCaselist')}</button>
@@ -254,13 +311,13 @@ export function SettingsDialog({ settings, update, onClose, extensions, onOpenCa
               <p>{t('Websites use a separate signed-in session and identify as standard Chrome. Disable this to use your default browser.')}</p>
               <IntegrationSettings />
             </section>
-            <section hidden={section !== 'shortcuts'} className="settings-panel">
+            <section data-settings-panel="shortcuts" hidden={section !== 'shortcuts'} className="settings-panel">
               <KeybindingSettings settings={settings} update={update} extra={extensions?.commands || []} />
             </section>
-            <section hidden={section !== 'extensions'} className="settings-panel">
+            <section data-settings-panel="extensions" hidden={section !== 'extensions'} className="settings-panel">
               {extensions && <ExtensionSettings extensions={extensions} />}
             </section>
-            <section hidden={section !== 'advanced'} className="settings-panel">
+            <section data-settings-panel="advanced" hidden={section !== 'advanced'} className="settings-panel">
               <CustomizationLimits settings={settings} />
               <section className="internal-flags">
                 <h4>{t('Internal flags')}</h4>
@@ -279,7 +336,9 @@ export function SettingsDialog({ settings, update, onClose, extensions, onOpenCa
                 }}>{t('Show onboarding again')}</button>
               </section>
             </section>
-            {section === 'installation' && <section className="settings-panel"><InstallationSettings /></section>}
+            <section data-settings-panel="installation" hidden={section !== 'installation'} className="settings-panel">
+              <InstallationSettings />
+            </section>
           </div>
           <footer className="settings-footer"><span>{t('Settings are saved on this device')}</span>
             <button className="primary" onClick={onClose}>{t('Done')}</button>

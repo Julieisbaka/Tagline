@@ -1,4 +1,9 @@
 {
+  "Search settings": "Buscar ajustes",
+  "Clear settings search": "Borrar búsqueda de ajustes",
+  "Search results": "Resultados de búsqueda",
+  "{count} matching sections": "{count} secciones coincidentes",
+  "No matching settings": "No hay ajustes coincidentes",
   "Accessibility": "Accesibilidad",
   "Focus indicators and editor accessibility": "Indicadores de foco y accesibilidad del editor",
   "Show note editor focus outline": "Mostrar el contorno de foco del editor de notas",
