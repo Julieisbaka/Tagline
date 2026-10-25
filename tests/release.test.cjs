@@ -57,20 +57,24 @@ test('release preflight uses package version and refuses mismatched locks, tags 
   await assert.rejects(preflight({ status: 403 }), /API error/);
 });
 
-async function publish({ draft, failUpload, extraFile } = {}) {
+async function publish({ draft, failUpload, extraFile, previous = true } = {}) {
   const script = workflow.jobs.publish.steps.find((step) => step.with?.script).with.script;
   const files = Object.fromEntries(['win-x64.exe', 'mac-x64.dmg', 'mac-arm64.dmg']
     .map((suffix) => [`Tagline-1.2.3-${suffix}`, Buffer.from(suffix)]));
   if (extraFile) files[extraFile] = Buffer.from('unexpected');
   const calls = [];
   const repos = {
-    getReleaseByTag: async () => draft === undefined ? missing() : { data: { id: 10, draft, html_url: 'https://example.test/release' } },
+    getReleaseByTag: async () => draft === undefined ? missing() : { data: {
+      id: 10, draft, html_url: 'https://example.test/release',
+      body: 'Handwritten release notes.\n\n<!-- tagline-release-commits -->\nOutdated commit list',
+    } },
     generateReleaseNotes: async () => ({ data: { body: 'Changes' } }),
     createRelease: async (options) => {
       calls.push(['create', options]);
       return { data: { id: 10, draft: true, html_url: 'https://example.test/release' } };
     },
     listReleaseAssets() { },
+    listReleases() { },
     deleteReleaseAsset: async (options) => { calls.push(['delete', options]); },
     uploadReleaseAsset: async (options) => {
       if (failUpload) throw new Error('Upload failed');
@@ -80,13 +84,26 @@ async function publish({ draft, failUpload, extraFile } = {}) {
   };
   const execute = () => new AsyncFunction('require', 'github', 'context', 'core', 'process', script)((name) => {
     if (name === 'node:crypto') return { createHash };
+    if (name === 'node:child_process') return {
+      execFileSync: (_file, args) => {
+        if (args[0] === 'merge-base') {
+          if (args[2] === 'refs/tags/v9.9.9') throw Object.assign(new Error('Unrelated branch'), { status: 1 });
+          return '';
+        }
+        calls.push(['log', args]);
+        return 'abc123456789\0Fix a setting\nfed987654321\0Add [links] and *formatting*\n';
+      }
+    };
     if (name === 'node:fs') return {
       readdirSync: () => Object.keys(files),
       readFileSync: (file) => files[file.replace('artifacts/', '')],
       writeFileSync: (file, text) => { files[file.replace('artifacts/', '')] = Buffer.from(text); },
     };
     throw new Error(`Unexpected import: ${name}`);
-  }, { rest: { repos }, paginate: async () => draft ? [{ id: 99 }] : [] }, context, core,
+  }, { rest: { repos }, paginate: async (method) => method === repos.listReleases
+    ? previous ? [{ draft: true, tag_name: 'v1.2.4' }, { draft: false, tag_name: 'v9.9.9' },
+      { draft: false, tag_name: 'v1.2.2' }] : []
+    : draft ? [{ id: 99 }] : [] }, context, core,
     { env: { VERSION: '1.2.3', TAG: 'v1.2.3' } });
   return { execute, files, calls };
 }
@@ -94,9 +111,13 @@ async function publish({ draft, failUpload, extraFile } = {}) {
 test('release uploads exactly three installers and correct checksums before publishing', async () => {
   const { execute, files, calls } = await publish();
   await execute();
-  assert.equal(calls[0][0], 'create');
-  assert.equal(calls[0][1].draft, true);
-  assert.equal(calls[0][1].target_commitish, context.sha);
+  const created = calls.find(([name]) => name === 'create')[1];
+  assert.equal(created.draft, true);
+  assert.equal(created.target_commitish, context.sha);
+  assert.match(created.body, /What's changed.*commits/);
+  assert.match(created.body, /Fix a setting.*https:\/\/github.com\/test\/tagline\/commit\/abc123456789/);
+  assert.ok(created.body.includes('Add \\[links\\] and \\*formatting\\*'));
+  assert.ok(calls.find(([name]) => name === 'log')[1].includes('refs/tags/v1.2.2..selected-commit'));
   assert.equal(calls.filter(([name]) => name === 'upload').length, 4);
   const checksums = files['SHA256SUMS.txt'].toString();
   for (const [file, data] of Object.entries(files)) {
@@ -110,8 +131,14 @@ test('release uploads exactly three installers and correct checksums before publ
 test('release resumes drafts and never publishes partial, unexpected or already published builds', async () => {
   const resumed = await publish({ draft: true });
   await resumed.execute();
-  assert.equal(resumed.calls[0][0], 'delete');
+  assert.ok(resumed.calls.some(([name]) => name === 'delete'));
   assert.equal(resumed.calls.some(([name]) => name === 'create'), false);
+  assert.match(resumed.calls.at(-1)[1].body, /Fix a setting/);
+  assert.match(resumed.calls.at(-1)[1].body, /Handwritten release notes/);
+  assert.doesNotMatch(resumed.calls.at(-1)[1].body, /Outdated commit list/);
+  const initial = await publish({ previous: false });
+  await initial.execute();
+  assert.ok(initial.calls.find(([name]) => name === 'log')[1].includes(context.sha));
   for (const options of [{ failUpload: true }, { extraFile: 'extra.exe' }, { draft: false }]) {
     const attempt = await publish(options);
     await assert.rejects(attempt.execute());

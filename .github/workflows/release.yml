@@ -93,6 +93,9 @@ jobs:
     permissions:
       contents: write
     steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: actions/download-artifact@v4
         with:
           pattern: release-*
@@ -107,6 +110,7 @@ jobs:
           script: |
             const fs = require('node:fs');
             const { createHash } = require('node:crypto');
+            const { execFileSync } = require('node:child_process');
             const { VERSION: version, TAG: tag } = process.env;
             const files = [
               `Tagline-${version}-win-x64.exe`,
@@ -128,17 +132,46 @@ jobs:
             } catch (error) {
               if (error.status !== 404) throw error;
             }
+            const published = await github.paginate(github.rest.repos.listReleases, {
+              ...context.repo, per_page: 100,
+            });
+            const previous = published.find(candidate => {
+              if (candidate.draft || candidate.tag_name === tag) return false;
+              try {
+                execFileSync('git', ['merge-base', '--is-ancestor', `refs/tags/${candidate.tag_name}`, context.sha]);
+                return true;
+              } catch (error) {
+                if (error.status === 1) return false;
+                throw error;
+              }
+            });
+            const range = previous ? `refs/tags/${previous.tag_name}..${context.sha}` : context.sha;
+            const commits = execFileSync('git', ['log', '--reverse', '--format=%H%x00%s', range, '--'], {
+              encoding: 'utf8',
+            }).trim().split('\n').filter(Boolean).map(line => {
+              const [sha, subject] = line.split('\0');
+              const title = subject.replace(/[\\`*_[\]<>]/g, '\\$&');
+              return `* ${title} ([${sha.slice(0, 7)}](https://github.com/${context.repo.owner}/${context.repo.repo}/commit/${sha}))`;
+            });
+            const { data: notes } = await github.rest.repos.generateReleaseNotes({
+              ...context.repo, tag_name: tag, target_commitish: context.sha,
+              ...(previous ? { previous_tag_name: previous.tag_name } : {}),
+            });
+            const introduction = 'Unsigned builds: Windows and macOS may show security warnings.\n\n' +
+              'To update, open Settings > Installation in Tagline, check for updates, and download the matching installer. ' +
+              'On Windows, choose Install update and restart; on macOS, open the downloaded DMG and replace Tagline in Applications. ' +
+              'Settings, vaults, and revision history are retained. Checks and downloads are user-initiated.\n\n' +
+              notes.body;
+            const marker = '<!-- tagline-release-commits -->';
+            const existingNotes = release?.body || introduction;
+            const body = existingNotes.split(marker)[0].trimEnd() +
+              `\n\n${marker}\n\n## What's changed - commits\n\n` +
+              (commits.join('\n') || 'No new commits.') + '\n';
             if (!release) {
-              const { data: notes } = await github.rest.repos.generateReleaseNotes({
-                ...context.repo, tag_name: tag, target_commitish: context.sha,
-              });
               ({ data: release } = await github.rest.repos.createRelease({
                 ...context.repo, tag_name: tag, target_commitish: context.sha,
                 name: `Tagline ${version}`, draft: true, prerelease: version.split('+')[0].includes('-'),
-                body: 'Unsigned builds: Windows and macOS may show security warnings.\n\n' +
-                  'Quit Tagline before updating. On Windows, run the installer using the same install scope and location. ' +
-                  'On macOS, replace Tagline in Applications. Do not delete the app profile; settings and vaults are retained. ' +
-                  'There is no automatic updater.\n\n' + notes.body,
+                body,
               }));
             }
             const assets = await github.paginate(github.rest.repos.listReleaseAssets, {
@@ -151,5 +184,5 @@ jobs:
                 data: fs.readFileSync(`artifacts/${name}`),
               });
             }
-            await github.rest.repos.updateRelease({ ...context.repo, release_id: release.id, draft: false });
+            await github.rest.repos.updateRelease({ ...context.repo, release_id: release.id, body, draft: false });
             await core.summary.addLink(`Tagline ${version}`, release.html_url).write();

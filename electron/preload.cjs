@@ -5,6 +5,14 @@ contextBridge.exposeInMainWorld('api', {
   systemLanguages: JSON.parse(decodeURIComponent(process.argv.find((arg) => arg.startsWith('--tagline-languages=')).split('=')[1])),
   getInstallationInfo: () => ipcRenderer.invoke('app:installation'),
   checkForUpdates: () => ipcRenderer.invoke('app:checkUpdates'),
+  getUpdateState: () => ipcRenderer.invoke('app:getUpdateState'),
+  downloadUpdate: () => ipcRenderer.invoke('app:downloadUpdate'),
+  installUpdate: () => ipcRenderer.invoke('app:installUpdate'),
+  onUpdateState: (callback) => {
+    const listener = (_event, state) => callback(state);
+    ipcRenderer.on('app:updateState', listener);
+    return () => ipcRenderer.removeListener('app:updateState', listener);
+  },
   openProjectPage: (page) => ipcRenderer.invoke('app:openProjectPage', page),
   uninstallApp: (removeProfile) => ipcRenderer.invoke('app:uninstall', removeProfile),
   googleDocs: {

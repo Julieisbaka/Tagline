@@ -16,7 +16,8 @@ const { registerFlowFiles } = require('./flowFiles.cjs');
 const { registerBrowser } = require('./browser.cjs');
 const { DEFAULT_RETENTION, createRevisionHistory } = require('./revisionHistory.cjs');
 const { NOTE_EXTS, listVault: walk, readVaultSnapshot } = require('./vaultFiles.cjs');
-const { installationInfo, checkForUpdates, REPOSITORY_URL, RELEASES_URL } = require('./installation.cjs');
+const { installationInfo, REPOSITORY_URL, RELEASES_URL } = require('./installation.cjs');
+const { createUpdateManager } = require('./appUpdates.cjs');
 const { uninstallApplication } = require('./uninstall.cjs');
 const { registerOpenCaselist } = require('./opencaselist.cjs');
 const { registerGoogleDocs } = require('./googleDocs.cjs');
@@ -31,6 +32,7 @@ let win;
 let vaultRoot = null;
 let keybindings = {};
 let closeWebsiteView = () => { };
+let saveBeforeUpdate = async () => { throw new Error('The application is not ready to install an update.'); };
 
 function accelerator(id) {
   const value = keybindings[id] ?? keyDefinitions.find((item) => item.id === id)?.key;
@@ -109,8 +111,20 @@ async function listRecentVaults() {
 }
 
 function registerIpc() {
+  const updates = createUpdateManager({
+    app, shell, notify: (state) => {
+      if (win && !win.isDestroyed()) win.webContents.send('app:updateState', state);
+    },
+  });
   ipcMain.handle('app:installation', () => installationInfo(app));
-  ipcMain.handle('app:checkUpdates', () => checkForUpdates(installationInfo(app).version));
+  ipcMain.handle('app:checkUpdates', () => updates.check(installationInfo(app).version));
+  ipcMain.handle('app:getUpdateState', () => updates.getState());
+  ipcMain.handle('app:downloadUpdate', () => updates.download());
+  ipcMain.handle('app:installUpdate', async () => {
+    const result = await updates.installUpdate(saveBeforeUpdate);
+    if (!result.manual) app.quit();
+    return result;
+  });
   ipcMain.handle('app:openProjectPage', (_event, page) => {
     if (!['repository', 'releases'].includes(page)) throw new Error('Unknown project page.');
     return shell.openExternal(page === 'repository' ? REPOSITORY_URL : RELEASES_URL);
@@ -333,6 +347,29 @@ function createWindow() {
   let readyToClose = false;
   let preparingClose = false;
   let hasSaveHandler = false;
+  saveBeforeUpdate = () => new Promise((resolve, reject) => {
+    if (!hasSaveHandler || preparingClose || win.webContents.isDestroyed() || win.webContents.isCrashed()) {
+      reject(new Error('Wait for the workspace to finish loading or saving, then try installing again.'));
+      return;
+    }
+    const target = win;
+    const finish = (error) => {
+      clearTimeout(timeout);
+      ipcMain.removeListener('app:closeReady', saved);
+      target.removeListener('closed', closed);
+      if (error) reject(error);
+      else resolve();
+    };
+    const saved = (event, success) => {
+      if (event.sender === target.webContents) finish(success === true ? null :
+        new Error('Pending edits could not be saved. Resolve the save error before installing.'));
+    };
+    const closed = () => finish(new Error('The workspace closed before the update could start.'));
+    const timeout = setTimeout(() => finish(new Error('Timed out waiting for pending edits to save. Try again.')), 60000);
+    ipcMain.on('app:closeReady', saved);
+    target.once('closed', closed);
+    target.webContents.send('app:prepareClose');
+  });
   const saveHandlerReady = (event, ready) => {
     if (event.sender === win?.webContents) hasSaveHandler = ready === true;
   };

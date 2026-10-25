@@ -14,6 +14,9 @@ export default function InstallationSettings() {
   const [checking, setChecking] = useState(false);
   const [release, setRelease] = useState(null);
   const [updateError, setUpdateError] = useState('');
+  const [updateState, setUpdateState] = useState({ status: 'idle', received: 0, total: 0 });
+  const [installMessage, setInstallMessage] = useState('');
+  const updating = ['checking', 'downloading', 'installing'].includes(updateState.status);
   const openPage = async (page) => {
     setUpdateError('');
     try { await window.api.openProjectPage(page); }
@@ -25,6 +28,29 @@ export default function InstallationSettings() {
     catch (failure) { setUpdateError(failure.message); }
     finally { setChecking(false); }
   };
+  const downloadUpdate = async () => {
+    setUpdateError(''); setInstallMessage('');
+    try { setUpdateState(await window.api.downloadUpdate()); }
+    catch (failure) { setUpdateError(failure.message); }
+  };
+  const installUpdate = async () => {
+    setUpdateError('');
+    try {
+      const result = await window.api.installUpdate();
+      if (result.manual) setInstallMessage(t('The disk image is open. Quit Tagline, drag the new app into Applications and choose Replace, then reopen Tagline. Your settings and vaults are kept.'));
+    } catch (failure) { setUpdateError(failure.message); }
+  };
+  useEffect(() => {
+    let active = true;
+    const apply = (state) => {
+      if (!active) return;
+      setUpdateState(state);
+      if (state.release) setRelease(state.release);
+    };
+    const unsubscribe = window.api.onUpdateState(apply);
+    window.api.getUpdateState().then(apply).catch((failure) => { if (active) setUpdateError(failure.message); });
+    return () => { active = false; unsubscribe(); };
+  }, []);
   useEffect(() => {
     let active = true;
     window.api.getInstallationInfo().then((value) => { if (active) setInfo(value); })
@@ -66,26 +92,44 @@ export default function InstallationSettings() {
         ['Profile folder', info.profile],
       ].map(([label, value]) => <div key={label}><dt>{t(label)}</dt><dd>{value}</dd></div>)}
     </dl>}
-    <h3>{t('Manual updates')}</h3>
+    <h3>{t('Updates')}</h3>
     <p>{t('Tagline does not check for or install updates automatically.')}</p>
     <div className="settings-actions">
-      <button disabled={checking} aria-busy={checking} onClick={checkUpdates}>
+      <button disabled={checking || updating} aria-busy={checking || updateState.status === 'checking'} onClick={checkUpdates}>
         {t(checking ? 'Checking for updates…' : 'Check for updates')}
       </button>
       <button className="link-btn" onClick={() => openPage('repository')}>{t('GitHub repository')}</button>
       <button className="link-btn" onClick={() => openPage('releases')}>{t('View releases')}</button>
     </div>
     {release && <p role="status">{t(release.updateAvailable
-      ? 'Version {version} is available. Download it from GitHub releases.'
+      ? 'Version {version} is available.'
       : 'You are up to date (latest release: {version}).', { version: release.latestVersion })}</p>}
-    {updateError && <p className="error-text" role="alert">{updateError}</p>}
-    <p>{t('Quit Tagline before updating. On Windows, run the newer installer using the same install scope and location. On macOS, replace Tagline in Applications.')}</p>
+    {release?.updateAvailable && release.download && info?.packaged && <div className="settings-actions">
+      {updateState.status !== 'ready' && <button disabled={updating} onClick={downloadUpdate}>
+        {t(updateState.status === 'downloading' ? 'Downloading update…' : 'Download update')}
+      </button>}
+      {updateState.status === 'ready' && <button className="primary" disabled={updating} onClick={installUpdate}>
+        {t(info.platform === 'win32' ? 'Install update and restart' : 'Open installer')}
+      </button>}
+    </div>}
+    {updateState.status === 'downloading' && <div role="status" aria-live="polite">
+      <label>{t('Downloading update…')}
+        <progress aria-label={t('Update download progress')} max={updateState.total || 1} value={updateState.received} />
+      </label>
+      <span>{Math.round(updateState.received / (updateState.total || 1) * 100)}%</span>
+    </div>}
+    {updateState.status === 'installing' && <p role="status">{t('Saving pending edits and starting the installer…')}</p>}
+    {release?.updateAvailable && !release.download && <p>{t('No compatible in-app download is available for this release. Use View releases to install it manually.')}</p>}
+    {info && !info.packaged && <p>{t('In-app downloads are available only in a packaged installation. Use View releases to get an installer.')}</p>}
+    {installMessage && <p role="status">{installMessage}</p>}
+    {(updateError || updateState.error) && <p className="error-text" role="alert">{updateError || updateState.error}</p>}
+    <p>{t('Download the matching installer here, then start installation. Downloads are verified against release checksums. Windows saves pending edits before exiting; on macOS, open the DMG and replace the app in Applications.')}</p>
     <p>{t('Keep your profile folder to preserve settings, themes, extensions, and downloaded models. Vaults and revision history remain in their own folders. Back up your profile and vaults before updating.')}</p>
     <h3>{t('Uninstall Tagline')}</h3>
     <p>{t('Choose whether to keep or remove your profile. Vaults and their revision history are always kept.')}</p>
     {uninstallMessage && <p role="status">{uninstallMessage}</p>}
     {uninstallError && <p className="error-text" role="alert">{uninstallError}</p>}
-    <button className="danger" disabled={!info?.packaged} onClick={() => {
+    <button className="danger" disabled={!info?.packaged || updating} onClick={() => {
       setUninstallError('');
       setRemoveProfile(false);
       setShowUninstall(true);

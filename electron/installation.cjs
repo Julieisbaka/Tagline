@@ -30,7 +30,7 @@ function compareVersions(left, right) {
   return 0;
 }
 
-async function checkForUpdates(currentVersion, fetchImpl = fetch) {
+async function checkForUpdates(currentVersion, fetchImpl = fetch, platform = process.platform, arch = process.arch) {
   parseVersion(currentVersion);
   const response = await fetchImpl(LATEST_RELEASE_API, {
     headers: { Accept: 'application/vnd.github+json', 'User-Agent': 'Tagline-release-check' },
@@ -45,10 +45,22 @@ async function checkForUpdates(currentVersion, fetchImpl = fetch) {
   if (!release || release.draft || release.prerelease || typeof release.tag_name !== 'string') {
     throw new Error('GitHub returned an invalid release.');
   }
-  return {
+  const result = {
     currentVersion, latestVersion: release.tag_name,
     updateAvailable: compareVersions(release.tag_name, currentVersion) > 0
   };
+  const target = platform === 'win32' && arch === 'x64' ? 'win-x64.exe' :
+    platform === 'darwin' && ['x64', 'arm64'].includes(arch) ? `mac-${arch}.dmg` : null;
+  if (result.updateAvailable && target) {
+    const name = `Tagline-${release.tag_name.replace(/^v/i, '')}-${target}`;
+    const installer = release.assets?.find((asset) => asset.name === name);
+    const checksums = release.assets?.find((asset) => asset.name === 'SHA256SUMS.txt');
+    const url = (asset) => `${REPOSITORY_URL}/releases/download/${encodeURIComponent(release.tag_name)}/${asset.name}`;
+    if (installer && checksums && Number.isSafeInteger(installer.size) && installer.size > 0) {
+      result.download = { name, size: installer.size, url: url(installer), checksumsUrl: url(checksums) };
+    }
+  }
+  return result;
 }
 
 function installationInfo(app) {

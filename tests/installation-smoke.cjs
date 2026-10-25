@@ -30,15 +30,36 @@ const profile = path.join(root, 'Tagline');
 const vault = path.join(root, 'vault');
 const openedUrls = [];
 shell.openExternal = async (url) => { openedUrls.push(url); };
-const handle = ipcMain.handle.bind(ipcMain);
 let releaseCalls = 0;
-ipcMain.handle = (channel, callback) => handle(channel, channel === 'app:checkUpdates' ? async () => {
-  releaseCalls++;
-  if (releaseCalls === 2) throw new Error('Simulated GitHub rate limit');
-  return { currentVersion: version, latestVersion: 'v9.0.0', updateAvailable: true };
-} : callback);
+const installerBytes = Buffer.from('Verified test installer, never executable.');
+const installerName = `Tagline-9.0.0-${process.platform === 'darwin' ? `mac-${process.arch}.dmg` : 'win-x64.exe'}`;
+const installerHash = require('node:crypto').createHash('sha256').update(installerBytes).digest('hex');
+let invalidChecksum = true;
+global.fetch = async (url) => {
+  if (url.endsWith('/releases/latest')) {
+    releaseCalls++;
+    if (releaseCalls === 2) throw new Error('Simulated GitHub rate limit');
+    return new Response(JSON.stringify({ tag_name: 'v9.0.0',
+      assets: [{ name: installerName, size: installerBytes.length }, { name: 'SHA256SUMS.txt' }] }));
+  }
+  if (url.endsWith('/SHA256SUMS.txt')) return new Response(`${invalidChecksum ? 'a'.repeat(64) : installerHash}  ${installerName}\n`);
+  if (url.endsWith('/' + installerName)) return new Response(installerBytes);
+  throw new Error('Unexpected test network request: ' + url);
+};
+const updateModule = require('../electron/appUpdates.cjs');
+const realCreateUpdateManager = updateModule.createUpdateManager;
+let installerOpened = false;
+updateModule.createUpdateManager = (options) => realCreateUpdateManager({
+  ...options, install: async ({ file }) => {
+    assert.deepEqual(fs.readFileSync(file), installerBytes);
+    installerOpened = true;
+    return { manual: process.platform === 'darwin' };
+  },
+});
 app.setPath('appData', root);
 app.setPath('userData', profile);
+fs.mkdirSync(path.join(root, 'downloads'), { recursive: true });
+app.setPath('temp', path.join(root, 'downloads'));
 // Exercise packaged version reporting without requiring an installer inside the test harness.
 Object.defineProperty(app, 'isPackaged', { value: true });
 app.getVersion = () => version;
@@ -166,6 +187,15 @@ app.on('browser-window-created', (_event, win) => {
         await wait("document.querySelector('.installation-settings [role=status]')?.textContent.includes('v9.0.0')");
         await js("[...document.querySelectorAll('.installation-settings button')].find(el => el.textContent === 'Check for updates').click()");
         await wait("document.querySelector('.installation-settings [role=alert]')?.textContent.includes('Simulated GitHub rate limit')");
+        await js("[...document.querySelectorAll('.installation-settings button')].find(el => el.textContent === 'Check for updates').click()");
+        await wait("!![...document.querySelectorAll('.installation-settings button')].find(el => el.textContent === 'Download update')");
+        await js("[...document.querySelectorAll('.installation-settings button')].find(el => el.textContent === 'Download update').click()");
+        await wait("document.querySelector('.installation-settings [role=alert]')?.textContent.includes('verification failed')");
+        assert.equal(installerOpened, false);
+        invalidChecksum = false;
+        await js("[...document.querySelectorAll('.installation-settings button')].find(el => el.textContent === 'Download update').click()");
+        await wait("!![...document.querySelectorAll('.installation-settings button')].find(el => /Install update and restart|Open installer/.test(el.textContent))");
+        assert.equal((await js("window.api.getUpdateState()")).status, 'ready');
         await js("[...document.querySelectorAll('.installation-settings button')].find(el => el.textContent === 'GitHub repository').click()");
         await js("[...document.querySelectorAll('.installation-settings button')].find(el => el.textContent === 'View releases').click()");
         assert.deepEqual(openedUrls, ['https://github.com/Julieisbaka/Tagline', 'https://github.com/Julieisbaka/Tagline/releases']);
@@ -179,6 +209,16 @@ app.on('browser-window-created', (_event, win) => {
         assert.equal(await js("document.querySelector('.uninstall-dialog input[type=radio]').checked"), true);
         await js("document.querySelector('.uninstall-dialog button').click()");
         await wait("!document.querySelector('.uninstall-dialog')");
+        const originalQuit = app.quit;
+        let quitRequested = false;
+        app.quit = () => { quitRequested = true; };
+        try {
+          await js("[...document.querySelectorAll('.installation-settings button')].find(el => /Install update and restart|Open installer/.test(el.textContent)).click()");
+          await wait(`window.api.getUpdateState().then(state => state.status === '${process.platform === 'darwin' ? 'ready' : 'installing'}')`);
+          await new Promise((resolve) => setTimeout(resolve, 50));
+          assert.equal(installerOpened, true);
+          assert.equal(quitRequested, process.platform !== 'darwin');
+        } finally { app.quit = originalQuit; }
       }
       app.exit(0);
     } catch (error) { console.error(error); app.exit(1); }

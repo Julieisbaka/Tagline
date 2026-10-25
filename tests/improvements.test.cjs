@@ -285,7 +285,8 @@ test('macOS desktop wiring provides native window controls, menus and Dock react
   let dockIcon;
   let quit = false;
   const ipcMain = new EventEmitter();
-  ipcMain.handle = () => { };
+  const handlers = new Map();
+  ipcMain.handle = (name, callback) => handlers.set(name, callback);
   app.whenReady = () => Promise.resolve();
   app.getPreferredSystemLanguages = () => ['fr-CA', 'en-US'];
   app.dock = { setIcon: (icon) => { dockIcon = icon; } };
@@ -322,12 +323,15 @@ test('macOS desktop wiring provides native window controls, menus and Dock react
   const dirname = path.join(__dirname, '..', 'electron');
   const fakeProcess = { platform: 'darwin', argv: [], env: { PATH: '/usr/bin:/bin:/usr/local/bin' } };
   vm.runInNewContext(fs.readFileSync(path.join(dirname, 'main.cjs'), 'utf8'), {
-    __dirname: dirname, process: fakeProcess, console, URL,
+    __dirname: dirname, process: fakeProcess, console, URL, setTimeout, clearTimeout,
     require: (name) => {
       if (name === 'electron') return electron;
       if (name.startsWith('./')) {
         if (name === './sampleVault.cjs') return { SAMPLE_VAULT: {} };
         if (name === './installation.cjs') return { installationInfo: () => ({ version: require('../package.json').version }) };
+        if (name === './appUpdates.cjs') return {
+          createUpdateManager: () => ({ installUpdate: async (beforeInstall) => { await beforeInstall(); return { manual: true }; } }),
+        };
         if (name === './browser.cjs') return { registerBrowser: () => () => { } };
         if (name === './revisionHistory.cjs') return {
           DEFAULT_RETENTION: 50,
@@ -357,6 +361,15 @@ test('macOS desktop wiring provides native window controls, menus and Dock react
   file.find((item) => item.label === 'New Note').click();
   assert.equal(windows[0].sent.command, 'newNote');
   ipcMain.emit('app:saveHandlerReady', { sender: windows[0].webContents }, true);
+  const rejectedUpdate = handlers.get('app:installUpdate')();
+  assert.equal(windows[0].sent.channel, 'app:prepareClose');
+  ipcMain.emit('app:closeReady', { sender: windows[0].webContents }, false);
+  await assert.rejects(rejectedUpdate, /Pending edits could not be saved/);
+  assert.equal(windows[0].destroyed, undefined);
+  const installedUpdate = handlers.get('app:installUpdate')();
+  ipcMain.emit('app:closeReady', { sender: windows[0].webContents }, true);
+  await installedUpdate;
+  assert.equal(windows[0].destroyed, undefined, 'macOS DMG opening does not force-close the workspace');
   windows[0].close();
   assert.equal(windows[0].sent.channel, 'app:prepareClose');
   assert.equal(windows[0].destroyed, undefined, 'close waits for pending writes');
