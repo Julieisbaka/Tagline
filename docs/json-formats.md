@@ -11,9 +11,6 @@ Tagline ships draft-07 JSON Schemas for its user-authored and exchanged formats:
 | Imported, exported, or extension theme | [theme.schema.json](../schemas/theme.schema.json) |
 | Exported extension settings (`<extension-id>-settings.json`) | [extension-settings.schema.json](../schemas/extension-settings.schema.json) |
 
-Internal profile configuration, credentials, caches, private extension storage,
-and app settings are not public interchange formats and are not covered.
-
 Canvas files follow the [JSON Canvas specification](https://jsoncanvas.org/spec/1.0/).
 
 ## Editor support
