@@ -9,6 +9,18 @@ const context = { repo: { owner: 'test', repo: 'tagline' }, sha: 'selected-commi
 const missing = () => { throw Object.assign(new Error('Not found'), { status: 404 }); };
 const core = { setOutput() { }, summary: { addLink() { return this; }, write() { } } };
 
+function containsUrl(text, expectedUrl) {
+  const expected = new URL(expectedUrl);
+  return (text.match(/https:\/\/[^\s)]+/g) || []).some((candidate) => {
+    try {
+      const actual = new URL(candidate);
+      return actual.origin === expected.origin && actual.pathname === expected.pathname;
+    } catch {
+      return false;
+    }
+  });
+}
+
 test('release workflow runs only manually, packages all architectures and publishes only after every build', () => {
   assert.deepEqual(Object.keys(workflow.on), ['workflow_dispatch']);
   assert.deepEqual(workflow.permissions, { contents: 'read' });
@@ -198,7 +210,7 @@ test('release lists only direct user-facing commits not already represented by m
   const section = body.split("## What's changed - commits")[1];
   for (const subject of subjects.slice(0, 10)) assert.ok(!section.includes(subject), subject);
   for (const subject of subjects.slice(10)) assert.ok(section.includes(subject), subject);
-  assert.ok(body.includes('https://github.com/test/tagline/pull/12'), 'generated pull request notes remain intact');
+  assert.ok(containsUrl(body, 'https://github.com/test/tagline/pull/12'), 'generated pull request notes remain intact');
 });
 
 test('release limits displayed commits to the latest 20 after filtering and links the full comparison', async () => {
@@ -215,7 +227,7 @@ test('release limits displayed commits to the latest 20 after filtering and link
     assert.ok(body.includes('* Change 7 ('));
     assert.ok(body.includes('* Change 26 ('));
     assert.match(body, /Showing the latest 20 of 27 direct commits/);
-    assert.ok(body.includes(previous
+    assert.ok(containsUrl(body, previous
       ? 'https://github.com/test/tagline/compare/v1.2.2...selected-commit'
       : 'https://github.com/test/tagline/commits/selected-commit'));
   }
