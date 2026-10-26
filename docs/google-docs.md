@@ -2,12 +2,64 @@
 
 [Documentation home](./README.md)
 
-Tagline can send notes and DOCX/HTML files to a Google Apps Script web app that
-you deploy in your own account. The script converts each upload into a **new Google Doc** in your Drive. It never overwrites existing documents or changes
-their sharing permissions. Destination-folder permissions can be inherited.
+Tagline supports **direct Google sign-in** and the existing **Apps Script
+webhook** method side by side. Both convert notes and DOCX/HTML uploads into a
+**new Google Doc** in the selected account's Drive. Neither overwrites existing
+documents or changes their sharing permissions. With a script-configured
+destination folder, folder permissions can be inherited.
 No document is sent until you explicitly confirm an upload.
 
-## Set up your webhook
+## Connect directly to Google (recommended)
+
+1. Open **Settings > Integrations > Google Docs / Drive**.
+2. Select **Connect Google account**. Tagline opens Google's authorization page
+   in your system browser, not an embedded sign-in window.
+3. Choose the intended account and grant email and per-file Drive access.
+4. Return to Tagline and confirm the account shown in the native connection
+   dialog. **Cancel Google sign-in** cancels a pending browser authorization;
+   an unfinished sign-in times out after three minutes.
+5. Select this connection before uploading, or choose it under
+   **Destination Google account** in the note export dialog.
+
+No script deployment, webhook URL, API key, or shared secret is needed.
+Uploads go directly from Tagline to Google's Drive API and are converted into
+new Google Docs in My Drive. Google Docs API and Apps Script are not required.
+
+The desktop OAuth client requests only `openid`,
+`https://www.googleapis.com/auth/userinfo.email`, and
+`https://www.googleapis.com/auth/drive.file`. The latter allows access to files
+created by or explicitly authorized for Tagline, not unrestricted access to
+your entire Drive. Uploads use the identity returned by Google, not a manually
+entered account label.
+
+Refresh tokens are protected with OS credential encryption in the app profile;
+they are never exposed to the renderer, stored in the vault, or written into
+note settings. Access tokens stay in main-process memory for each operation.
+Tagline uses PKCE, a random state value, and a temporary callback listener bound
+only to `127.0.0.1`. That listener closes after sign-in, cancellation, or timeout.
+
+**Development/testing:** while the Google Cloud project's OAuth audience is in
+Testing, only registered test accounts can connect. With Drive access, testing
+refresh tokens normally expire after seven days; reconnect when prompted.
+Public distribution requires configuring the project's production audience,
+branding/privacy information, and any applicable Google verification.
+The public desktop client ID is configured in
+[`googleOAuth.cjs`](../electron/googleOAuth.cjs); no client secret is embedded.
+See Google's [desktop OAuth guide](https://developers.google.com/identity/protocols/oauth2/native-app).
+
+**Disconnect Google Docs** removes the selected local connection and its
+encrypted credentials, leaving documents and other connections unchanged.
+It does not revoke Google's authorization grant. To revoke the grant, remove
+Tagline from your [Google Account connections](https://myaccount.google.com/connections).
+Revoked or expired authorization produces an explicit reconnect error.
+Uploads are not automatically retried, to avoid duplicate documents when a
+network failure leaves their creation uncertain.
+
+## Set up an Apps Script webhook (existing method)
+
+Existing saved webhook connections keep working without migration or
+redeployment. To add a webhook while a direct connection is selected, choose
+**Add a connection / choose an account** to reveal the webhook fields.
 
 1. Open **Settings > Integrations > Set up Google Docs transfer**. Save or copy
    the bundled [Google Apps Script](../electron/google-docs-webhook.gs).
@@ -48,7 +100,12 @@ the selected local connection, not other connections, deployments, or documents.
 
 ## Multiple Google accounts
 
-Create a separate Apps Script deployment and secret for each Google account,
+For direct sign-in, use **Connect Google account** again and choose a different
+Google account. Reconnecting the same Google identity updates its direct
+connection instead of creating a duplicate. Direct and script connections to
+the same account remain separate choices labeled by connection method.
+
+For the webhook method, create a separate Apps Script deployment and secret for each Google account,
 then add each connection in Tagline. Use a **separate browser profile**, or a
 private window signed into only the intended account, to create and authorize
 each deployment. Google documents
@@ -63,8 +120,9 @@ dialog does not silently select the first one. The upload confirmation includes
 the email and deployment URL; emails identify the executing account, while
 different deployment IDs distinguish connections targeting different folders.
 
-Before sending document content, Tagline checks the executing account again.
-Each upload also carries `expectedAccount`; the script checks it before
+Before sending document content, Tagline checks the account again. For direct
+connections it refreshes authorization and checks the account's stable identity
+and email. Each webhook upload also carries `expectedAccount`; the script checks it before
 creating anything and returns **409** on a mismatch. Account changes require
 explicit reverification and confirmation through **Save Google Docs connection**.
 No browser cookies or numeric browser-account indices determine the upload.

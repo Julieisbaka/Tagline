@@ -21,6 +21,8 @@ contextBridge.exposeInMainWorld('api', {
   uninstallApp: (removeProfile) => ipcRenderer.invoke('app:uninstall', removeProfile),
   googleDocs: {
     status: () => ipcRenderer.invoke('googleDocs:status'),
+    connect: () => ipcRenderer.invoke('googleDocs:connect'),
+    cancelConnect: () => ipcRenderer.invoke('googleDocs:cancelConnect'),
     save: (endpoint, secret, connectionId) => ipcRenderer.invoke('googleDocs:save', endpoint, secret, connectionId),
     disconnect: (connectionId) => ipcRenderer.invoke('googleDocs:disconnect', connectionId),
     sendNote: (document) => ipcRenderer.invoke('googleDocs:sendNote', document),

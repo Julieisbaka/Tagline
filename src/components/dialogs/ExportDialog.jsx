@@ -83,7 +83,7 @@ export default function ExportDialog({ title, content, resolve, onClose }) {
       <div className="modal dialog export-dialog" role="dialog" aria-modal="true"
         aria-label={t('Export {title}', { title })} onMouseDown={(e) => e.stopPropagation()}>
         <h3>{t('Export {title}', { title })}</h3>
-        <p>{googleDocs ? t('Creates a new Google Doc using your webhook. Set it up in Settings > Integrations. Pandoc is not required.')
+        <p>{googleDocs ? t('Creates a new Google Doc using the selected Google sign-in or Apps Script connection. Set it up in Settings > Integrations. Pandoc is not required.')
           : format === 'html' ? t('Built-in HTML export. Pandoc is not required.')
             : pandoc?.available ? pandoc.version : t('Pandoc is required for this format. Locate it in Settings.')}</p>
         <label className="setting-row"><span>{t('Format')}</span>
@@ -100,7 +100,7 @@ export default function ExportDialog({ title, content, resolve, onClose }) {
             onChange={(event) => { setConnectionId(event.target.value); setResult(null); setError(''); }}>
             <option value="">{t('Choose a Google account')}</option>
             {connections.map((connection) => <option key={connection.id} value={connection.id}>
-              {connection.account.email} — {connection.endpoint.split('/').at(-2)}
+              {connection.account.email} — {connection.type === 'oauth' ? t('Google sign-in') : `Apps Script: ${connection.endpoint.split('/').at(-2)}`}
             </option>)}
           </select>
         </label>}

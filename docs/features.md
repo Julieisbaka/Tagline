@@ -169,7 +169,12 @@ Standalone HTML export is built in. Other formats use the separately installed
 converts DOCX, ODT, RTF, HTML, and EPUB to Markdown for review before saving.
 
 Send a note to your Drive with **Export > Google Docs**, or upload DOCX/HTML
-from **Settings > Integrations > Google Docs / Drive**. Use **Set up Google Docs transfer** there to deploy the bundled webhook in your own Google account.
+from **Settings > Integrations > Google Docs / Drive**. Use **Connect Google
+account** for direct browser-based sign-in, or **Set up Google Docs transfer**
+to deploy the bundled Apps Script webhook. Both methods can coexist; existing
+script connections keep working. Choose the destination account and connection
+method before sending. Credentials are encrypted locally; direct uploads go
+straight to Google's Drive API with per-file access, not full Drive access.
 Each transfer creates a new Google Doc and requires confirmation. See
 [Google Docs setup and response codes](./google-docs.md).
 

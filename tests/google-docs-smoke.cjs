@@ -17,6 +17,8 @@ const { app, dialog, shell, safeStorage } = require('electron');
 const fs = require('node:fs/promises');
 const path = require('node:path');
 const assert = require('node:assert/strict');
+const { TOKEN_URL, USERINFO_URL, UPLOAD_URL, SCOPES } = require('../electron/googleOAuth.cjs');
+const nativeFetch = global.fetch;
 
 (async () => {
   const root = process.env.TAGLINE_GOOGLE_DOCS_ROOT;
@@ -38,8 +40,22 @@ const assert = require('node:assert/strict');
   const schoolAccount = { email: 'school@example.edu', displayName: 'School' };
   const docUrl = 'https://docs.google.com/document/d/smoke-doc/edit';
   const sent = [], confirmations = [], opened = [];
+  const directUploads = [];
+  let holdOAuth = false;
   let confirm = 1, resultCode = 201;
   global.fetch = async (url, init) => {
+    if (url === TOKEN_URL) return new Response(JSON.stringify({
+      access_token: 'smoke-access-token', refresh_token: 'smoke-refresh-token', token_type: 'Bearer', scope: SCOPES.join(' '),
+    }));
+    if (url === USERINFO_URL) return new Response(JSON.stringify({
+      sub: 'smoke-subject', email: personalAccount.email, email_verified: true,
+    }));
+    if (url === UPLOAD_URL) {
+      assert.equal(init.headers.Authorization, 'Bearer smoke-access-token');
+      assert.equal(init.method, 'POST');
+      directUploads.push(init.body);
+      return new Response(JSON.stringify({ id: 'direct-doc', mimeType: 'application/vnd.google-apps.document' }));
+    }
     assert.ok([endpoint, schoolEndpoint].includes(url), 'The smoke test must never contact real Google services');
     const payload = JSON.parse(init.body);
     const account = url === schoolEndpoint ? schoolAccount : personalAccount;
@@ -61,7 +77,16 @@ const assert = require('node:assert/strict');
   };
   dialog.showOpenDialog = async () => ({ canceled: false, filePaths: [upload] });
   dialog.showSaveDialog = async () => ({ canceled: false, filePath: path.join(root, 'webhook.gs') });
-  shell.openExternal = async (url) => { opened.push(url); };
+  shell.openExternal = async (url) => {
+    opened.push(url);
+    if (url.startsWith('https://accounts.google.com/')) {
+      if (holdOAuth) return;
+      const authorization = new URL(url);
+      const callback = new URL(authorization.searchParams.get('redirect_uri'));
+      callback.search = new URLSearchParams({ code: 'mock-code', state: authorization.searchParams.get('state') });
+      assert.equal((await nativeFetch(callback)).status, 200);
+    }
+  };
 
   app.on('browser-window-created', (_event, win) => {
     win.webContents.once('did-finish-load', async () => {
@@ -174,7 +199,49 @@ const assert = require('node:assert/strict');
         assert.equal(sent[2].endpoint, endpoint);
         assert.equal(sent[2].secret, secret);
         assert.equal(await js("!!document.querySelector('.export-dialog [role=status]')"), false);
-        console.log('PASS: two isolated Google account connections, explicit destination selection, account-aware confirmations and links, file/note uploads, cancellation and error codes (mocked Google).');
+        await button('.export-dialog button', 'Close');
+        await js("document.querySelector('.ribbon-settings-button').click()");
+        await wait("!!document.querySelector('[data-section=integrations]')");
+        await js("document.querySelector('[data-section=integrations]').click()");
+        await wait("!!document.querySelector('.google-docs-settings')");
+        holdOAuth = true;
+        await button('.google-docs-settings button', 'Connect Google account');
+        await wait("[...document.querySelectorAll('.google-docs-settings button')].some(b=>b.textContent==='Cancel Google sign-in')");
+        await button('.google-docs-settings button', 'Cancel Google sign-in');
+        await wait("document.querySelector('.google-docs-settings [role=alert]')?.textContent.includes('canceled')");
+        holdOAuth = false;
+        await button('.google-docs-settings button', 'Connect Google account');
+        await wait("document.querySelector('.google-docs-settings').textContent.includes('configuration saved')");
+        const mixed = await js('window.api.googleDocs.status()');
+        assert.equal(mixed.connections.length, 3);
+        const oauth = mixed.connections.find(connection => connection.type === 'oauth');
+        assert.ok(oauth);
+        assert.equal(await js("!!document.querySelector('[data-setting=googleDocsEndpoint]')"), false);
+        assert.equal(await js("document.querySelector('[data-setting=googleDocsConnection]').value"), oauth.id);
+        const persisted = await fs.readFile(path.join(profile, 'google-docs.json'), 'utf8');
+        assert.ok(!persisted.includes('smoke-refresh-token'));
+        assert.ok(!persisted.includes('smoke-access-token'));
+        await button('.google-docs-settings button', 'Upload DOCX or HTML...');
+        await wait("document.querySelector('.google-docs-settings').textContent.includes('code 201')");
+        assert.equal(directUploads.length, 1);
+        assert.ok(directUploads[0].includes(Buffer.from('<h1>Uploaded evidence</h1>')));
+        assert.match(confirmations.at(-1).detail, /directly to Google Drive/);
+        await select('[data-setting=googleDocsConnection]', schoolId);
+        assert.equal(await js("document.querySelector('[data-setting=googleDocsEndpoint]').value"), schoolEndpoint);
+        await button('.settings-footer button', 'Done');
+        await button('.note-actions button', 'Export');
+        await wait("!!document.querySelector('.export-dialog')");
+        await select('.export-dialog select', 'google-docs');
+        await wait("document.querySelectorAll('[data-setting=googleDocsDestination] option').length === 4");
+        assert.equal(await js("document.querySelector('[data-setting=googleDocsDestination]').value"), '');
+        await select('[data-setting=googleDocsDestination]', oauth.id);
+        await button('.export-dialog button', 'Send to Google Docs');
+        await wait("document.querySelector('.export-dialog').textContent.includes('code 201')");
+        assert.equal(directUploads.length, 2);
+        assert.match(directUploads[1].toString(), /<strong>Bold text<\/strong>/);
+        await button('.export-dialog button', 'Open Google Doc');
+        assert.equal(opened.at(-1), `https://docs.google.com/document/d/direct-doc/edit?authuser=${encodeURIComponent(personalAccount.email)}`);
+        console.log('PASS: Apps Script and OAuth coexist; browser sign-in/cancel, encrypted credentials, explicit destinations, script and direct file/note uploads, confirmations and errors (mocked Google).');
         app.exit(0);
       } catch (error) { console.error(error); app.exit(1); }
     });

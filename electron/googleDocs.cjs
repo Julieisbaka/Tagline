@@ -1,6 +1,7 @@
 const fs = require('node:fs/promises');
 const path = require('node:path');
 const { randomUUID } = require('node:crypto');
+const { createGoogleOAuth } = require('./googleOAuth.cjs');
 
 const MAX_BYTES = 5 * 1024 * 1024;
 const DOCX = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
@@ -87,6 +88,7 @@ async function readReply(response, expectedCode) {
 }
 
 function createGoogleDocs({ app, safeStorage, dialog, shell, getWindow, fetchImpl = fetch }) {
+  const oauth = createGoogleOAuth({ shell, fetchImpl });
   const configFile = path.join(app.getPath('userData'), 'google-docs.json');
   let sending = false;
   let configuring = false;
@@ -97,11 +99,16 @@ function createGoogleDocs({ app, safeStorage, dialog, shell, getWindow, fetchImp
     const config = JSON.parse(contents);
     if (!config || config.version !== 2 || !Array.isArray(config.connections) ||
       config.connections.some((connection) => !connection || typeof connection.id !== 'string' ||
-        !/^[A-Za-z0-9_-]+$/.test(connection.id) || typeof connection.encryptedSecret !== 'string' || !connection.encryptedSecret) ||
+        !/^[A-Za-z0-9_-]+$/.test(connection.id) ||
+        (connection.type === 'oauth'
+          ? typeof connection.encryptedTokens !== 'string' || !connection.encryptedTokens ||
+            typeof connection.subject !== 'string' || !connection.subject || connection.subject.length > 255
+          : (connection.type !== undefined && connection.type !== 'script') ||
+            typeof connection.encryptedSecret !== 'string' || !connection.encryptedSecret)) ||
       new Set(config.connections.map((connection) => connection.id)).size !== config.connections.length)
       throw new Error('The saved Google Docs configuration is invalid. Disconnect and configure it again.');
     for (const connection of config.connections) {
-      connection.endpoint = validateEndpoint(connection.endpoint);
+      if (connection.type !== 'oauth') connection.endpoint = validateEndpoint(connection.endpoint);
       connection.account = validateAccount(connection.account);
     }
     return config;
@@ -122,7 +129,8 @@ function createGoogleDocs({ app, safeStorage, dialog, shell, getWindow, fetchImp
   const status = async () => {
     const config = await readConfig();
     return {
-      connections: config.connections.map(({ id, endpoint, account }) => ({ id, endpoint, account })),
+      connections: config.connections.map(({ id, endpoint, account, type }) => type === 'oauth'
+        ? { id, type, account } : { id, type: 'script', endpoint, account }),
       configured: config.connections.some((connection) => !!connection.account),
       encryptionAvailable: await safeStorage.isAsyncEncryptionAvailable(),
     };
@@ -163,11 +171,12 @@ function createGoogleDocs({ app, safeStorage, dialog, shell, getWindow, fetchImp
     endpoint = validateEndpoint(endpoint);
     if (typeof secret !== 'string') throw new Error('Enter a webhook secret.');
     if (!await safeStorage.isAsyncEncryptionAvailable()) throw new Error('OS credential encryption is unavailable.');
-    if (configuring) throw new Error('A Google Docs connection change is already in progress.');
+    if (configuring || sending) throw new Error('A Google Docs connection change or upload is already in progress.');
     configuring = true;
     try {
       const config = await readConfig();
       const current = connectionId === undefined ? null : connectionFor(config, connectionId);
+      if (current?.type === 'oauth') throw new Error('Choose an Apps Script connection to edit its webhook.');
       let encryptedSecret;
       if (secret === '') {
         if (!current || current.endpoint !== endpoint) throw new Error('Enter the WEBHOOK_SECRET for this deployment; secrets cannot be reused across connections.');
@@ -194,8 +203,46 @@ function createGoogleDocs({ app, safeStorage, dialog, shell, getWindow, fetchImp
       return { ...await status(), savedConnectionId: connection.id };
     } finally { configuring = false; }
   };
+  const encryptTokens = async (refreshToken) => {
+    if (!await safeStorage.isAsyncEncryptionAvailable()) throw new Error('OS credential encryption is unavailable.');
+    return (await safeStorage.encryptStringAsync(JSON.stringify({ refreshToken }))).toString('base64');
+  };
+  const decryptTokens = async (connection) => {
+    if (!await safeStorage.isAsyncEncryptionAvailable()) throw new Error('OS credential encryption is unavailable.');
+    let tokens;
+    try {
+      tokens = JSON.parse((await safeStorage.decryptStringAsync(Buffer.from(connection.encryptedTokens, 'base64'))).result);
+    } catch { throw new Error('Cannot decrypt Google authorization. Reconnect this account in Settings.'); }
+    if (!tokens || typeof tokens.refreshToken !== 'string' || !tokens.refreshToken || tokens.refreshToken.length > 16384)
+      throw new Error('Invalid saved Google authorization. Reconnect this account in Settings.');
+    return tokens;
+  };
+  const connect = async () => {
+    if (configuring || sending) throw new Error('A Google Docs connection change or upload is already in progress.');
+    if (!await safeStorage.isAsyncEncryptionAvailable()) throw new Error('OS credential encryption is unavailable.');
+    configuring = true;
+    try {
+      const config = await readConfig();
+      const identity = await oauth.authorize();
+      const current = config.connections.find((item) => item.type === 'oauth' && item.subject === identity.subject);
+      const confirmation = await dialog.showMessageBox(getWindow(), {
+        type: 'question', message: 'Connect to this Google account?',
+        detail: `${identity.account.email}\n\nDirect Google sign-in. Tagline will upload directly to Google Drive, without Apps Script. Nothing is uploaded until you confirm a document transfer.`,
+        buttons: ['Cancel', 'Save connection'], defaultId: 0, cancelId: 0, noLink: true,
+      });
+      if (confirmation.response !== 1) return { ...await status(), canceled: true };
+      const connection = {
+        id: current?.id || randomUUID(), type: 'oauth', subject: identity.subject, account: identity.account,
+        encryptedTokens: await encryptTokens(identity.refreshToken),
+      };
+      config.connections = current ? config.connections.map((item) => item.id === current.id ? connection : item)
+        : [...config.connections, connection];
+      await writeConfig(config);
+      return { ...await status(), savedConnectionId: connection.id };
+    } finally { configuring = false; }
+  };
   const disconnect = async (connectionId) => {
-    if (configuring) throw new Error('A Google Docs connection change is already in progress.');
+    if (configuring || sending) throw new Error('A Google Docs connection change or upload is already in progress.');
     configuring = true;
     try {
       const config = await readConfig();
@@ -208,10 +255,31 @@ function createGoogleDocs({ app, safeStorage, dialog, shell, getWindow, fetchImp
   const upload = async (title, mimeType, bytes, connectionId) => {
     title = validateTitle(title);
     if (!bytes.length || bytes.length > MAX_BYTES) throw new Error('Upload a non-empty document no larger than 5 MiB.');
-    if (sending) throw new Error('A Google Docs upload is already in progress.');
+    if (sending || configuring) throw new Error('A Google Docs upload or connection change is already in progress.');
     sending = true;
     try {
-      const config = connectionFor(await readConfig(), connectionId);
+      const saved = await readConfig();
+      const config = connectionFor(saved, connectionId);
+      if (config.type === 'oauth') {
+        const credentials = await decryptTokens(config);
+        const tokens = await oauth.refresh(credentials.refreshToken);
+        const identity = await oauth.account(tokens.accessToken);
+        if (identity.subject !== config.subject || identity.account.email !== config.account.email)
+          throw new Error('Google returned a different account. Reconnect the selected account before uploading.');
+        if (tokens.refreshToken && tokens.refreshToken !== credentials.refreshToken) {
+          config.encryptedTokens = await encryptTokens(tokens.refreshToken);
+          await writeConfig(saved);
+        }
+        const confirmation = await dialog.showMessageBox(getWindow(), {
+          type: 'question', message: 'Send this document to Google Drive?',
+          detail: `"${title}" (${bytes.length} bytes)\nGoogle account: ${identity.account.email}\n\nDirect Google sign-in: sends this document directly to Google Drive and creates a new Google Doc. It does not change sharing permissions. Formatting may change during conversion.`,
+          buttons: ['Cancel', 'Send to Google Docs'], defaultId: 0, cancelId: 0, noLink: true,
+        });
+        if (confirmation.response !== 1) return { canceled: true };
+        const document = await oauth.upload(tokens.accessToken, title, mimeType, bytes);
+        return { canceled: false, code: 201, account: identity.account,
+          document: { ...document, accountEmail: identity.account.email } };
+      }
       const secret = await decrypt(config);
       const { account } = await request(config.endpoint, { action: 'account', secret }, 200);
       if (account.email !== config.account.email) throw new Error(ERROR_MESSAGES[409]);
@@ -262,14 +330,21 @@ function createGoogleDocs({ app, safeStorage, dialog, shell, getWindow, fetchImp
     const account = validateAccount({ email: accountEmail, displayName: '' });
     await shell.openExternal(`${url}?authuser=${encodeURIComponent(account.email)}`);
   };
-  return { status, save, disconnect, sendNote, uploadFile, saveScript, openDocument };
+  return { status, save, connect, cancelConnect: oauth.cancel, disconnect, sendNote, uploadFile, saveScript, openDocument };
 }
 
 function registerGoogleDocs(options) {
   const service = createGoogleDocs(options);
-  for (const name of ['status', 'save', 'disconnect', 'sendNote', 'uploadFile', 'saveScript', 'openDocument'])
-    options.ipcMain.handle(`googleDocs:${name}`, (_event, ...args) => service[name](...args));
-  options.ipcMain.handle('googleDocs:openSetup', () => options.shell.openExternal('https://script.google.com/home/start'));
+  const handle = (name, action) => options.ipcMain.handle(`googleDocs:${name}`, (event, ...args) => {
+    const contents = options.getWindow()?.webContents;
+    if (!contents || event.sender !== contents || event.senderFrame !== contents.mainFrame)
+      throw new Error('Google Docs is only available to the application main frame.');
+    return action(...args);
+  });
+  for (const name of ['status', 'save', 'connect', 'cancelConnect', 'disconnect', 'sendNote', 'uploadFile', 'saveScript', 'openDocument'])
+    handle(name, (...args) => service[name](...args));
+  handle('openSetup', () => options.shell.openExternal('https://script.google.com/home/start'));
+  options.app.once('before-quit', service.cancelConnect);
   return service;
 }
 

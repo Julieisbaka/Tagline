@@ -12,6 +12,7 @@ export default function GoogleDocsSettings() {
   const [secret, setSecret] = useState('');
   const [showSetup, setShowSetup] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [connecting, setConnecting] = useState(false);
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
   const [createdDocument, setCreatedDocument] = useState(null);
@@ -23,7 +24,7 @@ export default function GoogleDocsSettings() {
         setStatus(value);
         if (value.connections.length === 1) {
           setConnectionId(value.connections[0].id);
-          setEndpoint(value.connections[0].endpoint);
+          setEndpoint(value.connections[0].endpoint || '');
         }
       }
     }).catch((failure) => { if (active) setError(failure.message); });
@@ -46,8 +47,26 @@ export default function GoogleDocsSettings() {
 
   return <section className="google-docs-settings">
     <h4>{t('Google Docs / Drive')}</h4>
-    <p>{t('Send a note or a DOCX/HTML file to your own Apps Script webhook to create a new Google Doc. Nothing is uploaded automatically.')}</p>
-    <button onClick={() => setShowSetup(true)}>{t('Set up Google Docs transfer')}</button>
+    <p>{t('Create a new Google Doc using direct Google sign-in or your existing Apps Script connection. Nothing is uploaded automatically.')}</p>
+    <div className="integration-buttons">
+      <button disabled={busy || !status?.encryptionAvailable} onClick={() => run(async () => {
+        setConnecting(true);
+        try {
+          const next = await window.api.googleDocs.connect();
+          setStatus(next);
+          if (next.canceled) return;
+          setConnectionId(next.savedConnectionId);
+          setEndpoint(''); setSecret(''); setCreatedDocument(null);
+          setMessage(t('Google Docs configuration saved.'));
+        } finally { setConnecting(false); }
+      })}>{t('Connect Google account')}</button>
+      {connecting && <button onClick={async () => {
+        try { await window.api.googleDocs.cancelConnect(); }
+        catch (failure) { setError(failure.message); }
+      }}>{t('Cancel Google sign-in')}</button>}
+      <button disabled={busy} onClick={() => setShowSetup(true)}>{t('Set up Google Docs transfer')}</button>
+    </div>
+    {connecting && <p role="status">{t('Complete Google sign-in in your browser, then return to Tagline. No script deployment is needed.')}</p>}
     <label className="setting-row"><span>{t('Google account connection')}</span>
       <select value={connectionId} disabled={busy} data-setting="googleDocsConnection" onChange={(event) => {
         const selected = status?.connections.find((item) => item.id === event.target.value);
@@ -60,12 +79,14 @@ export default function GoogleDocsSettings() {
       }}>
         <option value="">{t('Add a connection / choose an account')}</option>
         {status?.connections.map((item) => <option key={item.id} value={item.id}>
-          {item.account?.email || t('Unverified connection')} — {item.endpoint.split('/').at(-2)}
+          {item.account?.email || t('Unverified connection')} — {item.type === 'oauth' ? t('Google sign-in') : `Apps Script: ${item.endpoint.split('/').at(-2)}`}
         </option>)}
       </select>
     </label>
     {connection?.account && <p>{t('Verified destination: {email}', { email: connection.account.email })}</p>}
+    {connection?.type === 'oauth' && <p>{t('Direct Google sign-in uploads to Google Drive without Apps Script. Authorization is encrypted locally. Disconnect removes local credentials; revoke access in your Google Account to remove the grant.')}</p>}
     {connection && !connection.account && <p role="alert">{t('Update and redeploy the bundled script, then save this connection to verify its Google account before uploading.')}</p>}
+    {connection?.type !== 'oauth' && <>
     <p>{t('Add one webhook connection per Google account. Uploads use the selected deployment account, not the browser account. Saving verifies the account without uploading a document.')}</p>
     <label className="setting-row"><span>{t('Apps Script web app URL')}</span>
       <input type="url" value={endpoint} spellCheck={false} autoComplete="off" data-setting="googleDocsEndpoint"
@@ -99,6 +120,10 @@ export default function GoogleDocsSettings() {
           setSecret('');
           setMessage(t('Google Docs configuration saved.'));
         })}>{t('Save Google Docs connection')}</button>
+    </div>
+    </>}
+    {status && !status.encryptionAvailable && connection?.type === 'oauth' && <p className="error-text" role="alert">{t('OS credential encryption is unavailable.')}</p>}
+    <div className="integration-buttons">
       <button disabled={busy || !connection} onClick={() => run(async () => {
         const next = await window.api.googleDocs.disconnect(connectionId);
         setStatus(next);

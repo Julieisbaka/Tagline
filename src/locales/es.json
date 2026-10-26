@@ -1,4 +1,11 @@
 {
+  "Create a new Google Doc using direct Google sign-in or your existing Apps Script connection. Nothing is uploaded automatically.": "Crea un documento de Google con el inicio de sesión directo de Google o tu conexión existente de Apps Script. Nada se carga automáticamente.",
+  "Connect Google account": "Conectar cuenta de Google",
+  "Cancel Google sign-in": "Cancelar inicio de sesión de Google",
+  "Complete Google sign-in in your browser, then return to Tagline. No script deployment is needed.": "Completa el inicio de sesión de Google en el navegador y vuelve a Tagline. No es necesario implementar ningún script.",
+  "Google sign-in": "Inicio de sesión de Google",
+  "Direct Google sign-in uploads to Google Drive without Apps Script. Authorization is encrypted locally. Disconnect removes local credentials; revoke access in your Google Account to remove the grant.": "El inicio de sesión directo de Google permite cargar a Google Drive sin Apps Script. La autorización se cifra localmente. Desconectar elimina las credenciales locales; revoca el acceso en tu cuenta de Google para retirar el permiso.",
+  "Creates a new Google Doc using the selected Google sign-in or Apps Script connection. Set it up in Settings > Integrations. Pandoc is not required.": "Crea un documento de Google mediante la conexión seleccionada de Google o Apps Script. Configúrala en Ajustes > Integraciones. No requiere Pandoc.",
   "Competitor history": "Historial del participante",
   "Choose an OpenCaselist season and circuit, then look up a team. Codes alone are not verified matches.": "Elige una temporada y circuito de OpenCaselist y busca un equipo. Los códigos por sí solos no verifican la identidad.",
   "Load supported seasons": "Cargar temporadas disponibles",
