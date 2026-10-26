@@ -7,6 +7,7 @@ import { settingsCodeMirrorTheme } from '../../lib/editorExtensions.js';
 import { LANGUAGES, useI18n } from '../../lib/i18n.js';
 import { BUILTIN_THEMES, COLOR_TOKENS, extensionThemes, getTheme, resolveThemeSettings, validateTheme } from '../../lib/themes.js';
 import SettingControl from './SettingControl.jsx';
+import SettingRow from './SettingRow.jsx';
 
 function ThemeOptions({ theme, settings, update }) {
   const { t } = useI18n();
@@ -133,10 +134,10 @@ export default function ThemeSettings({ settings, update }) {
       {!!active.theme?.settings?.length && <ThemeOptions key={`${settings.theme}:${JSON.stringify(active.theme.settings)}`}
         theme={active.theme} settings={settings} update={update} />}
       {active.error && <p role="alert" className="error-text">{active.error}</p>}
-      <label className="setting-row"><span>{t('Fade between themes')}</span>
+      <SettingRow label={t('Fade between themes')} description={t('Blend colors briefly when switching themes. Reduced motion disables this effect.')}>
         <input type="checkbox" data-setting="themeTransition" checked={settings.themeTransition}
           onChange={(event) => update({ themeTransition: event.target.checked })} />
-      </label>
+      </SettingRow>
       <label className="setting-row"><span>{t('Use native UI controls')}</span>
         <input type="checkbox" data-setting="nativeUi" checked={settings.nativeUi}
           onChange={(event) => update({ nativeUi: event.target.checked })} />

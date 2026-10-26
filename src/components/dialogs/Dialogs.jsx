@@ -12,6 +12,7 @@ import KeybindingSettings from '../settings/KeybindingSettings.jsx';
 import OpenCaselistSettings from '../settings/OpenCaselistSettings.jsx';
 import ReadingSettings from '../settings/ReadingSettings.jsx';
 import RibbonSettings from '../settings/RibbonSettings.jsx';
+import SettingRow from '../settings/SettingRow.jsx';
 import ThemeSettings from '../settings/ThemeSettings.jsx';
 import ModalBackdrop from './ModalBackdrop.jsx';
 
@@ -259,25 +260,23 @@ export function SettingsDialog({ settings, update, onClose, extensions, onOpenCa
                 </select>
               </label>
               <p className="settings-help">{t('Speech documents use speech: true in YAML frontmatter. Right-click a Markdown file and choose Set as speech doc to mark it and make it the active destination.')}</p>
-              <label className="setting-row">
-                <span>{t('Default editor')}</span>
+              <SettingRow label={t('Default editor')} description={t('Choose the initial editing mode for Markdown notes.')}>
                 <select value={settings.editorMode} onChange={(e) => update({ editorMode: e.target.value })}>
                   <option value="visual">{t('Visual (Tiptap)')}</option>
                   <option value="edit">{t('Source (CodeMirror)')}</option>
                 </select>
-              </label>
-              <label className="setting-row"><span>{t('Focus new flow rows')}</span>
+              </SettingRow>
+              <SettingRow label={t('Focus new flow rows')} description={t('Move the cursor into a newly added flow row.')}>
                 <input type="checkbox" data-setting="focusNewFlowRow" checked={settings.focusNewFlowRow}
                   onChange={(e) => update({ focusNewFlowRow: e.target.checked })} />
-              </label>
-              <label className="setting-row">
-                <span>{t('Readable line width')}</span>
+              </SettingRow>
+              <SettingRow label={t('Readable line width')} description={t('Limit note text to the content width configured in Editors.')}>
                 <input
                   type="checkbox"
                   checked={settings.readableWidth}
                   onChange={(e) => update({ readableWidth: e.target.checked })}
                 />
-              </label>
+              </SettingRow>
             </section>
             <section data-settings-panel="editors" hidden={section !== 'editors'} className="settings-panel">
               <EditorSettings settings={settings} update={update} />
@@ -289,16 +288,15 @@ export function SettingsDialog({ settings, update, onClose, extensions, onOpenCa
               </label>
               <p className="settings-help">{t('Highlight the focused visual or source note editor. Keyboard focus indicators on other controls remain enabled.')}</p>
               {[
-                ['Reduce motion', 'reduceMotion'],
-                ['Stronger keyboard focus indicators', 'strongFocusIndicators'],
-                ['Larger interface text', 'largerInterfaceText'],
-                ['Larger buttons and click targets', 'largerClickTargets'],
-                ['Always underline links', 'underlineLinks'],
-              ].map(([label, key]) => <label className="setting-row" key={key}>
-                <span>{t(label)}</span>
+                ['Reduce motion', 'reduceMotion', 'Minimize interface animations and transitions.'],
+                ['Stronger keyboard focus indicators', 'strongFocusIndicators', 'Make the keyboard-focused control easier to see.'],
+                ['Larger interface text', 'largerInterfaceText', 'Enlarge application labels and menus without changing the editor font size.'],
+                ['Larger buttons and click targets', 'largerClickTargets', 'Increase the size of controls to make them easier to activate.'],
+                ['Always underline links', 'underlineLinks', 'Keep links underlined so they are recognizable without relying on color.'],
+              ].map(([label, key, description]) => <SettingRow key={key} label={t(label)} description={t(description)}>
                 <input type="checkbox" data-setting={key} checked={settings[key]}
                   onChange={(event) => update({ [key]: event.target.checked })} />
-              </label>)}
+              </SettingRow>)}
               <p className="settings-help">{t('Reduce motion also respects your operating system preference. Larger targets use a minimum of 48 pixels. Stronger focus includes note editors during keyboard navigation.')}</p>
             </section>
             <section data-settings-panel="appearance" hidden={section !== 'appearance'} className="settings-panel">
