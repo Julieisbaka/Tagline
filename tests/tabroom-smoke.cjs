@@ -26,17 +26,24 @@ fs.mkdirSync(vault);
 fs.writeFileSync(path.join(vault, 'Keep.md'), '# Test');
 fs.writeFileSync(path.join(profile, 'config.json'), JSON.stringify({ lastVault: vault, modelAutoload: false }));
 app.setPath('userData', profile);
-const backup = { id: 123, name: '<img src=x onerror=window.attacked=true>', city: 'Test City',
-  categories: [{ name: 'Policy',
+const backup = {
+  id: 123, name: '<img src=x onerror=window.attacked=true>', city: 'Test City',
+  categories: [{
+    name: 'Policy',
     judges: Array.from({ length: 51 }, (_, i) => ({ id: i + 1, first: 'Judge', last: String(i), school: 10 })),
-    events: [{ id: 30, name: 'Policy', entries: [
-      { id: 20, school: 10, name: 'Example AB', code: 'EX AB', students: [
-        { id: 101, first: 'Alice', last: 'Able' }, { id: 102, first: 'Bob', last: 'Baker' },
-      ] },
-      { id: 21, school: 10, name: 'Placeholder', code: ' tba ' },
-    ] }],
+    events: [{
+      id: 30, name: 'Policy', entries: [
+        {
+          id: 20, school: 10, name: 'Example AB', code: 'EX AB', students: [
+            { id: 101, first: 'Alice', last: 'Able' }, { id: 102, first: 'Bob', last: 'Baker' },
+          ]
+        },
+        { id: 21, school: 10, name: 'Placeholder', code: ' tba ' },
+      ]
+    }],
   }],
-  schools: [{ id: 10, name: 'Example School', code: 'EX', chapter: 100 }], description: 'x'.repeat(45000) };
+  schools: [{ id: 10, name: 'Example School', code: 'EX', chapter: 100 }], description: 'x'.repeat(45000)
+};
 const raw = JSON.stringify(backup) + '\n';
 const rawPages = Math.ceil(JSON.stringify(backup, null, 2).length / 20000);
 const destination = path.join(root, 'tournament.json');
@@ -44,6 +51,7 @@ let requests = 0;
 let loginWindows = 0;
 let wikiRequests = 0;
 let wikiMode = 'verified';
+let includePreviousSeason = true;
 const fromPartition = session.fromPartition.bind(session);
 session.fromPartition = (name, ...args) => {
   const isolated = fromPartition(name, ...args);
@@ -71,7 +79,7 @@ session.fromPartition = (name, ...args) => {
         ...(wikiMode === 'verified' ? { debater1_student_id: 101, debater2_student_id: 102 } : {}),
       }] : url.endsWith('/schools') ? [{ name: 'ExampleSchool', display_name: 'Example School', chapter_id: 100 }]
         : [{ name: 'ndt2026', display_name: 'College Policy 2026', year: 2026, event: 'cx' },
-          { name: 'ndt2025', display_name: 'College Policy 2025', year: 2025, archived: true, event: 'cx' }];
+        ...(includePreviousSeason ? [{ name: 'ndt2025', display_name: 'College Policy 2025', year: 2025, archived: true, event: 'cx' }] : [])];
       return new Response(JSON.stringify(value));
     };
   }
@@ -161,7 +169,7 @@ app.on('browser-window-created', (_event, win) => {
           const select=document.querySelector('.tabroom-caselist select');
           select.value=${JSON.stringify(value)}; select.dispatchEvent(new Event('change',{bubbles:true}));
         })()`);
-        await wait("!!document.querySelector('.tabroom-table')");
+        await wait("!!document.querySelector('.tabroom-result section[aria-label=\"Teams\"][aria-busy=\"false\"]')");
       };
       await selectSeason('ndt2026');
       await click('Find on OpenCaselist');
@@ -170,6 +178,7 @@ app.on('browser-window-created', (_event, win) => {
       await js("document.querySelector('.tabroom-match a').click()");
       wikiMode = 'candidate';
       await selectSeason('ndt2025');
+      assert.equal(await js("JSON.parse(localStorage.getItem('tagline-tabroom-caselist'))"), 'ndt2025');
       assert.equal(await js("!!document.querySelector('.tabroom-match')"), false, 'Season change clears stale matches');
       await click('Find on OpenCaselist');
       await wait("document.querySelector('.tabroom-match')?.textContent.includes('Possible match')");
@@ -247,6 +256,20 @@ app.on('browser-window-created', (_event, win) => {
       assert.deepEqual(await js('window.api.tabroom.status()'), { hasSession: true });
       await click('Load tournament');
       await wait("!!document.querySelector('.tabroom-summary')");
+      await click('Teams', '.tabroom-views');
+      await click('Load supported seasons');
+      await wait("document.querySelector('.tabroom-caselist select').value==='ndt2025'");
+      includePreviousSeason = false;
+      await click('Load supported seasons');
+      await wait("document.querySelector('.tabroom-caselist select').options.length===2");
+      assert.equal(await js("document.querySelector('.tabroom-caselist select').value"), '', 'Unavailable previous season is not selected');
+      includePreviousSeason = true;
+      await click('Load supported seasons');
+      await wait("document.querySelector('.tabroom-caselist select').value==='ndt2025'");
+      await selectSeason('');
+      await click('Load supported seasons');
+      await wait("!document.querySelector('.tabroom-caselist select').disabled");
+      assert.equal(await js("document.querySelector('.tabroom-caselist select').value"), '', 'Explicitly cleared preference stays cleared');
       await click('Judges', '.tabroom-views');
       await wait("document.querySelector('.tabroom-result').textContent.includes('Not provided in this snapshot')");
       await click('Schools', '.tabroom-views');

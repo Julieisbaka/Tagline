@@ -1,5 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { useI18n } from '../../lib/i18n.js';
+import { readStoredJson } from '../../lib/storedJson.js';
+
+const SEASON_KEY = 'tagline-tabroom-caselist';
 
 const views = [
   ['overview', 'Overview'], ['judges', 'Judges'], ['teams', 'Teams'],
@@ -70,7 +73,11 @@ function CaselistSeason({ value, onChange, disabled }) {
       setSignedIn(status.signedIn);
       if (!status.signedIn) throw new Error(t('Sign in to OpenCaselist to load supported seasons.'));
       const seasons = await window.api.openCaselist.list('caselists');
-      if (active.current) { setItems(seasons); setLoaded(true); }
+      if (active.current) {
+        const previous = readStoredJson(SEASON_KEY, '', (value) => typeof value === 'string' && value.length <= 255);
+        setItems(seasons); setLoaded(true);
+        onChange(seasons.some((item) => item.name === previous) ? previous : '');
+      }
     } catch (error) {
       if (active.current) setError(error.message);
     } finally { if (active.current) setLoading(false); }
@@ -82,7 +89,13 @@ function CaselistSeason({ value, onChange, disabled }) {
       {!signedIn && <button disabled={disabled || loading} onClick={() => load(true)}>{t('Sign in to OpenCaselist')}</button>}
     </div>
     <label className="tabroom-field tabroom-filter"><span>{t('OpenCaselist season and circuit')}</span>
-      <select value={value} disabled={disabled || loading || !items.length} onChange={(event) => onChange(event.target.value)}>
+      <select value={value} disabled={disabled || loading || !items.length} onChange={(event) => {
+        const selected = event.target.value;
+        onChange(selected);
+        setError('');
+        try { localStorage.setItem(SEASON_KEY, JSON.stringify(selected)); }
+        catch (error) { setError(error.message); }
+      }}>
         <option value="">{t('Select a season and circuit')}</option>
         {items.map((item) => <option key={item.name} value={item.name}>
           {item.display_name || item.name}{item.archived ? ` (${t('Archived')})` : ''}
