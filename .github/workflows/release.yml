@@ -107,6 +107,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+      pull-requests: read
     steps:
       - uses: actions/checkout@v4
         with:
@@ -160,28 +161,85 @@ jobs:
                 throw error;
               }
             });
-            const range = previous ? `refs/tags/${previous.tag_name}..${context.sha}` : context.sha;
-            const commits = execFileSync('git', ['log', '--reverse', '--format=%H%x00%s', range, '--'], {
-              encoding: 'utf8',
-            }).trim().split('\n').filter(Boolean).map(line => {
-              const [sha, subject] = line.split('\0');
-              const title = subject.replace(/[\\`*_[\]<>]/g, '\\$&');
-              return `* ${title} ([${sha.slice(0, 7)}](https://github.com/${context.repo.owner}/${context.repo.repo}/commit/${sha}))`;
-            });
             const { data: notes } = await github.rest.repos.generateReleaseNotes({
               ...context.repo, tag_name: tag, target_commitish: context.sha,
               ...(previous ? { previous_tag_name: previous.tag_name } : {}),
             });
+            const range = previous ? `refs/tags/${previous.tag_name}..${context.sha}` : context.sha;
+            const log = (...args) => execFileSync('git', ['log', ...args, '--'], {
+              encoding: 'utf8',
+            }).trim().split('\n').filter(Boolean);
+            const records = log('--reverse', '--no-merges', '--format=%H%x00%s%x00%aE', range)
+              .map(line => {
+                const [sha, subject, email] = line.split('\0');
+                return { sha, subject, email: email.toLowerCase() };
+              });
+            const marker = '<!-- tagline-release-commits -->';
+            const retainedNotes = release?.body?.split(marker)[0] || notes.body;
+            const representedPulls = new Set([...retainedNotes.matchAll(/https:\/\/github\.com\/([^/\s]+)\/([^/\s]+)\/pull\/(\d+)/g)]
+              .filter(([, owner, repo]) => owner.toLowerCase() === context.repo.owner.toLowerCase() &&
+                repo.toLowerCase() === context.repo.repo.toLowerCase()).map(match => Number(match[3])));
+            const associations = new Map();
+            const pullsFor = async sha => {
+              if (!associations.has(sha)) associations.set(sha,
+                await github.paginate(github.rest.repos.listPullRequestsAssociatedWithCommit, {
+                  ...context.repo, commit_sha: sha, per_page: 100,
+                }));
+              return associations.get(sha);
+            };
+            const direct = [];
+            for (const record of records) {
+              if (/^(?:test|refactor)(?:\([^)]*\))?!?:/i.test(record.subject) ||
+                /^Merge (?:pull request|branch|remote-tracking branch|tag)\b/i.test(record.subject)) continue;
+              const pulls = await pullsFor(record.sha);
+              if (pulls.some(pull => pull.merged_at && representedPulls.has(pull.number))) continue;
+              direct.push(record);
+            }
+            const commitLimit = 20;
+            const commits = direct.slice(-commitLimit).map(({ sha, subject }) => {
+              const title = subject.replace(/[\\`*_[\]<>]/g, '\\$&');
+              return `* ${title} ([${sha.slice(0, 7)}](https://github.com/${context.repo.owner}/${context.repo.repo}/commit/${sha}))`;
+            });
+            const comparison = previous
+              ? `https://github.com/${context.repo.owner}/${context.repo.repo}/compare/${encodeURIComponent(previous.tag_name)}...${context.sha}`
+              : `https://github.com/${context.repo.owner}/${context.repo.repo}/commits/${context.sha}`;
+            if (direct.length > commitLimit) commits.push(
+              `\nShowing the latest ${commitLimit} of ${direct.length} direct commits. [View full history](${comparison}).`);
+            const oldEmails = new Set(previous
+              ? log('--format=%aE', `refs/tags/${previous.tag_name}`).map(email => email.toLowerCase()) : []);
+            const contributors = new Map();
+            for (const record of records) {
+              if (oldEmails.has(record.email)) continue;
+              oldEmails.add(record.email);
+              const { data: commit } = await github.rest.repos.getCommit({ ...context.repo, ref: record.sha });
+              const author = commit.author;
+              if (!author || author.type === 'Bot' || /\[bot\]$/i.test(author.login) ||
+                contributors.has(author.login.toLowerCase())) continue;
+              if (previous) {
+                const { data: earlier } = await github.rest.repos.listCommits({
+                  ...context.repo, sha: `refs/tags/${previous.tag_name}`, author: author.login, per_page: 1,
+                });
+                if (earlier.length) continue;
+              }
+              const pull = (await pullsFor(record.sha)).find(pull => pull.merged_at &&
+                pull.user?.login.toLowerCase() === author.login.toLowerCase() && representedPulls.has(pull.number));
+              const link = pull
+                ? `https://github.com/${context.repo.owner}/${context.repo.repo}/pull/${pull.number}`
+                : `https://github.com/${context.repo.owner}/${context.repo.repo}/commit/${record.sha}`;
+              contributors.set(author.login.toLowerCase(), `* @${author.login} made their first contribution in ${link}`);
+            }
+            const withoutContributors = text => text.replace(
+              /^## New Contributors[^\n]*\n[\s\S]*?(?=^## |^\*\*Full Changelog\*\*|(?![\s\S]))/gim, '').trimEnd();
             const introduction = 'Unsigned builds: Windows and macOS may show security warnings.\n\n' +
               'To update, open Settings > Installation in Tagline, check for updates, and download the matching installer. ' +
               'On Windows, choose Install update and restart; on macOS, open the downloaded DMG and replace Tagline in Applications. ' +
               'Settings, vaults, and revision history are retained. Checks and downloads are user-initiated.\n\n' +
-              notes.body;
-            const marker = '<!-- tagline-release-commits -->';
+              withoutContributors(notes.body);
             const existingNotes = release?.body || introduction;
-            const body = existingNotes.split(marker)[0].trimEnd() +
+            const body = withoutContributors(existingNotes.split(marker)[0]) +
               `\n\n${marker}\n\n## What's changed - commits\n\n` +
-              (commits.join('\n') || 'No new commits.') + '\n';
+              (commits.join('\n') || 'No additional direct commits.') +
+              (contributors.size ? `\n\n## New Contributors\n\n${[...contributors.values()].join('\n')}` : '') + '\n';
             if (!release) {
               ({ data: release } = await github.rest.repos.createRelease({
                 ...context.repo, tag_name: tag, target_commitish: context.sha,
