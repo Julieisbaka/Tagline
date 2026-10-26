@@ -3,6 +3,7 @@ const path = require('node:path');
 const crypto = require('node:crypto');
 const { promisify } = require('node:util');
 const defaults = require('../src/lib/defaultSettings.json');
+const { resolveCaselistTeam } = require('./tabroomCaselist.cjs');
 
 const pbkdf2 = promisify(crypto.pbkdf2);
 const PASSWORD_ITERATIONS = 600000;
@@ -257,6 +258,21 @@ function createOpenCaselist({ session, BrowserWindow, dialog, getWindow, getVaul
       throw new Error('OpenCaselist returned invalid search results.');
     return result;
   };
+  const resolveTabroomTeam = async (caselist, team) => {
+    const started = generation;
+    const result = await resolveCaselistTeam({ caselist, team, list: async (...args) => {
+      if (generation !== started) throw new Error('OpenCaselist session changed. Try again.');
+      return list(...args);
+    } });
+    if (generation !== started) throw new Error('OpenCaselist session changed. Try again.');
+    return {
+      ...result,
+      candidates: result.candidates.map((candidate) => ({
+        ...candidate,
+        url: `${ORIGIN}/${segment(candidate.selection.caselist)}/${segment(candidate.selection.school)}/${segment(candidate.selection.team)}`,
+      })),
+    };
+  };
   const confirm = async (message, detail) => {
     const result = await dialog.showMessageBox(getWindow(), {
       type: 'warning', message, detail, buttons: ['Cancel', 'Publish change'], defaultId: 0, cancelId: 0, noLink: true,
@@ -335,7 +351,7 @@ function createOpenCaselist({ session, BrowserWindow, dialog, getWindow, getVaul
     await fs.writeFile(target, bytes, { flag: 'wx' });
     return { path: relative.split(path.sep).join('/') };
   };
-  return { status, login, logout, list, search, write, upload, download, writePasswordStatus, verifyWritePassword, configureWritePassword };
+  return { status, login, logout, list, search, resolveTabroomTeam, write, upload, download, writePasswordStatus, verifyWritePassword, configureWritePassword };
 }
 
 function registerOpenCaselist({ ipcMain, session, BrowserWindow, dialog, getWindow, getVaultRoot, readConfig, writeConfig }) {
@@ -351,7 +367,7 @@ function registerOpenCaselist({ ipcMain, session, BrowserWindow, dialog, getWind
     }
     return service;
   };
-  for (const action of ['status', 'login', 'logout', 'list', 'search', 'write', 'upload', 'download',
+  for (const action of ['status', 'login', 'logout', 'list', 'search', 'resolveTabroomTeam', 'write', 'upload', 'download',
     'writePasswordStatus', 'verifyWritePassword', 'configureWritePassword']) {
     ipcMain.handle(`opencaselist:${action}`, (event, ...args) => {
       if (event.sender !== getWindow()?.webContents || event.senderFrame !== event.sender.mainFrame)

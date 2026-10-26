@@ -14,7 +14,9 @@ if (!process.versions.electron) {
   return;
 }
 
-const { app, BrowserWindow, session, dialog } = require('electron');
+const { app, BrowserWindow, session, dialog, shell } = require('electron');
+const openedUrls = [];
+shell.openExternal = async (url) => { openedUrls.push(url); };
 const root = process.env.TAGLINE_TABROOM_ROOT;
 assert.ok(root, 'Run through Node after building.');
 const profile = path.join(root, 'profile');
@@ -24,12 +26,24 @@ fs.mkdirSync(vault);
 fs.writeFileSync(path.join(vault, 'Keep.md'), '# Test');
 fs.writeFileSync(path.join(profile, 'config.json'), JSON.stringify({ lastVault: vault, modelAutoload: false }));
 app.setPath('userData', profile);
-const backup = { id: 123, name: '<img src=x onerror=window.attacked=true>', events: [{ name: 'Policy' }],
-  schools: [], description: 'x'.repeat(45000) };
+const backup = { id: 123, name: '<img src=x onerror=window.attacked=true>', city: 'Test City',
+  categories: [{ name: 'Policy',
+    judges: Array.from({ length: 51 }, (_, i) => ({ id: i + 1, first: 'Judge', last: String(i), school: 10 })),
+    events: [{ id: 30, name: 'Policy', entries: [
+      { id: 20, school: 10, name: 'Example AB', code: 'EX AB', students: [
+        { id: 101, first: 'Alice', last: 'Able' }, { id: 102, first: 'Bob', last: 'Baker' },
+      ] },
+      { id: 21, school: 10, name: 'Placeholder', code: ' tba ' },
+    ] }],
+  }],
+  schools: [{ id: 10, name: 'Example School', code: 'EX', chapter: 100 }], description: 'x'.repeat(45000) };
 const raw = JSON.stringify(backup) + '\n';
+const rawPages = Math.ceil(JSON.stringify(backup, null, 2).length / 20000);
 const destination = path.join(root, 'tournament.json');
 let requests = 0;
 let loginWindows = 0;
+let wikiRequests = 0;
+let wikiMode = 'verified';
 const fromPartition = session.fromPartition.bind(session);
 session.fromPartition = (name, ...args) => {
   const isolated = fromPartition(name, ...args);
@@ -38,8 +52,27 @@ session.fromPartition = (name, ...args) => {
     assert.equal(url, 'https://www.tabroom.com/api/download_data.mhtml?tourn_id=123');
     assert.equal(options.credentials, 'include');
     if (requests === 2) return new Response('<html>Unavailable</html>');
+    if (requests === 3) return new Response(JSON.stringify({
+      id: 123, name: 'Restricted snapshot', schools: [], categories: [{ name: 'Policy' }],
+    }));
     return new Response(raw);
   };
+  if (name === 'persist:opencaselist') {
+    isolated.cookies.get = async () => [{ name: 'caselist_token', value: 'mock-cookie', expirationDate: Date.now() / 1000 + 1000 }];
+    isolated.fetch = async (url, options) => {
+      wikiRequests++;
+      assert.equal(options.method, 'GET');
+      if (wikiMode === 'error') return new Response('{}', { status: 403 });
+      const value = url.endsWith('/teams') ? [{
+        name: 'AbBa', display_name: 'Example School AbBa',
+        debater1_first: 'Alice', debater1_last: 'Able', debater2_first: 'Bob', debater2_last: 'Baker',
+        ...(wikiMode === 'verified' ? { debater1_student_id: 101, debater2_student_id: 102 } : {}),
+      }] : url.endsWith('/schools') ? [{ name: 'ExampleSchool', display_name: 'Example School', chapter_id: 100 }]
+        : [{ name: 'ndt2026', display_name: 'College Policy 2026', year: 2026 },
+          { name: 'ndt2025', display_name: 'College Policy 2025', year: 2025, archived: true }];
+      return new Response(JSON.stringify(value));
+    };
+  }
   return isolated;
 };
 dialog.showSaveDialog = async () => ({ canceled: false, filePath: destination });
@@ -89,45 +122,110 @@ app.on('browser-window-created', (_event, win) => {
       await wait("!!document.querySelector('.tabroom-dialog')");
       await input('123');
       await click('Load tournament');
-      await wait("!!document.querySelector('.tabroom-json')");
+      await wait("!!document.querySelector('.tabroom-summary')");
       assert.equal(await js("document.querySelector('.tabroom-dialog h4').textContent"), backup.name);
       assert.equal(await js("!!window.attacked || !!document.querySelector('.tabroom-dialog img')"), false);
+      assert.equal(await js("!!document.querySelector('.tabroom-json')"), false, 'Structured overview is the default');
+      assert.equal(await js("document.querySelector('.tabroom-metadata').textContent.includes('Test City')"), true);
+      await click('Judges', '.tabroom-views');
+      await wait("document.querySelectorAll('.tabroom-table tbody tr').length===50");
+      assert.equal(await js("document.querySelector('.tabroom-table').textContent.includes('Example School')"), true);
+      await click('Next');
+      await wait("document.querySelectorAll('.tabroom-table tbody tr').length===1");
+      await js(`(() => {
+        const input=document.querySelector('.tabroom-filter input');
+        Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value').set.call(input,'Judge 10');
+        input.dispatchEvent(new Event('input',{bubbles:true}));
+      })()`);
+      await wait("document.querySelectorAll('.tabroom-table tbody tr').length===1&&document.querySelector('.tabroom-table').textContent.includes('Judge 10')");
+      await click('Teams', '.tabroom-views');
+      await wait("document.querySelector('.tabroom-table')?.textContent.includes('Example AB')");
+      assert.equal(await js("document.querySelectorAll('.tabroom-table tbody tr').length"), 1);
+      assert.equal(wikiRequests, 0, 'No automatic OpenCaselist requests');
+      assert.equal(await js("!!document.querySelector('.tabroom-result a[href*=opencaselist]')"), false);
+      assert.equal(await js("document.querySelector('.tabroom-table a').href"),
+        'https://www.tabroom.com/index/tourn/postings/entry_record.mhtml?tourn_id=123&entry_id=20');
+      assert.equal(await js("document.querySelector('.tabroom-table a[href*=id1]').href"),
+        'https://www.tabroom.com/index/results/team_lifetime_record.mhtml?id1=101');
+      await js("document.querySelector('.tabroom-table a').click()");
+      await js("document.querySelector('.tabroom-table a[href*=id1]').click()");
+      await wait("!document.querySelector('.tabroom-result [role=alert]')");
+      await click('Load supported seasons');
+      await wait("document.querySelector('.tabroom-caselist select').options.length===3");
+      assert.equal(await js("document.querySelector('.tabroom-caselist select').value"), '');
+      assert.equal(await js("[...document.querySelectorAll('.tabroom-table button')].find(b=>b.textContent==='Find on OpenCaselist').disabled"), true);
+      const selectSeason = async (value) => {
+        await js(`(() => {
+          const select=document.querySelector('.tabroom-caselist select');
+          select.value=${JSON.stringify(value)}; select.dispatchEvent(new Event('change',{bubbles:true}));
+        })()`);
+        await wait("!!document.querySelector('.tabroom-table')");
+      };
+      await selectSeason('ndt2026');
+      await click('Find on OpenCaselist');
+      await wait("document.querySelector('.tabroom-match')?.textContent.includes('Verified match')");
+      assert.equal(await js("document.querySelector('.tabroom-match a').href"), 'https://opencaselist.com/ndt2026/ExampleSchool/AbBa');
+      await js("document.querySelector('.tabroom-match a').click()");
+      wikiMode = 'candidate';
+      await selectSeason('ndt2025');
+      assert.equal(await js("!!document.querySelector('.tabroom-match')"), false, 'Season change clears stale matches');
+      await click('Find on OpenCaselist');
+      await wait("document.querySelector('.tabroom-match')?.textContent.includes('Possible match')");
+      wikiMode = 'error';
+      await click('Find on OpenCaselist');
+      await wait("document.querySelector('.tabroom-result [role=alert]')?.textContent.includes('denied')");
+      assert.deepEqual(openedUrls, [
+        'https://www.tabroom.com/index/tourn/postings/entry_record.mhtml?tourn_id=123&entry_id=20',
+        'https://www.tabroom.com/index/results/team_lifetime_record.mhtml?id1=101',
+        'https://opencaselist.com/ndt2026/ExampleSchool/AbBa',
+      ]);
+      wikiMode = 'verified';
+      await click('Raw JSON', '.tabroom-views');
+      await wait("!!document.querySelector('.tabroom-json')");
       const originalSize = win.getSize();
       for (const [width, height] of [[1100, 850], [700, 600], [420, 650]]) {
         win.setMinimumSize(320, 400);
         win.setSize(width, height);
         await new Promise((resolve) => setTimeout(resolve, 200));
-        const layout = await js(`(() => {
-          const dialog = document.querySelector('.tabroom-dialog');
-          const bounds = dialog.getBoundingClientRect();
-          const header = dialog.querySelector('header').getBoundingClientRect();
-          const close = dialog.querySelector('header button').getBoundingClientRect();
-          const preview = dialog.querySelector('.tabroom-json');
-          const elements = [...dialog.querySelectorAll('button, input, pre')];
-          return {
-            fits: bounds.top >= 0 && bounds.bottom <= innerHeight && bounds.left >= 0 && bounds.right <= innerWidth,
-            noHorizontalOverflow: dialog.scrollWidth <= dialog.clientWidth + 1,
-            controlsFit: elements.every(element => {
-              const rect = element.getBoundingClientRect();
-              return rect.width > 0 && rect.left >= bounds.left && rect.right <= bounds.right;
-            }),
-            headerHeight: header.height,
-            closeOnRight: close.right >= bounds.right - 32,
-            previewHeight: preview.clientHeight,
-          };
-        })()`);
-        assert.equal(layout.fits, true, `dialog fits ${width}x${height}: ${JSON.stringify(layout)}`);
-        assert.equal(layout.noHorizontalOverflow, true, `no horizontal overflow at ${width}px`);
-        assert.equal(layout.controlsFit, true, `controls fit at ${width}px`);
-        assert.equal(layout.closeOnRight, true, `close button aligned at ${width}px`);
-        assert.ok(layout.headerHeight >= 28, `header does not shrink at ${width}px`);
-        assert.ok(layout.previewHeight >= 120, `readable JSON at ${width}px`);
+        for (const view of ['Overview', 'Teams', 'Raw JSON']) {
+          await click(view, '.tabroom-views');
+          if (view === 'Teams') await wait("!!document.querySelector('.tabroom-table')");
+          if (view === 'Teams') assert.equal(await js("document.querySelector('.tabroom-caselist select').value"), 'ndt2025');
+          const layout = await js(`(() => {
+            const dialog = document.querySelector('.tabroom-dialog');
+            const bounds = dialog.getBoundingClientRect();
+            const header = dialog.querySelector('header').getBoundingClientRect();
+            const close = dialog.querySelector('header button').getBoundingClientRect();
+            const preview = dialog.querySelector('.tabroom-json');
+            const elements = [...dialog.querySelectorAll('button, input, select, pre')]
+              .filter(element => !element.closest('.tabroom-table-scroll') && !element.closest('[hidden]'));
+            return {
+              fits: bounds.top >= 0 && bounds.bottom <= innerHeight && bounds.left >= 0 && bounds.right <= innerWidth,
+              noHorizontalOverflow: dialog.scrollWidth <= dialog.clientWidth + 1,
+              bodyFits: dialog.querySelector('.tabroom-body').scrollWidth <= dialog.querySelector('.tabroom-body').clientWidth + 1,
+              controlsFit: elements.every(element => {
+                const rect = element.getBoundingClientRect();
+                return rect.width > 0 && rect.left >= bounds.left && rect.right <= bounds.right;
+              }),
+              headerHeight: header.height,
+              closeOnRight: close.right >= bounds.right - 32,
+              previewHeight: preview?.clientHeight,
+            };
+          })()`);
+          assert.equal(layout.fits, true, `${view} dialog fits ${width}x${height}: ${JSON.stringify(layout)}`);
+          assert.equal(layout.noHorizontalOverflow, true, `${view}: no horizontal overflow at ${width}px`);
+          assert.equal(layout.bodyFits, true, `${view}: body has no horizontal overflow at ${width}px`);
+          assert.equal(layout.controlsFit, true, `${view}: controls fit at ${width}px`);
+          assert.equal(layout.closeOnRight, true, `close button aligned at ${width}px`);
+          assert.ok(layout.headerHeight >= 28, `header does not shrink at ${width}px`);
+          if (view === 'Raw JSON') assert.ok(layout.previewHeight >= 120, `readable JSON at ${width}px`);
+        }
       }
       win.setSize(...originalSize);
       await click('Next');
-      await wait("document.querySelector('.tabroom-dialog').textContent.includes('Page 2 of 3')");
+      await wait(`document.querySelector('.tabroom-dialog').textContent.includes('Page 2 of ${rawPages}')`);
       await click('Previous');
-      await wait("document.querySelector('.tabroom-dialog').textContent.includes('Page 1 of 3')");
+      await wait(`document.querySelector('.tabroom-dialog').textContent.includes('Page 1 of ${rawPages}')`);
       await click('Save tournament JSON');
       await wait("document.querySelector('.tabroom-dialog').textContent.includes('Saved tournament JSON:')");
       assert.equal(fs.readFileSync(destination, 'utf8'), raw);
@@ -140,14 +238,18 @@ app.on('browser-window-created', (_event, win) => {
       assert.equal(loginWindows, 1);
       assert.deepEqual(await js('window.api.tabroom.status()'), { hasSession: true });
       await click('Load tournament');
-      await wait("!!document.querySelector('.tabroom-json')");
+      await wait("!!document.querySelector('.tabroom-summary')");
+      await click('Judges', '.tabroom-views');
+      await wait("document.querySelector('.tabroom-result').textContent.includes('Not provided in this snapshot')");
+      await click('Schools', '.tabroom-views');
+      await wait("document.querySelector('.tabroom-result').textContent.includes('No records in the provided data.')");
       await click('Clear Tabroom session');
       await wait("document.querySelector('.tabroom-dialog').textContent.includes('No Tabroom browser session saved')");
-      assert.equal(await js("!!document.querySelector('.tabroom-json')"), false);
+      assert.equal(await js("!!document.querySelector('.tabroom-result')"), false);
       assert.deepEqual(await js('window.api.tabroom.status()'), { hasSession: false });
       await click('Close');
       await wait("!document.querySelector('.tabroom-dialog')");
-      console.log('PASS Tabroom UI: settings entry, public fetch, safe JSON, paging, exact export, errors, isolated login and session clearing.');
+      console.log('PASS Tabroom UI: structured overview, nested records, filtering, table/raw paging, responsive views, safe JSON, exact export, errors and isolated login.');
       app.exit(0);
     } catch (error) { console.error(error); app.exit(1); }
   });

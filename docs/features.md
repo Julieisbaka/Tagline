@@ -86,12 +86,30 @@ exposes session cookies to the renderer or extensions. A saved browser session
 does not prove that you are signed in or have access to a tournament.
 Tabroom decides which additional data your account may receive.
 
-The read-only viewer shows tournament metadata, collection counts, and paged
-JSON. **Save tournament JSON** exports the exact downloaded backup through the
+The read-only viewer opens with a tournament overview and collection counts.
+Judges, teams, schools, and events have filterable tables with 50 records per
+page, including records nested inside categories and schools. Missing data is
+marked **Not provided**, not treated as empty. Unsupported fields produce a
+warning without blocking raw inspection or backup export. **Raw JSON** retains
+the paged data view. **Save tournament JSON** exports the exact backup through the
 system save dialog, without another network request. Responses are limited to
 32 MiB. Backups can contain personal or restricted data; store and share them
 carefully. **Clear Tabroom session** removes this integration's stored browser
 session and loaded data, without affecting other integrations.
+
+In Teams, **Load supported seasons** reads OpenCaselist's available caselists
+using your existing OpenCaselist login. Select a season and circuit explicitly,
+then use **Find on OpenCaselist** for a team. No cross-service lookup happens
+automatically when a tournament loads. Shared chapter and complete student IDs
+can verify a match; name/code-only candidates and ambiguous results are labeled
+as requiring identity verification. Links use real returned slugs, not guessed
+URLs.
+
+Team names link to Tabroom tournament entry records; competitor names link to
+lifetime records when student IDs are available. These open in your default
+browser and may require a separate Tabroom login. Missing IDs are not guessed.
+Entries with a trimmed team code of `TBA` (case-insensitive) are excluded from
+structured team counts, tables, and matching, but remain in raw JSON and exports.
 
 ## Search and citations
 

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useI18n } from '../../lib/i18n.js';
 import ModalBackdrop from './ModalBackdrop.jsx';
+import TabroomTournament from './TabroomTournament.jsx';
 
 const api = window.api.tabroom;
 
@@ -80,20 +81,20 @@ export default function TabroomDialog({ onClose }) {
       {message && <p role="status">{message}</p>}
       {tournament && <section className="tabroom-result" aria-label={t('Tournament data')}>
         <h4>{tournament.name || t('Tournament {id}', { id: tournament.id })}</h4>
-        {(tournament.start || tournament.end) && <p>{tournament.start} - {tournament.end}</p>}
         <p>{t('Only data returned by Tabroom is shown. Missing information may be private or unavailable.')}</p>
-        <ul className="tabroom-sections">{tournament.sections.map(({ name, count }) => <li key={name}>{name}: {count}</li>)}</ul>
         <button disabled={busy} onClick={() => run(async () => {
           const result = await api.download(tournament.id);
           if (!result.cancelled && active.current) setMessage(t('Saved tournament JSON: {path}', { path: result.path }));
         })}>{t('Save tournament JSON')}</button>
         <p>{t('Backups can contain personal or private tournament data. Store and share them carefully.')}</p>
-        <div className="integration-buttons tabroom-pagination">
-          <button disabled={busy || page === 0} onClick={() => changePage(page - 1)}>{t('Previous')}</button>
-          <span role="status">{t('Page {page} of {pages}', { page: page + 1, pages: tournament.pages })}</span>
-          <button disabled={busy || page + 1 >= tournament.pages} onClick={() => changePage(page + 1)}>{t('Next')}</button>
-        </div>
-        <pre className="tabroom-json" tabIndex={0} aria-label={t('Tournament JSON')}>{preview}</pre>
+        <TabroomTournament key={tournament.id} tournament={tournament} busy={busy} raw={<>
+          <div className="integration-buttons tabroom-pagination">
+            <button disabled={busy || page === 0} onClick={() => changePage(page - 1)}>{t('Previous')}</button>
+            <span role="status">{t('Page {page} of {pages}', { page: page + 1, pages: tournament.pages })}</span>
+            <button disabled={busy || page + 1 >= tournament.pages} onClick={() => changePage(page + 1)}>{t('Next')}</button>
+          </div>
+          <pre className="tabroom-json" tabIndex={0} aria-label={t('Tournament JSON')}>{preview}</pre>
+        </>} />
       </section>}
       </div>
     </div>

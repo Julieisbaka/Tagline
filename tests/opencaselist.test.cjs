@@ -5,6 +5,7 @@ const fs = require('node:fs/promises');
 const path = require('node:path');
 const os = require('node:os');
 const { createOpenCaselist, registerOpenCaselist, teamRoute, roundData, responseBytes, PARTITION } = require('../electron/opencaselist.cjs');
+const { resolveCaselistTeam } = require('../electron/tabroomCaselist.cjs');
 
 const selection = { caselist: 'ndt2026', school: 'School', team: 'AB' };
 const round = { tournament: 'Tournament', side: 'A', round: '1', opponent: 'Other school', report: 'Report' };
@@ -42,6 +43,101 @@ async function temporary(t) {
   t.after(() => fs.rm(dir, { recursive: true, force: true }));
   return dir;
 }
+
+const tabroomTeam = {
+  chapter: '100', school: 'Example School', schoolCode: 'EX', name: 'Example School AB', code: 'EX AB',
+  students: [{ id: '10', first: 'Alice', last: 'Able' }, { id: '11', first: 'Bob', last: 'Baker' }],
+};
+const wikiSchool = { name: 'ExampleSchool', display_name: 'Example School', chapter_id: 100 };
+const wikiTeam = { name: 'AB', display_name: 'Example School AB',
+  debater1_student_id: 11, debater2_student_id: 10,
+  debater1_first: 'Bob', debater1_last: 'Baker', debater2_first: 'Alice', debater2_last: 'Able' };
+const resolveTeam = (team = tabroomTeam, schools = [wikiSchool], teams = [wikiTeam]) =>
+  resolveCaselistTeam({ caselist: 'ndt2026', team, list: async (kind) =>
+    kind === 'caselists' ? [{ name: 'ndt2026' }] : kind === 'schools' ? schools : teams });
+
+test('Tabroom matching verifies shared chapter and complete student IDs, independent of team code and roster order', async () => {
+  const result = await resolveTeam({ ...tabroomTeam, name: 'Different tournament name', code: '999' });
+  assert.equal(result.status, 'matched');
+  assert.equal(result.reason, 'chapter-and-student-ids');
+  assert.deepEqual(result.candidates[0].selection, { caselist: 'ndt2026', school: 'ExampleSchool', team: 'AB' });
+  assert.equal(result.candidates[0].evidence, 'student-ids');
+});
+
+test('codes and names only suggest candidates, and missing or conflicting identities never verify a link', async () => {
+  for (const [team, school, wiki, status] of [
+    [{ ...tabroomTeam, chapter: '' }, wikiSchool, wikiTeam, 'candidate'],
+    [{ ...tabroomTeam, students: [] }, wikiSchool, wikiTeam, 'candidate'],
+    [tabroomTeam, { ...wikiSchool, chapter_id: null }, wikiTeam, 'candidate'],
+    [tabroomTeam, { ...wikiSchool, chapter_id: 200 }, wikiTeam, 'unmatched'],
+    [tabroomTeam, wikiSchool, { ...wikiTeam, debater2_student_id: 99 }, 'unmatched'],
+    [{ ...tabroomTeam, students: [{ id: 10 }] }, wikiSchool, wikiTeam, 'unmatched'],
+    [{ ...tabroomTeam, hybrid: 'Other School' }, wikiSchool, wikiTeam, 'insufficient-data'],
+    [{ name: 'AB', code: 'AB' }, wikiSchool, wikiTeam, 'insufficient-data'],
+    [{ chapter: 100 }, wikiSchool, wikiTeam, 'insufficient-data'],
+    [{ ...tabroomTeam, code: ' tba ' }, wikiSchool, wikiTeam, 'insufficient-data'],
+  ]) {
+    const result = await resolveTeam(team, [school], [wiki]);
+    assert.equal(result.status, status, JSON.stringify({ team, school, wiki, result }));
+  }
+  const names = await resolveTeam({ ...tabroomTeam, name: '', code: '', students: tabroomTeam.students.map(({ first, last }) => ({ first, last })) });
+  assert.equal(names.status, 'candidate');
+  assert.equal(names.candidates[0].evidence, 'student-names');
+});
+
+test('matching reports ambiguity rather than choosing a school or team arbitrarily', async () => {
+  assert.equal((await resolveTeam(tabroomTeam, [wikiSchool, { ...wikiSchool, name: 'Other' }])).status, 'ambiguous');
+  const multiple = await resolveTeam(tabroomTeam, [wikiSchool], [wikiTeam, { ...wikiTeam, name: 'Other' }]);
+  assert.equal(multiple.status, 'ambiguous');
+  assert.equal(multiple.candidates.length, 2);
+  assert.equal((await resolveTeam({ ...tabroomTeam, students: [] }, [wikiSchool],
+    [wikiTeam, { ...wikiTeam, name: 'CD', display_name: 'Example School AB' }])).status, 'ambiguous');
+  assert.equal((await resolveTeam(tabroomTeam, [], [])).status, 'unmatched');
+});
+
+test('single-initial tournament codes can suggest real two-letter wiki slugs without synthesizing URLs', async () => {
+  const realSlug = { ...wikiTeam, name: 'AbBa', display_name: 'Example School AbBa' };
+  const result = await resolveTeam({ ...tabroomTeam, students: [] }, [wikiSchool], [realSlug]);
+  assert.equal(result.status, 'candidate');
+  assert.equal(result.candidates[0].selection.team, 'AbBa');
+  assert.equal(result.candidates[0].evidence, 'team-code');
+  const duplicate = await resolveTeam({ ...tabroomTeam, students: [] }, [wikiSchool],
+    [realSlug, { ...realSlug, name: 'AbBa1' }]);
+  assert.equal(duplicate.status, 'ambiguous');
+});
+
+test('backend team resolution requires an explicit existing caselist and uses authenticated reads with real URL slugs', async () => {
+  const mock = setup({ response: (url) => json(url.includes('/teams') ? [wikiTeam] :
+    url.includes('/schools') ? [wikiSchool] : [{ name: 'ndt2026' }]) });
+  const result = await mock.service.resolveTabroomTeam('ndt2026', tabroomTeam);
+  assert.equal(result.status, 'matched');
+  assert.equal(result.candidates[0].url, 'https://opencaselist.com/ndt2026/ExampleSchool/AB');
+  assert.equal(mock.requests.length, 3);
+  assert.ok(mock.requests.every(({ init }) => init.method === 'GET' && init.credentials === 'include'));
+  await assert.rejects(mock.service.resolveTabroomTeam('', tabroomTeam), /Invalid/);
+  await assert.rejects(mock.service.resolveTabroomTeam('ndt2025', tabroomTeam), /existing/);
+  await assert.rejects(mock.service.resolveTabroomTeam('ndt2026', { ...tabroomTeam, students: [null] }), /Invalid/);
+  const expired = setup();
+  expired.setCookies([]);
+  await assert.rejects(expired.service.resolveTabroomTeam('ndt2026', tabroomTeam), /Sign in again/);
+  const denied = setup({ response: () => json({}, 403) });
+  await assert.rejects(denied.service.resolveTabroomTeam('ndt2026', tabroomTeam), /denied/);
+});
+
+test('backend matching escapes verified slugs and rejects results after a session change', async () => {
+  const encoded = setup({ response: (url) => json(url.includes('/teams') ? [{ ...wikiTeam, name: 'AbBa & 1' }] :
+    url.includes('/schools') ? [{ ...wikiSchool, name: 'Example School' }] : [{ name: 'ndt2026' }]) });
+  const result = await encoded.service.resolveTabroomTeam('ndt2026', tabroomTeam);
+  assert.equal(result.candidates[0].url, 'https://opencaselist.com/ndt2026/Example%20School/AbBa%20%26%201');
+  let complete;
+  const changing = setup({ response: () => new Promise((resolve) => { complete = resolve; }) });
+  const pending = changing.service.resolveTabroomTeam('ndt2026', tabroomTeam);
+  while (!complete) await new Promise((resolve) => setImmediate(resolve));
+  await changing.service.logout();
+  complete(json([{ name: 'ndt2026' }]));
+  await assert.rejects(pending, /session changed/);
+  assert.equal(changing.requests.length, 1);
+});
 
 test('session status never exposes cookies and honors expiry and logout', async () => {
   const mock = setup();
@@ -382,8 +478,10 @@ test('OpenCaselist IPC is lazy and rejects extensions, subframes and other windo
   });
   assert.equal(PARTITION, 'persist:opencaselist');
   assert.equal(created, false);
+  assert.equal(typeof handlers['opencaselist:resolveTabroomTeam'], 'function');
   for (const event of [{ sender: {} }, { sender: win.webContents, senderFrame: {} }]) {
     assert.throws(() => handlers['opencaselist:status'](event), /only available to the application/);
+    assert.throws(() => handlers['opencaselist:resolveTabroomTeam'](event, 'ndt2026', tabroomTeam), /only available to the application/);
   }
   assert.equal(created, false);
 });

@@ -1,4 +1,5 @@
 const fs = require('node:fs/promises');
+const { normalizeSnapshot, snapshotRecords } = require('./tabroomData.cjs');
 
 const ORIGIN = 'https://www.tabroom.com';
 const PARTITION = 'persist:tabroom';
@@ -109,7 +110,8 @@ function createTabroom({ session, BrowserWindow, dialog, getWindow }) {
     if (!data || typeof data !== 'object' || Array.isArray(data) || String(data.id) !== id)
       throw new Error('Tabroom returned unexpected tournament data.');
     const formatted = JSON.stringify(data, null, 2);
-    cached = { id, bytes, formatted };
+    const snapshot = normalizeSnapshot(data);
+    cached = { id, bytes, formatted, snapshot };
     return {
       id, name: typeof data.name === 'string' ? data.name : '',
       start: typeof data.start === 'string' ? data.start : '',
@@ -118,7 +120,15 @@ function createTabroom({ session, BrowserWindow, dialog, getWindow }) {
       sections: Object.entries(data).filter(([, item]) => Array.isArray(item))
         .map(([name, items]) => ({ name, count: items.length })),
       preview: formatted.slice(0, PAGE_SIZE),
+      metadata: snapshot.metadata,
+      warnings: snapshot.warnings,
+      collections: Object.fromEntries(Object.entries(snapshot.collections)
+        .map(([kind, collection]) => [kind, { available: collection.available, count: collection.rows.length }])),
     };
+  };
+  const records = (id, kind, index, query) => {
+    if (!cached || tournamentId(id) !== cached.id) throw new Error('Load the tournament again.');
+    return snapshotRecords(cached.snapshot, kind, index, query);
   };
   const page = (id, index) => {
     if (!cached || tournamentId(id) !== cached.id) throw new Error('Load the tournament again.');
@@ -141,12 +151,12 @@ function createTabroom({ session, BrowserWindow, dialog, getWindow }) {
     await fs.writeFile(result.filePath, snapshot.bytes, { mode: 0o600 });
     return { path: result.filePath };
   };
-  return { status, login, logout, load, page, download };
+  return { status, login, logout, load, page, records, download };
 }
 
 function registerTabroom({ ipcMain, session, BrowserWindow, dialog, getWindow }) {
   let service;
-  for (const action of ['status', 'login', 'logout', 'load', 'page', 'download']) {
+  for (const action of ['status', 'login', 'logout', 'load', 'page', 'records', 'download']) {
     ipcMain.handle(`tabroom:${action}`, (event, ...args) => {
       if (event.sender !== getWindow()?.webContents || event.senderFrame !== event.sender.mainFrame)
         throw new Error('Tabroom is only available to the application.');

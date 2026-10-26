@@ -5,6 +5,7 @@ const fs = require('node:fs/promises');
 const path = require('node:path');
 const os = require('node:os');
 const { createTabroom, registerTabroom, tournamentId, PARTITION } = require('../electron/tabroom.cjs');
+const { normalizeSnapshot, snapshotRecords } = require('../electron/tabroomData.cjs');
 
 const tournament = { id: 123, name: 'Test Tournament', start: '2026-10-26', events: [{ name: 'Policy' }], schools: [] };
 const json = (data = tournament, status = 200) => new Response(JSON.stringify(data), { status });
@@ -181,7 +182,7 @@ test('Tabroom IPC is restricted to the application main frame and uses its own p
     session: { fromPartition: (name) => { partition = name; return isolated; } },
     getWindow: () => ({ webContents }),
   });
-  assert.equal(Object.keys(handlers).length, 6);
+  assert.equal(Object.keys(handlers).length, 7);
   assert.throws(() => handlers['tabroom:status']({ sender: {} }), /application/);
   assert.throws(() => handlers['tabroom:status']({ sender: webContents, senderFrame: {} }), /application/);
   assert.equal(partition, undefined);
@@ -189,4 +190,124 @@ test('Tabroom IPC is restricted to the application main frame and uses its own p
     { hasSession: false });
   assert.equal(partition, PARTITION);
   assert.equal(partition, 'persist:tabroom');
+});
+
+const nestedTournament = {
+  ...tournament, city: 'Test City', timezone: 'America/New_York',
+  schools: [
+    { id: 10, name: 'Example School', code: 'EX', chapter: 100,
+      students: [{ id: 1, first: 'Alice', last: 'Able' }, { id: 2, first: 'Bob', last: 'Baker' }],
+      entries: [{ id: 20, event: 30, code: 'EX AB', students: [1, 2] }],
+      judges: [{ id: 40, person: 500, first: 'Jane', last: 'Judge' }] },
+    { id: null, name: null, chapter: 101 },
+  ],
+  categories: [
+    { id: 5, name: 'Policy', judges: [{ id: 40, school: '10', first: 'Jane', last: 'Judge' }],
+      events: [{ id: 30, name: 'Varsity Policy', abbr: 'VCX', type: 'debate',
+        entries: [{ id: 20, school: 10, name: 'Example AB' }] }] },
+    { id: 6, name: 'Other', judges: [{ id: '40', first: 'Jane', last: 'Judge' }] },
+    { id: 7, name: 'Private' },
+  ],
+  events: [],
+};
+
+test('snapshot tables normalize nested events, teams and judges and resolve school references without name deduplication', () => {
+  const snapshot = normalizeSnapshot(nestedTournament);
+  assert.equal(snapshot.metadata.location, 'Test City');
+  assert.equal(snapshot.collections.schools.rows.length, 2);
+  assert.equal(snapshot.collections.events.rows.length, 1);
+  assert.equal(snapshot.collections.teams.rows.length, 1);
+  const team = snapshot.collections.teams.rows[0];
+  assert.equal(team.name, 'Example AB');
+  assert.equal(team.school, 'Example School');
+  assert.equal(team.schoolCode, 'EX');
+  assert.equal(team.chapter, '100');
+  assert.equal(team.event, 'Varsity Policy');
+  assert.deepEqual(team.students.map(({ recordUrl, ...student }) => student), [
+    { id: '1', first: 'Alice', last: 'Able' }, { id: '2', first: 'Bob', last: 'Baker' },
+  ]);
+  const judge = snapshot.collections.judges.rows[0];
+  assert.equal(judge.personId, '500');
+  assert.equal(judge.school, 'Example School');
+  assert.deepEqual(judge.categories, ['Policy', 'Other']);
+  const anonymous = normalizeSnapshot({ judges: [{ first: 'Same' }, { first: 'Same' }] });
+  assert.equal(anonymous.collections.judges.rows.length, 2);
+  assert.equal(snapshot.collections.schools.rows[1].name, '');
+  assert.equal(team.recordUrl, 'https://www.tabroom.com/index/tourn/postings/entry_record.mhtml?tourn_id=123&entry_id=20');
+  assert.equal(team.students[0].recordUrl, 'https://www.tabroom.com/index/results/team_lifetime_record.mhtml?id1=1');
+});
+
+test('TBA teams are excluded across nested copies but retained in raw JSON and exact exports', async (t) => {
+  const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'tagline-tabroom-tba-'));
+  t.after(() => fs.rm(dir, { recursive: true, force: true }));
+  const file = path.join(dir, 'backup.json');
+  const data = { id: 123, categories: [{ events: [{ id: 1, entries: [
+    { id: 10, code: ' tBa ', name: 'Placeholder' }, { id: 11, code: 'AB' },
+    { code: 'TBA' }, { id: 12, code: 'TBAA' },
+  ] }] }], schools: [{ id: 1, entries: [{ id: 10, name: 'Duplicate' }, { id: 13, code: 'tba' }] }] };
+  const raw = JSON.stringify(data);
+  const mock = setup({ response: () => new Response(raw), save: async () => ({ filePath: file }) });
+  const result = await mock.service.load(123);
+  assert.equal(result.collections.teams.count, 2);
+  assert.deepEqual(mock.service.records(123, 'teams', 0, '').rows.map((row) => row.id), ['11', '12']);
+  assert.equal(mock.service.records(123, 'teams', 0, 'Placeholder').total, 0);
+  assert.deepEqual(JSON.parse(mock.service.page(123, 0)), data);
+  await mock.service.download(123);
+  assert.equal(await fs.readFile(file, 'utf8'), raw);
+});
+
+test('record links require positive numeric tournament, entry and student IDs', () => {
+  const snapshot = normalizeSnapshot({ id: 'invalid', events: [{ entries: [
+    { id: '20', students: [{ id: 1 }, { person: 500, first: 'No student ID' }, { id: '../bad' }] },
+  ] }] });
+  const team = snapshot.collections.teams.rows[0];
+  assert.equal(team.recordUrl, '');
+  assert.ok(team.students[0].recordUrl.endsWith('id1=1'));
+  assert.equal(team.students[1].recordUrl, '');
+  assert.equal(team.students[2].recordUrl, '');
+});
+
+test('snapshot distinguishes missing, null, redacted and explicitly empty collections and reports malformed shapes', () => {
+  assert.equal(normalizeSnapshot({ categories: [{ name: 'Hidden' }] }).collections.judges.available, false);
+  assert.equal(normalizeSnapshot({ judges: null }).collections.judges.available, false);
+  const empty = normalizeSnapshot({ categories: [{ judges: [] }] });
+  assert.deepEqual(empty.collections.judges, { available: true, rows: [] });
+  for (const invalid of [{ judges: {} }, { schools: [null] }, { categories: [{ events: 'hidden' }] },
+    { schools: [{ entries: [{ students: {} }] }] }])
+    assert.ok(normalizeSnapshot(invalid).warnings.length);
+});
+
+test('unsupported collection shapes warn without preventing raw inspection or exact backup export', async (t) => {
+  const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'tagline-tabroom-schema-'));
+  t.after(() => fs.rm(dir, { recursive: true, force: true }));
+  const file = path.join(dir, 'backup.json');
+  const raw = JSON.stringify({ ...tournament, schools: { unexpected: true } });
+  const mock = setup({ response: () => new Response(raw), save: async () => ({ filePath: file }) });
+  const loaded = await mock.service.load(123);
+  assert.deepEqual(loaded.warnings, ['schools']);
+  assert.deepEqual(JSON.parse(mock.service.page(123, 0)), JSON.parse(raw));
+  await mock.service.download(123);
+  assert.equal(await fs.readFile(file, 'utf8'), raw);
+});
+
+test('structured records are filtered and bounded to 50 per page, with validated requests', async () => {
+  const judges = Array.from({ length: 103 }, (_, i) => ({ id: i + 1, first: 'Judge', last: String(i) }));
+  const mock = setup({ response: () => json({ ...nestedTournament, judges }) });
+  const loaded = await mock.service.load(123);
+  assert.deepEqual(loaded.collections.judges, { available: true, count: 103 });
+  assert.equal(loaded.collections.events.count, 1);
+  const first = mock.service.records(123, 'judges', 0, '');
+  assert.equal(first.total, 103);
+  assert.equal(first.pages, 3);
+  assert.equal(first.rows.length, 50);
+  assert.equal(mock.service.records(123, 'judges', 2, '').rows.length, 3);
+  assert.equal(mock.service.records(123, 'judges', 0, 'jane judge').total, 0);
+  assert.equal(mock.service.records(123, 'teams', 0, 'EX').total, 1);
+  assert.equal(mock.requests.length, 1, 'Filtering and paging must not refetch the snapshot');
+  for (const [kind, page, query] of [['__proto__', 0, ''], ['judges', -1, ''], ['judges', 3, ''],
+    ['judges', '0', ''], ['judges', 0, null], ['judges', 0, 'x'.repeat(201)]])
+    assert.throws(() => mock.service.records(123, kind, page, query), /Invalid/);
+  assert.throws(() => mock.service.records(124, 'judges', 0, ''), /again/);
+  await mock.service.logout();
+  assert.throws(() => mock.service.records(123, 'judges', 0, ''), /again/);
 });

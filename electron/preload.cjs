@@ -35,6 +35,7 @@ contextBridge.exposeInMainWorld('api', {
     logout: () => ipcRenderer.invoke('tabroom:logout'),
     load: (tournament) => ipcRenderer.invoke('tabroom:load', tournament),
     page: (id, index) => ipcRenderer.invoke('tabroom:page', id, index),
+    records: (id, kind, index, query) => ipcRenderer.invoke('tabroom:records', id, kind, index, query),
     download: (id) => ipcRenderer.invoke('tabroom:download', id),
   },
   openCaselist: {
@@ -47,6 +48,7 @@ contextBridge.exposeInMainWorld('api', {
     logout: () => ipcRenderer.invoke('opencaselist:logout'),
     list: (kind, selection) => ipcRenderer.invoke('opencaselist:list', kind, selection),
     search: (caselist, query) => ipcRenderer.invoke('opencaselist:search', caselist, query),
+    resolveTabroomTeam: (caselist, team) => ipcRenderer.invoke('opencaselist:resolveTabroomTeam', caselist, team),
     write: (action, selection, value) => ipcRenderer.invoke('opencaselist:write', action, selection, value),
     upload: (selection, value) => ipcRenderer.invoke('opencaselist:upload', selection, value),
     download: (remotePath) => ipcRenderer.invoke('opencaselist:download', remotePath),
