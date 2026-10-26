@@ -149,16 +149,25 @@ function download(url, redirects = 0, responseType = 'html') {
   });
 }
 
+function stripTags(value) {
+  let previous;
+  do {
+    previous = value;
+    value = value.replace(/<[^>]*>/g, '');
+  } while (value !== previous);
+  return value.replace(/[<>]/g, '');
+}
+
 function text(value) {
-  return String(value || '').replace(/<[^>]*>/g, '').replace(/&#(x[\da-f]+|\d+);/gi, (_, number) => {
+  const decoded = stripTags(String(value || '')).replace(/&#(x[\da-f]+|\d+);/gi, (_, number) => {
     const point = number[0].toLowerCase() === 'x' ? parseInt(number.slice(1), 16) : Number(number);
     return point > 0 && point <= 0x10ffff ? String.fromCodePoint(point) : '';
   }).replace(/&(amp|quot|apos|lt|gt|nbsp|ndash|mdash|hellip|rsquo|lsquo|rdquo|ldquo|copy|reg|trade);/gi, (_, name) =>
     ({
       amp: '&', quot: '"', apos: "'", lt: '<', gt: '>', nbsp: ' ', ndash: '–', mdash: '—',
       hellip: '…', rsquo: '’', lsquo: '‘', rdquo: '”', ldquo: '“', copy: '©', reg: '®', trade: '™',
-    })[name.toLowerCase()])
-    .replace(/\s+/g, ' ').trim().slice(0, 2000);
+    })[name.toLowerCase()]);
+  return stripTags(decoded).replace(/\s+/g, ' ').trim().slice(0, 2000);
 }
 
 function attributes(tag) {

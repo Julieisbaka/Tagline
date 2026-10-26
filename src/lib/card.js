@@ -45,7 +45,16 @@ export function getSectionAt(content, offset) {
   return { text: lines.slice(start, end).join('\n').trimEnd(), level, title: lines[start].replace(HEADING_RE, '') };
 }
 
-const countWords = (s) => (s.replace(/<[^>]*>/g, '').replace(/&(?:#\d+|#x[\da-f]+|\w+);/gi, ' ')
+function stripTags(value) {
+  let previous;
+  do {
+    previous = value;
+    value = value.replace(/<[^>]*>/g, '');
+  } while (value !== previous);
+  return value.replace(/[<>]/g, '');
+}
+
+const countWords = (s) => (stripTags(s).replace(/&(?:#\d+|#x[\da-f]+|\w+);/gi, ' ')
   .match(/[\p{L}\p{N}]+(?:['’-][\p{L}\p{N}]+)*/gu) || []).length;
 
 function evidenceParts(content) {
