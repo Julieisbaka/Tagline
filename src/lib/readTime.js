@@ -33,7 +33,7 @@ function spokenNumber(value) {
 }
 
 function stripNonspokenMarkup(value) {
-  const lowercase = value.toLowerCase();
+  const lowercase = value.replace(/[A-Z]/g, (letter) => letter.toLowerCase());
   const rawTextTag = /<\s*(script|style)(?=[\s/>])/iy;
   const text = [];
   let index = 0;
