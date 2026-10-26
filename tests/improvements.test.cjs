@@ -166,6 +166,7 @@ test('citation creator validates, escapes markup, and reading time counts only t
   assert.equal(stats.highlighted, 3);
   assert.equal(stats.readWords, 5);
   assert.equal(cardStats('<mark>read <sup>this</sup></mark>').highlighted, 2);
+  assert.equal(cardStats('<scr<em>ipt>alert(1)</script>').words, 2);
   assert.equal(formatDuration(61), '1:01');
   assert.equal(formatDuration(12), '0:12');
 });

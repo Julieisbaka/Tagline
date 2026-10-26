@@ -53,6 +53,14 @@ test('citation autofill reads JSON-LD graphs, repeated authors, entities and met
   assert.equal(repeatedAuthors.year, '2022');
 });
 
+test('citation metadata strips nested and entity-decoded markup', () => {
+  const fields = parseMetadata(
+    '<meta property="og:title" content="&lt;scr&lt;em&gt;ipt&gt;alert(1)&lt;/script&gt;">',
+    'https://example.com/story');
+  assert.equal(fields.title, 'iptalert(1)');
+  assert.doesNotMatch(fields.title, /[<>]/);
+});
+
 test('citation URLs reject local networks, credentials and non-web schemes', async () => {
   for (const address of ['127.0.0.1', '10.2.3.4', '172.20.1.2', '192.168.1.1', '169.254.169.254',
     '100.64.1.2', '::1', '::ffff:127.0.0.1', 'fc00::1', '2001:db8::1']) assert.equal(publicAddress(address), false, address);

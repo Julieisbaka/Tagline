@@ -32,10 +32,47 @@ function spokenNumber(value) {
   return integerWords(number);
 }
 
+function stripNonspokenMarkup(value) {
+  const lowercase = value.replace(/[A-Z]/g, (letter) => letter.toLowerCase());
+  const rawTextTag = /<\s*(script|style)(?=[\s/>])/iy;
+  const text = [];
+  let index = 0;
+  while (index < value.length) {
+    if (value.startsWith('<!--', index)) {
+      const end = value.indexOf('-->', index + 4);
+      index = end === -1 ? value.length : end + 3;
+      continue;
+    }
+    rawTextTag.lastIndex = index;
+    const opening = lowercase[index] === '<' ? rawTextTag.exec(value) : null;
+    if (opening) {
+      const name = opening[1].toLowerCase();
+      const openingEnd = value.indexOf('>', index + opening[0].length);
+      if (openingEnd === -1) break;
+      let closing = lowercase.indexOf(`</${name}`, openingEnd + 1);
+      while (closing !== -1 && !/[\s>]/.test(lowercase[closing + name.length + 2] || '')) {
+        closing = lowercase.indexOf(`</${name}`, closing + 2);
+      }
+      if (closing === -1) break;
+      const end = value.indexOf('>', closing);
+      index = end === -1 ? value.length : end + 1;
+      continue;
+    }
+    text.push(value[index]);
+    index++;
+  }
+  return text.join('');
+}
+
 export function spokenText(value) {
-  return splitFrontmatter(value).body.replace(/<!--[\s\S]*?-->|<(script|style)\b[^>]*>[\s\S]*?<\/\1>/gi, '')
-    .replace(/<(?:br\b[^>]*|\/(?:p|div|li|h[1-6]))>/gi, '\n')
-    .replace(/<[^>]*>/g, '')
+  let text = stripNonspokenMarkup(splitFrontmatter(value).body);
+  let previous;
+  do {
+    previous = text;
+    text = text.replace(/<(?:br\b[^>]*|\/(?:p|div|li|h[1-6]))>/gi, '\n')
+      .replace(/<[^>]*>/g, '');
+  } while (text !== previous);
+  return text
     .replace(/!?\[([^\]]*)\]\([^)]*\)/g, '$1')
     .replace(/https?:\/\/\S+/gi, '')
     .replace(/&#(x[\da-f]+|\d+);/gi, (_, code) => {
@@ -44,7 +81,8 @@ export function spokenText(value) {
     })
     .replace(/&(amp|lt|gt|quot|apos|nbsp);/gi, (_, name) =>
       ({ amp: ' and ', lt: ' ', gt: ' ', quot: '"', apos: "'", nbsp: ' ' })[name.toLowerCase()])
-    .replace(/&[a-z]+;/gi, ' ');
+    .replace(/&[a-z]+;/gi, ' ')
+    .replace(/[<>]/g, '');
 }
 
 export function speechStats(text) {

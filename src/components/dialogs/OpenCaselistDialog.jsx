@@ -6,6 +6,15 @@ const api = window.api.openCaselist;
 const nameOf = (item) => item.display_name || item.name;
 const blankRound = { tournament: '', side: 'A', round: '', opponent: '', judge: '', report: '' };
 
+function stripTags(value) {
+  let previous;
+  do {
+    previous = value;
+    value = value.replace(/<[^>]*>/g, '');
+  } while (value !== previous);
+  return value.replace(/[<>]/g, '');
+}
+
 export default function OpenCaselistDialog({ hasVault, onDownload, onClose }) {
   const { t, locale } = useI18n();
   const [session, setSession] = useState(null);
@@ -193,7 +202,7 @@ export default function OpenCaselistDialog({ hasVault, onDownload, onClose }) {
           {results.map((item, index) => <article className="opencaselist-card" key={`${item.id || item.path}:${index}`}>
             <strong>{item.title || item.team_display_name || item.path}</strong>
             <p>{item.path}</p>
-            <p>{(item.snippet || item.content || '').replace(/<[^>]*>/g, '')}</p>
+            <p>{stripTags(item.snippet || item.content || '')}</p>
             {item.download_path && <button disabled={busy || !hasVault} onClick={() => download(item.download_path)}>
               {t('Download to vault')}</button>}
             {item.path && <button disabled={busy || !!form} onClick={() => run(async () => {
