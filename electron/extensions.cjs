@@ -10,7 +10,8 @@ const PERMISSIONS = ['editor', 'vault:read', 'vault:write', 'settings', 'editor:
 const ID = /^[a-z0-9][a-z0-9-]{1,63}$/;
 
 function relativeFile(root, value, ext) {
-  if (typeof value !== 'string' || !value || path.isAbsolute(value) || !value.toLowerCase().endsWith(ext)) {
+  if (typeof value !== 'string' || !value || path.posix.isAbsolute(value) ||
+    path.win32.isAbsolute(value) || /^[a-z]:/i.test(value) || !value.toLowerCase().endsWith(ext)) {
     throw new Error(`Expected a relative ${ext} file path.`);
   }
   const full = path.resolve(root, value);

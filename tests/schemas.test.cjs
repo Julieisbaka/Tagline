@@ -116,6 +116,34 @@ test('theme schema validates bundled themes, settings, CSS variables and metadat
   }
 });
 
+test('manifest file paths reject Windows and POSIX roots regardless of the host platform', () => {
+  const vm = require('node:vm');
+  const { createRequire } = require('node:module');
+  const filename = path.join(root, 'electron', 'extensions.cjs');
+  const source = fs.readFileSync(filename, 'utf8');
+  const localRequire = createRequire(filename);
+  for (const platformPath of [path.posix, path.win32]) {
+    const module = { exports: {} };
+    vm.runInNewContext(source, {
+      module,
+      require: (name) => name === 'node:path'
+        ? { ...platformPath, posix: path.posix, win32: path.win32 } : localRequire(name),
+    }, { filename });
+    const { validateManifest } = module.exports;
+    const folder = platformPath.resolve('extensions');
+    const manifest = { manifestVersion: 1, id: 'test', name: 'Test', version: '1' };
+    validateManifest({ ...manifest, main: 'scripts/main.js', contributes: { themes: ['themes/dark.json'] } }, folder);
+    for (const prefix of ['C:\\', 'C:/', 'C:', '/', '\\', '\\\\server\\share\\', '//server/share/']) {
+      const main = { ...manifest, main: `${prefix}outside.js` };
+      const theme = { ...manifest, contributes: { themes: [`${prefix}outside.json`] } };
+      check('extension-manifest', main, false);
+      check('extension-manifest', theme, false);
+      assert.throws(() => validateManifest(main, folder), /relative/, JSON.stringify(main));
+      assert.throws(() => validateManifest(theme, folder), /relative/, JSON.stringify(theme));
+    }
+  }
+});
+
 test('extension settings exports have a version, matching ID shape and scalar values', () => {
   check('extension-settings', { version: 1, extensionId: 'demo', values: { enabled: true, limit: 5, style: 'brief' } });
   check('extension-settings', { version: 1, extensionId: 'demo', values: {} });
