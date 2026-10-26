@@ -190,7 +190,7 @@ export function SettingsDialog({ settings, update, onClose, extensions, onOpenCa
     requestAnimationFrame(() => {
       const target = entry?.element;
       target?.scrollIntoView({ block: 'center' });
-      const control = target?.matches('button') ? target : target?.querySelector('input, select, textarea, button');
+      const control = target?.matches('button') ? target : target?.control || target?.querySelector('input, select, textarea, button');
       if (control && !control.disabled) control.focus({ preventScroll: true });
     });
   };

@@ -7,7 +7,13 @@ export default function SettingRow({ label, description, children }) {
   const controlId = children.props.id || id;
   const helpId = `${id}-help`;
   const [open, setOpen] = useState(false);
-  return <div className="setting-row">
+  return <div className="setting-row" onKeyDown={(event) => {
+    if (event.key === 'Escape' && open) {
+      event.preventDefault();
+      event.stopPropagation();
+      setOpen(false);
+    }
+  }}>
     <div className="setting-label">
       <label htmlFor={controlId}>{label}</label>
       <span className="setting-help" onMouseEnter={() => setOpen(true)}
@@ -16,13 +22,7 @@ export default function SettingRow({ label, description, children }) {
         }}>
         <button type="button" className="setting-help-button" aria-label={t('About {setting}', { setting: label })}
           aria-describedby={helpId} onFocus={() => setOpen(true)} onBlur={() => setOpen(false)}
-          onClick={() => setOpen(true)} onKeyDown={(event) => {
-            if (event.key === 'Escape' && open) {
-              event.preventDefault();
-              event.stopPropagation();
-              setOpen(false);
-            }
-          }}>?</button>
+          onClick={() => setOpen(true)}>?</button>
         <span className="setting-tooltip" id={helpId} role="tooltip" hidden={!open}>{description}</span>
       </span>
     </div>
