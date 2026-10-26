@@ -1,17 +1,17 @@
 import { useState } from 'react';
 import { useI18n } from '../../lib/i18n.js';
+import SettingRow from './SettingRow.jsx';
 
 export default function AdvancedSettings({ settings, update, section = 'all' }) {
   const { t } = useI18n();
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
-  const number = (label, key, max) => <label className="setting-row">
-    <span>{t(label)}</span>
+  const number = (label, key, max, description) => <SettingRow label={t(label)} description={t(description)}>
     <input type="number" min={['searchMaxResults', 'historyRetention'].includes(key) ? 1 : 0} max={max} step="1" value={settings[key]}
       data-setting={key} onChange={(e) => {
         if (e.target.validity.valid && e.target.value !== '') update({ [key]: Number(e.target.value) });
       }} />
-  </label>;
+  </SettingRow>;
   const run = async (action) => {
     setError(''); setBusy(true);
     try { await action(); } catch (e) { setError(e.message); } finally { setBusy(false); }
@@ -19,9 +19,9 @@ export default function AdvancedSettings({ settings, update, section = 'all' }) 
   return <section className="advanced-settings">
     {(section === 'all' || section === 'performance') && <>
       <h4>{t('Performance and search')}</h4>
-      {number('Visual cache maximum entries (0 disables)', 'visualCacheEntries', 256)}
-      {number('Visual cache maximum characters', 'visualCacheCharacters', 100_000_000)}
-      {number('Maximum search results', 'searchMaxResults', 1000)}
+      {number('Visual cache maximum entries (0 disables)', 'visualCacheEntries', 256, 'Limit the number of rendered documents kept in memory for faster reopening.')}
+      {number('Visual cache maximum characters', 'visualCacheCharacters', 100_000_000, 'Limit the total text size kept in the visual editor cache.')}
+      {number('Maximum search results', 'searchMaxResults', 1000, 'Limit how many matches a vault search returns.')}
     </>}
     {(section === 'all' || section === 'fonts') && <>
       <h4>{t('Custom fonts')}</h4>
@@ -49,19 +49,19 @@ export default function AdvancedSettings({ settings, update, section = 'all' }) 
           onChange={(e) => update({ underscoreFolders: e.target.checked })} />
       </label>
       <h4>{t('File names')}</h4>
-      <label className="setting-row"><span>{t('Hide .flow file extension')}</span>
+      <SettingRow label={t('Hide .flow file extension')} description={t('Hide the .flow suffix in displayed file names without renaming files.')}>
         <input type="checkbox" data-setting="hideFlowExtension" checked={settings.hideFlowExtension}
           onChange={(e) => update({ hideFlowExtension: e.target.checked })} />
-      </label>
-      <label className="setting-row"><span>{t('Show .md file extension')}</span>
+      </SettingRow>
+      <SettingRow label={t('Show .md file extension')} description={t('Show the .md suffix in displayed Markdown file names.')}>
         <input type="checkbox" data-setting="showMarkdownExtension" checked={settings.showMarkdownExtension}
           onChange={(e) => update({ showMarkdownExtension: e.target.checked })} />
-      </label>
+      </SettingRow>
       <h4>{t('Links and workspace')}</h4>
-      <label className="setting-row"><span>{t('Automatically update wiki links when renaming')}</span>
+      <SettingRow label={t('Automatically update wiki links when renaming')} description={t('Update links in other notes when a linked file or folder is renamed.')}>
         <input type="checkbox" data-setting="autoRelink" checked={settings.autoRelink}
           onChange={(e) => update({ autoRelink: e.target.checked })} />
-      </label>
+      </SettingRow>
       <label className="setting-row"><span>{t('Close tabs when files disappear externally')}</span>
         <input type="checkbox" data-setting="closeMissingTabs" checked={settings.closeMissingTabs}
           onChange={(e) => update({ closeMissingTabs: e.target.checked })} />
@@ -73,7 +73,7 @@ export default function AdvancedSettings({ settings, update, section = 'all' }) 
       </label>
       <p>{t('When disabled, current tabs stay open but are not saved. Saved workspaces remain dormant and are restored when this is enabled again.')}</p>
       <h4>{t('Revision history')}</h4>
-      {number('Maximum saved revisions per document', 'historyRetention', 5000)}
+      {number('Maximum saved revisions per document', 'historyRetention', 5000, 'Keep up to this many revisions for each document before pruning older history.')}
       <label className="setting-row"><span>{t('Delta revision history (experimental)')}</span>
         <input type="checkbox" data-setting="experimentalHistoryDeltas" checked={settings.experimentalHistoryDeltas}
           onChange={(event) => update({ experimentalHistoryDeltas: event.target.checked })} />
