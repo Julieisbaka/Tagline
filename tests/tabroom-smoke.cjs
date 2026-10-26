@@ -92,6 +92,38 @@ app.on('browser-window-created', (_event, win) => {
       await wait("!!document.querySelector('.tabroom-json')");
       assert.equal(await js("document.querySelector('.tabroom-dialog h4').textContent"), backup.name);
       assert.equal(await js("!!window.attacked || !!document.querySelector('.tabroom-dialog img')"), false);
+      const originalSize = win.getSize();
+      for (const [width, height] of [[1100, 850], [700, 600], [420, 650]]) {
+        win.setMinimumSize(320, 400);
+        win.setSize(width, height);
+        await new Promise((resolve) => setTimeout(resolve, 200));
+        const layout = await js(`(() => {
+          const dialog = document.querySelector('.tabroom-dialog');
+          const bounds = dialog.getBoundingClientRect();
+          const header = dialog.querySelector('header').getBoundingClientRect();
+          const close = dialog.querySelector('header button').getBoundingClientRect();
+          const preview = dialog.querySelector('.tabroom-json');
+          const elements = [...dialog.querySelectorAll('button, input, pre')];
+          return {
+            fits: bounds.top >= 0 && bounds.bottom <= innerHeight && bounds.left >= 0 && bounds.right <= innerWidth,
+            noHorizontalOverflow: dialog.scrollWidth <= dialog.clientWidth + 1,
+            controlsFit: elements.every(element => {
+              const rect = element.getBoundingClientRect();
+              return rect.width > 0 && rect.left >= bounds.left && rect.right <= bounds.right;
+            }),
+            headerHeight: header.height,
+            closeOnRight: close.right >= bounds.right - 32,
+            previewHeight: preview.clientHeight,
+          };
+        })()`);
+        assert.equal(layout.fits, true, `dialog fits ${width}x${height}: ${JSON.stringify(layout)}`);
+        assert.equal(layout.noHorizontalOverflow, true, `no horizontal overflow at ${width}px`);
+        assert.equal(layout.controlsFit, true, `controls fit at ${width}px`);
+        assert.equal(layout.closeOnRight, true, `close button aligned at ${width}px`);
+        assert.ok(layout.headerHeight >= 28, `header does not shrink at ${width}px`);
+        assert.ok(layout.previewHeight >= 120, `readable JSON at ${width}px`);
+      }
+      win.setSize(...originalSize);
       await click('Next');
       await wait("document.querySelector('.tabroom-dialog').textContent.includes('Page 2 of 3')");
       await click('Previous');
