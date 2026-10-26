@@ -5,7 +5,7 @@ const path = require('node:path');
 const os = require('node:os');
 
 test('speech timing includes punctuation without mistaking decimal separators for pauses', async () => {
-  const { speechStats, readingSeconds } = await import('../src/lib/readTime.js');
+  const { speechStats, readingSeconds, spokenText } = await import('../src/lib/readTime.js');
   const plain = speechStats('cat dog fish cat dog fish');
   const paused = speechStats('cat, dog; fish.\n\ncat dog fish!');
   assert.equal(plain.syllables, paused.syllables);
@@ -14,6 +14,9 @@ test('speech timing includes punctuation without mistaking decimal separators fo
   assert.equal(speechStats('1,234').pauseUnits, 0);
   assert.deepEqual(speechStats('cat<!-- hidden --><script>never read</script><style>nor this</style> dog'),
     speechStats('cat dog'));
+  const sanitized = spokenText('before <scr<em>ipt>hidden</script> after');
+  assert.equal(sanitized, 'before ipthidden after');
+  assert.doesNotMatch(sanitized, /[<>]/);
 });
 
 test('a single timed sample calibrates exactly and no samples retain the default rate', async () => {

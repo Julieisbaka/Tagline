@@ -33,9 +33,15 @@ function spokenNumber(value) {
 }
 
 export function spokenText(value) {
-  return splitFrontmatter(value).body.replace(/<!--[\s\S]*?-->|<(script|style)\b[^>]*>[\s\S]*?<\/\1>/gi, '')
-    .replace(/<(?:br\b[^>]*|\/(?:p|div|li|h[1-6]))>/gi, '\n')
-    .replace(/<[^>]*>/g, '')
+  let text = splitFrontmatter(value).body;
+  let previous;
+  do {
+    previous = text;
+    text = text.replace(/<!--[\s\S]*?-->|<(script|style)\b[^>]*>[\s\S]*?<\/\1>/gi, '')
+      .replace(/<(?:br\b[^>]*|\/(?:p|div|li|h[1-6]))>/gi, '\n')
+      .replace(/<[^>]*>/g, '');
+  } while (text !== previous);
+  return text.replace(/[<>]/g, '')
     .replace(/!?\[([^\]]*)\]\([^)]*\)/g, '$1')
     .replace(/https?:\/\/\S+/gi, '')
     .replace(/&#(x[\da-f]+|\d+);/gi, (_, code) => {
