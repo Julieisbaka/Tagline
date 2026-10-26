@@ -1,0 +1,6 @@
+torch==2.14.1
+optimum[onnxruntime]==2.3.0
+transformers==5.20.2
+sentencepiece==0.2.2
+onnx==1.23.2
+huggingface_hub==2.3.0

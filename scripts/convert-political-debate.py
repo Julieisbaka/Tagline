@@ -3,7 +3,7 @@
 Usage:
     python -m venv .convert-venv
     .convert-venv\\Scripts\\pip install torch --index-url https://download.pytorch.org/whl/cpu
-    .convert-venv\\Scripts\\pip install "optimum[onnxruntime]" transformers sentencepiece onnx huggingface_hub
+    .convert-venv\\Scripts\\pip install -r scripts\\requirements.txt
     .convert-venv\\Scripts\\python scripts\\convert-political-debate.py out\\political-debate
     # Optional: publish. Needs a write token: HF_TOKEN in the repo-root .env file,
     # the HF_TOKEN environment variable, or `huggingface-cli login`.
