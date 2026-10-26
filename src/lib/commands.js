@@ -24,6 +24,7 @@ export function buildCommands(ctx, overrides = {}) {
     c('reload', 'Reload vault from disk', ctx.reload),
     c('import-document', 'Import document with Pandoc', ctx.importDocument),
     c('opencaselist', 'OpenCaselist: browse and manage disclosures', ctx.openCaselist),
+    c('tabroom', 'Tabroom: view and save tournament data', ctx.openTabroom),
     c('citation', 'Create citation', ctx.createCitation),
   ];
   if (ctx.hasNote) {

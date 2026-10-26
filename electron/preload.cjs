@@ -29,6 +29,14 @@ contextBridge.exposeInMainWorld('api', {
     openSetup: () => ipcRenderer.invoke('googleDocs:openSetup'),
     openDocument: (url, accountEmail) => ipcRenderer.invoke('googleDocs:openDocument', url, accountEmail),
   },
+  tabroom: {
+    status: () => ipcRenderer.invoke('tabroom:status'),
+    login: () => ipcRenderer.invoke('tabroom:login'),
+    logout: () => ipcRenderer.invoke('tabroom:logout'),
+    load: (tournament) => ipcRenderer.invoke('tabroom:load', tournament),
+    page: (id, index) => ipcRenderer.invoke('tabroom:page', id, index),
+    download: (id) => ipcRenderer.invoke('tabroom:download', id),
+  },
   openCaselist: {
     writePasswordStatus: () => ipcRenderer.invoke('opencaselist:writePasswordStatus'),
     verifyWritePassword: (password) => ipcRenderer.invoke('opencaselist:verifyWritePassword', password),

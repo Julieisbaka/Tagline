@@ -135,7 +135,7 @@ export function PromptDialog({ title, initial = '', onSubmit, onClose }) {
   );
 }
 
-export function SettingsDialog({ settings, update, onClose, extensions, onOpenCaselist,
+export function SettingsDialog({ settings, update, onClose, extensions, onOpenCaselist, onOpenTabroom,
   speechDoc, speechDocuments = [], onSelectSpeechDoc }) {
   const { t } = useI18n();
   const [section, setSection] = useState('general');
@@ -316,6 +316,9 @@ export function SettingsDialog({ settings, update, onClose, extensions, onOpenCa
               <p>{t('Installed builds register Tagline as an app for .flow files. To make it the default, use Open With in your file manager and select Tagline. On macOS choose Change All in Get Info.')}</p>
             </section>
             <section data-settings-panel="integrations" hidden={section !== 'integrations'} className="settings-panel">
+              <h3>Tabroom</h3>
+              <p>{t('View tournament data by ID or URL and save its JSON backup. Optional sign-in uses your Tabroom permissions.')}</p>
+              <button onClick={onOpenTabroom}>{t('Open Tabroom')}</button>
               <h3>OpenCaselist</h3>
               <p>{t('Browse disclosures, download files, and publish changes using your OpenCaselist account.')}</p>
               <button onClick={onOpenCaselist}>{t('Open OpenCaselist')}</button>

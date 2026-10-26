@@ -20,6 +20,7 @@ const { installationInfo, REPOSITORY_URL, RELEASES_URL } = require('./installati
 const { createUpdateManager } = require('./appUpdates.cjs');
 const { uninstallApplication } = require('./uninstall.cjs');
 const { registerOpenCaselist } = require('./opencaselist.cjs');
+const { registerTabroom } = require('./tabroom.cjs');
 const { registerGoogleDocs } = require('./googleDocs.cjs');
 const keyDefinitions = require('../src/lib/keybindings.json');
 const { registerNativeUi } = require('./nativeUi.cjs');
@@ -498,6 +499,7 @@ if (primary) app.whenReady().then(() => {
   buildMenu();
   registerIpc();
   registerOpenCaselist({ ipcMain, session, BrowserWindow, dialog, getWindow: () => win, getVaultRoot: () => vaultRoot, readConfig, writeConfig });
+  registerTabroom({ ipcMain, session, BrowserWindow, dialog, getWindow: () => win });
   closeWebsiteView = registerBrowser({ ipcMain, shell, getWindow: () => win });
   registerPandoc({ ipcMain, dialog, getWindow: () => win, readConfig, writeConfig });
   registerDocuments({ ipcMain, dialog, getWindow: () => win, readConfig });

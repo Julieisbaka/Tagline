@@ -189,6 +189,13 @@
     "key": ""
   },
   {
+    "id": "tabroom",
+    "label": "Tabroom: view and save tournament data",
+    "action": "openTabroom",
+    "scope": "app",
+    "key": ""
+  },
+  {
     "id": "source-mode",
     "label": "Editor: source mode (CodeMirror)",
     "action": "sourceMode",

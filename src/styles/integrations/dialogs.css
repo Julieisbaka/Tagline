@@ -73,6 +73,29 @@
   white-space: pre-wrap;
 }
 
+.tabroom-dialog {
+  width: min(900px, 92vw);
+  max-height: 86vh;
+  overflow-y: auto;
+}
+
+.tabroom-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 16px 0 8px;
+}
+
+.tabroom-json {
+  max-height: 45vh;
+  overflow: auto;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  background: var(--bg-secondary);
+  padding: 12px;
+  border: 1px solid var(--border);
+}
+
 .vault-manager-dialog {
   width: min(760px, 92vw);
   max-height: 86vh;

@@ -27,6 +27,7 @@ const SummaryDialog = deferred(() => import('../dialogs/SummaryDialog.jsx'), tru
 const HistoryDialog = deferred(() => import('../dialogs/HistoryDialog.jsx'), true);
 const VaultManagerDialog = deferred(() => import('../dialogs/VaultManagerDialog.jsx'), true);
 const OpenCaselistDialog = deferred(() => import('../dialogs/OpenCaselistDialog.jsx'), true);
+const TabroomDialog = deferred(() => import('../dialogs/TabroomDialog.jsx'), true);
 const Palette = deferred(() => import('../dialogs/Dialogs.jsx').then((module) => ({ default: module.Palette })), true);
 const PromptDialog = deferred(() => import('../dialogs/Dialogs.jsx').then((module) => ({ default: module.PromptDialog })), true);
 const SettingsDialog = deferred(() => import('../dialogs/Dialogs.jsx').then((module) => ({ default: module.SettingsDialog })), true);
@@ -52,9 +53,11 @@ export default function AppLayout({ app }) {
   const settingsDialog = <SettingsDialog settings={settings} update={updateSettings} extensions={ext}
     speechDoc={speechDoc} speechDocuments={speechDocuments} onSelectSpeechDoc={actions.setSpeechDoc}
     onOpenCaselist={ctx.openCaselist}
+    onOpenTabroom={ctx.openTabroom}
     onClose={() => setModal(null)} />;
   const caselistDialog = modal?.type === 'opencaselist' && <OpenCaselistDialog hasVault={!!v.vault}
     onDownload={v.reload} onClose={() => setModal(null)} />;
+  const tabroomDialog = modal?.type === 'tabroom' && <TabroomDialog onClose={() => setModal(null)} />;
   const websiteView = website && !modal &&
     <WebsiteView key={website} url={website} onClose={() => setWebsite(null)} />;
   const extensionWebviews = ext.surfaces.filter((surface) => surface.kind === 'webviews' && surface.visible)
@@ -75,6 +78,7 @@ export default function AppLayout({ app }) {
     <Welcome onOpen={v.chooseVault} onSample={v.createSample} onManage={() => setModal({ type: 'vaults' })} error={v.error} />
     {modal?.type === 'settings' && settingsDialog}
     {caselistDialog}
+    {tabroomDialog}
     {modal?.type === 'vaults' && <VaultManagerDialog onOpen={v.openRecentVault} onChoose={v.chooseVault} onSample={v.createSample}
       onClose={() => setModal(null)} />}
     {modal?.type === 'citation' && <CitationDialog onClose={() => setModal(null)} />}
@@ -232,6 +236,7 @@ export default function AppLayout({ app }) {
       )}
       {modal?.type === 'settings' && settingsDialog}
       {caselistDialog}
+      {tabroomDialog}
       {modal?.type === 'vaults' && <VaultManagerDialog onOpen={v.openRecentVault} onChoose={v.chooseVault} onSample={v.createSample}
         onClose={() => setModal(null)} />}
       {modal?.type === 'export' && activePath && (

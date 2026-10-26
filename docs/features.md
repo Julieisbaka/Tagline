@@ -72,6 +72,27 @@ arguments; no separate mode is needed. Choose a relation, select
 **Connect nodes**, then click the source and target. These are standard JSON
 Canvas edges, stored in that canvas file.
 
+## Tabroom tournaments
+
+Open **Settings > Integrations > Open Tabroom**, or run **Tabroom: view and
+save tournament data** from the command palette. Enter a tournament ID or an
+`https://www.tabroom.com` tournament URL containing `tourn_id`.
+
+Tagline reads Tabroom's `/api/download_data.mhtml?tourn_id=...` JSON endpoint.
+Public data does not require login. **Sign in on Tabroom** opens the official
+website in a sandboxed window with a separate persistent browser session;
+close the window after signing in. Tagline never asks for your password or
+exposes session cookies to the renderer or extensions. A saved browser session
+does not prove that you are signed in or have access to a tournament.
+Tabroom decides which additional data your account may receive.
+
+The read-only viewer shows tournament metadata, collection counts, and paged
+JSON. **Save tournament JSON** exports the exact downloaded backup through the
+system save dialog, without another network request. Responses are limited to
+32 MiB. Backups can contain personal or restricted data; store and share them
+carefully. **Clear Tabroom session** removes this integration's stored browser
+session and loaded data, without affecting other integrations.
+
 ## Search and citations
 
 Open vault search with `Mod+Shift+F`. For semantic or hybrid

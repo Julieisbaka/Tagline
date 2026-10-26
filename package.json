@@ -17,6 +17,7 @@
     "test:platform": "node --test --test-name-pattern=^platform: \"tests/*.test.cjs\"",
     "test:canvas-performance": "vite build && node tests/canvas-performance-smoke.cjs",
     "test:opencaselist": "vite build && node tests/opencaselist-smoke.cjs",
+    "test:tabroom": "vite build && node tests/tabroom-smoke.cjs",
     "test:startup": "vite build && node tests/startup-smoke.cjs",
     "test:installation": "node tests/installation-smoke.cjs",
     "test:google-docs": "vite build && node tests/google-docs-smoke.cjs",

@@ -392,6 +392,7 @@ export default function App() {
     },
     importDocument: () => setModal({ type: 'import' }),
     openCaselist: () => setModal({ type: 'opencaselist' }),
+    openTabroom: () => setModal({ type: 'tabroom' }),
     toggleHighlightOnly: () => {
       setMode('read');
       setHighlightOnly((h) => !h);
