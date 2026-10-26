@@ -19,7 +19,7 @@ const check = (name, data, valid = true) => {
 };
 const readJson = (...segments) => JSON.parse(fs.readFileSync(path.join(root, ...segments), 'utf8'));
 
-test('all public schemas compile offline and every editor association points to a schema', () => {
+test('platform: all public schemas compile offline and every editor association points to a schema', () => {
   for (const name of names) {
     assert.equal(ajv.validateSchema(schemas[name]), true);
     assert.equal(typeof validators[name], 'function');
@@ -57,7 +57,7 @@ test('flow schema matches supported structures and preserves extension fields', 
   assert.throws(() => parseFlow(JSON.stringify(unequalRow)), /structure/, 'cross-field row length remains a runtime check');
 });
 
-test('extension manifest schema accepts the demo and checks declarations, permissions and typed settings', () => {
+test('platform: extension manifest schema accepts the demo and checks declarations, permissions and typed settings', () => {
   const { validateManifest } = require('../electron/extensions.cjs');
   const demo = readJson('demo', 'tagline-api-demo', 'manifest.json');
   check('extension-manifest', demo);

@@ -42,7 +42,7 @@ test('Canvas links open vault files, wiki headings and web URLs without allowing
   }
 });
 
-test('working-save recovery skips malformed and structurally invalid revisions and prefers latest saved content', async (t) => {
+test('platform: working-save recovery skips malformed and structurally invalid revisions and prefers latest saved content', async (t) => {
   const { createRevisionHistory } = require('../electron/revisionHistory.cjs');
   const { EMPTY_FLOW } = await import('../electron/flow.mjs');
   const root = await fs.mkdtemp(path.join(os.tmpdir(), 'tagline-json-recovery-'));
@@ -72,7 +72,7 @@ test('working-save recovery skips malformed and structurally invalid revisions a
   await assert.rejects(history.latestWorking('Image.png'), /Revision history supports Markdown/);
 });
 
-test('working-save recovery accepts all Markdown content and falls back to history for missing files', async (t) => {
+test('platform: working-save recovery accepts all Markdown content and falls back to history for missing files', async (t) => {
   const { createRevisionHistory } = require('../electron/revisionHistory.cjs');
   const root = await fs.mkdtemp(path.join(os.tmpdir(), 'tagline-markdown-recovery-'));
   t.after(() => fs.rm(root, { recursive: true, force: true }));
@@ -93,7 +93,7 @@ test('working-save recovery accepts all Markdown content and falls back to histo
   assert.deepEqual(await history.latestWorking(file), { ...revision, content: previous });
 });
 
-test('experimental delta history preserves Canvas data mode, recovery and layout', async (t) => {
+test('platform: experimental delta history preserves Canvas data mode, recovery and layout', async (t) => {
   const { createRevisionHistory } = require('../electron/revisionHistory.cjs');
   const root = await fs.mkdtemp(path.join(os.tmpdir(), 'tagline-canvas-delta-'));
   t.after(() => fs.rm(root, { recursive: true, force: true }));
@@ -119,7 +119,7 @@ test('experimental delta history preserves Canvas data mode, recovery and layout
   assert.equal(JSON.parse((await history.latestWorking('Map.canvas')).content).nodes[0].text, restored.nodes[0].text);
 });
 
-test('Canvas Complete history preserves JSON; Data history shares latest layout and skips movement', async (t) => {
+test('platform: Canvas Complete history preserves JSON; Data history shares latest layout and skips movement', async (t) => {
   const { createRevisionHistory } = require('../electron/revisionHistory.cjs');
   const { createCanvasNode, serializeCanvas } = await import('../src/lib/canvas.js');
   const root = await fs.mkdtemp(path.join(os.tmpdir(), 'tagline-canvas-history-'));

@@ -187,7 +187,7 @@ test('intermediate empty highlight delimiters do not crash read-time statistics'
   assert.equal(cardStats('====').highlighted, 0);
 });
 
-test('OS flow opens handle cold starts, second instances, macOS events and vault selection', async () => {
+test('platform: OS flow opens handle cold starts, second instances, macOS events and vault selection', async () => {
   const fs = require('node:fs/promises');
   const path = require('node:path');
   const os = require('node:os');
@@ -237,7 +237,7 @@ test('OS flow opens handle cold starts, second instances, macOS events and vault
   } finally { await fs.rm(root, { recursive: true, force: true }); }
 });
 
-test('extension manifests validate ids, permissions, commands and contained file paths', async () => {
+test('platform: extension manifests validate ids, permissions, commands and contained file paths', async () => {
   const path = require('node:path');
   const fs = require('node:fs/promises');
   const os = require('node:os');

@@ -368,7 +368,7 @@ test('active-note events are path-only, separately permissioned, bounded and dis
   assert.equal(callbacks.size, 0);
 });
 
-test('settings and event permission changes require a fresh manifest review', async () => {
+test('platform: settings and event permission changes require a fresh manifest review', async () => {
   const fsAsync = require('node:fs/promises');
   const { registerExtensions, validateManifest } = require('../electron/extensions.cjs');
   const root = await fsAsync.mkdtemp(path.join(require('node:os').tmpdir(), 'tagline-review-'));
@@ -546,7 +546,7 @@ test('embedded browser presents a standard Chrome user agent and builds archive 
   assert.throws(() => archiveUrl('file:///C:/secret'));
 });
 
-test('Pandoc import chooses an explicit reader, accepts DOCX changes, and surfaces errors', async (t) => {
+test('platform: Pandoc import chooses an explicit reader, accepts DOCX changes, and surfaces errors', async (t) => {
   let captured;
   let fail = false;
   const original = childProcess.execFile;
@@ -584,7 +584,7 @@ test('imported Markdown removes common Word whitespace artifacts without rewriti
   assert.equal(cleanImportedMarkdown(''), '\n');
 });
 
-test('experimental history deltas round-trip, checkpoint, prune safely and survive disabling', async (t) => {
+test('platform: experimental history deltas round-trip, checkpoint, prune safely and survive disabling', async (t) => {
   const { createRevisionHistory } = require('../electron/revisionHistory.cjs');
   assert.equal(require('../src/lib/defaultSettings.json').experimentalHistoryDeltas, false);
   const root = await fsAsync.mkdtemp(path.join(os.tmpdir(), 'tagline-deltas-'));
@@ -632,7 +632,7 @@ test('experimental history deltas round-trip, checkpoint, prune safely and survi
   await assert.rejects(history.snapshot(file, 'next', 50, 'complete', 'true'), /enabled or disabled/);
 });
 
-test('experimental delta history detects missing, corrupt and circular dependencies', async (t) => {
+test('platform: experimental delta history detects missing, corrupt and circular dependencies', async (t) => {
   const { createRevisionHistory } = require('../electron/revisionHistory.cjs');
   const root = await fsAsync.mkdtemp(path.join(os.tmpdir(), 'tagline-delta-errors-'));
   t.after(() => fsAsync.rm(root, { recursive: true, force: true }));
@@ -661,7 +661,7 @@ test('experimental delta history detects missing, corrupt and circular dependenc
   await assert.rejects(history.read('Note.md', delta.id), /ENOENT/);
 });
 
-test('revision history snapshots changed documents, enforces retention, and follows renames', async (t) => {
+test('platform: revision history snapshots changed documents, enforces retention, and follows renames', async (t) => {
   const { createRevisionHistory } = require('../electron/revisionHistory.cjs');
   const root = await fsAsync.mkdtemp(path.join(os.tmpdir(), 'tagline-history-'));
   t.after(() => fsAsync.rm(root, { recursive: true, force: true }));

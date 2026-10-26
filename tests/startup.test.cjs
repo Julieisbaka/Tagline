@@ -11,7 +11,7 @@ async function fixture(t) {
   return dir;
 }
 
-test('vault snapshots preserve document types, sorting, paths, timestamps and hidden-file rules', async (t) => {
+test('platform: vault snapshots preserve document types, sorting, paths, timestamps and hidden-file rules', async (t) => {
   const dir = await fixture(t);
   for (const folder of ['Z folder', 'Empty', '.hidden']) await fs.mkdir(path.join(dir, folder));
   const documents = {
@@ -32,7 +32,7 @@ test('vault snapshots preserve document types, sorting, paths, timestamps and hi
   assert.equal((await listVault(path.join(dir, 'Z folder'), 'Moved'))[0].path, 'Moved/a.md');
 });
 
-test('snapshot scans once, reads each file once, and bounds parallel filesystem operations', async (t) => {
+test('platform: snapshot scans once, reads each file once, and bounds parallel filesystem operations', async (t) => {
   const dir = await fixture(t);
   await fs.mkdir(path.join(dir, 'Folder'));
   for (let i = 0; i < 65; i++) await fs.writeFile(path.join(dir, 'Folder', `${i}.md`), `Note ${i}`);
@@ -57,7 +57,7 @@ test('snapshot scans once, reads each file once, and bounds parallel filesystem 
   assert.equal(reads, 65, 'Listing files never reads their content');
 });
 
-test('snapshot propagates filesystem errors instead of returning a partial vault', async (t) => {
+test('platform: snapshot propagates filesystem errors instead of returning a partial vault', async (t) => {
   const dir = await fixture(t);
   await assert.rejects(readVaultSnapshot(path.join(dir, 'missing')), { code: 'ENOENT' });
   await fs.writeFile(path.join(dir, 'Note.md'), 'Note');
@@ -160,7 +160,7 @@ test('release packaging keeps application identity and user data independent of 
   assert.ok(!build.publish, 'Publishing is controlled by the manual release workflow');
 });
 
-test('installation information uses packaged versions and the current profile without mutating them', () => {
+test('platform: installation information uses packaged versions and the current profile without mutating them', () => {
   const { installationInfo } = require('../electron/installation.cjs');
   const app = { isPackaged: true, getVersion: () => '2.3.4', getPath: (name) => `/current/${name}` };
   assert.equal(installationInfo(app).version, '2.3.4');

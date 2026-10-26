@@ -21,6 +21,27 @@ test('release workflow runs only manually, packages all architectures and publis
   assert.ok(workflow.jobs.build.steps.some((step) => step.run === 'npm run test:installation'));
 });
 
+test('release tests shared logic once and gates every platform build on it', () => {
+  const { scripts } = require('../package.json');
+  assert.equal(scripts.test, 'node --test "tests/*.test.cjs"');
+  assert.equal(scripts['test:shared'], 'node --test --test-skip-pattern=^platform: "tests/*.test.cjs"');
+  assert.equal(scripts['test:platform'], 'node --test --test-name-pattern=^platform: "tests/*.test.cjs"');
+  assert.equal(workflow.jobs.test.needs, 'version');
+  assert.equal(workflow.jobs.test['runs-on'], 'ubuntu-latest');
+  assert.deepEqual(workflow.jobs.build.needs, ['version', 'test']);
+  for (const [job, command] of [[workflow.jobs.test, 'npm run test:shared'], [workflow.jobs.build, 'npm run test:platform']]) {
+    const commands = job.steps.map((step) => step.run).filter(Boolean);
+    assert.equal(commands.filter((run) => run === command).length, 1);
+    assert.ok(commands.indexOf('npm ci') < commands.indexOf(command));
+    assert.ok(!commands.includes('npm test'), 'the full suite must not repeat inside the release matrix');
+    assert.equal(job.steps.find((step) => step.uses === 'actions/setup-node@v4').with['node-version'], '24');
+  }
+  assert.ok(!workflow.jobs.test.strategy, 'shared tests do not use a platform matrix');
+  const builds = workflow.jobs.build.steps.map((step) => step.run).filter(Boolean);
+  assert.ok(builds.indexOf('npm run test:platform') < builds.indexOf('npm run build'));
+  assert.ok(builds.indexOf('npm run test:installation') < builds.findIndex((run) => run.includes('electron-builder')));
+});
+
 function preflight({ version = '1.2.3', lockVersion = version, tagCommit, release, status = 404 } = {}) {
   const script = workflow.jobs.version.steps.find((step) => step.id === 'version').with.script;
   const outputs = {};

@@ -48,8 +48,22 @@ jobs:
             core.setOutput('version', version);
             core.setOutput('tag', tag);
 
-  build:
+  test:
     needs: version
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci
+      - name: Test platform-independent logic once
+        run: npm run test:shared
+
+  build:
+    needs: [version, test]
     strategy:
       fail-fast: false
       matrix:
@@ -74,7 +88,8 @@ jobs:
           node-version: '24'
           cache: npm
       - run: npm ci
-      - run: npm test
+      - name: Test platform-dependent behavior
+        run: npm run test:platform
       - run: npm run build
       - run: npm run test:installation
       - name: Package without publishing or signing

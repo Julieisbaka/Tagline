@@ -105,7 +105,7 @@ test('theme and extension limits validate ceilings and apply to manifest and the
   setRuntimeLimits(DEFAULT_LIMITS);
 });
 
-test('main process persists limit changes, enforces script size and exports validated settings', async (t) => {
+test('platform: main process persists limit changes, enforces script size and exports validated settings', async (t) => {
   const { registerExtensions } = require('../electron/extensions.cjs');
   const root = await fs.mkdtemp(path.join(os.tmpdir(), 'tagline-limits-'));
   t.after(() => fs.rm(root, { recursive: true, force: true }));
@@ -153,7 +153,7 @@ test('configured watch and storage limits are enforced by the extension host', a
   assert.equal(storage.size, 0);
 });
 
-test('reading imports support multiple plain documents without requiring Pandoc', async (t) => {
+test('platform: reading imports support multiple plain documents without requiring Pandoc', async (t) => {
   const { registerDocuments } = require('../electron/documents.cjs');
   const root = await fs.mkdtemp(path.join(os.tmpdir(), 'tagline-reading-'));
   t.after(() => fs.rm(root, { recursive: true, force: true }));

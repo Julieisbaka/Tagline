@@ -1,15 +1,20 @@
 {
   "name": "tagline",
   "productName": "Tagline",
-  "version": "0.0.2",
+  "version": "0.0.3-dev",
   "description": "Obsidian-style knowledge vault for policy debaters",
   "main": "electron/main.cjs",
+  "author": {
+    "name": "JulieISBaka"
+  },
   "scripts": {
     "dev": "concurrently -k \"vite\" \"wait-on tcp:5173 && electron . --dev\"",
     "build": "vite build",
     "package": "vite build && electron-builder",
     "start": "vite build && electron .",
-    "test": "node --test tests/core.test.cjs tests/features.test.cjs tests/canvas.test.cjs tests/ui-system.test.cjs tests/improvements.test.cjs tests/productivity.test.cjs tests/search.test.cjs tests/calibration.test.cjs tests/nli.test.cjs tests/startup.test.cjs tests/release.test.cjs tests/opencaselist.test.cjs tests/installation.test.cjs tests/google-docs.test.cjs tests/schemas.test.cjs",
+    "test": "node --test \"tests/*.test.cjs\"",
+    "test:shared": "node --test --test-skip-pattern=^platform: \"tests/*.test.cjs\"",
+    "test:platform": "node --test --test-name-pattern=^platform: \"tests/*.test.cjs\"",
     "test:canvas-performance": "vite build && node tests/canvas-performance-smoke.cjs",
     "test:opencaselist": "vite build && node tests/opencaselist-smoke.cjs",
     "test:startup": "vite build && node tests/startup-smoke.cjs",

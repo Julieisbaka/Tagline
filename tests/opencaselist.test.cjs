@@ -249,7 +249,7 @@ test('write authorization is checked again after confirmation, immediately befor
   assert.equal(mock.requests.length, 0);
 });
 
-test('uploads publish only a user-selected DOCX after confirmation using verified base64 fields', async (t) => {
+test('platform: uploads publish only a user-selected DOCX after confirmation using verified base64 fields', async (t) => {
   const dir = await temporary(t);
   const file = path.join(dir, 'Disclosure.docx');
   await fs.writeFile(file, Buffer.from([0, 1, 2, 255]));
@@ -267,7 +267,7 @@ test('uploads publish only a user-selected DOCX after confirmation using verifie
   await assert.rejects(invalid.service.upload(selection, round), /Choose a DOCX/);
 });
 
-test('downloads stay inside the vault, never overwrite and preserve exact binary bytes', async (t) => {
+test('platform: downloads stay inside the vault, never overwrite and preserve exact binary bytes', async (t) => {
   const root = await temporary(t);
   const bytes = Buffer.from([0, 255, 11, 22]);
   const target = path.join(root, 'Evidence.docx');
@@ -283,7 +283,7 @@ test('downloads stay inside the vault, never overwrite and preserve exact binary
   await assert.rejects(setup().service.download('file.docx'), /Open a vault/);
 });
 
-test('downloads reject existing directory links and unsafe filenames without opening a picker', async (t) => {
+test('platform: downloads reject existing directory links and unsafe filenames without opening a picker', async (t) => {
   const root = await temporary(t);
   const outside = await temporary(t);
   await fs.symlink(outside, path.join(root, 'Evidence.docx'), process.platform === 'win32' ? 'junction' : 'dir');
@@ -295,7 +295,7 @@ test('downloads reject existing directory links and unsafe filenames without ope
   assert.equal(mock.requests.length, 0);
 });
 
-test('downloads do not save after a vault switch and cannot overwrite a file created during transfer', async (t) => {
+test('platform: downloads do not save after a vault switch and cannot overwrite a file created during transfer', async (t) => {
   const root = await temporary(t);
   let current = root;
   const changed = setup({ root, getVaultRoot: () => current, response: () => {

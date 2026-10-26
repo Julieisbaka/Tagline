@@ -84,7 +84,7 @@ async function updateHarness(t, { checksum, payload, size, packaged = true } = {
   return { root, manager, requests, states, installs, name, data };
 }
 
-test('in-app updates are explicit, verified, progress-reporting, and saved before installation', async (t) => {
+test('platform: in-app updates are explicit, verified, progress-reporting, and saved before installation', async (t) => {
   const h = await updateHarness(t);
   assert.equal(h.requests.length, 0);
   await assert.rejects(h.manager.download(), /Check for/);
@@ -106,7 +106,7 @@ test('in-app updates are explicit, verified, progress-reporting, and saved befor
   assert.ok(h.requests.every(({ options }) => options.credentials === 'omit'));
 });
 
-test('invalid, oversized, truncated and tampered update downloads never install', async (t) => {
+test('platform: invalid, oversized, truncated and tampered update downloads never install', async (t) => {
   for (const options of [
     { checksum: 'invalid' }, { checksum: 'a'.repeat(64) + '  Tagline-2.0.0-win-x64.exe\n' },
     { payload: 'short' }, { payload: 'long'.repeat(100) }, { size: 1024 * 1024 * 1024 + 1 },
@@ -134,7 +134,7 @@ test('invalid, oversized, truncated and tampered update downloads never install'
   await assert.rejects(dev.manager.download(), /packaged/);
 });
 
-test('update operations reject overlapping work and do not launch a missing installer', async (t) => {
+test('platform: update operations reject overlapping work and do not launch a missing installer', async (t) => {
   let releaseCheck;
   const manager = createUpdateManager({
     app: { isPackaged: true }, shell: {},
@@ -200,7 +200,7 @@ function harness() {
   return { calls, app, shell, spawnProcess };
 }
 
-test('Windows uninstall waits for app exit and removes profile only after successful uninstall', async () => {
+test('platform: Windows uninstall waits for app exit and removes profile only after successful uninstall', async () => {
   const state = harness();
   const result = await uninstallApplication({
     ...state,
@@ -223,7 +223,7 @@ test('Windows uninstall waits for app exit and removes profile only after succes
   assert.deepEqual(state.calls.some(([kind]) => kind === 'reveal'), false);
 });
 
-test('Windows uninstall reports a missing uninstaller without starting cleanup', async () => {
+test('platform: Windows uninstall reports a missing uninstaller without starting cleanup', async () => {
   const state = harness();
   await assert.rejects(uninstallApplication({
     ...state,
@@ -234,7 +234,7 @@ test('Windows uninstall reports a missing uninstaller without starting cleanup',
   assert.equal(state.calls.some(([kind]) => kind === 'spawn'), false);
 });
 
-test('macOS reveals the app and schedules only profile removal when requested', async () => {
+test('platform: macOS reveals the app and schedules only profile removal when requested', async () => {
   const state = harness();
   state.app.getPath = (name) => name === 'exe'
     ? '/Applications/Tagline.app/Contents/MacOS/Tagline'

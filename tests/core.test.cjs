@@ -25,7 +25,7 @@ test('cosine scores and cache fingerprints are deterministic', () => {
   assert.notEqual(digest('note'), digest('changed'));
 });
 
-test('Pandoc uses literal arguments and reports failed conversion', async (t) => {
+test('platform: Pandoc uses literal arguments and reports failed conversion', async (t) => {
   let call;
   let exitCode = 0;
   t.mock.method(childProcess, 'spawn', (executable, args, options) => {
@@ -58,7 +58,7 @@ test('Pandoc uses literal arguments and reports failed conversion', async (t) =>
   await assert.rejects(convert({ ...input, format: 'exe' }), /Unsupported export format/);
 });
 
-test('Pandoc rejects an explicitly configured missing executable', async () => {
+test('platform: Pandoc rejects an explicitly configured missing executable', async () => {
   const { detectPandoc } = require('../electron/pandoc.cjs');
   await assert.rejects(detectPandoc('C:\\nonexistent-debate-test\\pandoc.exe'), /Cannot run Pandoc/);
 });

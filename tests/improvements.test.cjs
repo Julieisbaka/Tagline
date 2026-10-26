@@ -98,7 +98,7 @@ test('JSON defaults define settings and independent file-extension labels', asyn
   assert.match(cacheSource, /defaults\.visualCacheCharacters/);
 });
 
-test('credentials await async availability, encrypt/decrypt asynchronously and reject unavailable storage', async (t) => {
+test('platform: credentials await async availability, encrypt/decrypt asynchronously and reject unavailable storage', async (t) => {
   const fs = require('node:fs/promises');
   const path = require('node:path');
   const { EventEmitter } = require('node:events');
@@ -266,7 +266,7 @@ test('ranking bounds heading boosts and favors exact words over substring noise'
   assert.throws(() => searchVault(contents, index, 'grid', 1.5), /Maximum search results/);
 });
 
-test('model autoload preference persists and semantic search forwards the result limit', async (t) => {
+test('platform: model autoload preference persists and semantic search forwards the result limit', async (t) => {
   const { EventEmitter } = require('node:events');
   const fs = require('node:fs/promises');
   const path = require('node:path');
@@ -322,7 +322,7 @@ test('model autoload preference persists and semantic search forwards the result
   assert.equal(terminated, true);
 });
 
-test('macOS desktop wiring provides native window controls, menus and Dock reactivation', async () => {
+test('platform: macOS desktop wiring provides native window controls, menus and Dock reactivation', async () => {
   const { EventEmitter } = require('node:events');
   const fs = require('node:fs');
   const path = require('node:path');
