@@ -78,20 +78,16 @@ Open **Settings > Integrations > Open Tabroom**, or run **Tabroom: view and
 save tournament data** from the command palette. Enter a tournament ID or an
 `https://www.tabroom.com` tournament URL containing `tourn_id`.
 
-Tagline reads Tabroom's `/api/download_data.mhtml?tourn_id=...` JSON endpoint.
-Public data does not require login. **Sign in on Tabroom** opens the official
+Tagline reads Tabroom's `/api/download_data.mhtml?tourn_id=...` JSON endpoint, so public data does not require login. **Sign in on Tabroom** opens the official
 website in a sandboxed window with a separate persistent browser session;
 close the window after signing in. Tagline never asks for your password or
-exposes session cookies to the renderer or extensions. A saved browser session
-does not prove that you are signed in or have access to a tournament.
-Tabroom decides which additional data your account may receive.
+exposes session cookies to the renderer or extensions.
 
 The read-only viewer opens with a tournament overview and collection counts.
 Judges, teams, schools, and events have filterable tables with 50 records per
 page, including records nested inside categories and schools. Missing data is
-marked **Not provided**, not treated as empty. Unsupported fields produce a
-warning without blocking raw inspection or backup export. **Raw JSON** retains
-the paged data view. **Save tournament JSON** exports the exact backup through the
+marked **Not provided**.**Raw JSON** retains the paged data view.
+**Save tournament JSON** exports the exact backup through the
 system save dialog, without another network request. Responses are limited to
 32 MiB. Backups can contain personal or restricted data; store and share them
 carefully. **Clear Tabroom session** removes this integration's stored browser
@@ -99,14 +95,13 @@ session and loaded data, without affecting other integrations.
 
 In Teams, **Load supported seasons** reads OpenCaselist's available caselists
 using your existing OpenCaselist login. Select a season and circuit explicitly,
-then use **Find on OpenCaselist** for a team. No cross-service lookup happens
-automatically when a tournament loads. Shared chapter and complete student IDs
+then use **Find on OpenCaselist** for a team. Shared chapter and complete student IDs
 can verify a match; name/code-only candidates and ambiguous results are labeled
 as requiring identity verification. Links use real returned slugs, not guessed
 URLs. When stronger matching fails, a lower-confidence fallback generates codes
 from the first two letters of each surname (first and last name for LD).
 It checks partner orders and numbered duplicates against the school's real
-team list. These links explicitly say **Lower confidence**.
+team list.
 
 Team names link to Tabroom tournament entry records; competitor names link to
 lifetime records when student IDs are available. These open in your default

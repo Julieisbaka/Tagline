@@ -2,14 +2,14 @@
 
 [Documentation home](./README.md)
 
-Tagline supports **direct Google sign-in** and the existing **Apps Script
-webhook** method side by side. Both convert notes and DOCX/HTML uploads into a
-**new Google Doc** in the selected account's Drive. Neither overwrites existing
+Tagline supports **direct Google sign-in** and **Apps Script webhook** method.
+Both convert notes and DOCX/HTML uploads into a **new Google Doc**
+in the selected account's Drive. Neither overwrites existing
 documents or changes their sharing permissions. With a script-configured
 destination folder, folder permissions can be inherited.
 No document is sent until you explicitly confirm an upload.
 
-## Connect directly to Google (recommended)
+## Connect directly to Google
 
 1. Open **Settings > Integrations > Google Docs / Drive**.
 2. Select **Connect Google account**. Tagline opens Google's authorization page
@@ -23,7 +23,7 @@ No document is sent until you explicitly confirm an upload.
 
 No script deployment, webhook URL, API key, or shared secret is needed.
 Uploads go directly from Tagline to Google's Drive API and are converted into
-new Google Docs in My Drive. Google Docs API and Apps Script are not required.
+new Google Docs in My Drive.
 
 The desktop OAuth client requests only `openid`,
 `https://www.googleapis.com/auth/userinfo.email`, and
@@ -39,13 +39,7 @@ Tagline uses PKCE, a random state value, and a temporary callback listener bound
 only to `127.0.0.1`. That listener closes after sign-in, cancellation, or timeout.
 
 **Development/testing:** while the Google Cloud project's OAuth audience is in
-Testing, only registered test accounts can connect. With Drive access, testing
-refresh tokens normally expire after seven days; reconnect when prompted.
-Public distribution requires configuring the project's production audience,
-branding/privacy information, and any applicable Google verification.
-The public desktop client ID is configured in
-[`googleOAuth.cjs`](../electron/googleOAuth.cjs); no client secret is embedded.
-See Google's [desktop OAuth guide](https://developers.google.com/identity/protocols/oauth2/native-app).
+Testing, only registered test accounts can connect.
 
 **Disconnect Google Docs** removes the selected local connection and its
 encrypted credentials, leaving documents and other connections unchanged.
@@ -55,10 +49,9 @@ Revoked or expired authorization produces an explicit reconnect error.
 Uploads are not automatically retried, to avoid duplicate documents when a
 network failure leaves their creation uncertain.
 
-## Set up an Apps Script webhook (existing method)
+## Set up an Apps Script webhook
 
-Existing saved webhook connections keep working without migration or
-redeployment. To add a webhook while a direct connection is selected, choose
+To add a webhook while a direct connection is selected, choose
 **Add a connection / choose an account** to reveal the webhook fields.
 
 1. Open **Settings > Integrations > Set up Google Docs transfer**. Save or copy
