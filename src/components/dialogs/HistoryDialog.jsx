@@ -6,7 +6,7 @@ import { useConfirm } from './ConfirmProvider.jsx';
 
 import ModalBackdrop from './ModalBackdrop.jsx';
 
-export default function HistoryDialog({ path, onRestore, onClose }) {
+export default function HistoryDialog({ path, onRestore, onClose, settings }) {
   const { t, locale } = useI18n();
   const confirm = useConfirm();
   const [revisions, setRevisions] = useState([]);
@@ -63,7 +63,7 @@ export default function HistoryDialog({ path, onRestore, onClose }) {
             </label>
             {isFlow(path) || isCanvas(path)
               ? <JsonEditor className="history-json-preview" label={t('Revision preview')} readOnly editable={false}
-                value={content} height="280px" />
+                value={content} height="280px" settings={settings} />
               : <textarea className="history-preview" aria-label={t('Revision preview')} readOnly value={content} />}
           </>}
         {error && <p role="alert" className="error-text">{error}</p>}

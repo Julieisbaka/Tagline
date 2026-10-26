@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, dialog, shell, Menu, safeStorage, session } = require('electron');
+const { app, BrowserWindow, ipcMain, dialog, shell, Menu, safeStorage, session, nativeTheme } = require('electron');
 const path = require('path');
 const fs = require('fs/promises');
 const fssync = require('fs');
@@ -22,6 +22,7 @@ const { uninstallApplication } = require('./uninstall.cjs');
 const { registerOpenCaselist } = require('./opencaselist.cjs');
 const { registerGoogleDocs } = require('./googleDocs.cjs');
 const keyDefinitions = require('../src/lib/keybindings.json');
+const { registerNativeUi } = require('./nativeUi.cjs');
 
 const isDev = process.argv.includes('--dev');
 // Keep profile and OS credential identity stable across versions and install locations.
@@ -111,6 +112,7 @@ async function listRecentVaults() {
 }
 
 function registerIpc() {
+  registerNativeUi({ ipcMain, nativeTheme, Menu, dialog, getWindow: () => win });
   ipcMain.handle('app:editText', (event, action) => {
     if (event.sender !== win?.webContents ||
       !['undo', 'redo', 'cut', 'copy', 'paste', 'selectAll'].includes(action)) throw new Error('Invalid text editing action.');

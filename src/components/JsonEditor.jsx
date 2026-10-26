@@ -26,6 +26,7 @@ export default function JsonEditor({ label, settings, ...props }) {
   return <CodeMirror {...props} extensions={labeled} theme="none"
     basicSetup={{ highlightActiveLine: false, highlightActiveLineGutter: false,
       ...(settings ? {
+        highlightSelectionMatches: settings.sourceSelectionMatches,
         bracketMatching: settings.sourceBracketMatching, closeBrackets: settings.sourceCloseBrackets,
         closeBracketsKeymap: settings.sourceCloseBrackets,
         foldGutter: settings.sourceCodeFolding, foldKeymap: settings.sourceCodeFolding,

@@ -5,6 +5,7 @@ import { setLanguage } from './i18n.js';
 import { initialLanguage } from './localization.js';
 import { applyTheme, getTheme } from './themes.js';
 import { configureVisualCache } from './visualCache.js';
+import { setNativeUi } from './nativeUi.js';
 
 const KEY = 'tagline-settings';
 
@@ -42,6 +43,14 @@ export function useSettings() {
     catch (error) { window.dispatchEvent(new CustomEvent('app-error', { detail: error.message })); }
     setLanguage(settings.language);
   }, [settings.theme, settings.customTheme, settings.themeSettings, settings.themeTransition, settings.reduceMotion, settings.language, themeRevision]);
+  useLayoutEffect(() => {
+    try {
+      const theme = getTheme(settings.theme, settings.customTheme, settings.themeSettings);
+      setNativeUi(settings.nativeUi);
+      window.api.setNativeUi({ enabled: settings.nativeUi, mode: theme.mode })
+        .catch((error) => window.dispatchEvent(new CustomEvent('app-error', { detail: error.message })));
+    } catch (error) { window.dispatchEvent(new CustomEvent('app-error', { detail: error.message })); }
+  }, [settings.nativeUi, settings.theme, settings.customTheme, settings.themeSettings, themeRevision]);
   useLayoutEffect(() => {
     const root = document.documentElement;
     for (const [name, enabled] of [

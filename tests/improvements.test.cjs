@@ -1,6 +1,54 @@
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
 
+test('native UI is opt-in, follows light/dark mode and validates application-only requests', async () => {
+  const { registerNativeUi } = require('../electron/nativeUi.cjs');
+  const handlers = {};
+  const nativeTheme = { themeSource: 'system' };
+  const mainFrame = {};
+  const webContents = { mainFrame };
+  const win = { webContents };
+  const event = { sender: webContents, senderFrame: mainFrame };
+  let menuItems, confirmOptions;
+  let answer = 1, selection = 0;
+  registerNativeUi({
+    ipcMain: { handle: (name, handler) => { handlers[name] = handler; } },
+    nativeTheme, getWindow: () => win,
+    Menu: { buildFromTemplate: (items) => {
+      menuItems = items;
+      return { popup: ({ callback }) => { if (selection !== null) items[selection].click(); callback(); } };
+    } },
+    dialog: { showMessageBox: async (_win, options) => { confirmOptions = options; return { response: answer }; } },
+  });
+  const preferences = handlers['app:setNativeUi'];
+  const contextMenu = handlers['app:nativeContextMenu'];
+  const confirm = handlers['app:nativeConfirm'];
+  assert.throws(() => contextMenu(event, []), /disabled/);
+  assert.throws(() => preferences({ ...event, senderFrame: {} }, { enabled: true, mode: 'dark' }), /only available/);
+  assert.throws(() => preferences(event, { enabled: true, mode: 'invalid' }), /Invalid/);
+  preferences(event, { enabled: true, mode: 'dark' });
+  assert.equal(nativeTheme.themeSource, 'dark');
+  assert.equal(await contextMenu(event, [{ label: 'Copy', disabled: false }, { label: 'Cut', disabled: true }]), 0);
+  assert.equal(menuItems[1].enabled, false);
+  selection = null;
+  assert.equal(await contextMenu(event, [{ label: 'Copy', disabled: false }]), null);
+  assert.throws(() => contextMenu(event, [{ label: 'Copy', disabled: 'no' }]), /Invalid/);
+  const options = { message: 'Delete this?', title: 'Confirm', cancel: 'Cancel', confirm: 'Confirm' };
+  assert.equal(await confirm(event, options), true);
+  assert.equal(confirmOptions.defaultId, 0);
+  assert.equal(confirmOptions.cancelId, 0);
+  answer = 0;
+  assert.equal(await confirm(event, options), false);
+  preferences(event, { enabled: true, mode: 'light' });
+  assert.equal(nativeTheme.themeSource, 'light');
+  preferences(event, { enabled: false, mode: 'dark' });
+  assert.equal(nativeTheme.themeSource, 'system');
+  await assert.rejects(confirm(event, options), /disabled/);
+  const defaults = require('../src/lib/defaultSettings.json');
+  assert.equal(defaults.nativeUi, false);
+  assert.equal(defaults.sourceSelectionMatches, true);
+});
+
 test('cache limits trim immediately, enforce character budgets, and allow disabling', async () => {
   const { configureVisualCache, cacheDocument, cachedDocument } = await import('../src/lib/visualCache.js');
   const json = { type: 'doc', content: [] };
@@ -337,7 +385,7 @@ test('macOS desktop wiring provides native window controls, menus and Dock react
           DEFAULT_RETENTION: 50,
           createRevisionHistory: () => ({ snapshot() { }, list() { return []; }, read() { }, rename() { } }),
         };
-        return Object.fromEntries(['registerPandoc', 'registerEmbeddings', 'registerDocuments', 'registerFonts', 'registerFlowFiles', 'registerExtensions', 'registerNli', 'registerSummarization', 'registerOpenCaselist', 'registerGoogleDocs']
+        return Object.fromEntries(['registerPandoc', 'registerEmbeddings', 'registerDocuments', 'registerFonts', 'registerFlowFiles', 'registerExtensions', 'registerNli', 'registerSummarization', 'registerOpenCaselist', 'registerGoogleDocs', 'registerNativeUi']
           .map((key) => [key, () => true]));
       }
       return require(name);

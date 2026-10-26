@@ -1,0 +1,48 @@
+:root.native-ui :is(button, input, select, textarea) {
+  appearance: auto;
+}
+
+:root.native-ui :is(input, select, textarea) {
+  background-color: Field;
+  color: FieldText;
+  border-color: ButtonBorder;
+  accent-color: auto;
+}
+
+:root.native-ui button:not(.icon-btn, .link-btn, .mini, .context-item, .palette-item) {
+  background-color: ButtonFace;
+  color: ButtonText;
+  border-color: ButtonBorder;
+}
+
+:root.native-ui input::file-selector-button {
+  all: revert;
+}
+
+:root.native-ui input:is([type='checkbox'], [type='radio'], [type='range']) {
+  appearance: auto;
+  accent-color: auto;
+  display: inline-block;
+  padding: 0;
+  border: revert;
+  border-radius: revert;
+  background: revert;
+  box-shadow: none;
+}
+
+:root.native-ui :is(select option, select optgroup) {
+  background: Field;
+  color: FieldText;
+}
+
+@supports (appearance: base-select) {
+  :root.native-ui select::picker(select) {
+    appearance: auto;
+  }
+}
+
+@media (forced-colors: active) {
+  .native-ui :is(button, input, select, textarea) {
+    forced-color-adjust: auto;
+  }
+}

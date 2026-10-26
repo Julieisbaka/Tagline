@@ -1,4 +1,7 @@
 {
+  "Highlight other occurrences of selected text": "Surligner les autres occurrences du texte sélectionné",
+  "Use native UI controls": "Utiliser les contrôles natifs de l’interface",
+  "Use system date pickers, context menus, confirmations and standard form controls where available. Native controls follow the app light/dark mode and OS high-contrast settings where supported. Complex application dialogs remain in-app. May conflict with custom themes.": "Utilise les sélecteurs de date, menus contextuels, confirmations et contrôles système disponibles. Ils suivent le mode clair/sombre de l’application et le contraste élevé du système si pris en charge. Les dialogues complexes restent dans l’application. Peut perturber les thèmes personnalisés.",
   "Choose date": "Choisir une date",
   "Calendar": "Calendrier",
   "Previous month": "Mois précédent",

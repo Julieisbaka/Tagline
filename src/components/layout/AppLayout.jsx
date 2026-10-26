@@ -240,7 +240,7 @@ export default function AppLayout({ app }) {
       {modal?.type === 'import' && <ImportDialog onImport={createAndOpen} onClose={() => setModal(null)} />}
       {modal?.type === 'hypothesis' && <HypothesisDialog sources={modal.sources} onClose={() => setModal(null)} />}
       {modal?.type === 'summary' && <SummaryDialog title={modal.title} content={modal.content} onClose={() => setModal(null)} />}
-      {modal?.type === 'history' && <HistoryDialog path={modal.path}
+      {modal?.type === 'history' && <HistoryDialog path={modal.path} settings={settings}
         onRestore={(content) => {
           v.updateContent(modal.path, content);
           setModal(null);

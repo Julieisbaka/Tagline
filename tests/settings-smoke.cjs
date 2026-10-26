@@ -452,6 +452,7 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
         const editorDefaults = {
           visualSpellcheck: true, sourceIndentWithTabs: false, sourceBracketMatching: true,
           sourceCloseBrackets: true, sourceCodeFolding: false,
+          sourceSelectionMatches: true,
         };
         for (const [key, value] of Object.entries(editorDefaults)) {
           assert.equal(await js(`document.querySelector('[data-setting="${key}"]').checked`), value);
@@ -524,6 +525,31 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
           wc.sendInputEvent({ type: 'keyUp', keyCode: 'End', modifiers: ['control'] });
           await wc.insertText(text);
         };
+        const selectWord = async () => {
+          await js("document.querySelector('.source-editor .cm-content').focus()");
+          wc.sendInputEvent({ type: 'keyDown', keyCode: 'End', modifiers: ['control'] });
+          wc.sendInputEvent({ type: 'keyUp', keyCode: 'End', modifiers: ['control'] });
+          for (let i = 0; i < 9; i++) {
+            wc.sendInputEvent({ type: 'keyDown', keyCode: 'Left', modifiers: ['shift'] });
+            wc.sendInputEvent({ type: 'keyUp', keyCode: 'Left', modifiers: ['shift'] });
+          }
+          await delay(300);
+        };
+        await insertSource('\nmatchword matchword');
+        await selectWord();
+        assert.equal(await js("document.querySelectorAll('.cm-selectionMatch').length"), 0, 'selection matches can be disabled');
+        const beforeMatches = await js("document.querySelector('.source-editor .cm-content').textContent");
+        await settings('editors');
+        await toggle('sourceSelectionMatches', true);
+        await done();
+        await selectWord();
+        await wait("document.querySelectorAll('.cm-selectionMatch').length > 0");
+        assert.equal(await js("document.querySelector('.source-editor .cm-content').textContent"), beforeMatches);
+        await settings('editors');
+        await toggle('sourceSelectionMatches', false);
+        await done();
+        await selectWord();
+        assert.equal(await js("document.querySelectorAll('.cm-selectionMatch').length"), 0);
         await insertSource('\n\n```js\nfunction example() {\n  return 1;\n}\n```\n\n');
         await wait("!!document.querySelector('.cm-foldGutter [title=\"Fold line\"]')");
         await js("document.querySelector('.source-editor .cm-content').focus()");

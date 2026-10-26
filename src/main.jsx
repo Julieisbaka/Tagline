@@ -6,5 +6,6 @@ import './styles/content.css';
 import './styles/integrations.css';
 import './styles/layout.css';
 import './styles/widgets.css';
+import './styles/native-ui.css';
 
 createRoot(document.getElementById('root')).render(<ConfirmProvider><App /></ConfirmProvider>);

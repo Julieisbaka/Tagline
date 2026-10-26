@@ -60,6 +60,47 @@
   font-size: 13px;
 }
 
+.setting-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  min-width: 0;
+  position: relative;
+  font-size: 13px;
+}
+
+.setting-help {
+  display: inline-flex;
+  flex-shrink: 0;
+}
+
+.setting-help-button {
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border-radius: 50%;
+  color: var(--text-muted);
+}
+
+.setting-tooltip {
+  position: absolute;
+  z-index: 2;
+  inset-inline-start: 0;
+  top: 100%;
+  width: max-content;
+  max-width: min(300px, 100%);
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg-elevated);
+  color: var(--text);
+  box-shadow: 0 4px 12px var(--shadow);
+  font-size: 12px;
+  font-weight: normal;
+  line-height: 1.5;
+}
+
 .settings .setting-row input:not([type="checkbox"]),
 .settings .setting-row select {
   width: 210px;

@@ -4,8 +4,16 @@ import { dateValue, monthDays, moveMonth, parseDate } from '../lib/calendar.js';
 import { containFocus, trapTabKey } from '../lib/focusScope.js';
 import { useI18n } from '../lib/i18n.js';
 import Icon from './Icon.jsx';
+import { useNativeUi } from '../lib/nativeUi.js';
 
 export default function DatePicker({ name, label, value, onChange }) {
+  const native = useNativeUi();
+  return native ? <input type="date" name={name} aria-label={label} value={value}
+    onChange={(event) => onChange(event.target.value)} />
+    : <AppDatePicker name={name} label={label} value={value} onChange={onChange} />;
+}
+
+function AppDatePicker({ name, label, value, onChange }) {
   const { t, locale } = useI18n();
   const id = useId();
   const root = useRef(null);

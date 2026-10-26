@@ -15,7 +15,7 @@ if (!process.versions.electron) {
   return;
 }
 
-const { app, dialog } = require('electron');
+const { app, dialog, Menu, nativeTheme } = require('electron');
 const fs = require('node:fs/promises');
 const path = require('node:path');
 const assert = require('node:assert/strict');
@@ -196,6 +196,73 @@ const delay = (ms) => new Promise((r) => setTimeout(r, ms));
         assert.ok(await js("document.querySelector('.visual-document').textContent.includes('Accessed 2024-02-29')"));
         // The spoken year adds several syllables; a word-only estimate was 0:01.
         await wait("document.querySelector('.status-bar').textContent.includes('2 highlighted (~0:02 read)')");
+
+        await settings();
+        await js("document.querySelector('[data-section=appearance]').click()");
+        assert.equal(await js("document.querySelector('[data-setting=nativeUi]').checked"), false);
+        await js("document.querySelector('[data-setting=nativeUi]').click()");
+        await wait("document.documentElement.classList.contains('native-ui')");
+        const theme = async (value) => {
+          await js(`(() => { const el = document.querySelector('[data-setting=theme]');
+            el.value = ${JSON.stringify(value)}; el.dispatchEvent(new Event('change', {bubbles:true})); })()`);
+          await delay(100);
+        };
+        await theme('light');
+        assert.equal(nativeTheme.themeSource, 'light');
+        await theme('dark');
+        assert.equal(nativeTheme.themeSource, 'dark');
+        await click('.settings button', 'Done');
+        await new Promise((resolve) => { wc.once('did-finish-load', resolve); wc.reload(); });
+        await wait("document.documentElement.classList.contains('native-ui') && !!document.querySelector('.note-actions')");
+        assert.equal(nativeTheme.themeSource, 'dark', 'native preferences survive a renderer reload');
+        await click('.note-actions button', 'Create citation');
+        await wait("document.querySelector('[name=accessed]')?.type === 'date'");
+        assert.equal(await js("!!document.querySelector('.date-picker-calendar, .date-picker button')"), false);
+        await input('[name=accessed]', '2024-03-04');
+        assert.equal(await js("document.querySelector('[name=accessed]').value"), '2024-03-04');
+        const buildMenu = Menu.buildFromTemplate;
+        let nativeItems;
+        Menu.buildFromTemplate = (items) => ({
+          popup: ({ callback }) => {
+            nativeItems = items;
+            items.find((item) => item.label === 'Copy')?.click();
+            callback();
+          },
+        });
+        try {
+          await input('[name=author]', 'Native copy');
+          await js(`(() => { const el = document.querySelector('[name=author]'); el.focus(); el.select();
+            el.dispatchEvent(new MouseEvent('contextmenu', {bubbles:true,cancelable:true})); })()`);
+          for (let i = 0; i < 40 && !nativeItems; i++) await delay(25);
+          assert.ok(nativeItems?.some((item) => item.label === 'Copy'));
+          await delay(100);
+          assert.equal(await require('electron').clipboard.readText(), 'Native copy');
+          assert.equal(await js("!!document.querySelector('.context-menu')"), false);
+        } finally { Menu.buildFromTemplate = buildMenu; }
+        await click('.citation-dialog button', 'Cancel');
+        await settings();
+        await js("document.querySelector('[data-section=appearance]').click()");
+        await wait("document.querySelector('[data-setting=nativeUi]').checked");
+        await js("document.querySelector('[data-section=advanced]').click()");
+        const messageBox = dialog.showMessageBox;
+        let confirmation;
+        dialog.showMessageBox = async (_win, options) => { confirmation = options; return { response: 0 }; };
+        try {
+          await js("document.querySelector('[data-setting=customCssEnabled]').click()");
+          for (let i = 0; i < 40 && !confirmation; i++) await delay(25);
+          assert.ok(confirmation?.message.includes('Custom CSS'));
+          await wait("!document.querySelector('[data-setting=customCssEnabled]').checked");
+          assert.equal(await js("!!document.querySelector('.confirm-dialog')"), false);
+        } finally { dialog.showMessageBox = messageBox; }
+        await js("document.querySelector('[data-section=appearance]').click()");
+        await js("document.querySelector('[data-setting=nativeUi]').click()");
+        await wait("!document.documentElement.classList.contains('native-ui')");
+        await delay(100);
+        assert.equal(nativeTheme.themeSource, 'system');
+        await click('.settings button', 'Done');
+        await click('.note-actions button', 'Create citation');
+        await wait("document.querySelector('[name=accessed]')?.type === 'text'");
+        await click('.citation-dialog button', 'Cancel');
 
         await settings();
         const status = await js('window.api.embeddingStatus()');

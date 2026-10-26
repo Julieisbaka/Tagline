@@ -2,8 +2,37 @@ import { useEffect, useLayoutEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { useI18n } from '../../lib/i18n.js';
 import { containFocus, trapTabKey } from '../../lib/focusScope.js';
+import { useNativeUi } from '../../lib/nativeUi.js';
 
 export default function ContextMenu({ x, y, items, onClose }) {
+  const native = useNativeUi();
+  return native ? <NativeContextMenu items={items} onClose={onClose} />
+    : <AppContextMenu x={x} y={y} items={items} onClose={onClose} />;
+}
+
+function NativeContextMenu({ items, onClose }) {
+  const { t } = useI18n();
+  const initial = useRef({ items, onClose, t });
+  useEffect(() => {
+    let active = true;
+    const { items, onClose, t } = initial.current;
+    window.api.nativeContextMenu(items.map((item) => ({ label: t(item.label), disabled: !!item.disabled })))
+      .then(async (index) => {
+        if (!active) return;
+        onClose();
+        if (index !== null) await items[index].run();
+      }).catch((error) => {
+        if (active) {
+          onClose();
+          window.dispatchEvent(new CustomEvent('app-error', { detail: error.message }));
+        }
+      });
+    return () => { active = false; };
+  }, []);
+  return null;
+}
+
+function AppContextMenu({ x, y, items, onClose }) {
   const ref = useRef(null);
   const previousFocus = useRef(document.activeElement);
   const { t } = useI18n();

@@ -116,25 +116,28 @@ select optgroup {
 }
 
 input[type="checkbox"] {
-  appearance: none;
-  display: inline-grid;
-  place-content: center;
   flex-shrink: 0;
   width: 16px;
   height: 16px;
   padding: 0;
-  border: 2px solid var(--text-muted);
-  border-radius: 2px;
-  background: var(--bg);
   vertical-align: middle;
 }
 
-input[type="checkbox"]:checked {
+:root:not(.native-ui) input[type="checkbox"] {
+  appearance: none;
+  display: inline-grid;
+  place-content: center;
+  border: 2px solid var(--text-muted);
+  border-radius: 2px;
+  background: var(--bg);
+}
+
+:root:not(.native-ui) input[type="checkbox"]:checked {
   background: var(--accent);
   border-color: var(--accent);
 }
 
-input[type="checkbox"]:checked::after {
+:root:not(.native-ui) input[type="checkbox"]:checked::after {
   content: "";
   width: 4px;
   height: 8px;

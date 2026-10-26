@@ -137,6 +137,11 @@ export default function ThemeSettings({ settings, update }) {
         <input type="checkbox" data-setting="themeTransition" checked={settings.themeTransition}
           onChange={(event) => update({ themeTransition: event.target.checked })} />
       </label>
+      <label className="setting-row"><span>{t('Use native UI controls')}</span>
+        <input type="checkbox" data-setting="nativeUi" checked={settings.nativeUi}
+          onChange={(event) => update({ nativeUi: event.target.checked })} />
+      </label>
+      <p>{t('Use system date pickers, context menus, confirmations and standard form controls where available. Native controls follow the app light/dark mode and OS high-contrast settings where supported. Complex application dialogs remain in-app. May conflict with custom themes.')}</p>
       <label className="setting-row"><span>{t('Import JSON theme')}</span>
         <input className="theme-file-input" type="file" accept=".json,application/json"
           aria-label={t('Import JSON theme')} onChange={importTheme} />
@@ -168,7 +173,8 @@ export default function ThemeSettings({ settings, update }) {
           <span>{variablesLabel}</span>
           <CodeMirror value={variables} onChange={setVariables} extensions={variablesExtensions}
             theme="none" minHeight="180px" maxHeight="420px"
-            basicSetup={{ foldGutter: true, highlightActiveLine: true, autocompletion: true, searchKeymap: true }} />
+            basicSetup={{ foldGutter: true, highlightActiveLine: true, autocompletion: true, searchKeymap: true,
+              highlightSelectionMatches: settings.sourceSelectionMatches }} />
         </div>
         <p>{t('Edit any color token and safe CSS variables, including fonts, sizes, and spacing. URLs, declarations, and imports are not allowed.')}</p>
         <div className="settings-actions">

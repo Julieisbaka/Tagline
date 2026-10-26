@@ -2,6 +2,9 @@ const { contextBridge, ipcRenderer } = require('electron');
 
 contextBridge.exposeInMainWorld('api', {
   platform: process.platform,
+  setNativeUi: (options) => ipcRenderer.invoke('app:setNativeUi', options),
+  nativeContextMenu: (items) => ipcRenderer.invoke('app:nativeContextMenu', items),
+  nativeConfirm: (options) => ipcRenderer.invoke('app:nativeConfirm', options),
   editText: (action) => ipcRenderer.invoke('app:editText', action),
   systemLanguages: JSON.parse(decodeURIComponent(process.argv.find((arg) => arg.startsWith('--tagline-languages=')).split('=')[1])),
   getInstallationInfo: () => ipcRenderer.invoke('app:installation'),

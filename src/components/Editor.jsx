@@ -143,6 +143,7 @@ export default function Editor({
         extensions={extensions}
         theme="none"
         basicSetup={{
+          highlightSelectionMatches: settings.sourceSelectionMatches,
           lineNumbers: false,
           foldGutter: settings.sourceCodeFolding,
           foldKeymap: settings.sourceCodeFolding,
