@@ -9,6 +9,50 @@ const context = { repo: { owner: 'test', repo: 'tagline' }, sha: 'selected-commi
 const missing = () => { throw Object.assign(new Error('Not found'), { status: 404 }); };
 const core = { setOutput() { }, summary: { addLink() { return this; }, write() { } } };
 
+test('packaging retains only target ONNX binaries and preserves runtime dependencies', () => {
+  const { getNodeModuleFileMatcher } = require('app-builder-lib/out/fileMatcher');
+  const { build } = require('../package.json');
+  const root = path.resolve(__dirname, '..');
+  const platforms = { win: 'win32', mac: 'darwin', linux: 'linux' };
+  const architectures = ['x64', 'arm64'];
+  const fileStat = { isDirectory: () => false };
+  const directoryStat = { isDirectory: () => true };
+  for (const [target, platform] of Object.entries(platforms)) {
+    for (const arch of architectures) {
+      const matcher = getNodeModuleFileMatcher(root, root, (pattern) => pattern.replaceAll('${arch}', arch),
+        build[target], { config: build, debugLogger: { isEnabled: false } });
+      const accepts = matcher.createFilter();
+      for (const os of Object.values(platforms)) {
+        for (const cpu of architectures) {
+          for (const napi of ['napi-v6', 'napi-v7']) {
+            for (const file of ['onnxruntime_binding.node', 'onnxruntime.dll', 'libonnxruntime.so.1',
+              'libonnxruntime.dylib', 'DirectML.dll', 'dxcompiler.dll', 'dxil.dll']) {
+              const relative = path.join('node_modules', 'onnxruntime-node', 'bin', napi, os, cpu, file);
+              assert.equal(accepts(path.join(root, relative), fileStat), os === platform && cpu === arch,
+                `${target}-${arch}: ${relative}`);
+            }
+          }
+        }
+      }
+      for (const relative of [
+        'node_modules/onnxruntime-node/package.json',
+        'node_modules/onnxruntime-node/dist/binding.js',
+        'node_modules/onnxruntime-common/dist/cjs/index.js',
+        'node_modules/@huggingface/transformers/dist/transformers.node.mjs',
+        'node_modules/onnxruntime-web/dist/ort-wasm-simd-threaded.wasm',
+      ]) {
+        assert.ok(accepts(path.resolve(root, relative), fileStat), `${target}-${arch}: keep ${relative}`);
+      }
+      const nativeDir = path.join(root, 'node_modules', 'onnxruntime-node', 'bin', 'napi-v6', platform, arch);
+      for (let dir = nativeDir; dir !== root; dir = path.dirname(dir)) {
+        if (path.basename(dir) !== 'node_modules') {
+          assert.ok(accepts(dir, directoryStat), `${target}-${arch}: traverse ${dir}`);
+        }
+      }
+    }
+  }
+});
+
 test('release workflow runs only manually, packages all architectures and publishes only after every build', () => {
   assert.deepEqual(Object.keys(workflow.on), ['workflow_dispatch']);
   assert.deepEqual(workflow.permissions, { contents: 'read' });

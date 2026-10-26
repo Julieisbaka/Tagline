@@ -54,7 +54,8 @@
       "src/lib/keybindings.json",
       "src/lib/defaultSettings.json",
       "build/icon.*",
-      "package.json"
+      "package.json",
+      "!node_modules/onnxruntime-node/bin/napi-v*/*/!(${arch})/**/*"
     ],
     "asarUnpack": [
       "node_modules/onnxruntime-node/**/*"
@@ -70,7 +71,10 @@
     ],
     "win": {
       "target": "nsis",
-      "icon": "build/icon.ico"
+      "icon": "build/icon.ico",
+      "files": [
+        "!node_modules/onnxruntime-node/bin/napi-v*/!(win32)/**/*"
+      ]
     },
     "nsis": {
       "oneClick": true,
@@ -80,12 +84,18 @@
     "mac": {
       "target": "dmg",
       "icon": "build/icon.icns",
-      "category": "public.app-category.productivity"
+      "category": "public.app-category.productivity",
+      "files": [
+        "!node_modules/onnxruntime-node/bin/napi-v*/!(darwin)/**/*"
+      ]
     },
     "linux": {
       "target": "AppImage",
       "icon": "build/icon.png",
-      "category": "Office"
+      "category": "Office",
+      "files": [
+        "!node_modules/onnxruntime-node/bin/napi-v*/!(linux)/**/*"
+      ]
     }
   },
   "dependencies": {
