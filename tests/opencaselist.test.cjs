@@ -52,9 +52,9 @@ const wikiSchool = { name: 'ExampleSchool', display_name: 'Example School', chap
 const wikiTeam = { name: 'AB', display_name: 'Example School AB',
   debater1_student_id: 11, debater2_student_id: 10,
   debater1_first: 'Bob', debater1_last: 'Baker', debater2_first: 'Alice', debater2_last: 'Able' };
-const resolveTeam = (team = tabroomTeam, schools = [wikiSchool], teams = [wikiTeam]) =>
+const resolveTeam = (team = tabroomTeam, schools = [wikiSchool], teams = [wikiTeam], event = 'cx') =>
   resolveCaselistTeam({ caselist: 'ndt2026', team, list: async (kind) =>
-    kind === 'caselists' ? [{ name: 'ndt2026' }] : kind === 'schools' ? schools : teams });
+    kind === 'caselists' ? [{ name: 'ndt2026', event }] : kind === 'schools' ? schools : teams });
 
 test('Tabroom matching verifies shared chapter and complete student IDs, independent of team code and roster order', async () => {
   const result = await resolveTeam({ ...tabroomTeam, name: 'Different tournament name', code: '999' });
@@ -104,6 +104,54 @@ test('single-initial tournament codes can suggest real two-letter wiki slugs wit
   const duplicate = await resolveTeam({ ...tabroomTeam, students: [] }, [wikiSchool],
     [realSlug, { ...realSlug, name: 'AbBa1' }]);
   assert.equal(duplicate.status, 'ambiguous');
+});
+
+test('generated surname codes find actual redacted or missing-roster teams in either order, including numbered duplicates', async () => {
+  for (const event of ['cx', 'pf']) {
+    for (const name of ['AbBa', 'BaAb', 'AbBa1', 'BaAb12']) {
+      const result = await resolveTeam(tabroomTeam, [wikiSchool], [{ name }], event);
+      assert.equal(result.status, 'candidate');
+      assert.equal(result.candidates[0].evidence, 'generated-code');
+      assert.equal(result.candidates[0].verified, false);
+      assert.equal(result.candidates[0].selection.team, name);
+    }
+  }
+  const redacted = { name: 'BaAb', debater1_first: 'Bo.....', debater1_last: 'Ba.....',
+    debater2_first: 'Al.....', debater2_last: 'Ab.....' };
+  assert.equal((await resolveTeam(tabroomTeam, [wikiSchool], [redacted])).candidates[0].evidence, 'generated-code');
+  const ambiguous = await resolveTeam(tabroomTeam, [wikiSchool], [{ name: 'AbBa' }, { name: 'AbBa1' }, { name: 'BaAb2' }]);
+  assert.equal(ambiguous.status, 'ambiguous');
+  assert.equal(ambiguous.candidates.length, 3);
+  assert.ok(ambiguous.candidates.every((candidate) => candidate.evidence === 'generated-code' && !candidate.verified));
+});
+
+test('generated fallback respects event rules, missing names, real slug boundaries and school/identity conflicts', async () => {
+  const ld = { ...tabroomTeam, code: '', name: '', students: [{ first: 'Alice', last: 'Able' }] };
+  assert.equal((await resolveTeam(ld, [wikiSchool], [{ name: 'AlAb' }], 'ld')).candidates[0].evidence, 'generated-code');
+  assert.equal((await resolveTeam(ld, [wikiSchool], [{ name: 'AlAb1' }], 'ld')).status, 'candidate');
+  assert.equal((await resolveTeam(ld, [wikiSchool], [{ name: 'Ab' }], 'ld')).status, 'unmatched');
+  for (const name of ['AbBaOther', 'AbBa0', 'AbBa01', 'AbBa-1']) {
+    assert.equal((await resolveTeam(tabroomTeam, [wikiSchool], [{ name }])).status, 'unmatched');
+  }
+  for (const students of [[{ first: 'Alice' }, { last: 'Baker' }], [{ last: '123' }, { last: 'Baker' }],
+    [{ last: 'Ab.....' }, { last: 'Baker' }], Array(5).fill({ last: 'Able' })]) {
+    assert.equal((await resolveTeam({ ...tabroomTeam, students }, [wikiSchool], [{ name: 'AbBa' }])).status, 'unmatched');
+  }
+  assert.equal((await resolveTeam(tabroomTeam, [wikiSchool], [{ name: 'AbBa' }], null)).status, 'unmatched');
+  assert.equal((await resolveTeam(tabroomTeam, [wikiSchool], [{ name: 'AbBa' }], 'unknown')).status, 'unmatched');
+  assert.equal((await resolveTeam(tabroomTeam, [{ ...wikiSchool, chapter_id: 999 }], [{ name: 'AbBa' }])).status, 'unmatched');
+  assert.equal((await resolveTeam(tabroomTeam, [wikiSchool], [{
+    name: 'AbBa', debater1_student_id: 900, debater2_student_id: 901,
+  }])).status, 'unmatched');
+  const preferred = await resolveTeam(tabroomTeam, [wikiSchool], [
+    { ...wikiTeam, name: 'AbBa' }, { name: 'AbBa1' },
+  ]);
+  assert.equal(preferred.status, 'matched');
+  assert.equal(preferred.candidates.length, 1);
+  const names = await resolveTeam({ ...tabroomTeam, students: tabroomTeam.students.map(({ first, last }) => ({ first, last })) },
+    [wikiSchool], [{ ...wikiTeam, name: 'AbBa' }, { name: 'AbBa1' }]);
+  assert.equal(names.candidates.length, 1);
+  assert.equal(names.candidates[0].evidence, 'student-names');
 });
 
 test('backend team resolution requires an explicit existing caselist and uses authenticated reads with real URL slugs', async () => {

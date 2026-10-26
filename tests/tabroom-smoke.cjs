@@ -65,11 +65,13 @@ session.fromPartition = (name, ...args) => {
       if (wikiMode === 'error') return new Response('{}', { status: 403 });
       const value = url.endsWith('/teams') ? [{
         name: 'AbBa', display_name: 'Example School AbBa',
-        debater1_first: 'Alice', debater1_last: 'Able', debater2_first: 'Bob', debater2_last: 'Baker',
+        ...(wikiMode !== 'generated' ? {
+          debater1_first: 'Alice', debater1_last: 'Able', debater2_first: 'Bob', debater2_last: 'Baker',
+        } : {}),
         ...(wikiMode === 'verified' ? { debater1_student_id: 101, debater2_student_id: 102 } : {}),
       }] : url.endsWith('/schools') ? [{ name: 'ExampleSchool', display_name: 'Example School', chapter_id: 100 }]
-        : [{ name: 'ndt2026', display_name: 'College Policy 2026', year: 2026 },
-          { name: 'ndt2025', display_name: 'College Policy 2025', year: 2025, archived: true }];
+        : [{ name: 'ndt2026', display_name: 'College Policy 2026', year: 2026, event: 'cx' },
+          { name: 'ndt2025', display_name: 'College Policy 2025', year: 2025, archived: true, event: 'cx' }];
       return new Response(JSON.stringify(value));
     };
   }
@@ -171,6 +173,12 @@ app.on('browser-window-created', (_event, win) => {
       assert.equal(await js("!!document.querySelector('.tabroom-match')"), false, 'Season change clears stale matches');
       await click('Find on OpenCaselist');
       await wait("document.querySelector('.tabroom-match')?.textContent.includes('Possible match')");
+      assert.equal(await js("document.querySelector('.tabroom-match').textContent.includes('Lower confidence')"), false);
+      wikiMode = 'generated';
+      await click('Find on OpenCaselist');
+      await wait("document.querySelector('.tabroom-match')?.textContent.includes('Lower confidence: school and generated name code only.')");
+      assert.equal(await js("document.querySelector('.tabroom-match a').href"), 'https://opencaselist.com/ndt2025/ExampleSchool/AbBa');
+      assert.equal(await js("document.querySelector('.tabroom-match').textContent.includes('Verified match')"), false);
       wikiMode = 'error';
       await click('Find on OpenCaselist');
       await wait("document.querySelector('.tabroom-result [role=alert]')?.textContent.includes('denied')");

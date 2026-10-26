@@ -132,6 +132,7 @@ function TeamMatch({ row, caselist, disabled, onError }) {
     {result && <div className="tabroom-match" role="status">
       <p>{t(labels[result.status])}</p>
       {result.candidates.map((candidate) => <div key={candidate.url}>
+        {candidate.evidence === 'generated-code' && <p>{t('Lower confidence: school and generated name code only. Verify the team before using this link.')}</p>}
         <RecordLink url={candidate.url} onError={onError}>
           {candidate.selection.school} / {candidate.selection.team}
         </RecordLink>

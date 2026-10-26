@@ -103,7 +103,10 @@ then use **Find on OpenCaselist** for a team. No cross-service lookup happens
 automatically when a tournament loads. Shared chapter and complete student IDs
 can verify a match; name/code-only candidates and ambiguous results are labeled
 as requiring identity verification. Links use real returned slugs, not guessed
-URLs.
+URLs. When stronger matching fails, a lower-confidence fallback generates codes
+from the first two letters of each surname (first and last name for LD).
+It checks partner orders and numbered duplicates against the school's real
+team list. These links explicitly say **Lower confidence**.
 
 Team names link to Tabroom tournament entry records; competitor names link to
 lifetime records when student IDs are available. These open in your default

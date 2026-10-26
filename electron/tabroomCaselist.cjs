@@ -18,6 +18,24 @@ function teamCodes(team) {
   return codes;
 }
 
+function generatedCodes(students, event) {
+  if (!['cx', 'pf', 'ld'].includes(event) || !students.length || students.length > 4 ||
+    (event === 'ld' && students.length !== 1)) return new Set();
+  const part = (name) => typeof name === 'string' && /\p{L}/u.test(name) && !name.includes('...')
+    ? normalize(name.slice(0, 2)) : '';
+  const parts = students.map((student) => {
+    const last = part(student.last);
+    if (event !== 'ld') return last;
+    const first = part(student.first);
+    return first && last ? first + last : '';
+  });
+  if (parts.some((value) => !value)) return new Set();
+  const permutations = (remaining) => remaining.length === 1 ? remaining
+    : remaining.flatMap((value, index) => permutations(remaining.filter((_, i) => i !== index))
+      .map((rest) => value + rest));
+  return new Set(permutations(parts));
+}
+
 async function resolveCaselistTeam({ caselist, team, list }) {
   if (typeof caselist !== 'string' || !caselist.trim() || caselist.length > 255 ||
     !team || typeof team !== 'object' || Array.isArray(team) ||
@@ -33,7 +51,8 @@ async function resolveCaselistTeam({ caselist, team, list }) {
   if (!chapter && !schoolNames.length) return result('insufficient-data', 'school-identity-missing');
   if (!teamCodes(team).size && !team.students?.length) return result('insufficient-data', 'team-identity-missing');
   const caselists = await list('caselists');
-  if (!caselists.some((item) => item.name === caselist)) throw new Error('Select an existing OpenCaselist season.');
+  const selectedCaselist = caselists.find((item) => item.name === caselist);
+  if (!selectedCaselist) throw new Error('Select an existing OpenCaselist season.');
   const schools = await list('schools', { caselist });
   const linkedSchools = chapter ? schools.filter((school) => id(school.chapter_id) === chapter) : [];
   const candidates = linkedSchools.length ? linkedSchools : schools.filter((school) => {
@@ -49,10 +68,12 @@ async function resolveCaselistTeam({ caselist, team, list }) {
   const studentNames = students.map((student) => student.first && student.last
     ? normalize(`${student.first} ${student.last}`) : '');
   const codes = teamCodes(team);
+  const generated = generatedCodes(students, selectedCaselist.event);
   const matches = teams.flatMap((candidate) => {
     const roster = [1, 2, 3, 4].map((i) => ({
       id: id(candidate[`debater${i}_student_id`]),
-      last: normalize(candidate[`debater${i}_last`]),
+      last: typeof candidate[`debater${i}_last`] === 'string' && !candidate[`debater${i}_last`].includes('...')
+        ? normalize(candidate[`debater${i}_last`]) : '',
       name: candidate[`debater${i}_first`] && candidate[`debater${i}_last`]
         ? normalize(`${candidate[`debater${i}_first`]} ${candidate[`debater${i}_last`]}`) : '',
     })).filter((student) => student.id || student.name);
@@ -68,10 +89,13 @@ async function resolveCaselistTeam({ caselist, team, list }) {
     const code = [normalize(candidate.name), normalize(candidate.display_name), initials,
       roster.length === 2 ? [...initials].reverse().join('') : '']
       .some((name) => name && codes.has(name));
-    if (!linked && !names && !code) return [];
+    const slug = normalize(candidate.name);
+    const generatedCode = [...generated].some((value) => slug === value ||
+      (slug.startsWith(value) && /^[1-9]\d*$/.test(slug.slice(value.length))));
+    if (!linked && !names && !code && !generatedCode) return [];
     return [{
       selection: { caselist, school: school.name, team: candidate.name },
-      evidence: linked ? 'student-ids' : names ? 'student-names' : 'team-code',
+      evidence: linked ? 'student-ids' : names ? 'student-names' : code ? 'team-code' : 'generated-code',
       verified: linked && linkedSchools.length === 1,
     }];
   });
@@ -79,7 +103,9 @@ async function resolveCaselistTeam({ caselist, team, list }) {
   if (verified.length === 1) return result('matched', 'chapter-and-student-ids', verified);
   if (verified.length > 1) return result('ambiguous', 'multiple-identity-matches', verified);
   if (!matches.length) return result('unmatched', 'team-not-found');
-  return result(matches.length === 1 ? 'candidate' : 'ambiguous', 'confirmation-required', matches);
+  const preferred = matches.some((candidate) => candidate.evidence !== 'generated-code')
+    ? matches.filter((candidate) => candidate.evidence !== 'generated-code') : matches;
+  return result(preferred.length === 1 ? 'candidate' : 'ambiguous', 'confirmation-required', preferred);
 }
 
 module.exports = { resolveCaselistTeam };
