@@ -17,6 +17,7 @@ test('speech timing includes punctuation without mistaking decimal separators fo
   const sanitized = spokenText('before <scr<em>ipt>hidden</script> after');
   assert.equal(sanitized, 'before ipthidden after');
   assert.doesNotMatch(sanitized, /[<>]/);
+  assert.doesNotMatch(spokenText('&#60;script&#62;hidden&#60;/script&#62;'), /[<>]/);
 });
 
 test('a single timed sample calibrates exactly and no samples retain the default rate', async () => {
