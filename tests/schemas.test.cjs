@@ -17,21 +17,22 @@ const check = (name, data, valid = true) => {
   const validate = validators[name];
   assert.equal(validate(data), valid, `${name}: ${ajv.errorsText(validate.errors)}`);
 };
-const readJson = (file) => JSON.parse(fs.readFileSync(path.join(root, file), 'utf8'));
+const readJson = (...segments) => JSON.parse(fs.readFileSync(path.join(root, ...segments), 'utf8'));
 
 test('all public schemas compile offline and every editor association points to a schema', () => {
   for (const name of names) {
     assert.equal(ajv.validateSchema(schemas[name]), true);
     assert.equal(typeof validators[name], 'function');
   }
-  const associations = readJson('.vscode\\settings.json')['json.schemas'];
+  const settings = readJson('.vscode', 'settings.json');
+  const associations = settings['json.schemas'];
   for (const name of names) {
     const association = associations.find((item) => item.url === `./schemas/${name}.schema.json`);
     assert.ok(association, `${name} has an authoring association`);
     assert.ok(fs.existsSync(path.resolve(root, association.url)));
   }
-  assert.equal(readJson('.vscode\\settings.json')['files.associations']['*.flow'], 'json');
-  assert.equal(readJson('.vscode\\settings.json')['files.associations']['*.canvas'], 'json');
+  assert.equal(settings['files.associations']['*.flow'], 'json');
+  assert.equal(settings['files.associations']['*.canvas'], 'json');
   assert.equal(associations.some((item) => item.fileMatch.includes('*.canvas')), false,
     'JSON Canvas follows the upstream specification rather than a Tagline schema');
   assert.ok(readJson('package.json').build.files.includes('schemas/**/*'), 'schemas ship with the app for offline use');
@@ -58,7 +59,7 @@ test('flow schema matches supported structures and preserves extension fields', 
 
 test('extension manifest schema accepts the demo and checks declarations, permissions and typed settings', () => {
   const { validateManifest } = require('../electron/extensions.cjs');
-  const demo = readJson('demo\\tagline-api-demo\\manifest.json');
+  const demo = readJson('demo', 'tagline-api-demo', 'manifest.json');
   check('extension-manifest', demo);
   validateManifest(demo, path.join(root, 'demo', 'tagline-api-demo'));
   const minimal = { manifestVersion: 1, id: 'test', name: 'Test', version: '1' };
@@ -86,7 +87,7 @@ test('extension manifest schema accepts the demo and checks declarations, permis
 test('theme schema validates bundled themes, settings, CSS variables and metadata', async () => {
   const { COLOR_TOKENS, validateTheme } = await import('../src/lib/themes.js');
   assert.deepEqual(new Set(schemas.theme.definitions.colorToken.enum), new Set(COLOR_TOKENS));
-  for (const folder of ['src\\themes', 'demo\\tagline-api-demo\\themes']) {
+  for (const folder of [path.join('src', 'themes'), path.join('demo', 'tagline-api-demo', 'themes')]) {
     for (const file of fs.readdirSync(path.join(root, folder)).filter((name) => name.endsWith('.json'))) {
       const theme = readJson(path.join(folder, file));
       check('theme', theme);
