@@ -17,6 +17,7 @@ if (!process.versions.electron) {
       fs.mkdirSync(vault, { recursive: true });
       for (let i = 0; i < 200; i++) fs.writeFileSync(path.join(vault, `Note ${i}.md`),
         `# Note ${i}\n\n#### Evidence\n\n**Author 2026**\n\n==Useful evidence for this argument.==\n\n[[Note ${(i + 1) % 200}]]\n`);
+      fs.writeFileSync(path.join(vault, 'Note 0.md'), 'Imported pocket\n===============\n\nImported hat\n------------\n\nEvidence.\n');
       fs.writeFileSync(path.join(profile, 'config.json'),
         JSON.stringify({ ...(scenario !== 'welcome' ? { lastVault: vault } : {}), modelAutoload: false }));
       const run = (seed, verify = false) => {
@@ -120,6 +121,23 @@ app.on('browser-window-created', (_event, win) => {
       if (scenario !== 'welcome') {
         const files = await win.webContents.executeJavaScript("[...document.querySelectorAll('.sidebar .tree-item')].map(item => item.title)");
         assert.equal(files.length, 200, JSON.stringify(files.filter((file) => !/^Note \d+\.md$/.test(file))));
+      }
+      if (['visual', 'source'].includes(scenario)) {
+        const headings = await win.webContents.executeJavaScript(`new Promise((resolve, reject) => {
+          document.querySelector('.right-panel button[title="Outline"]').click();
+          const start = performance.now();
+          const check = () => {
+            const items = [...document.querySelectorAll('.outline-item')].map(item => item.textContent);
+            if (items.length) resolve(items);
+            else if (performance.now() - start > 3000) reject(new Error('Imported outline did not appear without editing'));
+            else setTimeout(check, 10);
+          };
+          check();
+        })`);
+        assert.deepEqual(headings, ['Imported pocket', 'Imported hat']);
+        assert.equal(fs.readFileSync(path.join(process.env.TAGLINE_STARTUP_VAULT, 'Note 0.md'), 'utf8'),
+          'Imported pocket\n===============\n\nImported hat\n------------\n\nEvidence.\n',
+          'Outline must not depend on rewriting the imported document');
       }
       if (process.env.TAGLINE_STARTUP_VERIFY) await verifyDeferredDialog(win);
       console.log('STARTUP ' + JSON.stringify(report));

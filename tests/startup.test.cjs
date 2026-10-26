@@ -5,6 +5,25 @@ const path = require('node:path');
 const os = require('node:os');
 const { listVault, readVaultSnapshot } = require('../electron/vaultFiles.cjs');
 
+test('outline recognizes imported setext headings before the visual editor rewrites Markdown', async () => {
+  const { outline } = await import('../src/lib/vault.js');
+  const source = '---\ntitle: Imported\n---\n\nPocket\n======\n\nHat\n---\n\n### Block\n\n#### Tag\n';
+  assert.deepEqual(outline(source), [
+    { level: 1, text: 'Pocket', line: 4 },
+    { level: 2, text: 'Hat', line: 7 },
+    { level: 3, text: 'Block', line: 10 },
+    { level: 4, text: 'Tag', line: 12 },
+  ]);
+  assert.deepEqual(outline(source.replaceAll('\n', '\r\n')), outline(source));
+  assert.deepEqual(outline('First line\nsecond line\n===\n\n---\n\n   ## Indented ##\n'), [
+    { level: 1, text: 'First line\nsecond line', line: 0 },
+    { level: 2, text: 'Indented', line: 6 },
+  ]);
+  assert.deepEqual(outline('~~~md\nFalse heading\n===\n# Not a heading\n~~~\n\n````\n# Also code\n```\n````\n\n    # Indented code\n\nActual\n---\n'), [
+    { level: 2, text: 'Actual', line: 13 },
+  ]);
+});
+
 async function fixture(t) {
   const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'tagline-vault-files-'));
   t.after(() => fs.rm(dir, { recursive: true, force: true }));

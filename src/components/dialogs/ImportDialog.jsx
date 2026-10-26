@@ -37,7 +37,7 @@ export default function ImportDialog({ onImport, onClose }) {
         <p>{t('Choose a DOCX, ODT, RTF, HTML, or EPUB document. Review the Markdown before adding it to this vault. The original is never changed.')}</p>
         <p>{t('Images and complex formatting may not survive conversion. DOCX tracked changes are imported in their accepted (final-document) state. Imported HTML stays in source mode when needed.')}</p>
         <label className="setting-row">
-          <span>{t('Clean up imported Markdown (experimental; off by default)')}</span>
+          <span>{t('Clean up imported Markdown (experimental)')}</span>
           <input type="checkbox" checked={cleanup} disabled={busy} onChange={(e) => setCleanup(e.target.checked)} />
         </label>
         <button disabled={busy} onClick={choose}>{t('Choose document')}</button>

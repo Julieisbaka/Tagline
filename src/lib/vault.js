@@ -1,5 +1,6 @@
 // Pure helpers for indexing a vault: names, links, tags, backlinks.
 import { splitFrontmatter } from './frontmatter.js';
+import { Lexer } from 'marked';
 
 /** Test a case-insensitive flow-document extension. @param {string} p @returns {boolean} */
 export const isFlow = (p) => p.toLowerCase().endsWith('.flow');
@@ -114,14 +115,13 @@ export function rewriteLinks(content, oldPath, newPath, allPaths) {
 /** Extract {level,text,line} headings outside fenced code; line is zero-based. @returns {object[]} */
 export function outline(content) {
   const metadata = splitFrontmatter(content);
-  content = metadata.prefix.replace(/[^\n]/g, '') + metadata.body;
+  content = (metadata.prefix.replace(/[^\n]/g, '') + metadata.body).replace(/\r\n?/g, '\n');
   const out = [];
-  let inCode = false;
-  content.split('\n').forEach((line, i) => {
-    if (line.startsWith('```')) inCode = !inCode;
-    const m = !inCode && line.match(/^(#{1,6})\s+(.*)$/);
-    if (m) out.push({ level: m[1].length, text: m[2].trim(), line: i });
-  });
+  let line = 0;
+  for (const token of Lexer.lex(content)) {
+    if (token.type === 'heading') out.push({ level: token.depth, text: token.text.trim(), line });
+    line += (token.raw.match(/\n/g) || []).length;
+  }
   return out;
 }
 
