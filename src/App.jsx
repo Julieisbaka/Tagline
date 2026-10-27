@@ -81,6 +81,11 @@ export default function App() {
     clearTimeout(toastTimer.current);
     toastTimer.current = setTimeout(() => setToast(null), 2500);
   }, []);
+  useEffect(() => {
+    if (!tabs.error) return;
+    notify(tabs.error);
+    tabs.clearError();
+  }, [tabs.error, tabs.clearError, notify]);
   useEffect(() => window.api.onWebsiteLink((url) => {
     if (settings.embedWebsites) setWebsite(url);
     else window.api.websiteAction('external', url).catch((e) => notify(e.message));

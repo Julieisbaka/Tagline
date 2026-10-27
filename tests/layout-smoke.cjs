@@ -87,6 +87,27 @@ const delay = (ms) => new Promise((r) => setTimeout(r, ms));
         }, 'argument relation is saved as a standard Canvas edge');
         assert.equal(await js("!!document.querySelector('.canvas-board')"), true,
           'argument map is rendered inside the canvas editor');
+        await js(`document.querySelector('.tree-item[title="Doc.md"]').dispatchEvent(
+          new MouseEvent('click', { bubbles: true, ctrlKey: true }))`);
+        await delay(250);
+        assert.deepEqual(await js("[...document.querySelectorAll('.tab')].map(tab => tab.title)"),
+          ['Map.canvas', 'Doc.md'], 'Ctrl-click opens a second file tab');
+        await js(`(() => {
+          const [source, target] = document.querySelectorAll('.tab');
+          const transfer = new DataTransfer();
+          source.dispatchEvent(new DragEvent('dragstart', { bubbles: true, dataTransfer: transfer }));
+          const rect = target.getBoundingClientRect();
+          const options = { bubbles: true, cancelable: true, dataTransfer: transfer, clientX: rect.right - 1 };
+          target.dispatchEvent(new DragEvent('dragover', options));
+          target.dispatchEvent(new DragEvent('drop', options));
+          source.dispatchEvent(new DragEvent('dragend', { bubbles: true, dataTransfer: transfer }));
+        })()`);
+        await delay(150);
+        assert.deepEqual(await js("[...document.querySelectorAll('.tab')].map(tab => tab.title)"),
+          ['Doc.md', 'Map.canvas'], 'dropping a tab on the right half moves it after the target');
+        assert.deepEqual(await js(`JSON.parse(localStorage.getItem(
+          Object.keys(localStorage).find(key => key.startsWith('tabs:')))).tabs.map(tab => tab.path)`),
+        ['Doc.md', 'Map.canvas'], 'tab order persists for the current vault');
         for (const [w, h] of [[1280, 800], [900, 700]]) {
           win.setContentSize(w, h); await delay(800);
           const clipped = await js(`(() => { const bar = document.querySelector('.status-bar').getBoundingClientRect(); return [...document.querySelectorAll('.status-bar > span:not(.spacer)')].filter(s => { const r = s.getBoundingClientRect(); return r.right > bar.right + 1 || r.bottom > bar.bottom + 1; }).map(s => s.textContent); })()`);

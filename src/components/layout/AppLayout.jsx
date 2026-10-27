@@ -180,7 +180,8 @@ export default function AppLayout({ app }) {
         label="Resize file explorer" onChange={(value) => updateSettings({ sidebarWidth: value })} />}
       <main className="main">
         <TabBar tabs={tabs.tabs} activeId={tabs.activeId} onActivate={tabs.setActiveId} onClose={tabs.close}
-          onCloseOthers={tabs.closeOthers} hideFlowExtension={settings.hideFlowExtension}
+          onCloseOthers={tabs.closeOthers} onReorder={tabs.reorder} saveStatuses={v.saveStatuses}
+          hideFlowExtension={settings.hideFlowExtension}
           showMarkdownExtension={settings.showMarkdownExtension} onFileAction={(action, path) => action === 'rename'
             ? actions.rename({ type: 'file', path, name: path.split('/').pop() }) : v.reveal(path)} />
         <div className="workspace">{renderWorkspace()}{websiteView}</div>

@@ -13,6 +13,7 @@ export function useVault(underscoreFolders = true, autoRelink = true, historyRet
   const [error, setError] = useState(null);
   const [ready, setReady] = useState(false);
   const [initialized, setInitialized] = useState(false);
+  const [saveStatuses, setSaveStatuses] = useState({});
   const timers = useRef({});
   const pending = useRef({});
   const writes = useRef(new Map());
@@ -33,18 +34,36 @@ export function useVault(underscoreFolders = true, autoRelink = true, historyRet
   /** Store a vault operation error in hook state. @param {*} error @returns {void} */
   const report = (e) => setError(e?.message || String(e));
 
+  const setSaveStatus = useCallback((path, status) => setSaveStatuses((previous) => {
+    if (!status) {
+      if (!(path in previous)) return previous;
+      const next = { ...previous };
+      delete next[path];
+      return next;
+    }
+    return previous[path] === status ? previous : { ...previous, [path]: status };
+  }), []);
+
   const writeDisk = useCallback((path, text) => {
     const previous = writes.current.get(path)?.task || Promise.resolve();
     const task = previous.catch(() => { }).then(() =>
       api.write(path, text, historyRetentionRef.current, canvasHistoryModeRef.current, experimentalHistoryDeltasRef.current));
     writes.current.set(path, { task, text });
     /** Remove this completed write only if no newer write replaced it. @returns {void} */
-    const cleanup = () => {
-      if (writes.current.get(path)?.task === task) writes.current.delete(path);
+    const cleanup = (failed = false) => {
+      if (writes.current.get(path)?.task !== task) return;
+      writes.current.delete(path);
+      if (failed) {
+        if (pending.current[path] === undefined && contentsRef.current[path] === text) {
+          setSaveStatus(path, 'error');
+        }
+      } else if (pending.current[path] === undefined && contentsRef.current[path] === text) {
+        setSaveStatus(path, null);
+      }
     };
-    task.then(cleanup, cleanup);
+    task.then(() => cleanup(), () => cleanup(true));
     return task;
-  }, []);
+  }, [setSaveStatus]);
 
   useEffect(() => {
     const previous = observed.current;
@@ -87,6 +106,7 @@ export function useVault(underscoreFolders = true, autoRelink = true, historyRet
       setReady(false);
       setTree([]);
       setContents({});
+      setSaveStatuses({});
       setVault(info);
       await reload();
     },
@@ -104,7 +124,11 @@ export function useVault(underscoreFolders = true, autoRelink = true, historyRet
     Object.values(timers.current).forEach(clearTimeout);
     timers.current = {};
     const saved = await Promise.all(entries.map(async ([p, c]) => {
-      try { await writeDisk(p, c); return true; }
+      try {
+        setSaveStatus(p, 'saving');
+        await writeDisk(p, c);
+        return true;
+      }
       catch (error) {
         if (pending.current[p] === undefined && contentsRef.current[p] === c) pending.current[p] = c;
         report(error);
@@ -113,7 +137,7 @@ export function useVault(underscoreFolders = true, autoRelink = true, historyRet
     }));
     const completed = await inflight;
     return saved.every(Boolean) && completed.every((result) => result.status === 'fulfilled');
-  }, [writeDisk]);
+  }, [writeDisk, setSaveStatus]);
 
   useEffect(() => {
     /** Prevent closing the window until pending edits have been flushed. @param {BeforeUnloadEvent} event @returns {void} */
@@ -144,17 +168,24 @@ export function useVault(underscoreFolders = true, autoRelink = true, historyRet
     contentsRef.current = { ...contentsRef.current, [path]: text };
     setContents((c) => ({ ...c, [path]: text }));
     pending.current[path] = text;
+    setSaveStatus(path, 'unsaved');
     clearTimeout(timers.current[path]);
     timers.current[path] = setTimeout(() => {
       const value = pending.current[path];
       delete pending.current[path];
       delete timers.current[path];
-      if (value !== undefined) writeDisk(path, value).catch((error) => {
-        if (pending.current[path] === undefined && contentsRef.current[path] === value) pending.current[path] = value;
-        report(error);
-      });
+      if (value !== undefined) {
+        setSaveStatus(path, 'saving');
+        writeDisk(path, value).catch((error) => {
+          if (pending.current[path] === undefined && contentsRef.current[path] === value) {
+            pending.current[path] = value;
+            setSaveStatus(path, 'error');
+          }
+          report(error);
+        });
+      }
     }, SAVE_DELAY);
-  }, [writeDisk]);
+  }, [writeDisk, setSaveStatus]);
 
   const createFile = useCallback(
     async (path, content = '') => {
@@ -266,6 +297,7 @@ export function useVault(underscoreFolders = true, autoRelink = true, historyRet
     openFlowFile,
     tree,
     contents,
+    saveStatuses,
     index,
     error,
     clearError: () => setError(null),
