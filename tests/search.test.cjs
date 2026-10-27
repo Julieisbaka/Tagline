@@ -1,6 +1,74 @@
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
 
+test('passage proximity ranks a focused warrant above scattered term mentions', async () => {
+  const { searchVault } = await import('../src/lib/search.js');
+  const contents = {
+    'A scattered.md': `Grid evidence.\n${'Unrelated text. '.repeat(60)}\nTransmission evidence.`,
+    'Z focused.md': 'Grid upgrades improve transmission.',
+  };
+  const results = searchVault(contents, { tags: {} }, 'grid transmission');
+  assert.equal(results[0].path, 'Z focused.md');
+  assert.equal(results[0].matches[0].line, 0);
+  const padding = 'Other evidence. '.repeat(20);
+  const equallyLong = {
+    'A scattered.md': `Grid ${padding}upgrades transmission.`,
+    'Z focused.md': `Grid upgrades transmission. ${padding}`,
+  };
+  assert.equal(searchVault(equallyLong, { tags: {} }, 'grid transmission')[0].path, 'Z focused.md',
+    'Proximity must break ties between passages with the same words and no exact query phrase');
+});
+
+test('single-edit typo recovery is explicit, conservative and never relaxes constraints', async () => {
+  const { searchVault } = await import('../src/lib/search.js');
+  const contents = {
+    'Neg.md': '#neg\nTransmission infrastructure improves resilience.',
+    'Aff.md': '#aff\nTransmission infrastructure improves resilience.',
+  };
+  const index = { tags: { neg: ['Neg.md'], aff: ['Aff.md'] } };
+  for (const typo of ['transmision', 'transmisssion', 'transmissiom', 'transmisison']) {
+    const results = searchVault(contents, index, `tag:neg ${typo}`);
+    assert.deepEqual(results.map((result) => result.path), ['Neg.md'], typo);
+    assert.equal(results[0].approximate, true);
+    assert.deepEqual(results[0].matchedTerms, ['transmission']);
+  }
+  assert.deepEqual(searchVault(contents, index, 'tag:missing transmision'), []);
+  assert.deepEqual(searchVault(contents, index, '"transmision"'), []);
+  assert.deepEqual(searchVault(contents, index, 'transmision nonexistent'), []);
+  assert.deepEqual(searchVault({ 'Test.md': 'grid' }, { tags: {} }, 'gird'), []);
+  const exact = searchVault({ ...contents, 'Exact.md': 'transmision' }, index, 'transmision');
+  assert.deepEqual(exact.map((result) => result.path), ['Exact.md']);
+  assert.equal(exact[0].approximate, undefined);
+});
+
+test('prepared engines keep a content snapshot and new engines reflect edits and removals', async () => {
+  const { createSearchEngine, searchVault } = await import('../src/lib/search.js');
+  const contents = { 'Grid.md': '# Grid\nTransmission infrastructure.' };
+  const index = { tags: {} };
+  const search = createSearchEngine(contents, index);
+  for (const query of ['grid', 'transmission', 'transmision', '"transmission infrastructure"']) {
+    assert.deepEqual(search(query), searchVault(contents, index, query));
+  }
+  contents['Grid.md'] = 'New evidence about agriculture.';
+  assert.equal(search('transmission').length, 1);
+  assert.equal(createSearchEngine(contents, index)('transmission').length, 0);
+  delete contents['Grid.md'];
+  assert.deepEqual(createSearchEngine(contents, index)('agriculture'), []);
+});
+
+test('excerpts expose deep matches, fold accents and preserve original characters', async () => {
+  const { searchExcerpt } = await import('../src/lib/search.js');
+  const text = `${'Background context. '.repeat(40)}Électricité improves grid resilience.`;
+  const excerpt = searchExcerpt(text, ['electricite', 'grid']);
+  assert.deepEqual(excerpt.filter((part) => part.match).map((part) => part.text), ['Électricité', 'grid']);
+  assert.ok(excerpt.map((part) => part.text).join('').startsWith('…'));
+  assert.ok(excerpt.map((part) => part.text).join('').length <= 202);
+  assert.deepEqual(searchExcerpt('No matching text', ['grid']), [{ text: 'No matching text', match: false }]);
+  assert.equal(searchExcerpt('😀 Électricité', ['electricite']).filter((part) => part.match)[0].text, 'Électricité');
+  const dense = `${'grid '.repeat(60)}resilience`;
+  assert.ok(searchExcerpt(dense, ['grid', 'resilience']).map((part) => part.text).join('').length <= 202);
+});
+
 test('hybrid keywords retrieve partial terms without relaxing full-text AND matching', async () => {
   const { searchVault } = await import('../src/lib/search.js');
   const contents = {

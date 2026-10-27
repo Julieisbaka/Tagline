@@ -239,6 +239,33 @@
   border-radius: 4px;
 }
 
+.search-file,
+.search-line {
+  display: block;
+  width: 100%;
+  text-align: left;
+  background: transparent;
+  border: 0;
+  font-family: inherit;
+}
+
+.search-file {
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.search-result:focus-within {
+  background: var(--bg-hover);
+  box-shadow: inset 2px 0 var(--accent);
+  border-radius: 4px;
+}
+
+.search-file:focus-visible,
+.search-line:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+
 .search-file:hover,
 .search-line:hover {
   background: var(--bg-hover);
@@ -250,7 +277,8 @@
   color: var(--text-muted);
   cursor: pointer;
   border-radius: 4px;
-  white-space: nowrap;
+  white-space: normal;
+  overflow-wrap: anywhere;
   overflow: hidden;
   text-overflow: ellipsis;
 }

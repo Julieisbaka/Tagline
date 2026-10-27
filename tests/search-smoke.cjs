@@ -27,7 +27,8 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
   await fs.mkdir(profile, { recursive: true });
   await fs.mkdir(vault);
   const documents = {
-    'Grid.md': '# Grid transmission\n#neg\nExact keyword evidence.',
+    'Grid.md': '# Grid transmission\n#neg\nExact keyword evidence.\n' +
+      'Background context. '.repeat(60) + 'Électricité supports resilience.',
     'Both.md': '# Evidence\n#neg\nGrid transmission upgrades.',
     'Meaning.md': '#neg\nPower networks need renewable energy.',
     'Phrase.md': '#neg\nPolitical capital evidence.',
@@ -42,6 +43,10 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
   const requests = [];
 
   app.on('browser-window-created', (_event, win) => {
+    win.webContents.on('console-message', (event) => {
+      if (event.level === 'error') console.error(event.message);
+    });
+    win.webContents.setBackgroundThrottling(false);
     win.webContents.once('did-finish-load', async () => {
       const wc = win.webContents;
       const js = (code) => wc.executeJavaScript(code);
@@ -95,6 +100,26 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
         await wait("document.querySelectorAll('.search-result').length === 2");
         assert.equal(await js("document.querySelector('.search-file .palette-detail').textContent"), 'Grid.md');
         assert.equal(requests.length, 0);
+
+        await input('tag:neg transmision');
+        await wait("document.querySelectorAll('.search-result').length === 2");
+        assert.ok(await js("document.querySelector('.search').textContent.includes('Showing close spelling matches')"));
+        assert.ok(await js("[...document.querySelectorAll('.search-line mark')].some(el => /transmission/i.test(el.textContent))"));
+        await input('electricite');
+        await wait("document.querySelectorAll('.search-result').length === 1");
+        assert.equal(await js("document.querySelector('.search-line mark').textContent"), 'Électricité');
+        assert.ok(await js("document.querySelector('.search-line').textContent.startsWith('…')"));
+        await js("document.querySelector('.search input').dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true }))");
+        assert.ok(await js("document.activeElement.matches('.search-file')"));
+        await js("document.querySelector('.search input').focus(); document.activeElement.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }))");
+        await wait("!document.querySelector('.search')");
+        await wait("document.querySelector('.tab.active')?.getAttribute('title') === 'Grid.md'");
+        await wait("!!document.querySelector('.cm-editor')");
+        await wait("window.getSelection()?.anchorNode?.parentElement?.closest('.cm-line')?.textContent.includes('Électricité')");
+        await js("document.querySelector('.tab.active .tab-close').click()");
+        await wait("!document.querySelector('.tab.active')");
+        await openSearch();
+        await input('tag:neg grid transmission');
         await mode('hybrid');
         await wait("document.querySelector('[role=status]')?.textContent.includes('Keyword results shown')");
         assert.equal(requests.length, 0, 'Selecting hybrid must not start inference or download');
@@ -162,10 +187,11 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
         assert.equal(await js("document.querySelectorAll('.search-result').length"), 1);
         assert.equal(await js("document.querySelector('.search-file .palette-detail').textContent"), 'Both.md',
           'A keyword runner-up must win fusion even with a final result limit of one');
-        console.log('PASS: hybrid fusion UI, tags/phrases, semantic-only recall, navigation, explicit failures, stale requests, result limit.');
+        console.log('PASS: typo recovery, deep accent-folded previews, keyboard navigation, matching-line jumps, hybrid fusion, tags/phrases, semantic recall, explicit failures, stale requests, result limit.');
         app.exit(0);
       } catch (error) {
         console.error(error);
+        console.error(await js("document.body.innerText.slice(0, 1000)"));
         console.error(await js("JSON.stringify({query: document.querySelector('.search input')?.value, results: document.querySelector('.search-results')?.textContent, error: document.querySelector('.search-error')?.textContent})"));
         app.exit(1);
       }

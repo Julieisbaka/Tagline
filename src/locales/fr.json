@@ -1,4 +1,7 @@
 {
+  "No exact matches. Showing close spelling matches.": "Aucune correspondance exacte. Affichage des correspondances orthographiques proches.",
+  "Arrow keys to choose a file; Enter to open. Quoted phrases match exactly.": "Utilisez les flèches pour choisir un fichier et Entrée pour l'ouvrir. Les expressions entre guillemets doivent correspondre exactement.",
+  "No matching notes. Try fewer words or remove a tag or quoted phrase.": "Aucune note correspondante. Essayez moins de mots ou retirez une étiquette ou une expression entre guillemets.",
   "Lower confidence: school and generated name code only. Verify the team before using this link.": "Confiance réduite : seuls l'établissement et le code généré des noms correspondent. Vérifiez l'équipe avant d'utiliser ce lien.",
   "Create a new Google Doc using direct Google sign-in or your existing Apps Script connection. Nothing is uploaded automatically.": "Créez un document Google avec la connexion directe à Google ou votre connexion Apps Script existante. Aucun envoi automatique.",
   "Connect Google account": "Connecter un compte Google",

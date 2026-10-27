@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import defaults from '../../lib/defaultSettings.json' with { type: 'json' };
 import { useI18n } from '../../lib/i18n.js';
-import { filterSearchDocuments, HYBRID_CANDIDATE_LIMIT, mergeHybridResults, parseQuery, searchVault } from '../../lib/search.js';
+import { createSearchEngine, filterSearchDocuments, HYBRID_CANDIDATE_LIMIT, mergeHybridResults, parseQuery, searchExcerpt } from '../../lib/search.js';
 import { displayName } from '../../lib/vault.js';
 import ModalBackdrop from './ModalBackdrop.jsx';
 
@@ -14,6 +14,8 @@ export default function SearchModal({ contents, index, initialQuery = '', maxRes
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const requestId = useRef(0);
+  const resultList = useRef(null);
+  const search = useMemo(() => createSearchEngine(contents, index), [contents, index]);
   useEffect(() => {
     ++requestId.current;
     setSemanticResults(null);
@@ -43,10 +45,10 @@ export default function SearchModal({ contents, index, initialQuery = '', maxRes
     } finally { setBusy(false); }
   };
 
-  const results = useMemo(() => searchVault(
-    contents, index, query, mode === 'hybrid' ? HYBRID_CANDIDATE_LIMIT : maxResults,
+  const results = useMemo(() => search(
+    query, mode === 'hybrid' ? HYBRID_CANDIDATE_LIMIT : maxResults,
     { matchAll: mode !== 'hybrid' },
-  ), [query, contents, index, maxResults, mode]);
+  ), [query, search, maxResults, mode]);
 
   const displayed = useMemo(() => {
     if (mode === 'text') return results;
@@ -55,16 +57,22 @@ export default function SearchModal({ contents, index, initialQuery = '', maxRes
       path: r.path, score: r.score, matches: [{ line: r.line, text: r.text }],
     }));
   }, [mode, results, semanticResults, maxResults]);
-  const terms = query
-    .replace(/tag:#?[\w/-]+/gi, '')
-    .match(/"[^"]+"|\S+/g)
-    ?.map((t) => t.replace(/"/g, ''))
-    .filter(Boolean);
+  const terms = parseQuery(query).terms;
 
-  const mark = (text) => {
-    if (!terms?.length) return text;
-    const re = new RegExp(`(${terms.map((t) => t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|')})`, 'gi');
-    return text.split(re).map((part, i) => (i % 2 ? <mark key={i}>{part}</mark> : part));
+  const openResult = (event, path, line) => {
+    onOpen(path, event.ctrlKey || event.metaKey, line);
+    onClose();
+  };
+  const navigate = (event) => {
+    if (event.key !== 'ArrowDown' && event.key !== 'ArrowUp') return;
+    const buttons = [...resultList.current.querySelectorAll('.search-file')];
+    if (!buttons.length) return;
+    event.preventDefault();
+    const current = buttons.indexOf(document.activeElement);
+    const next = current < 0 ? (event.key === 'ArrowDown' ? 0 : buttons.length - 1)
+      : (current + (event.key === 'ArrowDown' ? 1 : -1) + buttons.length) % buttons.length;
+    buttons[next].focus();
+    buttons[next].scrollIntoView({ block: 'nearest' });
   };
 
   return (
@@ -79,8 +87,12 @@ export default function SearchModal({ contents, index, initialQuery = '', maxRes
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           onKeyDown={(e) => {
+            navigate(e);
             if (e.key === 'Escape') onClose();
             if (e.key === 'Enter' && mode !== 'text' && !busy) runSemantic();
+            if (e.key === 'Enter' && mode === 'text' && displayed.length) {
+              openResult(e, displayed[0].path, displayed[0].matches[0]?.line);
+            }
           }}
         />
         <div className="search-options">
@@ -102,33 +114,36 @@ export default function SearchModal({ contents, index, initialQuery = '', maxRes
             : 'Combines keyword and semantic rankings. Tags and quoted phrases remain required.')}
         </div>}
         {error && <div className="search-error" role="alert">{error}</div>}
-        <div className="search-count">{query.trim() ? t('{count} file(s)', { count: displayed.length }) : ''}</div>
-        <div className="search-results">
+        <div className="search-count" aria-live="polite">
+          {query.trim() ? t('{count} file(s)', { count: displayed.length }) : ''}
+          {displayed.some((result) => result.approximate) && ` — ${t('No exact matches. Showing close spelling matches.')}`}
+        </div>
+        <div className="search-count">{t('Arrow keys to choose a file; Enter to open. Quoted phrases match exactly.')}</div>
+        {query.trim() && !displayed.length && !busy && (mode === 'text' || semanticResults !== null) &&
+          <div className="search-count">{t('No matching notes. Try fewer words or remove a tag or quoted phrase.')}</div>}
+        <div className="search-results" ref={resultList} onKeyDown={navigate}>
           {displayed.map((r) => (
             <div key={r.path} className="search-result">
-              <div
+              <button
+                type="button"
                 className="search-file"
-                onClick={(e) => {
-                  onOpen(r.path, e.ctrlKey || e.metaKey);
-                  onClose();
-                }}
+                onClick={(e) => openResult(e, r.path, r.matches[0]?.line)}
               >
                 {displayName(r.path, true, showMarkdownExtension)} <span className="palette-detail">{r.path}</span>
                 {r.sources && <span className="palette-detail"> — {t(r.sources.length === 2
                   ? 'Keyword + semantic' : r.sources[0] === 'keyword' ? 'Keyword match' : 'Semantic match')}</span>}
                 {r.score != null && <span className="search-score"> ({t('similarity')} {r.score.toFixed(3)})</span>}
-              </div>
+              </button>
               {r.matches.map((m) => (
-                <div
+                <button
+                  type="button"
                   key={m.line}
                   className="search-line"
-                  onClick={(e) => {
-                    onOpen(r.path, e.ctrlKey || e.metaKey, m.line);
-                    onClose();
-                  }}
+                  onClick={(e) => openResult(e, r.path, m.line)}
                 >
-                  {mark(m.text.trim().slice(0, 200))}
-                </div>
+                  {searchExcerpt(m.text.trim(), r.matchedTerms || terms).map((part, i) =>
+                    part.match ? <mark key={i}>{part.text}</mark> : part.text)}
+                </button>
               ))}
             </div>
           ))}
