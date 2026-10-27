@@ -10,7 +10,14 @@ export const RIBBON_ITEMS = [
 
 export const DEFAULT_RIBBON_ITEMS = RIBBON_ITEMS.map(({ id }) => id);
 
-/** Normalize built-in and extension ribbon IDs while preserving contribution order. @param {unknown} value @param {object[]} [contributions] @param {string[]} [hidden] @returns {string[]} */
+/** 
+ * Normalize built-in and extension ribbon IDs while preserving contribution order.
+ * This function ensures that the ribbon items array contains only valid built-in or extension IDs, appends contributions that are not hidden, and maintains the original order of items.
+ * @param {unknown} value - The input array of ribbon item IDs to normalize.
+ * @param {object[]} [contributions] - An array of additional ribbon item contributions, each with an `id` property.
+ * @param {string[]} [hidden] - An array of ribbon item IDs that should be excluded from the final list.
+ * @returns {string[]} - A normalized array of ribbon item IDs.
+ */
 export function normalizeRibbonItems(value, contributions = [], hidden = []) {
   if (!Array.isArray(value)) value = DEFAULT_RIBBON_ITEMS;
   const validIds = new Set(RIBBON_ITEMS.map(({ id }) => id));
@@ -20,7 +27,14 @@ export function normalizeRibbonItems(value, contributions = [], hidden = []) {
   return items;
 }
 
-/** Move one ribbon item to another item's position without mutating the input. @param {string[]} items @param {string} sourceId @param {string} targetId @returns {string[]} */
+/** 
+ * Move one ribbon item to another item's position without mutating the input.
+ * This function creates a new array with the specified source item relocated to the position of the target item, preserving the order of other items.
+ * @param {string[]} items - The array of ribbon item IDs.
+ * @param {string} sourceId - The ID of the ribbon item to move.
+ * @param {string} targetId - The ID of the ribbon item to move the source item before.
+ * @returns {string[]} - A new array with the ribbon items reordered.
+ */
 export function moveRibbonItem(items, sourceId, targetId) {
   const next = [...items];
   const sourceIndex = next.indexOf(sourceId);

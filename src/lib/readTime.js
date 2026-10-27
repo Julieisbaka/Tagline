@@ -6,7 +6,12 @@ const SMALL = ['zero', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'e
 const TENS = ['', '', 'twenty', 'thirty', 'forty', 'fifty', 'sixty', 'seventy', 'eighty', 'ninety'];
 const INITIALISMS = new Set(['US', 'USA', 'UK', 'UN', 'EU', 'USSR', 'GDP', 'FBI', 'CIA', 'AI', 'API']);
 
-/** Convert an integer below one million into readable English words. @param {number} number @returns {string} */
+/** 
+ * Convert an integer below one million into readable English words.
+ * This function handles numbers in the range 0 to 999,999 and converts them into their corresponding English word representation.
+ * @param {number} number - The integer to convert.
+ * @returns {string} - The English word representation of the number.
+ */
 function integerWords(number) {
   if (number < 20) return SMALL[number];
   if (number < 100) return `${TENS[Math.floor(number / 10)]} ${number % 10 ? SMALL[number % 10] : ''}`;
@@ -15,7 +20,12 @@ function integerWords(number) {
   return String(number).split('').map((digit) => SMALL[Number(digit)]).join(' ');
 }
 
-/** Convert a numeric token into words, with speech-friendly year and decimal rules. @param {string} value @returns {string} */
+/** 
+ * Convert a numeric token into words, with speech-friendly year and decimal rules.
+ * This function handles numeric strings, converting them into spoken English words. It applies special rules for years and decimal numbers to ensure natural speech patterns.
+ * @param {string} value - The numeric string to convert.
+ * @returns {string} - The spoken English representation of the number.
+ */
 function spokenNumber(value) {
   value = value.replace(/,/g, '');
   if (value.includes('.')) {
@@ -34,7 +44,12 @@ function spokenNumber(value) {
   return integerWords(number);
 }
 
-/** Remove script, style, and comment content before extracting spoken text. @param {string} value @returns {string} */
+/** 
+ * Remove script, style, and comment content before extracting spoken text.
+ * This function strips out non-spoken markup elements such as <script> and <style> tags, as well as HTML comments, to isolate the text that should be considered for spoken rendering.
+ * @param {string} value - The HTML content to process.
+ * @returns {string} - The cleaned text with non-spoken markup removed.
+ */
 function stripNonspokenMarkup(value) {
   const lowercase = value.replace(/[A-Z]/g, (letter) => letter.toLowerCase());
   const rawTextTag = /<\s*(script|style)(?=[\s/>])/iy;
@@ -67,7 +82,12 @@ function stripNonspokenMarkup(value) {
   return text.join('');
 }
 
-/** Convert Markdown/HTML into plain speech text, excluding frontmatter and URLs. @param {string} value @returns {string} */
+/** 
+ * Convert Markdown/HTML into plain speech text, excluding frontmatter and URLs.
+ * This function processes the input content, removing frontmatter, non-spoken markup, and URLs, resulting in a clean text suitable for spoken rendering.
+ * @param {string} value - The Markdown or HTML content to process.
+ * @returns {string} - The plain text representation for spoken output.
+ */
 export function spokenText(value) {
   let text = stripNonspokenMarkup(splitFrontmatter(value).body);
   let previous;
@@ -89,7 +109,11 @@ export function spokenText(value) {
     .replace(/[<>]/g, '');
 }
 
-/** Count spoken words, syllables, complexity, sentences, and pause units. @param {string} text @returns {object} */
+/** 
+ * Count spoken words, syllables, complexity, sentences, and pause units. 
+ * @param {string} text - The input text to analyze for speech characteristics.
+ * @returns {object} - An object containing various speech statistics, including spoken words, syllables, complexity, sentences, and pause units.
+ */
 export function speechStats(text) {
   const plain = spokenText(text);
   const tokens = plain.match(/[\p{L}]+(?:['\u2019-][\p{L}]+)*|\d{1,3}(?:,\d{3})+(?:\.\d+)?|\d+(?:\.\d+)?|%/gu) || [];
@@ -119,7 +143,14 @@ export function speechStats(text) {
   return { syllables, weightedSyllables: syllables + complexity, spokenWords, complexWords, sentences, pauseUnits };
 }
 
-/** Estimate speech duration from statistics, rate, and optional personal profile. @param {object} stats @param {number} [wpm] @param {object|null} [profile] @returns {number} */
+/** 
+ * Estimate speech duration from statistics, rate, and optional personal profile.
+ * This function calculates the expected duration of spoken content based on the provided speech statistics, speaking rate (words per minute), and an optional personal profile that adjusts for individual articulation and pause patterns.
+ * @param {object} stats - The speech statistics object, typically obtained from analyzeSpeech.
+ * @param {number} [wpm=250] - The speaking rate in words per minute. Defaults to 250 if not specified.
+ * @param {object|null} [profile=null] - An optional personal profile containing articulation and pause adjustments.
+ * @returns {number} - The estimated duration of the speech in seconds.
+ */
 export function readingSeconds(stats, wpm = 250, profile = null) {
   if (!Number.isFinite(wpm) || wpm <= 0) throw new Error('Speaking rate must be a positive number.');
   if (!Number.isFinite(stats.weightedSyllables) || stats.weightedSyllables < 0 ||
@@ -137,7 +168,12 @@ export function readingSeconds(stats, wpm = 250, profile = null) {
   return stats.weightedSyllables / (wpm * 1.5) * 60 + (stats.pauseUnits || 0) * Math.sqrt(250 / wpm);
 }
 
-/** Validate a saved timed reading sample and its speech statistics. @param {object} sample @returns {object} */
+/** 
+ * Validate a saved timed reading sample and its speech statistics.
+ * This function checks the integrity and correctness of a timed reading sample, ensuring that all required fields are present and that the speech statistics are within reasonable bounds.
+ * @param {object} sample - The timed reading sample to validate.
+ * @returns {object} - The validated sample if it passes all checks.
+ */
 export function validateReadingSample(sample) {
   if (!sample || typeof sample.id !== 'string' || !sample.id || sample.id.length > 100 || typeof sample.name !== 'string' ||
     !sample.name.trim() || sample.name.length > 200 || !['full', 'evidence'].includes(sample.scope) ||
@@ -153,14 +189,24 @@ export function validateReadingSample(sample) {
   return sample;
 }
 
-/** Return the median of a nonempty numeric array. @param {number[]} values @returns {number} */
+/** 
+ * Return the median of a nonempty numeric array.
+ * This function calculates the median value of the provided array of numbers, which is the middle value when the array is sorted. If the array has an even number of elements, the median is the average of the two middle values.
+ * @param {number[]} values - The array of numbers to compute the median for. Must be nonempty.
+ * @returns {number} - The median value of the array.
+ */
 function median(values) {
   const sorted = [...values].sort((a, b) => a - b);
   const middle = Math.floor(sorted.length / 2);
   return sorted.length % 2 ? sorted[middle] : (sorted[middle - 1] + sorted[middle]) / 2;
 }
 
-/** Fit a robust articulation/pause calibration profile from timed reading samples. @param {object[]} [samples] @returns {object|null} */
+/** 
+ * Fit a robust articulation/pause calibration profile from timed reading samples.
+ * This function analyzes a collection of timed reading samples to estimate a robust articulation and pause profile, which can be used to adjust speech duration predictions. It employs a relative-error fitting approach to minimize the influence of outliers.
+ * @param {object[]} [samples=[]] - An array of timed reading samples to use for calibration. Each sample should be validated and contain unique IDs.
+ * @returns {object|null} - An object containing the calibrated articulation and pause parameters, along with summary statistics, or null if no samples are provided.
+ */
 export function calibrateReading(samples = []) {
   if (!Array.isArray(samples) || samples.length > 100) throw new Error('Use at most 100 timed reading samples.');
   if (!samples.length) return null;
@@ -202,7 +248,14 @@ export function calibrateReading(samples = []) {
   };
 }
 
-/** Assess duration and effort metrics using a default or calibrated speech profile. @param {object} stats @param {number} [wpm] @param {object|null} [profile] @returns {object} */
+/** 
+ * Assess duration and effort metrics using a default or calibrated speech profile.
+ * This function evaluates the expected duration, reading ease, and effort required for a given set of speech statistics, optionally using a calibrated profile to adjust for individual articulation and pause patterns.
+ * @param {object} stats - The speech statistics object, typically obtained from analyzeSpeech.
+ * @param {number} [wpm=250] - The speaking rate in words per minute. Defaults to 250 if not specified.
+ * @param {object|null} [profile=null] - An optional calibrated profile containing baseline density and baseline seconds per word.
+ * @returns {object} - An object containing the assessed metrics: seconds, readingEase, effort, and a flag indicating whether a calibrated profile was used.
+ */
 export function readingAssessment(stats, wpm = 250, profile = null) {
   for (const key of ['syllables', 'weightedSyllables', 'spokenWords', 'sentences']) {
     if (!Number.isFinite(stats?.[key]) || stats[key] < 0) throw new Error('Invalid speech statistics.');

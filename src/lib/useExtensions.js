@@ -133,7 +133,11 @@ export function useExtensions({ bridgeRef, notify }) {
     await reload();
   }, [reload, extensions]);
 
-  /** Close one extension-contributed panel or webview. @param {object} surface @returns {*} */
+  /** 
+   * Close one extension-contributed panel or webview.
+   * @param {object} surface - The surface object representing the panel or webview to close.
+   * @returns {*} - The result of the close operation.
+   */
   const closeSurface = (surface) => surface.host.bridge.closeSurface(surface.host, surface.kind, surface.id);
   const ribbonItems = extensions.filter((item) => item.enabled && !item.error).flatMap((item) =>
     (item.contributes.ribbonItems || []).map((declaration) => ({

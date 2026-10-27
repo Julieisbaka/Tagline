@@ -1,20 +1,42 @@
 import defaults from './defaultSettings.json' with { type: 'json' };
 import { baseName, isMarkdown } from './vault.js';
 
-/** Fold accents and case for locale-independent search matching. @param {string} text @returns {string} */
+/** 
+ * Fold accents and case for locale-independent search matching.
+ * This normalization ensures that searches are insensitive to diacritics and letter casing.
+ * @param {string} text - The input text to normalize.
+ * @returns {string} - The normalized text with accents removed and converted to lowercase.
+ */
 const fold = (text) => text.normalize('NFKD').replace(/\p{M}/gu, '').toLowerCase();
-/** Split normalized text into Unicode letter/number tokens. @param {string} text @returns {string[]} */
+
+/** 
+ * Split normalized text into Unicode letter/number tokens.
+ * This function tokenizes the input text into an array of words and numbers, ignoring punctuation and other symbols.
+ * @param {string} text - The input text to tokenize.
+ * @returns {string[]} - An array of normalized tokens extracted from the text.
+ */
 const words = (text) => fold(text).match(/[\p{L}\p{N}]+/gu) || [];
+
 export const HYBRID_CANDIDATE_LIMIT = 1000;
 
-/** Validate a requested search-result count against the supported range. @param {number} maxResults @returns {void} */
+/** 
+ * Validate a requested search-result count against the supported range.
+ * This function ensures that the specified maximum number of search results is an integer between 1 and 1000, inclusive.
+ * @param {number} maxResults - The requested maximum number of search results.
+ * @returns {void}
+ */
 function validateLimit(maxResults) {
   if (!Number.isInteger(maxResults) || maxResults < 1 || maxResults > 1000) {
     throw new Error('Maximum search results must be an integer between 1 and 1000.');
   }
 }
 
-/** Parse free-text search terms, quoted phrases, and tag filters. @param {string} query @returns {object} */
+/** 
+ * Parse free-text search terms, quoted phrases, and tag filters.
+ * This function extracts individual search terms, quoted phrases, and tag filters from a user query string.
+ * @param {string} query - The raw search query input by the user.
+ * @returns {object} - An object containing arrays of tags, terms, phrases, and the remaining text.
+ */
 export function parseQuery(query) {
   const tags = [...query.matchAll(/tag:#?([\w/-]+)/gi)].map((m) => m[1].toLowerCase());
   const text = query.replace(/tag:#?[\w/-]+/gi, '').trim();
@@ -23,7 +45,14 @@ export function parseQuery(query) {
   return { tags, terms, phrases, text };
 }
 
-/** Filter Markdown documents by parsed tag and phrase constraints. @param {object} contents @param {object} index @param {string} query @returns {object} */
+/** 
+ * Filter Markdown documents by parsed tag and phrase constraints.
+ * This function checks each document in the vault against the specified tag filters and quoted phrases, returning only those that match all criteria.
+ * @param {object} contents - An object mapping file paths to their Markdown content.
+ * @param {object} index - An index object containing precomputed tag mappings.
+ * @param {string} query - The raw search query input by the user.
+ * @returns {object} - An object containing only the documents that satisfy the tag and phrase constraints.
+ */
 export function filterSearchDocuments(contents, index, query) {
   const { tags, phrases } = parseQuery(query);
   return Object.fromEntries(Object.entries(contents).filter(([path, content]) =>
@@ -31,7 +60,16 @@ export function filterSearchDocuments(contents, index, query) {
     phrases.every((phrase) => `${fold(baseName(path))} ${fold(content)}`.includes(phrase))));
 }
 
-/** Rank matching Markdown documents with title, term-frequency, and heading boosts. @param {object} contents @param {object} index @param {string} query @param {number} [maxResults] @param {{matchAll?:boolean}} [options] @returns {object[]} */
+/** 
+ * Rank matching Markdown documents with title, term-frequency, and heading boosts.
+ * This function evaluates each document that matches the initial tag and phrase filters, scoring them based on the presence of search terms in the title, body, and headings, and returns a ranked list of results.
+ * @param {object} contents - An object mapping file paths to their Markdown content.
+ * @param {object} index - An index object containing precomputed tag mappings.
+ * @param {string} query - The raw search query input by the user.
+ * @param {number} [maxResults] - The maximum number of search results to return.
+ * @param {{matchAll?:boolean}} [options] - Optional search behavior settings.
+ * @returns {object[]} - An array of ranked document objects matching the search criteria.
+ */
 export function searchVault(contents, index, query, maxResults = defaults.searchMaxResults, { matchAll = true } = {}) {
   validateLimit(maxResults);
   const { terms } = parseQuery(query);
@@ -79,7 +117,14 @@ export function searchVault(contents, index, query, maxResults = defaults.search
   }).sort((a, b) => b.rank - a.rank || a.path.localeCompare(b.path)).slice(0, maxResults);
 }
 
-/** Merge keyword and semantic rankings using reciprocal-rank fusion. @param {object[]} keywordResults @param {object[]} semanticResults @param {number} [maxResults] @returns {object[]} */
+/** 
+ * Merge keyword and semantic rankings using reciprocal-rank fusion.
+ * This function combines the results from keyword-based and semantic search, giving higher priority to documents that rank well in both, while ensuring a balanced fusion of scores.
+ * @param {object[]} keywordResults - An array of search result objects from the keyword search.
+ * @param {object[]} semanticResults - An array of search result objects from the semantic search.
+ * @param {number} [maxResults] - The maximum number of merged search results to return.
+ * @returns {object[]} - An array of merged and ranked search result objects.
+ */
 export function mergeHybridResults(keywordResults, semanticResults, maxResults = defaults.searchMaxResults) {
   validateLimit(maxResults);
   const merged = new Map();

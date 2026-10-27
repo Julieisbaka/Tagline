@@ -5,7 +5,12 @@ let nextId = 1;
 const newId = () => `t${Date.now()}-${nextId++}`;
 
 // Workspace tabs, persisted per vault.
-/** React hook for open-tab state, persistence, and vault-backed tab operations. @param {string} vaultRoot @param {boolean} [persist] @returns {object} */
+/** 
+ * React hook for open-tab state, persistence, and vault-backed tab operations.
+ * @param {string} vaultRoot - The root path of the vault to associate tabs with.
+ * @param {boolean} [persist=true] - Whether to persist tabs in localStorage.
+ * @returns {object} - An object containing the current tabs, active tab, and tab management functions.
+ */
 export function useTabs(vaultRoot, persist = true) {
   const storageKey = vaultRoot ? `tabs:${vaultRoot}` : null;
   const loadKey = `${storageKey}:${persist}`;
@@ -109,7 +114,11 @@ export function useTabs(vaultRoot, persist = true) {
     });
   }, []);
 
-  /** Keep the selected tab open and close all other tabs. @param {string} id @returns {void} */
+  /** 
+   * Keep the selected tab open and close all other tabs.
+   * @param {string} id - The ID of the tab to keep open.
+   * @returns {void}
+   */
   const closeOthers = (id) => {
     setTabs((prev) => prev.filter((t) => t.id === id));
     setActiveId(id);

@@ -1,6 +1,12 @@
 import { splitFrontmatter } from './frontmatter.js';
 
-/** Expand date, time, title, path, Markdown body, and raw frontmatter placeholders. @param {string} text @param {string} title @param {{path?:string,content?:string}} [context] @returns {string} */
+/** 
+ * Expand date, time, title, path, Markdown body, and raw frontmatter placeholders in a template string.
+ * @param {string} text - The template string containing placeholders to expand.
+ * @param {string} title - The title to insert into the template.
+ * @param {{path?:string,content?:string}} [context] - The context object containing optional path and content for the template.
+ * @returns {string} - The resulting string with all placeholders expanded.
+ */
 export function fillTemplate(text, title, { path = '', content = '' } = {}) {
   const now = new Date();
   const metadata = splitFrontmatter(content);

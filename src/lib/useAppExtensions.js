@@ -4,7 +4,11 @@ import { applicationEvents, requireSelection } from './extensionCapabilities.js'
 import { useExtensions } from './extensions.js';
 import { isCanvas, isFlow } from './vault.js';
 
-/** React hook that starts extension hosts and exposes their app contributions. @param {object} options @returns {object} */
+/** 
+ * React hook that starts extension hosts and exposes their app contributions.
+ * @param {object} options - The options object containing various parameters for the hook.
+ * @returns {object} - An object exposing the app contributions and utility functions for extensions.
+ */
 export function useAppExtensions({
   v, paths, activePath, activeContent, mode, sourceFallback, editorRef, visualRef,
   insertAtCursor, doRename, tabs, notify, visualEditor,
@@ -54,7 +58,11 @@ export function useAppExtensions({
     operations.current = task.catch(() => { });
     return task;
   };
-  /** Require an existing supported document and return its loaded content. @param {string} path @returns {string} */
+  /** 
+   * Require an existing supported document and return its loaded content.
+   * @param {string} path - The path to the document to require.
+   * @returns {string} - The content of the required document.
+   */
   const requireNote = (path) => {
     if (!/\.(md|flow|canvas)$/i.test(path)) throw new Error('Extensions can only modify .md, .flow and .canvas files.');
     const content = v.getContent(path);

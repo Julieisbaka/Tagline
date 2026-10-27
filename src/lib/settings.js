@@ -9,7 +9,11 @@ import { setNativeUi } from './nativeUi.js';
 
 const KEY = 'tagline-settings';
 
-/** Load saved settings over defaults, falling back safely if stored JSON is invalid. @returns {object} */
+/** 
+ * Load saved settings from localStorage, merging them over the default settings.
+ * If the stored JSON is invalid or missing, fall back safely to the defaults.
+ * @returns {object} - The resulting settings object with applied defaults and saved values.
+ */
 function load() {
   try {
     const saved = localStorage.getItem(KEY);
@@ -23,12 +27,19 @@ function load() {
   }
 }
 
-/** React hook that loads, persists, and applies application preferences. @returns {[object,function]} */
+/** 
+ * React hook that loads, persists, and applies application preferences.
+ * @returns {[object,function]} - An array containing the current settings object and a function to update the settings.
+ */
 export function useSettings() {
   const [settings, setSettings] = useState(load);
   const [themeRevision, setThemeRevision] = useState(0);
   useEffect(() => {
-    /** Refresh theme resolution when extension themes or runtime limits change. @returns {void} */
+    /** 
+     * Refresh theme resolution when extension themes or runtime limits change.
+     * This ensures that the application theme is recalculated and applied whenever relevant external factors are updated.
+     * @returns {void}
+     */
     const onThemes = () => setThemeRevision((n) => n + 1);
     window.addEventListener('extensionthemes', onThemes);
     window.addEventListener('customizationlimits', onThemes);
@@ -64,7 +75,7 @@ export function useSettings() {
     root.style.setProperty('--readable-content-width', `${settings.readableWidthPixels}px`);
     window.dispatchEvent(new Event('accessibilitychange'));
   }, [settings.reduceMotion, settings.strongFocusIndicators, settings.largerInterfaceText,
-    settings.largerClickTargets, settings.underlineLinks, settings.readableWidthPixels]);
+  settings.largerClickTargets, settings.underlineLinks, settings.readableWidthPixels]);
   useLayoutEffect(() => {
     configureVisualCache(settings.visualCacheEntries, settings.visualCacheCharacters);
   }, [settings.visualCacheEntries, settings.visualCacheCharacters]);

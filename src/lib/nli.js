@@ -7,7 +7,8 @@ export const HYPOTHESIS_TEMPLATES = [
 ];
 
 /** 
- * Convert Markdown evidence into plain prose for local entailment analysis. 
+ * Convert Markdown evidence into plain prose for local entailment analysis.
+ * This function strips out Markdown syntax, code blocks, and frontmatter, producing a clean, readable text suitable for entailment evaluation.
  * @param {string} markdown 
  * @returns {string} 
  */
@@ -26,10 +27,11 @@ export function premiseText(markdown) {
 }
 
 /** 
- * Build one hypothesis per nonblank line using a built-in template. 
- * @param {string} templateId 
- * @param {string} lines 
- * @returns {string[]} 
+ * Build one hypothesis per nonblank line using a built-in template.
+ * This function takes a template ID and a block of text, splits the text into individual lines, and generates a hypothesis for each nonblank line based on the specified template.
+ * @param {string} templateId - The ID of the hypothesis template to use.
+ * @param {string} lines - The text containing one or more lines to generate hypotheses from. Each nonblank line will be used to build a hypothesis.
+ * @returns {string[]} - An array of generated hypotheses, one for each nonblank line.
  */
 export function buildHypotheses(templateId, lines) {
   const template = HYPOTHESIS_TEMPLATES.find((item) => item.id === templateId) || HYPOTHESIS_TEMPLATES[2];
