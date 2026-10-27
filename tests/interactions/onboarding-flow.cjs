@@ -1,0 +1,113 @@
+module.exports = async function runScenario({ win, wc, vault, fs, path, assert, delay, js, wait, click, button, open, point, press, drag, context, saved }) {
+  win.show(); win.focus();
+  await wait("!!document.querySelector('.onboarding-dialog')");
+  assert.equal(await js("document.querySelector('.onboarding-dialog').getAttribute('aria-modal')"), 'true');
+  assert.equal(await js("JSON.parse(localStorage.getItem('tagline-settings')).internalFlags.hasSeenOnboarding"), false);
+  for (let step = 1; step <= 3; step++) {
+    assert.ok((await js("document.querySelector('.onboarding-progress').textContent")).includes(`${step}`));
+    await button('.onboarding-dialog .primary', step === 3 ? 'Get started' : 'Next');
+  }
+  await wait("!document.querySelector('.onboarding-dialog')");
+  assert.equal(await js("JSON.parse(localStorage.getItem('tagline-settings')).internalFlags.hasSeenOnboarding"), true);
+  await wait("document.querySelectorAll('.tree-item').length === 4");
+  await open('Round.flow');
+  await wait("!!document.querySelector('.flow-add-row')");
+  await js("document.querySelector('.flow-grid textarea').focus()");
+  assert.equal(await js("getComputedStyle(document.querySelector('.flow-grid textarea')).borderRadius"), '0px');
+  for (const [fx, fy] of [[0.5, 0.001], [0.001, 0.5], [0.999, 0.5]]) {
+    const count = await js("document.querySelectorAll('.flow-grid tbody tr').length");
+    await press(await point('.flow-add-row', fx, fy));
+    assert.equal(await js("document.querySelectorAll('.flow-grid tbody tr').length"), count + 1, 'full add-row button must activate');
+  }
+  await js(`(() => {
+    const cell = document.querySelector('.flow-grid textarea');
+    cell.focus();
+    const data = new DataTransfer(); data.setData('text/plain', 'claim\\tanswer\\nimpact\\tresponse');
+    cell.dispatchEvent(new ClipboardEvent('paste', { bubbles: true, cancelable: true, clipboardData: data }));
+  })()`);
+  await wait("document.querySelector('.flow-grid textarea[data-row=\"1\"][data-column=\"1\"]').value === 'response'");
+  assert.equal(await js("document.querySelectorAll('.flow-grid .cell-selected').length"), 4);
+  await js(`(() => {
+    const cell = document.querySelector('.flow-grid textarea');
+    const data = new DataTransfer();
+    cell.dispatchEvent(new ClipboardEvent('copy', { bubbles: true, cancelable: true, clipboardData: data }));
+    window.copiedCells = data.getData('text/plain');
+  })()`);
+  assert.equal(await js('window.copiedCells'), 'claim\tanswer\nimpact\tresponse');
+  await js(`document.querySelector('.flow-grid textarea').dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }))`);
+  await js(`(() => {
+    const cell = document.querySelector('.flow-grid textarea');
+    cell.focus();
+    cell.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', shiftKey: true, bubbles: true }));
+  })()`);
+  await wait("document.querySelectorAll('.flow-grid .cell-selected').length === 2");
+  await js(`document.activeElement.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', shiftKey: true, bubbles: true }))`);
+  await wait("document.querySelectorAll('.flow-grid .cell-selected').length === 4");
+  await context('.flow-grid textarea[data-row="1"][data-column="1"]');
+  assert.equal(await js("document.querySelector('.context-menu').parentElement === document.body"), true);
+  await button('.context-menu button', 'Cut cells');
+  await wait("[...document.querySelectorAll('.flow-grid textarea')].slice(0,4).every(el => el.value === '')");
+  assert.equal((await require('electron').clipboard.readText()).replace(/\r\n/g, '\n'), 'claim\tanswer\nimpact\tresponse');
+  await js(`(() => {
+    const cell = document.querySelector('.flow-grid textarea');
+    cell.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+    Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, 'value').set.call(cell, 'normal text');
+    cell.dispatchEvent(new Event('input', { bubbles: true }));
+    cell.focus(); cell.setSelectionRange(0,6);
+  })()`);
+  await context('.flow-grid textarea');
+  await wait("[...document.querySelectorAll('.context-menu button')].some(el => el.textContent === 'Copy')");
+  await button('.context-menu button', 'Copy');
+  await delay(100);
+  assert.equal(await require('electron').clipboard.readText(), 'normal');
+  await require('electron').clipboard.writeText('edited');
+  await context('.flow-grid textarea');
+  await button('.context-menu button', 'Paste');
+  await wait("document.querySelector('.flow-grid textarea').value === 'edited text'");
+  await js("document.querySelector('.flow-grid textarea').setSelectionRange(0,1)");
+  await context('.flow-grid textarea');
+  await button('.context-menu button', 'Undo');
+  await wait("document.querySelector('.flow-grid textarea').value === 'normal text'");
+  await context('.flow-grid textarea');
+  await button('.context-menu button', 'Redo');
+  await wait("document.querySelector('.flow-grid textarea').value === 'edited text'");
+  await js(`document.querySelector('.flow-grid textarea').dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }))`);
+  await js("window.confirm = () => { throw new Error('Native confirmations must not be used'); }; true");
+  await click('.flow-grid th button[title="Remove column"]');
+  await wait("!!document.querySelector('.confirm-dialog')");
+  await button('.confirm-dialog button', 'Cancel');
+  assert.equal(await js("document.querySelectorAll('.flow-grid thead input').length"), 2);
+  await click('.flow-grid th button[title="Remove column"]');
+  await wait("!!document.querySelector('.confirm-dialog')");
+  await button('.confirm-dialog button', 'Confirm');
+  await wait("document.querySelectorAll('.flow-grid thead input').length === 1");
+  await button('.note-actions button', 'History');
+  await wait("!!document.querySelector('.history-json-preview .cm-content span')");
+  assert.equal(await js("document.querySelector('.history-json-preview .cm-content').isContentEditable"), false);
+  await button('.history-dialog button', 'Close');
+  await click('.ribbon-settings-button');
+  await wait("!!document.querySelector('.settings')");
+  await js(`document.querySelector('.settings-search input').focus()`);
+  await context('.settings-search input');
+  await wait("document.querySelector('.context-menu').contains(document.activeElement)");
+  await js("document.activeElement.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }))");
+  await wait("!document.querySelector('.context-menu')");
+  assert.ok(await js("!!document.querySelector('.settings')"), 'Escape closes the text menu, not its parent dialog');
+  assert.ok(await js("document.activeElement.matches('.settings-search input')"), 'a nested menu returns focus to its input');
+  await click('[data-section="editors"]');
+  assert.equal(await saved('separateNegativeBlock'), false);
+  await click('[data-setting="separateNegativeBlock"]');
+  await wait("document.querySelector('[data-setting=\"separateNegativeBlock\"]').checked");
+  await button('.settings button', 'Done');
+  await click('.sidebar-header [aria-label="New flow"]');
+  await wait("document.querySelectorAll('.flow-grid thead input').length === 8");
+  assert.deepEqual(await js("[...document.querySelectorAll('.flow-grid thead input')].map(el => el.value)"),
+    ['1AC', '1NC', '2AC', '2NC', '1NR', '1AR', '2NR', '2AR']);
+  await open('Round.flow');
+  await wait("document.querySelectorAll('.flow-grid thead input').length === 1");
+  await click('.ribbon-settings-button');
+  await wait("!!document.querySelector('.settings')");
+  await click('[data-section="editors"]');
+  await click('[data-setting="separateNegativeBlock"]');
+  await button('.settings button', 'Done');
+};
