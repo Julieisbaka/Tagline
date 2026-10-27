@@ -6,7 +6,6 @@ export const HYPOTHESIS_TEMPLATES = [
   { id: 'custom', label: 'Custom hypothesis' },
 ];
 
-// Converts note Markdown to plain prose so markup does not consume model tokens.
 /** Convert Markdown evidence into plain prose for local entailment analysis. @param {string} markdown @returns {string} */
 export function premiseText(markdown) {
   const withoutFrontmatter = markdown.replace(/^---\r?\n[\s\S]*?\r?\n---(?:\r?\n|$)/, '');
