@@ -14,6 +14,7 @@ import ReadingSettings from '../settings/ReadingSettings.jsx';
 import RibbonSettings from '../settings/RibbonSettings.jsx';
 import SettingRow from '../settings/SettingRow.jsx';
 import ThemeSettings from '../settings/ThemeSettings.jsx';
+import TimerSoundSettings from '../settings/TimerSoundSettings.jsx';
 import ModalBackdrop from './ModalBackdrop.jsx';
 
 // Generic fuzzy-filtered list modal used for quick switcher, commands, templates.
@@ -253,6 +254,7 @@ export function SettingsDialog({ settings, update, onClose, extensions, onOpenCa
               <h3>{t('Writing and debate')}</h3>
               {field('Speaking rate (words per minute)', 'wpm', 'number', { min: 50, max: 1000 })}
               <ReadingSettings settings={settings} update={update} />
+              <TimerSoundSettings settings={settings} update={update} />
               <label className="setting-row"><span>{t('Active speech document')}</span>
                 <select data-setting="speechDoc" value={speechDoc} onChange={(event) => onSelectSpeechDoc(event.target.value)}>
                   {[...new Set([speechDoc, ...speechDocuments])].filter(Boolean).map((path) =>

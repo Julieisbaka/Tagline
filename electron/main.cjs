@@ -10,6 +10,7 @@ const { registerNli } = require('./nli.cjs');
 const { registerSummarization } = require('./summarization.cjs');
 const { registerDocuments } = require('./documents.cjs');
 const { registerFonts } = require('./fonts.cjs');
+const { registerTimerSound } = require('./timerSound.cjs');
 const { registerExtensions } = require('./extensions.cjs');
 const { extractCitation } = require('./citationMetadata.cjs');
 const { registerFlowFiles } = require('./flowFiles.cjs');
@@ -505,6 +506,7 @@ if (primary) app.whenReady().then(() => {
   registerDocuments({ ipcMain, dialog, getWindow: () => win, readConfig });
   registerGoogleDocs({ app, ipcMain, safeStorage, dialog, shell, getWindow: () => win });
   registerFonts({ app, ipcMain, dialog, getWindow: () => win });
+  registerTimerSound({ app, ipcMain, dialog, getWindow: () => win });
   registerExtensions({ app, ipcMain, shell, readConfig, writeConfig, dialog, getWindow: () => win });
   const { readToken } = registerEmbeddings({ app, ipcMain, safeStorage, getVaultRoot: () => vaultRoot, readConfig, writeConfig });
   registerNli({ app, ipcMain, dialog, getWindow: () => win, readConfig, writeConfig, readToken });

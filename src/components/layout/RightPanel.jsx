@@ -130,7 +130,8 @@ export default function RightPanel(props) {
         {tab === 'tags' && <Tags index={props.index} onTagClick={props.onTagClick} />}
         {/* Timer stays mounted so it keeps running while other tabs are shown. */}
         <div style={{ display: tab === 'timer' ? 'block' : 'none' }}>
-          <Timer format={props.settings.format} onFormatChange={(format) => props.updateSettings({ format })} />
+          <Timer format={props.settings.format} onFormatChange={(format) => props.updateSettings({ format })}
+            timerSoundEnabled={props.settings.timerSoundEnabled} timerSoundName={props.settings.timerSoundName} />
         </div>
       </div>
     </aside>

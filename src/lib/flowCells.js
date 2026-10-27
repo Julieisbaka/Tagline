@@ -1,4 +1,9 @@
-/** Calculate inclusive rectangular bounds for two zero-based cell positions. @param {{row:number,column:number}} anchor @param {{row:number,column:number}} head @returns {{top:number,bottom:number,left:number,right:number}} */
+/** 
+ * Calculate inclusive rectangular bounds for two zero-based cell positions. 
+ * @param {{row:number,column:number}} anchor 
+ * @param {{row:number,column:number}} head 
+ * @returns {{top:number,bottom:number,left:number,right:number}} 
+ */
 export function cellBounds(anchor, head) {
   return {
     top: Math.min(anchor.row, head.row), bottom: Math.max(anchor.row, head.row),
@@ -6,15 +11,28 @@ export function cellBounds(anchor, head) {
   };
 }
 
-/** Serialize a rectangular cell range as quoted tab-separated text. @param {string[][]} rows @param {{top:number,bottom:number,left:number,right:number}} bounds @returns {string} */
+/** 
+ * Serialize a rectangular cell range as quoted tab-separated text. 
+ * @param {string[][]} rows 
+ * @param {{top:number,bottom:number,left:number,right:number}} bounds 
+ * @returns {string} 
+ */
 export function copyFlowCells(rows, bounds) {
-  /** Quote a cell only when TSV syntax requires escaping. @param {string} text @returns {string} */
+  /** 
+   * Quote a cell only when TSV syntax requires escaping. 
+   * @param {string} text 
+   * @returns {string} 
+   */
   const quote = (text) => /[\t\r\n"]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
   return rows.slice(bounds.top, bounds.bottom + 1)
     .map((row) => row.slice(bounds.left, bounds.right + 1).map(quote).join('\t')).join('\n');
 }
 
-/** Parse quoted tab-separated cell text into rows, rejecting unclosed quotes. @param {string} text @returns {string[][]} */
+/** 
+ * Parse quoted tab-separated cell text into rows, rejecting unclosed quotes. 
+ * @param {string} text 
+ * @returns {string[][]} 
+ */
 export function parseFlowCells(text) {
   const rows = [[]];
   let cell = '', quoted = false;
@@ -37,7 +55,14 @@ export function parseFlowCells(text) {
   return rows;
 }
 
-/** Return a copied sheet with cells pasted at the given zero-based position. @param {{columns:string[],rows:string[][]}} sheet @param {number} top @param {number} left @param {string[][]} cells @returns {{columns:string[],rows:string[][]}} */
+/** 
+ * Return a copied sheet with cells pasted at the given zero-based position. 
+ * @param {{columns:string[],rows:string[][]}} sheet 
+ * @param {number} top 
+ * @param {number} left 
+ * @param {string[][]} cells 
+ * @returns {{columns:string[],rows:string[][]}} 
+ */
 export function pasteFlowCells(sheet, top, left, cells) {
   const width = Math.max(sheet.columns.length, left + Math.max(...cells.map((row) => row.length)));
   const height = Math.max(sheet.rows.length, top + cells.length);

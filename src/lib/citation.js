@@ -15,8 +15,11 @@ export function createCitation({ author, year, title = '', publication = '', url
   return `**${escape(author)} ${year}**${details.length ? ' — ' + details.join(', ') : ''}`;
 }
 
-// Debate convention: the bold lead is author + year; the remaining citation is not read aloud.
-/** Extract author/year leads from bold citation lines for speech timing. @param {string} content @returns {string} */
+/** 
+ * Extract author/year leads from bold citation lines for speech timing. 
+ * @param {string} content 
+ * @returns {string} 
+ */
 export function spokenCitations(content) {
   return [...content.matchAll(/^\*\*([^*\n]+)\*\*[^\n]*$/gm)].map((m) => {
     const lead = m[1].split(/\s+[–—]\s+/)[0];

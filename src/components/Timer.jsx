@@ -40,10 +40,12 @@ function beep() {
 }
 
 // A countdown that keeps accurate time using wall-clock deltas.
-function useCountdown(initial) {
+function useCountdown(initial, onComplete) {
   const [remaining, setRemaining] = useState(initial);
   const [running, setRunning] = useState(false);
   const deadline = useRef(null);
+  const onCompleteRef = useRef(onComplete);
+  onCompleteRef.current = onComplete;
 
   useEffect(() => {
     if (!running) return undefined;
@@ -54,7 +56,7 @@ function useCountdown(initial) {
       if (next === 0) {
         deadline.current = null;
         setRunning(false);
-        beep();
+        onCompleteRef.current();
       }
     }, 200);
     return () => clearInterval(id);
@@ -86,13 +88,39 @@ function useCountdown(initial) {
   };
 }
 
-export default function Timer({ format, onFormatChange }) {
+export default function Timer({ format, onFormatChange, timerSoundEnabled = false, timerSoundName = '' }) {
   const { t } = useI18n();
   const fmt = FORMATS[format];
   const [speech, setSpeech] = useState(0);
-  const main = useCountdown(fmt ? fmt.speeches[0][1] * 60 : 0);
-  const aff = useCountdown(fmt ? fmt.prep * 60 : 0);
-  const neg = useCountdown(fmt ? fmt.prep * 60 : 0);
+  const [timerSound, setTimerSound] = useState(null);
+  const playEndSound = () => {
+    if (!timerSoundEnabled) {
+      beep();
+      return;
+    }
+    if (!timerSound) {
+      window.dispatchEvent(new CustomEvent('app-error', { detail: t('The custom timer sound is not available.') }));
+      return;
+    }
+    const audio = new Audio(timerSound);
+    audio.play().catch((error) => window.dispatchEvent(new CustomEvent('app-error', { detail: error.message })));
+  };
+  const main = useCountdown(fmt ? fmt.speeches[0][1] * 60 : 0, playEndSound);
+  const aff = useCountdown(fmt ? fmt.prep * 60 : 0, playEndSound);
+  const neg = useCountdown(fmt ? fmt.prep * 60 : 0, playEndSound);
+
+  useEffect(() => {
+    let active = true;
+    setTimerSound(null);
+    if (!timerSoundEnabled || !timerSoundName) return undefined;
+    window.api.readTimerSound().then((sound) => {
+      if (!sound) throw new Error(t('The saved timer sound is missing. Choose it again.'));
+      if (active) setTimerSound(sound.data);
+    }).catch((error) => {
+      if (active) window.dispatchEvent(new CustomEvent('app-error', { detail: error.message }));
+    });
+    return () => { active = false; };
+  }, [timerSoundEnabled, timerSoundName, t]);
 
   const selectSpeech = (i) => {
     setSpeech(i);

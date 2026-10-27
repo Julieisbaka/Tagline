@@ -4,6 +4,8 @@
   "speechDoc": "Speech Docs/Speech.md",
   "fontSize": 16,
   "format": "highschool",
+  "timerSoundName": "",
+  "timerSoundEnabled": false,
   "readableWidth": true,
   "readableWidthPixels": 820,
   "theme": "dark",

@@ -4,9 +4,6 @@ import { speechStats } from './readTime.js';
 
 const HEADING_RE = /^(#{1,6})\s/;
 
-// A "card" is a level-4 heading (tag) plus everything until the next heading.
-// If the cursor is under a higher-level heading (block/hat/pocket), that
-// whole section is returned instead.
 /** Find the heading section containing a Markdown character offset. @param {string} content @param {number} offset @returns {object|null} */
 export function getSectionAt(content, offset) {
   const metadata = splitFrontmatter(content);
