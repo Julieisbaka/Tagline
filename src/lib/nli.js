@@ -6,7 +6,11 @@ export const HYPOTHESIS_TEMPLATES = [
   { id: 'custom', label: 'Custom hypothesis' },
 ];
 
-/** Convert Markdown evidence into plain prose for local entailment analysis. @param {string} markdown @returns {string} */
+/** 
+ * Convert Markdown evidence into plain prose for local entailment analysis. 
+ * @param {string} markdown 
+ * @returns {string} 
+ */
 export function premiseText(markdown) {
   const withoutFrontmatter = markdown.replace(/^---\r?\n[\s\S]*?\r?\n---(?:\r?\n|$)/, '');
   return spokenText(withoutFrontmatter
