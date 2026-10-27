@@ -25,14 +25,23 @@ export function premiseText(markdown) {
     .trim();
 }
 
-/** Build one hypothesis per nonblank line using a built-in template. @param {string} templateId @param {string} lines @returns {string[]} */
+/** 
+ * Build one hypothesis per nonblank line using a built-in template. 
+ * @param {string} templateId 
+ * @param {string} lines 
+ * @returns {string[]} 
+ */
 export function buildHypotheses(templateId, lines) {
   const template = HYPOTHESIS_TEMPLATES.find((item) => item.id === templateId) || HYPOTHESIS_TEMPLATES[2];
   return lines.split('\n').map((line) => line.trim()).filter(Boolean).map((line) =>
     template.id === 'custom' ? line : template.label.replace('{}', line.replace(/[.\s]+$/, '')));
 }
 
-/** Map an entailment probability to Tagline's user-facing confidence label. @param {number} probability @returns {string} */
+/** 
+ * Map an entailment probability to Tagline's user-facing confidence label. 
+ * @param {number} probability 
+ * @returns {string} 
+ */
 export function entailmentLabel(probability) {
   if (probability >= 0.8) return 'Strongly supported';
   if (probability >= 0.5) return 'Supported';
