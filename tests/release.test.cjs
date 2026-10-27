@@ -9,7 +9,18 @@ const context = { repo: { owner: 'test', repo: 'tagline' }, sha: 'selected-commi
 const missing = () => { throw Object.assign(new Error('Not found'), { status: 404 }); };
 const core = { setOutput() { }, summary: { addLink() { return this; }, write() { } } };
 
-<<<<<<< HEAD
+function containsUrl(text, expectedUrl) {
+  const expected = new URL(expectedUrl);
+  return (text.match(/https:\/\/[^\s)]+/g) || []).some((candidate) => {
+    try {
+      const actual = new URL(candidate);
+      return actual.origin === expected.origin && actual.pathname === expected.pathname;
+    } catch {
+      return false;
+    }
+  });
+}
+
 test('packaging retains only target ONNX binaries and preserves runtime dependencies', () => {
   const { getNodeModuleFileMatcher } = require('app-builder-lib/out/fileMatcher');
   const { build } = require('../package.json');
@@ -53,19 +64,6 @@ test('packaging retains only target ONNX binaries and preserves runtime dependen
     }
   }
 });
-=======
-function containsUrl(text, expectedUrl) {
-  const expected = new URL(expectedUrl);
-  return (text.match(/https:\/\/[^\s)]+/g) || []).some((candidate) => {
-    try {
-      const actual = new URL(candidate);
-      return actual.origin === expected.origin && actual.pathname === expected.pathname;
-    } catch {
-      return false;
-    }
-  });
-}
->>>>>>> dfdf213a2b9882bc8bf545be2f17c3478afdab34
 
 test('release workflow runs only manually, packages all architectures and publishes only after every build', () => {
   assert.deepEqual(Object.keys(workflow.on), ['workflow_dispatch']);
@@ -149,10 +147,12 @@ async function publish({ draft, failUpload, extraFile, previous = true,
   if (extraFile) files[extraFile] = Buffer.from('unexpected');
   const calls = [];
   const repos = {
-    getReleaseByTag: async () => draft === undefined ? missing() : { data: {
-      id: 10, draft, html_url: 'https://example.test/release',
-      body: draftBody,
-    } },
+    getReleaseByTag: async () => draft === undefined ? missing() : {
+      data: {
+        id: 10, draft, html_url: 'https://example.test/release',
+        body: draftBody,
+      }
+    },
     generateReleaseNotes: async () => ({ data: { body: notes } }),
     listPullRequestsAssociatedWithCommit() { },
     getCommit: async ({ ref }) => {
@@ -196,16 +196,18 @@ async function publish({ draft, failUpload, extraFile, previous = true,
       writeFileSync: (file, text) => { files[file.replace('artifacts/', '')] = Buffer.from(text); },
     };
     throw new Error(`Unexpected import: ${name}`);
-  }, { rest: { repos }, paginate: async (method, options) => method === repos.listReleases
-    ? previous ? [{ draft: true, tag_name: 'v1.2.4' }, { draft: false, tag_name: 'v9.9.9' },
+  }, {
+    rest: { repos }, paginate: async (method, options) => method === repos.listReleases
+      ? previous ? [{ draft: true, tag_name: 'v1.2.4' }, { draft: false, tag_name: 'v9.9.9' },
       { draft: false, tag_name: 'v1.2.2' }] : []
-    : method === repos.listPullRequestsAssociatedWithCommit
-      ? (() => {
-        if (apiError) throw new Error(apiError);
-        calls.push(['pulls', options.commit_sha]);
-        return pulls[options.commit_sha] || [];
-      })()
-      : draft ? [{ id: 99 }] : [] }, context, core,
+      : method === repos.listPullRequestsAssociatedWithCommit
+        ? (() => {
+          if (apiError) throw new Error(apiError);
+          calls.push(['pulls', options.commit_sha]);
+          return pulls[options.commit_sha] || [];
+        })()
+        : draft ? [{ id: 99 }] : []
+  }, context, core,
     { env: { VERSION: '1.2.3', TAG: 'v1.2.3' } });
   return { execute, files, calls };
 }

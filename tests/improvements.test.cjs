@@ -386,7 +386,7 @@ test('platform: macOS desktop wiring provides native window controls, menus and 
           DEFAULT_RETENTION: 50,
           createRevisionHistory: () => ({ snapshot() { }, list() { return []; }, read() { }, rename() { } }),
         };
-        return Object.fromEntries(['registerPandoc', 'registerEmbeddings', 'registerDocuments', 'registerFonts', 'registerFlowFiles', 'registerExtensions', 'registerNli', 'registerSummarization', 'registerOpenCaselist', 'registerGoogleDocs', 'registerNativeUi']
+        return Object.fromEntries(['registerPandoc', 'registerEmbeddings', 'registerDocuments', 'registerFonts', 'registerFlowFiles', 'registerExtensions', 'registerNli', 'registerSummarization', 'registerOpenCaselist', 'registerGoogleDocs', 'registerTabroom', 'registerNativeUi']
           .map((key) => [key, () => true]));
       }
       return require(name);
