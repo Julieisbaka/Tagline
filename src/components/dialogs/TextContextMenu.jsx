@@ -29,13 +29,15 @@ export default function TextContextMenu() {
       };
       const rect = event.target.getBoundingClientRect();
       const keyboard = event.clientX === 0 && event.clientY === 0;
-      setMenu({ x: keyboard ? rect.left + 16 : event.clientX, y: keyboard ? rect.top + 16 : event.clientY, items: [
-        ...(editable ? [{ label: 'Undo', run: run('undo') }, { label: 'Redo', run: run('redo') }] : []),
-        ...(editable ? [{ label: 'Cut', disabled: !selected, run: run('cut') }] : []),
-        { label: 'Copy', disabled: !selected, run: run('copy') },
-        ...(editable ? [{ label: 'Paste', run: run('paste') }] : []),
-        { label: 'Select all', run: run('selectAll') },
-      ] });
+      setMenu({
+        x: keyboard ? rect.left + 16 : event.clientX, y: keyboard ? rect.top + 16 : event.clientY, items: [
+          ...(editable ? [{ label: 'Undo', run: run('undo') }, { label: 'Redo', run: run('redo') }] : []),
+          ...(editable ? [{ label: 'Cut', disabled: !selected, run: run('cut') }] : []),
+          { label: 'Copy', disabled: !selected, run: run('copy') },
+          ...(editable ? [{ label: 'Paste', run: run('paste') }] : []),
+          { label: 'Select all', run: run('selectAll') },
+        ]
+      });
     };
     document.addEventListener('contextmenu', open);
     return () => document.removeEventListener('contextmenu', open);
