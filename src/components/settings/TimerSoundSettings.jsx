@@ -72,6 +72,7 @@ export default function TimerSoundSettings({ settings, update }) {
   return <section className="timer-sound-settings">
     <h4>{t('Timer sound')}</h4>
     <p>{t('Choose a sound file to play when a speech or prep timer reaches zero. Without a custom sound, Tagline uses its built-in beep.')}</p>
+    <p>{t('Supported formats: MP3, WAV, OGG, M4A, and FLAC. Maximum file size: 10 MB.')}</p>
     {settings.timerSoundName ? <>
       <p>{t('Custom sound: {name}', { name: settings.timerSoundName })}</p>
       <SettingRow label={t('Use custom timer sound')} description={t('Play your selected audio file instead of the built-in beep when a timer ends.')}>

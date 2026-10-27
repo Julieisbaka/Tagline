@@ -574,6 +574,7 @@
   "Tags": "Étiquettes",
   "Timer": "Minuteur",
   "Timer sound": "Son du minuteur",
+  "Supported formats: MP3, WAV, OGG, M4A, and FLAC. Maximum file size: 10 MB.": "Formats pris en charge : MP3, WAV, OGG, M4A et FLAC. Taille maximale : 10 Mo.",
   "Choose a sound file to play when a speech or prep timer reaches zero. Without a custom sound, Tagline uses its built-in beep.": "Choisissez un fichier audio à lire à la fin d'un minuteur de discours ou de préparation. Sans son personnalisé, Tagline utilise son bip intégré.",
   "Custom sound: {name}": "Son personnalisé : {name}",
   "Use custom timer sound": "Utiliser un son personnalisé",
