@@ -136,8 +136,10 @@ export default function FlowEditor({ path, content, mode, onChange, onRestore, f
   };
   const clear = (area = bounds) => {
     if (!area) return;
-    updateSheet({ rows: sheet.rows.map((row, r) => row.map((value, c) =>
-      r >= area.top && r <= area.bottom && c >= area.left && c <= area.right ? '' : value)) });
+    updateSheet({
+      rows: sheet.rows.map((row, r) => row.map((value, c) =>
+        r >= area.top && r <= area.bottom && c >= area.left && c <= area.right ? '' : value))
+    });
   };
   const clipboardError = (error) => window.dispatchEvent(new CustomEvent('app-error', { detail: error.message }));
   const copy = async (area = bounds, cut = false) => {
@@ -148,16 +150,20 @@ export default function FlowEditor({ path, content, mode, onChange, onRestore, f
   const paste = (text, row, column) => {
     const cells = parseFlowCells(text);
     updateSheet(pasteFlowCells(sheet, row, column, cells));
-    setSelection({ sheet: idx, anchor: { row, column },
-      head: { row: row + cells.length - 1, column: column + Math.max(...cells.map((item) => item.length)) - 1 } });
+    setSelection({
+      sheet: idx, anchor: { row, column },
+      head: { row: row + cells.length - 1, column: column + Math.max(...cells.map((item) => item.length)) - 1 }
+    });
   };
   liveActions.current = {
     'flow-row': () => addRow(selected?.head.row, selected?.head.column ?? 0),
     'flow-row-above': () => insertRowAbove(selected?.head.row ?? 0, selected?.head.column ?? 0),
     'flow-add-column': addColumn,
     'flow-clear-selection': () => clear(),
-    'flow-select-all': () => setSelection({ sheet: idx, anchor: { row: 0, column: 0 },
-      head: { row: Math.max(0, sheet.rows.length - 1), column: sheet.columns.length - 1 } }),
+    'flow-select-all': () => setSelection({
+      sheet: idx, anchor: { row: 0, column: 0 },
+      head: { row: Math.max(0, sheet.rows.length - 1), column: sheet.columns.length - 1 }
+    }),
   };
 
   return (
@@ -253,16 +259,17 @@ export default function FlowEditor({ path, content, mode, onChange, onRestore, f
                       if (!inside(r, c)) choose(r, c);
                       e.currentTarget.querySelector('textarea')?.focus({ preventScroll: true });
                       context(e, [
-                      { label: 'Copy cells', run: () => copy(area) },
-                      { label: 'Cut cells', run: () => copy(area, true) },
-                      { label: 'Paste cells', run: async () => paste(await navigator.clipboard.readText(), area.top, area.left) },
-                      { label: 'Clear selected cells', run: () => clear(area) },
-                      { label: 'Select all cells', run: liveActions.current['flow-select-all'] },
-                      { label: 'Insert row above', run: () => insertRowAbove(r, c) },
-                      { label: 'Insert row below', run: () => addRow(r, c) },
-                      { label: 'Clear cell', run: () => setCell(r, c, '') },
-                      { label: 'Remove row', run: () => removeRow(r), danger: true },
-                    ]); }}>
+                        { label: 'Copy cells', run: () => copy(area) },
+                        { label: 'Cut cells', run: () => copy(area, true) },
+                        { label: 'Paste cells', run: async () => paste(await navigator.clipboard.readText(), area.top, area.left) },
+                        { label: 'Clear selected cells', run: () => clear(area) },
+                        { label: 'Select all cells', run: liveActions.current['flow-select-all'] },
+                        { label: 'Insert row above', run: () => insertRowAbove(r, c) },
+                        { label: 'Insert row below', run: () => addRow(r, c) },
+                        { label: 'Clear cell', run: () => setCell(r, c, '') },
+                        { label: 'Remove row', run: () => removeRow(r), danger: true },
+                      ]);
+                    }}>
                     <textarea
                       data-row={r}
                       data-column={c}

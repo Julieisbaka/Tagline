@@ -190,9 +190,9 @@ function CanvasBoard({ canvas, onChange, paths, contents, onOpenFile, onOpenUrl,
     const action = (event) => liveActions.current[event.detail]?.();
     const key = (event) => {
       if (event.defaultPrevented || event.isComposing ||
-          !event.target.closest('.canvas-editor') ||
-          document.querySelector('[role="dialog"], .context-menu') ||
-          event.target.closest('input, textarea, select, [contenteditable="true"]')) return;
+        !event.target.closest('.canvas-editor') ||
+        document.querySelector('[role="dialog"], .context-menu') ||
+        event.target.closest('input, textarea, select, [contenteditable="true"]')) return;
       if (event.key === 'Escape') {
         event.preventDefault();
         liveActions.current['canvas-cancel']();

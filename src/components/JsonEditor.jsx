@@ -24,7 +24,8 @@ export default function JsonEditor({ label, settings, ...props }) {
   EditorView.contentAttributes.of({ 'aria-label': label, 'aria-multiline': 'true' }),
   ], [label, settings?.sourceTabSize, settings?.sourceIndentWithTabs, settings?.sourceCodeFolding]);
   return <CodeMirror {...props} extensions={labeled} theme="none"
-    basicSetup={{ highlightActiveLine: false, highlightActiveLineGutter: false,
+    basicSetup={{
+      highlightActiveLine: false, highlightActiveLineGutter: false,
       ...(settings ? {
         highlightSelectionMatches: settings.sourceSelectionMatches,
         bracketMatching: settings.sourceBracketMatching, closeBrackets: settings.sourceCloseBrackets,
