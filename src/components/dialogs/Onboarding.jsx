@@ -12,10 +12,14 @@ const STEPS = [
     'Right-click sidebar actions and status items to customize them. Settings contains themes, keyboard shortcuts, integrations, and extensions. Use the command palette to find actions.'],
 ];
 
-export default function Onboarding({ onFinish }) {
+export default function Onboarding({ onFinish, onOpenVault, onCreateSample, showStartActions }) {
   const { t } = useI18n();
   const [step, setStep] = useState(0);
   const [title, subtitle, text] = STEPS[step];
+  const start = (action) => {
+    onFinish();
+    action();
+  };
   return <ModalBackdrop onMouseDown={onFinish}>
     <div className="modal dialog onboarding-dialog" role="dialog" aria-modal="true"
       aria-labelledby="onboarding-title" aria-describedby="onboarding-description"
@@ -26,6 +30,10 @@ export default function Onboarding({ onFinish }) {
       <p><strong>{t(subtitle)}</strong></p>
       <p id="onboarding-description">{t(text)}</p>
       {step === 0 && <p>{t('After this tour, open an existing folder as a vault or create a sample vault to try Tagline. No account is required.')}</p>}
+      {step === STEPS.length - 1 && showStartActions && <div className="onboarding-start-actions">
+        <button onClick={() => start(onOpenVault)}>{t('Open folder as vault')}</button>
+        <button onClick={() => start(onCreateSample)}>{t('Create sample vault')}</button>
+      </div>}
       <div className="dialog-buttons">
         <button className="onboarding-skip" onClick={onFinish}>{t('Skip tour')}</button>
         {step > 0 && <button onClick={() => setStep(step - 1)}>{t('Back')}</button>}

@@ -17,13 +17,16 @@ if (!process.versions.electron) {
   return;
 }
 
-const { app } = require('electron');
+const { app, dialog } = require('electron');
 const root = process.env.TAGLINE_PROFILE_ROOT;
 if (!root) throw new Error('Run this test through Node or npm run test:profile.');
 const legacy = path.join(root, 'debate-vault');
 const profile = path.join(root, 'Tagline');
 const vault = path.join(root, 'vault');
+const sampleParent = path.join(root, 'sample-parent');
 fs.mkdirSync(vault, { recursive: true });
+fs.mkdirSync(sampleParent, { recursive: true });
+dialog.showOpenDialog = async () => ({ canceled: false, filePaths: [sampleParent] });
 fs.mkdirSync(path.join(legacy, 'semantic-search'), { recursive: true });
 const config = JSON.stringify({ lastVault: vault, modelAutoload: false });
 fs.writeFileSync(path.join(legacy, 'config.json'), config);
@@ -70,7 +73,28 @@ app.on('browser-window-created', (_event, win) => {
       });
       await wait("!!document.querySelector('.welcome') && !!localStorage.getItem('tagline-settings')");
       assert.equal(await js("!!document.querySelector('.onboarding-dialog')"), false, 'dismissal persists without a vault');
-      console.log('PASS: legacy profiles stay untouched; first-run onboarding works and stays dismissed without a vault.');
+      await js(`(() => {
+        const settings = JSON.parse(localStorage.getItem('tagline-settings'));
+        settings.internalFlags.hasSeenOnboarding = false;
+        localStorage.setItem('tagline-settings', JSON.stringify(settings));
+      })()`);
+      await new Promise((resolve) => {
+        win.webContents.once('did-finish-load', resolve);
+        win.webContents.reload();
+      });
+      await wait("!!document.querySelector('.onboarding-dialog')");
+      await js("document.querySelector('.onboarding-dialog .primary').click()");
+      await wait("document.querySelector('.onboarding-progress').textContent.includes('Step 2 of 3')");
+      await js("document.querySelector('.onboarding-dialog .primary').click()");
+      await wait("document.querySelector('.onboarding-progress').textContent.includes('Step 3 of 3')");
+      await wait("!!document.querySelector('.onboarding-start-actions')");
+      await js(`[...document.querySelectorAll('.onboarding-start-actions button')]
+        .find(button => button.textContent.includes('Create sample vault')).click()`);
+      await wait("!!document.querySelector('.tree-item[title=\"Welcome.md\"]')");
+      assert.equal(fs.existsSync(path.join(sampleParent, 'Tagline Sample Vault', 'Welcome.md')), true,
+        'sample-vault action from onboarding creates and opens the sample');
+      assert.equal(await js("JSON.parse(localStorage.getItem('tagline-settings')).internalFlags.hasSeenOnboarding"), true);
+      console.log('PASS: legacy profiles stay untouched; first-run onboarding dismissal persists and sample-vault action works.');
       app.exit(0);
     } catch (e) {
       console.error('FAIL:', e.stack || e);

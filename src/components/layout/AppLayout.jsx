@@ -70,7 +70,8 @@ export default function AppLayout({ app }) {
       </div>
     </ModalBackdrop>);
   const onboarding = v.initialized && !settings.internalFlags?.hasSeenOnboarding && !modal && <Onboarding
-    onFinish={() => updateSettings({ internalFlags: { ...settings.internalFlags, hasSeenOnboarding: true } })} />;
+    onFinish={() => updateSettings({ internalFlags: { ...settings.internalFlags, hasSeenOnboarding: true } })}
+    onOpenVault={v.chooseVault} onCreateSample={v.createSample} showStartActions={!v.vault} />;
 
   if (!v.vault) return <>
     <TextContextMenu />

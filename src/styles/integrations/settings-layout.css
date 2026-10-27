@@ -196,6 +196,17 @@
   font-size: 12px;
 }
 
+.onboarding-start-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 16px;
+}
+
+.onboarding-start-actions button {
+  min-width: 0;
+}
+
 .confirm-dialog p {
   margin: 12px 0 20px;
   overflow-wrap: anywhere;
