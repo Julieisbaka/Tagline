@@ -114,6 +114,33 @@ test('argument-map relations are JSON Canvas edges and do not affect note links'
   assert.throws(() => createArgumentEdge('claim', 'evidence', 'unknown'), /Unsupported argument relation/);
 });
 
+test('vault indexing preserves link resolution precedence with indexed path lookups', async () => {
+  const { buildIndex, resolveLink } = await import('../src/lib/vault.js');
+  const targets = [
+    'folder/exact.md', 'exact', 'shared', 'first/shared', 'SHARED.MD', 'plain',
+    'name', 'name.flow', 'tail/x', 'missing',
+  ];
+  const contents = {
+    'Source.md': targets.map((target) => `[[${target}]]`).join(' '),
+    'First/Shared.md': '',
+    'Shared.md': '',
+    'Folder/Exact.md': '',
+    'exact.md': '',
+    'first/shared.flow': '',
+    'second/shared.canvas': '',
+    'plain.canvas': '',
+    'a/name.md': '',
+    'name.flow': '',
+    'tail/x.md': '',
+  };
+  const paths = Object.keys(contents);
+  const expected = [...new Set(targets.map((target) => resolveLink(target, paths)).filter(Boolean))];
+  const index = buildIndex(contents);
+  assert.deepEqual(index.links['Source.md'], expected);
+  assert.deepEqual(index.unresolved.missing, ['Source.md']);
+  for (const resolved of expected) assert.deepEqual(index.backlinks[resolved], ['Source.md']);
+});
+
 test('JSON Canvas validates spec fields and round-trips unknown properties', async () => {
   const { EMPTY_CANVAS, parseCanvas, serializeCanvas, createCanvasNode } = await import('../src/lib/canvas.js');
   const canvas = parseCanvas(JSON.stringify({

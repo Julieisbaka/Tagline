@@ -76,9 +76,36 @@ export function resolveLink(target, paths) {
   return best;
 }
 
+function createLinkResolver(paths) {
+  const exactPaths = new Map();
+  const normalizedPaths = new Map();
+  const fallbackPaths = new Map();
+  const addFirst = (map, key, path) => {
+    if (!map.has(key)) map.set(key, path);
+  };
+  for (const path of paths) {
+    const lower = path.toLowerCase();
+    addFirst(exactPaths, lower, path);
+    const normalized = lower.replace(/\.(md|flow)$/, '');
+    addFirst(normalizedPaths, normalized, path);
+    for (let slash = normalized.indexOf('/'); slash !== -1; slash = normalized.indexOf('/', slash + 1)) {
+      addFirst(fallbackPaths, normalized.slice(slash + 1), path);
+    }
+    addFirst(fallbackPaths, baseName(path).toLowerCase(), path);
+  }
+  return (target) => {
+    const normalizedTarget = target.trim().toLowerCase();
+    const exact = exactPaths.get(normalizedTarget);
+    if (exact) return exact;
+    const name = normalizedTarget.replace(/\.md$/, '');
+    return name ? normalizedPaths.get(name) || fallbackPaths.get(name) || null : null;
+  };
+}
+
 /** Build paths, links, backlinks, tags and unresolved-link maps from Markdown contents. @returns {object} */
 export function buildIndex(contents) {
   const paths = Object.keys(contents);
+  const resolve = createLinkResolver(paths);
   const links = {};
   const backlinks = {};
   const tags = {};
@@ -88,7 +115,7 @@ export function buildIndex(contents) {
     const content = contents[p] || '';
     links[p] = [];
     for (const target of extractLinks(content)) {
-      const resolved = resolveLink(target, paths);
+      const resolved = resolve(target);
       if (resolved) {
         if (!links[p].includes(resolved)) links[p].push(resolved);
         (backlinks[resolved] ||= new Set()).add(p);
