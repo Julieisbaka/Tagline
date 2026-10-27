@@ -6,6 +6,7 @@ const SMALL = ['zero', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'e
 const TENS = ['', '', 'twenty', 'thirty', 'forty', 'fifty', 'sixty', 'seventy', 'eighty', 'ninety'];
 const INITIALISMS = new Set(['US', 'USA', 'UK', 'UN', 'EU', 'USSR', 'GDP', 'FBI', 'CIA', 'AI', 'API']);
 
+/** Convert an integer below one million into readable English words. @param {number} number @returns {string} */
 function integerWords(number) {
   if (number < 20) return SMALL[number];
   if (number < 100) return `${TENS[Math.floor(number / 10)]} ${number % 10 ? SMALL[number % 10] : ''}`;
@@ -14,6 +15,7 @@ function integerWords(number) {
   return String(number).split('').map((digit) => SMALL[Number(digit)]).join(' ');
 }
 
+/** Convert a numeric token into words, with speech-friendly year and decimal rules. @param {string} value @returns {string} */
 function spokenNumber(value) {
   value = value.replace(/,/g, '');
   if (value.includes('.')) {
@@ -32,6 +34,7 @@ function spokenNumber(value) {
   return integerWords(number);
 }
 
+/** Remove script, style, and comment content before extracting spoken text. @param {string} value @returns {string} */
 function stripNonspokenMarkup(value) {
   const lowercase = value.replace(/[A-Z]/g, (letter) => letter.toLowerCase());
   const rawTextTag = /<\s*(script|style)(?=[\s/>])/iy;
@@ -64,6 +67,7 @@ function stripNonspokenMarkup(value) {
   return text.join('');
 }
 
+/** Convert Markdown/HTML into plain speech text, excluding frontmatter and URLs. @param {string} value @returns {string} */
 export function spokenText(value) {
   let text = stripNonspokenMarkup(splitFrontmatter(value).body);
   let previous;
@@ -85,6 +89,7 @@ export function spokenText(value) {
     .replace(/[<>]/g, '');
 }
 
+/** Count spoken words, syllables, complexity, sentences, and pause units. @param {string} text @returns {object} */
 export function speechStats(text) {
   const plain = spokenText(text);
   const tokens = plain.match(/[\p{L}]+(?:['\u2019-][\p{L}]+)*|\d{1,3}(?:,\d{3})+(?:\.\d+)?|\d+(?:\.\d+)?|%/gu) || [];
@@ -114,6 +119,7 @@ export function speechStats(text) {
   return { syllables, weightedSyllables: syllables + complexity, spokenWords, complexWords, sentences, pauseUnits };
 }
 
+/** Estimate speech duration from statistics, rate, and optional personal profile. @param {object} stats @param {number} [wpm] @param {object|null} [profile] @returns {number} */
 export function readingSeconds(stats, wpm = 250, profile = null) {
   if (!Number.isFinite(wpm) || wpm <= 0) throw new Error('Speaking rate must be a positive number.');
   if (!Number.isFinite(stats.weightedSyllables) || stats.weightedSyllables < 0 ||
@@ -121,12 +127,17 @@ export function readingSeconds(stats, wpm = 250, profile = null) {
     throw new Error('Invalid speech statistics.');
   }
   if (profile) {
+    if (!Number.isFinite(profile.articulation) || profile.articulation <= 0 ||
+      !Number.isFinite(profile.pauses) || profile.pauses <= 0) {
+      throw new Error('Invalid reading calibration profile.');
+    }
     return stats.weightedSyllables * 0.16 * profile.articulation +
       (stats.pauseUnits || 0) * profile.pauses;
   }
   return stats.weightedSyllables / (wpm * 1.5) * 60 + (stats.pauseUnits || 0) * Math.sqrt(250 / wpm);
 }
 
+/** Validate a saved timed reading sample and its speech statistics. @param {object} sample @returns {object} */
 export function validateReadingSample(sample) {
   if (!sample || typeof sample.id !== 'string' || !sample.id || sample.id.length > 100 || typeof sample.name !== 'string' ||
     !sample.name.trim() || sample.name.length > 200 || !['full', 'evidence'].includes(sample.scope) ||
@@ -142,12 +153,14 @@ export function validateReadingSample(sample) {
   return sample;
 }
 
+/** Return the median of a nonempty numeric array. @param {number[]} values @returns {number} */
 function median(values) {
   const sorted = [...values].sort((a, b) => a - b);
   const middle = Math.floor(sorted.length / 2);
   return sorted.length % 2 ? sorted[middle] : (sorted[middle - 1] + sorted[middle]) / 2;
 }
 
+/** Fit a robust articulation/pause calibration profile from timed reading samples. @param {object[]} [samples] @returns {object|null} */
 export function calibrateReading(samples = []) {
   if (!Array.isArray(samples) || samples.length > 100) throw new Error('Use at most 100 timed reading samples.');
   if (!samples.length) return null;
@@ -189,7 +202,15 @@ export function calibrateReading(samples = []) {
   };
 }
 
+/** Assess duration and effort metrics using a default or calibrated speech profile. @param {object} stats @param {number} [wpm] @param {object|null} [profile] @returns {object} */
 export function readingAssessment(stats, wpm = 250, profile = null) {
+  for (const key of ['syllables', 'weightedSyllables', 'spokenWords', 'sentences']) {
+    if (!Number.isFinite(stats?.[key]) || stats[key] < 0) throw new Error('Invalid speech statistics.');
+  }
+  if (profile && (!Number.isFinite(profile.baselineDensity) || profile.baselineDensity <= 0 ||
+    !Number.isFinite(profile.baselineSecondsPerWord) || profile.baselineSecondsPerWord <= 0)) {
+    throw new Error('Invalid reading assessment profile.');
+  }
   const words = stats.spokenWords || 0;
   const density = words ? stats.weightedSyllables / words : 0;
   const readingEase = words ? 206.835 - 1.015 * words / Math.max(1, stats.sentences) -

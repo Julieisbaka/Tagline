@@ -10,6 +10,7 @@ export const RIBBON_ITEMS = [
 
 export const DEFAULT_RIBBON_ITEMS = RIBBON_ITEMS.map(({ id }) => id);
 
+/** Normalize built-in and extension ribbon IDs while preserving contribution order. @param {unknown} value @param {object[]} [contributions] @param {string[]} [hidden] @returns {string[]} */
 export function normalizeRibbonItems(value, contributions = [], hidden = []) {
   if (!Array.isArray(value)) value = DEFAULT_RIBBON_ITEMS;
   const validIds = new Set(RIBBON_ITEMS.map(({ id }) => id));
@@ -19,6 +20,7 @@ export function normalizeRibbonItems(value, contributions = [], hidden = []) {
   return items;
 }
 
+/** Move one ribbon item to another item's position without mutating the input. @param {string[]} items @param {string} sourceId @param {string} targetId @returns {string[]} */
 export function moveRibbonItem(items, sourceId, targetId) {
   const next = [...items];
   const sourceIndex = next.indexOf(sourceId);

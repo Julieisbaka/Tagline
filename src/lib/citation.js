@@ -1,5 +1,7 @@
+/** Escape citation text for safe, literal insertion into Markdown. @param {string} value @returns {string} */
 const escape = (value) => value.trim().replace(/[\\`*_[\]<>]/g, '\\$&').replace(/\r?\n/g, ' ');
 
+/** Format validated author/year and optional source details as citation Markdown. @param {object} details @returns {string} */
 export function createCitation({ author, year, title = '', publication = '', url = '', accessed = '' }) {
   if (!author.trim() || !/^\d{4}$/.test(year)) throw new Error('Enter an author and a four-digit year.');
   let link = '';
@@ -14,6 +16,7 @@ export function createCitation({ author, year, title = '', publication = '', url
 }
 
 // Debate convention: the bold lead is author + year; the remaining citation is not read aloud.
+/** Extract author/year leads from bold citation lines for speech timing. @param {string} content @returns {string} */
 export function spokenCitations(content) {
   return [...content.matchAll(/^\*\*([^*\n]+)\*\*[^\n]*$/gm)].map((m) => {
     const lead = m[1].split(/\s+[–—]\s+/)[0];

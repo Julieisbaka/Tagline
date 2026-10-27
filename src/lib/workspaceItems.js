@@ -17,11 +17,13 @@ export const STATUS_ITEMS = [
   { id: 'mode', title: 'Editing mode' },
 ];
 
+/** Normalize the visible workspace item order against the supplied catalog. @param {unknown} value @param {object[]} catalog @returns {string[]} */
 export function normalizeWorkspaceItems(value, catalog) {
   const ids = catalog.map((item) => item.id);
   return Array.isArray(value) ? [...new Set(value.filter((id) => ids.includes(id)))] : ids;
 }
 
+/** Move one workspace item to another item's position without mutating the input. @param {string[]} items @param {string} id @param {string} target @returns {string[]} */
 export function moveWorkspaceItem(items, id, target) {
   if (id === target || !items.includes(id) || !items.includes(target)) return items;
   const next = [...items];

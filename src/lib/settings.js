@@ -9,6 +9,7 @@ import { setNativeUi } from './nativeUi.js';
 
 const KEY = 'tagline-settings';
 
+/** Load saved settings over defaults, falling back safely if stored JSON is invalid. @returns {object} */
 function load() {
   try {
     const saved = localStorage.getItem(KEY);
@@ -22,10 +23,12 @@ function load() {
   }
 }
 
+/** React hook that loads, persists, and applies application preferences. @returns {[object,function]} */
 export function useSettings() {
   const [settings, setSettings] = useState(load);
   const [themeRevision, setThemeRevision] = useState(0);
   useEffect(() => {
+    /** Refresh theme resolution when extension themes or runtime limits change. @returns {void} */
     const onThemes = () => setThemeRevision((n) => n + 1);
     window.addEventListener('extensionthemes', onThemes);
     window.addEventListener('customizationlimits', onThemes);

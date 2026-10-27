@@ -3,7 +3,9 @@ import { binding, displayBinding, KEYBINDINGS } from './keybindings.js';
 export { fillTemplate } from './template.js';
 
 // Command palette entries. `ctx` provides the actions implemented in App.
+/** Build translated command-palette entries from app actions and keybinding overrides. @param {object} ctx @param {object} [overrides] @returns {object[]} */
 export function buildCommands(ctx, overrides = {}) {
+  /** Create one translated palette entry with its current displayed shortcut. @param {string} id @param {string} label @param {function} run @returns {object} */
   const c = (id, label, run) => ({ id, label: translate(label), run, hotkey: displayBinding(binding(id, overrides)) });
   const list = [
     c('switcher', 'Quick switcher: open file', ctx.openSwitcher, 'Ctrl+O'),

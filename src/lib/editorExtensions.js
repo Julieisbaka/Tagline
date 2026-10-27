@@ -4,6 +4,7 @@ import { EditorSelection } from '@codemirror/state';
 import { Decoration, EditorView, MatchDecorator, ViewPlugin } from '@codemirror/view';
 import { tags as t } from '@lezer/highlight';
 
+/** Return a CodeMirror transaction that sets the requested Markdown heading. @param {number} level @returns {function} */
 export function setHeading(level) {
   return (view) => {
     const { state } = view;
@@ -28,6 +29,7 @@ export function setHeading(level) {
 }
 
 // Toggle wrapping the selection in open/close markers (e.g. "==" for highlight).
+/** Return a CodeMirror transaction that wraps the selection in formatting delimiters. @param {string} open @param {string} [close] @returns {function} */
 export function toggleWrap(open, close = open) {
   return (view) => {
     const { state } = view;
@@ -61,6 +63,7 @@ export function toggleWrap(open, close = open) {
   };
 }
 
+/** Remove formatting marks and debate markup around the current selection. @param {EditorView} view @returns {boolean} */
 export function clearFormatting(view) {
   const { state } = view;
   const tr = state.changeByRange((range) => {
@@ -75,6 +78,7 @@ export function clearFormatting(view) {
   return true;
 }
 
+/** Build a CodeMirror view plugin that decorates matches of a debate markup pattern. @param {RegExp} regexp @param {string} cls @returns {ViewPlugin} */
 function markPlugin(regexp, cls) {
   const decorator = new MatchDecorator({ regexp, decoration: Decoration.mark({ class: cls }) });
   return ViewPlugin.define(
@@ -96,6 +100,7 @@ export const debateDecorations = [
 ];
 
 // Return the [[link]] target under a document position, if any.
+/** Find the wiki-link target and optional heading at a CodeMirror document position. @param {object} state @param {number} pos @returns {{target:string,heading:string}|null} */
 export function linkAt(state, pos) {
   const line = state.doc.lineAt(pos);
   const re = /\[\[([^\]|#]+)(#[^\]|]*)?(\|[^\]]*)?\]\]/g;

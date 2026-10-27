@@ -4,6 +4,7 @@ import { applicationEvents, requireSelection } from './extensionCapabilities.js'
 import { useExtensions } from './extensions.js';
 import { isCanvas, isFlow } from './vault.js';
 
+/** React hook that starts extension hosts and exposes their app contributions. @param {object} options @returns {object} */
 export function useAppExtensions({
   v, paths, activePath, activeContent, mode, sourceFallback, editorRef, visualRef,
   insertAtCursor, doRename, tabs, notify, visualEditor,
@@ -26,6 +27,7 @@ export function useAppExtensions({
   }, [activeNotePath, activeContent, mode]);
   useEffect(() => {
     if (!visualEditor || visualEditor.isDestroyed || mode !== 'visual' || sourceFallback) return;
+    /** Publish the visual editor's current selection as a path-only app event. @returns {void} */
     const selection = () => applicationEvents.emit('editor.selectionChanged', {
       path: activeNotePath, mode: 'visual',
       selection: { from: visualEditor.state.selection.from, to: visualEditor.state.selection.to },
@@ -35,12 +37,14 @@ export function useAppExtensions({
     return () => visualEditor.off('selectionUpdate', selection);
   }, [visualEditor, mode, sourceFallback, activeNotePath]);
 
+  /** Require the active editable Markdown visual editor and return its instance. @returns {object} */
   const requireVisualEditor = () => {
     if (!activePath || !/\.md$/i.test(activePath) || mode !== 'visual' || sourceFallback ||
       !visualRef.current || visualRef.current.isDestroyed) throw new Error('Open a Markdown note in the visual editor first.');
     return visualRef.current;
   };
 
+  /** Serialize vault mutations and reject queued work if the active vault changes. @param {function} operation @returns {Promise<*>} */
   const enqueueVault = (operation) => {
     const root = v.vault?.root;
     const task = operations.current.then(() => {
@@ -50,6 +54,7 @@ export function useAppExtensions({
     operations.current = task.catch(() => { });
     return task;
   };
+  /** Require an existing supported document and return its loaded content. @param {string} path @returns {string} */
   const requireNote = (path) => {
     if (!/\.(md|flow|canvas)$/i.test(path)) throw new Error('Extensions can only modify .md, .flow and .canvas files.');
     const content = v.getContent(path);

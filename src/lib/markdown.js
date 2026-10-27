@@ -4,6 +4,7 @@ import { splitFrontmatter } from './frontmatter.js';
 
 let resolver = () => null;
 
+/** Escape text for insertion into HTML markup. @param {string} s @returns {string} */
 const escapeHtml = (s) =>
   s.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 
@@ -24,6 +25,7 @@ const wikilink = {
   },
 };
 
+/** Create a Marked inline extension for a paired debate-formatting delimiter. @param {string} name @param {string} delim @param {string} tag @param {string} [cls] @returns {object} */
 const makeWrap = (name, delim, tag, cls = '') => {
   const d = delim.replace(/[+=]/g, '\\$&');
   const re = new RegExp(`^${d}(?=\\S)([\\s\\S]*?\\S)${d}`);
@@ -76,6 +78,7 @@ marked.use({
   },
 });
 
+/** Create a stable lowercase Markdown heading anchor slug. @param {string} text @returns {string} */
 export function slugify(text) {
   return text
     .toLowerCase()
@@ -85,6 +88,7 @@ export function slugify(text) {
     .replace(/\s+/g, '-');
 }
 
+/** Render Tagline Markdown to sanitized HTML, resolving internal links with an optional callback. @param {string} src @param {function} [resolve] @returns {string} */
 export function renderMarkdown(src, resolve) {
   resolver = resolve || (() => null);
   const html = marked.parse(splitFrontmatter(src || '').body);

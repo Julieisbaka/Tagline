@@ -5,9 +5,12 @@ import contrastDark from '../themes/high-contrast-dark.json' with { type: 'json'
 import contrastLight from '../themes/high-contrast-light.json' with { type: 'json' };
 import light from '../themes/light.json' with { type: 'json' };
 
+/** The built-in dark, light, and high-contrast theme definitions. */
 export const BUILTIN_THEMES = [dark, light, contrastDark, contrastLight];
+/** CSS color tokens that custom themes may override. */
 export const COLOR_TOKENS = Object.freeze(Object.keys(dark.colors));
 
+/** Validate and copy custom CSS variables against runtime size and value limits. @param {object} [value] @param {object} [limits] @returns {object} */
 function validateVariables(value = {}, limits = getRuntimeLimits()) {
   if (!value || typeof value !== 'object' || Array.isArray(value) || Object.keys(value).length > limits.themeVariables) {
     throw new Error(`Theme variables must be an object with at most ${limits.themeVariables} CSS custom properties.`);
@@ -21,6 +24,7 @@ function validateVariables(value = {}, limits = getRuntimeLimits()) {
   return { ...value };
 }
 
+/** Validate optional theme attribution and accessibility metadata. @param {object} [metadata] @returns {object} */
 function validateMetadata(metadata = {}) {
   if (!metadata || typeof metadata !== 'object' || Array.isArray(metadata)) throw new Error('Theme metadata must be an object.');
   const { author, description, license, tags = [], accessibility = {} } = metadata;
@@ -42,6 +46,7 @@ function validateMetadata(metadata = {}) {
   return { ...metadata, tags: [...tags], accessibility: { ...accessibility } };
 }
 
+/** Validate setting definitions and ensure each targets a declared theme variable. @param {object[]} [definitions] @param {object} theme @param {object} limits @returns {object[]} */
 function validateThemeSettings(definitions = [], theme, limits) {
   if (!Array.isArray(definitions) || definitions.length > limits.extensionSettings) {
     throw new Error(`Theme settings must be a list of at most ${limits.extensionSettings}.`);
@@ -68,6 +73,7 @@ function validateThemeSettings(definitions = [], theme, limits) {
   });
 }
 
+/** Validate and normalize a version-1 custom theme. @param {object} value @param {object} [limits] @returns {object} */
 export function validateTheme(value, limits = getRuntimeLimits()) {
   if (!value || value.version !== 1 || typeof value.name !== 'string' ||
     !value.name.trim() || value.name.length > 80 || !['dark', 'light'].includes(value.mode) ||
@@ -92,6 +98,7 @@ export function validateTheme(value, limits = getRuntimeLimits()) {
   return theme;
 }
 
+/** Apply saved theme-setting values to a copied theme definition. @param {object} theme @param {object} [values] @param {object} [limits] @returns {object} */
 export function resolveThemeSettings(theme, values = {}, limits = getRuntimeLimits()) {
   if (!values || typeof values !== 'object' || Array.isArray(values)) throw new Error('Theme setting values must be an object.');
   const definitions = theme.settings || [];
@@ -114,6 +121,7 @@ export function resolveThemeSettings(theme, values = {}, limits = getRuntimeLimi
   return result;
 }
 
+/** Resolve a built-in, extension, or custom theme and its saved settings. @param {string} id @param {object} customTheme @param {object} [themeSettings] @returns {object} */
 export function getTheme(id, customTheme, themeSettings = {}) {
   if (id === 'custom') return resolveThemeSettings(validateTheme(customTheme), themeSettings[id]);
   const theme = BUILTIN_THEMES.find((t) => t.id === id) || extensionThemeList.find((t) => t.id === id);
@@ -124,7 +132,9 @@ export function getTheme(id, customTheme, themeSettings = {}) {
 }
 
 let extensionThemeList = [];
+/** Return the currently registered extension themes. @returns {object[]} */
 export const extensionThemes = () => extensionThemeList;
+/** Replace registered extension themes and notify theme consumers. @param {object[]} themes @returns {void} */
 export function registerExtensionThemes(themes) {
   extensionThemeList = themes;
   window.dispatchEvent(new Event('extensionthemes'));
@@ -135,6 +145,7 @@ let appliedTheme = '';
 let activeTheme;
 let transitionTimer;
 
+/** Apply theme colors and variables to the document root. @param {object} theme @param {boolean} [animate] @returns {void} */
 export function applyTheme(theme, animate = true) {
   const root = document.documentElement;
   const signature = JSON.stringify(theme);
@@ -158,6 +169,7 @@ export function applyTheme(theme, animate = true) {
   window.dispatchEvent(new Event('themechange'));
 }
 
+/** Read the active theme and computed CSS variables for UI consumers. @returns {object} */
 export function themeSnapshot() {
   const root = document.documentElement;
   const computed = getComputedStyle(root);

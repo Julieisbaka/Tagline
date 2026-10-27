@@ -21,8 +21,10 @@ const SANDBOX_URL = 'extension-sandbox.html';
 
 const MAX_TEXT = 5_000_000;
 
+/** Build the fully qualified internal command ID for an extension contribution. @param {string} extensionId @param {string} commandId @returns {string} */
 export const extensionCommandId = (extensionId, commandId) => `ext:${extensionId}.${commandId}`;
 
+/** Validate text received across the extension worker bridge. @param {*} value @param {string} label @param {number} [max] @returns {string} */
 function requireText(value, label, max = MAX_TEXT) {
   if (typeof value !== 'string' || value.length > max) throw new Error(`${label} must be text up to ${max} characters.`);
   return value;
@@ -153,6 +155,52 @@ export class ExtensionHost {
         return true;
       }
       case 'helpers.path': return pathHelper(args[0], args.slice(1));
+      case 'helpers.countdown.remainingAt':
+      case 'helpers.language.system':
+      case 'helpers.language.initial':
+      case 'helpers.keybindings.valid':
+      case 'helpers.keybindings.display':
+      case 'helpers.layout.normalizeRibbon':
+      case 'helpers.layout.moveRibbon':
+      case 'helpers.layout.normalizeWorkspace':
+      case 'helpers.layout.moveWorkspace':
+      case 'helpers.calendar.dateValue':
+      case 'helpers.calendar.parseDate':
+      case 'helpers.calendar.moveMonth':
+      case 'helpers.calendar.monthDays':
+      case 'helpers.flowCells.bounds':
+      case 'helpers.flowCells.copy':
+      case 'helpers.flowCells.parse':
+      case 'helpers.flowCells.paste':
+      case 'helpers.folders.paths':
+      case 'helpers.folders.normalize':
+      case 'helpers.frontmatter.split':
+      case 'helpers.frontmatter.markSpeech':
+      case 'helpers.frontmatter.speechPaths':
+      case 'helpers.vault.isFlow':
+      case 'helpers.vault.isMarkdown':
+      case 'helpers.vault.isCanvas':
+      case 'helpers.vault.baseName':
+      case 'helpers.vault.displayName':
+      case 'helpers.vault.dirName':
+      case 'helpers.vault.joinPath':
+      case 'helpers.vault.index':
+      case 'helpers.vault.extractLinks':
+      case 'helpers.vault.extractTags':
+      case 'helpers.vault.resolveLink':
+      case 'helpers.vault.outline':
+      case 'helpers.vault.flattenTree':
+      case 'helpers.vault.rewriteLinks':
+      case 'helpers.vault.fuzzyScore':
+      case 'helpers.citations.spoken':
+      case 'helpers.speech.text':
+      case 'helpers.speech.readingSeconds':
+      case 'helpers.speech.validateSample':
+      case 'helpers.speech.calibrate':
+      case 'helpers.speech.assess':
+      case 'helpers.nli.premise':
+      case 'helpers.nli.hypotheses':
+      case 'helpers.nli.label':
       case 'helpers.markdown.toText':
       case 'helpers.markdown.frontmatter':
       case 'helpers.markdown.slugify':
@@ -344,6 +392,7 @@ export class ExtensionHost {
 
 // Default keys that are malformed, reserved, or already used by a built-in or earlier extension are dropped;
 // users can still assign them explicitly in Settings > Keyboard shortcuts.
+/** Return a valid, unclaimed default extension shortcut, or an empty string. @param {string} key @param {string[]} [taken] @returns {string} */
 export function usableDefaultKey(key, taken = []) {
   if (!key || !validBinding(key) || reservedBinding(key)) return '';
   const used = [...KEYBINDINGS, ...taken].map((item) => item.key);
@@ -351,6 +400,7 @@ export function usableDefaultKey(key, taken = []) {
 }
 
 // Loads enabled extensions, exposes their commands/themes, and tears hosts down on reload/unmount.
+/** Manage extension hosts, contributions, and their application bridge lifecycle. @param {object} options @returns {object} */
 export function useExtensions({ bridgeRef, notify }) {
   const [extensions, setExtensions] = useState([]);
   const [commands, setCommands] = useState([]);
@@ -359,6 +409,7 @@ export function useExtensions({ bridgeRef, notify }) {
   const generation = useRef(0);
   const [settingsRevision, settingsChanged] = useState(0);
   useEffect(() => {
+    /** Trigger a render when extension settings are edited. @returns {void} */
     const changed = () => settingsChanged((value) => value + 1);
     window.addEventListener('extension-settings-changed', changed);
     return () => window.removeEventListener('extension-settings-changed', changed);
@@ -475,6 +526,7 @@ export function useExtensions({ bridgeRef, notify }) {
     await reload();
   }, [reload, extensions]);
 
+  /** Close one extension-contributed panel or webview. @param {object} surface @returns {*} */
   const closeSurface = (surface) => surface.host.bridge.closeSurface(surface.host, surface.kind, surface.id);
   const ribbonItems = extensions.filter((item) => item.enabled && !item.error).flatMap((item) =>
     (item.contributes.ribbonItems || []).map((declaration) => ({

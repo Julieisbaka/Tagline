@@ -168,6 +168,44 @@
           write: (path, data) => call('flow.write', path, data),
         }),
         helpers: Object.freeze({
+          countdown: Object.freeze({
+            /** Return nonnegative seconds until a deadline; timestamps are milliseconds. @returns {Promise<number>} */
+            remainingAt: (deadline, now) => call('helpers.countdown.remainingAt', deadline, now),
+          }),
+          language: Object.freeze({
+            /** Select the first supported language from locale identifiers; defaults to English. @returns {Promise<string>} */
+            system: (systemLanguages = []) => call('helpers.language.system', systemLanguages),
+            /** Use a supported saved language, or fall back to the supplied system locales. @returns {Promise<string>} */
+            initial: (saved, systemLanguages = []) => call('helpers.language.initial', saved, systemLanguages),
+          }),
+          keybindings: Object.freeze({
+            /** Test whether a shortcut uses supported Tagline key syntax. @returns {Promise<boolean>} */
+            valid: (shortcut) => call('helpers.keybindings.valid', shortcut),
+            /** Format Mod as Cmd or Ctrl for a specified platform. @returns {Promise<string>} */
+            display: (shortcut, platform) => call('helpers.keybindings.display', shortcut, platform),
+          }),
+          layout: Object.freeze({
+            /** Normalize ribbon IDs against contributions and hidden items. @returns {Promise<string[]>} */
+            normalizeRibbon: (items, contributions = [], hidden = []) =>
+              call('helpers.layout.normalizeRibbon', items, contributions, hidden),
+            /** Move a ribbon ID to another item's position without mutating the input. @returns {Promise<string[]>} */
+            moveRibbon: (items, sourceId, targetId) =>
+              call('helpers.layout.moveRibbon', items, sourceId, targetId),
+            /** Normalize workspace IDs against a catalog. @returns {Promise<string[]>} */
+            normalizeWorkspace: (items, catalog) => call('helpers.layout.normalizeWorkspace', items, catalog),
+            /** Move a workspace ID to another item's position without mutating the input. @returns {Promise<string[]>} */
+            moveWorkspace: (items, id, target) => call('helpers.layout.moveWorkspace', items, id, target),
+          }),
+          calendar: Object.freeze({
+            /** Format a Date or YYYY-MM-DD string as a local calendar date. @returns {Promise<string>} */
+            dateValue: (date) => call('helpers.calendar.dateValue', date),
+            /** Parse a strict YYYY-MM-DD date, returning a Date or null. @returns {Promise<Date|null>} */
+            parseDate: (value) => call('helpers.calendar.parseDate', value),
+            /** Move by whole months, clamping to the destination month's last day. @returns {Promise<Date>} */
+            moveMonth: (date, amount) => call('helpers.calendar.moveMonth', date, amount),
+            /** Return a Sunday-first, complete-week array of Dates and null padding. @returns {Promise<Array<Date|null>>} */
+            monthDays: (date) => call('helpers.calendar.monthDays', date),
+          }),
           canvas: Object.freeze({
             /** Parse and validate JSON Canvas text, preserving unknown fields. @returns {Promise<object>} */
             parse: (text) => call('helpers.canvas.parse', text),
@@ -199,6 +237,64 @@
             create: () => call('helpers.flow.create'),
             /** Copy a flow with one cell updated; indexes are zero-based. @returns {Promise<object>} */
             setCell: (data, sheet, row, column, text) => call('helpers.flow.setCell', data, sheet, row, column, text),
+          }),
+          flowCells: Object.freeze({
+            /** Return inclusive top/bottom/left/right bounds for two zero-based cell positions. @returns {Promise<object>} */
+            bounds: (anchor, head) => call('helpers.flowCells.bounds', anchor, head),
+            /** Copy a rectangular cell selection as quoted TSV. @returns {Promise<string>} */
+            copy: (rows, bounds) => call('helpers.flowCells.copy', rows, bounds),
+            /** Parse TSV into rows of cell text; rejects unclosed quoted values. @returns {Promise<string[][]>} */
+            parse: (text) => call('helpers.flowCells.parse', text),
+            /** Paste cells into a copied sheet, expanding rows/columns up to 100,000 cells. @returns {Promise<object>} */
+            paste: (sheet, top, left, cells) => call('helpers.flowCells.paste', sheet, top, left, cells),
+          }),
+          folders: Object.freeze({
+            /** List folder paths in tree order. @returns {Promise<string[]>} */
+            paths: (tree) => call('helpers.folders.paths', tree),
+            /** Normalize new folder names while preserving paths already present. @returns {Promise<string>} */
+            normalize: (path, isFolder, existing = []) => call('helpers.folders.normalize', path, isFolder, existing),
+          }),
+          frontmatter: Object.freeze({
+            /** Split YAML frontmatter without parsing or changing its original text. @returns {Promise<object>} */
+            split: (markdown) => call('helpers.frontmatter.split', markdown),
+            /** Return Markdown with speech: true set in YAML frontmatter. @returns {Promise<string>} */
+            markSpeech: (markdown) => call('helpers.frontmatter.markSpeech', markdown),
+            /** List Markdown paths marked speech: true, sorted by path. @returns {Promise<string[]>} */
+            speechPaths: (documents) => call('helpers.frontmatter.speechPaths', documents),
+          }),
+          vault: Object.freeze({
+            /** Test whether a path has the .flow extension, case-insensitively. @returns {Promise<boolean>} */
+            isFlow: (path) => call('helpers.vault.isFlow', path),
+            /** Test whether a path has the .md extension, case-insensitively. @returns {Promise<boolean>} */
+            isMarkdown: (path) => call('helpers.vault.isMarkdown', path),
+            /** Test whether a path has the .canvas extension, case-insensitively. @returns {Promise<boolean>} */
+            isCanvas: (path) => call('helpers.vault.isCanvas', path),
+            /** Return a filename without a supported document extension. @returns {Promise<string>} */
+            baseName: (path) => call('helpers.vault.baseName', path),
+            /** Format a filename using Markdown/flow extension visibility options. @returns {Promise<string>} */
+            displayName: (path, hideFlowExtension = true, showMarkdownExtension = false) =>
+              call('helpers.vault.displayName', path, hideFlowExtension, showMarkdownExtension),
+            /** Return a vault-relative parent directory, or an empty string. @returns {Promise<string>} */
+            dirName: (path) => call('helpers.vault.dirName', path),
+            /** Join a vault-relative directory and name. @returns {Promise<string>} */
+            joinPath: (directory, name) => call('helpers.vault.joinPath', directory, name),
+            /** Build links, backlinks, tags, and unresolved links from supplied Markdown. @returns {Promise<object>} */
+            index: (documents) => call('helpers.vault.index', documents),
+            /** Extract wiki-link target names outside code. @returns {Promise<string[]>} */
+            extractLinks: (markdown) => call('helpers.vault.extractLinks', markdown),
+            /** Extract unique tag names outside code. @returns {Promise<string[]>} */
+            extractTags: (markdown) => call('helpers.vault.extractTags', markdown),
+            /** Resolve a note name or exact path against supplied vault paths. @returns {Promise<string|null>} */
+            resolveLink: (target, paths) => call('helpers.vault.resolveLink', target, paths),
+            /** Extract headings as {level,text,line}, skipping fenced code. @returns {Promise<object[]>} */
+            outline: (markdown) => call('helpers.vault.outline', markdown),
+            /** Flatten a bounded vault tree into file paths. @returns {Promise<string[]>} */
+            flattenTree: (tree) => call('helpers.vault.flattenTree', tree),
+            /** Rewrite links that resolve to oldPath, preserving headings and aliases. @returns {Promise<string>} */
+            rewriteLinks: (markdown, oldPath, newPath, paths) =>
+              call('helpers.vault.rewriteLinks', markdown, oldPath, newPath, paths),
+            /** Score a query against text using Tagline's fuzzy matcher. @returns {Promise<number>} */
+            fuzzyScore: (query, text) => call('helpers.vault.fuzzyScore', query, text),
           }),
           path: paths,
           markdown: Object.freeze({
@@ -232,6 +328,8 @@
           citations: Object.freeze({
             /** Format citation details into Markdown. @returns {Promise<string>} */
             create: (details) => call('helpers.citations.create', details),
+            /** Extract author/year citation leads for spoken evidence. @returns {Promise<string>} */
+            spoken: (markdown) => call('helpers.citations.spoken', markdown),
           }),
           search: Object.freeze({
             /** Score a query against text using Tagline's fuzzy matcher. @returns {Promise<number>} */
@@ -246,6 +344,25 @@
             analyze: (text) => call('helpers.speech.analyze', text),
             /** Estimate speech duration at the provided words-per-minute rate. @returns {Promise<object>} */
             estimate: (text, wordsPerMinute) => call('helpers.speech.estimate', text, wordsPerMinute),
+            /** Convert Markdown and HTML into plain text suitable for speaking. @returns {Promise<string>} */
+            text: (text) => call('helpers.speech.text', text),
+            /** Estimate seconds from speech statistics, rate, and optional calibration profile. @returns {Promise<number>} */
+            readingSeconds: (stats, wordsPerMinute, profile) =>
+              call('helpers.speech.readingSeconds', stats, wordsPerMinute, profile),
+            /** Validate and return a timed reading sample. @returns {Promise<object>} */
+            validateSample: (sample) => call('helpers.speech.validateSample', sample),
+            /** Calculate an optional calibration profile from up to 100 samples. @returns {Promise<object|null>} */
+            calibrate: (samples) => call('helpers.speech.calibrate', samples),
+            /** Assess reading effort and duration using optional calibration. @returns {Promise<object>} */
+            assess: (stats, wordsPerMinute, profile) => call('helpers.speech.assess', stats, wordsPerMinute, profile),
+          }),
+          nli: Object.freeze({
+            /** Convert Markdown to plain premise text for analysis. @returns {Promise<string>} */
+            premise: (markdown) => call('helpers.nli.premise', markdown),
+            /** Build hypotheses from a built-in template and newline-separated statements. @returns {Promise<string[]>} */
+            hypotheses: (templateId, lines) => call('helpers.nli.hypotheses', templateId, lines),
+            /** Map a 0..1 probability to Tagline's entailment label. @returns {Promise<string>} */
+            label: (probability) => call('helpers.nli.label', probability),
           }),
           /** Create a synchronous registration group with an async disposer; no permissions needed.
            * @returns {{add:function,dispose:function}}

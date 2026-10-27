@@ -198,6 +198,23 @@ test('extension capabilities validate selection, command, helper, event and UI c
     await import('../src/lib/extensionCapabilities.js');
   const cardMarkdown = '#### Climate impact\n\n**Smith 2024**\n\n==The impact is significant.==';
   assert.equal(extensionHelper('helpers.markdown.slugify', ['Climate Impact']), 'climate-impact');
+  assert.equal(extensionHelper('helpers.countdown.remainingAt', [20_000, 10_000]), 10);
+  assert.equal(extensionHelper('helpers.language.system', [['fr-CA', 'en']]), 'fr');
+  assert.equal(extensionHelper('helpers.language.initial', ['invalid', ['es-MX']]), 'es');
+  assert.equal(extensionHelper('helpers.keybindings.valid', ['Mod+Shift+K']), true);
+  assert.equal(extensionHelper('helpers.keybindings.valid', ['not-a-shortcut']), false);
+  assert.equal(extensionHelper('helpers.keybindings.display', ['Mod+K', 'darwin']), 'Cmd+K');
+  assert.deepEqual(extensionHelper('helpers.layout.normalizeRibbon', [['search'], [], []]), ['search']);
+  assert.deepEqual(extensionHelper('helpers.layout.moveRibbon', [['search', 'graph'], 'graph', 'search']), ['graph', 'search']);
+  assert.deepEqual(extensionHelper('helpers.layout.normalizeWorkspace', [['cards'], [{ id: 'cards' }, { id: 'words' }]]), ['cards']);
+  assert.deepEqual(extensionHelper('helpers.layout.moveWorkspace', [['cards', 'words'], 'words', 'cards']), ['words', 'cards']);
+  assert.deepEqual(extensionHelper('helpers.vault.extractLinks', ['[[Evidence]]']), ['Evidence']);
+  assert.deepEqual(extensionHelper('helpers.vault.extractTags', ['#aff #impact']), ['aff', 'impact']);
+  assert.equal(extensionHelper('helpers.vault.resolveLink', ['Evidence', ['Evidence.md']]), 'Evidence.md');
+  assert.deepEqual(extensionHelper('helpers.vault.outline', ['# Evidence']), [{ level: 1, text: 'Evidence', line: 0 }]);
+  assert.throws(() => extensionHelper('helpers.flowCells.copy', [[['cell']], { top: 0, bottom: 100_000, left: 0, right: 0 }]), /bounds/);
+  assert.throws(() => extensionHelper('helpers.layout.normalizeRibbon', [[], new Array(1001).fill({ id: 'ext:a.b' }), []]), /1,000/);
+  assert.equal(await new ExtensionHost({ permissions: [] }, '', {}).handle('helpers.language.system', [['es-MX']]), 'es');
   await assert.rejects(new ExtensionHost({ permissions: [] }, '', {}).handle('helpers.markdownToText', ['text']),
     /Unknown/);
   assert.deepEqual(extensionHelper('helpers.markdown.outline', [`# Case\n${cardMarkdown}`]), [
@@ -228,6 +245,10 @@ test('extension capabilities validate selection, command, helper, event and UI c
   }
   assert.ok(extensionHelper('helpers.speech.analyze', ['A short speech.']).spokenWords > 0);
   assert.ok(extensionHelper('helpers.speech.estimate', ['A short speech.', 250]).seconds > 0);
+  assert.throws(() => extensionHelper('helpers.speech.readingSeconds',
+    [{ weightedSyllables: 10 }, 250, { articulation: NaN, pauses: 1 }]), /profile/);
+  assert.throws(() => extensionHelper('helpers.speech.assess',
+    [{ syllables: 1, weightedSyllables: 1, spokenWords: 1, sentences: 1 }, 0]), /Speaking rate/);
   assert.throws(() => extensionHelper('helpers.cards.getAt', [cardMarkdown, -1]), /Offset/);
   assert.throws(() => extensionHelper('helpers.speech.estimate', ['words', 0]), /Speaking rate/);
   const calls = [];

@@ -1,9 +1,11 @@
 ﻿import { useCallback, useEffect, useRef, useState } from 'react';
 
 let nextId = 1;
+/** Generate a unique tab identifier for the current renderer session. @returns {string} */
 const newId = () => `t${Date.now()}-${nextId++}`;
 
 // Workspace tabs, persisted per vault.
+/** React hook for open-tab state, persistence, and vault-backed tab operations. @param {string} vaultRoot @param {boolean} [persist] @returns {object} */
 export function useTabs(vaultRoot, persist = true) {
   const storageKey = vaultRoot ? `tabs:${vaultRoot}` : null;
   const loadKey = `${storageKey}:${persist}`;
@@ -107,6 +109,7 @@ export function useTabs(vaultRoot, persist = true) {
     });
   }, []);
 
+  /** Keep the selected tab open and close all other tabs. @param {string} id @returns {void} */
   const closeOthers = (id) => {
     setTabs((prev) => prev.filter((t) => t.id === id));
     setActiveId(id);

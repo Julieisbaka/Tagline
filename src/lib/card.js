@@ -7,6 +7,7 @@ const HEADING_RE = /^(#{1,6})\s/;
 // A "card" is a level-4 heading (tag) plus everything until the next heading.
 // If the cursor is under a higher-level heading (block/hat/pocket), that
 // whole section is returned instead.
+/** Find the heading section containing a Markdown character offset. @param {string} content @param {number} offset @returns {object|null} */
 export function getSectionAt(content, offset) {
   const metadata = splitFrontmatter(content);
   if (offset < metadata.offset) return null;
@@ -45,6 +46,7 @@ export function getSectionAt(content, offset) {
   return { text: lines.slice(start, end).join('\n').trimEnd(), level, title: lines[start].replace(HEADING_RE, '') };
 }
 
+/** Repeatedly remove HTML tags from text without interpreting their contents. @param {string} value @returns {string} */
 function stripTags(value) {
   let previous;
   do {
@@ -54,9 +56,11 @@ function stripTags(value) {
   return value.replace(/[<>]/g, '');
 }
 
+/** Count Unicode words after removing tags and entity markup. @param {string} s @returns {number} */
 const countWords = (s) => (stripTags(s).replace(/&(?:#\d+|#x[\da-f]+|\w+);/gi, ' ')
   .match(/[\p{L}\p{N}]+(?:['’-][\p{L}\p{N}]+)*/gu) || []).length;
 
+/** Extract body, highlighted evidence, and spoken citations from a card. @param {string} content @returns {object} */
 function evidenceParts(content) {
   content = splitFrontmatter(content).body;
   // Strip headings, cites and markup so we only count evidence text.
@@ -70,11 +74,13 @@ function evidenceParts(content) {
   return { body, highlighted, citations: spokenCitations(content) };
 }
 
+/** Return highlighted evidence and citation lead text intended to be spoken. @param {string} content @returns {string} */
 export function spokenEvidence(content) {
   const { highlighted, citations } = evidenceParts(content);
   return `${highlighted}\n${citations}`.trim();
 }
 
+/** Count card, word, highlight, and spoken-citation statistics from Markdown. @param {string} content @returns {object} */
 export function cardStats(content) {
   content = splitFrontmatter(content).body;
   const { body, highlighted, citations } = evidenceParts(content);
@@ -92,6 +98,7 @@ export function cardStats(content) {
   };
 }
 
+/** Format a nonnegative duration in seconds as minutes and zero-padded seconds. @param {number} totalSeconds @returns {string} */
 export function formatDuration(totalSeconds) {
   const s = Math.max(0, Math.round(totalSeconds));
   const m = Math.floor(s / 60);

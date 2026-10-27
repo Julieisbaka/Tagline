@@ -1,5 +1,6 @@
 import { splitFrontmatter } from './frontmatter.js';
 
+/** Expand date, time, title, path, Markdown body, and raw frontmatter placeholders. @param {string} text @param {string} title @param {{path?:string,content?:string}} [context] @returns {string} */
 export function fillTemplate(text, title, { path = '', content = '' } = {}) {
   const now = new Date();
   const metadata = splitFrontmatter(content);

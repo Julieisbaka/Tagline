@@ -1,6 +1,7 @@
 const scopes = [];
 const inertElements = new WeakMap();
 
+/** Return visible, enabled focusable descendants in DOM order. @param {Element} root @returns {Element[]} */
 function focusableElements(root) {
   return [...root.querySelectorAll('button, input, select, textarea, a[href], summary, iframe, [tabindex], [contenteditable="true"]')]
     .filter((element) => element.tabIndex >= 0 && !element.disabled &&
@@ -8,6 +9,7 @@ function focusableElements(root) {
       getComputedStyle(element).visibility !== 'hidden');
 }
 
+/** Keep Tab and Shift+Tab navigation inside an active dialog. @param {KeyboardEvent} event @param {Element} root @returns {void} */
 export function trapTabKey(event, root) {
   if (event.key !== 'Tab' || event.defaultPrevented) return;
   const elements = focusableElements(root);
@@ -22,6 +24,7 @@ export function trapTabKey(event, root) {
   }
 }
 
+/** Trap focus in a modal and restore the previous focus target on cleanup. @param {Element} root @param {Element} [previousFocus] @param {boolean} [modal] @returns {function} */
 export function containFocus(root, previousFocus = root.ownerDocument.activeElement, modal = true) {
   const document = root.ownerDocument;
   const scope = { root };
@@ -37,10 +40,13 @@ export function containFocus(root, previousFocus = root.ownerDocument.activeElem
     }
   }
   scopes.push(scope);
+  /** Focus the first tabbable element, or the scope root when none exists. @returns {void} */
   const focusFirst = () => (focusableElements(root)[0] || root).focus({ preventScroll: true });
+  /** Restore focus into the topmost scope when focus escapes it. @param {FocusEvent} event @returns {void} */
   const onFocus = (event) => {
     if (scopes.at(-1) === scope && !root.contains(event.target)) focusFirst();
   };
+  /** Keep Tab navigation within the active focus scope. @param {KeyboardEvent} event @returns {void} */
   const onKey = (event) => {
     if (scopes.at(-1) === scope) trapTabKey(event, root);
   };

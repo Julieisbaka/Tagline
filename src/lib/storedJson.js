@@ -1,3 +1,4 @@
+/** Load JSON from local storage, validate it, and reset invalid data to a cloned fallback. @param {string} key @param {*} fallback @param {function} validate @returns {*} */
 export function readStoredJson(key, fallback, validate) {
   const text = localStorage.getItem(key);
   if (text === null) return structuredClone(fallback);

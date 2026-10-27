@@ -1,7 +1,9 @@
+/** Format a local Date as a zero-padded YYYY-MM-DD string. @param {Date} date @returns {string} */
 export function dateValue(date) {
   return `${String(date.getFullYear()).padStart(4, '0')}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
 }
 
+/** Parse a strict YYYY-MM-DD local calendar date, returning null when invalid. @param {string} value @returns {Date|null} */
 export function parseDate(value) {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return null;
   const [year, month, day] = value.split('-').map(Number);
@@ -12,6 +14,7 @@ export function parseDate(value) {
   return dateValue(date) === value ? date : null;
 }
 
+/** Move a date by whole months, clamping its day to the destination month. @param {Date} date @param {number} amount @returns {Date} */
 export function moveMonth(date, amount) {
   const next = new Date(date);
   const day = date.getDate();
@@ -23,6 +26,7 @@ export function moveMonth(date, amount) {
   return next.getFullYear() >= 1 && next.getFullYear() <= 9999 ? next : date;
 }
 
+/** Return a Sunday-first full-week calendar grid, with nulls for adjacent-month days. @param {Date} date @returns {(Date|null)[]} */
 export function monthDays(date) {
   const start = new Date(date);
   start.setDate(1);

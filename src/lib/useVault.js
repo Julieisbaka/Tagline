@@ -5,6 +5,7 @@ import { buildIndex, isMarkdown, rewriteLinks } from './vault.js';
 const api = window.api;
 const SAVE_DELAY = 400;
 
+/** React hook that loads a vault and provides indexed, persisted vault operations. @param {boolean} [underscoreFolders] @param {boolean} [autoRelink] @param {number} [historyRetention] @param {string} [canvasHistoryMode] @param {boolean} [experimentalHistoryDeltas] @returns {object} */
 export function useVault(underscoreFolders = true, autoRelink = true, historyRetention = 50, canvasHistoryMode = 'complete', experimentalHistoryDeltas = false) {
   const [vault, setVault] = useState(null);
   const [tree, setTree] = useState([]);
@@ -26,8 +27,10 @@ export function useVault(underscoreFolders = true, autoRelink = true, historyRet
   const experimentalHistoryDeltasRef = useRef(experimentalHistoryDeltas);
   experimentalHistoryDeltasRef.current = experimentalHistoryDeltas;
   const directories = folderPaths(tree);
+  /** Normalize a new vault path according to the folder underscore preference. @param {string} path @param {boolean} [folder] @returns {string} */
   const normalize = (path, folder = false) => underscoreFolders ? normalizeFolders(path, folder, directories) : path;
 
+  /** Store a vault operation error in hook state. @param {*} error @returns {void} */
   const report = (e) => setError(e?.message || String(e));
 
   const writeDisk = useCallback((path, text) => {
@@ -35,6 +38,7 @@ export function useVault(underscoreFolders = true, autoRelink = true, historyRet
     const task = previous.catch(() => { }).then(() =>
       api.write(path, text, historyRetentionRef.current, canvasHistoryModeRef.current, experimentalHistoryDeltasRef.current));
     writes.current.set(path, { task, text });
+    /** Remove this completed write only if no newer write replaced it. @returns {void} */
     const cleanup = () => {
       if (writes.current.get(path)?.task === task) writes.current.delete(path);
     };
@@ -112,6 +116,7 @@ export function useVault(underscoreFolders = true, autoRelink = true, historyRet
   }, [writeDisk]);
 
   useEffect(() => {
+    /** Prevent closing the window until pending edits have been flushed. @param {BeforeUnloadEvent} event @returns {void} */
     const onUnload = (event) => {
       if (!Object.keys(pending.current).length && !writes.current.size) return;
       event.preventDefault();

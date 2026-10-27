@@ -1,6 +1,7 @@
 import { readFrontmatter } from './frontmatter.js';
 
 // Keep unsupported structures in source mode rather than silently deleting them.
+/** Return the first Markdown construct that cannot be safely represented visually. @param {string} content @returns {string|null} */
 export function visualBlocker(content) {
   const metadata = readFrontmatter(content);
   if (metadata.error) return 'invalid YAML frontmatter';
@@ -12,9 +13,11 @@ export function visualBlocker(content) {
   return null;
 }
 
+/** Serialize a ProseMirror document slice as Markdown. @param {object} editor @param {number} from @param {number} to @returns {string} */
 const serializeSlice = (editor, from, to) =>
   editor.markdown.serialize({ type: 'doc', content: editor.state.doc.slice(from, to).content.toJSON() || [] });
 
+/** Serialize the selection, or the containing heading section, as Markdown. @param {object} editor @param {boolean} [ignoreSelection] @returns {string} */
 export function visualSelection(editor, ignoreSelection = false) {
   const { from, to, $from } = editor.state.selection;
   if (!ignoreSelection && from !== to) {

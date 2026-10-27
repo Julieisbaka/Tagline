@@ -37,6 +37,7 @@ export function joinPath(dir, name) {
 const WIKILINK_RE = /(!?)\[\[([^\]|#]+)(#[^\]|]*)?(\|[^\]]*)?\]\]/g;
 const TAG_RE = /(^|[\s(])#([A-Za-z][\w/-]*)/g;
 
+/** Remove YAML metadata and inline/fenced code before link or tag extraction. @param {string} content @returns {string} */
 function stripCode(content) {
   return splitFrontmatter(content).body.replace(/```[\s\S]*?```/g, '').replace(/`[^`\n]*`/g, '');
 }
@@ -76,10 +77,12 @@ export function resolveLink(target, paths) {
   return best;
 }
 
+/** Build a precedence-preserving, map-backed resolver for a fixed path list. @param {string[]} paths @returns {function} */
 function createLinkResolver(paths) {
   const exactPaths = new Map();
   const normalizedPaths = new Map();
   const fallbackPaths = new Map();
+  /** Keep the first path registered for a case-normalized lookup key. @param {Map} map @param {string} key @param {string} path @returns {void} */
   const addFirst = (map, key, path) => {
     if (!map.has(key)) map.set(key, path);
   };
@@ -125,6 +128,7 @@ export function buildIndex(contents) {
     }
     for (const tag of extractTags(content)) (tags[tag] ||= []).push(p);
   }
+  /** Convert object values from sets to plain arrays for indexed results. @param {object} o @returns {object} */
   const toArrays = (o) => Object.fromEntries(Object.entries(o).map(([k, v]) => [k, [...v]]));
   return { paths, links, backlinks: toArrays(backlinks), tags, unresolved: toArrays(unresolved) };
 }

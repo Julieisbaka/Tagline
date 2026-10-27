@@ -1,16 +1,20 @@
 import defaults from './defaultSettings.json' with { type: 'json' };
 import { baseName, isMarkdown } from './vault.js';
 
+/** Fold accents and case for locale-independent search matching. @param {string} text @returns {string} */
 const fold = (text) => text.normalize('NFKD').replace(/\p{M}/gu, '').toLowerCase();
+/** Split normalized text into Unicode letter/number tokens. @param {string} text @returns {string[]} */
 const words = (text) => fold(text).match(/[\p{L}\p{N}]+/gu) || [];
 export const HYBRID_CANDIDATE_LIMIT = 1000;
 
+/** Validate a requested search-result count against the supported range. @param {number} maxResults @returns {void} */
 function validateLimit(maxResults) {
   if (!Number.isInteger(maxResults) || maxResults < 1 || maxResults > 1000) {
     throw new Error('Maximum search results must be an integer between 1 and 1000.');
   }
 }
 
+/** Parse free-text search terms, quoted phrases, and tag filters. @param {string} query @returns {object} */
 export function parseQuery(query) {
   const tags = [...query.matchAll(/tag:#?([\w/-]+)/gi)].map((m) => m[1].toLowerCase());
   const text = query.replace(/tag:#?[\w/-]+/gi, '').trim();
@@ -19,6 +23,7 @@ export function parseQuery(query) {
   return { tags, terms, phrases, text };
 }
 
+/** Filter Markdown documents by parsed tag and phrase constraints. @param {object} contents @param {object} index @param {string} query @returns {object} */
 export function filterSearchDocuments(contents, index, query) {
   const { tags, phrases } = parseQuery(query);
   return Object.fromEntries(Object.entries(contents).filter(([path, content]) =>
@@ -26,6 +31,7 @@ export function filterSearchDocuments(contents, index, query) {
     phrases.every((phrase) => `${fold(baseName(path))} ${fold(content)}`.includes(phrase))));
 }
 
+/** Rank matching Markdown documents with title, term-frequency, and heading boosts. @param {object} contents @param {object} index @param {string} query @param {number} [maxResults] @param {{matchAll?:boolean}} [options] @returns {object[]} */
 export function searchVault(contents, index, query, maxResults = defaults.searchMaxResults, { matchAll = true } = {}) {
   validateLimit(maxResults);
   const { terms } = parseQuery(query);
@@ -41,6 +47,7 @@ export function searchVault(contents, index, query, maxResults = defaults.search
   const frequencies = terms.map((term) => documents.filter(({ title, body }) => title.includes(term) || body.includes(term)).length);
   const queryText = terms.join(' ');
   return documents.flatMap(({ path, content, title, body, counts, length }) => {
+    /** Check whether a normalized document contains one search term. @param {string} term @returns {boolean} */
     const matchesTerm = (term) => `${title} ${body}`.includes(term);
     if (terms.length && !(matchAll ? terms.every(matchesTerm) : terms.some(matchesTerm))) return [];
     let rank = 0;
@@ -72,6 +79,7 @@ export function searchVault(contents, index, query, maxResults = defaults.search
   }).sort((a, b) => b.rank - a.rank || a.path.localeCompare(b.path)).slice(0, maxResults);
 }
 
+/** Merge keyword and semantic rankings using reciprocal-rank fusion. @param {object[]} keywordResults @param {object[]} semanticResults @param {number} [maxResults] @returns {object[]} */
 export function mergeHybridResults(keywordResults, semanticResults, maxResults = defaults.searchMaxResults) {
   validateLimit(maxResults);
   const merged = new Map();

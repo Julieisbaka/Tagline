@@ -7,6 +7,7 @@ import TaskList from '@tiptap/extension-task-list';
 import { Markdown } from '@tiptap/markdown';
 import StarterKit from '@tiptap/starter-kit';
 
+/** Tiptap inline atom node representing a parsed internal wiki link. */
 export const WikiLink = Node.create({
   name: 'wikiLink',
   group: 'inline',
@@ -58,6 +59,7 @@ export const WikiLink = Node.create({
   },
 });
 
+/** Create the Markdown visual-editor extensions used by the app. @returns {object[]} */
 export function visualExtensions() {
   return [
     StarterKit.configure({ link: { openOnClick: false }, trailingNode: false }),

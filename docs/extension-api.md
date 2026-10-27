@@ -438,7 +438,7 @@ await tagline.helpers.path.normalize('Research/../Energy.md'); // "Energy.md"
 await tagline.helpers.path.basename(path); // "Energy.md"
 await tagline.helpers.path.dirname(path); // "Research"
 await tagline.helpers.path.extname(path); // ".md"
-const text = await tagline.helpers.markdownToText('**Evidence**'); // "Evidence"
+const text = await tagline.helpers.markdown.toText('**Evidence**'); // "Evidence"
 
 const outline = await tagline.helpers.markdown.outline('# Case\n\n#### Card');
 const html = await tagline.helpers.markdown.toHtml('**Safe**'); // sanitized HTML
@@ -455,6 +455,11 @@ const timing = await tagline.helpers.speech.estimate(card.text, 250);
 const citation = await tagline.helpers.citations.create({ author: 'Smith', year: '2024' });
 const score = await tagline.helpers.search.fuzzyScore('deb', 'debate');
 const filled = await tagline.helpers.templates.fill('Case: {{title}}', 'Energy');
+const outline = await tagline.helpers.vault.outline('# Case');
+const seconds = await tagline.helpers.countdown.remainingAt(Date.now() + 30_000);
+const language = await tagline.helpers.language.initial('invalid', ['es-MX']); // "es"
+const isShortcut = await tagline.helpers.keybindings.valid('Mod+Shift+K');
+const order = await tagline.helpers.layout.moveWorkspace(['cards', 'words'], 'words', 'cards');
 
 const disposables = tagline.helpers.createDisposables();
 disposables.add(await tagline.events.on('ext.debate-tools.finished', () => {}));
@@ -492,6 +497,55 @@ one pass, not recursively. Unknown placeholders remain unchanged.
 Text inputs are limited to 100,000 characters; estimates accept speaking rates
 from 50 to 1,000 WPM. These helpers are pure and require no permission. Use the
 vault API separately to read files.
+
+Additional pure helpers are available under these namespaces:
+
+- `countdown.remainingAt(deadline, now = Date.now())` returns nonnegative seconds;
+  both timestamps are milliseconds.
+- `language.system(locales = [])` selects the first supported locale, and
+  `language.initial(saved, locales = [])` prefers a supported saved language.
+  Supported language IDs are `en`, `es`, and `fr`.
+- `keybindings.valid(shortcut)` checks supported shortcut syntax.
+  `keybindings.display(shortcut, platform)` formats `Mod` as `Cmd` or `Ctrl`;
+  `platform` must be `darwin`, `win32`, or `linux`.
+- `layout.normalizeRibbon(items, contributions, hidden)` and
+  `layout.normalizeWorkspace(items, catalog)` filter and normalize item order.
+  `layout.moveRibbon(items, sourceId, targetId)` and
+  `layout.moveWorkspace(items, id, targetId)` return reordered copies.
+- `vault.extractLinks(markdown)`, `extractTags(markdown)`, `outline(markdown)`,
+  and `resolveLink(target, paths)` offer vault-oriented Markdown parsing and
+  resolution. They do not read files; `paths` is caller-supplied.
+- `calendar.dateValue(date)`, `parseDate(value)`, `moveMonth(date, amount)`, and
+  `monthDays(date)` format/parse local dates and build a Sunday-first calendar
+  grid. Date strings must be strict `YYYY-MM-DD`.
+- `flowCells.bounds(anchor, head)`, `copy(rows, bounds)`, `parse(text)`, and
+  `paste(sheet, top, left, cells)` calculate selections and copy/paste TSV data.
+  Cell positions are zero-based; bounds are inclusive. Pasting returns a copy.
+- `folders.paths(tree)` returns folder paths in tree order;
+  `folders.normalize(path, isFolder, existing = [])` normalizes a path against
+  existing entries without accessing the filesystem.
+- `frontmatter.split(markdown)`, `markSpeech(markdown)`, and
+  `speechPaths(documents)` split frontmatter, set `speech: true`, and list
+  speech documents from caller-supplied path-to-text data.
+- `vault.isFlow(path)`, `isMarkdown(path)`, `isCanvas(path)`, `baseName(path)`,
+  `displayName(path, hideFlowExtension = true, showMarkdownExtension = false)`,
+  `dirName(path)`, `joinPath(directory, name)`, `index(documents)`,
+  `flattenTree(tree)`, `rewriteLinks(markdown, oldPath, newPath, paths)`, and
+  `fuzzyScore(query, text)` provide pure vault path/index utilities.
+- `speech.text(markdown)`, `readingSeconds(stats, wordsPerMinute = 250, profile)`,
+  `validateSample(sample)`, `calibrate(samples = [])`, and
+  `assess(stats, wordsPerMinute = 250, profile)` expose speech analysis and
+  timing. Calibration accepts at most 100 validated samples.
+- `nli.premise(markdown)`, `hypotheses(templateId, lines)`, and
+  `label(probability)` prepare text and map probabilities to Tagline's
+  entailment labels.
+
+Helper bridge inputs are bounded: Markdown/text inputs to 100,000 characters,
+document maps to 10,000 paths and 1,000,000 total text characters, locale lists
+to 100 entries, and layout catalogs/ID arrays to 1,000 entries. Folder trees
+are limited to 10,000 nodes and 100 levels; flow-cell grids are limited to
+100,000 cells. Invalid or oversized inputs reject with an error rather than
+being silently truncated.
 
 `createDisposables` is synchronous; `add` returns the supplied function, and
 `dispose` invokes all registered disposers, clears the group, and surfaces any
