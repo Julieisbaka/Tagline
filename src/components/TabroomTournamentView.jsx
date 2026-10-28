@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
-import { useI18n } from '../../lib/i18n.js';
-import { readStoredJson } from '../../lib/storedJson.js';
+import { useI18n } from '../lib/i18n.js';
+import { readStoredJson } from '../lib/storedJson.js';
 
 const SEASON_KEY = 'tagline-tabroom-caselist';
 
@@ -15,7 +15,7 @@ const columns = {
   events: [['name', 'Event'], ['code', 'Code'], ['type', 'Type']],
 };
 
-export default function TabroomTournament({ tournament, busy, raw }) {
+export default function TabroomTournamentView({ tournament, busy, raw, getRecords, enableCaselist = true }) {
   const { t } = useI18n();
   const [view, setView] = useState('overview');
   const [caselist, setCaselist] = useState('');
@@ -27,9 +27,9 @@ export default function TabroomTournament({ tournament, busy, raw }) {
       {views.map(([id, label]) => <button key={id} type="button" aria-pressed={view === id} disabled={busy}
         onClick={() => setView(id)}>{t(label)}</button>)}
     </nav>
-    <div hidden={view !== 'teams'}>
+    {enableCaselist && <div hidden={view !== 'teams'}>
       <CaselistSeason value={caselist} onChange={setCaselist} disabled={busy} />
-    </div>
+    </div>}
     {view === 'overview' ? <section aria-label={t('Overview')}>
       <dl className="tabroom-metadata">
         {[
@@ -47,7 +47,8 @@ export default function TabroomTournament({ tournament, busy, raw }) {
         })}
       </div>
     </section> : view === 'raw' ? raw : <>
-      <TournamentTable key={`${view}:${caselist}`} id={tournament.id} kind={view} disabled={busy} caselist={caselist} />
+      <TournamentTable key={`${view}:${caselist}`} kind={view} disabled={busy} caselist={caselist}
+        getRecords={getRecords} enableCaselist={enableCaselist} />
     </>}
   </>;
 }
@@ -154,7 +155,7 @@ function TeamMatch({ row, caselist, disabled, onError }) {
   </>;
 }
 
-function TournamentTable({ id, kind, disabled, caselist }) {
+function TournamentTable({ kind, disabled, caselist, getRecords, enableCaselist }) {
   const { t } = useI18n();
   const [query, setQuery] = useState('');
   const [page, setPage] = useState(0);
@@ -164,13 +165,14 @@ function TournamentTable({ id, kind, disabled, caselist }) {
   useEffect(() => {
     let active = true;
     setLoading(true); setError(''); setResult(null);
-    window.api.tabroom.records(id, kind, page, query).then((data) => {
+    getRecords(kind, page, query).then((data) => {
       if (active) setResult(data);
     }).catch((error) => {
       if (active) setError(error.message);
     }).finally(() => { if (active) setLoading(false); });
     return () => { active = false; };
-  }, [id, kind, page, query]);
+  }, [getRecords, kind, page, query]);
+  const fields = columns[kind].filter(([key]) => enableCaselist || key !== 'caselist');
   return <section aria-label={t(views.find(([id]) => id === kind)[1])} aria-busy={loading}>
     <label className="tabroom-field tabroom-filter"><span>{t('Filter tournament records')}</span>
       <input type="search" maxLength={200} value={query} disabled={disabled}
@@ -184,9 +186,9 @@ function TournamentTable({ id, kind, disabled, caselist }) {
           <p role="status">{t('{count} records', { count: result.total })}</p>
           <div className="tabroom-table-scroll" tabIndex={0} role="region" aria-label={t('Tournament records')}>
             <table className="tabroom-table">
-              <thead><tr>{columns[kind].map(([key, label]) => <th key={key} scope="col">{t(label)}</th>)}</tr></thead>
+              <thead><tr>{fields.map(([key, label]) => <th key={key} scope="col">{t(label)}</th>)}</tr></thead>
               <tbody>{result.rows.map((row, index) => <tr key={row.id || index}>
-                {columns[kind].map(([key]) => <td key={key}>{
+                {fields.map(([key]) => <td key={key}>{
                   key === 'caselist' ? <TeamMatch row={row} caselist={caselist} disabled={disabled} onError={setError} />
                     : key === 'students' ? row.students.length ? row.students.map((student, index) => <div key={index}>
                       {student.recordUrl ? <RecordLink url={student.recordUrl} onError={setError}>

@@ -1,7 +1,7 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useI18n } from '../../lib/i18n.js';
 import ModalBackdrop from './ModalBackdrop.jsx';
-import TabroomTournament from './TabroomTournament.jsx';
+import TabroomTournamentView from '../TabroomTournamentView.jsx';
 
 const api = window.api.tabroom;
 
@@ -36,6 +36,8 @@ export default function TabroomDialog({ onClose }) {
     const text = await api.page(tournament.id, index);
     if (active.current) { setPreview(text); setPage(index); }
   });
+  const getRecords = useCallback((kind, index, query) =>
+    api.records(tournament.id, kind, index, query), [tournament?.id]);
   return <ModalBackdrop className="modal-backdrop tabroom-backdrop" onMouseDown={close}>
     <div className="modal dialog tabroom-dialog" role="dialog" aria-modal="true" aria-labelledby="tabroom-title"
       onMouseDown={(event) => event.stopPropagation()}>
@@ -87,7 +89,7 @@ export default function TabroomDialog({ onClose }) {
             if (!result.cancelled && active.current) setMessage(t('Saved tournament JSON: {path}', { path: result.path }));
           })}>{t('Save tournament JSON')}</button>
           <p>{t('Backups can contain personal or private tournament data. Store and share them carefully.')}</p>
-          <TabroomTournament key={tournament.id} tournament={tournament} busy={busy} raw={<>
+          <TabroomTournamentView key={tournament.id} tournament={tournament} busy={busy} getRecords={getRecords} raw={<>
             <div className="integration-buttons tabroom-pagination">
               <button disabled={busy || page === 0} onClick={() => changePage(page - 1)}>{t('Previous')}</button>
               <span role="status">{t('Page {page} of {pages}', { page: page + 1, pages: tournament.pages })}</span>

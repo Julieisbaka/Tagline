@@ -46,6 +46,7 @@ const backup = {
 };
 const raw = JSON.stringify(backup) + '\n';
 const rawPages = Math.ceil(JSON.stringify(backup, null, 2).length / 20000);
+fs.writeFileSync(path.join(vault, 'tournament.json'), raw);
 const destination = path.join(root, 'tournament.json');
 let requests = 0;
 let loginWindows = 0;
@@ -280,7 +281,17 @@ app.on('browser-window-created', (_event, win) => {
       assert.deepEqual(await js('window.api.tabroom.status()'), { hasSession: false });
       await click('Close');
       await wait("!document.querySelector('.tabroom-dialog')");
-      console.log('PASS Tabroom UI: structured overview, nested records, filtering, table/raw paging, responsive views, safe JSON, exact export, errors and isolated login.');
+      const requestsBeforeFileOpen = requests;
+      await wait("[...document.querySelectorAll('.file-tree .tree-label')].some(label=>label.textContent==='tournament.json')");
+      await js("[...document.querySelectorAll('.file-tree .tree-label')].find(label=>label.textContent==='tournament.json').closest('.tree-item').click()");
+      await wait("!!document.querySelector('.tabroom-file-view .tabroom-summary')");
+      assert.equal(await js("document.querySelector('.tabroom-file-view h2').textContent"), 'tournament.json');
+      await click('Judges', '.tabroom-file-view .tabroom-views');
+      await wait("document.querySelectorAll('.tabroom-file-view .tabroom-table tbody tr').length===50");
+      assert.equal(await js("!!document.querySelector('.tabroom-file-view .tabroom-caselist')"), false);
+      assert.equal(requests, requestsBeforeFileOpen, 'Opening a saved tournament JSON never performs a Tabroom request');
+      assert.equal(await js("!!window.attacked || !!document.querySelector('.tabroom-file-view img')"), false);
+      console.log('PASS Tabroom UI: dialog and direct JSON tables, nested records, filtering, paging, responsive views, safe JSON, export, errors and isolated login.');
       app.exit(0);
     } catch (error) { console.error(error); app.exit(1); }
   });

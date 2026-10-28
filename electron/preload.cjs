@@ -38,6 +38,9 @@ contextBridge.exposeInMainWorld('api', {
     load: (tournament) => ipcRenderer.invoke('tabroom:load', tournament),
     page: (id, index) => ipcRenderer.invoke('tabroom:page', id, index),
     records: (id, kind, index, query) => ipcRenderer.invoke('tabroom:records', id, kind, index, query),
+    openJson: (source) => ipcRenderer.invoke('tabroom:openJson', source),
+    snapshotRecordsForJson: (token, kind, index, query) =>
+      ipcRenderer.invoke('tabroom:snapshotRecordsForJson', token, kind, index, query),
     download: (id) => ipcRenderer.invoke('tabroom:download', id),
   },
   openCaselist: {

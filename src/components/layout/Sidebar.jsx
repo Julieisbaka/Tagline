@@ -82,7 +82,7 @@ export default function Sidebar({ vault, tree, activePath, actions, settings, up
 }
 
 export function renameTarget(node, newName) {
-  const ext = node.type === 'file' ? node.path.match(/\.(md|flow|canvas)$/i)?.[0] || '' : '';
+  const ext = node.type === 'file' ? node.path.match(/\.(md|flow|canvas|json)$/i)?.[0] || '' : '';
   const clean = newName.replace(/[\\/:*?"<>|]/g, '-').replace(new RegExp(`${ext.replace('.', '\\.')}$`, 'i'), '');
   return joinPath(dirName(node.path), clean + ext);
 }

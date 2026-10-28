@@ -1,5 +1,5 @@
 import { binding, displayBinding } from '../../lib/keybindings.js';
-import { baseName, dirName, displayName, isCanvas, isMarkdown } from '../../lib/vault.js';
+import { baseName, dirName, displayName, isCanvas, isJson, isMarkdown } from '../../lib/vault.js';
 import { STATUS_ITEMS } from '../../lib/workspaceItems.js';
 import { deferred } from '../Deferred.jsx';
 import ModalBackdrop from '../dialogs/ModalBackdrop.jsx';
@@ -28,6 +28,7 @@ const HistoryDialog = deferred(() => import('../dialogs/HistoryDialog.jsx'), tru
 const VaultManagerDialog = deferred(() => import('../dialogs/VaultManagerDialog.jsx'), true);
 const OpenCaselistDialog = deferred(() => import('../dialogs/OpenCaselistDialog.jsx'), true);
 const TabroomDialog = deferred(() => import('../dialogs/TabroomDialog.jsx'), true);
+const TabroomJsonView = deferred(() => import('../TabroomJsonView.jsx'));
 const Palette = deferred(() => import('../dialogs/Dialogs.jsx').then((module) => ({ default: module.Palette })), true);
 const PromptDialog = deferred(() => import('../dialogs/Dialogs.jsx').then((module) => ({ default: module.PromptDialog })), true);
 const SettingsDialog = deferred(() => import('../dialogs/Dialogs.jsx').then((module) => ({ default: module.SettingsDialog })), true);
@@ -112,6 +113,8 @@ export default function AppLayout({ app }) {
         <button onClick={() => tabs.close(tab.id)}>{t('Close tab')}</button>
       </> : t('Loading…')}
     </div>;
+    if (isJson(activePath)) return <TabroomJsonView key={activePath} path={activePath} content={activeContent}
+      onOpenHistory={() => openHistory(tab.path)} />;
     if (isCanvas(activePath)) return <CanvasView
       settings={settings}
       key={activePath}

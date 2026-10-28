@@ -67,6 +67,31 @@ test('Tabroom loads public data through the isolated cookie jar and returns page
   assert.throws(() => mock.service.page('456', 0), /again/);
 });
 
+test('Tabroom opens local tournament JSON through the same snapshot table normalization without network access', () => {
+  const data = {
+    ...tournament,
+    schools: [{ id: 10, name: 'Example School', code: 'EX' }],
+    events: [{ id: 20, name: 'Policy', entries: [{ id: 30, name: 'Example AB', school: 10 }] }],
+  };
+  const mock = setup();
+  const opened = mock.service.openJson(JSON.stringify(data));
+  assert.equal(opened.id, '123');
+  assert.equal(opened.name, 'Test Tournament');
+  assert.equal(opened.collections.teams.count, 1);
+  assert.deepEqual(mock.service.snapshotRecordsForJson(opened.token, 'teams', 0, 'Example'), {
+    available: true, total: 1, pages: 1, page: 0,
+    rows: [{
+      id: '30', name: 'Example AB', code: '', recordUrl: 'https://www.tabroom.com/index/tourn/postings/entry_record.mhtml?tourn_id=123&entry_id=30',
+      eventId: '20', event: 'Policy', schoolId: '10', school: 'Example School', schoolCode: 'EX',
+      chapter: '', hybrid: '', students: [],
+    }],
+  });
+  assert.equal(mock.requests.length, 0);
+  assert.throws(() => mock.service.openJson('{'), /valid JSON/);
+  assert.throws(() => mock.service.openJson(JSON.stringify({ id: 123 })), /tournament collections/);
+  assert.throws(() => mock.service.snapshotRecordsForJson('expired', 'teams', 0, ''), /expired/);
+});
+
 test('Tabroom surfaces network, permissions, HTML, invalid JSON and wrong-tournament errors', async () => {
   for (const [response, message] of [
     [() => { throw new Error('offline'); }, /offline/],
@@ -182,7 +207,7 @@ test('Tabroom IPC is restricted to the application main frame and uses its own p
     session: { fromPartition: (name) => { partition = name; return isolated; } },
     getWindow: () => ({ webContents }),
   });
-  assert.equal(Object.keys(handlers).length, 7);
+  assert.equal(Object.keys(handlers).length, 9);
   assert.throws(() => handlers['tabroom:status']({ sender: {} }), /application/);
   assert.throws(() => handlers['tabroom:status']({ sender: webContents, senderFrame: {} }), /application/);
   assert.equal(partition, undefined);

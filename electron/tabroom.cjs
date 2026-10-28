@@ -1,10 +1,12 @@
 const fs = require('node:fs/promises');
+const { randomUUID } = require('node:crypto');
 const { normalizeSnapshot, snapshotRecords } = require('./tabroomData.cjs');
 
 const ORIGIN = 'https://www.tabroom.com';
 const PARTITION = 'persist:tabroom';
 const MAX_JSON = 32 * 1024 * 1024;
 const PAGE_SIZE = 20000;
+const JSON_SNAPSHOT_LIMIT = 4;
 
 function tournamentId(value) {
   let id = typeof value === 'number' ? String(value) : value;
@@ -27,6 +29,7 @@ function createTabroom({ session, BrowserWindow, dialog, getWindow }) {
   let loginWindow;
   let generation = 0;
   let cached;
+  const jsonSnapshots = new Map();
   const invalidate = () => { generation++; cached = undefined; };
   const unchanged = (started) => {
     if (started !== generation) throw new Error('Tabroom session or tournament changed. Load the tournament again.');
@@ -130,6 +133,43 @@ function createTabroom({ session, BrowserWindow, dialog, getWindow }) {
     if (!cached || tournamentId(id) !== cached.id) throw new Error('Load the tournament again.');
     return snapshotRecords(cached.snapshot, kind, index, query);
   };
+  const openJson = (source) => {
+    if (typeof source !== 'string' || Buffer.byteLength(source, 'utf8') > MAX_JSON)
+      throw new Error('Tournament JSON must be a string no larger than 32 MiB.');
+    let data;
+    try { data = JSON.parse(source.replace(/^\uFEFF/, '')); }
+    catch { throw new Error('The JSON file is not valid JSON.'); }
+    if (!data || typeof data !== 'object' || Array.isArray(data))
+      throw new Error('This JSON does not contain a Tabroom tournament snapshot.');
+    if (!['categories', 'events', 'judges', 'schools'].some((key) => Array.isArray(data[key])))
+      throw new Error('This JSON does not contain Tabroom tournament collections.');
+    let id;
+    try { id = tournamentId(data.id); }
+    catch { throw new Error('This JSON does not contain a valid Tabroom tournament ID.'); }
+    const snapshot = normalizeSnapshot(data);
+    const token = randomUUID();
+    jsonSnapshots.set(token, { id, snapshot });
+    while (jsonSnapshots.size > JSON_SNAPSHOT_LIMIT) jsonSnapshots.delete(jsonSnapshots.keys().next().value);
+    const formatted = JSON.stringify(data, null, 2);
+    return {
+      token, id, name: typeof data.name === 'string' ? data.name : '',
+      start: typeof data.start === 'string' ? data.start : '',
+      end: typeof data.end === 'string' ? data.end : '',
+      bytes: Buffer.byteLength(source, 'utf8'), pages: Math.ceil(formatted.length / PAGE_SIZE),
+      sections: Object.entries(data).filter(([, item]) => Array.isArray(item))
+        .map(([name, items]) => ({ name, count: items.length })),
+      preview: formatted.slice(0, PAGE_SIZE),
+      metadata: snapshot.metadata,
+      warnings: snapshot.warnings,
+      collections: Object.fromEntries(Object.entries(snapshot.collections)
+        .map(([kind, collection]) => [kind, { available: collection.available, count: collection.rows.length }])),
+    };
+  };
+  const snapshotRecordsForJson = (token, kind, index, query) => {
+    const entry = jsonSnapshots.get(token);
+    if (!entry) throw new Error('Tournament JSON data expired. Reopen the file.');
+    return snapshotRecords(entry.snapshot, kind, index, query);
+  };
   const page = (id, index) => {
     if (!cached || tournamentId(id) !== cached.id) throw new Error('Load the tournament again.');
     if (!Number.isSafeInteger(index) || index < 0 || index * PAGE_SIZE >= cached.formatted.length)
@@ -151,12 +191,13 @@ function createTabroom({ session, BrowserWindow, dialog, getWindow }) {
     await fs.writeFile(result.filePath, snapshot.bytes, { mode: 0o600 });
     return { path: result.filePath };
   };
-  return { status, login, logout, load, page, records, download };
+  return { status, login, logout, load, page, records, openJson, snapshotRecordsForJson, download };
 }
 
 function registerTabroom({ ipcMain, session, BrowserWindow, dialog, getWindow }) {
   let service;
-  for (const action of ['status', 'login', 'logout', 'load', 'page', 'records', 'download']) {
+  for (const action of ['status', 'login', 'logout', 'load', 'page', 'records', 'openJson',
+    'snapshotRecordsForJson', 'download']) {
     ipcMain.handle(`tabroom:${action}`, (event, ...args) => {
       if (event.sender !== getWindow()?.webContents || event.senderFrame !== event.sender.mainFrame)
         throw new Error('Tabroom is only available to the application.');

@@ -1,7 +1,7 @@
 const fs = require('node:fs/promises');
 const path = require('node:path');
 
-const NOTE_EXTS = ['.md', '.flow', '.canvas'];
+const NOTE_EXTS = ['.md', '.flow', '.canvas', '.json'];
 const FILE_CONCURRENCY = 16;
 
 async function loadVault(dir, base, includeContents) {

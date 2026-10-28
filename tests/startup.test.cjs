@@ -76,6 +76,15 @@ test('platform: snapshot scans once, reads each file once, and bounds parallel f
   assert.equal(reads, 65, 'Listing files never reads their content');
 });
 
+test('vault lists JSON files and includes their contents in snapshots', async (t) => {
+  const dir = await fixture(t);
+  const content = JSON.stringify({ id: 123, name: 'Tournament' });
+  await fs.writeFile(path.join(dir, 'Tournament.JSON'), content);
+  const snapshot = await readVaultSnapshot(dir);
+  assert.deepEqual(snapshot.tree.map(({ path: file }) => file), ['Tournament.JSON']);
+  assert.equal(snapshot.contents['Tournament.JSON'], content);
+});
+
 test('platform: snapshot propagates filesystem errors instead of returning a partial vault', async (t) => {
   const dir = await fixture(t);
   await assert.rejects(readVaultSnapshot(path.join(dir, 'missing')), { code: 'ENOENT' });

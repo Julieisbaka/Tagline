@@ -8,6 +8,8 @@ export const isFlow = (p) => p.toLowerCase().endsWith('.flow');
 export const isMarkdown = (p) => p.toLowerCase().endsWith('.md');
 /** Test a case-insensitive JSON Canvas extension. @param {string} p @returns {boolean} */
 export const isCanvas = (p) => p.toLowerCase().endsWith('.canvas');
+/** Test a case-insensitive JSON-document extension. @param {string} p @returns {boolean} */
+export const isJson = (p) => p.toLowerCase().endsWith('.json');
 
 /** Return the filename without a supported document extension. @param {string} p @returns {string} */
 export function baseName(p) {

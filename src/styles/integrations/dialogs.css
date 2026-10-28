@@ -161,6 +161,36 @@
   margin: 0;
 }
 
+.tabroom-file-view {
+  height: 100%;
+  min-width: 0;
+  overflow: auto;
+  padding: 20px;
+}
+
+.tabroom-file-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.tabroom-file-header h2 {
+  min-width: 0;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.tabroom-json-source {
+  height: min(75vh, 760px);
+  min-height: 180px;
+}
+
+.tabroom-json-source .cm-editor {
+  height: 100%;
+}
+
 .tabroom-views {
   display: flex;
   flex-wrap: wrap;
