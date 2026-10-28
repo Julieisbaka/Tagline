@@ -1,5 +1,9 @@
 # Google Docs transfer
 
+The Tagline user documentation has moved to the
+[Tagline documentation site](https://julieisbaka.github.io/Tagline-pages/docs/index.html).
+This local copy may be out of date; see the site for the current version.
+
 [Documentation home](./README.md)
 
 Tagline supports **direct Google sign-in** and **Apps Script webhook** method.

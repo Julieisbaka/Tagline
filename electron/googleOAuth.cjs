@@ -91,7 +91,7 @@ function createGoogleOAuth({ shell, fetchImpl = fetch, authorizationTimeout = 18
     let resolveCode, rejectCode;
     const codePromise = new Promise((resolve, reject) => { resolveCode = resolve; rejectCode = reject; });
     // Opening the browser may still be pending when cancellation or timeout fires.
-    codePromise.catch(() => {});
+    codePromise.catch(() => { });
     const server = http.createServer((req, res) => {
       res.setHeader('Content-Type', 'text/plain; charset=utf-8');
       res.setHeader('Cache-Control', 'no-store');

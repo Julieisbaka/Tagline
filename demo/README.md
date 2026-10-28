@@ -1,8 +1,12 @@
 # API demo extension
 
+The Tagline user documentation has moved to the
+[Tagline documentation site](https://julieisbaka.github.io/Tagline-pages/docs/index.html).
+This README continues to document the bundled API demo.
+
 [`tagline-api-demo`](./tagline-api-demo/) demonstrates the
-[Extension API](../docs/extension-api.md). Its `main.js` includes examples for
-each API area.
+[Extension API](https://julieisbaka.github.io/Tagline-pages/docs/index.html).
+Its `main.js` includes examples for each API area.
 
 ## Install
 

@@ -1,5 +1,9 @@
 # Theme API
 
+The Tagline user documentation has moved to the
+[Tagline documentation site](https://julieisbaka.github.io/Tagline-pages/docs/index.html).
+This local copy may be out of date; see the site for the current version.
+
 [Documentation home](./README.md) | [Extension API](./extension-api.md)
 
 Themes are JSON color palettes with optional CSS variable overrides. The format is shared by imported themes

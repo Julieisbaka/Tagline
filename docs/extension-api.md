@@ -1,5 +1,9 @@
 # Extension API
 
+The Tagline user documentation has moved to the
+[Tagline documentation site](https://julieisbaka.github.io/Tagline-pages/docs/index.html).
+This local copy may be out of date; see the site for the current version.
+
 [Documentation home](./README.md) | [Theme API](./theme-api.md)
 
 Extensions can add commands, ribbon shortcuts, settings, themes, sidebar panels, and dialogs.
