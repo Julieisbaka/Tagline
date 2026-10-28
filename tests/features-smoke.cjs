@@ -130,6 +130,8 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
         await js("document.querySelector('.flow-grid textarea').focus()");
         assert.equal(await js("!![...document.querySelectorAll('.flow-footer button')].find(button => button.textContent.includes('Copy cells'))"),
           false, 'Selected cells do not show a redundant copy button');
+        assert.equal(await js("document.querySelector('.flow-footer').textContent.includes('Not assigned')"),
+          false, 'Unassigned shortcuts do not add footer clutter');
         assert.equal(await js("getComputedStyle(document.querySelector('.flow-sheet-tab.active')).boxShadow"), 'none');
         const flowRect = await js(`(() => {
           const grid = document.querySelector('.flow-grid').getBoundingClientRect();
@@ -169,6 +171,7 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
         await key('Enter', [primary]);
         await wait("document.querySelectorAll('.flow-grid tbody tr').length === 4");
         await settings();
+        await js("document.querySelector('[data-section=editors]').click()");
         await js("document.querySelector('[data-setting=\"focusNewFlowRow\"]').click()");
         await js("document.querySelector('[data-section=editors]').click()");
         await check('[data-setting=sourceLineNumbers]', true, 'sourceLineNumbers');

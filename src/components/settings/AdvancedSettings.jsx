@@ -57,11 +57,14 @@ export default function AdvancedSettings({ settings, update, section = 'all' }) 
         <input type="checkbox" data-setting="showMarkdownExtension" checked={settings.showMarkdownExtension}
           onChange={(e) => update({ showMarkdownExtension: e.target.checked })} />
       </SettingRow>
-      <h4>{t('Links and workspace')}</h4>
+      <h4>{t('Links')}</h4>
       <SettingRow label={t('Automatically update wiki links when renaming')} description={t('Update links in other notes when a linked file or folder is renamed.')}>
         <input type="checkbox" data-setting="autoRelink" checked={settings.autoRelink}
           onChange={(e) => update({ autoRelink: e.target.checked })} />
       </SettingRow>
+    </>}
+    {(section === 'all' || section === 'workspace') && <>
+      <h4>{t('Workspace tabs')}</h4>
       <label className="setting-row"><span>{t('Close tabs when files disappear externally')}</span>
         <input type="checkbox" data-setting="closeMissingTabs" checked={settings.closeMissingTabs}
           onChange={(e) => update({ closeMissingTabs: e.target.checked })} />
@@ -72,6 +75,8 @@ export default function AdvancedSettings({ settings, update, section = 'all' }) 
           onChange={(e) => update({ persistWorkspaceTabs: e.target.checked })} />
       </label>
       <p>{t('When disabled, current tabs stay open but are not saved. Saved workspaces remain dormant and are restored when this is enabled again.')}</p>
+    </>}
+    {(section === 'all' || section === 'history') && <>
       <h4>{t('Revision history')}</h4>
       {number('Maximum saved revisions per document', 'historyRetention', 5000, 'Keep up to this many revisions for each document before pruning older history.')}
       <label className="setting-row"><span>{t('Delta revision history (experimental)')}</span>

@@ -164,12 +164,14 @@ export function SettingsDialog({ settings, update, onClose, extensions, onOpenCa
     return () => observer.disconnect();
   }, []);
   const sections = [
-    ['general', 'General', 'Your writing and debate workspace'],
-    ['editors', 'Editors', 'Configure Tiptap and CodeMirror'],
+    ['general', 'Speech and reading', 'Manage speech documents, reading calibration, and timers'],
+    ['editors', 'Editors', 'Configure visual, source, and flow editors'],
     ['appearance', 'Appearance', 'Make Tagline feel like yours'],
     ['accessibility', 'Accessibility', 'Focus indicators and editor accessibility'],
     ['performance', 'Performance and search', 'Control resource usage and results'],
     ['files', 'Files and folders', 'Portable paths and file associations'],
+    ['workspace', 'Workspace', 'Organize your workspace and navigation'],
+    ['history', 'Revision history', 'Set revision retention and Canvas history behavior'],
     ['integrations', 'Integrations', 'Document conversion and local models'],
     ['shortcuts', 'Keyboard shortcuts', 'Your commands, your keys'],
     ['extensions', 'Extensions', 'Sandboxed commands and themes from your extensions folder'],
@@ -251,7 +253,7 @@ export function SettingsDialog({ settings, update, onClose, extensions, onOpenCa
           </div>}
           <div className="settings-content" ref={contentRef} hidden={terms.length > 0}>
             <section data-settings-panel="general" hidden={section !== 'general'} className="settings-panel">
-              <h3>{t('Writing and debate')}</h3>
+              <h3>{t('Speech and reading')}</h3>
               {field('Speaking rate (words per minute)', 'wpm', 'number', { min: 50, max: 1000 })}
               <ReadingSettings settings={settings} update={update} />
               <TimerSoundSettings settings={settings} update={update} />
@@ -262,23 +264,6 @@ export function SettingsDialog({ settings, update, onClose, extensions, onOpenCa
                 </select>
               </label>
               <p className="settings-help">{t('Speech documents use speech: true in YAML frontmatter. Right-click a Markdown file and choose Set as speech doc to mark it and make it the active destination.')}</p>
-              <SettingRow label={t('Default editor')} description={t('Choose the initial editing mode for Markdown notes.')}>
-                <select value={settings.editorMode} onChange={(e) => update({ editorMode: e.target.value })}>
-                  <option value="visual">{t('Visual (Tiptap)')}</option>
-                  <option value="edit">{t('Source (CodeMirror)')}</option>
-                </select>
-              </SettingRow>
-              <SettingRow label={t('Focus new flow rows')} description={t('Move the cursor into a newly added flow row.')}>
-                <input type="checkbox" data-setting="focusNewFlowRow" checked={settings.focusNewFlowRow}
-                  onChange={(e) => update({ focusNewFlowRow: e.target.checked })} />
-              </SettingRow>
-              <SettingRow label={t('Readable line width')} description={t('Limit note text to the content width configured in Editors.')}>
-                <input
-                  type="checkbox"
-                  checked={settings.readableWidth}
-                  onChange={(e) => update({ readableWidth: e.target.checked })}
-                />
-              </SettingRow>
             </section>
             <section data-settings-panel="editors" hidden={section !== 'editors'} className="settings-panel">
               <EditorSettings settings={settings} update={update} />
@@ -304,8 +289,6 @@ export function SettingsDialog({ settings, update, onClose, extensions, onOpenCa
             <section data-settings-panel="appearance" hidden={section !== 'appearance'} className="settings-panel">
               <h3>{t('Theme and typography')}</h3>
               <ThemeSettings settings={settings} update={update} />
-              <RibbonSettings settings={settings} update={update} contributions={extensions?.ribbonItems} />
-              {field('Editor font size', 'fontSize', 'number', { min: 10, max: 32 })}
               <AdvancedSettings settings={settings} update={update} section="fonts" />
               <CustomCssSettings settings={settings} update={update} />
             </section>
@@ -317,13 +300,32 @@ export function SettingsDialog({ settings, update, onClose, extensions, onOpenCa
               <h4>{t('Flow file association')}</h4>
               <p>{t('Installed builds register Tagline as an app for .flow files. To make it the default, use Open With in your file manager and select Tagline. On macOS choose Change All in Get Info.')}</p>
             </section>
+            <section data-settings-panel="workspace" hidden={section !== 'workspace'} className="settings-panel">
+              <RibbonSettings settings={settings} update={update} contributions={extensions?.ribbonItems} />
+              <AdvancedSettings settings={settings} update={update} section="workspace" />
+            </section>
+            <section data-settings-panel="history" hidden={section !== 'history'} className="settings-panel">
+              <AdvancedSettings settings={settings} update={update} section="history" />
+            </section>
             <section data-settings-panel="integrations" hidden={section !== 'integrations'} className="settings-panel">
-              <h3>Tabroom</h3>
-              <p>{t('View tournament data by ID or URL and save its JSON backup. Optional sign-in uses your Tabroom permissions.')}</p>
-              <button onClick={onOpenTabroom}>{t('Open Tabroom')}</button>
-              <h3>OpenCaselist</h3>
-              <p>{t('Browse disclosures, download files, and publish changes using your OpenCaselist account.')}</p>
-              <button onClick={onOpenCaselist}>{t('Open OpenCaselist')}</button>
+              <div className="settings-integration-entry">
+                <div>
+                  <h3>Tabroom</h3>
+                  <p>{t('View tournament data by ID or URL and save its JSON backup. Optional sign-in uses your Tabroom permissions.')}</p>
+                </div>
+                <div className="integration-buttons">
+                  <button onClick={onOpenTabroom}>{t('Open Tabroom')}</button>
+                </div>
+              </div>
+              <div className="settings-integration-entry">
+                <div>
+                  <h3>OpenCaselist</h3>
+                  <p>{t('Browse disclosures, download files, and publish changes using your OpenCaselist account.')}</p>
+                </div>
+                <div className="integration-buttons">
+                  <button onClick={onOpenCaselist}>{t('Open OpenCaselist')}</button>
+                </div>
+              </div>
               <OpenCaselistSettings />
               <label className="setting-row"><span>{t('Open websites inside Tagline')}</span>
                 <input type="checkbox" data-setting="embedWebsites" checked={settings.embedWebsites}

@@ -12,9 +12,23 @@ export default function EditorSettings({ settings, update }) {
       onChange={(event) => update({ [key]: event.target.checked })} />
   </label>;
   return <section className="editor-settings">
-    <h3>{t('Flow creation')}</h3>
-    {checkbox('Separate negative block in new flows (2NC and 1NR)', 'separateNegativeBlock')}
-    <p className="settings-help">{t('Only affects newly created flow files. Existing flows and their sheets are not changed.')}</p>
+    <h3>{t('Note editor')}</h3>
+    <SettingRow label={t('Default editor')} description={t('Choose the initial editing mode for Markdown notes.')}>
+      <select value={settings.editorMode} onChange={(event) => update({ editorMode: event.target.value })}>
+        <option value="visual">{t('Visual (Tiptap)')}</option>
+        <option value="edit">{t('Source (CodeMirror)')}</option>
+      </select>
+    </SettingRow>
+    <SettingRow label={t('Readable line width')} description={t('Limit note text to the content width configured below.')}>
+      <input type="checkbox" data-setting="readableWidth" checked={settings.readableWidth}
+        onChange={(event) => update({ readableWidth: event.target.checked })} />
+    </SettingRow>
+    <SettingRow label={t('Editor font size')} description={t('Set the font size used for note text.')}>
+      <input type="number" data-setting="fontSize" min="10" max="32" step="1" value={settings.fontSize}
+        onChange={(event) => {
+          if (event.target.validity.valid && event.target.value !== '') update({ fontSize: Number(event.target.value) });
+        }} />
+    </SettingRow>
     {checkbox('Show formatting toolbar', 'visualToolbar', 'Show formatting buttons above the visual editor.')}
     {checkbox('Visual editor spellcheck', 'visualSpellcheck', 'Underline possible spelling mistakes in the visual editor.')}
     <label className="setting-row">
@@ -24,7 +38,7 @@ export default function EditorSettings({ settings, update }) {
           if (event.target.validity.valid && event.target.value !== '') update({ readableWidthPixels: Number(event.target.value) });
         }} />
     </label>
-    <p className="settings-help">{t('Applies to visual, source and reading modes when Readable line width is enabled in General.')}</p>
+    <p className="settings-help">{t('Applies to visual, source and reading modes when Readable line width is enabled above.')}</p>
     <SettingRow label={t('Editor line height')} description={t('Set the spacing between lines of note text.')}>
       <input type="number" data-setting="visualLineHeight" min="1" max="2.5" step="0.05"
         value={settings.visualLineHeight} onChange={(event) => {
@@ -32,6 +46,13 @@ export default function EditorSettings({ settings, update }) {
             update({ visualLineHeight: Number(event.target.value) });
           }
         }} />
+    </SettingRow>
+    <h3>{t('Flow creation')}</h3>
+    {checkbox('Separate negative block in new flows (2NC and 1NR)', 'separateNegativeBlock')}
+    <p className="settings-help">{t('Only affects newly created flow files. Existing flows and their sheets are not changed.')}</p>
+    <SettingRow label={t('Focus new flow rows')} description={t('Move the cursor into a newly added flow row.')}>
+      <input type="checkbox" data-setting="focusNewFlowRow" checked={settings.focusNewFlowRow}
+        onChange={(event) => update({ focusNewFlowRow: event.target.checked })} />
     </SettingRow>
     <h3>{t('Source editor (CodeMirror)')}</h3>
     {checkbox('Show line numbers', 'sourceLineNumbers', 'Show a numbered gutter beside source text.')}

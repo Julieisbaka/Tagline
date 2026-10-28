@@ -160,12 +160,39 @@
   margin: 8px 0 16px;
 }
 
+.settings-integration-entry {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 14px;
+  margin: 10px 0 14px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg-secondary);
+}
+
+.settings-integration-entry h3 {
+  margin: 0 0 4px;
+}
+
+.settings-integration-entry p {
+  margin: 0;
+}
+
 .settings-panel>section+section {
   margin-top: 24px;
 }
 
 .settings-panel>section> :first-child {
   margin-top: 0;
+}
+
+@media (max-width: 560px) {
+  .settings-integration-entry {
+    align-items: flex-start;
+    flex-direction: column;
+  }
 }
 
 .settings .setting-row>span small {

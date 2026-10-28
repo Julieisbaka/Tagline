@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { cardStats, formatDuration, getSectionAt } from '../lib/card.js';
 import { readFrontmatter } from '../lib/frontmatter.js';
 import { useI18n } from '../lib/i18n.js';
@@ -77,7 +77,7 @@ export default function NoteView({
     catch (error) { return { profile: null, error: error.message }; }
   }, [settings.readingSamples]);
 
-  useEffect(() => {
+  const publishCursorStats = useCallback(() => {
     if (!docStats) return onCursorStats(null);
     const wpm = settings.wpm || 250;
     const profile = calibration.profile;
@@ -99,7 +99,18 @@ export default function NoteView({
       });
     }
     onCursorStats(parts);
-  }, [docStats, sectionStats, section, settings.wpm, calibration, onCursorStats, locale]);
+  }, [docStats, sectionStats, section, settings.wpm, calibration, onCursorStats, locale, t]);
+  const skipFirstStatsEffect = useRef(true);
+  useLayoutEffect(() => {
+    publishCursorStats();
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    if (skipFirstStatsEffect.current) {
+      skipFirstStatsEffect.current = false;
+      return;
+    }
+    publishCursorStats();
+  }, [publishCursorStats]);
 
   const commitTitle = () => {
     const t = title.trim();

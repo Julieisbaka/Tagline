@@ -242,7 +242,19 @@ export default function FlowEditor({ path, content, mode, onChange, onRestore, f
       head: { row: Math.max(0, sheet.rows.length - 1), column: sheet.columns.length - 1 }
     }),
   };
-  const shortcutFor = (id) => displayBinding(binding(id, keybindings)) || t('Not assigned');
+  const shortcutFor = (id) => displayBinding(binding(id, keybindings));
+  const shortcutHints = [
+    ['flow-row-above', 'Insert row above'], ['flow-add-column', 'Add column'],
+    ['flow-select-all', 'Select all cells'], ['flow-clear-selection', 'Clear selected cells'],
+    ['flow-undo', 'Undo'], ['flow-redo', 'Redo'],
+    ['flow-next-cell', 'Next cell'], ['flow-previous-cell', 'Previous cell'],
+    ['flow-extend-up', 'Extend selection up'], ['flow-extend-down', 'Extend selection down'],
+    ['flow-extend-left', 'Extend selection left'], ['flow-extend-right', 'Extend selection right'],
+    ['flow-deselect', 'Clear cell selection'],
+  ].map(([id, label]) => {
+    const shortcut = shortcutFor(id);
+    return shortcut ? { id, text: t('{action}: {shortcut}', { action: t(label), shortcut }) } : null;
+  }).filter(Boolean);
 
   return (
     <div className="flow" onKeyDownCapture={handleHistoryShortcut}>
@@ -461,22 +473,9 @@ export default function FlowEditor({ path, content, mode, onChange, onRestore, f
         </table>
         <div className="flow-footer">
           <button className="flow-add-row" onClick={() => addRow()}>
-            {t('+ Add argument row')} <span className="hint">{displayBinding(binding('flow-row', keybindings))}</span>
+            {t('+ Add argument row')} {shortcutFor('flow-row') && <span className="hint">{shortcutFor('flow-row')}</span>}
           </button>
-          <span className="flow-keyboard-hint">{t('Cell navigation: next {next}; previous {previous}.', {
-            next: shortcutFor('flow-next-cell'), previous: shortcutFor('flow-previous-cell'),
-          })}</span>
-          <span className="flow-keyboard-hint">{t('Extend selection: up {up}, down {down}, left {left}, right {right}; clear selection {deselect}.', {
-            up: shortcutFor('flow-extend-up'), down: shortcutFor('flow-extend-down'),
-            left: shortcutFor('flow-extend-left'), right: shortcutFor('flow-extend-right'),
-            deselect: shortcutFor('flow-deselect'),
-          })}</span>
-          <span className="flow-keyboard-hint">{t('Other shortcuts: undo {undo}; redo {redo}; row above {above}; add column {column}; select all {all}; clear cells {clear}.', {
-            undo: shortcutFor('flow-undo'), redo: shortcutFor('flow-redo'),
-            above: shortcutFor('flow-row-above'), column: shortcutFor('flow-add-column'),
-            all: shortcutFor('flow-select-all'), clear: shortcutFor('flow-clear-selection'),
-          })}</span>
-          <span className="flow-keyboard-hint">{t('Copy, cut, and paste work across cells using standard shortcuts.')}</span>
+          {shortcutHints.map(({ id, text }) => <span className="flow-keyboard-hint" key={id}>{text}</span>)}
         </div>
       </div>
       {menu && <ContextMenu {...menu} onClose={() => setMenu(null)} />}

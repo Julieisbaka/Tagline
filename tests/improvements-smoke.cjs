@@ -197,7 +197,7 @@ const delay = (ms) => new Promise((r) => setTimeout(r, ms));
         // The spoken year adds several syllables; a word-only estimate was 0:01.
         await wait("document.querySelector('.status-bar').textContent.includes('2 highlighted (~0:02 read)')");
 
-        await settings();
+        await settings('appearance');
         await js("document.querySelector('[data-section=appearance]').click()");
         assert.equal(await js("document.querySelector('[data-setting=nativeUi]').checked"), false);
         const checkmark = () => js("getComputedStyle(document.querySelector('[data-setting=nativeUi]'), '::after').content");
@@ -332,7 +332,7 @@ const delay = (ms) => new Promise((r) => setTimeout(r, ms));
         assert.ok(await fs.stat(path.join(vault, 'New_Folder')));
         await createFolder('New Folder', 'New Folder 1');
         assert.ok(await fs.stat(path.join(vault, 'New_Folder_1')));
-        await settings();
+        await settings('files');
         await js("document.querySelector('[data-setting=underscoreFolders]').click()");
         await click('.settings button', 'Done');
         await createFolder('Literal Folder');

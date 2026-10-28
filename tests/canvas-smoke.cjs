@@ -120,7 +120,7 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
         await wc.debugger.sendCommand('Emulation.setEmulatedMedia', { features: [] });
         wc.debugger.detach();
         reloadDelay = 0;
-        await settings();
+        await settings('history');
         await select('[data-setting="canvasHistoryMode"]', 'data');
         await click('.settings button', 'Done');
         await click('.tree-item', 'Map');
