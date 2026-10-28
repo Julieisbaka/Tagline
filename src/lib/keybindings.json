@@ -374,6 +374,60 @@
     "key": ""
   },
   {
+    "id": "flow-undo",
+    "label": "Undo flow edit",
+    "scope": "flow",
+    "key": "Mod+Z"
+  },
+  {
+    "id": "flow-redo",
+    "label": "Redo flow edit",
+    "scope": "flow",
+    "key": "Mod+Shift+Z"
+  },
+  {
+    "id": "flow-next-cell",
+    "label": "Move to next flow cell",
+    "scope": "flow",
+    "key": "Tab"
+  },
+  {
+    "id": "flow-previous-cell",
+    "label": "Move to previous flow cell",
+    "scope": "flow",
+    "key": "Shift+Tab"
+  },
+  {
+    "id": "flow-deselect",
+    "label": "Clear flow cell selection",
+    "scope": "flow",
+    "key": "Escape"
+  },
+  {
+    "id": "flow-extend-up",
+    "label": "Extend flow selection up",
+    "scope": "flow",
+    "key": "Shift+ArrowUp"
+  },
+  {
+    "id": "flow-extend-down",
+    "label": "Extend flow selection down",
+    "scope": "flow",
+    "key": "Shift+ArrowDown"
+  },
+  {
+    "id": "flow-extend-left",
+    "label": "Extend flow selection left",
+    "scope": "flow",
+    "key": "Shift+ArrowLeft"
+  },
+  {
+    "id": "flow-extend-right",
+    "label": "Extend flow selection right",
+    "scope": "flow",
+    "key": "Shift+ArrowRight"
+  },
+  {
     "id": "find",
     "label": "Find and replace in note",
     "scope": "editor",

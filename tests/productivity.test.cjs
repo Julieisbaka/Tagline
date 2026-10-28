@@ -188,6 +188,10 @@ test('configurable shortcuts support platform modifiers, conflicts, clearing and
   assert.equal(validBinding('Mod++'), false);
   assert.equal(reservedBinding('Mod+C'), true);
   assert.equal(reservedBinding('Mod+Shift+L'), false);
+  assert.equal(reservedBinding('Mod+Z', 'flow-undo'), false);
+  assert.equal(reservedBinding('Mod+Shift+Z', 'flow-redo'), false);
+  assert.equal(reservedBinding('Mod+Y', 'flow-redo'), false);
+  assert.equal(reservedBinding('Mod+Q', 'flow-undo'), true);
 });
 
 test('intermediate empty highlight delimiters do not crash read-time statistics', async () => {

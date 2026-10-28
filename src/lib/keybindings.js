@@ -9,7 +9,9 @@ export const displayBinding = (key, platform = window.api.platform) => key.repla
 /** Test whether a shortcut string uses the supported key syntax. @param {string} key @returns {boolean} */
 export const validBinding = (key) => /^(?:(?:Mod|Ctrl|Meta|Alt|Shift)\+)*(?:[A-Z0-9,.;/[\]'=\\`-]|F(?:[1-9]|1\d|2[0-4])|Enter|Tab|Space|Arrow(?:Up|Down|Left|Right)|Home|End|PageUp|PageDown|Escape)$/.test(key);
 /** Return whether a shortcut is reserved for an editor or platform command. @param {string} key @returns {boolean} */
-export function reservedBinding(key) {
+export function reservedBinding(key, id = '') {
+  if (id === 'flow-undo' && key === 'Mod+Z') return false;
+  if (id === 'flow-redo' && ['Mod+Shift+Z', 'Mod+Y'].includes(key)) return false;
   return ['Mod+A', 'Mod+C', 'Mod+X', 'Mod+V', 'Mod+Shift+V', 'Mod+Z', 'Mod+Shift+Z',
     'Mod+Y', 'Mod+Q', 'Mod+M', 'Mod+H', 'Mod+Alt+H', 'Mod+Shift+W', 'Mod+Shift+I',
     'Mod+R', 'Mod+Shift+R', 'Mod+0', 'Mod+-', 'Mod+=', 'Alt+F4', 'Mod+Space'].includes(key);

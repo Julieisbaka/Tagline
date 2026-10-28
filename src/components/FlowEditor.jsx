@@ -1,4 +1,5 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { redo as redoEditor, undo as undoEditor } from '@codemirror/commands';
 import { EMPTY_FLOW, FLOW_PRESETS as PRESETS, flowColumns, parseFlow } from '../../electron/flow.mjs';
 import { cellBounds, copyFlowCells, parseFlowCells, pasteFlowCells } from '../lib/flowCells.js';
 import { useI18n } from '../lib/i18n.js';
@@ -25,6 +26,23 @@ export default function FlowEditor({ path, content, mode, onChange, onRestore, f
   const [selection, setSelection] = useState(null);
   const keepSelection = useRef(false);
   const liveActions = useRef({});
+  const sourceEditor = useRef(null);
+  const flowHistory = useRef({ path, undo: [], redo: [], expected: content });
+  const currentContent = useRef(content);
+  if (flowHistory.current.path !== path) {
+    flowHistory.current = { path, undo: [], redo: [], expected: content };
+  }
+  currentContent.current = content;
+  useEffect(() => {
+    const history = flowHistory.current;
+    if (history.expected === content) {
+      history.expected = null;
+      return;
+    }
+    history.undo = [];
+    history.redo = [];
+    history.expected = null;
+  }, [path, content]);
   useEffect(() => {
     const action = (event) => liveActions.current[event.detail]?.();
     window.addEventListener('workspace-action', action);
@@ -41,6 +59,64 @@ export default function FlowEditor({ path, content, mode, onChange, onRestore, f
     e.stopPropagation();
     setMenu({ x: e.clientX, y: e.clientY, items });
   };
+  const applyFlowContent = (next) => {
+    flowHistory.current.expected = next;
+    currentContent.current = next;
+    onChange(next);
+  };
+  const saveFlowContent = (next) => {
+    const history = flowHistory.current;
+    const previous = currentContent.current;
+    if (previous === next) return;
+    history.undo.push(previous);
+    if (history.undo.length > 100) history.undo.shift();
+    history.redo = [];
+    applyFlowContent(next);
+  };
+  const focusFlowContentCell = (next) => {
+    const nextData = parseFlow(next);
+    const sheet = nextData.sheets[Math.min(active, nextData.sheets.length - 1)];
+    if (!sheet?.rows.length || !sheet.columns.length) return;
+    const focused = document.activeElement?.matches('.flow-grid textarea') ? document.activeElement.dataset : null;
+    const row = Number(focused?.row ?? selection?.head.row ?? 0);
+    const column = Number(focused?.column ?? selection?.head.column ?? 0);
+    focusTarget.current = {
+      row: Math.max(0, Math.min(sheet.rows.length - 1, row)),
+      column: Math.max(0, Math.min(sheet.columns.length - 1, column)),
+    };
+  };
+  const undoFlow = () => {
+    const history = flowHistory.current;
+    const previous = history.undo.pop();
+    if (previous === undefined) return;
+    history.redo.push(currentContent.current);
+    focusFlowContentCell(previous);
+    applyFlowContent(previous);
+  };
+  const redoFlow = () => {
+    const history = flowHistory.current;
+    const next = history.redo.pop();
+    if (next === undefined) return;
+    history.undo.push(currentContent.current);
+    if (history.undo.length > 100) history.undo.shift();
+    focusFlowContentCell(next);
+    applyFlowContent(next);
+  };
+  const handleHistoryShortcut = (event) => {
+    if (matchesBinding(event, binding('flow-undo', keybindings))) {
+      event.preventDefault();
+      event.stopPropagation();
+      if (mode === 'edit') {
+        if (sourceEditor.current) undoEditor(sourceEditor.current);
+      } else undoFlow();
+    } else if (matchesBinding(event, binding('flow-redo', keybindings))) {
+      event.preventDefault();
+      event.stopPropagation();
+      if (mode === 'edit') {
+        if (sourceEditor.current) redoEditor(sourceEditor.current);
+      } else redoFlow();
+    }
+  };
 
   const parsed = useMemo(() => {
     try {
@@ -52,11 +128,12 @@ export default function FlowEditor({ path, content, mode, onChange, onRestore, f
   }, [content]);
   liveActions.current = {};
 
-  if (mode === 'edit') return <div className="flow">
+  if (mode === 'edit') return <div className="flow" onKeyDownCapture={handleHistoryShortcut}>
     {parsed.error && <div className="editor-notice" role="alert">{parsed.error}
       <JsonRecovery path={path} content={content} onRestore={onRestore} />
     </div>}
-    <JsonEditor className="canvas-json-editor" label={t('Flow JSON')} value={content} onChange={onChange} height="100%" settings={settings} />
+    <JsonEditor className="canvas-json-editor" label={t('Flow JSON')} value={content} onChange={onChange}
+      onCreateEditor={(view) => { sourceEditor.current = view; }} height="100%" settings={settings} />
   </div>;
 
   if (parsed.error) {
@@ -74,7 +151,7 @@ export default function FlowEditor({ path, content, mode, onChange, onRestore, f
   const { data } = parsed;
   const idx = Math.min(active, data.sheets.length - 1);
   const sheet = data.sheets[idx];
-  const save = (sheets) => onChange(JSON.stringify({ ...data, sheets }, null, 2));
+  const save = (sheets) => saveFlowContent(JSON.stringify({ ...data, sheets }, null, 2));
   const updateSheet = (patch) => save(data.sheets.map((s, i) => (i === idx ? { ...s, ...patch } : s)));
 
   const addSheet = (preset) => {
@@ -165,9 +242,10 @@ export default function FlowEditor({ path, content, mode, onChange, onRestore, f
       head: { row: Math.max(0, sheet.rows.length - 1), column: sheet.columns.length - 1 }
     }),
   };
+  const shortcutFor = (id) => displayBinding(binding(id, keybindings)) || t('Not assigned');
 
   return (
-    <div className="flow">
+    <div className="flow" onKeyDownCapture={handleHistoryShortcut}>
       <div className="flow-sheets" role="group" aria-label={t('Flow sheets')}>
         {data.sheets.map((s, i) =>
           renaming === i ? (
@@ -241,7 +319,8 @@ export default function FlowEditor({ path, content, mode, onChange, onRestore, f
                 </th>
               ))}
               <th className="flow-actions">
-                <button className="mini" title={t('Add column')} onClick={addColumn}>
+                <button className="mini" title={`${t('Add column')}${binding('flow-add-column', keybindings)
+                  ? ` (${displayBinding(binding('flow-add-column', keybindings))})` : ''}`} onClick={addColumn}>
                   +
                 </button>
               </th>
@@ -307,11 +386,15 @@ export default function FlowEditor({ path, content, mode, onChange, onRestore, f
                       placeholder="…"
                       onChange={(e) => { choose(r, c); setCell(r, c, e.target.value); }}
                       onKeyDown={(e) => {
-                        if (e.shiftKey && !e.ctrlKey && !e.metaKey && !e.altKey && e.key.startsWith('Arrow')) {
+                        const extend = [
+                          ['flow-extend-up', -1, 0], ['flow-extend-down', 1, 0],
+                          ['flow-extend-left', 0, -1], ['flow-extend-right', 0, 1],
+                        ].find(([id]) => matchesBinding(e, binding(id, keybindings)));
+                        if (extend) {
                           e.preventDefault();
                           const head = selected?.head || { row: r, column: c };
-                          const row = Math.max(0, Math.min(sheet.rows.length - 1, head.row + (e.key === 'ArrowDown' ? 1 : e.key === 'ArrowUp' ? -1 : 0)));
-                          const column = Math.max(0, Math.min(sheet.columns.length - 1, head.column + (e.key === 'ArrowRight' ? 1 : e.key === 'ArrowLeft' ? -1 : 0)));
+                          const row = Math.max(0, Math.min(sheet.rows.length - 1, head.row + extend[1]));
+                          const column = Math.max(0, Math.min(sheet.columns.length - 1, head.column + extend[2]));
                           choose(row, column, true);
                           const target = gridRef.current.querySelector(`[data-row="${row}"][data-column="${column}"]`);
                           if (target && target !== document.activeElement) {
@@ -321,15 +404,19 @@ export default function FlowEditor({ path, content, mode, onChange, onRestore, f
                           }
                           return;
                         }
-                        if (e.key === 'Escape') { setSelection(null); return; }
+                        if (matchesBinding(e, binding('flow-deselect', keybindings))) {
+                          e.preventDefault(); setSelection(null); return;
+                        }
                         if (multi && ['Delete', 'Backspace'].includes(e.key)) { e.preventDefault(); clear(); return; }
                         if (matchesBinding(e, binding('flow-select-all', keybindings))) {
                           e.preventDefault(); liveActions.current['flow-select-all'](); return;
                         }
                         if (matchesBinding(e, binding('flow-clear-selection', keybindings))) { e.preventDefault(); clear(); return; }
                         if (matchesBinding(e, binding('flow-add-column', keybindings))) { e.preventDefault(); addColumn(); return; }
-                        if (e.key === 'Tab') {
-                          const direction = e.shiftKey ? -1 : 1;
+                        const nextCell = matchesBinding(e, binding('flow-next-cell', keybindings));
+                        const previousCell = matchesBinding(e, binding('flow-previous-cell', keybindings));
+                        if (nextCell || previousCell) {
+                          const direction = previousCell ? -1 : 1;
                           let nextRow = r;
                           let nextColumn = c + direction;
                           if (nextColumn < 0) {
@@ -376,9 +463,20 @@ export default function FlowEditor({ path, content, mode, onChange, onRestore, f
           <button className="flow-add-row" onClick={() => addRow()}>
             {t('+ Add argument row')} <span className="hint">{displayBinding(binding('flow-row', keybindings))}</span>
           </button>
-          <span className="flow-keyboard-hint">{t('Tab moves between cells; Shift+Tab moves backward')}</span>
-          <span className="flow-keyboard-hint">{t('Shift-click or Shift+Arrow selects a cell range. Copy, cut and paste work across cells; Escape clears selection.')}</span>
-          {bounds && <button onClick={() => copy().catch(clipboardError)}>{t('Copy cells')}</button>}
+          <span className="flow-keyboard-hint">{t('Cell navigation: next {next}; previous {previous}.', {
+            next: shortcutFor('flow-next-cell'), previous: shortcutFor('flow-previous-cell'),
+          })}</span>
+          <span className="flow-keyboard-hint">{t('Extend selection: up {up}, down {down}, left {left}, right {right}; clear selection {deselect}.', {
+            up: shortcutFor('flow-extend-up'), down: shortcutFor('flow-extend-down'),
+            left: shortcutFor('flow-extend-left'), right: shortcutFor('flow-extend-right'),
+            deselect: shortcutFor('flow-deselect'),
+          })}</span>
+          <span className="flow-keyboard-hint">{t('Other shortcuts: undo {undo}; redo {redo}; row above {above}; add column {column}; select all {all}; clear cells {clear}.', {
+            undo: shortcutFor('flow-undo'), redo: shortcutFor('flow-redo'),
+            above: shortcutFor('flow-row-above'), column: shortcutFor('flow-add-column'),
+            all: shortcutFor('flow-select-all'), clear: shortcutFor('flow-clear-selection'),
+          })}</span>
+          <span className="flow-keyboard-hint">{t('Copy, cut, and paste work across cells using standard shortcuts.')}</span>
         </div>
       </div>
       {menu && <ContextMenu {...menu} onClose={() => setMenu(null)} />}

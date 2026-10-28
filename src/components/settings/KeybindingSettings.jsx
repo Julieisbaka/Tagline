@@ -7,8 +7,9 @@ export default function KeybindingSettings({ settings, update, extra = [] }) {
   const [recording, setRecording] = useState(null);
   const [error, setError] = useState('');
   const overrides = settings.keybindings;
+  const plainFlowKeys = ['flow-next-cell', 'flow-previous-cell', 'flow-deselect'];
   const save = (id, key) => {
-    if (key && (!validBinding(key) || reservedBinding(key))) {
+    if (key && (!validBinding(key) || reservedBinding(key, id))) {
       setError(t('This shortcut is unsupported or reserved for standard system commands.'));
       return;
     }
@@ -33,11 +34,12 @@ export default function KeybindingSettings({ settings, update, extra = [] }) {
           onKeyDown={(event) => {
             if (recording !== item.id) return;
             event.preventDefault(); event.stopPropagation();
-            if (event.key === 'Escape') { setRecording(null); return; }
+            if (event.key === 'Escape' && item.id !== 'flow-deselect') { setRecording(null); return; }
             if (event.key === 'Delete' || event.key === 'Backspace') { save(item.id, ''); return; }
             const key = eventBinding(event);
             if (!key) return;
-            if (!event.ctrlKey && !event.metaKey && !event.altKey && !/^F\d{1,2}$/.test(event.key)) {
+            if (!event.ctrlKey && !event.metaKey && !event.altKey && !/^F\d{1,2}$/.test(event.key) &&
+              !(item.scope === 'flow' && plainFlowKeys.includes(item.id))) {
               setError(t('Use a modifier key or a function key to avoid replacing normal typing.')); return;
             }
             save(item.id, key);

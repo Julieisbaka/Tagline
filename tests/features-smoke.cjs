@@ -127,6 +127,9 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
         await wait("document.querySelectorAll('.canvas-edge-line').length === 2");
         await click('.tree-item', 'Round');
         await wait("!!document.querySelector('.flow-grid textarea')");
+        await js("document.querySelector('.flow-grid textarea').focus()");
+        assert.equal(await js("!![...document.querySelectorAll('.flow-footer button')].find(button => button.textContent.includes('Copy cells'))"),
+          false, 'Selected cells do not show a redundant copy button');
         assert.equal(await js("getComputedStyle(document.querySelector('.flow-sheet-tab.active')).boxShadow"), 'none');
         const flowRect = await js(`(() => {
           const grid = document.querySelector('.flow-grid').getBoundingClientRect();
@@ -143,6 +146,10 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
         assert.deepEqual(await js("({ row: document.activeElement.dataset.row, column: document.activeElement.dataset.column })"),
           { row: '1', column: '1' });
         assert.equal(await js("document.querySelectorAll('.flow-grid tbody tr').length"), 2);
+        await key('Z', [primary]);
+        await wait("document.querySelectorAll('.flow-grid tbody tr').length === 1");
+        await key('Z', [primary, 'shift']);
+        await wait("document.querySelectorAll('.flow-grid tbody tr').length === 2");
         await js("document.querySelector('[data-row=\"1\"][data-column=\"0\"]').focus()");
         await key('Tab');
         assert.equal(await js("document.activeElement.dataset.column"), '1');
@@ -171,11 +178,34 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
         await addKey(1, 0);
         assert.equal(await js("document.activeElement.dataset.row"), '1');
         assert.equal(await js("document.querySelectorAll('.flow-grid tbody tr').length"), 5);
+        await settings();
+        await click('.settings-sidebar button', 'Keyboard shortcuts');
+        await js("document.querySelector('[data-binding=flow-next-cell]').focus(); document.querySelector('[data-binding=flow-next-cell]').click()");
+        await key('K', [primary, 'alt']);
+        await wait("JSON.parse(localStorage.getItem('tagline-settings')).keybindings['flow-next-cell'] === 'Mod+Alt+K'");
+        await click('.settings button', 'Done');
+        const nextCellShortcut = process.platform === 'darwin' ? 'Cmd+Alt+K' : 'Ctrl+Alt+K';
+        await wait(`document.querySelector('.flow-footer').textContent.includes(${JSON.stringify(nextCellShortcut)})`);
+        await js("document.querySelector('[data-row=\"0\"][data-column=\"0\"]').focus()");
+        await key('K', [primary, 'alt']);
+        assert.equal(await js("document.activeElement.dataset.column"), '1', 'Custom cell navigation shortcuts work');
+        await select('[aria-label="Flow mode"]', 'source');
+        await wait("!!document.querySelector('.canvas-json-editor .cm-content')");
+        await js("document.querySelector('.canvas-json-editor .cm-content').focus()");
+        const flowSourceBefore = await js("document.querySelector('.canvas-json-editor .cm-content').textContent");
+        await wc.insertText(' ');
+        await key('Z', [primary]);
+        await wait(`document.querySelector('.canvas-json-editor .cm-content').textContent === ${JSON.stringify(flowSourceBefore)}`);
+        await key('Z', [primary, 'shift']);
+        await wait(`document.querySelector('.canvas-json-editor .cm-content').textContent !== ${JSON.stringify(flowSourceBefore)}`);
+        await select('[aria-label="Flow mode"]', 'visual');
+        await wait("!!document.querySelector('.flow-grid textarea')");
         // Context menus on cells and sheets, including keyboard dismissal.
         await js(`document.querySelector('.flow-grid textarea').dispatchEvent(new MouseEvent('contextmenu',
           { bubbles: true, clientX: innerWidth - 2, clientY: innerHeight - 2 }))`);
         await wait("!!document.querySelector('[role=menu]')");
-        assert.equal(await js("document.querySelectorAll('[role=menuitem]').length"), 4);
+        assert.equal(await js("!![...document.querySelectorAll('[role=menuitem]')].find(item => item.textContent === 'Copy cells')"),
+          true, 'Copy remains available from the cell context menu');
         assert.ok(await js("document.querySelector('[role=menu]').getBoundingClientRect().right <= innerWidth"));
         await click('[role=menuitem]', 'Insert row above');
         await wait("document.querySelectorAll('.flow-grid tbody tr').length === 6");
@@ -192,8 +222,17 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
         wc.sendInputEvent({ type: 'mouseDown', ...editorPoint, button: 'right', clickCount: 1 });
         wc.sendInputEvent({ type: 'mouseUp', ...editorPoint, button: 'right', clickCount: 1 });
         await delay(250);
-        assert.ok(nativeMenus.some((roles) => roles.includes('paste') && roles.includes('undo')),
-          'Editable text must expose native clipboard and undo commands');
+        if (await js("document.documentElement.classList.contains('native-ui')")) {
+          assert.ok(nativeMenus.some((roles) => roles.includes('paste') && roles.includes('undo')),
+            'Editable text must expose native clipboard and undo commands');
+        } else {
+          await wait("!!document.querySelector('.context-menu')");
+          assert.ok(await js(`['Undo', 'Redo', 'Paste'].every(label =>
+            [...document.querySelectorAll('.context-menu button')].some(button => button.textContent.trim() === label))`),
+          'Editable text must expose clipboard and undo commands');
+          wc.sendInputEvent({ type: 'keyDown', keyCode: 'Escape' });
+          await wait("!document.querySelector('.context-menu')");
+        }
         // Cache hits must avoid Markdown parsing even across editor remounts.
         await js(`(() => { const proto = Object.getPrototypeOf(document.querySelector('.visual-document').editor.markdown);
           const original = proto.parse; window.parseCount = 0;
