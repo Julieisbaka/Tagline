@@ -15,12 +15,31 @@ export default function SearchModal({ contents, index, initialQuery = '', maxRes
   const [error, setError] = useState('');
   const requestId = useRef(0);
   const resultList = useRef(null);
+  const semanticTimerRef = useRef(null);
   const search = useMemo(() => createSearchEngine(contents, index), [contents, index]);
+
   useEffect(() => {
     ++requestId.current;
     setSemanticResults(null);
     setError('');
     return () => { ++requestId.current; };
+  }, [query, mode, contents, index, maxResults]);
+
+  useEffect(() => {
+    if (mode === 'text') return undefined;
+    const text = parseQuery(query).text.replace(/"/g, '').trim();
+    if (!text) {
+      setSemanticResults(null);
+      setError('');
+      return undefined;
+    }
+    if (semanticTimerRef.current) window.clearTimeout(semanticTimerRef.current);
+    semanticTimerRef.current = window.setTimeout(() => {
+      runSemantic();
+    }, 500);
+    return () => {
+      if (semanticTimerRef.current) window.clearTimeout(semanticTimerRef.current);
+    };
   }, [query, mode, contents, index, maxResults]);
 
   const runSemantic = async () => {
