@@ -81,9 +81,13 @@ module.exports = async function runScenario({ win, wc, vault, fs, path, assert, 
     assert.equal(await fs.readFile(path.join(vault, file), 'utf8'), valid);
     const latest = await js(`window.api.listHistory(${JSON.stringify(file)})`);
     assert.equal(await js(`window.api.readHistory(${JSON.stringify(file)}, ${JSON.stringify(latest[0].id)})`), '{"nodes":{}}');
-    const selector = file.endsWith('flow') ? '[aria-label="Flow mode"]' : '[aria-label="Canvas mode"]';
-    await js(`(() => { const el = document.querySelector(${JSON.stringify(selector)});
-      el.value = 'source'; el.dispatchEvent(new Event('change', { bubbles: true })); })()`);
+    if (file.endsWith('flow')) {
+      await js(`(() => { const el = document.querySelector('[aria-label="Flow mode"]');
+        el.value = 'source'; el.dispatchEvent(new Event('change', { bubbles: true })); })()`);
+    } else {
+      await js(`(() => { const el = document.querySelector('[aria-label="Canvas mode"]');
+        el.value = 'source'; el.dispatchEvent(new Event('change', { bubbles: true })); })()`);
+    }
     await wait("!!document.querySelector('.canvas-json-editor .cm-content')");
     await js("document.querySelector('.canvas-json-editor .cm-content').focus()");
     wc.sendInputEvent({ type: 'keyDown', keyCode: 'A', modifiers: [process.platform === 'darwin' ? 'meta' : 'control'] });
