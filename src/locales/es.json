@@ -715,6 +715,7 @@
   "Reveal current file in file explorer": "Mostrar archivo actual en el explorador",
   "Close current tab": "Cerrar pestaña actual",
   "Error: {error}": "Error: {error}",
+  "A file or folder with that name already exists. Choose a different name.": "Ya existe un archivo o una carpeta con ese nombre. Elige otro nombre.",
   "Created “{name}”": "Se creó «{name}»",
   "New folder name": "Nombre de la carpeta nueva",
   "Rename “{name}”": "Cambiar nombre de «{name}»",

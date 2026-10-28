@@ -117,6 +117,15 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
         await button('.dialog button', 'OK');
         await wait(`!!document.querySelector('.tree-item[title=${JSON.stringify(to + '.md')}]')`);
       };
+      const renameToExisting = async (from, name) => {
+        await js(`document.querySelector('.tree-item[title=${JSON.stringify(from)}]').dispatchEvent(new MouseEvent('contextmenu', { bubbles: true }))`);
+        await button('.context-menu button', 'Rename…');
+        await wait("!!document.querySelector('.dialog input')");
+        await input('.dialog input', name);
+        await button('.dialog button', 'OK');
+        await wait("document.querySelector('.toast')?.textContent.includes('already exists')");
+        await wait(`!!document.querySelector('.tree-item[title=${JSON.stringify(from)}]')`);
+      };
       try {
         await wait("!!document.querySelector('.onboarding-skip')");
         await click('.onboarding-skip');
@@ -338,6 +347,9 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
         await toggle('showMarkdownExtension', false);
         await toggle('autoRelink', false);
         await done();
+        await renameToExisting('Beta.md', 'Alpha');
+        assert.equal(await fs.readFile(path.join(vault, 'Beta.md'), 'utf8'), '# Beta\n\n==Evidence==\n');
+        assert.equal(await fs.readFile(path.join(vault, 'Alpha.md'), 'utf8'), '# Alpha\n\n[[Beta]]\n');
         await rename('Beta.md', 'Gamma');
         assert.equal(await fs.readFile(path.join(vault, 'Alpha.md'), 'utf8'), '# Alpha\n\n[[Beta]]\n');
         assert.equal(await fs.readFile(path.join(vault, 'Links.md'), 'utf8'), '[[Beta#Beta|alias]]');

@@ -184,8 +184,18 @@
   margin-top: 24px;
 }
 
+.settings-panel>.ribbon-settings+.advanced-settings {
+  margin-top: 24px;
+}
+
 .settings-panel>section> :first-child {
   margin-top: 0;
+}
+
+.editor-settings>h3:not(:first-child) {
+  margin-top: 28px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
 }
 
 @media (max-width: 560px) {

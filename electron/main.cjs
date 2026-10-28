@@ -275,7 +275,7 @@ function registerIpc() {
 
   ipcMain.handle('fs:rename', async (_e, from, to) => {
     const dest = resolveInVault(to);
-    if (fssync.existsSync(dest)) throw new Error('A file with that name already exists');
+    if (fssync.existsSync(dest)) return { ok: false, code: 'destination-exists' };
     const source = resolveInVault(from);
     const stat = await fs.stat(source);
     let documents = [];
@@ -307,7 +307,7 @@ function registerIpc() {
       await rollbackHistory();
       throw error;
     }
-    return toPosix(to);
+    return { ok: true, path: toPosix(to) };
   });
 
   ipcMain.handle('fs:delete', async (_e, rel) => {

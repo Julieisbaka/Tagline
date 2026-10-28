@@ -1,5 +1,6 @@
 ﻿import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { folderPaths, normalizeFolders } from './folderPaths.js';
+import { translate } from './i18n.js';
 import { buildIndex, isMarkdown, rewriteLinks } from './vault.js';
 
 const api = window.api;
@@ -224,7 +225,15 @@ export function useVault(underscoreFolders = true, autoRelink = true, historyRet
       try {
         const all = contentsRef.current;
         const paths = Object.keys(all);
-        await api.rename(from, to);
+        const result = await api.rename(from, to);
+        if (result?.ok === false && result.code === 'destination-exists') {
+          report(new Error(translate('A file or folder with that name already exists. Choose a different name.')));
+          return null;
+        }
+        if (result?.ok !== true || typeof result.path !== 'string') {
+          throw new Error('The rename operation returned an invalid result.');
+        }
+        to = result.path;
         const moved = paths.filter((p) => p === from || p.startsWith(from + '/'));
         for (const p of autoRelink ? paths.filter(isMarkdown) : []) {
           let updated = all[p];
