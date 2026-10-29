@@ -34,6 +34,7 @@
   "largerClickTargets": false,
   "underlineLinks": false,
   "focusNewFlowRow": true,
+  "flowSpellcheck": true,
   "separateNegativeBlock": false,
   "language": "en",
   "customTheme": null,

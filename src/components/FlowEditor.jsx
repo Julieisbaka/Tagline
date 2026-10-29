@@ -266,6 +266,7 @@ export default function FlowEditor({ path, content, mode, onChange, onRestore, f
               className="flow-sheet-input"
               autoFocus
               defaultValue={s.name}
+              spellCheck={settings.flowSpellcheck !== false}
               onBlur={(e) => {
                 save(data.sheets.map((x, j) => (j === i ? { ...x, name: e.target.value || x.name } : x)));
                 setRenaming(null);
@@ -324,7 +325,8 @@ export default function FlowEditor({ path, content, mode, onChange, onRestore, f
                   { label: 'Add column', run: addColumn },
                   { label: 'Remove column', run: () => removeColumn(c), disabled: sheet.columns.length === 1, danger: true },
                 ])}>
-                  <input value={col} onChange={(e) => renameColumn(c, e.target.value)} />
+                  <input spellCheck={settings.flowSpellcheck !== false} value={col}
+                    onChange={(e) => renameColumn(c, e.target.value)} />
                   <button className="mini" title={t('Remove column')} onClick={() => removeColumn(c)}>
                     <Icon name="x" size={10} />
                   </button>
@@ -365,6 +367,7 @@ export default function FlowEditor({ path, content, mode, onChange, onRestore, f
                       data-row={r}
                       data-column={c}
                       aria-label={t('Row {row}, {column}', { row: r + 1, column: sheet.columns[c] })}
+                      spellCheck={settings.flowSpellcheck !== false}
                       value={cell}
                       onPointerDown={(event) => {
                         if (event.button !== 0) return;

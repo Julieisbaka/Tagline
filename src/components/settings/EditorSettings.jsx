@@ -54,6 +54,8 @@ export default function EditorSettings({ settings, update }) {
       <input type="checkbox" data-setting="focusNewFlowRow" checked={settings.focusNewFlowRow}
         onChange={(event) => update({ focusNewFlowRow: event.target.checked })} />
     </SettingRow>
+    <h3>{t('Flow editor')}</h3>
+    {checkbox('Flow editor spellcheck', 'flowSpellcheck', 'Underline possible spelling mistakes in flow cells, sheet names, and column headings.')}
     <h3>{t('Source editor (CodeMirror)')}</h3>
     {checkbox('Source editor spellcheck', 'sourceSpellcheck', 'Underline possible spelling mistakes in Markdown source. Visual editor spellcheck is configured separately.')}
     {checkbox('Show line numbers', 'sourceLineNumbers', 'Show a numbered gutter beside source text.')}

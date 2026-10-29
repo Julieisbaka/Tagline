@@ -21,7 +21,7 @@ export default function JsonEditor({ label, settings, ...props }) {
     indentUnit.of(settings.sourceIndentWithTabs ? '\t' : ' '.repeat(settings.sourceTabSize)),
     ...(settings.sourceCodeFolding ? [codeFolding()] : []),
   ] : []),
-  EditorView.contentAttributes.of({ 'aria-label': label, 'aria-multiline': 'true' }),
+  EditorView.contentAttributes.of({ 'aria-label': label, 'aria-multiline': 'true', spellcheck: 'false' }),
   ], [label, settings?.sourceTabSize, settings?.sourceIndentWithTabs, settings?.sourceCodeFolding]);
   return <CodeMirror {...props} extensions={labeled} theme="none"
     basicSetup={{
