@@ -79,7 +79,7 @@ test('release workflow runs only manually, packages all architectures and publis
 
 test('release tests shared logic once and gates every platform build on it', () => {
   const { scripts } = require('../package.json');
-  assert.equal(scripts.test, 'node --test "tests/*.test.cjs"');
+  assert.equal(scripts.test, 'node --test --test-reporter=tap "tests/*.test.cjs"');
   assert.equal(scripts['test:shared'], 'node --test --test-skip-pattern=^platform: "tests/*.test.cjs"');
   assert.equal(scripts['test:platform'], 'node --test --test-name-pattern=^platform: "tests/*.test.cjs"');
   assert.equal(workflow.jobs.test.needs, 'version');

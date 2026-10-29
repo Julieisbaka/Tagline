@@ -13,7 +13,7 @@
     "build": "vite build",
     "package": "vite build && electron-builder",
     "start": "vite build && electron .",
-    "test": "node --test \"tests/*.test.cjs\"",
+    "test": "node --test --test-reporter=tap \"tests/*.test.cjs\"",
     "test:all": "node scripts/run-all-tests.cjs",
     "test:shared": "node --test --test-skip-pattern=^platform: \"tests/*.test.cjs\"",
     "test:platform": "node --test --test-name-pattern=^platform: \"tests/*.test.cjs\"",

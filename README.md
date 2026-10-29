@@ -31,9 +31,12 @@ npm run test:all
 Individual smoke suites are available as `npm run test:<name>`. The full runner
 includes `npm test` and every `test:*` script except itself and the redundant
 `test:shared` / `test:platform` subsets. At the end it summarizes every suite's
-result and duration, and prints captured output for failed suites. Some auth and
+result with total execution time and counts for tests run, passed, failed,
+skipped, and canceled. Suite output stays hidden during the run; failures and
+their full captured output are written to `test-all.log`. Some auth and
 password rejection cases intentionally expect errors; they count as passing
-when the tests assert those errors correctly.
+when the tests assert those errors correctly. The case count includes
+individual `node:test` cases and one case per standalone smoke-test script.
 
 ## Releases and updates
 
