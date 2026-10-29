@@ -84,7 +84,11 @@ export default function Editor({
       debateKeys,
       ...debateDecorations,
       ...editorTheme,
-      EditorView.contentAttributes.of({ 'aria-label': t('Source note editor'), 'aria-multiline': 'true' }),
+      EditorView.contentAttributes.of({
+        'aria-label': t('Source note editor'),
+        'aria-multiline': 'true',
+        spellcheck: String(settings.sourceSpellcheck !== false),
+      }),
       ...(settings.sourceActiveLine ? [EditorView.theme({ '.cm-activeLine': { backgroundColor: 'var(--bg-hover)' } })] : []),
       EditorView.domEventHandlers({
         mousedown(e, view) {
@@ -106,7 +110,7 @@ export default function Editor({
       }),
     ];
   }, [keybindings, settings.sourceActiveLine, settings.sourceAutocomplete, settings.sourceLineNumbers, settings.sourceLineWrapping,
-    settings.sourceTabSize, settings.sourceIndentWithTabs, settings.sourceCodeFolding, locale]);
+    settings.sourceTabSize, settings.sourceIndentWithTabs, settings.sourceCodeFolding, settings.sourceSpellcheck, locale]);
 
   const run = (command) => () => {
     const view = ownViewRef.current;

@@ -26,6 +26,7 @@
   "sourceCloseBrackets": true,
   "sourceCodeFolding": false,
   "visualSpellcheck": true,
+  "sourceSpellcheck": true,
   "editorFocusOutline": false,
   "reduceMotion": false,
   "strongFocusIndicators": false,

@@ -517,7 +517,7 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
           'previous deltas stay readable when disabled');
         await settings('editors');
         const editorDefaults = {
-          visualSpellcheck: true, sourceIndentWithTabs: false, sourceBracketMatching: true,
+          visualSpellcheck: true, sourceSpellcheck: true, sourceIndentWithTabs: false, sourceBracketMatching: true,
           sourceCloseBrackets: true, sourceCodeFolding: false,
           sourceSelectionMatches: true,
         };
@@ -583,6 +583,17 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
         };
         await setMode('edit');
         await wait("!!document.querySelector('.source-editor .cm-content')");
+        assert.equal(await js("document.querySelector('.source-editor .cm-content').getAttribute('spellcheck')"), 'false');
+        await settings('editors');
+        await toggle('sourceSpellcheck', true);
+        await done();
+        await wait("document.querySelector('.source-editor .cm-content')?.getAttribute('spellcheck') === 'true'");
+        await settings('editors');
+        await toggle('sourceSpellcheck', false);
+        await done();
+        await wait("document.querySelector('.source-editor .cm-content')?.getAttribute('spellcheck') === 'false'");
+        assert.equal(await js("JSON.parse(localStorage.getItem('tagline-settings')).visualSpellcheck"), true,
+          'source spellcheck is independent from visual spellcheck');
         assert.equal(await js("getComputedStyle(document.querySelector('.source-editor .cm-content')).tabSize"), '4');
         assert.equal(await js("getComputedStyle(document.querySelector('.source-editor .cm-content')).maxWidth"), '600px');
         await wait("!!document.querySelector('.cm-foldGutter')");

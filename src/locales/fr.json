@@ -146,6 +146,8 @@
   "Download the matching installer here, then start installation. Downloads are verified against release checksums. Windows saves pending edits before exiting; on macOS, open the DMG and replace the app in Applications.": "Téléchargez ici l’installateur adapté, puis lancez l’installation. Les téléchargements sont vérifiés avec les sommes de contrôle de la version. Windows enregistre les modifications avant de quitter ; sur macOS, ouvrez le DMG et remplacez l’application dans Applications.",
   "The disk image is open. Quit Tagline, drag the new app into Applications and choose Replace, then reopen Tagline. Your settings and vaults are kept.": "L’image disque est ouverte. Quittez Tagline, glissez la nouvelle application dans Applications et choisissez Remplacer, puis rouvrez Tagline. Vos paramètres et coffres sont conservés.",
   "Visual editor spellcheck": "Correction orthographique de l’éditeur visuel",
+  "Source editor spellcheck": "Correction orthographique de l’éditeur source",
+  "Underline possible spelling mistakes in Markdown source. Visual editor spellcheck is configured separately.": "Soulignez les fautes d’orthographe possibles dans le Markdown source. Le correcteur visuel se règle séparément.",
   "Readable content width (pixels)": "Largeur du contenu lisible (pixels)",
   "Applies to visual, source and reading modes when Readable line width is enabled in General.": "S’applique aux modes visuel, source et lecture lorsque la largeur de ligne lisible est activée dans Général.",
   "Tab size": "Taille des tabulations",

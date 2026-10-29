@@ -55,6 +55,7 @@ export default function EditorSettings({ settings, update }) {
         onChange={(event) => update({ focusNewFlowRow: event.target.checked })} />
     </SettingRow>
     <h3>{t('Source editor (CodeMirror)')}</h3>
+    {checkbox('Source editor spellcheck', 'sourceSpellcheck', 'Underline possible spelling mistakes in Markdown source. Visual editor spellcheck is configured separately.')}
     {checkbox('Show line numbers', 'sourceLineNumbers', 'Show a numbered gutter beside source text.')}
     {checkbox('Wrap long lines', 'sourceLineWrapping', 'Fit long source lines to the editor width without changing the file.')}
     {checkbox('Highlight active line', 'sourceActiveLine', 'Shade the source line containing the cursor.')}
