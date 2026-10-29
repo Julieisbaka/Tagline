@@ -20,6 +20,21 @@ npm run package  # package for this operating system
 
 Open a folder as a vault or create the sample vault on first launch.
 
+## Tests
+
+Run the complete unit and smoke-test suite sequentially with:
+
+```sh
+npm run test:all
+```
+
+Individual smoke suites are available as `npm run test:<name>`. The full runner
+includes `npm test` and every `test:*` script except itself and the redundant
+`test:shared` / `test:platform` subsets. At the end it summarizes every suite's
+result and duration, and prints captured output for failed suites. Some auth and
+password rejection cases intentionally expect errors; they count as passing
+when the tests assert those errors correctly.
+
 ## Releases and updates
 
 Builds are unsigned and not notarized, so OS security warnings are expected.
