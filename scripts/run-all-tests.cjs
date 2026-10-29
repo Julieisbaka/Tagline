@@ -151,19 +151,53 @@ function reportText(logWriteError = '') {
   return lines.join('\n');
 }
 
+function tapFailureOutput(output) {
+  const lines = output.split(/\r?\n/);
+  const blocks = [];
+  for (let index = 0; index < lines.length; index++) {
+    if (!/^not ok \d+\b/.test(lines[index])) continue;
+    const block = [lines[index]];
+    for (index++; index < lines.length && !/^(?:ok|not ok) \d+\b|^1\.\.\d+/.test(lines[index]); index++) {
+      block.push(lines[index]);
+    }
+    blocks.push(block.join('\n'));
+    index--;
+  }
+  return blocks.join('\n\n');
+}
+
+function failureOutput(result) {
+  if (result.suite === 'test') {
+    const failures = tapFailureOutput(result.output);
+    if (failures) return failures;
+  }
+
+  const lines = result.output.split(/\r?\n/);
+  const failureLine = /(?:^FAIL\b|AssertionError|Timed out:|^Error:|TypeError:|ReferenceError:|SyntaxError:|error during build|Build failed|npm error)/i;
+  let start = -1;
+  for (let index = 0; index < lines.length; index++) {
+    if (failureLine.test(lines[index])) start = index;
+  }
+  const excerpt = (start < 0 ? lines.slice(-80) : lines.slice(start))
+    .filter((line) => !/^(?:✔|ok \d+\b|PASS\b)/.test(line.trim()));
+  return excerpt.join('\n').trim();
+}
+
 function writeLog() {
-  const failed = results.filter((result) => result.status !== 'passed');
+  const failed = results.filter((result) => result.status === 'failed');
   const lines = [
-    reportText(),
-    '',
-    'Suite results:',
-    ...results.map((result) =>
-      `${result.status.toUpperCase()} ${result.suite} (${formatDuration(result.durationMs)})` +
-      (result.detail ? `: ${result.detail}` : '')),
+    'Tagline failed test log',
+    `Started: ${new Date(startedAt).toISOString()}`,
+    `Duration: ${formatDuration(Date.now() - startedAt)}`,
+    ...failed.map((result) => `Failed suite: ${result.suite} (${formatDuration(result.durationMs)})`),
+    ...(interrupted ? ['Run interrupted before all suites completed.'] : []),
+    ...(!failed.length && !interrupted ? ['No failing tests.'] : []),
   ];
   for (const result of failed) {
-    lines.push('', `===== ${result.suite} output${result.outputTruncated ? ' (truncated)' : ''} =====`);
-    if (result.output) lines.push(result.output);
+    lines.push('', `===== ${result.suite} failed test${result.outputTruncated ? ' (captured output truncated)' : ''} =====`);
+    if (result.detail) lines.push(`Process result: ${result.detail}`);
+    const excerpt = failureOutput(result);
+    if (excerpt) lines.push(excerpt);
   }
   fs.writeFileSync(logPath, `${lines.join('\n')}\n`, 'utf8');
 }
