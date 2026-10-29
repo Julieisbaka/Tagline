@@ -20,6 +20,11 @@ npm run package  # package for this operating system
 
 Open a folder as a vault or create the sample vault on first launch.
 
+Drag Flow sheet tabs to reorder them, or focus a sheet tab and use
+`Alt+Shift+Left/Right`. Right-click a Markdown note in the file explorer and
+choose **Pin note** to keep it in the vault's pinned-notes section. Pins are
+saved on this device and follow renames and moves made in the app.
+
 ## Tests
 
 Run the complete unit and smoke-test suite sequentially with:

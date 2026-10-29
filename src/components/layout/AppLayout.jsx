@@ -39,7 +39,7 @@ export default function AppLayout({ app }) {
     mode, sourceFallback, stats, setStats, showLeft, showRight, sidebarWidth, rightWidth, lastFile,
     website, setWebsite, modal, setModal, jump, setJump, highlightOnly, setHighlightOnly, toast, ext, ctx, actions,
     open, openLink, sendCard, setMode, editorRef, visualRef, cursorRef, createAndOpen, doRename,
-    notify, insertCitation, setVisualEditor, speechDoc, speechDocuments,
+    notify, insertCitation, setVisualEditor, speechDoc, speechDocuments, favorites,
   } = app;
   const openHistory = async (path) => {
     try { if (await v.flush()) setModal({ type: 'history', path }); }
@@ -176,6 +176,7 @@ export default function AppLayout({ app }) {
       <Ribbon ctx={ctx} showLeft={showLeft} keybindings={settings.keybindings}
         settings={settings} updateSettings={updateSettings} contributions={ext.ribbonItems} />
       {showLeft && <Sidebar vault={v.vault} tree={v.tree} activePath={activePath} actions={actions}
+        favorites={favorites} paths={paths}
         settings={settings} updateSettings={updateSettings}
         spacedFolders={settings.underscoreFolders} hideFlowExtension={settings.hideFlowExtension}
         showMarkdownExtension={settings.showMarkdownExtension} />}

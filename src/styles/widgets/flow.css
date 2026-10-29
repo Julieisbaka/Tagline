@@ -34,6 +34,10 @@
   font-weight: 600;
 }
 
+.flow-sheet-tab.dragging { opacity: 0.45; }
+.flow-sheet-tab.drop-before { box-shadow: inset 2px 0 0 var(--accent); }
+.flow-sheet-tab.drop-after { box-shadow: inset -2px 0 0 var(--accent); }
+
 .flow-sheet-select {
   border: none;
   background: transparent;

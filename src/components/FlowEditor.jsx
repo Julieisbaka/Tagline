@@ -21,7 +21,10 @@ export default function FlowEditor({ path, content, mode, onChange, onRestore, f
   const [active, setActive] = useState(0);
   const [renaming, setRenaming] = useState(null);
   const [menu, setMenu] = useState(null);
+  const draggedSheet = useRef(null);
+  const [sheetDropIndex, setSheetDropIndex] = useState(null);
   const gridRef = useRef(null);
+  const sheetTabsRef = useRef(null);
   const focusTarget = useRef(null);
   const [selection, setSelection] = useState(null);
   const keepSelection = useRef(false);
@@ -68,14 +71,14 @@ export default function FlowEditor({ path, content, mode, onChange, onRestore, f
     const history = flowHistory.current;
     const previous = currentContent.current;
     if (previous === next) return;
-    history.undo.push(previous);
+    history.undo.push({ content: previous, active });
     if (history.undo.length > 100) history.undo.shift();
     history.redo = [];
     applyFlowContent(next);
   };
-  const focusFlowContentCell = (next) => {
+  const focusFlowContentCell = (next, sheetIndex = active) => {
     const nextData = parseFlow(next);
-    const sheet = nextData.sheets[Math.min(active, nextData.sheets.length - 1)];
+    const sheet = nextData.sheets[Math.min(sheetIndex, nextData.sheets.length - 1)];
     if (!sheet?.rows.length || !sheet.columns.length) return;
     const focused = document.activeElement?.matches('.flow-grid textarea') ? document.activeElement.dataset : null;
     const row = Number(focused?.row ?? selection?.head.row ?? 0);
@@ -89,18 +92,22 @@ export default function FlowEditor({ path, content, mode, onChange, onRestore, f
     const history = flowHistory.current;
     const previous = history.undo.pop();
     if (previous === undefined) return;
-    history.redo.push(currentContent.current);
-    focusFlowContentCell(previous);
-    applyFlowContent(previous);
+    history.redo.push({ content: currentContent.current, active });
+    focusFlowContentCell(previous.content, previous.active);
+    setActive(previous.active);
+    setSelection(null);
+    applyFlowContent(previous.content);
   };
   const redoFlow = () => {
     const history = flowHistory.current;
     const next = history.redo.pop();
     if (next === undefined) return;
-    history.undo.push(currentContent.current);
+    history.undo.push({ content: currentContent.current, active });
     if (history.undo.length > 100) history.undo.shift();
-    focusFlowContentCell(next);
-    applyFlowContent(next);
+    focusFlowContentCell(next.content, next.active);
+    setActive(next.active);
+    setSelection(null);
+    applyFlowContent(next.content);
   };
   const handleHistoryShortcut = (event) => {
     if (matchesBinding(event, binding('flow-undo', keybindings))) {
@@ -153,6 +160,16 @@ export default function FlowEditor({ path, content, mode, onChange, onRestore, f
   const sheet = data.sheets[idx];
   const save = (sheets) => saveFlowContent(JSON.stringify({ ...data, sheets }, null, 2));
   const updateSheet = (patch) => save(data.sheets.map((s, i) => (i === idx ? { ...s, ...patch } : s)));
+
+  const reorderSheet = (from, to) => {
+    if (from === to || from < 0 || to < 0 || from >= data.sheets.length || to >= data.sheets.length) return;
+    const sheets = [...data.sheets];
+    const [moved] = sheets.splice(from, 1);
+    sheets.splice(to, 0, moved);
+    save(sheets);
+    setActive(idx === from ? to : idx > from && idx <= to ? idx - 1 : idx < from && idx >= to ? idx + 1 : idx);
+    setSelection(null);
+  };
 
   const addSheet = (preset) => {
     const columns = flowColumns(preset, data.sheets.some((item) => item.columns.includes('2NC') && item.columns.includes('1NR')));
@@ -258,7 +275,7 @@ export default function FlowEditor({ path, content, mode, onChange, onRestore, f
 
   return (
     <div className="flow" onKeyDownCapture={handleHistoryShortcut}>
-      <div className="flow-sheets" role="group" aria-label={t('Flow sheets')}>
+      <div className="flow-sheets" ref={sheetTabsRef} role="group" aria-label={t('Flow sheets')}>
         {data.sheets.map((s, i) =>
           renaming === i ? (
             <input
@@ -276,7 +293,35 @@ export default function FlowEditor({ path, content, mode, onChange, onRestore, f
           ) : (
             <div
               key={i}
-              className={`flow-sheet-tab${i === idx ? ' active' : ''}`}
+              className={`flow-sheet-tab${i === idx ? ' active' : ''}${sheetDropIndex === i ? ' drop-before' : ''}${sheetDropIndex === i + 1 ? ' drop-after' : ''}`}
+              draggable
+              onDragStart={(event) => {
+                draggedSheet.current = i;
+                event.dataTransfer.effectAllowed = 'move';
+                event.dataTransfer.setData('text/flow-sheet', String(i));
+                event.currentTarget.classList.add('dragging');
+              }}
+              onDragOver={(event) => {
+                if (draggedSheet.current === null) return;
+                event.preventDefault();
+                event.dataTransfer.dropEffect = 'move';
+                const rect = event.currentTarget.getBoundingClientRect();
+                setSheetDropIndex(i + (event.clientX > rect.left + rect.width / 2 ? 1 : 0));
+              }}
+              onDrop={(event) => {
+                if (draggedSheet.current === null) return;
+                event.preventDefault();
+                const rect = event.currentTarget.getBoundingClientRect();
+                const destination = i + (event.clientX > rect.left + rect.width / 2 ? 1 : 0);
+                reorderSheet(draggedSheet.current, destination > draggedSheet.current ? destination - 1 : destination);
+                draggedSheet.current = null;
+                setSheetDropIndex(null);
+              }}
+              onDragEnd={(event) => {
+                event.currentTarget.classList.remove('dragging');
+                draggedSheet.current = null;
+                setSheetDropIndex(null);
+              }}
               onContextMenu={(e) => context(e, [
                 { label: 'Rename sheet', run: () => setRenaming(i) },
                 { label: 'Delete sheet', run: () => removeSheet(i), disabled: data.sheets.length === 1, danger: true },
@@ -284,7 +329,16 @@ export default function FlowEditor({ path, content, mode, onChange, onRestore, f
             >
               <button type="button" className="flow-sheet-select" aria-pressed={i === idx}
                 onClick={() => { setActive(i); setSelection(null); }}
-                onDoubleClick={() => setRenaming(i)} title={t('Double-click to rename')}>
+                onKeyDown={(event) => {
+                  if (event.altKey && event.shiftKey && (event.key === 'ArrowLeft' || event.key === 'ArrowRight')) {
+                    event.preventDefault();
+                    const destination = i + (event.key === 'ArrowLeft' ? -1 : 1);
+                    if (destination < 0 || destination >= data.sheets.length) return;
+                    reorderSheet(i, destination);
+                    requestAnimationFrame(() => sheetTabsRef.current?.querySelectorAll('.flow-sheet-select')[destination]?.focus());
+                  }
+                }}
+                onDoubleClick={() => setRenaming(i)} title={t('Double-click to rename; Alt+Shift+Left/Right to reorder')}>
                 {s.name}
               </button>
               {data.sheets.length > 1 && (

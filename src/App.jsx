@@ -13,6 +13,7 @@ import { binding, displayBinding, KEYBINDINGS, matchesBinding } from './lib/keyb
 import { slugify } from './lib/markdown.js';
 import { useSettings } from './lib/settings.js';
 import { useAppExtensions } from './lib/useAppExtensions.js';
+import { useFavorites } from './lib/useFavorites.js';
 import { useTabs } from './lib/useTabs.js';
 import { useVault } from './lib/useVault.js';
 import { baseName, dirName, flattenTree, isCanvas, isFlow, isMarkdown, joinPath, outline, resolveLink } from './lib/vault.js';
@@ -24,6 +25,7 @@ export default function App() {
   const [settings, updateSettings] = useSettings();
   const v = useVault(settings.underscoreFolders, settings.autoRelink, settings.historyRetention, settings.canvasHistoryMode, settings.experimentalHistoryDeltas);
   const tabs = useTabs(v.vault?.root, settings.persistWorkspaceTabs);
+  const favorites = useFavorites(v.vault?.root);
   const [modes, setModes] = useState({});
   const [highlightOnly, setHighlightOnly] = useState(false);
   const [modal, setModal] = useState(null);
@@ -194,6 +196,7 @@ export default function App() {
     const result = await v.rename(from, to);
     if (!result) return;
     tabs.renamePath(from, result);
+    favorites.rename(from, result);
     if (settings.speechDoc === from || settings.speechDoc.startsWith(from + '/')) {
       updateSettings({ speechDoc: result + settings.speechDoc.slice(from.length) });
     }
@@ -250,7 +253,10 @@ export default function App() {
     move: doRename,
     remove: async (node) => {
       if (!await confirm(t('Move “{name}” to the trash?', { name: node.name }))) return;
-      if (await v.remove(node.path)) tabs.removePath(node.path);
+      if (await v.remove(node.path)) {
+        tabs.removePath(node.path);
+        favorites.remove(node.path);
+      }
     },
     setSpeechDoc: async (path) => {
       try {
@@ -467,6 +473,6 @@ export default function App() {
     sourceFallback, stats, setStats, showLeft, showRight, sidebarWidth, rightWidth, lastFile, website,
     setWebsite, modal, setModal, jump, setJump, highlightOnly, setHighlightOnly, toast, ext, ctx, actions,
     open, openLink, sendCard, setMode, editorRef, visualRef, cursorRef, createAndOpen, doRename, notify,
-    insertCitation, setVisualEditor, speechDoc, speechDocuments,
+    insertCitation, setVisualEditor, speechDoc, speechDocuments, favorites,
   }} />;
 }

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useI18n } from '../../lib/i18n.js';
-import { dirName, isMarkdown, joinPath } from '../../lib/vault.js';
+import { dirName, displayName, isMarkdown, joinPath } from '../../lib/vault.js';
 import { FILE_ACTIONS } from '../../lib/workspaceItems.js';
 import Menu from '../dialogs/ContextMenu.jsx';
 import Icon from '../Icon.jsx';
@@ -8,7 +8,7 @@ import RefreshButton from '../RefreshButton.jsx';
 import ConfigurableBar from './ConfigurableBar.jsx';
 import FileTree from './FileTree.jsx';
 
-function ContextMenu({ menu, onClose, actions }) {
+function ContextMenu({ menu, onClose, actions, favorites }) {
   const { node } = menu;
   const isFolder = node.type === 'folder';
   const items = isFolder
@@ -28,6 +28,7 @@ function ContextMenu({ menu, onClose, actions }) {
     : [
       ['Open in new tab', () => actions.open(node.path, true)],
       ['Copy note path', () => actions.copyNotePath(node.path)],
+      ...(isMarkdown(node.path) ? [[favorites.paths.includes(node.path) ? 'Unpin note' : 'Pin note', () => favorites.toggle(node.path)]] : []),
       ['Rename…', () => actions.rename(node)],
       ...(isMarkdown(node.path) ? [['Set as speech doc', () => actions.setSpeechDoc(node.path)]] : []),
       ['Reveal in file explorer', () => actions.reveal(node.path)],
@@ -39,7 +40,7 @@ function ContextMenu({ menu, onClose, actions }) {
   );
 }
 
-export default function Sidebar({ vault, tree, activePath, actions, settings, updateSettings, spacedFolders = false, hideFlowExtension = true, showMarkdownExtension = false }) {
+export default function Sidebar({ vault, tree, paths, favorites, activePath, actions, settings, updateSettings, spacedFolders = false, hideFlowExtension = true, showMarkdownExtension = false }) {
   const { t } = useI18n();
   const [menu, setMenu] = useState(null);
   const activeDir = activePath ? dirName(activePath) : '';
@@ -61,6 +62,19 @@ export default function Sidebar({ vault, tree, activePath, actions, settings, up
           return <button className="icon-btn" title={t(item.title)} aria-label={t(item.title)}
             onClick={() => actions[id](activeDir)}><Icon name={item.icon} /></button>;
         }} />
+      {favorites.paths.some((path) => paths.includes(path)) && <section className="pinned-notes" aria-label={t('Pinned notes')}>
+        <div className="pinned-notes-heading">{t('Pinned notes')}</div>
+        {favorites.paths.filter((path) => paths.includes(path)).map((path) => <div className="pinned-note" key={path}>
+          <button type="button" className={`pinned-note-open${path === activePath ? ' active' : ''}`}
+            title={path} onClick={(event) => actions.open(path, event.ctrlKey || event.metaKey)}>
+            <Icon name="pin" size={12} /><span>{displayName(path, hideFlowExtension, showMarkdownExtension)}</span>
+          </button>
+          <button type="button" className="pinned-note-remove" title={t('Unpin note')}
+            aria-label={t('Unpin {name}', { name: path })} onClick={() => favorites.toggle(path)}>
+            <Icon name="x" size={12} />
+          </button>
+        </div>)}
+      </section>}
       <FileTree
         tree={tree}
         activePath={activePath}
@@ -76,7 +90,7 @@ export default function Sidebar({ vault, tree, activePath, actions, settings, up
           <Icon name="vault" size={14} /> {vault.name}
         </button>
       </div>
-      {menu && <ContextMenu menu={menu} onClose={() => setMenu(null)} actions={actions} />}
+      {menu && <ContextMenu menu={menu} onClose={() => setMenu(null)} actions={actions} favorites={favorites} />}
     </aside>
   );
 }

@@ -1017,5 +1017,10 @@
   "Hide the .flow suffix in displayed file names without renaming files.": "Masquer le suffixe .flow des noms affichés sans renommer les fichiers.",
   "Show the .md suffix in displayed Markdown file names.": "Afficher le suffixe .md des noms de fichiers Markdown.",
   "Update links in other notes when a linked file or folder is renamed.": "Mettre à jour les liens des autres notes lorsqu'un fichier ou dossier lié est renommé.",
-  "Keep up to this many revisions for each document before pruning older history.": "Conserver au maximum ce nombre de révisions par document avant de supprimer les plus anciennes."
+  "Keep up to this many revisions for each document before pruning older history.": "Conserver au maximum ce nombre de révisions par document avant de supprimer les plus anciennes.",
+  "Pinned notes": "Notes épinglées",
+  "Pin note": "Épingler la note",
+  "Unpin note": "Désépingler la note",
+  "Unpin {name}": "Désépingler {name}",
+  "Double-click to rename; Alt+Shift+Left/Right to reorder": "Double-cliquez pour renommer ; Alt+Maj+Gauche/Droite pour réorganiser"
 }
