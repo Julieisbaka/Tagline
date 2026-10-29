@@ -227,7 +227,8 @@ const delay = (ms) => new Promise((r) => setTimeout(r, ms));
         assert.doesNotMatch(speech, /Second card/);
         await click('.note-actions button', 'Export');
         await waitFor("!!document.querySelector('.export-dialog')");
-        assert.equal(await js("document.querySelectorAll('.export-dialog select option').length"), 6);
+        assert.deepEqual(await js("[...document.querySelectorAll('.export-dialog select option')].map(option => option.value)"),
+          ['google-docs', 'docx', 'odt', 'rtf', 'html', 'epub', 'pdf']);
         await click('.export-dialog button', 'Close');
         await js(`document.querySelector('[title="Settings (Ctrl+,)"]').click()`);
         await waitFor("!!document.querySelector('.integration-settings')");
