@@ -93,6 +93,14 @@ const delay = (ms) => new Promise((r) => setTimeout(r, ms));
             if (node.text === 'important') marks = node.marks.map(m => m.type.name).sort();
           }); return marks;
         })()`), ['bold', 'highlight', 'underline']);
+        const cleanedPaste = await js(`(() => {
+          const ed = document.querySelector('.visual-document').editor;
+          return ed.options.editorProps.transformPastedHTML(
+            '<p style="font-family: Arial; margin: 24px"><span style="font-size: 30px; font-weight: 700; text-decoration: underline; background-color: rgb(255, 255, 0)">Pasted evidence</span></p>'
+          );
+        })()`);
+        assert.match(cleanedPaste, /<strong><u><mark>Pasted evidence<\/mark><\/u><\/strong>/);
+        assert.doesNotMatch(cleanedPaste, /style=|font-family|font-size|margin:/);
         assert.equal(await js("document.querySelector('[data-wiki-link]').textContent"), 'Alias');
         // Actual visual edit, then verify Markdown formatting and link preservation on disk.
         await js(`(() => { const ed = document.querySelector('.visual-document').editor;

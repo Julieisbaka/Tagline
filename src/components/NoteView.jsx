@@ -218,6 +218,10 @@ export default function NoteView({
         ) : mode === 'visual' ? (
           <VisualEditor value={content} onChange={onChange} onOpenLink={onOpenLink}
             spellcheck={settings.visualSpellcheck}
+            pasteCleanup={settings.pasteCleanup !== false}
+            pasteKeepBold={settings.pasteKeepBold !== false}
+            pasteKeepUnderline={settings.pasteKeepUnderline !== false}
+            pasteKeepHighlight={settings.pasteKeepHighlight !== false}
             onReady={onVisualEditorReady}
             keybindings={settings.keybindings}
             onSendCard={sendCurrent} onSection={setVisualSection} noteNames={noteNames} visualRef={visualRef}

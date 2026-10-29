@@ -4,6 +4,7 @@ import { splitFrontmatter } from '../lib/frontmatter.js';
 import { useI18n } from '../lib/i18n.js';
 import { binding, KEYBINDINGS, matchesBinding } from '../lib/keybindings.js';
 import { slugify } from '../lib/markdown.js';
+import { cleanPastedHTML } from '../lib/pasteCleanup.js';
 import { cachedDocument, cacheDocument } from '../lib/visualCache.js';
 import { visualExtensions } from '../lib/visualExtensions.js';
 import { visualSelection } from '../lib/visualHelpers.js';
@@ -13,7 +14,8 @@ import VisualFindReplace from './VisualFindReplace.jsx';
 
 export default function VisualEditor({
   value, onChange, onOpenLink, onSendCard, onSection, noteNames, visualRef, jump, keybindings,
-  toolbarVisible = true, spellcheck = true, onReady,
+  toolbarVisible = true, spellcheck = true, pasteCleanup = true, pasteKeepBold = true,
+  pasteKeepUnderline = true, pasteKeepHighlight = true, onReady,
 }) {
   const metadata = useMemo(() => splitFrontmatter(value), [value]);
   const live = useRef({});
@@ -21,6 +23,7 @@ export default function VisualEditor({
     onChange: (body) => onChange(metadata.prefix +
       (metadata.prefix && !metadata.prefix.endsWith('\n') && body ? '\n' : '') + body),
     onOpenLink, onSendCard, onSection, keybindings,
+    pasteCleanup, pasteKeepBold, pasteKeepUnderline, pasteKeepHighlight,
   };
   return <MemoizedDocument value={metadata.body} noteNames={noteNames} visualRef={visualRef} jump={jump}
     live={live} keybindings={keybindings} toolbarVisible={toolbarVisible} spellcheck={spellcheck} onReady={onReady} />;
@@ -55,6 +58,14 @@ function VisualDocument({ value, noteNames, visualRef, jump, live, keybindings, 
       live.current.onSection(visualSelection(ed, true));
     },
     editorProps: {
+      transformPastedHTML(html) {
+        if (!live.current.pasteCleanup) return html;
+        return cleanPastedHTML(html, {
+          keepBold: live.current.pasteKeepBold,
+          keepUnderline: live.current.pasteKeepUnderline,
+          keepHighlight: live.current.pasteKeepHighlight,
+        });
+      },
       attributes: {
         class: 'markdown-body visual-document', role: 'textbox',
         'aria-multiline': 'true', 'aria-label': t('Visual note editor')
