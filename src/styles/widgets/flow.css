@@ -19,11 +19,10 @@
 .flow-sheet-tab {
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 4px 10px;
+  gap: 2px;
+  padding: 2px 4px;
   border: 1px solid transparent;
   border-radius: 6px;
-  cursor: pointer;
   color: var(--text-muted);
   white-space: nowrap;
 }
@@ -35,13 +34,43 @@
   font-weight: 600;
 }
 
+.flow-sheet-select {
+  border: none;
+  background: transparent;
+  padding: 2px 6px;
+  color: inherit;
+  font: inherit;
+  white-space: nowrap;
+}
+
+.flow-sheet-select:hover {
+  background: var(--bg-hover);
+  border-color: transparent;
+}
+
+.flow-sheet-select:active {
+  transform: none;
+}
+
 .flow-sheet-close {
-  display: flex;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: transparent;
+  padding: 2px;
+  color: inherit;
   opacity: 0.5;
 }
 
 .flow-sheet-close:hover {
+  background: var(--bg-hover);
+  border-color: transparent;
   opacity: 1;
+}
+
+.flow-sheet-close:active {
+  transform: none;
 }
 
 .flow-sheet-input {

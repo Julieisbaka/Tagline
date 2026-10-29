@@ -277,31 +277,27 @@ export default function FlowEditor({ path, content, mode, onChange, onRestore, f
             <div
               key={i}
               className={`flow-sheet-tab${i === idx ? ' active' : ''}`}
-              tabIndex={0}
-              role="button"
-              aria-pressed={i === idx}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setActive(i); }
-              }}
-              onClick={() => { setActive(i); setSelection(null); }}
-              onDoubleClick={() => setRenaming(i)}
               onContextMenu={(e) => context(e, [
                 { label: 'Rename sheet', run: () => setRenaming(i) },
                 { label: 'Delete sheet', run: () => removeSheet(i), disabled: data.sheets.length === 1, danger: true },
               ])}
-              title={t('Double-click to rename')}
             >
-              {s.name}
+              <button type="button" className="flow-sheet-select" aria-pressed={i === idx}
+                onClick={() => { setActive(i); setSelection(null); }}
+                onDoubleClick={() => setRenaming(i)} title={t('Double-click to rename')}>
+                {s.name}
+              </button>
               {data.sheets.length > 1 && (
-                <span
-                  className="flow-sheet-close"
+                <button type="button" className="flow-sheet-close"
+                  aria-label={t('Delete sheet "{name}"?', { name: s.name })}
+                  title={t('Delete sheet')}
                   onClick={(e) => {
                     e.stopPropagation();
                     removeSheet(i);
                   }}
                 >
                   <Icon name="x" size={10} />
-                </span>
+                </button>
               )}
             </div>
           ),
