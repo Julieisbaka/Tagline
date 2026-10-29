@@ -2,6 +2,7 @@
   "wpm": 250,
   "readingSamples": [],
   "speechDoc": "Speech Docs/Speech.md",
+  "warnDuplicateSend": true,
   "fontSize": 16,
   "format": "highschool",
   "timerSoundName": "",

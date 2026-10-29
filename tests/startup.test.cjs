@@ -155,6 +155,15 @@ test('speech markers preserve other properties and discover only boolean-marked 
   assert.throws(() => markSpeechDocument('---\na: [\n---'), /Invalid YAML/);
 });
 
+test('duplicate evidence detection ignores whitespace and frontmatter', async () => {
+  const { containsEvidence } = await import('../src/lib/card.js');
+  const doc = '---\nspeech: true\n---\n# Speech\n\n#### Tag\nSome   evidence\ntext.\n';
+  assert.equal(containsEvidence(doc, '#### Tag\nSome evidence text.'), true);
+  assert.equal(containsEvidence(doc, 'Other card'), false);
+  assert.equal(containsEvidence(doc, 'speech: true'), false);
+  assert.equal(containsEvidence(doc, '  '), false);
+});
+
 test('metadata is excluded from note structure, evidence statistics and spoken text', async () => {
   const { cardStats, getSectionAt, spokenEvidence } = await import('../src/lib/card.js');
   const { outline, extractTags, extractLinks } = await import('../src/lib/vault.js');

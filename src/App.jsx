@@ -5,7 +5,7 @@ import AppLayout from './components/layout/AppLayout.jsx';
 import { renameTarget } from './components/layout/Sidebar.jsx';
 import { clampPanel, PANEL_LIMITS } from './components/layout/Splitter.jsx';
 import { EMPTY_CANVAS } from './lib/canvas.js';
-import { getSectionAt } from './lib/card.js';
+import { containsEvidence, getSectionAt } from './lib/card.js';
 import { buildCommands, fillTemplate } from './lib/commands.js';
 import { markSpeechDocument, speechDocumentPaths } from './lib/frontmatter.js';
 import { useI18n } from './lib/i18n.js';
@@ -279,6 +279,8 @@ export default function App() {
         if (v.contents[doc] != null) {
           if (!speechDocuments.includes(doc)) throw new Error(t('Select a marked speech document before sending cards.'));
           const destination = v.contents[doc];
+          if (settings.warnDuplicateSend && containsEvidence(destination, text)
+            && !await confirm(t('This evidence is already in “{name}”. Send it again?', { name: baseName(doc) }))) return;
           v.updateContent(doc, `${destination.trimEnd()}\n\n${text}\n`);
           if (!await v.flush()) return;
         } else {
@@ -290,7 +292,7 @@ export default function App() {
       } catch (error) { notify(error.message); }
       return undefined;
     },
-    [activePath, activeContent, mode, speechDoc, speechDocuments, v, notify, updateSettings],
+    [activePath, activeContent, mode, speechDoc, speechDocuments, v, notify, updateSettings, settings.warnDuplicateSend, confirm],
   );
 
   const templates = paths.filter((p) => p.toLowerCase().startsWith('templates/') && isMarkdown(p));

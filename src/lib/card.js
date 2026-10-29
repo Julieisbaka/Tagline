@@ -95,6 +95,13 @@ export function cardStats(content) {
   };
 }
 
+/** Whether a speech document body already contains the evidence text, ignoring whitespace differences. @param {string} document @param {string} text @returns {boolean} */
+export function containsEvidence(document, text) {
+  const normalize = (value) => value.replace(/\s+/g, ' ').trim();
+  const needle = normalize(text || '');
+  return !!needle && normalize(splitFrontmatter(document || '').body).includes(needle);
+}
+
 /** Format a nonnegative duration in seconds as minutes and zero-padded seconds. @param {number} totalSeconds @returns {string} */
 export function formatDuration(totalSeconds) {
   const s = Math.max(0, Math.round(totalSeconds));

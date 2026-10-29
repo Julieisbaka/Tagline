@@ -39,6 +39,11 @@ export default function ReadingSettings({ settings, update }) {
   };
   const change = (id, patch) => setDrafts((previous) => previous.map((item) => item.id === id ? { ...item, ...patch } : item));
   return <section className="reading-settings">
+    <h4>{t('Sending evidence')}</h4>
+    <label className="setting-row"><span>{t('Warn before sending evidence already in the speech document')}</span>
+      <input type="checkbox" data-setting="warnDuplicateSend" checked={settings.warnDuplicateSend}
+        onChange={(event) => update({ warnDuplicateSend: event.target.checked })} />
+    </label>
     <h4>{t('Personal speech calibration')}</h4>
     <p>{t('The speaking-rate setting is used only without calibration. Default estimates include syllables, number and acronym pronunciation, articulation complexity, and punctuation pauses. Estimates are optimized for English.')}</p>
     <p>{t('Import one or more documents and enter the seconds you actually spent reading each. Choose the full document or only highlighted evidence and spoken citations. Only derived statistics and timing are saved locally.')}</p>
