@@ -261,6 +261,32 @@ test('release lists only direct user-facing commits not already represented by m
   assert.ok(containsUrl(body, 'https://github.com/test/tagline/pull/12'), 'generated pull request notes remain intact');
 });
 
+test('release omits commits prefixed with ignore: from the changelog and new contributors', async () => {
+  const h = await publish({
+    records: [
+      { sha: 'visible', subject: 'Add a feature', email: 'visible@example.test' },
+      { sha: 'ignored', subject: 'ignore: internal cleanup', email: 'ignored@example.test' },
+      { sha: 'ignored-case', subject: 'Ignore: another internal change', email: 'case@example.test' },
+    ],
+    authors: {
+      visible: { login: 'Visible', type: 'User' },
+      ignored: { login: 'Ignored', type: 'User' },
+      'ignored-case': { login: 'CaseIgnored', type: 'User' },
+    },
+    oldEmails: [],
+  });
+  await h.execute();
+  const body = h.calls.find(([name]) => name === 'create')[1].body;
+  assert.ok(body.includes('* Add a feature'));
+  assert.ok(!body.includes('ignore: internal cleanup'));
+  assert.ok(!body.includes('Ignore: another internal change'));
+  assert.ok(body.includes('@Visible'));
+  assert.ok(!body.includes('@Ignored'));
+  assert.ok(!body.includes('@CaseIgnored'));
+  assert.ok(!h.calls.some(([name, options]) =>
+    name === 'pulls' && ['ignored', 'ignored-case'].includes(options)));
+});
+
 test('release limits displayed commits to the latest 20 after filtering and links the full comparison', async () => {
   const records = Array.from({ length: 27 }, (_, i) => ({
     sha: `commit${i}`, subject: `Change ${i}`, email: 'existing@example.test',

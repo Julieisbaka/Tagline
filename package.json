@@ -1,7 +1,7 @@
 {
   "name": "tagline",
   "productName": "Tagline",
-  "version": "0.0.4-dev",
+  "version": "0.0.4",
   "type": "module",
   "description": "Obsidian-style knowledge vault for policy debaters",
   "main": "electron/main.cjs",
