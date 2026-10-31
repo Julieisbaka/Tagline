@@ -26,18 +26,20 @@ async function setup(t, options = {}) {
       encryptStringAsync: async (value) => Buffer.from(`encrypted:${value}`),
       decryptStringAsync: async (value) => ({ result: value.toString().slice('encrypted:'.length) }),
     },
-    shell: { openExternal: async (url) => {
-      opened.push(url);
-      if (!url.startsWith('https://accounts.google.com/')) return;
-      authUrl = new URL(url);
-      if (options.browser) return options.browser(authUrl);
-      const callback = new URL(authUrl.searchParams.get('redirect_uri'));
-      callback.search = new URLSearchParams({ code: 'test-auth-code', state: authUrl.searchParams.get('state') });
-      callbacks.push(callback.href);
-      const result = await fetch(callback);
-      assert.equal(result.status, 200);
-      assert.ok(!(await result.text()).includes('test-auth-code'));
-    } },
+    shell: {
+      openExternal: async (url) => {
+        opened.push(url);
+        if (!url.startsWith('https://accounts.google.com/')) return;
+        authUrl = new URL(url);
+        if (options.browser) return options.browser(authUrl);
+        const callback = new URL(authUrl.searchParams.get('redirect_uri'));
+        callback.search = new URLSearchParams({ code: 'test-auth-code', state: authUrl.searchParams.get('state') });
+        callbacks.push(callback.href);
+        const result = await fetch(callback);
+        assert.equal(result.status, 200);
+        assert.ok(!(await result.text()).includes('test-auth-code'));
+      }
+    },
     getWindow: () => ({}),
     dialog: {
       showMessageBox: async (_win, settings) => {
@@ -182,27 +184,31 @@ test('wrong or missing scopes, refresh tokens and verified identities cannot sav
 });
 
 test('OAuth callback rejects forged state, Unicode state, duplicate codes, unexpected paths and denied consent', async (t) => {
-  const mock = await setup(t, { browser: async (url) => {
-    const callback = new URL(url.searchParams.get('redirect_uri'));
-    for (const state of ['wrong', '\u00e9'.repeat(43), '']) {
-      callback.search = new URLSearchParams({ code: 'code', state });
+  const mock = await setup(t, {
+    browser: async (url) => {
+      const callback = new URL(url.searchParams.get('redirect_uri'));
+      for (const state of ['wrong', '\u00e9'.repeat(43), '']) {
+        callback.search = new URLSearchParams({ code: 'code', state });
+        assert.equal((await fetch(callback)).status, 400);
+      }
+      callback.pathname = '/wrong-path';
+      callback.search = new URLSearchParams({ code: 'code', state: url.searchParams.get('state') });
       assert.equal((await fetch(callback)).status, 400);
+      callback.pathname = '/oauth2callback';
+      callback.search = new URLSearchParams({ error: 'access_denied', state: url.searchParams.get('state') });
+      assert.equal((await fetch(callback)).status, 200);
     }
-    callback.pathname = '/wrong-path';
-    callback.search = new URLSearchParams({ code: 'code', state: url.searchParams.get('state') });
-    assert.equal((await fetch(callback)).status, 400);
-    callback.pathname = '/oauth2callback';
-    callback.search = new URLSearchParams({ error: 'access_denied', state: url.searchParams.get('state') });
-    assert.equal((await fetch(callback)).status, 200);
-  } });
+  });
   await assert.rejects(mock.service.connect(), /declined/);
   assert.equal(mock.requests.length, 0);
-  const duplicates = await setup(t, { browser: async (url) => {
-    const callback = new URL(url.searchParams.get('redirect_uri'));
-    callback.search = new URLSearchParams({ code: 'one', state: url.searchParams.get('state') });
-    callback.searchParams.append('code', 'two');
-    assert.equal((await fetch(callback)).status, 400);
-  } });
+  const duplicates = await setup(t, {
+    browser: async (url) => {
+      const callback = new URL(url.searchParams.get('redirect_uri'));
+      callback.search = new URLSearchParams({ code: 'one', state: url.searchParams.get('state') });
+      callback.searchParams.append('code', 'two');
+      assert.equal((await fetch(callback)).status, 400);
+    }
+  });
   await assert.rejects(duplicates.service.connect(), /authorization code/);
 });
 
@@ -217,20 +223,22 @@ test('pending Google sign-in can be canceled or timed out and closes its loopbac
   mock.service.cancelConnect();
   await assert.rejects(pending, /canceled/);
   await assert.rejects(fetch(url.searchParams.get('redirect_uri')), /fetch failed/);
-  const oauth = createGoogleOAuth({ shell: { openExternal: async () => {} }, authorizationTimeout: 20 });
+  const oauth = createGoogleOAuth({ shell: { openExternal: async () => { } }, authorizationTimeout: 20 });
   await assert.rejects(oauth.authorize(), /timed out/);
 });
 
 test('canceling during the token exchange aborts the request and cannot persist authorization', async (t) => {
   let started;
   const exchanging = new Promise((resolve) => { started = resolve; });
-  const mock = await setup(t, { response: (url, init) => {
-    if (url !== TOKEN_URL) return;
-    return new Promise((_resolve, reject) => {
-      init.signal.addEventListener('abort', () => reject(new Error('aborted')), { once: true });
-      started();
-    });
-  } });
+  const mock = await setup(t, {
+    response: (url, init) => {
+      if (url !== TOKEN_URL) return;
+      return new Promise((_resolve, reject) => {
+        init.signal.addEventListener('abort', () => reject(new Error('aborted')), { once: true });
+        started();
+      });
+    }
+  });
   const pending = mock.service.connect();
   await exchanging;
   mock.service.cancelConnect();
@@ -240,9 +248,11 @@ test('canceling during the token exchange aborts the request and cannot persist 
 });
 
 test('rotated refresh tokens are encrypted and persisted before a confirmed upload', async (t) => {
-  const mock = await setup(t, { response: (url, init) => url === TOKEN_URL &&
-    new URLSearchParams(init.body).get('grant_type') === 'refresh_token'
-    ? json({ ...validTokens, refresh_token: 'rotated-refresh-token' }) : undefined });
+  const mock = await setup(t, {
+    response: (url, init) => url === TOKEN_URL &&
+      new URLSearchParams(init.body).get('grant_type') === 'refresh_token'
+      ? json({ ...validTokens, refresh_token: 'rotated-refresh-token' }) : undefined
+  });
   const saved = await mock.service.connect();
   await mock.service.sendNote({ title: 'Evidence', html: 'x', connectionId: saved.savedConnectionId });
   const config = JSON.parse(await fs.readFile(path.join(mock.root, 'google-docs.json'), 'utf8'));
@@ -259,10 +269,12 @@ test('rotated refresh tokens are encrypted and persisted before a confirmed uplo
 test('an upload confirmation locks connection changes and cancellation leaves the account connected', async (t) => {
   let showConfirmation, finish;
   const shown = new Promise((resolve) => { showConfirmation = resolve; });
-  const mock = await setup(t, { confirm: (settings) => {
-    if (settings.message.startsWith('Connect')) return 1;
-    return new Promise((resolve) => { finish = resolve; showConfirmation(); });
-  } });
+  const mock = await setup(t, {
+    confirm: (settings) => {
+      if (settings.message.startsWith('Connect')) return 1;
+      return new Promise((resolve) => { finish = resolve; showConfirmation(); });
+    }
+  });
   const saved = await mock.service.connect();
   const pending = mock.service.sendNote({ title: 'Evidence', html: 'x', connectionId: saved.savedConnectionId });
   await shown;
@@ -280,8 +292,10 @@ test('revoked authorization and account mismatch fail before upload without leak
   const expired = createGoogleDocs({ ...mock.dependencies, fetchImpl: async () => json({ error: 'invalid_grant', error_description: REFRESH }, 400) });
   await assert.rejects(expired.sendNote({ title: 'Evidence', html: 'x', connectionId: saved.savedConnectionId }),
     (error) => /Reconnect/.test(error.message) && !error.message.includes(REFRESH));
-  const mismatch = createGoogleDocs({ ...mock.dependencies, fetchImpl: async (url) =>
-    url === TOKEN_URL ? json(validTokens) : json({ ...account, sub: 'someone-else' }) });
+  const mismatch = createGoogleDocs({
+    ...mock.dependencies, fetchImpl: async (url) =>
+      url === TOKEN_URL ? json(validTokens) : json({ ...account, sub: 'someone-else' })
+  });
   await assert.rejects(mismatch.sendNote({ title: 'Evidence', html: 'x', connectionId: saved.savedConnectionId }), /different account/);
 });
 
@@ -304,13 +318,15 @@ test('direct upload failures never retry document creation or return success-sha
 test('declared and streamed OAuth responses are bounded and canceled without saving credentials', async (t) => {
   for (const declared of [true, false]) {
     let canceled = false;
-    const mock = await setup(t, { response: (url) => {
-      if (url !== TOKEN_URL) return;
-      return new Response(new ReadableStream({
-        pull(controller) { controller.enqueue(new Uint8Array(40000)); },
-        cancel() { canceled = true; },
-      }), declared ? { headers: { 'content-length': '70000' } } : undefined);
-    } });
+    const mock = await setup(t, {
+      response: (url) => {
+        if (url !== TOKEN_URL) return;
+        return new Response(new ReadableStream({
+          pull(controller) { controller.enqueue(new Uint8Array(40000)); },
+          cancel() { canceled = true; },
+        }), declared ? { headers: { 'content-length': '70000' } } : undefined);
+      }
+    });
     await assert.rejects(mock.service.connect(), /Cannot read/);
     assert.equal(canceled, true);
     assert.equal((await mock.service.status()).configured, false);

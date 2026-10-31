@@ -290,7 +290,7 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
           await wait("!!document.querySelector('.context-menu')");
           assert.ok(await js(`['Undo', 'Redo', 'Paste'].every(label =>
             [...document.querySelectorAll('.context-menu button')].some(button => button.textContent.trim() === label))`),
-          'Editable text must expose clipboard and undo commands');
+            'Editable text must expose clipboard and undo commands');
           wc.sendInputEvent({ type: 'keyDown', keyCode: 'Escape' });
           await wait("!document.querySelector('.context-menu')");
         }

@@ -174,8 +174,10 @@ export default function ThemeSettings({ settings, update }) {
           <span>{variablesLabel}</span>
           <CodeMirror value={variables} onChange={setVariables} extensions={variablesExtensions}
             theme="none" minHeight="180px" maxHeight="420px"
-            basicSetup={{ foldGutter: true, highlightActiveLine: true, autocompletion: true, searchKeymap: true,
-              highlightSelectionMatches: settings.sourceSelectionMatches }} />
+            basicSetup={{
+              foldGutter: true, highlightActiveLine: true, autocompletion: true, searchKeymap: true,
+              highlightSelectionMatches: settings.sourceSelectionMatches
+            }} />
         </div>
         <p>{t('Edit any color token and safe CSS variables, including fonts, sizes, and spacing. URLs, declarations, and imports are not allowed.')}</p>
         <div className="settings-actions">

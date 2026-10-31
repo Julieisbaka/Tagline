@@ -49,12 +49,16 @@ const tabroomTeam = {
   students: [{ id: '10', first: 'Alice', last: 'Able' }, { id: '11', first: 'Bob', last: 'Baker' }],
 };
 const wikiSchool = { name: 'ExampleSchool', display_name: 'Example School', chapter_id: 100 };
-const wikiTeam = { name: 'AB', display_name: 'Example School AB',
+const wikiTeam = {
+  name: 'AB', display_name: 'Example School AB',
   debater1_student_id: 11, debater2_student_id: 10,
-  debater1_first: 'Bob', debater1_last: 'Baker', debater2_first: 'Alice', debater2_last: 'Able' };
+  debater1_first: 'Bob', debater1_last: 'Baker', debater2_first: 'Alice', debater2_last: 'Able'
+};
 const resolveTeam = (team = tabroomTeam, schools = [wikiSchool], teams = [wikiTeam], event = 'cx') =>
-  resolveCaselistTeam({ caselist: 'ndt2026', team, list: async (kind) =>
-    kind === 'caselists' ? [{ name: 'ndt2026', event }] : kind === 'schools' ? schools : teams });
+  resolveCaselistTeam({
+    caselist: 'ndt2026', team, list: async (kind) =>
+      kind === 'caselists' ? [{ name: 'ndt2026', event }] : kind === 'schools' ? schools : teams
+  });
 
 test('Tabroom matching verifies shared chapter and complete student IDs, independent of team code and roster order', async () => {
   const result = await resolveTeam({ ...tabroomTeam, name: 'Different tournament name', code: '999' });
@@ -116,8 +120,10 @@ test('generated surname codes find actual redacted or missing-roster teams in ei
       assert.equal(result.candidates[0].selection.team, name);
     }
   }
-  const redacted = { name: 'BaAb', debater1_first: 'Bo.....', debater1_last: 'Ba.....',
-    debater2_first: 'Al.....', debater2_last: 'Ab.....' };
+  const redacted = {
+    name: 'BaAb', debater1_first: 'Bo.....', debater1_last: 'Ba.....',
+    debater2_first: 'Al.....', debater2_last: 'Ab.....'
+  };
   assert.equal((await resolveTeam(tabroomTeam, [wikiSchool], [redacted])).candidates[0].evidence, 'generated-code');
   const ambiguous = await resolveTeam(tabroomTeam, [wikiSchool], [{ name: 'AbBa' }, { name: 'AbBa1' }, { name: 'BaAb2' }]);
   assert.equal(ambiguous.status, 'ambiguous');
@@ -134,7 +140,7 @@ test('generated fallback respects event rules, missing names, real slug boundari
     assert.equal((await resolveTeam(tabroomTeam, [wikiSchool], [{ name }])).status, 'unmatched');
   }
   for (const students of [[{ first: 'Alice' }, { last: 'Baker' }], [{ last: '123' }, { last: 'Baker' }],
-    [{ last: 'Ab.....' }, { last: 'Baker' }], Array(5).fill({ last: 'Able' })]) {
+  [{ last: 'Ab.....' }, { last: 'Baker' }], Array(5).fill({ last: 'Able' })]) {
     assert.equal((await resolveTeam({ ...tabroomTeam, students }, [wikiSchool], [{ name: 'AbBa' }])).status, 'unmatched');
   }
   assert.equal((await resolveTeam(tabroomTeam, [wikiSchool], [{ name: 'AbBa' }], null)).status, 'unmatched');
@@ -155,8 +161,10 @@ test('generated fallback respects event rules, missing names, real slug boundari
 });
 
 test('backend team resolution requires an explicit existing caselist and uses authenticated reads with real URL slugs', async () => {
-  const mock = setup({ response: (url) => json(url.includes('/teams') ? [wikiTeam] :
-    url.includes('/schools') ? [wikiSchool] : [{ name: 'ndt2026' }]) });
+  const mock = setup({
+    response: (url) => json(url.includes('/teams') ? [wikiTeam] :
+      url.includes('/schools') ? [wikiSchool] : [{ name: 'ndt2026' }])
+  });
   const result = await mock.service.resolveTabroomTeam('ndt2026', tabroomTeam);
   assert.equal(result.status, 'matched');
   assert.equal(result.candidates[0].url, 'https://opencaselist.com/ndt2026/ExampleSchool/AB');
@@ -173,8 +181,10 @@ test('backend team resolution requires an explicit existing caselist and uses au
 });
 
 test('backend matching escapes verified slugs and rejects results after a session change', async () => {
-  const encoded = setup({ response: (url) => json(url.includes('/teams') ? [{ ...wikiTeam, name: 'AbBa & 1' }] :
-    url.includes('/schools') ? [{ ...wikiSchool, name: 'Example School' }] : [{ name: 'ndt2026' }]) });
+  const encoded = setup({
+    response: (url) => json(url.includes('/teams') ? [{ ...wikiTeam, name: 'AbBa & 1' }] :
+      url.includes('/schools') ? [{ ...wikiSchool, name: 'Example School' }] : [{ name: 'ndt2026' }])
+  });
   const result = await encoded.service.resolveTabroomTeam('ndt2026', tabroomTeam);
   assert.equal(result.candidates[0].url, 'https://opencaselist.com/ndt2026/Example%20School/AbBa%20%26%201');
   let complete;
@@ -442,16 +452,20 @@ test('platform: downloads reject existing directory links and unsafe filenames w
 test('platform: downloads do not save after a vault switch and cannot overwrite a file created during transfer', async (t) => {
   const root = await temporary(t);
   let current = root;
-  const changed = setup({ root, getVaultRoot: () => current, response: () => {
-    current = null;
-    return new Response('download');
-  } });
+  const changed = setup({
+    root, getVaultRoot: () => current, response: () => {
+      current = null;
+      return new Response('download');
+    }
+  });
   await assert.rejects(changed.service.download('Evidence.docx'), /vault changed/);
   assert.deepEqual(await fs.readdir(root), []);
-  const racing = setup({ root, response: async () => {
-    await fs.writeFile(path.join(root, 'Evidence.docx'), 'keep');
-    return new Response('download');
-  } });
+  const racing = setup({
+    root, response: async () => {
+      await fs.writeFile(path.join(root, 'Evidence.docx'), 'keep');
+      return new Response('download');
+    }
+  });
   await assert.rejects(racing.service.download('Evidence.docx'), { code: 'EEXIST' });
   assert.equal(await fs.readFile(path.join(root, 'Evidence.docx'), 'utf8'), 'keep');
 });

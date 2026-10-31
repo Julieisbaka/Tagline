@@ -47,8 +47,10 @@ export default function CustomCssSettings({ settings, update }) {
     <div className="custom-css-editor">
       <span>{label} <small>{t('Ctrl/Cmd+Enter applies')}</small></span>
       <CodeMirror value={draft} onChange={setDraft} extensions={extensions} theme="none" minHeight="180px" maxHeight="420px"
-        basicSetup={{ foldGutter: true, highlightActiveLine: true, autocompletion: true, searchKeymap: true,
-          highlightSelectionMatches: settings.sourceSelectionMatches }} />
+        basicSetup={{
+          foldGutter: true, highlightActiveLine: true, autocompletion: true, searchKeymap: true,
+          highlightSelectionMatches: settings.sourceSelectionMatches
+        }} />
     </div>
     <div className="settings-actions">
       <button disabled={draft === settings.customCss} onClick={() => update({ customCss: draft })}>{t('Apply CSS')}</button>

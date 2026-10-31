@@ -1,14 +1,14 @@
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { redo as redoEditor, undo as undoEditor } from '@codemirror/commands';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { EMPTY_FLOW, FLOW_PRESETS as PRESETS, flowColumns, parseFlow } from '../../electron/flow.mjs';
 import { cellBounds, copyFlowCells, parseFlowCells, pasteFlowCells } from '../lib/flowCells.js';
 import { useI18n } from '../lib/i18n.js';
 import { binding, displayBinding, matchesBinding } from '../lib/keybindings.js';
+import { useConfirm } from './dialogs/ConfirmProvider.jsx';
 import ContextMenu from './dialogs/ContextMenu.jsx';
 import Icon from './Icon.jsx';
-import { useConfirm } from './dialogs/ConfirmProvider.jsx';
-import JsonRecovery from './JsonRecovery.jsx';
 import JsonEditor from './JsonEditor.jsx';
+import JsonRecovery from './JsonRecovery.jsx';
 
 const AFF = new Set(['1AC', '2AC', '1AR', '2AR', 'AC', 'AR']);
 export { EMPTY_FLOW } from '../../electron/flow.mjs';

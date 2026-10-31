@@ -1,18 +1,18 @@
 import { marked } from 'marked';
 import { EMPTY_FLOW, parseFlow, serializeFlow, setFlowCell } from '../../electron/flow.mjs';
+import { dateValue, monthDays, moveMonth, parseDate } from './calendar.js';
 import {
   canvasGroupMembers, createArgumentEdge, createCanvasId, createCanvasNode, moveCanvasNodes,
   parseCanvas, resolveCanvasLink, serializeCanvas, suggestCanvasFiles,
 } from './canvas.js';
 import { cardStats, formatDuration, getSectionAt, spokenEvidence } from './card.js';
 import { createCitation, spokenCitations } from './citation.js';
-import { markSpeechDocument, readFrontmatter, speechDocumentPaths, splitFrontmatter } from './frontmatter.js';
-import { dateValue, monthDays, moveMonth, parseDate } from './calendar.js';
 import { remainingAt } from './countdown.js';
 import { cellBounds, copyFlowCells, parseFlowCells, pasteFlowCells } from './flowCells.js';
 import { folderPaths, normalizeFolders } from './folderPaths.js';
-import { initialLanguage, systemLanguage } from './localization.js';
+import { markSpeechDocument, readFrontmatter, speechDocumentPaths, splitFrontmatter } from './frontmatter.js';
 import { displayBinding, validBinding } from './keybindings.js';
+import { initialLanguage, systemLanguage } from './localization.js';
 import { renderMarkdown, slugify } from './markdown.js';
 import { buildHypotheses, entailmentLabel, premiseText } from './nli.js';
 import {

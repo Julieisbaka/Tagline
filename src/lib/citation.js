@@ -1,7 +1,15 @@
-/** Escape citation text for safe, literal insertion into Markdown. @param {string} value @returns {string} */
+/** 
+ * Escape citation text for safe, literal insertion into Markdown.
+ * @param {string} value - The citation text to escape.
+ * @returns {string} - The escaped citation text.
+ */
 const escape = (value) => value.trim().replace(/[\\`*_[\]<>]/g, '\\$&').replace(/\r?\n/g, ' ');
 
-/** Format validated author/year and optional source details as citation Markdown. @param {object} details @returns {string} */
+/** 
+ * Format validated author/year and optional source details as citation Markdown.
+ * @param {object} details - The citation details including author, year, title, publication, url, and accessed date.
+ * @returns {string} - The formatted citation in Markdown.
+ */
 export function createCitation({ author, year, title = '', publication = '', url = '', accessed = '' }) {
   if (!author.trim() || !/^\d{4}$/.test(year)) throw new Error('Enter an author and a four-digit year.');
   let link = '';

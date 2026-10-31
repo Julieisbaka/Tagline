@@ -1,7 +1,10 @@
 import { readFrontmatter } from './frontmatter.js';
 
-// Keep unsupported structures in source mode rather than silently deleting them.
-/** Return the first Markdown construct that cannot be safely represented visually. @param {string} content @returns {string|null} */
+/** 
+ * Return the first Markdown construct that cannot be safely represented visually.
+ * @param {string} content - The Markdown content to check.
+ * @returns {string|null} - A description of the unsupported construct, or null if none are found.
+ */
 export function visualBlocker(content) {
   const metadata = readFrontmatter(content);
   if (metadata.error) return 'invalid YAML frontmatter';
@@ -13,11 +16,22 @@ export function visualBlocker(content) {
   return null;
 }
 
-/** Serialize a ProseMirror document slice as Markdown. @param {object} editor @param {number} from @param {number} to @returns {string} */
+/** 
+ * Serialize a ProseMirror document slice as Markdown.
+ * @param {object} editor - The Tiptap editor instance.
+ * @param {number} from - The starting position of the slice.
+ * @param {number} to - The ending position of the slice.
+ * @returns {string} - The serialized Markdown content of the slice.
+ */
 const serializeSlice = (editor, from, to) =>
   editor.markdown.serialize({ type: 'doc', content: editor.state.doc.slice(from, to).content.toJSON() || [] });
 
-/** Serialize the selection, or the containing heading section, as Markdown. @param {object} editor @param {boolean} [ignoreSelection] @returns {string} */
+/** 
+ * Serialize the selection, or the containing heading section, as Markdown.
+ * @param {object} editor - The Tiptap editor instance.
+ * @param {boolean} [ignoreSelection] - If true, ignore the current selection and serialize the containing heading section instead.
+ * @returns {string} - The serialized Markdown content of the selection or heading section.
+ */
 export function visualSelection(editor, ignoreSelection = false) {
   const { from, to, $from } = editor.state.selection;
   if (!ignoreSelection && from !== to) {

@@ -41,7 +41,7 @@ async function launchInstaller({ file, platform, shell, spawnProcess = spawn, pr
 }
 
 function createUpdateManager({
-  app, shell, notify = () => {}, fetchImpl = fetch, platform = process.platform, arch = process.arch,
+  app, shell, notify = () => { }, fetchImpl = fetch, platform = process.platform, arch = process.arch,
   install = launchInstaller,
 }) {
   let state = { status: 'idle', release: null, received: 0, total: 0, error: '' };

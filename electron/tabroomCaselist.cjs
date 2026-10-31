@@ -87,7 +87,7 @@ async function resolveCaselistTeam({ caselist, team, list }) {
     const initials = roster.length >= 2 && roster.every((student) => student.last)
       ? roster.map((student) => student.last[0]).join('') : '';
     const code = [normalize(candidate.name), normalize(candidate.display_name), initials,
-      roster.length === 2 ? [...initials].reverse().join('') : '']
+    roster.length === 2 ? [...initials].reverse().join('') : '']
       .some((name) => name && codes.has(name));
     const slug = normalize(candidate.name);
     const generatedCode = [...generated].some((value) => slug === value ||

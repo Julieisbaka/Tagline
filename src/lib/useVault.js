@@ -6,7 +6,15 @@ import { buildIndex, isMarkdown, rewriteLinks } from './vault.js';
 const api = window.api;
 const SAVE_DELAY = 400;
 
-/** React hook that loads a vault and provides indexed, persisted vault operations. @param {boolean} [underscoreFolders] @param {boolean} [autoRelink] @param {number} [historyRetention] @param {string} [canvasHistoryMode] @param {boolean} [experimentalHistoryDeltas] @returns {object} */
+/** 
+ * React hook that loads a vault and provides indexed, persisted vault operations.
+ * @param {boolean} [underscoreFolders] - Indicates whether folder names should be prefixed with underscores.
+ * @param {boolean} [autoRelink] - Enables automatic relinking of references within the vault.
+ * @param {number} [historyRetention] - The number of historical versions to retain for each file.
+ * @param {string} [canvasHistoryMode] - The mode for handling canvas history, e.g., 'complete'.
+ * @param {boolean} [experimentalHistoryDeltas] - Enables experimental handling of history deltas.
+ * @returns {object} - An object containing the vault state, tree structure, contents, error state, readiness, initialization status, save statuses, and various vault operations.
+ */
 export function useVault(underscoreFolders = true, autoRelink = true, historyRetention = 50, canvasHistoryMode = 'complete', experimentalHistoryDeltas = false) {
   const [vault, setVault] = useState(null);
   const [tree, setTree] = useState([]);
@@ -29,10 +37,20 @@ export function useVault(underscoreFolders = true, autoRelink = true, historyRet
   const experimentalHistoryDeltasRef = useRef(experimentalHistoryDeltas);
   experimentalHistoryDeltasRef.current = experimentalHistoryDeltas;
   const directories = folderPaths(tree);
-  /** Normalize a new vault path according to the folder underscore preference. @param {string} path @param {boolean} [folder] @returns {string} */
+
+  /** 
+   * Normalize a new vault path according to the folder underscore preference.
+   * @param {string} path - The vault path to normalize.
+   * @param {boolean} [folder=false] - Indicates whether the path represents a folder.
+   * @returns {string} - The normalized vault path.
+   */
   const normalize = (path, folder = false) => underscoreFolders ? normalizeFolders(path, folder, directories) : path;
 
-  /** Store a vault operation error in hook state. @param {*} error @returns {void} */
+  /** 
+   * Store a vault operation error in hook state.
+   * @param {*} error - The error object or message to report.
+   * @returns {void} 
+   */
   const report = (e) => setError(e?.message || String(e));
 
   const setSaveStatus = useCallback((path, status) => setSaveStatuses((previous) => {
@@ -50,7 +68,11 @@ export function useVault(underscoreFolders = true, autoRelink = true, historyRet
     const task = previous.catch(() => { }).then(() =>
       api.write(path, text, historyRetentionRef.current, canvasHistoryModeRef.current, experimentalHistoryDeltasRef.current));
     writes.current.set(path, { task, text });
-    /** Remove this completed write only if no newer write replaced it. @returns {void} */
+    /** 
+     * Remove this completed write only if no newer write replaced it.
+     * @param {boolean} [failed=false] - Indicates whether the write operation failed.
+     * @returns {void} 
+     */
     const cleanup = (failed = false) => {
       if (writes.current.get(path)?.task !== task) return;
       writes.current.delete(path);
@@ -141,7 +163,11 @@ export function useVault(underscoreFolders = true, autoRelink = true, historyRet
   }, [writeDisk, setSaveStatus]);
 
   useEffect(() => {
-    /** Prevent closing the window until pending edits have been flushed. @param {BeforeUnloadEvent} event @returns {void} */
+    /** 
+     * Prevent closing the window until pending edits have been flushed.
+     * @param {BeforeUnloadEvent} event - The beforeunload event triggered by the browser.
+     * @returns {void} 
+     */
     const onUnload = (event) => {
       if (!Object.keys(pending.current).length && !writes.current.size) return;
       event.preventDefault();

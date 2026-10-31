@@ -102,10 +102,12 @@ function VisualDocument({ value, noteNames, visualRef, jump, live, keybindings, 
 
   useEffect(() => {
     if (!editor) return;
-    editor.setOptions({ editorProps: {
-      ...editor.options.editorProps,
-      attributes: { ...editor.options.editorProps.attributes, spellcheck: String(spellcheck) },
-    } });
+    editor.setOptions({
+      editorProps: {
+        ...editor.options.editorProps,
+        attributes: { ...editor.options.editorProps.attributes, spellcheck: String(spellcheck) },
+      }
+    });
   }, [editor, spellcheck]);
 
   useEffect(() => {

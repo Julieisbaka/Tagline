@@ -102,9 +102,9 @@ function createGoogleDocs({ app, safeStorage, dialog, shell, getWindow, fetchImp
         !/^[A-Za-z0-9_-]+$/.test(connection.id) ||
         (connection.type === 'oauth'
           ? typeof connection.encryptedTokens !== 'string' || !connection.encryptedTokens ||
-            typeof connection.subject !== 'string' || !connection.subject || connection.subject.length > 255
+          typeof connection.subject !== 'string' || !connection.subject || connection.subject.length > 255
           : (connection.type !== undefined && connection.type !== 'script') ||
-            typeof connection.encryptedSecret !== 'string' || !connection.encryptedSecret)) ||
+          typeof connection.encryptedSecret !== 'string' || !connection.encryptedSecret)) ||
       new Set(config.connections.map((connection) => connection.id)).size !== config.connections.length)
       throw new Error('The saved Google Docs configuration is invalid. Disconnect and configure it again.');
     for (const connection of config.connections) {
@@ -277,8 +277,10 @@ function createGoogleDocs({ app, safeStorage, dialog, shell, getWindow, fetchImp
         });
         if (confirmation.response !== 1) return { canceled: true };
         const document = await oauth.upload(tokens.accessToken, title, mimeType, bytes);
-        return { canceled: false, code: 201, account: identity.account,
-          document: { ...document, accountEmail: identity.account.email } };
+        return {
+          canceled: false, code: 201, account: identity.account,
+          document: { ...document, accountEmail: identity.account.email }
+        };
       }
       const secret = await decrypt(config);
       const { account } = await request(config.endpoint, { action: 'account', secret }, 200);

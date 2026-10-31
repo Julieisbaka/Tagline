@@ -17,8 +17,8 @@ function registerNativeUi({ ipcMain, nativeTheme, Menu, dialog, getWindow }) {
     const win = authorize(event);
     if (!enabled) throw new Error('Native UI is disabled.');
     if (!Array.isArray(items) || !items.length || items.length > 100 ||
-        items.some((item) => !item || typeof item.label !== 'string' || item.label.length > 2000 ||
-          typeof item.disabled !== 'boolean')) throw new Error('Invalid native menu.');
+      items.some((item) => !item || typeof item.label !== 'string' || item.label.length > 2000 ||
+        typeof item.disabled !== 'boolean')) throw new Error('Invalid native menu.');
     return new Promise((resolve) => {
       let selected = null;
       const menu = Menu.buildFromTemplate(items.map((item, index) => ({

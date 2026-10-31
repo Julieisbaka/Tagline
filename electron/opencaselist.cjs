@@ -260,10 +260,12 @@ function createOpenCaselist({ session, BrowserWindow, dialog, getWindow, getVaul
   };
   const resolveTabroomTeam = async (caselist, team) => {
     const started = generation;
-    const result = await resolveCaselistTeam({ caselist, team, list: async (...args) => {
-      if (generation !== started) throw new Error('OpenCaselist session changed. Try again.');
-      return list(...args);
-    } });
+    const result = await resolveCaselistTeam({
+      caselist, team, list: async (...args) => {
+        if (generation !== started) throw new Error('OpenCaselist session changed. Try again.');
+        return list(...args);
+      }
+    });
     if (generation !== started) throw new Error('OpenCaselist session changed. Try again.');
     return {
       ...result,

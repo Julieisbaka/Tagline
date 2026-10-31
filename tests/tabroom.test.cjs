@@ -14,7 +14,7 @@ function setup(options = {}) {
   let cookies = options.cookies || [];
   const requests = [], windows = [];
   const session = {
-    cookies: { get: async () => cookies, flushStore: async () => {} },
+    cookies: { get: async () => cookies, flushStore: async () => { } },
     clearStorageData: async () => { cookies = []; },
     fetch: async (url, init) => { requests.push({ url, init }); return options.response ? options.response() : json(); },
   };
@@ -114,10 +114,12 @@ test('Tabroom bounds both declared and streamed response sizes', async () => {
   const declared = setup({ response: () => new Response('{}', { headers: { 'content-length': 33 * 1024 * 1024 } }) });
   await assert.rejects(declared.service.load(123), /32 MiB/);
   let cancelled = false;
-  const streamed = setup({ response: () => new Response(new ReadableStream({
-    pull(controller) { controller.enqueue(new Uint8Array(17 * 1024 * 1024)); },
-    cancel() { cancelled = true; },
-  })) });
+  const streamed = setup({
+    response: () => new Response(new ReadableStream({
+      pull(controller) { controller.enqueue(new Uint8Array(17 * 1024 * 1024)); },
+      cancel() { cancelled = true; },
+    }))
+  });
   await assert.rejects(streamed.service.load(123), /32 MiB/);
   assert.equal(cancelled, true);
 });
@@ -201,7 +203,7 @@ test('Tabroom IPC is restricted to the application main frame and uses its own p
   isolated.setPermissionRequestHandler = (handler) => handler(null, null, (allowed) => assert.equal(allowed, false));
   isolated.setPermissionCheckHandler = (handler) => assert.equal(handler(), false);
   isolated.setDevicePermissionHandler = (handler) => assert.equal(handler(), false);
-  isolated.on = (name, handler) => { assert.equal(name, 'will-download'); handler({ preventDefault() {} }); };
+  isolated.on = (name, handler) => { assert.equal(name, 'will-download'); handler({ preventDefault() { } }); };
   registerTabroom({
     ipcMain: { handle: (name, handler) => { handlers[name] = handler; } },
     session: { fromPartition: (name) => { partition = name; return isolated; } },
@@ -220,16 +222,22 @@ test('Tabroom IPC is restricted to the application main frame and uses its own p
 const nestedTournament = {
   ...tournament, city: 'Test City', timezone: 'America/New_York',
   schools: [
-    { id: 10, name: 'Example School', code: 'EX', chapter: 100,
+    {
+      id: 10, name: 'Example School', code: 'EX', chapter: 100,
       students: [{ id: 1, first: 'Alice', last: 'Able' }, { id: 2, first: 'Bob', last: 'Baker' }],
       entries: [{ id: 20, event: 30, code: 'EX AB', students: [1, 2] }],
-      judges: [{ id: 40, person: 500, first: 'Jane', last: 'Judge' }] },
+      judges: [{ id: 40, person: 500, first: 'Jane', last: 'Judge' }]
+    },
     { id: null, name: null, chapter: 101 },
   ],
   categories: [
-    { id: 5, name: 'Policy', judges: [{ id: 40, school: '10', first: 'Jane', last: 'Judge' }],
-      events: [{ id: 30, name: 'Varsity Policy', abbr: 'VCX', type: 'debate',
-        entries: [{ id: 20, school: 10, name: 'Example AB' }] }] },
+    {
+      id: 5, name: 'Policy', judges: [{ id: 40, school: '10', first: 'Jane', last: 'Judge' }],
+      events: [{
+        id: 30, name: 'Varsity Policy', abbr: 'VCX', type: 'debate',
+        entries: [{ id: 20, school: 10, name: 'Example AB' }]
+      }]
+    },
     { id: 6, name: 'Other', judges: [{ id: '40', first: 'Jane', last: 'Judge' }] },
     { id: 7, name: 'Private' },
   ],
@@ -266,10 +274,16 @@ test('TBA teams are excluded across nested copies but retained in raw JSON and e
   const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'tagline-tabroom-tba-'));
   t.after(() => fs.rm(dir, { recursive: true, force: true }));
   const file = path.join(dir, 'backup.json');
-  const data = { id: 123, categories: [{ events: [{ id: 1, entries: [
-    { id: 10, code: ' tBa ', name: 'Placeholder' }, { id: 11, code: 'AB' },
-    { code: 'TBA' }, { id: 12, code: 'TBAA' },
-  ] }] }], schools: [{ id: 1, entries: [{ id: 10, name: 'Duplicate' }, { id: 13, code: 'tba' }] }] };
+  const data = {
+    id: 123, categories: [{
+      events: [{
+        id: 1, entries: [
+          { id: 10, code: ' tBa ', name: 'Placeholder' }, { id: 11, code: 'AB' },
+          { code: 'TBA' }, { id: 12, code: 'TBAA' },
+        ]
+      }]
+    }], schools: [{ id: 1, entries: [{ id: 10, name: 'Duplicate' }, { id: 13, code: 'tba' }] }]
+  };
   const raw = JSON.stringify(data);
   const mock = setup({ response: () => new Response(raw), save: async () => ({ filePath: file }) });
   const result = await mock.service.load(123);
@@ -282,9 +296,13 @@ test('TBA teams are excluded across nested copies but retained in raw JSON and e
 });
 
 test('record links require positive numeric tournament, entry and student IDs', () => {
-  const snapshot = normalizeSnapshot({ id: 'invalid', events: [{ entries: [
-    { id: '20', students: [{ id: 1 }, { person: 500, first: 'No student ID' }, { id: '../bad' }] },
-  ] }] });
+  const snapshot = normalizeSnapshot({
+    id: 'invalid', events: [{
+      entries: [
+        { id: '20', students: [{ id: 1 }, { person: 500, first: 'No student ID' }, { id: '../bad' }] },
+      ]
+    }]
+  });
   const team = snapshot.collections.teams.rows[0];
   assert.equal(team.recordUrl, '');
   assert.ok(team.students[0].recordUrl.endsWith('id1=1'));
@@ -298,7 +316,7 @@ test('snapshot distinguishes missing, null, redacted and explicitly empty collec
   const empty = normalizeSnapshot({ categories: [{ judges: [] }] });
   assert.deepEqual(empty.collections.judges, { available: true, rows: [] });
   for (const invalid of [{ judges: {} }, { schools: [null] }, { categories: [{ events: 'hidden' }] },
-    { schools: [{ entries: [{ students: {} }] }] }])
+  { schools: [{ entries: [{ students: {} }] }] }])
     assert.ok(normalizeSnapshot(invalid).warnings.length);
 });
 
@@ -330,7 +348,7 @@ test('structured records are filtered and bounded to 50 per page, with validated
   assert.equal(mock.service.records(123, 'teams', 0, 'EX').total, 1);
   assert.equal(mock.requests.length, 1, 'Filtering and paging must not refetch the snapshot');
   for (const [kind, page, query] of [['__proto__', 0, ''], ['judges', -1, ''], ['judges', 3, ''],
-    ['judges', '0', ''], ['judges', 0, null], ['judges', 0, 'x'.repeat(201)]])
+  ['judges', '0', ''], ['judges', 0, null], ['judges', 0, 'x'.repeat(201)]])
     assert.throws(() => mock.service.records(123, kind, page, query), /Invalid/);
   assert.throws(() => mock.service.records(124, 'judges', 0, ''), /again/);
   await mock.service.logout();

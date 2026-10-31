@@ -107,7 +107,7 @@ const delay = (ms) => new Promise((r) => setTimeout(r, ms));
           ['Doc.md', 'Map.canvas'], 'dropping a tab on the right half moves it after the target');
         assert.deepEqual(await js(`JSON.parse(localStorage.getItem(
           Object.keys(localStorage).find(key => key.startsWith('tabs:')))).tabs.map(tab => tab.path)`),
-        ['Doc.md', 'Map.canvas'], 'tab order persists for the current vault');
+          ['Doc.md', 'Map.canvas'], 'tab order persists for the current vault');
         for (const [w, h] of [[1280, 800], [900, 700]]) {
           win.setContentSize(w, h); await delay(800);
           const clipped = await js(`(() => { const bar = document.querySelector('.status-bar').getBoundingClientRect(); return [...document.querySelectorAll('.status-bar > span:not(.spacer)')].filter(s => { const r = s.getBoundingClientRect(); return r.right > bar.right + 1 || r.bottom > bar.bottom + 1; }).map(s => s.textContent); })()`);

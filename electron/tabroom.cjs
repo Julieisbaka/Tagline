@@ -36,8 +36,10 @@ function createTabroom({ session, BrowserWindow, dialog, getWindow }) {
   };
   const status = async () => {
     const cookies = await session.cookies.get({ url: ORIGIN });
-    return { hasSession: cookies.some((cookie) => cookie.value &&
-      (!cookie.expirationDate || cookie.expirationDate * 1000 > Date.now())) };
+    return {
+      hasSession: cookies.some((cookie) => cookie.value &&
+        (!cookie.expirationDate || cookie.expirationDate * 1000 > Date.now()))
+    };
   };
   const login = async () => {
     if (loginWindow) { loginWindow.focus(); throw new Error('Tabroom sign-in is already open.'); }

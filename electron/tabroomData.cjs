@@ -50,8 +50,10 @@ function normalizeSnapshot(data) {
       if (!record(student)) student = (Array.isArray(school?.students) ? school.students : []).find((item) => record(item) &&
         identifier(item.id) && identifier(item.id) === identifier(student)) || { id: student };
       const id = identifier(student.id);
-      return { id, first: text(student.first), last: text(student.last),
-        recordUrl: positiveId(id) ? `https://www.tabroom.com/index/results/team_lifetime_record.mhtml?id1=${positiveId(id)}` : '' };
+      return {
+        id, first: text(student.first), last: text(student.last),
+        recordUrl: positiveId(id) ? `https://www.tabroom.com/index/results/team_lifetime_record.mhtml?id1=${positiveId(id)}` : ''
+      };
     });
   };
   const addTeam = (entry, event, school) => {

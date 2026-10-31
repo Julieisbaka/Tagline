@@ -11,7 +11,12 @@ import {
 import { trapTabKey } from './focusScope.js';
 import { translate } from './i18n.js';
 
-/** Update the search match count and current-match status in the panel. @param {EditorView} view @param {object} queryCache @returns {object} */
+/** 
+ * Update the search match count and current-match status in the panel.
+ * @param {EditorView} view - The CodeMirror editor view instance.
+ * @param {object} queryCache - An object caching the current search query and matches.
+ * @returns {object} - The updated list of search matches.
+ */
 function matchStatus(view, queryCache) {
   const query = getSearchQuery(view.state);
   if (queryCache.query && queryCache.doc === view.state.doc &&
@@ -38,7 +43,12 @@ function matchStatus(view, queryCache) {
   return matches;
 }
 
-/** Return the match containing the current editor selection, if any. @param {object[]} matches @param {object} selection @returns {number} */
+/** 
+ * Return the match containing the current editor selection, if any.
+ * @param {object[]} matches - The list of search matches.
+ * @param {object} selection - The current editor selection with `from` and `to` properties.
+ * @returns {number} - The 1-based index of the current match, or 0 if no match contains the selection.
+ */
 function currentMatch(matches, selection) {
   let low = 0;
   let high = matches.length;
@@ -141,7 +151,10 @@ export function createCodeMirrorFindReplacePanel(view) {
     caseInput.checked = query.caseSensitive;
     wholeWordInput.checked = query.wholeWord;
   };
-  /** Clear the active search query, close the panel, and restore editor focus. @returns {void} */
+  /** 
+   * Clear the active search query, close the panel, and restore editor focus.
+   * @returns {void}
+   */
   const close = () => {
     if (closed || view.destroyed) return;
     const query = getSearchQuery(view.state);

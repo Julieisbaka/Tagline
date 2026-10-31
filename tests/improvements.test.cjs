@@ -14,10 +14,12 @@ test('native UI is opt-in, follows light/dark mode and validates application-onl
   registerNativeUi({
     ipcMain: { handle: (name, handler) => { handlers[name] = handler; } },
     nativeTheme, getWindow: () => win,
-    Menu: { buildFromTemplate: (items) => {
-      menuItems = items;
-      return { popup: ({ callback }) => { if (selection !== null) items[selection].click(); callback(); } };
-    } },
+    Menu: {
+      buildFromTemplate: (items) => {
+        menuItems = items;
+        return { popup: ({ callback }) => { if (selection !== null) items[selection].click(); callback(); } };
+      }
+    },
     dialog: { showMessageBox: async (_win, options) => { confirmOptions = options; return { response: answer }; } },
   });
   const preferences = handlers['app:setNativeUi'];

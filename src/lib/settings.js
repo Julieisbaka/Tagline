@@ -3,9 +3,9 @@ import { setRuntimeLimits } from '../../electron/customization.mjs';
 import DEFAULTS from './defaultSettings.json' with { type: 'json' };
 import { setLanguage } from './i18n.js';
 import { initialLanguage } from './localization.js';
+import { setNativeUi } from './nativeUi.js';
 import { applyTheme, getTheme } from './themes.js';
 import { configureVisualCache } from './visualCache.js';
-import { setNativeUi } from './nativeUi.js';
 
 const KEY = 'tagline-settings';
 

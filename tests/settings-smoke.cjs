@@ -170,7 +170,7 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
           return el.labels[0].textContent; })()`), 'Show line numbers', 'help does not change the control name');
         assert.equal(await js(`(() => { const el = document.querySelector('${lineTip}');
           return document.getElementById(el.getAttribute('aria-describedby')).textContent; })()`),
-        'Show a numbered gutter beside source text.');
+          'Show a numbered gutter beside source text.');
         await js(`document.querySelector('${tipButton}').focus()`);
         await click(tipButton);
         await wait("!document.querySelector('[data-setting=sourceLineNumbers]').closest('.setting-row').querySelector('[role=tooltip]').hidden");

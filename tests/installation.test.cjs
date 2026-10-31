@@ -50,7 +50,7 @@ test('release downloads select the exact platform and architecture without trust
     const result = await checkForUpdates('1.0.0', async () => ({
       ok: true, json: async () => ({
         tag_name: 'v2.0.0', assets: [{ name, size: 42, browser_download_url: 'https://untrusted.test/app.exe' },
-          { name: 'SHA256SUMS.txt' }],
+        { name: 'SHA256SUMS.txt' }],
       }),
     }), platform, arch);
     if (!suffix) assert.equal(result.download, undefined);
@@ -115,7 +115,7 @@ test('platform: invalid, oversized, truncated and tampered update downloads neve
     const h = await updateHarness(t, options);
     await h.manager.check('1.0.0');
     await assert.rejects(h.manager.download());
-    await assert.rejects(h.manager.installUpdate(async () => {}));
+    await assert.rejects(h.manager.installUpdate(async () => { }));
     assert.equal(h.installs.length, 0);
     assert.deepEqual(await fs.readdir(h.root), [], 'failed downloads are cleaned up');
   }
@@ -124,10 +124,10 @@ test('platform: invalid, oversized, truncated and tampered update downloads neve
   await h.manager.download();
   const file = path.join(h.root, (await fs.readdir(h.root))[0], h.name);
   await fs.writeFile(file, 'tampered');
-  await assert.rejects(h.manager.installUpdate(async () => {}), /installer changed/);
+  await assert.rejects(h.manager.installUpdate(async () => { }), /installer changed/);
   assert.equal(h.installs.length, 0);
   await h.manager.download();
-  await h.manager.installUpdate(async () => {});
+  await h.manager.installUpdate(async () => { });
   assert.deepEqual(await fs.readFile(h.installs[0].file), h.data);
   const dev = await updateHarness(t, { packaged: false });
   await dev.manager.check('1.0.0');
@@ -150,7 +150,7 @@ test('platform: update operations reject overlapping work and do not launch a mi
   await h.manager.download();
   const file = path.join(h.root, (await fs.readdir(h.root))[0], h.name);
   await fs.unlink(file);
-  await assert.rejects(h.manager.installUpdate(async () => {}), /installer is missing/);
+  await assert.rejects(h.manager.installUpdate(async () => { }), /installer is missing/);
   assert.equal(h.installs.length, 0);
   await h.manager.download();
   assert.equal(h.manager.getState().status, 'ready', 'missing installers can be downloaded again');
@@ -163,7 +163,7 @@ test('update launch waits for Windows app exit and macOS reports open failures',
     spawnProcess: (command, args, options) => {
       launched = { command, args, options };
       const child = new EventEmitter();
-      child.unref = () => {};
+      child.unref = () => { };
       process.nextTick(() => child.emit('spawn'));
       return child;
     },
@@ -174,11 +174,15 @@ test('update launch waits for Windows app exit and macOS reports open failures',
   assert.match(launched.args.at(-1), /while \(Get-Process/);
   assert.match(launched.args.at(-1), /Start-Process -FilePath \$env:TAGLINE_UPDATE_INSTALLER/);
   let opened;
-  assert.deepEqual(await launchInstaller({ file: '/tmp/Tagline.dmg', platform: 'darwin',
-    shell: { openPath: async (file) => { opened = file; return ''; } } }), { manual: true });
+  assert.deepEqual(await launchInstaller({
+    file: '/tmp/Tagline.dmg', platform: 'darwin',
+    shell: { openPath: async (file) => { opened = file; return ''; } }
+  }), { manual: true });
   assert.equal(opened, '/tmp/Tagline.dmg');
-  await assert.rejects(launchInstaller({ file: '/tmp/Tagline.dmg', platform: 'darwin',
-    shell: { openPath: async () => 'Cannot open disk image' } }), /Cannot open/);
+  await assert.rejects(launchInstaller({
+    file: '/tmp/Tagline.dmg', platform: 'darwin',
+    shell: { openPath: async () => 'Cannot open disk image' }
+  }), /Cannot open/);
 });
 
 function harness() {

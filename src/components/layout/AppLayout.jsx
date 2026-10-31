@@ -4,6 +4,7 @@ import { STATUS_ITEMS } from '../../lib/workspaceItems.js';
 import { deferred } from '../Deferred.jsx';
 import ModalBackdrop from '../dialogs/ModalBackdrop.jsx';
 import Onboarding from '../dialogs/Onboarding.jsx';
+import TextContextMenu from '../dialogs/TextContextMenu.jsx';
 import Welcome from '../dialogs/Welcome.jsx';
 import ExtensionSurface from '../ExtensionSurface.jsx';
 import NoteView from '../NoteView.jsx';
@@ -13,7 +14,6 @@ import RightPanel from './RightPanel.jsx';
 import Sidebar, { renameTarget } from './Sidebar.jsx';
 import Splitter from './Splitter.jsx';
 import TabBar from './TabBar.jsx';
-import TextContextMenu from '../dialogs/TextContextMenu.jsx';
 
 const CanvasView = deferred(() => import('../CanvasView.jsx'));
 const GraphView = deferred(() => import('../GraphView.jsx'));

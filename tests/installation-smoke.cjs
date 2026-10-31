@@ -39,8 +39,10 @@ global.fetch = async (url) => {
   if (url.endsWith('/releases/latest')) {
     releaseCalls++;
     if (releaseCalls === 2) throw new Error('Simulated GitHub rate limit');
-    return new Response(JSON.stringify({ tag_name: 'v9.0.0',
-      assets: [{ name: installerName, size: installerBytes.length }, { name: 'SHA256SUMS.txt' }] }));
+    return new Response(JSON.stringify({
+      tag_name: 'v9.0.0',
+      assets: [{ name: installerName, size: installerBytes.length }, { name: 'SHA256SUMS.txt' }]
+    }));
   }
   if (url.endsWith('/SHA256SUMS.txt')) return new Response(`${invalidChecksum ? 'a'.repeat(64) : installerHash}  ${installerName}\n`);
   if (url.endsWith('/' + installerName)) return new Response(installerBytes);

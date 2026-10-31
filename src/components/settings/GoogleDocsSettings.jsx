@@ -87,40 +87,40 @@ export default function GoogleDocsSettings() {
     {connection?.type === 'oauth' && <p>{t('Direct Google sign-in uploads to Google Drive without Apps Script. Authorization is encrypted locally. Disconnect removes local credentials; revoke access in your Google Account to remove the grant.')}</p>}
     {connection && !connection.account && <p role="alert">{t('Update and redeploy the bundled script, then save this connection to verify its Google account before uploading.')}</p>}
     {connection?.type !== 'oauth' && <>
-    <p>{t('Add one webhook connection per Google account. Uploads use the selected deployment account, not the browser account. Saving verifies the account without uploading a document.')}</p>
-    <label className="setting-row"><span>{t('Apps Script web app URL')}</span>
-      <input type="url" value={endpoint} spellCheck={false} autoComplete="off" data-setting="googleDocsEndpoint"
-        placeholder="https://script.google.com/macros/s/…/exec"
-        disabled={busy} onChange={(event) => setEndpoint(event.target.value)} />
-    </label>
-    <label className="setting-row"><span>{t('Webhook secret')}</span>
-      <input type="password" value={secret} spellCheck={false} autoComplete="off" data-setting="googleDocsSecret"
-        placeholder={t(connection ? 'Leave blank to keep the saved secret' : '32-256 non-space ASCII characters')}
-        disabled={busy} onChange={(event) => setSecret(event.target.value)} />
-    </label>
-    <p>{t('Use the same WEBHOOK_SECRET in Apps Script. The saved secret is protected with OS encryption, not stored in note settings.')}</p>
-    {status && !status.encryptionAvailable && <p className="error-text" role="alert">{t('OS credential encryption is unavailable.')}</p>}
-    <div className="integration-buttons">
-      <button disabled={busy} onClick={() => run(async () => {
-        const bytes = crypto.getRandomValues(new Uint8Array(32));
-        setSecret(Array.from(bytes, (byte) => byte.toString(16).padStart(2, '0')).join(''));
-        setMessage(t('A new secret is in the password field. Copy it into WEBHOOK_SECRET before saving.'));
-      })}>{t('Generate secret')}</button>
-      <button disabled={busy || !secret} onClick={() => run(async () => {
-        await navigator.clipboard.writeText(secret);
-        setMessage(t('Secret copied. Paste it into the WEBHOOK_SECRET script property.'));
-      })}>{t('Copy secret')}</button>
-      <button disabled={busy || !status?.encryptionAvailable || !endpoint.trim() || (!connection && !secret)}
-        onClick={() => run(async () => {
-          const next = await window.api.googleDocs.save(endpoint, secret, connectionId || undefined);
-          setStatus(next);
-          if (next.canceled) return;
-          setConnectionId(next.savedConnectionId);
-          setEndpoint(next.connections.find((item) => item.id === next.savedConnectionId).endpoint);
-          setSecret('');
-          setMessage(t('Google Docs configuration saved.'));
-        })}>{t('Save Google Docs connection')}</button>
-    </div>
+      <p>{t('Add one webhook connection per Google account. Uploads use the selected deployment account, not the browser account. Saving verifies the account without uploading a document.')}</p>
+      <label className="setting-row"><span>{t('Apps Script web app URL')}</span>
+        <input type="url" value={endpoint} spellCheck={false} autoComplete="off" data-setting="googleDocsEndpoint"
+          placeholder="https://script.google.com/macros/s/…/exec"
+          disabled={busy} onChange={(event) => setEndpoint(event.target.value)} />
+      </label>
+      <label className="setting-row"><span>{t('Webhook secret')}</span>
+        <input type="password" value={secret} spellCheck={false} autoComplete="off" data-setting="googleDocsSecret"
+          placeholder={t(connection ? 'Leave blank to keep the saved secret' : '32-256 non-space ASCII characters')}
+          disabled={busy} onChange={(event) => setSecret(event.target.value)} />
+      </label>
+      <p>{t('Use the same WEBHOOK_SECRET in Apps Script. The saved secret is protected with OS encryption, not stored in note settings.')}</p>
+      {status && !status.encryptionAvailable && <p className="error-text" role="alert">{t('OS credential encryption is unavailable.')}</p>}
+      <div className="integration-buttons">
+        <button disabled={busy} onClick={() => run(async () => {
+          const bytes = crypto.getRandomValues(new Uint8Array(32));
+          setSecret(Array.from(bytes, (byte) => byte.toString(16).padStart(2, '0')).join(''));
+          setMessage(t('A new secret is in the password field. Copy it into WEBHOOK_SECRET before saving.'));
+        })}>{t('Generate secret')}</button>
+        <button disabled={busy || !secret} onClick={() => run(async () => {
+          await navigator.clipboard.writeText(secret);
+          setMessage(t('Secret copied. Paste it into the WEBHOOK_SECRET script property.'));
+        })}>{t('Copy secret')}</button>
+        <button disabled={busy || !status?.encryptionAvailable || !endpoint.trim() || (!connection && !secret)}
+          onClick={() => run(async () => {
+            const next = await window.api.googleDocs.save(endpoint, secret, connectionId || undefined);
+            setStatus(next);
+            if (next.canceled) return;
+            setConnectionId(next.savedConnectionId);
+            setEndpoint(next.connections.find((item) => item.id === next.savedConnectionId).endpoint);
+            setSecret('');
+            setMessage(t('Google Docs configuration saved.'));
+          })}>{t('Save Google Docs connection')}</button>
+      </div>
     </>}
     {status && !status.encryptionAvailable && connection?.type === 'oauth' && <p className="error-text" role="alert">{t('OS credential encryption is unavailable.')}</p>}
     <div className="integration-buttons">

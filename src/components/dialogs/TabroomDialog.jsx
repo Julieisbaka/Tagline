@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useI18n } from '../../lib/i18n.js';
-import ModalBackdrop from './ModalBackdrop.jsx';
 import TabroomTournamentView from '../TabroomTournamentView.jsx';
+import ModalBackdrop from './ModalBackdrop.jsx';
 
 const api = window.api.tabroom;
 

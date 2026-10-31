@@ -57,12 +57,12 @@ function createRevisionHistory({ getVaultRoot, resolveInVault }) {
       content = delta.content;
     } else {
       if (typeof delta.base !== 'string' || !SNAPSHOT_ID.test(delta.base) ||
-          !Number.isSafeInteger(delta.start) || delta.start < 0 ||
-          !Number.isSafeInteger(delta.deleteCount) || delta.deleteCount < 0 ||
-          typeof delta.insert !== 'string') throw new Error('Invalid revision history delta.');
+        !Number.isSafeInteger(delta.start) || delta.start < 0 ||
+        !Number.isSafeInteger(delta.deleteCount) || delta.deleteCount < 0 ||
+        typeof delta.insert !== 'string') throw new Error('Invalid revision history delta.');
       const base = await readStored(directory, delta.base, seen);
       if (hash(base.content) !== delta.baseHash ||
-          delta.start + delta.deleteCount > base.content.length) {
+        delta.start + delta.deleteCount > base.content.length) {
         throw new Error('Revision history delta base is damaged.');
       }
       content = base.content.slice(0, delta.start) + delta.insert +
@@ -123,10 +123,10 @@ function createRevisionHistory({ getVaultRoot, resolveInVault }) {
       if (base.depth < MAX_DELTA_DEPTH) {
         let start = 0;
         while (start < base.content.length && start < snapshotContent.length &&
-            base.content[start] === snapshotContent[start]) start++;
+          base.content[start] === snapshotContent[start]) start++;
         let end = 0;
         while (end < base.content.length - start && end < snapshotContent.length - start &&
-            base.content[base.content.length - end - 1] === snapshotContent[snapshotContent.length - end - 1]) end++;
+          base.content[base.content.length - end - 1] === snapshotContent[snapshotContent.length - end - 1]) end++;
         const delta = JSON.stringify({
           version: 1, base: existing[0], baseHash: hash(base.content), hash: hash(snapshotContent),
           start, deleteCount: base.content.length - start - end,

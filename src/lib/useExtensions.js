@@ -16,7 +16,10 @@ export function useExtensions({ bridgeRef, notify }) {
   const generation = useRef(0);
   const [settingsRevision, settingsChanged] = useState(0);
   useEffect(() => {
-    /** Trigger a render when extension settings are edited. @returns {void} */
+    /** 
+     * Trigger a render when extension settings are edited.
+     * @returns {void} 
+     */
     const changed = () => settingsChanged((value) => value + 1);
     window.addEventListener('extension-settings-changed', changed);
     return () => window.removeEventListener('extension-settings-changed', changed);
