@@ -391,9 +391,12 @@ export class ExtensionHost {
   }
 }
 
-// Default keys that are malformed, reserved, or already used by a built-in or earlier extension are dropped;
-// users can still assign them explicitly in Settings > Keyboard shortcuts.
-/** Return a valid, unclaimed default extension shortcut, or an empty string. @param {string} key @param {string[]} [taken] @returns {string} */
+/** 
+ * Return a valid, unclaimed default extension shortcut, or an empty string. 
+ * @param {string} key 
+ * @param {string[]} [taken] 
+ * @returns {string} 
+ */
 export function usableDefaultKey(key, taken = []) {
   if (!key || !validBinding(key) || reservedBinding(key)) return '';
   const used = [...KEYBINDINGS, ...taken].map((item) => item.key);

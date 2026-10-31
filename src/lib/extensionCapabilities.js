@@ -26,7 +26,9 @@ import {
 } from './vault.js';
 import { moveWorkspaceItem, normalizeWorkspaceItems } from './workspaceItems.js';
 
-/** Maximum input text accepted by extension pure-text helpers. */
+/** 
+ * Maximum input text accepted by extension pure-text helpers. 
+ */
 export const MAX_HELPER_TEXT = 100_000;
 
 export const EDITOR_COMMANDS = Object.freeze([
@@ -44,7 +46,10 @@ export const APPLICATION_EVENTS = Object.freeze({
   'editor.ready': 'editor',
 });
 
-/** Create an in-process event bus with disposable subscriptions and cloned payloads. @returns {object} */
+/** 
+ * Create an in-process event bus with disposable subscriptions and cloned payloads. 
+ * @returns {object} 
+ */
 export function createEventBus() {
   const listeners = new Map();
   return {
@@ -65,14 +70,22 @@ export function createEventBus() {
 
 export const applicationEvents = createEventBus();
 
-/** Validate and copy a nonnegative editor selection range. @param {object} value @returns {{from:number,to:number}} */
+/** 
+ * Validate and copy a nonnegative editor selection range. 
+ * @param {object} value 
+ * @returns {{from:number,to:number}} 
+ */
 export function requireSelection(value) {
   if (!value || !Number.isSafeInteger(value.from) || !Number.isSafeInteger(value.to) ||
     value.from < 0 || value.to < value.from) throw new Error('Selection requires integer positions with 0 <= from <= to.');
   return { from: value.from, to: value.to };
 }
 
-/** Clone and validate a JSON-serializable event payload within the size limit. @param {*} value @returns {*} */
+/** 
+ * Clone and validate a JSON-serializable event payload within the size limit. 
+ * @param {*} value 
+ * @returns {*} 
+ */
 export function requirePayload(value) {
   let serialized;
   try { serialized = JSON.stringify(value); }
@@ -81,15 +94,28 @@ export function requirePayload(value) {
   return JSON.parse(serialized);
 }
 
-/** Validate an application or extension event name. @param {string} name @returns {string} */
+/** 
+ * Validate an application or extension event name. 
+ * @param {string} name 
+ * @returns {string} 
+ */
 export function requireEventName(name) {
   if (typeof name !== 'string' || !/^[a-z][a-zA-Z0-9.-]{0,127}$/.test(name)) throw new Error('Invalid event name.');
   return name;
 }
 
-/** Run a bounded path-formatting helper without accessing the filesystem. @param {string} operation @param {string[]} args @returns {string} */
+/** 
+ * Run a bounded path-formatting helper without accessing the filesystem. 
+ * @param {string} operation 
+ * @param {string[]} args 
+ * @returns {string} 
+ */
 export function pathHelper(operation, args) {
-  /** Normalize a vault-relative path and reject traversal above its root. @param {string} input @returns {string} */
+  /** 
+   * Normalize a vault-relative path and reject traversal above its root. 
+   * @param {string} input 
+   * @returns {string} 
+   */
   const normalize = (input) => {
     if (typeof input !== 'string' || input.length > 1000 || /^[\\/]|^[a-z]:/i.test(input)) {
       throw new Error('Use a vault-relative path up to 1,000 characters.');
@@ -118,9 +144,17 @@ export function pathHelper(operation, args) {
   throw new Error('Unknown path helper.');
 }
 
-/** Convert Markdown to plain text, excluding HTML and YAML metadata. @param {string} markdown @returns {string} */
+/** 
+ * Convert Markdown to plain text, excluding HTML and YAML metadata. 
+ * @param {string} markdown 
+ * @returns {string} 
+ */
 export function markdownToText(markdown) {
-  /** Recursively collect readable text from Markdown lexer tokens. @param {object[]} tokens @returns {string} */
+  /** 
+   * Recursively collect readable text from Markdown lexer tokens. 
+   * @param {object[]} tokens 
+   * @returns {string} 
+   */
   const collect = (tokens) => tokens.map((token) => {
     if (token.type === 'html') return '';
     if (token.type === 'image') return token.text || '';
@@ -133,7 +167,12 @@ export function markdownToText(markdown) {
   return collect(marked.lexer(splitFrontmatter(markdown).body)).replace(/[ \t]+/g, ' ').replace(/[ \t]*\n[ \t]*/g, '\n').trim();
 }
 
-/** Validate text arguments passed to extension utility helpers. @param {*} value @param {string} label @returns {string} */
+/** 
+ * Validate text arguments passed to extension utility helpers. 
+ * @param {*} value 
+ * @param {string} label 
+ * @returns {string} 
+ */
 function requireHelperText(value, label) {
   if (typeof value !== 'string' || value.length > MAX_HELPER_TEXT) {
     throw new Error(`${label} must be text up to ${MAX_HELPER_TEXT} characters.`);
@@ -141,7 +180,11 @@ function requireHelperText(value, label) {
   return value;
 }
 
-/** Validate a bounded list of vault-relative paths. @param {*} value @returns {string[]} */
+/** 
+ * Validate a bounded list of vault-relative paths. 
+ * @param {*} value 
+ * @returns {string[]} 
+ */
 function requirePaths(value) {
   if (!Array.isArray(value) || value.length > 10_000 ||
     value.some((path) => typeof path !== 'string' || path.length > 1000)) {
@@ -150,7 +193,11 @@ function requirePaths(value) {
   return value;
 }
 
-/** Validate a bounded list of helper IDs. @param {*} value @returns {string[]} */
+/** 
+ * Validate a bounded list of helper IDs. 
+ * @param {*} value 
+ * @returns {string[]} 
+ */
 function requireIds(value) {
   if (!Array.isArray(value) || value.length > 1000 ||
     value.some((id) => typeof id !== 'string' || id.length > 200)) {
@@ -159,7 +206,11 @@ function requireIds(value) {
   return value;
 }
 
-/** Validate and bound caller-supplied path-to-Markdown content. @param {*} value @returns {Record<string,string>} */
+/** 
+ * Validate and bound caller-supplied path-to-Markdown content. 
+ * @param {*} value 
+ * @returns {Record<string,string>} 
+ */
 function requireDocuments(value) {
   if (!value || typeof value !== 'object' || Array.isArray(value)) {
     throw new Error('Documents must be a path-to-text object.');
@@ -175,7 +226,12 @@ function requireDocuments(value) {
   return value;
 }
 
-/** Validate a bounded nonnegative row or column index. @param {*} value @param {string} label @returns {number} */
+/** 
+ * Validate a bounded nonnegative row or column index. 
+ * @param {*} value 
+ * @param {string} label 
+ * @returns {number} 
+ */
 function requireCoordinate(value, label) {
   if (!Number.isSafeInteger(value) || value < 0 || value > 100_000) {
     throw new Error(`${label} must be an integer from 0 to 100,000.`);
@@ -183,7 +239,12 @@ function requireCoordinate(value, label) {
   return value;
 }
 
-/** Validate bounded two-dimensional flow cell text. @param {*} value @param {string} label @returns {string[][]} */
+/** 
+ * Validate bounded two-dimensional flow cell text. 
+ * @param {*} value 
+ * @param {string} label 
+ * @returns {string[][]} 
+ */
 function requireFlowCells(value, label) {
   if (!Array.isArray(value)) throw new Error(`${label} must be an array of rows.`);
   let count = 0, characters = 0;
@@ -199,12 +260,21 @@ function requireFlowCells(value, label) {
   return value;
 }
 
-/** Validate a bounded tree before traversing it in extension helpers. @param {*} value @returns {object[]} */
+/** 
+ * Validate a bounded tree before traversing it in extension helpers. 
+ * @param {*} value 
+ * @returns {object[]} 
+ */
 function requireFolderTree(value) {
   if (!Array.isArray(value)) throw new Error('Folder tree must be an array.');
   const seen = new Set();
   let count = 0;
-  /** Validate one bounded tree level and all descendant folder nodes. @param {object[]} nodes @param {number} depth @returns {void} */
+  /** 
+   * Validate one bounded tree level and all descendant folder nodes. 
+   * @param {object[]} nodes 
+   * @param {number} depth 
+   * @returns {void} 
+   */
   const visit = (nodes, depth) => {
     if (depth > 100) throw new Error('Folder tree exceeds 100 levels.');
     for (const node of nodes) {
@@ -223,14 +293,24 @@ function requireFolderTree(value) {
   return value;
 }
 
-/** Convert and validate a Date or strict local date string. @param {*} value @param {string} label @returns {Date} */
+/** 
+ * Convert and validate a Date or strict local date string. 
+ * @param {*} value 
+ * @param {string} label 
+ * @returns {Date} 
+ */
 function requireDate(value, label) {
   const date = typeof value === 'string' ? parseDate(value) : value;
   if (!(date instanceof Date) || !Number.isFinite(date.getTime())) throw new Error(`${label} must be a valid date.`);
   return date;
 }
 
-/** Dispatch validated, side-effect-free helper calls from extension workers. @param {string} method @param {Array<*>} args @returns {*} */
+/** 
+ * Dispatch validated, side-effect-free helper calls from extension workers. 
+ * @param {string} method 
+ * @param {Array<*>} args 
+ * @returns {*} 
+ */
 export function extensionHelper(method, args) {
   switch (method) {
     case 'helpers.countdown.remainingAt':
@@ -245,7 +325,7 @@ export function extensionHelper(method, args) {
     case 'helpers.language.initial':
       if (typeof args[0] !== 'string' || args[0].length > 100 ||
         (args[1] !== undefined && (!Array.isArray(args[1]) || args[1].length > 100 ||
-        args[1].some((locale) => typeof locale !== 'string' || locale.length > 100)))) {
+          args[1].some((locale) => typeof locale !== 'string' || locale.length > 100)))) {
         throw new Error('System languages must be up to 100 locale strings.');
       }
       return initialLanguage(args[0], args[1] ?? []);
