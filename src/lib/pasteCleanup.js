@@ -50,6 +50,7 @@ function liftOutOfBold(element) {
     while (child.parentElement !== boldAncestor) {
       const parent = child.parentElement;
       splitAroundChild(parent, child, true);
+      child = child.parentElement;
     }
     splitAroundChild(boldAncestor, child, false);
     boldAncestor = element.parentElement?.closest('b, strong');
@@ -73,6 +74,10 @@ function wrapInlineContent(element, tagName) {
     inlineChildren = [];
   };
   for (const child of [...element.childNodes]) {
+    if (tagName === 'strong' && child.nodeType === 1 && isExplicitlyNonBold(child.style.fontWeight)) {
+      wrapInlineRun();
+      continue;
+    }
     if (child.nodeType === 1 && blockElements.has(child.tagName)) {
       wrapInlineRun();
       wrapInlineContent(child, tagName);
@@ -96,8 +101,7 @@ function applyMark(element, tagName) {
 export function cleanPastedHTML(html, {
   keepBold = true, keepUnderline = true, keepHighlight = true,
 } = {}) {
-  const tableFragment = !/<table\b/i.test(html) &&
-    /^\s*<(?:caption|colgroup|thead|tbody|tfoot|tr|td|th)\b/i.test(html);
+  const tableFragment = /^\s*<(?:caption|colgroup|thead|tbody|tfoot|tr|td|th)\b/i.test(html);
   const document = new DOMParser().parseFromString(
     tableFragment ? `<table>${html}</table>` : html,
     'text/html',
