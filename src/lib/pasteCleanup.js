@@ -21,7 +21,7 @@ function hasVisibleBackground(value) {
   return Boolean(color && ![
     'transparent', 'white', '#fff', '#ffffff', 'initial', 'inherit', 'unset', 'revert', 'revert-layer',
     'rgb(255, 255, 255)', 'rgba(255, 255, 255, 1)',
-+  ].includes(color) && !/^rgba\([^)]*,\s*0(?:\.0+)?\)$/.test(color));
+  ].includes(color) && !/^rgba\([^)]*,\s*0(?:\.0+)?\)$/.test(color));
 }
 
 function splitAroundChild(parent, child, preserveMiddle) {
@@ -64,18 +64,23 @@ const blockElements = new Set([
 ]);
 
 function wrapInlineContent(element, tagName) {
+  let inlineChildren = [];
+  const wrapInlineRun = () => {
+    if (!inlineChildren.length) return;
+    const wrapper = element.ownerDocument.createElement(tagName);
+    inlineChildren[0].before(wrapper);
+    for (const child of inlineChildren) wrapper.append(child);
+    inlineChildren = [];
+  };
   for (const child of [...element.childNodes]) {
-    if (child.nodeType === 3) {
-      if (child.textContent) {
-        const wrapper = element.ownerDocument.createElement(tagName);
-        child.replaceWith(wrapper);
-        wrapper.append(child);
-      }
-    } else if (child.nodeType === 1) {
-      if (blockElements.has(child.tagName)) wrapInlineContent(child, tagName);
-      else wrapContents(child, tagName);
+    if (child.nodeType === 1 && blockElements.has(child.tagName)) {
+      wrapInlineRun();
+      wrapInlineContent(child, tagName);
+    } else {
+      inlineChildren.push(child);
     }
   }
+  wrapInlineRun();
 }
 
 function applyMark(element, tagName) {

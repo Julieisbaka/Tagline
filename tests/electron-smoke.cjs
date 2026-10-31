@@ -111,25 +111,29 @@ const delay = (ms) => new Promise((r) => setTimeout(r, ms));
         const mixedBold = await cleaned('<strong>bold <span style="font-weight: 400">plain</span> <b>again</b></strong>');
         assert.deepEqual(await js(`(() => {
           const parsed = new DOMParser().parseFromString(${JSON.stringify(mixedBold)}, 'text/html');
-          return [...parsed.querySelectorAll('strong, b')].map(el => el.textContent);
-        })()`), ['bold ', 'again']);
+          return [parsed.querySelector('span')?.closest('strong, b') === null,
+            [...parsed.querySelectorAll('strong')].map(el => el.textContent),
+            [...parsed.querySelectorAll('b')].map(el => el.textContent)];
+        })()`), [true, ['bold ', ' again'], ['again']]);
         const bareRow = await cleaned('<tr data-row="kept"><td data-cell="a">A</td><td data-cell="b">B</td></tr>');
         assert.deepEqual(await js(`(() => {
-          const parsed = new DOMParser().parseFromString(${JSON.stringify(bareRow)}, 'text/html');
+          const parsed = document.createElement('table');
+          parsed.innerHTML = ${JSON.stringify(bareRow)};
           return [parsed.querySelectorAll('tr').length, parsed.querySelectorAll('td').length,
             parsed.querySelector('[data-row]')?.getAttribute('data-row'),
             [...parsed.querySelectorAll('td')].map(cell => cell.getAttribute('data-cell'))];
         })()`), [1, 2, 'kept', ['a', 'b']]);
         const styledTableRow = await cleaned('<tr style="font-weight: 700; background-color: rgb(255, 255, 0)"><td>A</td></tr>');
         assert.deepEqual(await js(`(() => {
-          const parsed = new DOMParser().parseFromString(${JSON.stringify(styledTableRow)}, 'text/html');
+          const parsed = document.createElement('table');
+          parsed.innerHTML = ${JSON.stringify(styledTableRow)};
           const cell = parsed.querySelector('td');
           return [cell.querySelector('strong')?.textContent, cell.querySelector('mark')?.textContent,
             parsed.querySelector('tr > strong, tr > mark, tbody > strong, tbody > mark') !== null];
         })()`), ['A', 'A', false]);
         const styledEmphasis = await cleaned('<p style="font-style: italic; text-decoration: line-through">Emphasized</p>');
         assert.match(styledEmphasis, /<em>Emphasized<\/em>/);
-        assert.match(styledEmphasis, /<s>Emphasized<\/s>/);
+        assert.match(styledEmphasis, /<s><em>Emphasized<\/em><\/s>/);
         assert.equal(await js("document.querySelector('[data-wiki-link]').textContent"), 'Alias');
         // Actual visual edit, then verify Markdown formatting and link preservation on disk.
         await js(`(() => { const ed = document.querySelector('.visual-document').editor;
