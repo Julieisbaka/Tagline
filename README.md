@@ -22,11 +22,15 @@ Open a folder as a vault or create the sample vault on first launch.
 
 ## Tests
 
-Run the complete unit and smoke-test suite sequentially with:
+Run the complete unit and smoke-test suite with:
 
 ```sh
 npm run test:all
 ```
+
+The renderer is built once for the whole run. Suites run one at a time by
+default; set `TEST_CONCURRENCY=<n>` to run several at once. Standalone smoke
+scripts still build first unless `TAGLINE_SKIP_BUILD=1` is set.
 
 Individual smoke suites are available as `npm run test:<name>`. The full runner
 includes `npm test` and every `test:*` script except itself and the redundant

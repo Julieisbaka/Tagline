@@ -9,6 +9,8 @@ const subsets = new Set(['test:all', 'test:shared', 'test:platform']);
 const suites = ['test', ...Object.keys(scripts).filter((name) =>
   name.startsWith('test:') && !subsets.has(name))];
 const npmCli = process.env.npm_execpath;
+const concurrency = Math.max(1, Number.parseInt(process.env.TEST_CONCURRENCY, 10) || 1);
+const running = new Set();
 const MAX_CAPTURED_OUTPUT = 10 * 1024 * 1024;
 const startedAt = Date.now();
 const results = [];
@@ -27,12 +29,13 @@ function runSuite(name) {
       if (settled) return;
       settled = true;
       if (currentChild === child) currentChild = null;
+      running.delete(child);
       resolve({ suite: name, durationMs: Date.now() - suiteStartedAt, output, outputTruncated, ...result });
     };
     try {
       child = spawn(process.execPath, [npmCli, 'run', name], {
         cwd: root,
-        env: process.env,
+        env: { ...process.env, TAGLINE_SKIP_BUILD: '1' },
         stdio: ['inherit', 'pipe', 'pipe'],
       });
     } catch (error) {
@@ -40,6 +43,7 @@ function runSuite(name) {
       return;
     }
     currentChild = child;
+    running.add(child);
     const capture = (stream) => stream.on('data', (chunk) => {
       if (output.length < MAX_CAPTURED_OUTPUT) {
         const remaining = MAX_CAPTURED_OUTPUT - output.length;
@@ -69,6 +73,20 @@ function runSuite(name) {
         });
       }
     });
+  });
+}
+
+function runBuild() {
+  return new Promise((resolve) => {
+    const child = spawn(process.execPath, [npmCli, 'run', 'build'], { cwd: root, stdio: 'inherit' });
+    currentChild = child;
+    running.add(child);
+    const done = (code, detail) => {
+      running.delete(child);
+      resolve({ code, detail });
+    };
+    child.once('error', (error) => done(1, error.message));
+    child.once('close', (code, signal) => done(code ?? 1, signal || `exit ${code}`));
   });
 }
 
@@ -140,7 +158,7 @@ function reportText(logWriteError = '') {
     `Passed: ${count.passed}`,
     `Failed: ${count.failed}`,
     `Skipped: ${count.skipped}`,
-    `Canceled: ${count.cancelled + (interrupted && currentChild ? 1 : 0)}`,
+    `Canceled: ${count.cancelled + (interrupted ? running.size : 0)}`,
     `Suites completed: ${results.length}/${suites.length}`,
     ...(notRun ? [`Suites not run after interruption: ${notRun}`] : []),
     'Auth and password rejection cases are expected negative-path checks. They count as passing when their assertions pass.',
@@ -213,7 +231,7 @@ function printSummary(logWriteError = '') {
   console.log(`Passed: ${count.passed}`);
   console.log(`Failed: ${count.failed}`);
   console.log(`Skipped: ${count.skipped}`);
-  console.log(`Canceled: ${count.cancelled + (interrupted && currentChild ? 1 : 0)}`);
+  console.log(`Canceled: ${count.cancelled + (interrupted ? running.size : 0)}`);
   if (notRun) console.log(`Suites not run after interruption: ${notRun}`);
   console.log('Auth/password rejection scenarios are expected; they pass when the tests assert the errors.');
   if (logWriteError || count.failed || interrupted || runnerError) {
@@ -228,7 +246,7 @@ function printSummary(logWriteError = '') {
 function requestInterrupt() {
   if (interrupted) return;
   interrupted = true;
-  currentChild?.kill('SIGINT');
+  for (const child of running) child.kill('SIGINT');
 }
 
 process.on('SIGINT', requestInterrupt);
@@ -237,9 +255,15 @@ process.on('SIGTERM', requestInterrupt);
 async function main() {
   if (!npmCli) runnerError = 'npm_execpath is missing; start this script with npm run test:all.';
   if (!runnerError) {
-    for (const suite of suites) {
-      if (interrupted) break;
-      results.push(await runSuite(suite));
+    // Smoke suites share dist/, so build once instead of in every suite.
+    const build = await runBuild();
+    if (build.code !== 0) runnerError = `vite build failed (${build.detail}).`;
+    else {
+      const queue = [...suites];
+      const worker = async () => {
+        while (queue.length && !interrupted) results.push(await runSuite(queue.shift()));
+      };
+      await Promise.all(Array.from({ length: Math.min(concurrency, queue.length) }, worker));
     }
   }
 

@@ -68,7 +68,7 @@ test('packaging retains only target ONNX binaries and preserves runtime dependen
 test('release workflow runs only manually, packages all architectures and publishes only after every build', () => {
   assert.deepEqual(Object.keys(workflow.on), ['workflow_dispatch']);
   assert.deepEqual(workflow.permissions, { contents: 'read' });
-  assert.deepEqual(workflow.jobs.publish.needs, ['version', 'build']);
+  assert.deepEqual(workflow.jobs.publish.needs, ['version', 'test', 'build']);
   assert.equal(workflow.jobs.publish.permissions.contents, 'write');
   assert.equal(workflow.concurrency['cancel-in-progress'], false);
   assert.deepEqual(workflow.jobs.build.strategy.matrix.include.map(({ platform, arch }) => `${platform}-${arch}`),
@@ -77,18 +77,18 @@ test('release workflow runs only manually, packages all architectures and publis
   assert.ok(workflow.jobs.build.steps.some((step) => step.run === 'npm run test:installation'));
 });
 
-test('release tests shared logic once and gates every platform build on it', () => {
+test('release tests shared logic once and runs it alongside builds and gates publishing on it', () => {
   const { scripts } = require('../package.json');
   assert.equal(scripts.test, 'node --test --test-reporter=tap "tests/*.test.cjs"');
   assert.equal(scripts['test:shared'], 'node --test --test-skip-pattern=^platform: "tests/*.test.cjs"');
   assert.equal(scripts['test:platform'], 'node --test --test-name-pattern=^platform: "tests/*.test.cjs"');
   assert.equal(workflow.jobs.test.needs, 'version');
   assert.equal(workflow.jobs.test['runs-on'], 'ubuntu-latest');
-  assert.deepEqual(workflow.jobs.build.needs, ['version', 'test']);
+  assert.equal(workflow.jobs.build.needs, 'version');
   for (const [job, command] of [[workflow.jobs.test, 'npm run test:shared'], [workflow.jobs.build, 'npm run test:platform']]) {
     const commands = job.steps.map((step) => step.run).filter(Boolean);
     assert.equal(commands.filter((run) => run === command).length, 1);
-    assert.ok(commands.indexOf('npm ci') < commands.indexOf(command));
+    assert.ok(commands.indexOf('npm ci --prefer-offline --no-audit --no-fund') < commands.indexOf(command));
     assert.ok(!commands.includes('npm test'), 'the full suite must not repeat inside the release matrix');
     assert.equal(job.steps.find((step) => step.uses === 'actions/setup-node@v4').with['node-version'], '24');
   }

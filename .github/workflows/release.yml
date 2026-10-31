@@ -58,12 +58,12 @@ jobs:
         with:
           node-version: '24'
           cache: npm
-      - run: npm ci
+      - run: npm ci --prefer-offline --no-audit --no-fund
       - name: Test platform-independent logic once
         run: npm run test:shared
 
   build:
-    needs: [version, test]
+    needs: version
     strategy:
       fail-fast: false
       matrix:
@@ -87,7 +87,18 @@ jobs:
         with:
           node-version: '24'
           cache: npm
-      - run: npm ci
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/electron
+            ~/.cache/electron-builder
+            ~/Library/Caches/electron
+            ~/Library/Caches/electron-builder
+            ~/AppData/Local/electron/Cache
+            ~/AppData/Local/electron-builder/Cache
+          key: electron-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('package-lock.json') }}
+          restore-keys: electron-${{ runner.os }}-${{ runner.arch }}-
+      - run: npm ci --prefer-offline --no-audit --no-fund
       - name: Test platform-dependent behavior
         run: npm run test:platform
       - run: npm run build
@@ -103,7 +114,7 @@ jobs:
           if-no-files-found: error
 
   publish:
-    needs: [version, build]
+    needs: [version, test, build]
     runs-on: ubuntu-latest
     permissions:
       contents: write
