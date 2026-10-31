@@ -31,6 +31,12 @@ export default function EditorSettings({ settings, update }) {
     </SettingRow>
     {checkbox('Show formatting toolbar', 'visualToolbar', 'Show formatting buttons above the visual editor.')}
     {checkbox('Visual editor spellcheck', 'visualSpellcheck', 'Underline possible spelling mistakes in the visual editor.')}
+    {checkbox('Clean up pasted formatting', 'pasteCleanup', 'Remove pasted fonts and spacing while keeping selected formatting.')}
+    {settings.pasteCleanup && <>
+      {checkbox('Keep bold formatting when pasting', 'pasteKeepBold')}
+      {checkbox('Keep underline formatting when pasting', 'pasteKeepUnderline')}
+      {checkbox('Keep highlighted text when pasting', 'pasteKeepHighlight')}
+    </>}
     <label className="setting-row">
       <span>{t('Readable content width (pixels)')}</span>
       <input type="number" data-setting="readableWidthPixels" min="400" max="1600" step="20"
