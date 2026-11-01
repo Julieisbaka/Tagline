@@ -58,6 +58,27 @@ export default function InstallationSettings() {
     return () => { active = false; };
   }, []);
   const platforms = { win32: 'Windows', darwin: 'macOS', linux: 'Linux' };
+  const [copied, setCopied] = useState(false);
+  const bugReport = info ? [
+    '```',
+    'Tagline-Report-Format: 1',
+    `Version: ${info.version}`,
+    `Build: ${info.packaged ? 'packaged' : 'development'}`,
+    `OS: ${platforms[info.platform] || info.platform}`,
+    `OS-Version: ${info.osVersion}`,
+    `Architecture: ${info.arch}`,
+    `Electron: ${info.electron}`,
+    `Chromium: ${info.chromium}`,
+    `Node.js: ${info.node}`,
+    '```',
+  ].join('\n') : '';
+  const copyBugReport = async () => {
+    try {
+      await navigator.clipboard.writeText(bugReport);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch (failure) { setError(failure.message); }
+  };
   const startUninstall = async () => {
     setUninstalling(true);
     setUninstallError('');
@@ -92,6 +113,14 @@ export default function InstallationSettings() {
         ['Profile folder', info.profile],
       ].map(([label, value]) => <div key={label}><dt>{t(label)}</dt><dd>{value}</dd></div>)}
     </dl>}
+    {info && <>
+      <h3>{t('Bug report details')}</h3>
+      <p>{t('Copy these details and paste them into the bug report. They contain no file paths or personal information.')}</p>
+      <textarea readOnly rows={10} aria-label={t('Bug report details')} value={bugReport} onFocus={(event) => event.target.select()} />
+      <div className="settings-actions">
+        <button onClick={copyBugReport}>{t(copied ? 'Copied' : 'Copy bug report details')}</button>
+      </div>
+    </>}
     <h3>{t('Updates')}</h3>
     <p>{t('Tagline does not check for or install updates automatically.')}</p>
     <div className="settings-actions">
