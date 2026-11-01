@@ -77,7 +77,7 @@ test('release workflow runs only manually, packages all architectures and publis
   assert.ok(workflow.jobs.build.steps.some((step) => step.run === 'npm run test:installation'));
 });
 
-test('release tests shared logic once and runs it alongside builds and gates publishing on it', () => {
+test('release tests shared logic once alongside parallel builds before publishing', () => {
   const { scripts } = require('../package.json');
   assert.equal(scripts.test, 'node --test --test-reporter=tap "tests/*.test.cjs"');
   assert.equal(scripts['test:shared'], 'node --test --test-skip-pattern=^platform: "tests/*.test.cjs"');
