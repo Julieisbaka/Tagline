@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import {
-  CITATION_FIELDS, DEFAULT_CHECKUP, annotateEvidence, auditCards, citedUrls, linkIssues, normalizeCheckup, scanCards,
+  CITATION_FIELDS, DEFAULT_CHECKUP, annotateEvidence, auditCards, citedUrls, linkIssues, normalizeCheckup, scanCards, sourceIssues,
 } from '../../lib/evidenceCheckup.js';
 import { useI18n } from '../../lib/i18n.js';
 import { readStoredJson } from '../../lib/storedJson.js';
@@ -14,6 +14,8 @@ const FIELD_LABELS = {
 const KIND_LABELS = {
   missing_citation: 'Missing citation', missing_fields: 'Incomplete citation', uncertain_fields: 'Uncertain citation fields',
   stale_date: 'Stale source date', dead_link: 'Dead link',
+  source_mismatch: 'Possible source mismatch', source_unavailable: 'Source lookup unavailable',
+  source_not_comparable: 'No comparable source fields',
 };
 const isSettings = (value) => !!value && typeof value === 'object';
 
@@ -28,6 +30,7 @@ export default function EvidenceCheckupDialog({ contents, getContent, updateCont
   const [settings, setSettings] = useState(() => normalizeCheckup(readStoredJson(STORAGE_KEY, DEFAULT_CHECKUP, isSettings)));
   const [scan, setScan] = useState(null);
   const [links, setLinks] = useState(null);
+  const [sources, setSources] = useState(null);
   const [busy, setBusy] = useState('');
   const [error, setError] = useState('');
   const [addComments, setAddComments] = useState(false);
@@ -75,6 +78,7 @@ export default function EvidenceCheckupDialog({ contents, getContent, updateCont
     }
     setScan({ files, cards: scanCards(files), issues: auditCards(scanCards(files), settings) });
     setLinks(null);
+    setSources(null);
   });
 
   const checkCitedLinks = () => run('links', async () => {
@@ -90,10 +94,40 @@ export default function EvidenceCheckupDialog({ contents, getContent, updateCont
     setLinks(results);
   });
 
+  const compareSources = () => run('sources', async () => {
+    const urls = citedUrls(scan.cards);
+    const results = {};
+    let next = 0;
+    const worker = async () => {
+      while (next < urls.length) {
+        const url = urls[next++];
+        try { results[url] = { metadata: await window.api.sourceCitationMetadata(url) }; }
+        catch (error) { results[url] = { error: error.message }; }
+      }
+    };
+    await Promise.all(Array.from({ length: Math.min(3, urls.length) }, worker));
+    if (scan.cards.some((card) => card.citation?.url && getContent(card.path) !== scan.files[card.path])) {
+      throw new Error(t('Notes changed since the scan. Scan again before comparing sources.'));
+    }
+    if (addComments) {
+      const findings = sourceIssues(scan.cards, results);
+      const eligible = scan.cards.filter((card) => {
+        const result = card.citation?.url && results[card.citation.url];
+        return result && !result.error && !findings.some((issue) =>
+          issue.path === card.path && issue.lineIndex === card.lineIndex && issue.kind === 'source_not_comparable');
+      });
+      const files = await saveComments(scan.files, eligible, findings, ['source']);
+      const cards = scanCards(files);
+      setScan({ files, cards, issues: auditCards(cards, settings) });
+    }
+    setSources(results);
+  });
+
   const issues = useMemo(() => {
     if (!scan) return [];
-    return [...scan.issues, ...(settings.checks.links && links ? linkIssues(scan.cards, links) : [])];
-  }, [scan, links, settings.checks.links]);
+    return [...scan.issues, ...(settings.checks.links && links ? linkIssues(scan.cards, links) : []),
+    ...(sources ? sourceIssues(scan.cards, sources) : [])];
+  }, [scan, links, sources, settings.checks.links]);
 
   const grouped = useMemo(() => {
     const byPath = new Map();
@@ -116,6 +150,11 @@ export default function EvidenceCheckupDialog({ contents, getContent, updateCont
       year: issue.year, age: issue.age, years: issue.threshold,
     });
     if (issue.kind === 'dead_link') return t('Link no longer resolves ({reason}).', { reason: issue.reason });
+    if (issue.kind === 'source_mismatch') return t('{field}: citation says “{citation}”; source metadata says “{source}”.', {
+      field: t(FIELD_LABELS[issue.field]), citation: issue.citationValue, source: issue.sourceValue,
+    });
+    if (issue.kind === 'source_unavailable') return issue.reason;
+    if (issue.kind === 'source_not_comparable') return t('No certain citation fields were available in the source metadata for comparison.');
     return t('No citation line.');
   };
 
@@ -190,17 +229,21 @@ export default function EvidenceCheckupDialog({ contents, getContent, updateCont
           <p className="hint">{t('Writes Markdown comments into notes when you scan or check links. Existing checkup comments are refreshed; other comments are kept.')}</p>
         </div>
         <p className="hint evidence-privacy">{t('Link checks send requests to the cited sites. Dead links are reported only when the page returns 404 or 410, or its domain no longer exists.')}</p>
+        <p className="hint evidence-privacy">{t('Compare sources sends citation URLs to their sites or Crossref. Only available, certain author, year, title, and publication fields are compared; differences require review.')}</p>
 
         <div className="dialog-buttons">
           <button disabled={!!busy} onClick={onClose}>{t('Close')}</button>
           <button disabled={!!busy} onClick={scanVault}>{t(busy === 'scan' ? 'Scanning...' : 'Scan vault')}</button>
           <button className="primary" disabled={!!busy || !scan || !settings.checks.links || !linkCount}
             onClick={checkCitedLinks}>{t(busy === 'links' ? 'Checking links...' : 'Check links')}</button>
+          <button disabled={!!busy || !scan || !linkCount}
+            onClick={compareSources}>{t(busy === 'sources' ? 'Comparing sources...' : 'Compare sources')}</button>
         </div>
         {error && <p className="error-text" role="alert">{error}</p>}
         {message && <p role="status">{message}</p>}
         {scan && <p role="status">{t('{cards} cards scanned, {issues} issues found.', { cards: scan.cards.length, issues: issues.length })}
           {links && ` ${t('{count} links checked.', { count: linkCount })}`}</p>}
+        {sources && <p role="status">{t('Source lookups completed for {count} URLs.', { count: Object.keys(sources).length })}</p>}
         {scan && !issues.length && <p>{t('No issues found.')}</p>}
         {grouped.map(([path, list]) => <section className="evidence-results" key={path}>
           <div className="evidence-results-header"><h4>{path}</h4>

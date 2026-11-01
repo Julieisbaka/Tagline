@@ -7,7 +7,7 @@ if (!process.versions.electron) {
   try { const r = spawnSync(require('electron'), [__filename], { env: { ...process.env, SHOT_ROOT: root }, stdio: 'inherit', timeout: 120000 }); process.exitCode = r.status ?? 1; } finally { fs.rmSync(root, { recursive: true, force: true, maxRetries: 20, retryDelay: 100 }); }
   return;
 }
-const { app } = require('electron');
+const { app, ipcMain } = require('electron');
 const assert = require('node:assert/strict');
 const fs = require('node:fs/promises'), path = require('node:path');
 const delay = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -16,6 +16,9 @@ const delay = (ms) => new Promise((r) => setTimeout(r, ms));
   await fs.mkdir(profile, { recursive: true }); await fs.mkdir(vault);
   let body = '# Long doc\n\n';
   for (let i = 0; i < 60; i++) body += `#### Card ${i}\n\n**Smith ${i}**\n\n==Evidence paragraph ${i} with some highlighted text.== More.\n\n`;
+  body += '#### Source one\n**Smith 2020** — "Study", [source](https://example.com/a)\n\n' +
+    '#### Source two\n**Smith 2020** — "Study", [source](https://example.com/a)\n\n' +
+    '#### Source unavailable\n**Jones 2021** — [source](https://example.com/b)\n';
   await fs.writeFile(path.join(vault, 'Doc.md'), body);
   await fs.writeFile(path.join(vault, 'Map.canvas'), JSON.stringify({
     nodes: [
@@ -31,6 +34,13 @@ const delay = (ms) => new Promise((r) => setTimeout(r, ms));
       const js = (c) => win.webContents.executeJavaScript(c);
       const rect = (s) => js(`(() => { const b = document.querySelector(${JSON.stringify(s)}).getBoundingClientRect(); return { x: b.x, y: b.y, w: b.width, h: b.height }; })()`);
       try {
+        const sourceRequests = [];
+        ipcMain.removeHandler('citation:sourceMetadata');
+        ipcMain.handle('citation:sourceMetadata', (_event, url) => {
+          sourceRequests.push(url);
+          if (url.endsWith('/b')) throw new Error('Metadata unavailable');
+          return { author: 'Jane Smith', year: '2022', title: 'Study', publication: '' };
+        });
         for (let i = 0; i < 100 && !(await js("!!document.querySelector('.onboarding-skip')")); i++) await delay(50);
         await js("document.querySelector('.onboarding-skip').click()");
         for (let i = 0; i < 100 && !(await js("!!document.querySelector('.ribbon-settings-button')")); i++) await delay(100);
@@ -79,6 +89,16 @@ const delay = (ms) => new Promise((r) => setTimeout(r, ms));
         assert.equal(await js("!!document.querySelector('.evidence-results')"), true, 'sidebar shortcut opens a working checkup');
         assert.equal(await js("document.querySelector('.evidence-results').textContent.includes('Uncertain citation fields')"), true,
           'ambiguous citation fields are visible in scan results');
+        assert.deepEqual(sourceRequests, [], 'source metadata is not requested by a scan');
+        await js("[...document.querySelectorAll('.evidence-checkup-dialog button')].find(button => button.textContent === 'Compare sources').click()");
+        for (let i = 0; i < 100 && !(await js("document.querySelector('.evidence-checkup-dialog').textContent.includes('Source lookups completed')")); i++) await delay(50);
+        assert.deepEqual(sourceRequests.sort(), ['https://example.com/a', 'https://example.com/b'], 'source requests are deduplicated');
+        const comparison = await js("document.querySelector('.evidence-results').textContent");
+        assert.ok(comparison.includes('Possible source mismatch') && comparison.includes('2020') && comparison.includes('2022'),
+          'comparison displays both cited and source values');
+        assert.ok(comparison.includes('Source lookup unavailable') && comparison.includes('Metadata unavailable'),
+          'source errors are visible');
+        assert.equal(await fs.readFile(path.join(vault, 'Doc.md'), 'utf8'), body, 'comparison does not write comments by default');
         const resultsLayout = await js(`(() => {
           const dialog = document.querySelector('.evidence-checkup-dialog');
           const section = dialog.querySelector('.evidence-results');

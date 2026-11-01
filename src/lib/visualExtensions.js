@@ -88,7 +88,7 @@ export const EvidenceCheckupComment = Node.create({
     level: 'block',
     start: (src) => src.indexOf('<!-- Evidence checkup ('),
     tokenize(src) {
-      const match = /^<!-- Evidence checkup \((citation|link)\): ([^\r\n]*?) -->(?:\r?\n|$)/.exec(src);
+      const match = /^<!-- Evidence checkup \((citation|link|source)\): ([^\r\n]*?) -->(?:\r?\n|$)/.exec(src);
       if (!match) return undefined;
       return { type: 'evidenceCheckupComment', raw: match[0], category: match[1], text: match[2] };
     },

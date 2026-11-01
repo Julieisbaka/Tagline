@@ -61,10 +61,31 @@ test('linkIssues reports only dead links and keeps archived copies', async () =>
     'https://example.com/gone': { status: 'dead', reason: 'HTTP 404', archiveUrl: 'https://web.archive.org/web/2020/https://example.com/gone' },
     'https://example.com/slow': { status: 'unverified', reason: 'timed out' },
   });
+
   assert.deepEqual(issues, [{
     path: 'a.md', card: 'One', lineIndex: 0, kind: 'dead_link', url: 'https://example.com/gone', reason: 'HTTP 404',
     archiveUrl: 'https://web.archive.org/web/2020/https://example.com/gone',
   }]);
+});
+
+test('source comparison flags only comparable differences and reports unavailable sources', async () => {
+  const { scanCards, sourceIssues } = await import('../src/lib/evidenceCheckup.js');
+  const cards = scanCards({
+    'a.md': '#### One\n**Smith 2020** — "Study", Journal, [x](https://example.com/a)\n' +
+      '#### Two\n**Jones 24** — [x](https://example.com/b)\n' +
+      '#### Three\n**Lee 2021** — [x](https://example.com/c)\n',
+  });
+  const issues = sourceIssues(cards, {
+    'https://example.com/a': { metadata: { author: 'Jane Smith', year: '2022', title: 'Study', publication: 'Journal' } },
+    'https://example.com/b': { metadata: { year: '2024' } },
+    'https://example.com/c': { error: 'HTTP 403' },
+  });
+  assert.deepEqual(issues.map((item) => [item.card, item.kind, item.field]), [
+    ['One', 'source_mismatch', 'year'], ['Two', 'source_not_comparable', undefined],
+    ['Three', 'source_unavailable', undefined],
+  ]);
+  assert.equal(issues[0].citationValue, '2020');
+  assert.equal(issues[0].sourceValue, '2022');
 });
 
 test('comments target duplicate card headings, refresh idempotently and preserve other categories', async () => {
@@ -82,9 +103,15 @@ test('comments target duplicate card headings, refresh idempotently and preserve
   const linkIssue = { path: 'a.md', card: 'Same', lineIndex: rescanned[0].lineIndex, kind: 'dead_link' };
   const withLink = annotateEvidence(result, rescanned, [linkIssue], ['link'], () => 'Link is dead.');
   assert.match(withLink['a.md'], /Evidence checkup \(citation\).* -->\r\n<!-- Evidence checkup \(link\): Link is dead\. -->/);
-  const resolved = annotateEvidence(withLink, scanCards(withLink), [], ['citation'], describe);
+  const sourceCard = scanCards(withLink)[0];
+  const withSource = annotateEvidence(withLink, scanCards(withLink),
+    [{ path: 'a.md', lineIndex: sourceCard.lineIndex, kind: 'source_mismatch' },
+    { path: 'a.md', lineIndex: sourceCard.lineIndex, kind: 'source_unavailable' }], ['source'], () => 'Source mismatch.');
+  assert.match(withSource['a.md'], /Evidence checkup \(source\): Source mismatch\./);
+  const resolved = annotateEvidence(withSource, scanCards(withSource), [], ['citation'], describe);
   assert.doesNotMatch(resolved['a.md'], /Evidence checkup \(citation\)/);
   assert.match(resolved['a.md'], /Evidence checkup \(link\)/);
+  assert.match(resolved['a.md'], /Evidence checkup \(source\)/);
 });
 
 test('checkup never scans or annotates structured vault files', async () => {
@@ -102,15 +129,17 @@ test('checkup comments survive visual editing and can be refreshed afterward', a
   const { scanCards, annotateEvidence } = await import('../src/lib/evidenceCheckup.js');
   const editor = new Editor({
     element: null, extensions: visualExtensions(), contentType: 'markdown',
-    content: '#### Card\n<!-- Evidence checkup (citation): No citation. -->\nText',
+    content: '#### Card\n<!-- Evidence checkup (citation): No citation. -->\n<!-- Evidence checkup (source): Mismatch. -->\nText',
   });
   try {
     const markdown = editor.getMarkdown();
     assert.match(markdown, /<!-- Evidence checkup \(citation\): No citation\. -->/);
+    assert.match(markdown, /<!-- Evidence checkup \(source\): Mismatch\. -->/);
     const files = { 'a.md': markdown };
     const cards = scanCards(files);
     const result = annotateEvidence(files, cards, [], ['citation'], () => '');
-    assert.doesNotMatch(result['a.md'], /Evidence checkup/);
+    assert.doesNotMatch(result['a.md'], /Evidence checkup \(citation\)/);
+    assert.match(result['a.md'], /Evidence checkup \(source\)/);
     assert.match(result['a.md'], /Text/);
   } finally { editor.destroy(); }
 });

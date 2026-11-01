@@ -150,6 +150,7 @@ function registerIpc() {
   });
   ipcMain.handle('pandoc:install', () => shell.openExternal('https://pandoc.org/installing.html'));
   ipcMain.handle('citation:extract', (_event, url) => extractCitation(url));
+  ipcMain.handle('citation:sourceMetadata', (_event, url) => extractCitation(url, { sourceOnly: true }));
   ipcMain.handle('evidence:checkLinks', (_event, urls, options) => checkLinks(urls, options));
   ipcMain.handle('keybindings:set', (_event, overrides) => {
     if (!overrides || typeof overrides !== 'object' || Array.isArray(overrides) ||

@@ -70,3 +70,47 @@ test('marks ambiguous quotes and unresolved reference links for review', async (
   assert.ok(result.uncertainFields.includes('title'));
   assert.ok(result.uncertainFields.includes('url'));
 });
+
+test('extracts multiline citations, note-wide reference links and written dates', async () => {
+  const { scanCards } = await import('../src/lib/evidenceCheckup.js');
+  const text = [
+    '#### First',
+    '**Smith, March 3, 2022**',
+    'Title: A study',
+    'Publication: Policy Journal',
+    '[Article][report]',
+    'Accessed March 5, 2024',
+    'Evidence continues here.',
+    '',
+    '[report]: https://example.com/report',
+    '#### Second',
+    '**Jones, 15 May 2023**',
+    'doi:10.5555/example.2023',
+    '#### Third',
+    '**Smith 2022 — "Study", [Archive]**',
+    '',
+    '[Archive]: https://example.com/archive_(2022)',
+  ].join('\n');
+  const cards = scanCards({ 'notes.md': text });
+  assert.deepEqual(cards[0].citation, {
+    author: 'Smith', year: '2022', title: 'A study', publication: 'Policy Journal',
+    url: 'https://example.com/report', accessed: '2024-03-05',
+  });
+  assert.equal(cards[1].citation.author, 'Jones');
+  assert.equal(cards[1].citation.year, '2023');
+  assert.equal(cards[1].citation.url, 'https://doi.org/10.5555/example.2023');
+  assert.equal(cards[2].citation.url, 'https://example.com/archive_(2022)');
+});
+
+test('marks invalid or ambiguous dates uncertain instead of inventing a year', async () => {
+  const { extractCardCitation } = await import('../src/lib/citationExtraction.js');
+  const invalid = extractCardCitation('**Smith, February 30, 2024** — "Study"');
+  assert.equal(invalid.citation.year, '');
+  assert.ok(invalid.uncertainFields.includes('year'));
+  const invalidIso = extractCardCitation('**Smith 2024-02-31** — "Study"');
+  assert.equal(invalidIso.citation.year, '');
+  assert.ok(invalidIso.uncertainFields.includes('year'));
+  const ambiguous = extractCardCitation('**Smith 2024** — "Study", Accessed 03/04/2024');
+  assert.equal(ambiguous.citation.accessed, '');
+  assert.ok(ambiguous.uncertainFields.includes('accessed'));
+});

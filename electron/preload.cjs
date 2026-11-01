@@ -89,6 +89,7 @@ contextBridge.exposeInMainWorld('api', {
     return () => ipcRenderer.removeListener('browser:state', listener);
   },
   extractCitation: (url) => ipcRenderer.invoke('citation:extract', url),
+  sourceCitationMetadata: (url) => ipcRenderer.invoke('citation:sourceMetadata', url),
   checkEvidenceLinks: (urls, options) => ipcRenderer.invoke('evidence:checkLinks', urls, options),
   setKeybindings: (overrides) => ipcRenderer.invoke('keybindings:set', overrides),
   nextFlowFile: () => ipcRenderer.invoke('flow:pending'),

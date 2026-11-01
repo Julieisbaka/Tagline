@@ -1,6 +1,10 @@
 import { detectCards } from './cardDetection.js';
 import { extractCardCitation } from './citationExtraction.js';
 import { isMarkdown } from './vault.js';
+import { Marked } from 'marked';
+import { splitFrontmatter } from './frontmatter.js';
+
+const markdown = new Marked({ gfm: true, breaks: true });
 
 export const CITATION_FIELDS = ['author', 'year', 'title', 'publication', 'url', 'accessed'];
 
@@ -44,8 +48,9 @@ export function scanCards(files) {
     if (!isMarkdown(path)) continue;
     const text = String(content ?? '');
     const lines = text.split(/\r\n?|\n/);
+    const references = markdown.lexer(splitFrontmatter(text).body).links;
     for (const card of detectCards(text)) {
-      const { citation, uncertainFields } = extractCardCitation(lines.slice(card.lineIndex + 1, card.endLineIndex).join('\n'));
+      const { citation, uncertainFields } = extractCardCitation(lines.slice(card.lineIndex + 1, card.endLineIndex).join('\n'), references);
       cards.push({
         path, title: card.title, lineIndex: card.lineIndex, citation, citationUncertainFields: uncertainFields,
       });
@@ -122,6 +127,41 @@ export function linkIssues(cards, results) {
   return issues;
 }
 
+const comparableFields = ['author', 'year', 'title', 'publication'];
+const normalizeField = (value) => value.normalize('NFKC').toLocaleLowerCase()
+  .replace(/[^\p{L}\p{N}]+/gu, ' ').trim().replace(/\s+/g, ' ');
+
+/** Compare only present, unambiguous fields against fetched source metadata. */
+export function sourceIssues(cards, results) {
+  const issues = [];
+  for (const card of cards) {
+    const url = card.citation?.url;
+    const result = url && results[url];
+    if (!result) continue;
+    const base = { path: card.path, card: card.title, lineIndex: card.lineIndex };
+    if (result.error) {
+      issues.push({ ...base, kind: 'source_unavailable', reason: result.error });
+      continue;
+    }
+    let compared = 0;
+    for (const field of comparableFields) {
+      const citationValue = card.citation[field];
+      const sourceValue = result.metadata?.[field];
+      if (!citationValue || !sourceValue || card.citationUncertainFields?.includes(field)) continue;
+      const cited = normalizeField(citationValue);
+      const source = normalizeField(sourceValue);
+      if (!cited || !source) continue;
+      compared++;
+      const sameAuthor = field === 'author' && (` ${source} `.includes(` ${cited} `) || ` ${cited} `.includes(` ${source} `));
+      if (cited !== source && !sameAuthor) {
+        issues.push({ ...base, kind: 'source_mismatch', field, citationValue, sourceValue });
+      }
+    }
+    if (!compared) issues.push({ ...base, kind: 'source_not_comparable' });
+  }
+  return issues;
+}
+
 /**
  * Refresh checkup-owned comments immediately after each card heading.
  * Only the requested categories are replaced, so a link check preserves citation results.
@@ -144,7 +184,7 @@ export function annotateEvidence(files, cards, issues, categories, describe) {
       while (end < lines.length) {
         let next = end;
         while (next < lines.length && !lines[next].trim()) next++;
-        const match = lines[next]?.match(/^<!-- Evidence checkup \((citation|link)\): (.*) -->$/);
+        const match = lines[next]?.match(/^<!-- Evidence checkup \((citation|link|source)\): (.*) -->$/);
         if (!match) break;
         spacing.push(...lines.slice(end, next));
         comments.set(match[1], lines[next]);
@@ -152,7 +192,8 @@ export function annotateEvidence(files, cards, issues, categories, describe) {
       }
       for (const category of categories) {
         const messages = issues.filter((issue) => issue.path === path && issue.lineIndex === card.lineIndex &&
-          (issue.kind === 'dead_link' ? 'link' : 'citation') === category)
+          (issue.kind === 'dead_link' ? 'link' : issue.kind === 'source_mismatch' ? 'source' :
+            issue.kind.startsWith('source_') ? null : 'citation') === category)
           .map((issue) => describe(issue).replace(/[\r\n]+/g, ' ').replace(/-{2,}/g, (dashes) => [...dashes].join(' ')));
         if (messages.length) comments.set(category, `<!-- Evidence checkup (${category}): ${messages.join(' | ')} -->`);
         else comments.delete(category);

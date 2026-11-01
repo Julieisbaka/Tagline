@@ -201,7 +201,7 @@ function canonicalPageUrl(value, base) {
   }
 }
 
-function parseMetadata(html, address) {
+function parseMetadata(html, address, { allowUrlFallback = true } = {}) {
   const url = validateUrl(address);
   const meta = new Map();
   for (const [tag] of html.matchAll(/<meta\b[^>]*>/gi)) {
@@ -255,10 +255,10 @@ function parseMetadata(html, address) {
   const date = text(article.datePublished || article.dateCreated) ||
     get('article:published_time', 'citation_publication_date', 'citation_online_date', 'parsely-pub-date',
       'dcterms.issued', 'dc.date', 'date', 'datepublished', 'pubdate');
-  const year = date.match(/\b(?:19|20)\d{2}\b/)?.[0] || fromUrl.year;
+  const year = date.match(/\b(?:19|20)\d{2}\b/)?.[0] || (allowUrlFallback ? fromUrl.year : '');
   const title = text(article.headline || article.name) ||
     get('citation_title', 'dc.title', 'dcterms.title', 'og:title', 'twitter:title', 'parsely-title') ||
-    text(html.match(/<title\b[^>]*>([\s\S]*?)<\/title>/i)?.[1]) || fromUrl.title;
+    text(html.match(/<title\b[^>]*>([\s\S]*?)<\/title>/i)?.[1]) || (allowUrlFallback ? fromUrl.title : '');
   const authorMeta = getAll('citation_author', 'dc.creator', 'dcterms.creator')
     .map((author) => author.replace(/^By\s+/i, '')).filter(Boolean).join(', ');
   return {
@@ -267,7 +267,7 @@ function parseMetadata(html, address) {
     title, year,
     publication: names(article.publisher) ||
       get('og:site_name', 'citation_journal_title', 'citation_conference_title', 'application-name',
-        'dc.publisher', 'dcterms.publisher') || fromUrl.publication,
+        'dc.publisher', 'dcterms.publisher') || (allowUrlFallback ? fromUrl.publication : ''),
     url: url.href,
   };
 }
@@ -312,7 +312,7 @@ async function crossrefCitation(address) {
   return fields.author || fields.year || fields.title || fields.publication ? fields : null;
 }
 
-async function extractCitation(value) {
+async function extractCitation(value, { sourceOnly = false } = {}) {
   if (typeof value !== 'string' || value.length > 8000) throw new Error('Enter a valid article URL.');
   const fromUrl = parseUrl(value);
   const doi = doiFromUrl(value);
@@ -328,8 +328,12 @@ async function extractCitation(value) {
   let fields;
   try {
     const { html, url } = await download(validateUrl(value));
-    fields = parseMetadata(html, url);
+    fields = parseMetadata(html, url, { allowUrlFallback: !sourceOnly });
   } catch (error) {
+    if (sourceOnly) {
+      if (crossrefError) throw new Error(`DOI metadata lookup failed (${crossrefError.message}); publisher metadata lookup failed (${error.message}).`);
+      throw error;
+    }
     const hasUsefulUrlFields = (!!fromUrl.title && !fromUrl.title.startsWith('doi:')) ||
       fromUrl.year || fromUrl.publication;
     if (!hasUsefulUrlFields) {
@@ -340,7 +344,7 @@ async function extractCitation(value) {
     }
     return fromUrl;
   }
-  if (!fields.title && !fields.author && !fields.year) {
+  if (!fields.title && !fields.author && !fields.year && (!sourceOnly || !fields.publication)) {
     if (crossrefError) throw new Error(`No article metadata was found. The Crossref lookup also failed (${crossrefError.message}). Enter citation details manually.`);
     throw new Error('No article metadata was found. Enter citation details manually.');
   }

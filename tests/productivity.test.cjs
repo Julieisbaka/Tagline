@@ -92,6 +92,11 @@ test('citation URL rules extract fields for common sites without fetching', () =
   const page = parseMetadata('<meta property="og:title" content="Real headline">', 'https://www.theguardian.com/world/2023/jun/14/slug-title');
   assert.equal(page.title, 'Real headline');
   assert.equal(page.year, '2023');
+  const verified = parseMetadata('<meta property="og:title" content="Real headline">',
+    'https://www.theguardian.com/world/2023/jun/14/slug-title', { allowUrlFallback: false });
+  assert.equal(verified.title, 'Real headline');
+  assert.equal(verified.year, '');
+  assert.equal(verified.publication, '');
 });
 
 test('citation transport pins public DNS results and handles redirects, errors and size limits', async () => {
@@ -157,6 +162,8 @@ test('citation transport pins public DNS results and handles redirects, errors a
     author: '', title: 'Border deal vote', year: '2024',
     publication: 'The New York Times', url: 'https://www.nytimes.com/2024/03/05/us/politics/border-deal-vote.html'
   });
+  await assert.rejects(module.exports.extractCitation('https://www.nytimes.com/2024/03/05/us/politics/border-deal-vote.html',
+    { sourceOnly: true }), /HTTP 403/);
   route = 'crossref';
   const doiCitation = await module.exports.extractCitation('https://doi.org/10.5555/example.2024');
   assert.deepEqual({ ...doiCitation }, {
