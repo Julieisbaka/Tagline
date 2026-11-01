@@ -39,10 +39,12 @@ async function uninstallApplication({
       throw error;
     }
     const script = [
+      '$ErrorActionPreference = "Stop"',
       '$parentId = [int]$env:TAGLINE_PARENT_PID',
       'while (Get-Process -Id $parentId -ErrorAction SilentlyContinue) { Start-Sleep -Milliseconds 250 }',
       'Set-Location -LiteralPath $env:TEMP',
-      'Start-Process -FilePath $env:TAGLINE_UNINSTALLER -Wait',
+      '$uninstall = Start-Process -FilePath $env:TAGLINE_UNINSTALLER -ArgumentList "/S" -Wait -PassThru',
+      'if ($uninstall.ExitCode -ne 0) { throw "The Tagline uninstaller failed with exit code $($uninstall.ExitCode)." }',
       'if ($env:TAGLINE_REMOVE_PROFILE -eq "1" -and -not (Test-Path -LiteralPath $env:TAGLINE_APP_EXECUTABLE)) {',
       '  Remove-Item -LiteralPath $env:TAGLINE_PROFILE -Recurse -Force -ErrorAction Stop',
       '}',

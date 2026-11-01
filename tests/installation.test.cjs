@@ -219,7 +219,11 @@ test('platform: Windows uninstall waits for app exit and removes profile only af
   const [, command, args, options] = state.calls.find(([kind]) => kind === 'spawn');
   assert.equal(command, 'powershell.exe');
   assert.ok(args.includes('-Command'));
-  assert.match(args[args.indexOf('-Command') + 1], /Start-Process -FilePath.*-Wait/);
+  const script = args[args.indexOf('-Command') + 1];
+  assert.match(script, /Start-Process -FilePath.*-ArgumentList "\/S" -Wait -PassThru/);
+  assert.match(script, /ErrorActionPreference = "Stop"/);
+  assert.match(script, /ExitCode -ne 0/);
+  assert.ok(script.indexOf('ExitCode -ne 0') < script.indexOf('$env:TAGLINE_REMOVE_PROFILE'));
   assert.match(args[args.indexOf('-Command') + 1], /-not \(Test-Path/);
   assert.equal(options.env.TAGLINE_PARENT_PID, '4321');
   assert.equal(options.env.TAGLINE_REMOVE_PROFILE, '1');
