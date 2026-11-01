@@ -23,6 +23,8 @@ export default function NoteView({
   setHighlightOnly,
   jump,
   noteNames,
+  notePaths,
+  notify,
   resolve,
   onChange,
   onOpenLink,
@@ -210,6 +212,8 @@ export default function NoteView({
             value={content}
             onChange={onChange}
             noteNames={noteNames}
+            notePaths={notePaths}
+            notify={notify}
             onOpenLink={onOpenLink}
             onSendCard={onSendCard}
             onCursor={setCursor}
@@ -220,7 +224,7 @@ export default function NoteView({
             spellcheck={settings.visualSpellcheck}
             onReady={onVisualEditorReady}
             keybindings={settings.keybindings}
-            onSendCard={sendCurrent} onSection={setVisualSection} noteNames={noteNames} visualRef={visualRef}
+            onSendCard={sendCurrent} onSection={setVisualSection} noteNames={noteNames} notePaths={notePaths} notify={notify} visualRef={visualRef}
             jump={jump?.path === path ? jump : null} toolbarVisible={settings.visualToolbar} />
         ) : (
           <Preview

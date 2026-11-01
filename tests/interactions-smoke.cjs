@@ -90,6 +90,7 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
         await require('./interactions/canvas-editor.cjs')(scenarioContext);
         await require('./interactions/editor-layout.cjs')(scenarioContext);
         await require('./interactions/graph-recovery.cjs')(scenarioContext);
+        await require('./interactions/note-drag.cjs')(scenarioContext);
         console.log('PASS: flow/canvas recovery in visual and source modes, themed confirmations, JSON history, live resize, file previews and links, onboarding flag, viewport/bar/link/graph regressions.');
         app.exit(0);
       } catch (error) { console.error(error); app.exit(1); }

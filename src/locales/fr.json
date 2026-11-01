@@ -935,6 +935,8 @@
   "Websites use a separate signed-in session and identify as standard Chrome. Disable this to use your default browser.": "Les sites utilisent une session séparée avec connexion et s’identifient comme Chrome standard. Désactivez cette option pour utiliser votre navigateur par défaut.",
   "Archived copy": "Copie archivée",
   "Evidence checkup": "Vérification des preuves",
+  "Cannot link to a note whose path contains #, |, or ].": "Impossible de lier une note dont le chemin contient #, | ou ].",
+  "Could not insert a link at the drop position.": "Impossible d’insérer un lien à l’emplacement du dépôt.",
   "Research tools": "Outils de recherche",
   "Add comments to affected cards": "Ajouter des commentaires aux cartes concernées",
   "Writes Markdown comments into notes when you scan or check links. Existing checkup comments are refreshed; other comments are kept.": "Écrit des commentaires Markdown dans les notes lors de l’analyse ou de la vérification des liens. Les commentaires de vérification existants sont actualisés ; les autres sont conservés.",

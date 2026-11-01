@@ -4,6 +4,7 @@ import { splitFrontmatter } from '../lib/frontmatter.js';
 import { useI18n } from '../lib/i18n.js';
 import { binding, KEYBINDINGS, matchesBinding } from '../lib/keybindings.js';
 import { slugify } from '../lib/markdown.js';
+import { draggedNoteLink, draggedNotePath, hasNoteDrag } from '../lib/noteDrag.js';
 import { cachedDocument, cacheDocument } from '../lib/visualCache.js';
 import { visualExtensions } from '../lib/visualExtensions.js';
 import { visualSelection } from '../lib/visualHelpers.js';
@@ -12,7 +13,7 @@ import EditorToolbar from './EditorToolbar.jsx';
 import VisualFindReplace from './VisualFindReplace.jsx';
 
 export default function VisualEditor({
-  value, onChange, onOpenLink, onSendCard, onSection, noteNames, visualRef, jump, keybindings,
+  value, onChange, onOpenLink, onSendCard, onSection, noteNames, notePaths, notify, visualRef, jump, keybindings,
   toolbarVisible = true, spellcheck = true, onReady,
 }) {
   const metadata = useMemo(() => splitFrontmatter(value), [value]);
@@ -20,7 +21,7 @@ export default function VisualEditor({
   live.current = {
     onChange: (body) => onChange(metadata.prefix +
       (metadata.prefix && !metadata.prefix.endsWith('\n') && body ? '\n' : '') + body),
-    onOpenLink, onSendCard, onSection, keybindings,
+    onOpenLink, onSendCard, onSection, keybindings, notePaths, notify,
   };
   return <MemoizedDocument value={metadata.body} noteNames={noteNames} visualRef={visualRef} jump={jump}
     live={live} keybindings={keybindings} toolbarVisible={toolbarVisible} spellcheck={spellcheck} onReady={onReady} />;
@@ -58,6 +59,31 @@ function VisualDocument({ value, noteNames, visualRef, jump, live, keybindings, 
       attributes: {
         class: 'markdown-body visual-document', role: 'textbox',
         'aria-multiline': 'true', 'aria-label': t('Visual note editor')
+      },
+      handleDOMEvents: {
+        dragover(_view, event) {
+          if (!hasNoteDrag(event.dataTransfer)) return false;
+          event.preventDefault();
+          event.dataTransfer.dropEffect = 'copy';
+          return true;
+        },
+      },
+      handleDrop(view, event) {
+        const path = draggedNotePath(event.dataTransfer, live.current.notePaths);
+        if (!path) return false;
+        event.preventDefault();
+        const position = view.posAtCoords({ left: event.clientX, top: event.clientY });
+        if (!position) {
+          live.current.notify(t('Could not insert a link at the drop position.'));
+          return true;
+        }
+        try { draggedNoteLink(path); }
+        catch (error) { live.current.notify(t(error.message)); return true; }
+        const inserted = visualRef.current?.chain().insertContentAt(position.pos, {
+          type: 'wikiLink', attrs: { target: path, heading: '', alias: '', embed: false },
+        }).focus().run();
+        if (!inserted) live.current.notify(t('Could not insert a link at the drop position.'));
+        return true;
       },
       handleClick(view, pos, event) {
         const link = event.target.closest('[data-wiki-link]');

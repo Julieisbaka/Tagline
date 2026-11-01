@@ -19,6 +19,7 @@ import {
 import { applicationEvents } from '../lib/extensionCapabilities.js';
 import { useI18n } from '../lib/i18n.js';
 import { binding, editorBinding, KEYBINDINGS } from '../lib/keybindings.js';
+import { draggedNoteLink, draggedNotePath, hasNoteDrag } from '../lib/noteDrag.js';
 import EditorLinkForm from './EditorLinkForm.jsx';
 import EditorToolbar from './EditorToolbar.jsx';
 
@@ -30,7 +31,7 @@ const SOURCE_ACTIONS = {
 };
 
 export default function Editor({
-  value, onChange, noteNames, onOpenLink, onSendCard, onCursor, viewRef, keybindings, settings, jump,
+  value, onChange, noteNames, notePaths, notify, onOpenLink, onSendCard, onCursor, viewRef, keybindings, settings, jump,
 }) {
   const { t, locale } = useI18n();
   const ownViewRef = useRef(null);
@@ -38,7 +39,7 @@ export default function Editor({
   const [linkOpen, setLinkOpen] = useState(false);
   // Keep callbacks in a ref so extensions stay stable across renders.
   const cb = useRef({});
-  cb.current = { noteNames, onOpenLink, onSendCard, onCursor };
+  cb.current = { noteNames, notePaths, notify, onOpenLink, onSendCard, onCursor, t };
   useEffect(() => {
     if (!view || jump?.line == null) return;
     const line = view.state.doc.line(Math.min(jump.line + 1, view.state.doc.lines));
@@ -91,6 +92,28 @@ export default function Editor({
       }),
       ...(settings.sourceActiveLine ? [EditorView.theme({ '.cm-activeLine': { backgroundColor: 'var(--bg-hover)' } })] : []),
       EditorView.domEventHandlers({
+        dragover(e) {
+          if (!hasNoteDrag(e.dataTransfer)) return false;
+          e.preventDefault();
+          e.dataTransfer.dropEffect = 'copy';
+          return true;
+        },
+        drop(e, view) {
+          const path = draggedNotePath(e.dataTransfer, cb.current.notePaths);
+          if (!path) return false;
+          e.preventDefault();
+          const pos = view.posAtCoords({ x: e.clientX, y: e.clientY });
+          if (pos == null) {
+            cb.current.notify(cb.current.t('Could not insert a link at the drop position.'));
+            return true;
+          }
+          let text;
+          try { text = draggedNoteLink(path); }
+          catch (error) { cb.current.notify(cb.current.t(error.message)); return true; }
+          view.dispatch({ changes: { from: pos, insert: text }, selection: { anchor: pos + text.length } });
+          view.focus();
+          return true;
+        },
         mousedown(e, view) {
           if (!(e.ctrlKey || e.metaKey)) return false;
           const pos = view.posAtCoords({ x: e.clientX, y: e.clientY });

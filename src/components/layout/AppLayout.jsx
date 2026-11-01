@@ -144,6 +144,8 @@ export default function AppLayout({ app }) {
         setHighlightOnly={setHighlightOnly}
         jump={jump}
         noteNames={noteNames}
+        notePaths={paths}
+        notify={notify}
         resolve={resolve}
         onChange={(text) => v.updateContent(tab.path, text)}
         onOpenLink={openLink}

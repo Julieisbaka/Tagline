@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react';
 import { useI18n } from '../../lib/i18n.js';
-import { displayName, isCanvas, isFlow } from '../../lib/vault.js';
+import { displayName, isCanvas, isFlow, isMarkdown } from '../../lib/vault.js';
+import { NOTE_LINK_TYPE } from '../../lib/noteDrag.js';
 import ContextMenu from '../dialogs/ContextMenu.jsx';
 import Icon from '../Icon.jsx';
 
@@ -22,8 +23,9 @@ export default function TabBar({ tabs, activeId, onActivate, onClose, onCloseOth
           draggable="true"
           onDragStart={(event) => {
             draggedId.current = t.id;
-            event.dataTransfer.effectAllowed = 'move';
+            event.dataTransfer.effectAllowed = 'copyMove';
             event.dataTransfer.setData('text/plain', t.id);
+            if (t.kind === 'file' && isMarkdown(t.path)) event.dataTransfer.setData(NOTE_LINK_TYPE, t.path);
             event.currentTarget.classList.add('dragging');
           }}
           onDragOver={(event) => {
