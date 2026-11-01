@@ -38,6 +38,7 @@ export function buildCommands(ctx, overrides = {}) {
     c('opencaselist', 'OpenCaselist: browse and manage disclosures', ctx.openCaselist),
     c('tabroom', 'Tabroom: view and save tournament data', ctx.openTabroom),
     c('citation', 'Create citation', ctx.createCitation),
+    c('evidence-checkup', 'Evidence checkup: scan cards for citation and link problems', ctx.evidenceCheckup),
   ];
   if (ctx.hasNote) {
     list.push(

@@ -62,6 +62,43 @@ export const WikiLink = Node.create({
   },
 });
 
+export const EvidenceCheckupComment = Node.create({
+  name: 'evidenceCheckupComment',
+  group: 'block',
+  atom: true,
+  addAttributes() {
+    return { category: { default: 'citation' }, text: { default: '' } };
+  },
+  parseHTML() {
+    return [{ tag: 'div[data-evidence-checkup-comment]', getAttrs: (element) => ({
+      category: element.dataset.category, text: element.dataset.text,
+    }) }];
+  },
+  renderHTML({ node }) {
+    return ['div', {
+      'data-evidence-checkup-comment': '',
+      'data-category': node.attrs.category,
+      'data-text': node.attrs.text,
+      class: 'evidence-editor-comment',
+      contenteditable: 'false',
+    }, `Evidence checkup: ${node.attrs.text}`];
+  },
+  markdownTokenizer: {
+    name: 'evidenceCheckupComment',
+    level: 'block',
+    start: (src) => src.indexOf('<!-- Evidence checkup ('),
+    tokenize(src) {
+      const match = /^<!-- Evidence checkup \((citation|link)\): ([^\r\n]*?) -->(?:\r?\n|$)/.exec(src);
+      if (!match) return undefined;
+      return { type: 'evidenceCheckupComment', raw: match[0], category: match[1], text: match[2] };
+    },
+  },
+  parseMarkdown: (token) => ({
+    type: 'evidenceCheckupComment', attrs: { category: token.category, text: token.text },
+  }),
+  renderMarkdown: (node) => `<!-- Evidence checkup (${node.attrs.category}): ${node.attrs.text} -->`,
+});
+
 /** 
  * Create the Markdown visual-editor extensions used by the app.
  * @returns {object[]} - An array of configured Tiptap extensions.
@@ -69,7 +106,7 @@ export const WikiLink = Node.create({
 export function visualExtensions() {
   return [
     StarterKit.configure({ link: { openOnClick: false }, trailingNode: false }),
-    Highlight, TableKit, TaskList, TaskItem.configure({ nested: true }), WikiLink,
+    Highlight, TableKit, TaskList, TaskItem.configure({ nested: true }), WikiLink, EvidenceCheckupComment,
     FindAndReplace.configure({ injectCSS: false, searchDebounceMs: 0 }),
     Markdown.configure({ markedOptions: { gfm: true, breaks: true } }),
   ];

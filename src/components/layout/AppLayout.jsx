@@ -22,6 +22,7 @@ const SearchModal = deferred(() => import('../dialogs/SearchModal.jsx'), true);
 const ExportDialog = deferred(() => import('../dialogs/ExportDialog.jsx'), true);
 const ImportDialog = deferred(() => import('../dialogs/ImportDialog.jsx'), true);
 const CitationDialog = deferred(() => import('../dialogs/CitationDialog.jsx'), true);
+const EvidenceCheckupDialog = deferred(() => import('../dialogs/EvidenceCheckupDialog.jsx'), true);
 const HypothesisDialog = deferred(() => import('../dialogs/HypothesisDialog.jsx'), true);
 const SummaryDialog = deferred(() => import('../dialogs/SummaryDialog.jsx'), true);
 const HistoryDialog = deferred(() => import('../dialogs/HistoryDialog.jsx'), true);
@@ -260,6 +261,9 @@ export default function AppLayout({ app }) {
         onClose={() => setModal(null)} />}
       {modal?.type === 'citation' && <CitationDialog onInsert={activePath && isMarkdown(activePath) && mode !== 'read'
         ? insertCitation : null} onClose={() => setModal(null)} />}
+      {modal?.type === 'evidence' && <EvidenceCheckupDialog contents={v.contents} getContent={v.getContent}
+        updateContent={v.updateContent} flush={v.flush} onOpen={(path) => { setModal(null); open(path, false); }}
+        onClose={() => setModal(null)} />}
       {toast && <div className="toast">{toast}</div>}
       {extensionWebviews}
       {onboarding}

@@ -196,6 +196,13 @@
     "key": ""
   },
   {
+    "id": "evidence-checkup",
+    "label": "Evidence checkup: scan cards for citation and link problems",
+    "action": "evidenceCheckup",
+    "scope": "app",
+    "key": ""
+  },
+  {
     "id": "source-mode",
     "label": "Editor: source mode (CodeMirror)",
     "action": "sourceMode",

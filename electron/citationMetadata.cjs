@@ -90,6 +90,17 @@ function validateUrl(value) {
   return url;
 }
 
+// DNS lookup that refuses hosts resolving to private or local addresses.
+function publicLookup(host, options, callback) {
+  dns.lookup(host, { all: true }, (error, addresses) => {
+    if (error) return callback(error);
+    if (!addresses.length || addresses.some(({ address }) => !publicAddress(address))) {
+      return callback(new Error('Local and private network URLs are not supported.'));
+    }
+    callback(null, options.all ? addresses : addresses[0].address, addresses[0].family);
+  });
+}
+
 function download(url, redirects = 0, responseType = 'html') {
   return new Promise((resolve, reject) => {
     const request = (url.protocol === 'https:' ? https : http).get(url, {
@@ -97,15 +108,7 @@ function download(url, redirects = 0, responseType = 'html') {
         Accept: responseType === 'json' ? 'application/json' : 'text/html,application/xhtml+xml',
         'User-Agent': 'Tagline/0.0.1 CitationMetadata',
       },
-      lookup(host, options, callback) {
-        dns.lookup(host, { all: true }, (error, addresses) => {
-          if (error) return callback(error);
-          if (!addresses.length || addresses.some(({ address }) => !publicAddress(address))) {
-            return callback(new Error('Local and private network URLs are not supported.'));
-          }
-          callback(null, options.all ? addresses : addresses[0].address, addresses[0].family);
-        });
-      },
+      lookup: publicLookup,
     }, (response) => {
       if ([301, 302, 303, 307, 308].includes(response.statusCode)) {
         response.resume();
@@ -344,4 +347,4 @@ async function extractCitation(value) {
   return fields;
 }
 
-module.exports = { parseMetadata, parseUrl, extractCitation, crossrefCitation, doiFromUrl, publicAddress, validateUrl };
+module.exports = { parseMetadata, parseUrl, extractCitation, crossrefCitation, doiFromUrl, publicAddress, publicLookup, validateUrl };

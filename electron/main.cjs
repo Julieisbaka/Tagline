@@ -13,6 +13,7 @@ const { registerFonts } = require('./fonts.cjs');
 const { registerTimerSound } = require('./timerSound.cjs');
 const { registerExtensions } = require('./extensions.cjs');
 const { extractCitation } = require('./citationMetadata.cjs');
+const { checkLinks } = require('./evidenceLinks.cjs');
 const { registerFlowFiles } = require('./flowFiles.cjs');
 const { registerBrowser } = require('./browser.cjs');
 const { DEFAULT_RETENTION, createRevisionHistory } = require('./revisionHistory.cjs');
@@ -149,6 +150,7 @@ function registerIpc() {
   });
   ipcMain.handle('pandoc:install', () => shell.openExternal('https://pandoc.org/installing.html'));
   ipcMain.handle('citation:extract', (_event, url) => extractCitation(url));
+  ipcMain.handle('evidence:checkLinks', (_event, urls, options) => checkLinks(urls, options));
   ipcMain.handle('keybindings:set', (_event, overrides) => {
     if (!overrides || typeof overrides !== 'object' || Array.isArray(overrides) ||
       Object.entries(overrides).some(([id, key]) => !(keyDefinitions.some((item) => item.id === id) ||
