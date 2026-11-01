@@ -1,3 +1,6 @@
+import { detectCards } from './cardDetection.js';
+import { isMarkdown } from './vault.js';
+
 export const CITATION_FIELDS = ['author', 'year', 'title', 'publication', 'url', 'accessed'];
 
 export const DEFAULT_CHECKUP = {
@@ -8,9 +11,7 @@ export const DEFAULT_CHECKUP = {
   archiveFallback: true,
 };
 
-const CARD_HEADING = /^####\s+(.*)$/;
-const SECTION_HEADING = /^#{1,4}\s/;
-const CITE_LINE = /^\*\*(.+?)\*\*(.*)$/;
+const CITE_LINE = /^(\*\*|__)(.+?)\1(.*)$/;
 const TITLE_PART = /"((?:[^"\\]|\\.)*)"/;
 const LINK_PART = /\[[^\]]*\]\((https?:\/\/[^)\s]+)\)/;
 const ACCESSED_PART = /Accessed\s+[^,\n]+/i;
@@ -45,9 +46,9 @@ export function normalizeCheckup(options = {}) {
  */
 function parseCite(line) {
   const match = line.match(CITE_LINE);
-  const lead = (match?.[1] || '').trim();
+  const lead = (match?.[2] || '').trim();
   const leadMatch = lead.match(/^(.*?)\s*((?:19|20)\d{2})$/);
-  const rest = match?.[2] || '';
+  const rest = match?.[3] || '';
   const title = rest.match(TITLE_PART)?.[1] || '';
   const url = rest.match(LINK_PART)?.[1] || '';
   const accessed = rest.match(/Accessed\s+([^,\n]+)/i)?.[1]?.trim() || '';
@@ -72,23 +73,14 @@ export function scanCards(files) {
   const cards = [];
   for (const [path, content] of Object.entries(files || {})) {
     if (!isMarkdown(path)) continue;
-    let card = null;
-    const lines = String(content ?? '').split(/\r?\n/);
-    for (let lineIndex = 0; lineIndex < lines.length; lineIndex++) {
-      const line = lines[lineIndex];
-      const heading = line.match(CARD_HEADING);
-      if (heading) {
-        card = { path, title: heading[1].trim(), lineIndex, citation: null, hasCite: false };
-        cards.push(card);
-      } else if (SECTION_HEADING.test(line)) {
-        card = null;
-      } else if (card && !card.hasCite && line.startsWith('**')) {
-        card.hasCite = true;
-        card.citation = parseCite(line.trim());
-      }
+    for (const card of detectCards(String(content ?? ''))) {
+      cards.push({
+        path, title: card.title, lineIndex: card.lineIndex,
+        citation: card.citationLine ? parseCite(card.citationLine) : null,
+      });
     }
   }
-  return cards.map(({ hasCite, ...card }) => card);
+  return cards;
 }
 
 /**
@@ -198,4 +190,3 @@ export function annotateEvidence(files, cards, issues, categories, describe) {
   }
   return updated;
 }
-import { isMarkdown } from './vault.js';

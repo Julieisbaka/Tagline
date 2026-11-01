@@ -1,4 +1,5 @@
 import { spokenCitations } from './citation.js';
+import { detectCards } from './cardDetection.js';
 import { splitFrontmatter } from './frontmatter.js';
 import { speechStats } from './readTime.js';
 
@@ -104,11 +105,11 @@ export function spokenEvidence(content) {
  * @returns {object} - An object containing various statistics including word counts, highlighted evidence, citation words, read words, underlined text, and card count.
  */
 export function cardStats(content) {
+  const cards = detectCards(content).length;
   content = splitFrontmatter(content).body;
   const { body, highlighted, citations } = evidenceParts(content);
   const citationWords = countWords(citations);
   const underlined = [...body.matchAll(/\+\+([\s\S]*?)\+\+/g)].map((m) => m[1].replace(/==/g, '')).join(' ');
-  const cards = (content.match(/^####\s/gm) || []).length;
   return {
     ...speechStats(`${highlighted}\n${citations}`.trim()),
     words: countWords(body.replace(/[=+*_]/g, '')),
