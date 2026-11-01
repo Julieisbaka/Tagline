@@ -33,6 +33,8 @@ includes `npm test` and every `test:*` script except itself and the redundant
 `test:shared` / `test:platform` subsets. At the end it summarizes every suite's
 result with total execution time and counts for tests run, passed, failed,
 skipped, and canceled. Failures are written to `test-all.log`.
+The full runner builds the renderer once and reuses it across smoke suites;
+smoke commands run individually still build the renderer before testing.
 
 ## Releases and updates
 

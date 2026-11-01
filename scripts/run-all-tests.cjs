@@ -237,6 +237,15 @@ process.on('SIGTERM', requestInterrupt);
 async function main() {
   if (!npmCli) runnerError = 'npm_execpath is missing; start this script with npm run test:all.';
   if (!runnerError) {
+    const rendererBuild = await runSuite('build');
+    if (rendererBuild.status === 'passed') {
+      process.env.TAGLINE_TEST_DIST_READY = '1';
+    } else {
+      const excerpt = failureOutput(rendererBuild);
+      runnerError = `Initial renderer build failed (${rendererBuild.detail})${excerpt ? `\n${excerpt}` : ''}`;
+    }
+  }
+  if (!runnerError) {
     for (const suite of suites) {
       if (interrupted) break;
       results.push(await runSuite(suite));

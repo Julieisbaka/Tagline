@@ -87,15 +87,34 @@ test('release tests shared logic once and gates every platform build on it', () 
   assert.deepEqual(workflow.jobs.build.needs, ['version', 'test']);
   for (const [job, command] of [[workflow.jobs.test, 'npm run test:shared'], [workflow.jobs.build, 'npm run test:platform']]) {
     const commands = job.steps.map((step) => step.run).filter(Boolean);
-    assert.equal(commands.filter((run) => run === command).length, 1);
-    assert.ok(commands.indexOf('npm ci') < commands.indexOf(command));
+    const commandIndex = commands.findIndex((run) => run.includes(command));
+    assert.notEqual(commandIndex, -1);
+    assert.equal(commands.filter((run) => run.includes(command)).length, 1);
+    assert.ok(commands.indexOf('npm ci') < commandIndex);
     assert.ok(!commands.includes('npm test'), 'the full suite must not repeat inside the release matrix');
     assert.equal(job.steps.find((step) => step.uses === 'actions/setup-node@v4').with['node-version'], '24');
   }
   assert.ok(!workflow.jobs.test.strategy, 'shared tests do not use a platform matrix');
+  const sharedCommand = workflow.jobs.test.steps.find((step) => step.run?.includes('npm run test:shared')).run;
+  assert.ok(sharedCommand.includes('npm run build'), 'shared tests and the renderer build run together');
+  assert.ok(workflow.jobs.test.steps.some((step) =>
+    step.uses === 'actions/upload-artifact@v4' && step.with.name === 'renderer-dist'));
+  assert.ok(workflow.jobs.build.steps.some((step) =>
+    step.uses === 'actions/download-artifact@v4' && step.with.name === 'renderer-dist'));
   const builds = workflow.jobs.build.steps.map((step) => step.run).filter(Boolean);
-  assert.ok(builds.indexOf('npm run test:platform') < builds.indexOf('npm run build'));
+  assert.ok(!builds.includes('npm run build'), 'platform jobs reuse the shared renderer build');
+  assert.ok(builds.indexOf('npm run test:platform') < builds.indexOf('npm run test:installation'));
   assert.ok(builds.indexOf('npm run test:installation') < builds.findIndex((run) => run.includes('electron-builder')));
+});
+
+test('full test runner builds the renderer once and standalone smoke scripts prepare it', () => {
+  const { scripts } = require('../package.json');
+  const runner = fs.readFileSync(path.join(__dirname, '..', 'scripts', 'run-all-tests.cjs'), 'utf8');
+  const smokeRunner = fs.readFileSync(path.join(__dirname, '..', 'scripts', 'run-smoke.cjs'), 'utf8');
+  assert.match(runner, /runSuite\('build'\)/);
+  assert.match(runner, /TAGLINE_TEST_DIST_READY = '1'/);
+  assert.match(smokeRunner, /TAGLINE_TEST_DIST_READY !== '1'/);
+  assert.equal(Object.values(scripts).filter((command) => command.includes('scripts/run-smoke.cjs')).length, 20);
 });
 
 function preflight({ version = '1.2.3', lockVersion = version, tagCommit, release, status = 404 } = {}) {
