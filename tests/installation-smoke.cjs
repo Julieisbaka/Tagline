@@ -180,6 +180,9 @@ app.on('browser-window-created', (_event, win) => {
         await wait("!!document.querySelector('[data-section=installation]')");
         await js("document.querySelector('[data-section=installation]').click()");
         await wait("!!document.querySelector('.installation-details')");
+        const reportWidth = await js("document.querySelector('.installation-report').getBoundingClientRect().width");
+        const settingsWidth = await js("document.querySelector('.installation-settings').getBoundingClientRect().width");
+        assert.ok(reportWidth > settingsWidth * 0.8, 'Copyable bug report details should fill the settings width');
         const displayed = await js("document.querySelector('.installation-settings').textContent");
         assert.ok(displayed.includes(version));
         assert.ok(displayed.includes(profile));

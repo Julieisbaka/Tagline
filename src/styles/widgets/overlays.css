@@ -17,6 +17,16 @@
   user-select: text;
 }
 
+.installation-report {
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+  min-height: 180px;
+  resize: vertical;
+  font-family: monospace;
+  font-size: 12px;
+}
+
 .modal-backdrop {
   position: fixed;
   inset: 0;

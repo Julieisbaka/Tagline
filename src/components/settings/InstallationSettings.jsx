@@ -116,7 +116,8 @@ export default function InstallationSettings() {
     {info && <>
       <h3>{t('Bug report details')}</h3>
       <p>{t('Copy these details and paste them into the bug report. They contain no file paths or personal information.')}</p>
-      <textarea readOnly rows={10} aria-label={t('Bug report details')} value={bugReport} onFocus={(event) => event.target.select()} />
+      <textarea className="installation-report" readOnly rows={11} aria-label={t('Bug report details')}
+        value={bugReport} onFocus={(event) => event.target.select()} />
       <div className="settings-actions">
         <button onClick={copyBugReport}>{t(copied ? 'Copied' : 'Copy bug report details')}</button>
       </div>
