@@ -269,10 +269,14 @@ async function main() {
       const worker = async (queue) => {
         while (queue.length && !interrupted) results.push(await runSuite(queue.shift()));
       };
-      await Promise.all([
-        ...Array.from({ length: Math.min(concurrency, parallelSuites.length) }, () => worker(parallelSuites)),
-        worker(serialDesktopSuites),
-      ]);
+      if (concurrency === 1) {
+        await worker([...suites]);
+      } else {
+        await Promise.all([
+          ...Array.from({ length: Math.min(concurrency - 1, parallelSuites.length) }, () => worker(parallelSuites)),
+          worker(serialDesktopSuites),
+        ]);
+      }
     }
   }
 
