@@ -5,3 +5,4 @@ dist/
 .env
 scripts/__pycache__/
 release/
+*.tmp.md
