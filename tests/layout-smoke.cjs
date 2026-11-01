@@ -36,7 +36,7 @@ const delay = (ms) => new Promise((r) => setTimeout(r, ms));
         for (let i = 0; i < 100 && !(await js("!!document.querySelector('.ribbon-settings-button')")); i++) await delay(100);
         await js("document.querySelector('.ribbon-settings-button').click()");
         for (let i = 0; i < 100 && !(await js("!!document.querySelector('.settings')")); i++) await delay(50);
-        await js("document.querySelector('[data-section=\"appearance\"]').click()");
+        await js("document.querySelector('[data-section=\"workspace\"]').click()");
         await delay(100);
         const defaultItems = await js("JSON.parse(localStorage.getItem('tagline-settings')).ribbonItems");
         assert.deepEqual(defaultItems, ['fileExplorer', 'switcher', 'search', 'graph', 'commands', 'import', 'rightPanel']);
@@ -77,7 +77,33 @@ const delay = (ms) => new Promise((r) => setTimeout(r, ms));
         await js("[...document.querySelectorAll('.evidence-checkup-dialog button')].find(button => button.textContent === 'Scan vault').click()");
         for (let i = 0; i < 100 && !(await js("document.querySelector('.evidence-checkup-dialog [role=status]')?.textContent.includes('cards scanned')")); i++) await delay(50);
         assert.equal(await js("!!document.querySelector('.evidence-results')"), true, 'sidebar shortcut opens a working checkup');
+        const resultsLayout = await js(`(() => {
+          const dialog = document.querySelector('.evidence-checkup-dialog');
+          const section = dialog.querySelector('.evidence-results');
+          const rows = [...section.querySelectorAll('li')];
+          dialog.scrollTop = dialog.scrollHeight;
+          const area = section.getBoundingClientRect();
+          const last = rows.at(-1).getBoundingClientRect();
+          return {
+            rows: rows.length, sectionHeight: area.height, lastHeight: last.height,
+            lastBottom: last.bottom, sectionBottom: area.bottom, scrolls: dialog.scrollHeight > dialog.clientHeight,
+          };
+        })()`);
+        assert.ok(resultsLayout.rows >= 60 && resultsLayout.lastHeight >= 16, 'issue rows retain readable height');
+        assert.ok(resultsLayout.sectionHeight >= resultsLayout.rows * 16 &&
+          resultsLayout.lastBottom <= resultsLayout.sectionBottom, 'results are not collapsed or clipped');
+        assert.equal(resultsLayout.scrolls, true, 'the dialog scrolls when results overflow');
         await js("[...document.querySelectorAll('.evidence-checkup-dialog button')].find(button => button.textContent === 'Close').click()");
+        await js(`document.querySelector('.ribbon [data-ribbon-item="evidenceCheckup"]').dispatchEvent(
+          new MouseEvent('contextmenu', { bubbles: true, clientX: 40, clientY: 100 }))`);
+        for (let i = 0; i < 100 && !(await js("!!document.querySelector('.context-menu')")); i++) await delay(50);
+        await js("[...document.querySelectorAll('.context-menu button')].find(button => button.textContent === 'Settings').click()");
+        for (let i = 0; i < 100 && !(await js("!!document.querySelector('.settings')")); i++) await delay(50);
+        assert.equal(await js("document.querySelector('[data-section=\"workspace\"]').getAttribute('aria-current')"), 'page',
+          'sidebar context menu opens workspace settings');
+        assert.equal(await js("document.querySelector('[data-settings-panel=\"workspace\"]').hidden"), false,
+          'sidebar settings controls are visible');
+        await js("document.querySelector('.settings-footer .primary').click()");
         for (let i = 0; i < 100 && !(await js("document.querySelectorAll('.tree-item').length")); i++) await delay(100);
         await js(`(() => { const item = document.querySelector('.tree-item[title="Doc.md"]'); item.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, clientX: 140, clientY: 160 })); })()`);
         await delay(100);

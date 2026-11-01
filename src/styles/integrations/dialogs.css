@@ -402,6 +402,10 @@
   overflow-y: auto;
 }
 
+.evidence-checkup-dialog > * {
+  flex-shrink: 0;
+}
+
 .evidence-header {
   margin-bottom: 18px;
 }

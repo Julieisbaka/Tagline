@@ -52,7 +52,7 @@ export default function AppLayout({ app }) {
     if (!await v.flush()) throw new Error(t('Could not save the restored document.'));
     notify(t('Working save restored.'));
   };
-  const settingsDialog = <SettingsDialog settings={settings} update={updateSettings} extensions={ext}
+  const settingsDialog = <SettingsDialog settings={settings} update={updateSettings} extensions={ext} initialSection={modal?.section}
     speechDoc={speechDoc} speechDocuments={speechDocuments} onSelectSpeechDoc={actions.setSpeechDoc}
     onOpenCaselist={ctx.openCaselist}
     onOpenTabroom={ctx.openTabroom}

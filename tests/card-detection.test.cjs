@@ -54,3 +54,31 @@ test('unclosed fences and comments hide headings through the end of the document
   assert.equal(detectCards('~~~\n#### hidden\n~~~\n#### visible').length, 1);
   assert.equal(detectCards('Inline `<!--` is not a comment.\n#### visible').length, 1);
 });
+
+test('raw HTML and setext headings cannot produce or extend cards', async () => {
+  const { detectCards } = await import('../src/lib/cardDetection.js');
+  const text = [
+    '#### First', '**Smith 2024**', '<pre>', '#### Fake', '**Fake 2020**', '</pre>',
+    'New section', '---', '**Jones 2023**', '#### Second', '**Lee 2024**',
+    '<script type="text/plain">', '#### Fake script', '</script>', '#### Third',
+  ].join('\n');
+  const cards = detectCards(text);
+  assert.deepEqual(cards.map(({ title, lineIndex, endLineIndex, citationLine }) =>
+    [title, lineIndex, endLineIndex, citationLine]), [
+    ['First', 0, 6, '**Smith 2024**'],
+    ['Second', 9, 14, '**Lee 2024**'],
+    ['Third', 14, 15, null],
+  ]);
+});
+
+test('bold evidence with ordinary numbers is not mistaken for a citation', async () => {
+  const { detectCards } = await import('../src/lib/cardDetection.js');
+  const text = [
+    '#### First', '**Important evidence** continues here.',
+    '**Inflation rose 50 percent**', '**Smith 24** — Journal',
+    '#### Second', '**Jones**', '#### Third', 'Text', '**More evidence** — not a citation',
+  ].join('\n');
+  assert.deepEqual(detectCards(text).map((card) => card.citationLine), [
+    '**Smith 24** — Journal', '**Jones**', null,
+  ]);
+});

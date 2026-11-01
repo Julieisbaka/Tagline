@@ -363,6 +363,7 @@ export default function App() {
     },
     openGraph: tabs.openGraph,
     openSettings: actions.settings,
+    openWorkspaceSettings: () => setModal({ type: 'settings', section: 'workspace' }),
     toggleLeft: () => setShowLeft((s) => !s),
     toggleRight: () => setShowRight((s) => !s),
     openSpeechDoc: async () => {

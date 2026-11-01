@@ -41,7 +41,7 @@ export default function Ribbon({ ctx, showLeft, keybindings, settings, updateSet
             hiddenRibbonItems: [...new Set([...(settings.hiddenRibbonItems || []), id])],
           })
         },
-        { label: 'Settings', run: ctx.openSettings },
+        { label: 'Settings', run: ctx.openWorkspaceSettings },
       ]
     });
   };

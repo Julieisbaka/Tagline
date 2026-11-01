@@ -137,9 +137,9 @@ export function PromptDialog({ title, initial = '', onSubmit, onClose }) {
 }
 
 export function SettingsDialog({ settings, update, onClose, extensions, onOpenCaselist, onOpenTabroom,
-  speechDoc, speechDocuments = [], onSelectSpeechDoc }) {
+  speechDoc, speechDocuments = [], onSelectSpeechDoc, initialSection = 'general' }) {
   const { t } = useI18n();
-  const [section, setSection] = useState('general');
+  const [section, setSection] = useState(initialSection);
   const [query, setQuery] = useState('');
   const [searchIndex, setSearchIndex] = useState([]);
   const contentRef = useRef(null);
