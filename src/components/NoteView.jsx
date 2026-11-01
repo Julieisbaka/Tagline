@@ -10,7 +10,7 @@ import { deferred } from './Deferred.jsx';
 import Icon from './Icon.jsx';
 
 const Editor = deferred(() => import('./Editor.jsx'));
-const FlowEditor = deferred(() => import('./FlowEditor.jsx'));
+const FlowEditor = deferred(() => import('./flow-editor/FlowEditor.jsx'));
 const Preview = deferred(() => import('./Preview.jsx'));
 const VisualEditor = deferred(() => import('./VisualEditor.jsx'));
 
