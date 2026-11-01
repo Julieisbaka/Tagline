@@ -19,6 +19,7 @@ export default function Ribbon({ ctx, showLeft, keybindings, settings, updateSet
     commands: ctx.openCommands,
     import: ctx.importDocument,
     rightPanel: ctx.toggleRight,
+    evidenceCheckup: ctx.evidenceCheckup,
   };
   const title = (label, id) => {
     const shortcut = displayBinding(binding(id, keybindings));

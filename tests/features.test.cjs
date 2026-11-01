@@ -82,6 +82,8 @@ test('template placeholders use literal target paths, Markdown bodies and raw YA
 test('sidebar shortcut order is normalized and drag reordering is stable', async () => {
   const { DEFAULT_RIBBON_ITEMS, moveRibbonItem, normalizeRibbonItems } =
     await import('../src/lib/ribbonItems.js');
+  assert.ok(!DEFAULT_RIBBON_ITEMS.includes('evidenceCheckup'));
+  assert.deepEqual(normalizeRibbonItems(['evidenceCheckup']), ['evidenceCheckup']);
   assert.deepEqual(normalizeRibbonItems(['search', 'search', 'unknown']), ['search']);
   assert.deepEqual(normalizeRibbonItems(null), DEFAULT_RIBBON_ITEMS);
   assert.deepEqual(moveRibbonItem(['a', 'b', 'c'], 'a', 'c'), ['b', 'c', 'a']);
@@ -90,4 +92,3 @@ test('sidebar shortcut order is normalized and drag reordering is stable', async
   assert.deepEqual(moveRibbonItem(['rightPanel', 'search', 'graph'], 'rightPanel', 'graph'), ['search', 'graph', 'rightPanel']);
   assert.deepEqual(moveRibbonItem(['a', 'b'], 'missing', 'b'), ['a', 'b']);
 });
-

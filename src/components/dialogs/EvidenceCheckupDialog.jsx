@@ -117,7 +117,7 @@ export default function EvidenceCheckupDialog({ contents, getContent, updateCont
   };
 
   return (
-    <ModalBackdrop onMouseDown={busy ? undefined : onClose}>
+    <ModalBackdrop className="modal-backdrop evidence-backdrop" onMouseDown={busy ? undefined : onClose}>
       <div className="modal dialog evidence-checkup-dialog" role="dialog" aria-modal="true" aria-labelledby="evidence-checkup-title"
         onMouseDown={(e) => e.stopPropagation()}>
         <header className="evidence-header">
@@ -129,47 +129,53 @@ export default function EvidenceCheckupDialog({ contents, getContent, updateCont
         <fieldset className="evidence-settings" disabled={!!busy}>
           <legend>{t('Checks')}</legend>
           <div className="evidence-check">
-          <label className="setting-row">
-            <input type="checkbox" checked={settings.checks.citations}
-              onChange={(e) => updateChecks({ citations: e.target.checked })} />
-            <span>{t('Check citation fields')}</span>
-          </label>
-          <fieldset className="evidence-fields" disabled={!settings.checks.citations}>
-            <legend>{t('Required citation fields')}</legend>
-            {CITATION_FIELDS.map((field) => <label className="setting-row" key={field}>
-              <input type="checkbox" checked={settings.requiredFields.includes(field)} onChange={() => toggleField(field)} />
-              <span>{t(FIELD_LABELS[field])}</span>
-            </label>)}
-          </fieldset>
+            <label className="evidence-toggle">
+              <input type="checkbox" checked={settings.checks.citations}
+                onChange={(e) => updateChecks({ citations: e.target.checked })} />
+              <span>{t('Check citation fields')}</span>
+            </label>
+            <fieldset className="evidence-fields" disabled={!settings.checks.citations}>
+              <legend>{t('Required citation fields')}</legend>
+              <div className="evidence-field-grid">
+                {CITATION_FIELDS.map((field) => <label className="evidence-field" key={field}>
+                  <input type="checkbox" checked={settings.requiredFields.includes(field)} onChange={() => toggleField(field)} />
+                  <span>{t(FIELD_LABELS[field])}</span>
+                </label>)}
+              </div>
+            </fieldset>
           </div>
           <div className="evidence-check">
-          <label className="setting-row">
-            <input type="checkbox" checked={settings.checks.stale}
-              onChange={(e) => updateChecks({ stale: e.target.checked })} />
-            <span>{t('Flag stale source dates')}</span>
-          </label>
-          <label className="setting-row">
-            <span>{t('Older than (years)')}</span>
-            <input type="number" min="1" max="100" value={settings.staleYears} disabled={!settings.checks.stale}
-              onChange={(e) => update({ staleYears: e.target.value })} />
-          </label>
+            <label className="evidence-toggle">
+              <input type="checkbox" checked={settings.checks.stale}
+                onChange={(e) => updateChecks({ stale: e.target.checked })} />
+              <span>{t('Flag stale source dates')}</span>
+            </label>
+            <div className="evidence-options">
+              <label className="evidence-number">
+                <span>{t('Older than (years)')}</span>
+                <input type="number" min="1" max="100" value={settings.staleYears} disabled={!settings.checks.stale}
+                  onChange={(e) => update({ staleYears: e.target.value })} />
+              </label>
+            </div>
           </div>
           <div className="evidence-check">
-          <label className="setting-row">
-            <input type="checkbox" checked={settings.checks.links}
-              onChange={(e) => updateChecks({ links: e.target.checked })} />
-            <span>{t('Check cited links')}</span>
-          </label>
-          <label className="setting-row">
-            <span>{t('Timeout (seconds)')}</span>
-            <input type="number" min="1" max="60" value={settings.linkTimeoutSeconds} disabled={!settings.checks.links}
-              onChange={(e) => update({ linkTimeoutSeconds: e.target.value })} />
-          </label>
-          <label className="setting-row">
-            <input type="checkbox" checked={settings.archiveFallback} disabled={!settings.checks.links}
-              onChange={(e) => update({ archiveFallback: e.target.checked })} />
-            <span>{t('Look for archived copies of dead links')}</span>
-          </label>
+            <label className="evidence-toggle">
+              <input type="checkbox" checked={settings.checks.links}
+                onChange={(e) => updateChecks({ links: e.target.checked })} />
+              <span>{t('Check cited links')}</span>
+            </label>
+            <div className="evidence-options">
+              <label className="evidence-number">
+                <span>{t('Timeout (seconds)')}</span>
+                <input type="number" min="1" max="60" value={settings.linkTimeoutSeconds} disabled={!settings.checks.links}
+                  onChange={(e) => update({ linkTimeoutSeconds: e.target.value })} />
+              </label>
+              <label className="evidence-field">
+                <input type="checkbox" checked={settings.archiveFallback} disabled={!settings.checks.links}
+                  onChange={(e) => update({ archiveFallback: e.target.checked })} />
+                <span>{t('Look for archived copies of dead links')}</span>
+              </label>
+            </div>
           </div>
         </fieldset>
         <div className="evidence-comment-option">
@@ -180,7 +186,7 @@ export default function EvidenceCheckupDialog({ contents, getContent, updateCont
           </label>
           <p className="hint">{t('Writes Markdown comments into notes when you scan or check links. Existing checkup comments are refreshed; other comments are kept.')}</p>
         </div>
-        <p className="hint evidence-privacy">{t('Link checks send requests to the cited sites. They run only when you click Check links. Dead links are reported only when the page returns 404 or 410, or its domain no longer exists.')}</p>
+        <p className="hint evidence-privacy">{t('Link checks send requests to the cited sites. Dead links are reported only when the page returns 404 or 410, or its domain no longer exists.')}</p>
 
         <div className="dialog-buttons">
           <button disabled={!!busy} onClick={onClose}>{t('Close')}</button>

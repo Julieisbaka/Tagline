@@ -40,6 +40,8 @@ const delay = (ms) => new Promise((r) => setTimeout(r, ms));
         await delay(100);
         const defaultItems = await js("JSON.parse(localStorage.getItem('tagline-settings')).ribbonItems");
         assert.deepEqual(defaultItems, ['fileExplorer', 'switcher', 'search', 'graph', 'commands', 'import', 'rightPanel']);
+        assert.equal(await js("document.querySelector('.ribbon-settings input[data-ribbon-item=\"evidenceCheckup\"]').checked"), false,
+          'evidence checkup shortcut is off by default');
         await js("document.querySelector('.ribbon-settings input[data-ribbon-item=\"search\"]').click()");
         await delay(100);
         assert.equal(await js("document.querySelector('.ribbon [data-ribbon-item=\"search\"]') === null"), true,
@@ -52,8 +54,30 @@ const delay = (ms) => new Promise((r) => setTimeout(r, ms));
         await delay(100);
         const reorderedItems = await js("JSON.parse(localStorage.getItem('tagline-settings')).ribbonItems");
         assert.deepEqual(reorderedItems.slice(0, 2), ['switcher', 'fileExplorer'], 'shortcut order persists');
+        await js("document.querySelector('.ribbon-settings input[data-ribbon-item=\"evidenceCheckup\"]').click()");
         await js("document.querySelector('.settings-footer .primary').click()");
         await delay(100);
+        assert.equal(await js("!!document.querySelector('.ribbon [data-ribbon-item=\"evidenceCheckup\"]')"), true,
+          'enabled checkup shortcut appears in the sidebar');
+        await js("document.querySelector('.ribbon [data-ribbon-item=\"evidenceCheckup\"]').click()");
+        for (let i = 0; i < 100 && !(await js("!!document.querySelector('.evidence-checkup-dialog')")); i++) await delay(50);
+        for (const [width, height] of [[1280, 800], [900, 700]]) {
+          win.setContentSize(width, height);
+          await delay(250);
+          const layout = await js(`(() => {
+            const dialog = document.querySelector('.evidence-checkup-dialog').getBoundingClientRect();
+            const label = document.querySelector('.evidence-toggle');
+            const input = label.querySelector('input').getBoundingClientRect();
+            const text = label.querySelector('span').getBoundingClientRect();
+            return { top: dialog.top, bottom: dialog.bottom, height: innerHeight, gap: text.left - input.right };
+          })()`);
+          assert.ok(layout.top >= 0 && layout.bottom <= layout.height, 'checkup dialog stays inside the viewport');
+          assert.ok(layout.gap >= 0 && layout.gap <= 16, 'checkbox label is aligned with its control');
+        }
+        await js("[...document.querySelectorAll('.evidence-checkup-dialog button')].find(button => button.textContent === 'Scan vault').click()");
+        for (let i = 0; i < 100 && !(await js("document.querySelector('.evidence-checkup-dialog [role=status]')?.textContent.includes('cards scanned')")); i++) await delay(50);
+        assert.equal(await js("!!document.querySelector('.evidence-results')"), true, 'sidebar shortcut opens a working checkup');
+        await js("[...document.querySelectorAll('.evidence-checkup-dialog button')].find(button => button.textContent === 'Close').click()");
         for (let i = 0; i < 100 && !(await js("document.querySelectorAll('.tree-item').length")); i++) await delay(100);
         await js(`(() => { const item = document.querySelector('.tree-item[title="Doc.md"]'); item.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, clientX: 140, clientY: 160 })); })()`);
         await delay(100);

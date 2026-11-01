@@ -6,9 +6,10 @@ export const RIBBON_ITEMS = [
   { id: 'commands', icon: 'command', title: 'Command palette', keybinding: 'commands' },
   { id: 'import', icon: 'folder', title: 'Import document with Pandoc' },
   { id: 'rightPanel', icon: 'timer', title: 'Toggle right sidebar (timer, backlinks, outline)' },
+  { id: 'evidenceCheckup', icon: 'checklist', title: 'Evidence checkup', keybinding: 'evidence-checkup', defaultVisible: false },
 ];
 
-export const DEFAULT_RIBBON_ITEMS = RIBBON_ITEMS.map(({ id }) => id);
+export const DEFAULT_RIBBON_ITEMS = RIBBON_ITEMS.filter((item) => item.defaultVisible !== false).map(({ id }) => id);
 
 /** 
  * Normalize built-in and extension ribbon IDs while preserving contribution order.

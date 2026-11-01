@@ -950,7 +950,7 @@
   "Check cited links": "Vérifier les liens cités",
   "Timeout (seconds)": "Délai d’attente (secondes)",
   "Look for archived copies of dead links": "Chercher des copies archivées des liens morts",
-  "Link checks send requests to the cited sites. They run only when you click Check links. Dead links are reported only when the page returns 404 or 410, or its domain no longer exists.": "Les vérifications de liens envoient des requêtes aux sites cités. Elles ne s’exécutent que lorsque vous cliquez sur Vérifier les liens. Les liens morts ne sont signalés que si la page renvoie 404 ou 410, ou si son domaine n’existe plus.",
+  "Link checks send requests to the cited sites. Dead links are reported only when the page returns 404 or 410, or its domain no longer exists.": "Les vérifications de liens envoient des requêtes aux sites cités. Les liens morts ne sont signalés que si la page renvoie 404 ou 410, ou si son domaine n’existe plus.",
   "Scan vault": "Analyser le coffre",
   "Scanning...": "Analyse en cours...",
   "Check links": "Vérifier les liens",
