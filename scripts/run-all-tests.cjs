@@ -8,6 +8,10 @@ const { scripts } = JSON.parse(fs.readFileSync(path.join(root, 'package.json'), 
 const subsets = new Set(['test:all', 'test:shared', 'test:platform']);
 const suites = ['test', ...Object.keys(scripts).filter((name) =>
   name.startsWith('test:') && !subsets.has(name))];
+const desktopSuites = new Set(Object.entries(scripts)
+  .filter(([name, command]) => name.startsWith('test:') &&
+    (command.includes('scripts/ensure-build.cjs') || name === 'test:installation'))
+  .map(([name]) => name));
 const npmCli = process.env.npm_execpath;
 const concurrency = Math.max(1, Number.parseInt(process.env.TEST_CONCURRENCY, 10) || 1);
 const running = new Set();
@@ -208,8 +212,9 @@ function writeLog() {
     `Started: ${new Date(startedAt).toISOString()}`,
     `Duration: ${formatDuration(Date.now() - startedAt)}`,
     ...failed.map((result) => `Failed suite: ${result.suite} (${formatDuration(result.durationMs)})`),
+    ...(runnerError ? [`Runner error: ${runnerError}`] : []),
     ...(interrupted ? ['Run interrupted before all suites completed.'] : []),
-    ...(!failed.length && !interrupted ? ['No failing tests.'] : []),
+    ...(!failed.length && !interrupted && !runnerError ? ['No failing tests.'] : []),
   ];
   for (const result of failed) {
     lines.push('', `===== ${result.suite} failed test${result.outputTruncated ? ' (captured output truncated)' : ''} =====`);
@@ -259,11 +264,15 @@ async function main() {
     const build = await runBuild();
     if (build.code !== 0) runnerError = `vite build failed (${build.detail}).`;
     else {
-      const queue = [...suites];
-      const worker = async () => {
+      const parallelSuites = suites.filter((name) => !desktopSuites.has(name));
+      const serialDesktopSuites = suites.filter((name) => desktopSuites.has(name));
+      const worker = async (queue) => {
         while (queue.length && !interrupted) results.push(await runSuite(queue.shift()));
       };
-      await Promise.all(Array.from({ length: Math.min(concurrency, queue.length) }, worker));
+      await Promise.all([
+        ...Array.from({ length: Math.min(concurrency, parallelSuites.length) }, () => worker(parallelSuites)),
+        worker(serialDesktopSuites),
+      ]);
     }
   }
 

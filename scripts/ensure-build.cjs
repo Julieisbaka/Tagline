@@ -2,7 +2,7 @@
 const path = require('node:path');
 const { spawnSync } = require('node:child_process');
 
-if (process.env.TAGLINE_SKIP_BUILD === '1') process.exit(0);
+if (process.env.TAGLINE_SKIP_BUILD === '1' && process.env.npm_lifecycle_event?.startsWith('test:')) process.exit(0);
 
 const vite = path.join(__dirname, '..', 'node_modules', 'vite', 'bin', 'vite.js');
 const result = spawnSync(process.execPath, [vite, 'build'], { stdio: 'inherit' });
