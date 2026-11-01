@@ -13,21 +13,21 @@ test('detects real card headings and preserves original line positions and bound
   ].join('\r\n');
   const cards = detectCards(text);
   assert.deepEqual(cards, [
-    { title: 'First tag', lineIndex: 4, endLineIndex: 20, citationLine: '__Smith 2024__ — "Study"' },
-    { title: 'Second', lineIndex: 20, endLineIndex: 22, citationLine: '**Jones**' },
+    { title: 'First tag', lineIndex: 4, endLineIndex: 20 },
+    { title: 'Second', lineIndex: 20, endLineIndex: 22 },
   ]);
 });
 
 test('fences, embedded comments, and ordinary bold evidence do not supply citations', async () => {
-  const { detectCards } = await import('../src/lib/cardDetection.js');
+  const { scanCards } = await import('../src/lib/evidenceCheckup.js');
   const text = [
     '#### First', '<!-- **False 2024** -->', 'Evidence paragraph.',
     '**Emphasized words** are important.', '```', '**Fake 2020**', '```',
     '**Smith 2023** — Journal', '#### Second', 'Text', '**Bold evidence**', '#### Third',
     'No citation', '    **Indented 2024**',
   ].join('\n');
-  const cards = detectCards(text);
-  assert.deepEqual(cards.map((card) => card.citationLine), ['**Smith 2023** — Journal', null, null]);
+  const cards = scanCards({ 'notes.md': text });
+  assert.deepEqual(cards.map((card) => card.citation?.author || null), ['Smith', null, null]);
 });
 
 test('checkup and card statistics share detection while comments target exact headings', async () => {
@@ -63,22 +63,35 @@ test('raw HTML and setext headings cannot produce or extend cards', async () => 
     '<script type="text/plain">', '#### Fake script', '</script>', '#### Third',
   ].join('\n');
   const cards = detectCards(text);
-  assert.deepEqual(cards.map(({ title, lineIndex, endLineIndex, citationLine }) =>
-    [title, lineIndex, endLineIndex, citationLine]), [
-    ['First', 0, 6, '**Smith 2024**'],
-    ['Second', 9, 14, '**Lee 2024**'],
-    ['Third', 14, 15, null],
+  assert.deepEqual(cards.map(({ title, lineIndex, endLineIndex }) =>
+    [title, lineIndex, endLineIndex]), [
+    ['First', 0, 6],
+    ['Second', 9, 14],
+    ['Third', 14, 15],
   ]);
 });
 
 test('bold evidence with ordinary numbers is not mistaken for a citation', async () => {
-  const { detectCards } = await import('../src/lib/cardDetection.js');
+  const { scanCards } = await import('../src/lib/evidenceCheckup.js');
   const text = [
     '#### First', '**Important evidence** continues here.',
     '**Inflation rose 50 percent**', '**Smith 24** — Journal',
     '#### Second', '**Jones**', '#### Third', 'Text', '**More evidence** — not a citation',
   ].join('\n');
-  assert.deepEqual(detectCards(text).map((card) => card.citationLine), [
-    '**Smith 24** — Journal', '**Jones**', null,
+  assert.deepEqual(scanCards({ 'notes.md': text }).map((card) => card.citation?.author || null), [
+    'Smith', 'Jones', null,
+  ]);
+});
+
+test('parser ignores headings in lists, tables, blockquotes and HTML and retains CRLF locations', async () => {
+  const { detectCards } = await import('../src/lib/cardDetection.js');
+  const text = [
+    '---', 'name: test', '---', '- item', '  #### nested', '', '| a | b |',
+    '| - | - |', '| #### table | x |', '', '<div>', '#### html', '</div>', '',
+    '> #### quote', '', '#### Real', '', 'Text', 'Setext section', '---', '#### Last',
+  ].join('\r\n');
+  assert.deepEqual(detectCards(text), [
+    { title: 'Real', lineIndex: 16, endLineIndex: 18 },
+    { title: 'Last', lineIndex: 21, endLineIndex: 22 },
   ]);
 });

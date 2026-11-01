@@ -961,6 +961,8 @@
   "Open note": "Abrir nota",
   "Missing citation": "Cita ausente",
   "Incomplete citation": "Cita incompleta",
+  "Uncertain citation fields": "Campos de cita inciertos",
+  "Review uncertain fields: {fields}.": "Revisa los campos inciertos: {fields}.",
   "Stale source date": "Fecha de fuente antigua",
   "Dead link": "Enlace roto",
   "No citation line.": "No hay línea de cita.",

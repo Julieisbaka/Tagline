@@ -77,6 +77,8 @@ const delay = (ms) => new Promise((r) => setTimeout(r, ms));
         await js("[...document.querySelectorAll('.evidence-checkup-dialog button')].find(button => button.textContent === 'Scan vault').click()");
         for (let i = 0; i < 100 && !(await js("document.querySelector('.evidence-checkup-dialog [role=status]')?.textContent.includes('cards scanned')")); i++) await delay(50);
         assert.equal(await js("!!document.querySelector('.evidence-results')"), true, 'sidebar shortcut opens a working checkup');
+        assert.equal(await js("document.querySelector('.evidence-results').textContent.includes('Uncertain citation fields')"), true,
+          'ambiguous citation fields are visible in scan results');
         const resultsLayout = await js(`(() => {
           const dialog = document.querySelector('.evidence-checkup-dialog');
           const section = dialog.querySelector('.evidence-results');

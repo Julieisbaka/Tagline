@@ -1,4 +1,5 @@
 import { detectCards } from './cardDetection.js';
+import { extractCardCitation } from './citationExtraction.js';
 import { isMarkdown } from './vault.js';
 
 export const CITATION_FIELDS = ['author', 'year', 'title', 'publication', 'url', 'accessed'];
@@ -10,13 +11,6 @@ export const DEFAULT_CHECKUP = {
   linkTimeoutSeconds: 10,
   archiveFallback: true,
 };
-
-const CITE_LINE = /^(\*\*|__)(.+?)\1(.*)$/;
-const TITLE_PART = /"((?:[^"\\]|\\.)*)"/;
-const LINK_PART = /\[[^\]]*\]\((https?:\/\/[^)\s]+)\)/;
-const ACCESSED_PART = /Accessed\s+[^,\n]+/i;
-
-const unescape = (value) => value.replace(/\\(.)/g, '$1');
 
 /**
  * Normalize user-chosen checkup settings, falling back to defaults for invalid values.
@@ -40,32 +34,7 @@ export function normalizeCheckup(options = {}) {
 }
 
 /**
- * Parse a bold citation line written by createCitation into its fields.
- * @param {string} line - The bold citation line, for example `**Smith 2024** — "Title", Pub, [url](url), Accessed 2024-01-02`.
- * @returns {object} - The citation fields; missing fields are empty strings.
- */
-function parseCite(line) {
-  const match = line.match(CITE_LINE);
-  const lead = (match?.[2] || '').trim();
-  const leadMatch = lead.match(/^(.*?)\s*((?:19|20)\d{2})$/);
-  const rest = match?.[3] || '';
-  const title = rest.match(TITLE_PART)?.[1] || '';
-  const url = rest.match(LINK_PART)?.[1] || '';
-  const accessed = rest.match(/Accessed\s+([^,\n]+)/i)?.[1]?.trim() || '';
-  const remainder = rest.replace(/^\s*[—–-]\s*/, '').replace(TITLE_PART, '').replace(LINK_PART, '').replace(ACCESSED_PART, '');
-  const publication = remainder.split(',').map((part) => part.trim()).find(Boolean) || '';
-  return {
-    author: unescape(leadMatch ? leadMatch[1] : lead).trim(),
-    year: leadMatch ? leadMatch[2] : '',
-    title: unescape(title),
-    publication: unescape(publication),
-    url,
-    accessed,
-  };
-}
-
-/**
- * Find every card (a `####` section) in the vault files and parse its first citation line.
+ * Find cards in Markdown notes and extract their citation candidates.
  * @param {object} files - Map of note path to Markdown content.
  * @returns {object[]} - Cards with `path`, `title`, and `citation` (or null when the card has no citation line).
  */
@@ -73,10 +42,12 @@ export function scanCards(files) {
   const cards = [];
   for (const [path, content] of Object.entries(files || {})) {
     if (!isMarkdown(path)) continue;
-    for (const card of detectCards(String(content ?? ''))) {
+    const text = String(content ?? '');
+    const lines = text.split(/\r\n?|\n/);
+    for (const card of detectCards(text)) {
+      const { citation, uncertainFields } = extractCardCitation(lines.slice(card.lineIndex + 1, card.endLineIndex).join('\n'));
       cards.push({
-        path, title: card.title, lineIndex: card.lineIndex,
-        citation: card.citationLine ? parseCite(card.citationLine) : null,
+        path, title: card.title, lineIndex: card.lineIndex, citation, citationUncertainFields: uncertainFields,
       });
     }
   }
@@ -109,8 +80,10 @@ export function auditCards(cards, options = {}, now = new Date()) {
       if (!card.citation) {
         issues.push({ ...base, kind: 'missing_citation' });
       } else {
-        const missing = requiredFields.filter((field) => !card.citation[field]);
+        const uncertain = requiredFields.filter((field) => card.citationUncertainFields?.includes(field));
+        const missing = requiredFields.filter((field) => !card.citation[field] && !uncertain.includes(field));
         if (missing.length) issues.push({ ...base, kind: 'missing_fields', fields: missing });
+        if (uncertain.length) issues.push({ ...base, kind: 'uncertain_fields', fields: uncertain });
       }
     }
     if (checks.stale && card.citation?.year) {

@@ -12,7 +12,7 @@ const FIELD_LABELS = {
   author: 'Author', year: 'Year', title: 'Title', publication: 'Publication', url: 'URL', accessed: 'Access date',
 };
 const KIND_LABELS = {
-  missing_citation: 'Missing citation', missing_fields: 'Incomplete citation',
+  missing_citation: 'Missing citation', missing_fields: 'Incomplete citation', uncertain_fields: 'Uncertain citation fields',
   stale_date: 'Stale source date', dead_link: 'Dead link',
 };
 const isSettings = (value) => !!value && typeof value === 'object';
@@ -107,6 +107,9 @@ export default function EvidenceCheckupDialog({ contents, getContent, updateCont
   const linkCount = scan ? citedUrls(scan.cards).length : 0;
   const describe = (issue) => {
     if (issue.kind === 'missing_fields') return t('Missing {fields}.', {
+      fields: issue.fields.map((field) => t(FIELD_LABELS[field])).join(', '),
+    });
+    if (issue.kind === 'uncertain_fields') return t('Review uncertain fields: {fields}.', {
       fields: issue.fields.map((field) => t(FIELD_LABELS[field])).join(', '),
     });
     if (issue.kind === 'stale_date') return t('Source from {year} is {age} years old (threshold {years}).', {
