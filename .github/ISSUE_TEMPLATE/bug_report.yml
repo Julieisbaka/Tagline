@@ -34,40 +34,16 @@ body:
       description: What should have happened instead?
     validations:
       required: true
-  - type: input
-    id: version
+  - type: textarea
+    id: environment
     attributes:
-      label: Tagline version
-      description: Find the version in Settings > Installation. For development builds, include the commit if known.
-      placeholder: "Version number or development commit"
-    validations:
-      required: true
-  - type: dropdown
-    id: platform
-    attributes:
-      label: Operating system
-      options:
-        - Windows
-        - macOS (Apple Silicon)
-        - macOS (Intel)
-        - Other
-    validations:
-      required: true
-  - type: input
-    id: os_version
-    attributes:
-      label: Operating system version
-      placeholder: "For example, Windows 11 24H2 or macOS 15.0"
-    validations:
-      required: false
-  - type: dropdown
-    id: installation
-    attributes:
-      label: Installation type
-      options:
-        - Published release
-        - Development build / running from source
-        - Other / not sure
+      label: Installation details
+      description: In Tagline, open Settings > Installation, choose "Copy bug report details", and paste the result here unchanged. For development builds, also include the commit if known.
+      placeholder: |
+        ```
+        Tagline-Report-Format: 1
+        Version: ...
+        ```
     validations:
       required: true
   - type: textarea
