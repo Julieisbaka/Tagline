@@ -7,7 +7,7 @@ speech grids. Includes visual/source editing, citations, search, revision
 history, speech tools, and more.
 
 Vaults are ordinary folders. HTML export is built in; other import/export
-formats use the optional [Pandoc](https://pandoc.org/) intergration.
+formats use the optional [Pandoc](https://pandoc.org/) integration.
 
 ## Run
 

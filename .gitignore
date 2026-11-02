@@ -6,3 +6,26 @@ dist/
 scripts/__pycache__/
 release/
 *.tmp.md
+
+# IDE / editor
+.vscode/*
+.idea/
+*.code-workspace
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Coverage / profiles
+coverage/
+*.code-profile
+
+# Local env overrides
+.env.local
+.env.*.local
+
+# Debug logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*

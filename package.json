@@ -40,7 +40,11 @@
     "test:nli-ui": "node scripts/run-smoke.cjs node tests/nli-ui-smoke.cjs",
     "test:layout": "node scripts/run-smoke.cjs node tests/layout-smoke.cjs",
     "test:interactions": "node scripts/run-smoke.cjs node tests/interactions-smoke.cjs",
-    "test:a11y": "node scripts/run-smoke.cjs node tests/accessibility-smoke.cjs"
+    "test:a11y": "node scripts/run-smoke.cjs node tests/accessibility-smoke.cjs",
+    "lint": "eslint \"src/**/*.{js,jsx}\" \"tests/**/*.cjs\" \"scripts/**/*.cjs\" \"electron/**/*.cjs\" \"eslint.config.js\"",
+    "lint:fix": "eslint \"src/**/*.{js,jsx}\" \"tests/**/*.cjs\" \"scripts/**/*.cjs\" \"electron/**/*.cjs\" \"eslint.config.js\" --fix",
+    "format": "prettier --write \"src/**/*.{js,jsx,css,json}\" \"tests/**/*.cjs\" \"scripts/**/*.cjs\" \"electron/**/*.cjs\" \"*.{json,md,yml}\"",
+    "format:check": "prettier --check \"src/**/*.{js,jsx,css,json}\" \"tests/**/*.cjs\" \"scripts/**/*.cjs\" \"electron/**/*.cjs\" \"*.{json,md,yml}\""
   },
   "license": "MIT",
   "build": {
@@ -137,6 +141,9 @@
     "concurrently": "^10.0.6",
     "electron": "^45.0.0",
     "electron-builder": "^26.18.0",
+    "eslint": "^9.39.5",
+    "eslint-plugin-react": "^7.37.5",
+    "prettier": "^3.9.10",
     "vite": "^8.3.5",
     "wait-on": "^9.5.1"
   }
