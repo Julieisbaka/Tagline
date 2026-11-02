@@ -3,24 +3,26 @@ import { useI18n } from '../lib/i18n.js';
 import { displayName } from '../lib/vault.js';
 
 function nodeColor(tags) {
-  if (tags.includes('aff')) return '--aff';
-  if (tags.includes('neg')) return '--neg';
-  if (tags.includes('opponent')) return '--warning';
+  if (tags.includes('aff')) {return '--aff';}
+  if (tags.includes('neg')) {return '--neg';}
+  if (tags.includes('opponent')) {return '--warning';}
   return '--text-muted';
 }
 
 function buildGraph(index, activePath, local, showOrphans, showMarkdownExtension) {
   const md = index.paths.filter((p) => p.endsWith('.md'));
   const tagsOf = {};
-  for (const [tag, ps] of Object.entries(index.tags)) for (const p of ps) (tagsOf[p] ||= []).push(tag);
+  for (const [tag, ps] of Object.entries(index.tags))
+    {for (const p of ps) {(tagsOf[p] ||= []).push(tag);}}
   let edges = [];
-  for (const [src, targets] of Object.entries(index.links)) for (const t of targets) if (t !== src) edges.push([src, t]);
+  for (const [src, targets] of Object.entries(index.links))
+    {for (const t of targets) {if (t !== src) {edges.push([src, t]);}}}
   let include = new Set(md);
   if (local && activePath) {
     include = new Set([activePath]);
     for (const [a, b] of edges) {
-      if (a === activePath) include.add(b);
-      if (b === activePath) include.add(a);
+      if (a === activePath) {include.add(b);}
+      if (b === activePath) {include.add(a);}
     }
   } else if (!showOrphans) {
     include = new Set(edges.flat());
@@ -51,8 +53,10 @@ export default function GraphView({ index, activePath, onOpen, showMarkdownExten
   const live = useRef({});
   live.current = { onOpen, activePath };
   const localRoot = local ? activePath : null;
-  const graph = useMemo(() => buildGraph(index, localRoot, !!localRoot, showOrphans, showMarkdownExtension),
-    [index, localRoot, showOrphans, showMarkdownExtension]);
+  const graph = useMemo(
+    () => buildGraph(index, localRoot, !!localRoot, showOrphans, showMarkdownExtension),
+    [index, localRoot, showOrphans, showMarkdownExtension]
+  );
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -61,9 +65,15 @@ export default function GraphView({ index, activePath, onOpen, showMarkdownExten
     const pos = new Map();
     graph.nodes.forEach((n, i) => {
       const a = (i / Math.max(1, graph.nodes.length)) * Math.PI * 2;
-      pos.set(n.id, positionsRef.current.get(n.id) || {
-        x: Math.cos(a) * 150 + Math.random() * 10, y: Math.sin(a) * 150 + Math.random() * 10, vx: 0, vy: 0,
-      });
+      pos.set(
+        n.id,
+        positionsRef.current.get(n.id) || {
+          x: Math.cos(a) * 150 + Math.random() * 10,
+          y: Math.sin(a) * 150 + Math.random() * 10,
+          vx: 0,
+          vy: 0,
+        }
+      );
     });
     positionsRef.current = pos;
     const neighbors = new Map(graph.nodes.map((n) => [n.id, new Set()]));
@@ -94,7 +104,10 @@ export default function GraphView({ index, activePath, onOpen, showMarkdownExten
     const ro = new ResizeObserver(resize);
     ro.observe(wrap);
 
-    const toWorld = (cx, cy) => ({ x: (cx - w / 2 - view.x) / view.k, y: (cy - h / 2 - view.y) / view.k });
+    const toWorld = (cx, cy) => ({
+      x: (cx - w / 2 - view.x) / view.k,
+      y: (cy - h / 2 - view.y) / view.k,
+    });
     const nodeAt = (cx, cy) => {
       const p = toWorld(cx, cy);
       return graph.nodes.find((n) => {
@@ -116,8 +129,10 @@ export default function GraphView({ index, activePath, onOpen, showMarkdownExten
           const d = Math.sqrt(d2);
           dx /= d;
           dy /= d;
-          a.vx += dx * f; a.vy += dy * f;
-          b.vx -= dx * f; b.vy -= dy * f;
+          a.vx += dx * f;
+          a.vy += dy * f;
+          b.vx -= dx * f;
+          b.vy -= dy * f;
         }
         a.vx -= a.x * 0.002 * alpha;
         a.vy -= a.y * 0.002 * alpha;
@@ -129,8 +144,10 @@ export default function GraphView({ index, activePath, onOpen, showMarkdownExten
         const dy = b.y - a.y;
         const d = Math.sqrt(dx * dx + dy * dy) || 1;
         const f = ((d - 90) / d) * 0.03 * alpha;
-        a.vx += dx * f; a.vy += dy * f;
-        b.vx -= dx * f; b.vy -= dy * f;
+        a.vx += dx * f;
+        a.vy += dy * f;
+        b.vx -= dx * f;
+        b.vy -= dy * f;
       }
       for (const n of ns) {
         const p = pos.get(n.id);
@@ -150,22 +167,26 @@ export default function GraphView({ index, activePath, onOpen, showMarkdownExten
     let colors;
     const readColors = () => {
       const styles = getComputedStyle(document.documentElement);
-      colors = Object.fromEntries(['--text', '--border', '--accent', '--aff', '--neg', '--warning', '--text-muted']
-        .map((key) => [key, styles.getPropertyValue(key).trim()]));
+      colors = Object.fromEntries(
+        ['--text', '--border', '--accent', '--aff', '--neg', '--warning', '--text-muted'].map(
+          (key) => [key, styles.getPropertyValue(key).trim()]
+        )
+      );
     };
     readColors();
     window.addEventListener('themechange', readColors);
     const motionPreference = window.matchMedia('(prefers-reduced-motion: reduce)');
     let reducedMotion = false;
     const updateMotion = () => {
-      reducedMotion = motionPreference.matches || document.documentElement.classList.contains('reduce-motion');
+      reducedMotion =
+        motionPreference.matches || document.documentElement.classList.contains('reduce-motion');
     };
     updateMotion();
     motionPreference.addEventListener('change', updateMotion);
     window.addEventListener('accessibilitychange', updateMotion);
 
     const draw = () => {
-      if (!reducedMotion) step();
+      if (!reducedMotion) {step();}
       ctx.clearRect(0, 0, w, h);
       ctx.save();
       ctx.translate(w / 2 + view.x, h / 2 + view.y);
@@ -206,7 +227,7 @@ export default function GraphView({ index, activePath, onOpen, showMarkdownExten
 
     const rect = () => canvas.getBoundingClientRect();
     const onDown = (e) => {
-      if (e.button !== 0) return;
+      if (e.button !== 0) {return;}
       const r = rect();
       const n = nodeAt(e.clientX - r.left, e.clientY - r.top);
       drag = { node: n, sx: e.clientX, sy: e.clientY, vx: view.x, vy: view.y, moved: false };
@@ -216,7 +237,7 @@ export default function GraphView({ index, activePath, onOpen, showMarkdownExten
       const cx = e.clientX - r.left;
       const cy = e.clientY - r.top;
       if (drag) {
-        if (Math.abs(e.clientX - drag.sx) + Math.abs(e.clientY - drag.sy) > 3) drag.moved = true;
+        if (Math.abs(e.clientX - drag.sx) + Math.abs(e.clientY - drag.sy) > 3) {drag.moved = true;}
         if (drag.node && drag.moved) {
           const p = pos.get(drag.node.id);
           const wpt = toWorld(cx, cy);
@@ -235,7 +256,8 @@ export default function GraphView({ index, activePath, onOpen, showMarkdownExten
       }
     };
     const onUp = (e) => {
-      if (drag && drag.node && !drag.moved) live.current.onOpen(drag.node.path || drag.node.id, e.ctrlKey || e.metaKey);
+      if (drag && drag.node && !drag.moved)
+        {live.current.onOpen(drag.node.path || drag.node.id, e.ctrlKey || e.metaKey);}
       if (drag?.node && drag.moved) {
         const p = pos.get(drag.node.id);
         p.vx = 0;
@@ -249,10 +271,14 @@ export default function GraphView({ index, activePath, onOpen, showMarkdownExten
       const r = rect();
       const cx = e.clientX - r.left - w / 2;
       const cy = e.clientY - r.top - h / 2;
-      if (!e.deltaY) return;
+      if (!e.deltaY) {return;}
       const k = Math.min(4, Math.max(0.2, view.k * (e.deltaY < 0 ? 1.1 : 0.9)));
-      if (k === view.k) return;
-      Object.assign(view, { k, x: cx - ((cx - view.x) * k) / view.k, y: cy - ((cy - view.y) * k) / view.k });
+      if (k === view.k) {return;}
+      Object.assign(view, {
+        k,
+        x: cx - ((cx - view.x) * k) / view.k,
+        y: cy - ((cy - view.y) * k) / view.k,
+      });
     };
 
     canvas.addEventListener('mousedown', onDown);
@@ -273,16 +299,22 @@ export default function GraphView({ index, activePath, onOpen, showMarkdownExten
   }, [graph]);
 
   return (
-    <div className="graph" ref={wrapRef}>
+    <div className='graph' ref={wrapRef}>
       <canvas ref={canvasRef} />
-      <div className="graph-controls">
+      <div className='graph-controls'>
         <label>
-          <input type="checkbox" checked={local} onChange={(e) => setLocal(e.target.checked)} /> {t('Local graph')}
+          <input type='checkbox' checked={local} onChange={(e) => setLocal(e.target.checked)} />{' '}
+          {t('Local graph')}
         </label>
         <label>
-          <input type="checkbox" checked={showOrphans} onChange={(e) => setShowOrphans(e.target.checked)} /> {t('Orphans')}
+          <input
+            type='checkbox'
+            checked={showOrphans}
+            onChange={(e) => setShowOrphans(e.target.checked)}
+          />{' '}
+          {t('Orphans')}
         </label>
-        <div className="graph-legend">
+        <div className='graph-legend'>
           <span style={{ color: 'var(--aff)' }}>● #aff</span>
           <span style={{ color: 'var(--neg)' }}>● #neg</span>
           <span style={{ color: 'var(--warning)' }}>● #opponent</span>

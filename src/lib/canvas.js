@@ -13,7 +13,9 @@ export function resolveCanvasLink(value, paths) {
     try {
       const url = new URL(target);
       return { type: 'web', url: url.href };
-    } catch { return null; }
+    } catch {
+      return null;
+    }
   }
   const wiki = target.match(/^\[\[([^\]]+)\]\]$/);
   const [destination, label] = (wiki ? wiki[1] : target).split('|');

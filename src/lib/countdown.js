@@ -1,4 +1,4 @@
-/** 
+/**
  * Return nonnegative seconds remaining between a deadline and a clock value.
  * @param {number} deadline - The target time in milliseconds since the Unix epoch.
  * @param {number} [now] - The current time in milliseconds since the Unix epoch. Defaults to Date.now().

@@ -4,7 +4,11 @@ import { DEFAULT_RIBBON_ITEMS, normalizeRibbonItems, RIBBON_ITEMS } from '../../
 export default function RibbonSettings({ settings, update, contributions = [] }) {
   const { t } = useI18n();
   const catalog = [...RIBBON_ITEMS, ...contributions];
-  const visibleItems = normalizeRibbonItems(settings.ribbonItems, contributions, settings.hiddenRibbonItems);
+  const visibleItems = normalizeRibbonItems(
+    settings.ribbonItems,
+    contributions,
+    settings.hiddenRibbonItems
+  );
   const availableItems = visibleItems.filter((id) => catalog.some((item) => item.id === id));
   const orderedItems = [
     ...visibleItems.map((id) => catalog.find((item) => item.id === id)).filter(Boolean),
@@ -13,7 +17,7 @@ export default function RibbonSettings({ settings, update, contributions = [] })
   const move = (id, offset) => {
     const index = availableItems.indexOf(id);
     const neighbor = availableItems[index + offset];
-    if (index < 0 || !neighbor) return;
+    if (index < 0 || !neighbor) {return;}
     const next = [...visibleItems];
     const source = visibleItems.indexOf(id);
     const destination = visibleItems.indexOf(neighbor);
@@ -22,18 +26,21 @@ export default function RibbonSettings({ settings, update, contributions = [] })
   };
   const toggle = (id, checked) => {
     update({
-      ribbonItems: checked
-        ? [...visibleItems, id]
-        : visibleItems.filter((item) => item !== id),
-      hiddenRibbonItems: checked ? (settings.hiddenRibbonItems || []).filter((item) => item !== id)
+      ribbonItems: checked ? [...visibleItems, id] : visibleItems.filter((item) => item !== id),
+      hiddenRibbonItems: checked
+        ? (settings.hiddenRibbonItems || []).filter((item) => item !== id)
         : [...new Set([...(settings.hiddenRibbonItems || []), id])],
     });
   };
 
   return (
-    <div className="ribbon-settings">
+    <div className='ribbon-settings'>
       <h3>{t('Sidebar shortcuts')}</h3>
-      <p>{t('Choose which shortcuts appear and change their order. Drag icons on the sidebar to reorder them. Settings stays available.')}</p>
+      <p>
+        {t(
+          'Choose which shortcuts appear and change their order. Drag icons on the sidebar to reorder them. Settings stays available.'
+        )}
+      </p>
       <ol>
         {orderedItems.map(({ id, title }) => {
           const index = availableItems.indexOf(id);
@@ -41,24 +48,50 @@ export default function RibbonSettings({ settings, update, contributions = [] })
           return (
             <li key={id} className={checked ? '' : 'hidden'}>
               <label>
-                <input type="checkbox" data-ribbon-item={id} checked={checked}
-                  onChange={(event) => toggle(id, event.target.checked)} />
+                <input
+                  type='checkbox'
+                  data-ribbon-item={id}
+                  checked={checked}
+                  onChange={(event) => toggle(id, event.target.checked)}
+                />
                 <span>{t(title)}</span>
               </label>
-              {checked && <span className="ribbon-order">
-                <button type="button" aria-label={t('Move {name} up', { name: t(title) })}
-                  data-direction="up" disabled={index === 0} onClick={() => move(id, -1)}>↑</button>
-                <button type="button" aria-label={t('Move {name} down', { name: t(title) })}
-                  data-direction="down" disabled={index === availableItems.length - 1}
-                  onClick={() => move(id, 1)}>↓</button>
-              </span>}
+              {checked && (
+                <span className='ribbon-order'>
+                  <button
+                    type='button'
+                    aria-label={t('Move {name} up', { name: t(title) })}
+                    data-direction='up'
+                    disabled={index === 0}
+                    onClick={() => move(id, -1)}
+                  >
+                    ↑
+                  </button>
+                  <button
+                    type='button'
+                    aria-label={t('Move {name} down', { name: t(title) })}
+                    data-direction='down'
+                    disabled={index === availableItems.length - 1}
+                    onClick={() => move(id, 1)}
+                  >
+                    ↓
+                  </button>
+                </span>
+              )}
             </li>
           );
         })}
       </ol>
-      <button type="button" data-ribbon-reset onClick={() => update({
-        ribbonItems: [...DEFAULT_RIBBON_ITEMS, ...contributions.map((item) => item.id)], hiddenRibbonItems: [],
-      })}>
+      <button
+        type='button'
+        data-ribbon-reset
+        onClick={() =>
+          update({
+            ribbonItems: [...DEFAULT_RIBBON_ITEMS, ...contributions.map((item) => item.id)],
+            hiddenRibbonItems: [],
+          })
+        }
+      >
         {t('Restore default shortcuts')}
       </button>
     </div>

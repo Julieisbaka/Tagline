@@ -15,49 +15,70 @@ const FORMATS = {
 };
 
 function addRtfHighlightColor(rtf) {
-  if (!rtf.includes('\\highlight99')) return rtf;
+  if (!rtf.includes('\\highlight99')) {return rtf;}
   let colorIndex = null;
   const withColor = rtf.replace(/\{\\colortbl;[^}]*\}/, (table) => {
     colorIndex = (table.match(/;/g) || []).length;
     return `${table.slice(0, -1)}\\red255\\green255\\blue0;}`;
   });
-  if (colorIndex === null) throw new Error('Pandoc RTF output did not contain a color table.');
+  if (colorIndex === null) {throw new Error('Pandoc RTF output did not contain a color table.');}
   return withColor.replaceAll('\\highlight99', `\\highlight${colorIndex}`);
 }
 
 async function preserveRtfHighlights(outputPath) {
   const output = await fs.readFile(outputPath, 'utf8');
   const updated = addRtfHighlightColor(output);
-  if (updated !== output) await fs.writeFile(outputPath, updated, 'utf8');
+  if (updated !== output) {await fs.writeFile(outputPath, updated, 'utf8');}
 }
 
 async function detectPandoc(customPath = '') {
-  const candidates = customPath ? [customPath] : [
-    'pandoc',
-    ...(process.platform === 'win32' ? [
-      path.join(process.env.LOCALAPPDATA || os.homedir(), 'Pandoc', 'pandoc.exe'),
-      path.join(process.env.ProgramFiles || 'C:\\Program Files', 'Pandoc', 'pandoc.exe'),
-    ] : []),
-    ...(process.platform === 'darwin' ? ['/opt/homebrew/bin/pandoc', '/usr/local/bin/pandoc'] : []),
-  ];
+  const candidates = customPath
+    ? [customPath]
+    : [
+        'pandoc',
+        ...(process.platform === 'win32'
+          ? [
+              path.join(process.env.LOCALAPPDATA || os.homedir(), 'Pandoc', 'pandoc.exe'),
+              path.join(process.env.ProgramFiles || 'C:\\Program Files', 'Pandoc', 'pandoc.exe'),
+            ]
+          : []),
+        ...(process.platform === 'darwin'
+          ? ['/opt/homebrew/bin/pandoc', '/usr/local/bin/pandoc']
+          : []),
+      ];
   for (const executable of candidates) {
     try {
-      const { stdout } = await run(executable, ['--version'], { windowsHide: true, timeout: 10000 });
-      if (!/^pandoc\s+\d/i.test(stdout)) throw new Error('The selected executable is not Pandoc.');
+      const { stdout } = await run(executable, ['--version'], {
+        windowsHide: true,
+        timeout: 10000,
+      });
+      if (!/^pandoc\s+\d/i.test(stdout)) {throw new Error('The selected executable is not Pandoc.');}
       return { available: true, executable, version: stdout.split(/\r?\n/)[0] };
     } catch (e) {
-      if (e.code !== 'ENOENT' || customPath) throw new Error(`Cannot run Pandoc: ${e.message}`);
+      if (e.code !== 'ENOENT' || customPath) {throw new Error(`Cannot run Pandoc: ${e.message}`);}
     }
   }
-  return { available: false, message: 'Pandoc was not found. Install it or choose its executable in Settings.' };
+  return {
+    available: false,
+    message: 'Pandoc was not found. Install it or choose its executable in Settings.',
+  };
 }
 
 function convert({ executable, html, format, outputPath, title }) {
-  if (!FORMATS[format]) return Promise.reject(new Error('Unsupported export format.'));
+  if (!FORMATS[format]) {return Promise.reject(new Error('Unsupported export format.'));}
   return new Promise((resolve, reject) => {
-    const args = ['--from=html', `--to=${FORMATS[format].writer}`,
-      `--lua-filter=${path.join(__dirname, 'highlightRoundTrip.lua')}`, '--standalone',
-      '--sandbox', '--wrap=none', '--metadata', `title=${title}`, '--output', outputPath];
+    const args = [
+      '--from=html',
+      `--to=${FORMATS[format].writer}`,
+      `--lua-filter=${path.join(__dirname, 'highlightRoundTrip.lua')}`,
+      '--standalone',
+      '--sandbox',
+      '--wrap=none',
+      '--metadata',
+      `title=${title}`,
+      '--output',
+      outputPath,
+    ];
     const child = spawn(executable, args, { windowsHide: true, shell: false });
     let stderr = '';
     let settled = false;
@@ -66,19 +87,26 @@ function convert({ executable, html, format, outputPath, title }) {
       finish(new Error('Pandoc timed out after 120 seconds.'));
     }, 120000);
     const finish = (error) => {
-      if (settled) return;
+      if (settled) {return;}
       settled = true;
       clearTimeout(timer);
-      if (error) reject(error);
-      else resolve({ warnings: stderr.trim() });
+      if (error) {reject(error);}
+      else {resolve({ warnings: stderr.trim() });}
     };
-    child.stderr.on('data', (data) => { if (stderr.length < 64000) stderr += data; });
+    child.stderr.on('data', (data) => {
+      if (stderr.length < 64000) {stderr += data;}
+    });
     child.on('error', finish);
-    child.stdin.on('error', (e) => { if (e.code !== 'EPIPE') finish(e); });
+    child.stdin.on('error', (e) => {
+      if (e.code !== 'EPIPE') {finish(e);}
+    });
     child.on('close', (code) => {
-      if (code !== 0) return finish(new Error(`Pandoc export failed (${code}). ${stderr.trim() || 'No diagnostic output.'}`));
-      if (format === 'rtf') preserveRtfHighlights(outputPath).then(() => finish(), finish);
-      else finish();
+      if (code !== 0)
+        {return finish(
+          new Error(`Pandoc export failed (${code}). ${stderr.trim() || 'No diagnostic output.'}`)
+        );}
+      if (format === 'rtf') {preserveRtfHighlights(outputPath).then(() => finish(), finish);}
+      else {finish();}
     });
     child.stdin.end(html);
   });
@@ -89,10 +117,13 @@ function registerPandoc({ ipcMain, dialog, getWindow, readConfig, writeConfig })
   ipcMain.handle('pandoc:status', status);
   ipcMain.handle('pandoc:choose', async () => {
     const result = await dialog.showOpenDialog(getWindow(), {
-      title: 'Select Pandoc executable', properties: ['openFile'],
-      ...(process.platform === 'win32' ? { filters: [{ name: 'Executable', extensions: ['exe'] }] } : {}),
+      title: 'Select Pandoc executable',
+      properties: ['openFile'],
+      ...(process.platform === 'win32'
+        ? { filters: [{ name: 'Executable', extensions: ['exe'] }] }
+        : {}),
     });
-    if (result.canceled) return null;
+    if (result.canceled) {return null;}
     const info = await detectPandoc(result.filePaths[0]);
     writeConfig({ pandocPath: result.filePaths[0] });
     return info;
@@ -102,18 +133,25 @@ function registerPandoc({ ipcMain, dialog, getWindow, readConfig, writeConfig })
       throw new Error('Invalid export request.');
     }
     const info = await status();
-    if (!info.available) throw new Error(info.message);
+    if (!info.available) {throw new Error(info.message);}
     const f = FORMATS[format];
     const result = await dialog.showSaveDialog(getWindow(), {
-      title: `Export ${f.label}`, defaultPath: title.replace(/[\\/:*?"<>|]/g, '-') + '.' + f.ext,
+      title: `Export ${f.label}`,
+      defaultPath: title.replace(/[\\/:*?"<>|]/g, '-') + '.' + f.ext,
       filters: [{ name: f.label, extensions: [f.ext] }],
     });
-    if (result.canceled) return { canceled: true };
+    if (result.canceled) {return { canceled: true };}
     // Only replace the chosen destination after conversion succeeds.
     const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'debate-export-'));
     const tempOutput = path.join(tempDir, `document.${f.ext}`);
     try {
-      const converted = await convert({ executable: info.executable, html, format, outputPath: tempOutput, title });
+      const converted = await convert({
+        executable: info.executable,
+        html,
+        format,
+        outputPath: tempOutput,
+        title,
+      });
       await fs.copyFile(tempOutput, result.filePath);
       return { canceled: false, path: result.filePath, warnings: converted.warnings };
     } finally {

@@ -7,12 +7,23 @@ const Ajv = require('ajv');
 const root = path.join(__dirname, '..');
 const directory = path.join(root, 'schemas');
 const names = ['flow', 'extension-manifest', 'theme', 'extension-settings'];
-const schemas = Object.fromEntries(names.map((name) => [
-  name, JSON.parse(fs.readFileSync(path.join(directory, `${name}.schema.json`), 'utf8')),
-]));
-const ajv = new Ajv({ allErrors: true, strict: true, strictTypes: false, strictRequired: false, allowUnionTypes: true });
-for (const [name, schema] of Object.entries(schemas)) ajv.addSchema(schema, `${name}.schema.json`);
-const validators = Object.fromEntries(names.map((name) => [name, ajv.getSchema(`${name}.schema.json`)]));
+const schemas = Object.fromEntries(
+  names.map((name) => [
+    name,
+    JSON.parse(fs.readFileSync(path.join(directory, `${name}.schema.json`), 'utf8')),
+  ])
+);
+const ajv = new Ajv({
+  allErrors: true,
+  strict: true,
+  strictTypes: false,
+  strictRequired: false,
+  allowUnionTypes: true,
+});
+for (const [name, schema] of Object.entries(schemas)) {ajv.addSchema(schema, `${name}.schema.json`);}
+const validators = Object.fromEntries(
+  names.map((name) => [name, ajv.getSchema(`${name}.schema.json`)])
+);
 const check = (name, data, valid = true) => {
   const validate = validators[name];
   assert.equal(validate(data), valid, `${name}: ${ajv.errorsText(validate.errors)}`);
@@ -33,28 +44,49 @@ test('platform: all public schemas compile offline and every editor association 
   }
   assert.equal(settings['files.associations']['*.flow'], 'json');
   assert.equal(settings['files.associations']['*.canvas'], 'json');
-  assert.equal(associations.some((item) => item.fileMatch.includes('*.canvas')), false,
-    'JSON Canvas follows the upstream specification rather than a Tagline schema');
-  assert.ok(readJson('package.json').build.files.includes('schemas/**/*'), 'schemas ship with the app for offline use');
+  assert.equal(
+    associations.some((item) => item.fileMatch.includes('*.canvas')),
+    false,
+    'JSON Canvas follows the upstream specification rather than a Tagline schema'
+  );
+  assert.ok(
+    readJson('package.json').build.files.includes('schemas/**/*'),
+    'schemas ship with the app for offline use'
+  );
 });
 
 test('flow schema matches supported structures and preserves extension fields', async () => {
   const { EMPTY_FLOW, parseFlow } = await import('../electron/flow.mjs');
   check('flow', JSON.parse(EMPTY_FLOW));
-  const flow = { version: 1, sheets: [{ name: '', columns: ['1AC'], rows: [[''], ['Argument']] }], custom: true };
+  const flow = {
+    version: 1,
+    sheets: [{ name: '', columns: ['1AC'], rows: [[''], ['Argument']] }],
+    custom: true,
+  };
   check('flow', flow);
   assert.deepEqual(parseFlow(JSON.stringify(flow)), flow);
   for (const invalid of [
-    {}, [], { sheets: [] }, { sheets: flow.sheets }, { version: 2, sheets: flow.sheets },
+    {},
+    [],
+    { sheets: [] },
+    { sheets: flow.sheets },
+    { version: 2, sheets: flow.sheets },
     { sheets: [{ name: 'Round', columns: [], rows: [] }] },
     { sheets: [{ name: 'Round', columns: ['1AC'], rows: [[true]] }] },
   ]) {
     check('flow', invalid, false);
     assert.throws(() => parseFlow(JSON.stringify(invalid)));
   }
-  const unequalRow = { version: 1, sheets: [{ name: 'Round', columns: ['1AC', '1NC'], rows: [['Only one cell']] }] };
+  const unequalRow = {
+    version: 1,
+    sheets: [{ name: 'Round', columns: ['1AC', '1NC'], rows: [['Only one cell']] }],
+  };
   check('flow', unequalRow);
-  assert.throws(() => parseFlow(JSON.stringify(unequalRow)), /structure/, 'cross-field row length remains a runtime check');
+  assert.throws(
+    () => parseFlow(JSON.stringify(unequalRow)),
+    /structure/,
+    'cross-field row length remains a runtime check'
+  );
 });
 
 test('platform: extension manifest schema accepts the demo and checks declarations, permissions and typed settings', () => {
@@ -77,7 +109,12 @@ test('platform: extension manifest schema accepts the demo and checks declaratio
     { ...valid, contributes: { settings: [{ ...setting, default: '5' }] } },
     { ...valid, contributes: { settings: [{ ...setting, type: 'boolean', default: true }] } },
     { ...valid, contributes: { settings: [{ ...setting, maxLength: 10 }] } },
-    { ...valid, contributes: { settings: [{ id: 'choice', title: 'Choice', type: 'string', default: '', enum: [] }] } },
+    {
+      ...valid,
+      contributes: {
+        settings: [{ id: 'choice', title: 'Choice', type: 'string', default: '', enum: [] }],
+      },
+    },
   ]) {
     check('extension-manifest', invalid, false);
     assert.throws(() => validateManifest(invalid, root));
@@ -87,17 +124,36 @@ test('platform: extension manifest schema accepts the demo and checks declaratio
 test('theme schema validates bundled themes, settings, CSS variables and metadata', async () => {
   const { COLOR_TOKENS, validateTheme } = await import('../src/lib/themes.js');
   assert.deepEqual(new Set(schemas.theme.definitions.colorToken.enum), new Set(COLOR_TOKENS));
-  for (const folder of [path.join('src', 'themes'), path.join('demo', 'tagline-api-demo', 'themes')]) {
-    for (const file of fs.readdirSync(path.join(root, folder)).filter((name) => name.endsWith('.json'))) {
+  for (const folder of [
+    path.join('src', 'themes'),
+    path.join('demo', 'tagline-api-demo', 'themes'),
+  ]) {
+    for (const file of fs
+      .readdirSync(path.join(root, folder))
+      .filter((name) => name.endsWith('.json'))) {
       const theme = readJson(path.join(folder, file));
       check('theme', theme);
       validateTheme(theme);
     }
   }
   const theme = {
-    version: 1, name: 'Test', mode: 'dark', colors: {},
+    version: 1,
+    name: 'Test',
+    mode: 'dark',
+    colors: {},
     variables: { 'editor-font-size': '18px' },
-    settings: [{ id: 'font-size', title: 'Font size', type: 'number', default: 18, min: 12, max: 32, variable: 'editor-font-size', unit: 'px' }],
+    settings: [
+      {
+        id: 'font-size',
+        title: 'Font size',
+        type: 'number',
+        default: 18,
+        min: 12,
+        max: 32,
+        variable: 'editor-font-size',
+        unit: 'px',
+      },
+    ],
   };
   check('theme', theme);
   validateTheme(theme);
@@ -124,16 +180,33 @@ test('manifest file paths reject Windows and POSIX roots regardless of the host 
   const localRequire = createRequire(filename);
   for (const platformPath of [path.posix, path.win32]) {
     const module = { exports: {} };
-    vm.runInNewContext(source, {
-      module,
-      require: (name) => name === 'node:path'
-        ? { ...platformPath, posix: path.posix, win32: path.win32 } : localRequire(name),
-    }, { filename });
+    vm.runInNewContext(
+      source,
+      {
+        module,
+        require: (name) =>
+          name === 'node:path'
+            ? { ...platformPath, posix: path.posix, win32: path.win32 }
+            : localRequire(name),
+      },
+      { filename }
+    );
     const { validateManifest } = module.exports;
     const folder = platformPath.resolve('extensions');
     const manifest = { manifestVersion: 1, id: 'test', name: 'Test', version: '1' };
-    validateManifest({ ...manifest, main: 'scripts/main.js', contributes: { themes: ['themes/dark.json'] } }, folder);
-    for (const prefix of ['C:\\', 'C:/', 'C:', '/', '\\', '\\\\server\\share\\', '//server/share/']) {
+    validateManifest(
+      { ...manifest, main: 'scripts/main.js', contributes: { themes: ['themes/dark.json'] } },
+      folder
+    );
+    for (const prefix of [
+      'C:\\',
+      'C:/',
+      'C:',
+      '/',
+      '\\',
+      '\\\\server\\share\\',
+      '//server/share/',
+    ]) {
       const main = { ...manifest, main: `${prefix}outside.js` };
       const theme = { ...manifest, contributes: { themes: [`${prefix}outside.json`] } };
       check('extension-manifest', main, false);
@@ -145,13 +218,19 @@ test('manifest file paths reject Windows and POSIX roots regardless of the host 
 });
 
 test('extension settings exports have a version, matching ID shape and scalar values', () => {
-  check('extension-settings', { version: 1, extensionId: 'demo', values: { enabled: true, limit: 5, style: 'brief' } });
+  check('extension-settings', {
+    version: 1,
+    extensionId: 'demo',
+    values: { enabled: true, limit: 5, style: 'brief' },
+  });
   check('extension-settings', { version: 1, extensionId: 'demo', values: {} });
   for (const invalid of [
-    {}, { version: 2, extensionId: 'demo', values: {} },
+    {},
+    { version: 2, extensionId: 'demo', values: {} },
     { version: 1, extensionId: 'Bad ID', values: {} },
     { version: 1, extensionId: 'demo', values: [] },
     { version: 1, extensionId: 'demo', values: { enabled: null } },
     { version: 1, extensionId: 'demo', values: { unknown: {} } },
-  ]) check('extension-settings', invalid, false);
+  ])
+    {check('extension-settings', invalid, false);}
 });

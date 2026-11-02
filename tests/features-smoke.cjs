@@ -13,22 +13,43 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
   const userData = path.join(temp, 'userData');
   await fs.mkdir(vault);
   await fs.mkdir(userData);
-  const source = '# Cards\n\n#### Evidence\n**Author**\n++Warrant++ and ==read this==.\n\n[[Other]]\n';
+  const source =
+    '# Cards\n\n#### Evidence\n**Author**\n++Warrant++ and ==read this==.\n\n[[Other]]\n';
   const flow = {
-    version: 1, sheets: [{
-      name: 'Case', columns: ['1AC', '1NC', '2AC', 'Block'], rows: [['Argument', 'Reply', '', '']],
-    }]
+    version: 1,
+    sheets: [
+      {
+        name: 'Case',
+        columns: ['1AC', '1NC', '2AC', 'Block'],
+        rows: [['Argument', 'Reply', '', '']],
+      },
+    ],
   };
   await fs.writeFile(path.join(vault, 'Cards.md'), source);
-  await fs.writeFile(path.join(vault, 'Other.md'), '# Safe <script>window.injected = true</script> Heading');
+  await fs.writeFile(
+    path.join(vault, 'Other.md'),
+    '# Safe <script>window.injected = true</script> Heading'
+  );
   await fs.writeFile(path.join(vault, 'Round.flow'), JSON.stringify(flow));
-  await fs.writeFile(path.join(vault, 'Map.canvas'), JSON.stringify({
-    nodes: [
-      { id: 'claim', type: 'text', x: 40, y: 40, width: 260, height: 180, text: 'Claim' },
-      { id: 'evidence', type: 'file', x: 380, y: 40, width: 260, height: 180, file: 'Cards.md' },
-    ],
-    edges: [{ id: 'support', fromNode: 'claim', toNode: 'evidence', fromSide: 'right', toSide: 'left', label: 'supports' }],
-  }));
+  await fs.writeFile(
+    path.join(vault, 'Map.canvas'),
+    JSON.stringify({
+      nodes: [
+        { id: 'claim', type: 'text', x: 40, y: 40, width: 260, height: 180, text: 'Claim' },
+        { id: 'evidence', type: 'file', x: 380, y: 40, width: 260, height: 180, file: 'Cards.md' },
+      ],
+      edges: [
+        {
+          id: 'support',
+          fromNode: 'claim',
+          toNode: 'evidence',
+          fromSide: 'right',
+          toSide: 'left',
+          label: 'supports',
+        },
+      ],
+    })
+  );
   await fs.writeFile(path.join(userData, 'config.json'), JSON.stringify({ lastVault: vault }));
   app.setPath('userData', userData);
   let pandocAvailable = false;
@@ -37,19 +58,28 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
   childProcess.execFile = (exe, args, options, callback) => {
     if (args[0] === '--version' || args.some((a) => a === '--from=docx')) {
       setImmediate(() => {
-        if (!pandocAvailable) return callback(Object.assign(new Error('Not found'), { code: 'ENOENT' }));
-        if (importFails && args[0] !== '--version') return callback(new Error('Document conversion failed'));
-        callback(null, args[0] === '--version' ? 'pandoc 3.6\nMock executable'
-          : '# Imported document\n\n**A citation**\n\nEvidence from DOCX.', '');
+        if (!pandocAvailable)
+          {return callback(Object.assign(new Error('Not found'), { code: 'ENOENT' }));}
+        if (importFails && args[0] !== '--version')
+          {return callback(new Error('Document conversion failed'));}
+        callback(
+          null,
+          args[0] === '--version'
+            ? 'pandoc 3.6\nMock executable'
+            : '# Imported document\n\n**A citation**\n\nEvidence from DOCX.',
+          ''
+        );
       });
       return {};
     }
     return realExec(exe, args, options, callback);
   };
-  childProcess.execFile[promisify.custom] = (exe, args, options) => new Promise((resolve, reject) => {
-    childProcess.execFile(exe, args, options, (error, stdout, stderr) =>
-      error ? reject(error) : resolve({ stdout, stderr }));
-  });
+  childProcess.execFile[promisify.custom] = (exe, args, options) =>
+    new Promise((resolve, reject) => {
+      childProcess.execFile(exe, args, options, (error, stdout, stderr) =>
+        error ? reject(error) : resolve({ stdout, stderr })
+      );
+    });
   dialog.showSaveDialog = async () => ({ canceled: false, filePath: path.join(temp, 'note.html') });
   const original = path.join(temp, 'Source.docx');
   await fs.writeFile(original, 'untouched source');
@@ -66,13 +96,19 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
     win.webContents.once('did-finish-load', async () => {
       const wc = win.webContents;
       const errors = [];
-      wc.on('console-message', (e) => { if (e.level === 'error') errors.push(e.message); });
-      const js = (s) => wc.executeJavaScript(s).catch((error) => {
-        console.error('Renderer script failed:', s, error);
-        throw error;
+      wc.on('console-message', (e) => {
+        if (e.level === 'error') {errors.push(e.message);}
       });
+      const js = (s) =>
+        wc.executeJavaScript(s).catch((error) => {
+          console.error('Renderer script failed:', s, error);
+          throw error;
+        });
       const wait = async (s) => {
-        for (let i = 0; i < 100; i++) { if (await js(s)) return; await delay(100); }
+        for (let i = 0; i < 100; i++) {
+          if (await js(s)) {return;}
+          await delay(100);
+        }
         throw new Error('Timed out: ' + s);
       };
       const click = async (selector, text) => {
@@ -93,8 +129,12 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
       };
       const check = async (selector, value, key) => {
         await js(`document.querySelector(${JSON.stringify(selector)}).click()`);
-        await wait(`JSON.parse(localStorage.getItem('tagline-settings')).${key} === ${JSON.stringify(value)}`);
-        await wait(`document.querySelector(${JSON.stringify(selector)}).checked === ${JSON.stringify(value)}`);
+        await wait(
+          `JSON.parse(localStorage.getItem('tagline-settings')).${key} === ${JSON.stringify(value)}`
+        );
+        await wait(
+          `document.querySelector(${JSON.stringify(selector)}).checked === ${JSON.stringify(value)}`
+        );
       };
       const settings = async () => {
         await js("document.querySelector('.ribbon button:last-child').click()");
@@ -108,13 +148,20 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
           .dispatchEvent(new MouseEvent('contextmenu', { bubbles: true }))`);
         await click('[role=menuitem]', 'Pin note');
         await wait("document.querySelector('.pinned-note-open')?.textContent.trim() === 'Cards'");
-        await wait("Object.values(JSON.parse(localStorage.getItem('tagline-favorites'))).some(paths => paths.includes('Cards.md'))");
+        await wait(
+          "Object.values(JSON.parse(localStorage.getItem('tagline-favorites'))).some(paths => paths.includes('Cards.md'))"
+        );
         await js("document.querySelector('.pinned-note-remove').click()");
         await wait("!document.querySelector('.pinned-note-open')");
         await js(`([...document.querySelectorAll('.tree-item')].find(item => item.textContent.trim() === 'Cards'))
           .dispatchEvent(new MouseEvent('contextmenu', { bubbles: true }))`);
         await click('[role=menuitem]', 'Pin note');
-        assert.equal(await js("document.querySelectorAll('[title=\"Settings (Ctrl+,)\"], [title=\"Settings\"]').length"), 1);
+        assert.equal(
+          await js(
+            'document.querySelectorAll(\'[title="Settings (Ctrl+,)"], [title="Settings"]\').length'
+          ),
+          1
+        );
         await click('.tree-item', 'Other');
         await select('[aria-label="Editor mode"]', 'read');
         await wait("!!document.querySelector('.markdown-body h1')");
@@ -123,117 +170,202 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
         await select('[aria-label="Editor mode"]', 'visual');
         await wait("!!document.querySelector('.visual-document')");
         await click('.tree-item', 'Map');
-        await wait("document.querySelectorAll('.canvas-node').length === 2 && document.querySelectorAll('.canvas-edge-line').length === 1");
+        await wait(
+          "document.querySelectorAll('.canvas-node').length === 2 && document.querySelectorAll('.canvas-edge-line').length === 1"
+        );
         await click('button', 'Add text');
         await wait("document.querySelectorAll('.canvas-node').length === 3");
         await select('.canvas-view select', 'source');
         await wait("!!document.querySelector('.canvas-json-editor .cm-content')");
-        assert.match(await js("document.querySelector('.canvas-json-editor .cm-content').textContent"), /fromNode/);
+        assert.match(
+          await js("document.querySelector('.canvas-json-editor .cm-content').textContent"),
+          /fromNode/
+        );
         await select('.canvas-view select', 'visual');
         await wait("document.querySelectorAll('.canvas-node').length === 3");
         await click('button', 'Connect nodes');
-        await js("document.querySelector('[data-node-id=\"claim\"]').click()");
-        await js("document.querySelector('[data-node-id=\"evidence\"]').click()");
+        await js('document.querySelector(\'[data-node-id="claim"]\').click()');
+        await js('document.querySelector(\'[data-node-id="evidence"]\').click()');
         await wait("document.querySelectorAll('.canvas-edge-line').length === 2");
         await click('.tree-item', 'Round');
         await wait("!!document.querySelector('.flow-grid textarea')");
-        assert.equal(await js("document.querySelector('.flow-grid textarea').getAttribute('spellcheck')"), 'true');
-        assert.equal(await js("document.querySelector('.flow-grid th input').getAttribute('spellcheck')"), 'true');
+        assert.equal(
+          await js("document.querySelector('.flow-grid textarea').getAttribute('spellcheck')"),
+          'true'
+        );
+        assert.equal(
+          await js("document.querySelector('.flow-grid th input').getAttribute('spellcheck')"),
+          'true'
+        );
         await js("document.querySelector('.flow-grid textarea').focus()");
-        assert.equal(await js("!![...document.querySelectorAll('.flow-footer button')].find(button => button.textContent.includes('Copy cells'))"),
-          false, 'Selected cells do not show a redundant copy button');
-        assert.equal(await js("document.querySelector('.flow-footer').textContent.includes('Not assigned')"),
-          false, 'Unassigned shortcuts do not add footer clutter');
-        assert.equal(await js("getComputedStyle(document.querySelector('.flow-sheet-tab.active')).boxShadow"), 'none');
+        assert.equal(
+          await js(
+            "!![...document.querySelectorAll('.flow-footer button')].find(button => button.textContent.includes('Copy cells'))"
+          ),
+          false,
+          'Selected cells do not show a redundant copy button'
+        );
+        assert.equal(
+          await js("document.querySelector('.flow-footer').textContent.includes('Not assigned')"),
+          false,
+          'Unassigned shortcuts do not add footer clutter'
+        );
+        assert.equal(
+          await js("getComputedStyle(document.querySelector('.flow-sheet-tab.active')).boxShadow"),
+          'none'
+        );
         const flowRect = await js(`(() => {
           const grid = document.querySelector('.flow-grid').getBoundingClientRect();
           const wrap = document.querySelector('.flow-grid-wrap').getBoundingClientRect();
           const last = document.querySelector('.flow-grid .flow-actions').getBoundingClientRect();
           return { grid: grid.width, wrap: wrap.width, lastRight: last.right, wrapRight: wrap.right };
         })()`);
-        assert.ok(flowRect.lastRight <= flowRect.wrapRight + 1, 'Flow row actions should remain visible');
+        assert.ok(
+          flowRect.lastRight <= flowRect.wrapRight + 1,
+          'Flow row actions should remain visible'
+        );
         const addKey = async (row, col) => {
           await js(`document.querySelector('[data-row="${row}"][data-column="${col}"]').focus()`);
           await key('Enter', [primary]);
         };
         await addKey(0, 1);
-        assert.deepEqual(await js("({ row: document.activeElement.dataset.row, column: document.activeElement.dataset.column })"),
-          { row: '1', column: '1' });
+        assert.deepEqual(
+          await js(
+            '({ row: document.activeElement.dataset.row, column: document.activeElement.dataset.column })'
+          ),
+          { row: '1', column: '1' }
+        );
         assert.equal(await js("document.querySelectorAll('.flow-grid tbody tr').length"), 2);
         await key('Z', [primary]);
         await wait("document.querySelectorAll('.flow-grid tbody tr').length === 1");
         await key('Z', [primary, 'shift']);
         await wait("document.querySelectorAll('.flow-grid tbody tr').length === 2");
-        await js("document.querySelector('[data-row=\"1\"][data-column=\"0\"]').focus()");
+        await js('document.querySelector(\'[data-row="1"][data-column="0"]\').focus()');
         await key('Tab');
-        assert.equal(await js("document.activeElement.dataset.column"), '1');
+        assert.equal(await js('document.activeElement.dataset.column'), '1');
         await key('Tab', ['shift']);
-        assert.equal(await js("document.activeElement.dataset.column"), '0');
+        assert.equal(await js('document.activeElement.dataset.column'), '0');
         await key('Tab', ['shift']);
-        assert.deepEqual(await js("({ row: document.activeElement.dataset.row, column: document.activeElement.dataset.column })"),
-          { row: '0', column: '3' }, 'Shift+Tab should wrap to the preceding row');
+        assert.deepEqual(
+          await js(
+            '({ row: document.activeElement.dataset.row, column: document.activeElement.dataset.column })'
+          ),
+          { row: '0', column: '3' },
+          'Shift+Tab should wrap to the preceding row'
+        );
         await key('Tab');
-        assert.deepEqual(await js("({ row: document.activeElement.dataset.row, column: document.activeElement.dataset.column })"),
-          { row: '1', column: '0' }, 'Tab should wrap to the next row');
-        await js("document.querySelector('[data-row=\"1\"][data-column=\"1\"]').focus()");
+        assert.deepEqual(
+          await js(
+            '({ row: document.activeElement.dataset.row, column: document.activeElement.dataset.column })'
+          ),
+          { row: '1', column: '0' },
+          'Tab should wrap to the next row'
+        );
+        await js('document.querySelector(\'[data-row="1"][data-column="1"]\').focus()');
         await key('Enter', [primary, 'shift']);
         await wait("document.querySelectorAll('.flow-grid tbody tr').length === 3");
-        assert.equal(await js("document.activeElement.dataset.row"), '1', 'The inserted-above row should receive focus');
-        await js("document.querySelector('[data-row=\"2\"][data-column=\"1\"]').focus()");
+        assert.equal(
+          await js('document.activeElement.dataset.row'),
+          '1',
+          'The inserted-above row should receive focus'
+        );
+        await js('document.querySelector(\'[data-row="2"][data-column="1"]\').focus()');
         await key('Enter', [primary]);
         await wait("document.querySelectorAll('.flow-grid tbody tr').length === 4");
         await settings();
         await js("document.querySelector('[data-section=editors]').click()");
         await check('[data-setting=flowSpellcheck]', false, 'flowSpellcheck');
-        await wait("document.querySelector('.flow-grid textarea')?.getAttribute('spellcheck') === 'false'");
-        assert.equal(await js("document.querySelector('.flow-grid th input').getAttribute('spellcheck')"), 'false');
+        await wait(
+          "document.querySelector('.flow-grid textarea')?.getAttribute('spellcheck') === 'false'"
+        );
+        assert.equal(
+          await js("document.querySelector('.flow-grid th input').getAttribute('spellcheck')"),
+          'false'
+        );
         await check('[data-setting=flowSpellcheck]', true, 'flowSpellcheck');
-        await wait("document.querySelector('.flow-grid textarea')?.getAttribute('spellcheck') === 'true'");
-        assert.equal(await js("document.querySelector('.flow-grid th input').getAttribute('spellcheck')"), 'true');
-        await js("document.querySelector('[data-setting=\"focusNewFlowRow\"]').click()");
+        await wait(
+          "document.querySelector('.flow-grid textarea')?.getAttribute('spellcheck') === 'true'"
+        );
+        assert.equal(
+          await js("document.querySelector('.flow-grid th input').getAttribute('spellcheck')"),
+          'true'
+        );
+        await js('document.querySelector(\'[data-setting="focusNewFlowRow"]\').click()');
         await js("document.querySelector('[data-section=editors]').click()");
         await check('[data-setting=sourceLineNumbers]', true, 'sourceLineNumbers');
         await check('[data-setting=sourceActiveLine]', true, 'sourceActiveLine');
         await check('[data-setting=sourceLineWrapping]', false, 'sourceLineWrapping');
         await click('.settings button', 'Done');
         await addKey(1, 0);
-        assert.equal(await js("document.activeElement.dataset.row"), '1');
+        assert.equal(await js('document.activeElement.dataset.row'), '1');
         assert.equal(await js("document.querySelectorAll('.flow-grid tbody tr').length"), 5);
         await settings();
         await click('.settings-sidebar button', 'Keyboard shortcuts');
-        await js("document.querySelector('[data-binding=flow-next-cell]').focus(); document.querySelector('[data-binding=flow-next-cell]').click()");
+        await js(
+          "document.querySelector('[data-binding=flow-next-cell]').focus(); document.querySelector('[data-binding=flow-next-cell]').click()"
+        );
         await key('K', [primary, 'alt']);
-        await wait("JSON.parse(localStorage.getItem('tagline-settings')).keybindings['flow-next-cell'] === 'Mod+Alt+K'");
+        await wait(
+          "JSON.parse(localStorage.getItem('tagline-settings')).keybindings['flow-next-cell'] === 'Mod+Alt+K'"
+        );
         await click('.settings button', 'Done');
         const nextCellShortcut = process.platform === 'darwin' ? 'Cmd+Alt+K' : 'Ctrl+Alt+K';
-        await wait(`document.querySelector('.flow-footer').textContent.includes(${JSON.stringify(nextCellShortcut)})`);
-        await js("document.querySelector('[data-row=\"0\"][data-column=\"0\"]').focus()");
+        await wait(
+          `document.querySelector('.flow-footer').textContent.includes(${JSON.stringify(nextCellShortcut)})`
+        );
+        await js('document.querySelector(\'[data-row="0"][data-column="0"]\').focus()');
         await key('K', [primary, 'alt']);
-        assert.equal(await js("document.activeElement.dataset.column"), '1', 'Custom cell navigation shortcuts work');
+        assert.equal(
+          await js('document.activeElement.dataset.column'),
+          '1',
+          'Custom cell navigation shortcuts work'
+        );
         await select('[aria-label="Flow mode"]', 'source');
         await wait("!!document.querySelector('.canvas-json-editor .cm-content')");
-        assert.equal(await js("document.querySelector('.canvas-json-editor .cm-content').getAttribute('spellcheck')"), 'false');
+        assert.equal(
+          await js(
+            "document.querySelector('.canvas-json-editor .cm-content').getAttribute('spellcheck')"
+          ),
+          'false'
+        );
         await js("document.querySelector('.canvas-json-editor .cm-content').focus()");
-        const flowSourceBefore = await js("document.querySelector('.canvas-json-editor .cm-content').textContent");
+        const flowSourceBefore = await js(
+          "document.querySelector('.canvas-json-editor .cm-content').textContent"
+        );
         await wc.insertText(' ');
         await key('Z', [primary]);
-        await wait(`document.querySelector('.canvas-json-editor .cm-content').textContent === ${JSON.stringify(flowSourceBefore)}`);
+        await wait(
+          `document.querySelector('.canvas-json-editor .cm-content').textContent === ${JSON.stringify(flowSourceBefore)}`
+        );
         await key('Z', [primary, 'shift']);
-        await wait(`document.querySelector('.canvas-json-editor .cm-content').textContent !== ${JSON.stringify(flowSourceBefore)}`);
+        await wait(
+          `document.querySelector('.canvas-json-editor .cm-content').textContent !== ${JSON.stringify(flowSourceBefore)}`
+        );
         await select('[aria-label="Flow mode"]', 'visual');
         await wait("!!document.querySelector('.flow-grid textarea')");
         // Context menus on cells and sheets, including keyboard dismissal.
         await js(`document.querySelector('.flow-grid textarea').dispatchEvent(new MouseEvent('contextmenu',
           { bubbles: true, clientX: innerWidth - 2, clientY: innerHeight - 2 }))`);
         await wait("!!document.querySelector('[role=menu]')");
-        assert.equal(await js("!![...document.querySelectorAll('[role=menuitem]')].find(item => item.textContent === 'Copy cells')"),
-          true, 'Copy remains available from the cell context menu');
-        assert.ok(await js("document.querySelector('[role=menu]').getBoundingClientRect().right <= innerWidth"));
+        assert.equal(
+          await js(
+            "!![...document.querySelectorAll('[role=menuitem]')].find(item => item.textContent === 'Copy cells')"
+          ),
+          true,
+          'Copy remains available from the cell context menu'
+        );
+        assert.ok(
+          await js(
+            "document.querySelector('[role=menu]').getBoundingClientRect().right <= innerWidth"
+          )
+        );
         await click('[role=menuitem]', 'Insert row above');
         await wait("document.querySelectorAll('.flow-grid tbody tr').length === 6");
         wc.sendInputEvent({ type: 'keyDown', keyCode: 'Escape' });
         await wait("!document.querySelector('[role=menu]')");
-        await js(`document.querySelector('.flow-sheet-tab').dispatchEvent(new MouseEvent('contextmenu', { bubbles: true }))`);
+        await js(
+          `document.querySelector('.flow-sheet-tab').dispatchEvent(new MouseEvent('contextmenu', { bubbles: true }))`
+        );
         await click('[role=menuitem]', 'Rename sheet');
         await wait("!!document.querySelector('.flow-sheet-input')");
         await js("document.querySelector('.flow-sheet-input').blur()");
@@ -248,49 +380,88 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
           tabs[1].dispatchEvent(new DragEvent('drop', { bubbles: true, cancelable: true, dataTransfer: transfer, clientX: rect.right - 1 }));
           tabs[0].dispatchEvent(new DragEvent('dragend', { bubbles: true, dataTransfer: transfer }));
         })()`);
-        await wait("document.querySelector('.flow-sheet-select').textContent.trim() === 'Off-case'");
-        assert.equal(await js("document.querySelector('.flow-sheet-tab.active .flow-sheet-select').textContent.trim()"), 'Off-case');
+        await wait(
+          "document.querySelector('.flow-sheet-select').textContent.trim() === 'Off-case'"
+        );
+        assert.equal(
+          await js(
+            "document.querySelector('.flow-sheet-tab.active .flow-sheet-select').textContent.trim()"
+          ),
+          'Off-case'
+        );
         await js("document.querySelector('.flow-sheet-select').focus()");
         await key('Z', [primary]);
         await wait("document.querySelector('.flow-sheet-select').textContent.trim() === 'Case'");
-        assert.equal(await js("document.querySelector('.flow-sheet-tab.active .flow-sheet-select').textContent.trim()"), 'Off-case');
+        assert.equal(
+          await js(
+            "document.querySelector('.flow-sheet-tab.active .flow-sheet-select').textContent.trim()"
+          ),
+          'Off-case'
+        );
         await key('Z', [primary, 'shift']);
-        await wait("document.querySelector('.flow-sheet-select').textContent.trim() === 'Off-case'");
-        assert.equal(await js("document.querySelector('.flow-sheet-tab.active .flow-sheet-select').textContent.trim()"), 'Off-case');
+        await wait(
+          "document.querySelector('.flow-sheet-select').textContent.trim() === 'Off-case'"
+        );
+        assert.equal(
+          await js(
+            "document.querySelector('.flow-sheet-tab.active .flow-sheet-select').textContent.trim()"
+          ),
+          'Off-case'
+        );
         await js("document.querySelector('.flow-sheet-select').focus()");
         await key('Right', ['alt', 'shift']);
         await wait("document.querySelector('.flow-sheet-select').textContent.trim() === 'Case'");
-        assert.equal(await js("document.activeElement.textContent.trim()"), 'Off-case');
+        assert.equal(await js('document.activeElement.textContent.trim()'), 'Off-case');
         await key('Left', ['alt', 'shift']);
-        await wait("document.querySelector('.flow-sheet-select').textContent.trim() === 'Off-case'");
+        await wait(
+          "document.querySelector('.flow-sheet-select').textContent.trim() === 'Off-case'"
+        );
         await delay(800);
-        assert.deepEqual(JSON.parse(await fs.readFile(path.join(vault, 'Round.flow'), 'utf8')).sheets.map((sheet) => sheet.name), ['Off-case', 'Case']);
+        assert.deepEqual(
+          JSON.parse(await fs.readFile(path.join(vault, 'Round.flow'), 'utf8')).sheets.map(
+            (sheet) => sheet.name
+          ),
+          ['Off-case', 'Case']
+        );
         assert.equal(await js("document.querySelector('.flow-sheet-close').tagName"), 'BUTTON');
         assert.equal(await js("document.querySelector('.flow-sheet-close').type"), 'button');
-        assert.match(await js("document.querySelector('.flow-sheet-close').getAttribute('aria-label')"), /Delete sheet/);
-        await js("window.flowSheetCloseClicked = false; const button = document.querySelector('.flow-sheet-close'); button.addEventListener('click', () => { window.flowSheetCloseClicked = true; }); button.focus()");
-        assert.equal(await js("document.activeElement === document.querySelector('.flow-sheet-close')"), true,
-          'Flow sheet close control can receive keyboard focus');
+        assert.match(
+          await js("document.querySelector('.flow-sheet-close').getAttribute('aria-label')"),
+          /Delete sheet/
+        );
+        await js(
+          "window.flowSheetCloseClicked = false; const button = document.querySelector('.flow-sheet-close'); button.addEventListener('click', () => { window.flowSheetCloseClicked = true; }); button.focus()"
+        );
+        assert.equal(
+          await js("document.activeElement === document.querySelector('.flow-sheet-close')"),
+          true,
+          'Flow sheet close control can receive keyboard focus'
+        );
         await js("document.querySelector('.flow-sheet-close').click()");
-        await wait("window.flowSheetCloseClicked");
+        await wait('window.flowSheetCloseClicked');
         await wait("!!document.querySelector('.confirm-dialog')");
         await click('.confirm-dialog button', 'Confirm');
         await wait("document.querySelectorAll('.flow-sheet-tab').length === 1");
         await click('.tree-item', 'Cards');
         await wait("!!document.querySelector('.visual-document')");
-        const editorPoint = await js(`(() => { const r = document.querySelector('.visual-document').getBoundingClientRect();
+        const editorPoint =
+          await js(`(() => { const r = document.querySelector('.visual-document').getBoundingClientRect();
           return { x: Math.round(r.x + 40), y: Math.round(r.y + 30) }; })()`);
         wc.sendInputEvent({ type: 'mouseDown', ...editorPoint, button: 'right', clickCount: 1 });
         wc.sendInputEvent({ type: 'mouseUp', ...editorPoint, button: 'right', clickCount: 1 });
         await delay(250);
         if (await js("document.documentElement.classList.contains('native-ui')")) {
-          assert.ok(nativeMenus.some((roles) => roles.includes('paste') && roles.includes('undo')),
-            'Editable text must expose native clipboard and undo commands');
+          assert.ok(
+            nativeMenus.some((roles) => roles.includes('paste') && roles.includes('undo')),
+            'Editable text must expose native clipboard and undo commands'
+          );
         } else {
           await wait("!!document.querySelector('.context-menu')");
-          assert.ok(await js(`['Undo', 'Redo', 'Paste'].every(label =>
+          assert.ok(
+            await js(`['Undo', 'Redo', 'Paste'].every(label =>
             [...document.querySelectorAll('.context-menu button')].some(button => button.textContent.trim() === label))`),
-            'Editable text must expose clipboard and undo commands');
+            'Editable text must expose clipboard and undo commands'
+          );
           wc.sendInputEvent({ type: 'keyDown', keyCode: 'Escape' });
           await wait("!document.querySelector('.context-menu')");
         }
@@ -302,7 +473,11 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
         await select('[aria-label="Editor mode"]', 'read');
         await select('[aria-label="Editor mode"]', 'visual');
         await wait("!!document.querySelector('.visual-document')");
-        assert.equal(await js("window.parseCount"), 0, 'Unchanged Markdown should use the parsed-document cache');
+        assert.equal(
+          await js('window.parseCount'),
+          0,
+          'Unchanged Markdown should use the parsed-document cache'
+        );
         await select('[aria-label="Editor mode"]', 'edit');
         assert.equal(await js("!!document.querySelector('.cm-gutters .cm-lineNumbers')"), true);
         assert.equal(await js("!!document.querySelector('.cm-activeLine')"), true);
@@ -312,13 +487,22 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
         await wc.insertText('\n\nChanged in source.');
         await select('[aria-label="Editor mode"]', 'visual');
         await wait("!!document.querySelector('.visual-document')");
-        assert.equal(await js("window.parseCount"), 1, 'Changed source must invalidate the cached document');
-        assert.match(await js("document.querySelector('.visual-document').textContent"), /Changed in source/);
+        assert.equal(
+          await js('window.parseCount'),
+          1,
+          'Changed source must invalidate the cached document'
+        );
+        assert.match(
+          await js("document.querySelector('.visual-document').textContent"),
+          /Changed in source/
+        );
         // No Pandoc: HTML export remains enabled and produces a standalone, formatted file.
         assert.equal((await js('window.api.pandocStatus()')).available, false);
         await click('.note-actions button', 'Export');
         await click('.export-dialog button', 'Save export');
-        await wait("document.querySelector('.export-dialog [role=status]')?.textContent.includes('Exported')");
+        await wait(
+          "document.querySelector('.export-dialog [role=status]')?.textContent.includes('Exported')"
+        );
         const html = await fs.readFile(path.join(temp, 'note.html'), 'utf8');
         assert.match(html, /<!doctype html>/i);
         assert.match(html, /<title>Cards<\/title>/);
@@ -329,43 +513,72 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
         // Real themes all apply through the same token API, and locale changes update live.
         await settings();
         await js("document.querySelector('[data-section=appearance]').click()");
-        const cssEditorColors = await js(`(() => { const style = getComputedStyle(document.querySelector('.custom-css-editor .cm-content'));
+        const cssEditorColors =
+          await js(`(() => { const style = getComputedStyle(document.querySelector('.custom-css-editor .cm-content'));
           return { text: style.color, caret: style.caretColor }; })()`);
         assert.notEqual(cssEditorColors.text, 'rgb(0, 0, 0)');
         assert.notEqual(cssEditorColors.caret, 'rgb(0, 0, 0)');
         for (const id of ['light', 'high-contrast-dark', 'high-contrast-light', 'dark']) {
           await select('[data-setting="theme"]', id);
-          assert.equal(await js("document.documentElement.dataset.theme"), id);
+          assert.equal(await js('document.documentElement.dataset.theme'), id);
         }
         await select('[data-setting="language"]', 'es');
-        assert.equal(await js("document.documentElement.lang"), 'es');
-        assert.equal(await js("document.querySelector('.settings-header h2').textContent"), 'Apariencia');
+        assert.equal(await js('document.documentElement.lang'), 'es');
+        assert.equal(
+          await js("document.querySelector('.settings-header h2').textContent"),
+          'Apariencia'
+        );
         await select('[data-setting="language"]', 'fr');
-        assert.equal(await js("document.querySelector('.settings-header h2').textContent"), 'Apparence');
+        assert.equal(
+          await js("document.querySelector('.settings-header h2').textContent"),
+          'Apparence'
+        );
         await js("document.querySelector('[data-section=editors]').click()");
-        assert.deepEqual(await js(`(() => Object.fromEntries(['visualToolbar', 'sourceLineNumbers', 'sourceLineWrapping',
+        assert.deepEqual(
+          await js(`(() => Object.fromEntries(['visualToolbar', 'sourceLineNumbers', 'sourceLineWrapping',
           'sourceActiveLine', 'sourceAutocomplete'].map(key => [key, document.querySelector('[data-setting=\"' + key + '\"]').checked])))()`),
-          { visualToolbar: true, sourceLineNumbers: true, sourceLineWrapping: false, sourceActiveLine: true, sourceAutocomplete: true });
-        assert.equal(await js("document.querySelector('[data-setting=visualLineHeight]').value"), '1.65');
+          {
+            visualToolbar: true,
+            sourceLineNumbers: true,
+            sourceLineWrapping: false,
+            sourceActiveLine: true,
+            sourceAutocomplete: true,
+          }
+        );
+        assert.equal(
+          await js("document.querySelector('[data-setting=visualLineHeight]').value"),
+          '1.65'
+        );
         await js("document.querySelector('[data-section=appearance]').click()");
         if (process.env.TAGLINE_FEATURE_SCREENSHOT) {
           await select('[data-setting="theme"]', 'high-contrast-light');
           win.show();
           win.focus();
-          await js('new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))');
-          await fs.writeFile(process.env.TAGLINE_FEATURE_SCREENSHOT, (await wc.capturePage()).toPNG());
+          await js(
+            'new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))'
+          );
+          await fs.writeFile(
+            process.env.TAGLINE_FEATURE_SCREENSHOT,
+            (await wc.capturePage()).toPNG()
+          );
         }
         await select('[data-setting="language"]', 'en');
         await click('.theme-actions button', 'Customize current theme');
         await wait("!!document.querySelector('.theme-editor .cm-editor .cm-content')");
         assert.equal(await js("document.querySelectorAll('.theme-editor textarea').length"), 0);
-        const jsonEditorColors = await js(`(() => { const style = getComputedStyle(document.querySelector('.theme-editor .cm-content'));
+        const jsonEditorColors =
+          await js(`(() => { const style = getComputedStyle(document.querySelector('.theme-editor .cm-content'));
           return { text: style.color, caret: style.caretColor }; })()`);
         assert.notEqual(jsonEditorColors.text, 'rgb(0, 0, 0)');
         assert.notEqual(jsonEditorColors.caret, 'rgb(0, 0, 0)');
         await click('.theme-editor .settings-actions button', 'Discard theme edits');
         await js("document.querySelector('[data-section=advanced]').click()");
-        assert.equal(await js("document.querySelectorAll('.customization-limits .settings-actions button').length"), 2);
+        assert.equal(
+          await js(
+            "document.querySelectorAll('.customization-limits .settings-actions button').length"
+          ),
+          2
+        );
         await js("document.querySelector('[data-section=appearance]').click()");
         const injectTheme = async (colors) => {
           await js(`(() => { const data = new DataTransfer(); data.items.add(new File([
@@ -376,29 +589,44 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
           await delay(200);
         };
         await injectTheme({ accent: 'url(https://not-allowed)' });
-        assert.match(await js("document.querySelector('.settings [role=alert]').textContent"), /Invalid color/);
+        assert.match(
+          await js("document.querySelector('.settings [role=alert]').textContent"),
+          /Invalid color/
+        );
         await injectTheme({ accent: '#abcdef' });
-        assert.equal(await js("document.documentElement.style.getPropertyValue('--accent')"), '#abcdef');
-        assert.deepEqual(await js(`(() => { const settings = JSON.parse(localStorage.getItem('tagline-settings'));
+        assert.equal(
+          await js("document.documentElement.style.getPropertyValue('--accent')"),
+          '#abcdef'
+        );
+        assert.deepEqual(
+          await js(`(() => { const settings = JSON.parse(localStorage.getItem('tagline-settings'));
           return { focus: settings.focusNewFlowRow, language: settings.language, theme: settings.theme }; })()`),
-          { focus: false, language: 'en', theme: 'custom' });
+          { focus: false, language: 'en', theme: 'custom' }
+        );
         await click('.settings button', 'Done');
         // Tab context menus close other tabs without closing the selected one.
-        await js("document.querySelector('.tab').dispatchEvent(new MouseEvent('contextmenu', { bubbles: true }))");
+        await js(
+          "document.querySelector('.tab').dispatchEvent(new MouseEvent('contextmenu', { bubbles: true }))"
+        );
         await click('[role=menuitem]', 'Close other tabs');
         assert.equal(await js("document.querySelectorAll('.tab').length"), 1);
         // Import uses the real IPC and dialog pipeline with a stubbed Pandoc process.
-        await js("document.querySelector('[data-ribbon-item=\"import\"]').click()");
+        await js('document.querySelector(\'[data-ribbon-item="import"]\').click()');
         await click('.import-dialog button', 'Choose document');
         await wait("!!document.querySelector('.import-dialog [role=alert]')");
         pandocAvailable = true;
         importFails = true;
         await click('.import-dialog button', 'Choose document');
-        await wait("document.querySelector('.import-dialog [role=alert]')?.textContent.includes('Document conversion failed')");
+        await wait(
+          "document.querySelector('.import-dialog [role=alert]')?.textContent.includes('Document conversion failed')"
+        );
         importFails = false;
         await click('.import-dialog button', 'Choose document');
         await wait("!!document.querySelector('.import-preview')");
-        assert.match(await js("document.querySelector('.import-preview').value"), /Imported document/);
+        assert.match(
+          await js("document.querySelector('.import-preview').value"),
+          /Imported document/
+        );
         await click('.import-dialog button', 'Add to vault');
         await wait("!document.querySelector('.import-dialog')");
         assert.match(await fs.readFile(path.join(vault, 'Source.md'), 'utf8'), /Imported document/);
@@ -406,20 +634,31 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
         await js("window.api.write('Source.md', 'Changed imported note', 50)");
         const revisions = await js("window.api.listHistory('Source.md')");
         assert.equal(revisions.length, 1);
-        assert.match(await js(`window.api.readHistory('Source.md', ${JSON.stringify(revisions[0].id)})`), /Imported document/);
+        assert.match(
+          await js(`window.api.readHistory('Source.md', ${JSON.stringify(revisions[0].id)})`),
+          /Imported document/
+        );
         await click('.note-actions button', 'History');
         await wait("!!document.querySelector('.history-dialog select')");
         await click('.history-dialog button', 'Close');
-        await new Promise((resolve) => { wc.once('did-finish-load', resolve); wc.reload(); });
+        await new Promise((resolve) => {
+          wc.once('did-finish-load', resolve);
+          wc.reload();
+        });
         await wait("!!document.querySelector('.app')");
         await wait("document.querySelector('.pinned-note-open')?.textContent.trim() === 'Cards'");
-        assert.equal(await js("document.documentElement.dataset.theme"), 'custom');
-        assert.equal(await js("document.documentElement.style.getPropertyValue('--accent')"), '#abcdef');
+        assert.equal(await js('document.documentElement.dataset.theme'), 'custom');
+        assert.equal(
+          await js("document.documentElement.style.getPropertyValue('--accent')"),
+          '#abcdef'
+        );
         assert.deepEqual(errors, []);
-        console.log('PASS: flow focus on/off, cell/sheet/tab menus, editor parse cache/invalidation, native HTML export without Pandoc, four themes, custom theme validation, Spanish/French UI, Pandoc import and highlight-preserving revision history.');
+        console.log(
+          'PASS: flow focus on/off, cell/sheet/tab menus, editor parse cache/invalidation, native HTML export without Pandoc, four themes, custom theme validation, Spanish/French UI, Pandoc import and highlight-preserving revision history.'
+        );
       } catch (error) {
         console.error(error);
-        console.error('UI:', await js("document.body.innerText.slice(-1600)"));
+        console.error('UI:', await js('document.body.innerText.slice(-1600)'));
         console.error('Renderer:', errors);
         process.exitCode = 1;
       } finally {
@@ -430,4 +669,7 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
     });
   });
   require('../electron/main.cjs');
-})().catch((error) => { console.error(error); app.exit(1); });
+})().catch((error) => {
+  console.error(error);
+  app.exit(1);
+});

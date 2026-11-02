@@ -5,11 +5,15 @@ if (!process.versions.electron) {
   const root = fs.mkdtempSync(path.join(require('node:os').tmpdir(), 'tagline-productivity-'));
   try {
     const result = spawnSync(require('electron'), [__filename], {
-      env: { ...process.env, TAGLINE_PRODUCTIVITY_ROOT: root }, stdio: 'inherit', timeout: 120000,
+      env: { ...process.env, TAGLINE_PRODUCTIVITY_ROOT: root },
+      stdio: 'inherit',
+      timeout: 120000,
     });
-    if (result.error) throw result.error;
+    if (result.error) {throw result.error;}
     process.exitCode = result.status ?? 1;
-  } finally { fs.rmSync(root, { recursive: true, force: true, maxRetries: 20, retryDelay: 100 }); }
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true, maxRetries: 20, retryDelay: 100 });
+  }
   return;
 }
 
@@ -22,10 +26,13 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 (async () => {
   const root = process.env.TAGLINE_PRODUCTIVITY_ROOT;
-  if (!root) throw new Error('Run through npm run test:productivity.');
+  if (!root) {throw new Error('Run through npm run test:productivity.');}
   const profile = path.join(root, 'profile');
   app.setPath('userData', profile);
-  if (process.env.TAGLINE_SECONDARY) { require('../electron/main.cjs'); return; }
+  if (process.env.TAGLINE_SECONDARY) {
+    require('../electron/main.cjs');
+    return;
+  }
   const vault = path.join(root, 'Flow vault with spaces');
   const otherVault = path.join(root, 'Second vault');
   await fs.mkdir(profile, { recursive: true });
@@ -33,29 +40,42 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
   await fs.mkdir(otherVault);
   await fs.writeFile(path.join(otherVault, 'Other.md'), '# Second vault note\n');
   dialog.showOpenDialog = async () => ({ canceled: false, filePaths: [otherVault] });
-  const flow = JSON.stringify({ version: 1, sheets: [{ name: 'Case', columns: ['1AC', '1NC'], rows: [['Argument', 'Reply']] }] });
+  const flow = JSON.stringify({
+    version: 1,
+    sheets: [{ name: 'Case', columns: ['1AC', '1NC'], rows: [['Argument', 'Reply']] }],
+  });
   const cold = path.join(vault, 'Cold.flow');
   const warm = path.join(vault, 'Warm.flow');
   await fs.writeFile(cold, flow);
   await fs.writeFile(warm, flow);
-  await fs.writeFile(path.join(vault, 'Card.md'), '#### A card\n\n**Smith 2024**\n\nSome evidence words.\n');
+  await fs.writeFile(
+    path.join(vault, 'Card.md'),
+    '#### A card\n\n**Smith 2024**\n\nSome evidence words.\n'
+  );
   await fs.writeFile(path.join(profile, 'config.json'), JSON.stringify({ modelAutoload: false }));
   process.argv.push(cold);
   app.on('browser-window-created', (_event, win) => {
     win.webContents.once('did-finish-load', async () => {
       const wc = win.webContents;
-      const js = (code) => wc.executeJavaScript(code).catch((error) => {
-        throw new Error(`${error.message}\nScript: ${code}`);
+      const js = (code) =>
+        wc.executeJavaScript(code).catch((error) => {
+          throw new Error(`${error.message}\nScript: ${code}`);
+        });
+      wc.on('console-message', (event) => {
+        if (event.level === 'error') {console.error('Renderer:', event.message);}
       });
-      wc.on('console-message', (event) => { if (event.level === 'error') console.error('Renderer:', event.message); });
       const wait = async (code) => {
-        for (let i = 0; i < 100; i++) { if (await js(code)) return; await delay(100); }
+        for (let i = 0; i < 100; i++) {
+          if (await js(code)) {return;}
+          await delay(100);
+        }
         throw new Error('Timed out: ' + code);
       };
       const click = async (selector, text) => {
         await wait(`[...document.querySelectorAll(${JSON.stringify(selector)})]
           .some(el => el.textContent.trim() === ${JSON.stringify(text)})`);
-        const found = await js(`(() => { const el=[...document.querySelectorAll(${JSON.stringify(selector)})]
+        const found =
+          await js(`(() => { const el=[...document.querySelectorAll(${JSON.stringify(selector)})]
           .find(el => el.textContent.trim()===${JSON.stringify(text)}); if(!el)return false; el.click(); return true; })()`);
         assert.equal(found, true, `Missing ${text}`);
       };
@@ -68,8 +88,12 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
       try {
         await wait("!!document.querySelector('.onboarding-skip')");
         await js("document.querySelector('.onboarding-skip').click()");
-        await js("window.addEventListener('error', e => console.error(e.error?.stack || e.message))");
-        await wait("!!document.querySelector('.flow-grid') || !!document.querySelector('.flow-editor textarea')");
+        await js(
+          "window.addEventListener('error', e => console.error(e.error?.stack || e.message))"
+        );
+        await wait(
+          "!!document.querySelector('.flow-grid') || !!document.querySelector('.flow-editor textarea')"
+        );
         assert.equal(await js("document.querySelector('.note-title').value"), 'Cold');
         await click('.tree-item', 'Card');
         await wait("!!document.querySelector('.visual-document')");
@@ -77,7 +101,9 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
         ipcMain.handle('citation:extract', (_event, url) => {
           assert.equal(url, 'https://www.reuters.com/world/story-2024-01-20/');
           return require('../electron/citationMetadata.cjs').parseMetadata(
-            '<meta name="author" content="Extracted Author"><meta property="og:title" content="Example story">', url);
+            '<meta name="author" content="Extracted Author"><meta property="og:title" content="Example story">',
+            url
+          );
         });
         await click('.note-actions button', 'Create citation');
         await wait("!!document.querySelector('.citation-dialog [name=author]')");
@@ -97,28 +123,46 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
         await click('.citation-dialog button', 'Cancel');
         await js("document.querySelector('.ribbon button:last-child').click()");
         await click('.settings-sidebar button', 'Appearance');
-        const layout = await js(`(() => { const el=document.querySelector('.settings'); const r=el.getBoundingClientRect();
+        const layout =
+          await js(`(() => { const el=document.querySelector('.settings'); const r=el.getBoundingClientRect();
           return {top:r.top,bottom:r.bottom,height:innerHeight,overflow:el.scrollWidth>el.clientWidth,
             fileButton:getComputedStyle(document.querySelector('input[type=file]'),'::file-selector-button').borderStyle}; })()`);
         assert.ok(layout.top >= 0 && layout.bottom <= layout.height);
         assert.equal(layout.overflow, false);
         assert.equal(layout.fileButton, 'solid');
         await click('.settings-sidebar button', 'Keyboard shortcuts');
-        await js("document.querySelector('[data-binding=highlight]').focus(); document.querySelector('[data-binding=highlight]').click()");
+        await js(
+          "document.querySelector('[data-binding=highlight]').focus(); document.querySelector('[data-binding=highlight]').click()"
+        );
         await key('L', [primary, 'shift']);
-        await wait("JSON.parse(localStorage.getItem('tagline-settings')).keybindings.highlight === 'Mod+Shift+L'");
+        await wait(
+          "JSON.parse(localStorage.getItem('tagline-settings')).keybindings.highlight === 'Mod+Shift+L'"
+        );
         // Conflicts are surfaced instead of creating two commands for one key.
-        await js("document.querySelector('[data-binding=highlight]').focus(); document.querySelector('[data-binding=highlight]').click()");
+        await js(
+          "document.querySelector('[data-binding=highlight]').focus(); document.querySelector('[data-binding=highlight]').click()"
+        );
         await key('O', [primary]);
-        assert.match(await js("document.querySelector('.keybinding-settings [role=alert]').textContent"), /already assigned/);
+        assert.match(
+          await js("document.querySelector('.keybinding-settings [role=alert]').textContent"),
+          /already assigned/
+        );
         await key('Escape');
         assert.equal(await js("!!document.querySelector('.settings')"), true);
-        await js("document.querySelector('[data-binding=flow-row]').focus(); document.querySelector('[data-binding=flow-row]').click()");
+        await js(
+          "document.querySelector('[data-binding=flow-row]').focus(); document.querySelector('[data-binding=flow-row]').click()"
+        );
         await key('Enter', [primary, 'alt']);
-        await wait("JSON.parse(localStorage.getItem('tagline-settings')).keybindings['flow-row'] === 'Mod+Alt+Enter'");
-        await js("document.querySelector('[data-binding=find]').focus(); document.querySelector('[data-binding=find]').click()");
+        await wait(
+          "JSON.parse(localStorage.getItem('tagline-settings')).keybindings['flow-row'] === 'Mod+Alt+Enter'"
+        );
+        await js(
+          "document.querySelector('[data-binding=find]').focus(); document.querySelector('[data-binding=find]').click()"
+        );
         await key('K', [primary, 'shift']);
-        await wait("JSON.parse(localStorage.getItem('tagline-settings')).keybindings.find === 'Mod+Shift+K'");
+        await wait(
+          "JSON.parse(localStorage.getItem('tagline-settings')).keybindings.find === 'Mod+Shift+K'"
+        );
         console.log('PASS: shortcut editing validates conflicts and retains remapped keys.');
         await click('.settings button', 'Done');
         await click('.tree-item', 'Card');
@@ -135,7 +179,9 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
         await key('Escape');
         await wait("!document.querySelector('.visual-find')");
         // Source mode uses the same remapped key.
-        await js("const select=document.querySelector('.note-actions select'); select.value='edit'; select.dispatchEvent(new Event('change',{bubbles:true}))");
+        await js(
+          "const select=document.querySelector('.note-actions select'); select.value='edit'; select.dispatchEvent(new Event('change',{bubbles:true}))"
+        );
         await wait("!!document.querySelector('.cm-content')");
         await js("document.querySelector('.cm-content').focus()");
         const before = await js("document.querySelector('.cm-content').textContent");
@@ -156,18 +202,28 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
         console.log('PASS: source and visual editors share remapped shortcuts.');
         await js("document.querySelector('.ribbon button:last-child').click()");
         await click('.settings-sidebar button', 'Keyboard shortcuts');
-        await js("document.querySelector('[data-binding=new-note]').focus(); document.querySelector('[data-binding=new-note]').click()");
+        await js(
+          "document.querySelector('[data-binding=new-note]').focus(); document.querySelector('[data-binding=new-note]').click()"
+        );
         await key('Delete');
-        await wait("JSON.parse(localStorage.getItem('tagline-settings')).keybindings['new-note'] === ''");
+        await wait(
+          "JSON.parse(localStorage.getItem('tagline-settings')).keybindings['new-note'] === ''"
+        );
         await click('.settings button', 'Done');
-        await new Promise((resolve) => { wc.once('did-finish-load', resolve); wc.reload(); });
+        await new Promise((resolve) => {
+          wc.once('did-finish-load', resolve);
+          wc.reload();
+        });
         await wait("!!document.querySelector('.ribbon')");
-        assert.equal(await js("JSON.parse(localStorage.getItem('tagline-settings')).keybindings.highlight"), 'Mod+Shift+L');
+        assert.equal(
+          await js("JSON.parse(localStorage.getItem('tagline-settings')).keybindings.highlight"),
+          'Mod+Shift+L'
+        );
         // Add a vault once, then reopen the earlier vault directly from the saved list.
         await js("document.querySelector('.vault-switch').click()");
         await wait("!!document.querySelector('.vault-manager-dialog')");
         await click('.vault-manager-dialog button', 'Add existing or create vault…');
-        await wait("!!document.querySelector('.tree-item[title=\"Other.md\"]')");
+        await wait('!!document.querySelector(\'.tree-item[title="Other.md"]\')');
         assert.equal((await js('window.api.listRecentVaults()')).length, 2);
         await js("document.querySelector('.vault-switch').click()");
         await wait("!!document.querySelector('.vault-manager-dialog')");
@@ -182,17 +238,22 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
         await js(`(() => [...document.querySelectorAll('.vault-manager-list li')]
           .find(item => item.querySelector('strong')?.textContent === 'Second vault')
           .querySelectorAll('button')[2].click())()`);
-        await wait("window.api.listRecentVaults().then(items => items.length === 1)");
+        await wait('window.api.listRecentVaults().then(items => items.length === 1)');
         assert.equal(await fs.stat(otherVault).then((info) => info.isDirectory()), true);
-        await js("document.querySelector('.vault-manager-dialog .dialog-buttons button:last-child').click()");
+        await js(
+          "document.querySelector('.vault-manager-dialog .dialog-buttons button:last-child').click()"
+        );
         console.log('PASS: vault switching and saved-vault removal preserve files.');
         // An actual second Electron instance forwards .flow to the primary process.
         const secondary = spawn(process.execPath, [__filename, warm], {
-          env: { ...process.env, TAGLINE_SECONDARY: '1' }, stdio: 'inherit',
+          env: { ...process.env, TAGLINE_SECONDARY: '1' },
+          stdio: 'inherit',
         });
         const exit = new Promise((resolve, reject) => {
           secondary.once('error', reject);
-          secondary.once('exit', (code) => code === 0 ? resolve() : reject(new Error('Secondary exited: ' + code)));
+          secondary.once('exit', (code) =>
+            code === 0 ? resolve() : reject(new Error('Secondary exited: ' + code))
+          );
         });
         await wait("document.querySelector('.note-title')?.value === 'Warm'");
         await exit;
@@ -202,12 +263,20 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
         await key('Enter', [primary, 'alt']);
         await wait("document.querySelectorAll('.flow-grid textarea').length === 4");
         // Finder open-file delivery reuses the existing vault and window.
-        app.emit('open-file', { preventDefault() { } }, cold);
+        app.emit('open-file', { preventDefault() {} }, cold);
         await wait("document.querySelector('.note-title')?.value === 'Cold'");
-        console.log('PASS: citation autofill/preservation, settings layout/file styling, shortcut recording/conflicts/persistence, both editors, cold .flow launch, real second-instance handoff and Finder event.');
+        console.log(
+          'PASS: citation autofill/preservation, settings layout/file styling, shortcut recording/conflicts/persistence, both editors, cold .flow launch, real second-instance handoff and Finder event.'
+        );
         app.exit(0);
-      } catch (error) { console.error('FAIL:', error.stack); app.exit(1); }
+      } catch (error) {
+        console.error('FAIL:', error.stack);
+        app.exit(1);
+      }
     });
   });
   require('../electron/main.cjs');
-})().catch((error) => { console.error(error); app.exit(1); });
+})().catch((error) => {
+  console.error(error);
+  app.exit(1);
+});

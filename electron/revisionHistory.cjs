@@ -24,7 +24,7 @@ function createRevisionHistory({ getVaultRoot, resolveInVault }) {
   const historyDir = (relativePath) => {
     const full = resolveInVault(relativePath);
     const rel = path.relative(getVaultRoot(), full);
-    if (!DOCUMENT.test(rel)) throw new Error(HISTORY_TYPES);
+    if (!DOCUMENT.test(rel)) {throw new Error(HISTORY_TYPES);}
     return path.join(resolveInVault('.tagline/history'), rel);
   };
 
@@ -35,7 +35,7 @@ function createRevisionHistory({ getVaultRoot, resolveInVault }) {
         .map((entry) => entry.name)
         .sort((a, b) => b.localeCompare(a));
     } catch (error) {
-      if (error.code === 'ENOENT') return [];
+      if (error.code === 'ENOENT') {return [];}
       throw error;
     }
   };
@@ -46,7 +46,7 @@ function createRevisionHistory({ getVaultRoot, resolveInVault }) {
     }
     seen.add(id);
     const stored = await fs.readFile(path.join(directory, id), 'utf8');
-    if (id.endsWith('.snapshot')) return { content: stored, depth: 0 };
+    if (id.endsWith('.snapshot')) {return { content: stored, depth: 0 };}
     const delta = JSON.parse(stored);
     if (delta?.version !== 1 || typeof delta.hash !== 'string') {
       throw new Error('Invalid revision history delta.');
@@ -56,80 +56,135 @@ function createRevisionHistory({ getVaultRoot, resolveInVault }) {
     if (delta.base === null && typeof delta.content === 'string') {
       content = delta.content;
     } else {
-      if (typeof delta.base !== 'string' || !SNAPSHOT_ID.test(delta.base) ||
-        !Number.isSafeInteger(delta.start) || delta.start < 0 ||
-        !Number.isSafeInteger(delta.deleteCount) || delta.deleteCount < 0 ||
-        typeof delta.insert !== 'string') throw new Error('Invalid revision history delta.');
+      if (
+        typeof delta.base !== 'string' ||
+        !SNAPSHOT_ID.test(delta.base) ||
+        !Number.isSafeInteger(delta.start) ||
+        delta.start < 0 ||
+        !Number.isSafeInteger(delta.deleteCount) ||
+        delta.deleteCount < 0 ||
+        typeof delta.insert !== 'string'
+      )
+        {throw new Error('Invalid revision history delta.');}
       const base = await readStored(directory, delta.base, seen);
-      if (hash(base.content) !== delta.baseHash ||
-        delta.start + delta.deleteCount > base.content.length) {
+      if (
+        hash(base.content) !== delta.baseHash ||
+        delta.start + delta.deleteCount > base.content.length
+      ) {
         throw new Error('Revision history delta base is damaged.');
       }
-      content = base.content.slice(0, delta.start) + delta.insert +
+      content =
+        base.content.slice(0, delta.start) +
+        delta.insert +
         base.content.slice(delta.start + delta.deleteCount);
       depth = base.depth + 1;
     }
-    if (hash(content) !== delta.hash) throw new Error('Revision history checksum does not match.');
+    if (hash(content) !== delta.hash) {throw new Error('Revision history checksum does not match.');}
     return { content, depth };
   }
 
-  async function snapshot(relativePath, nextContent, retention = DEFAULT_RETENTION, canvasMode = 'complete', experimentalHistoryDeltas = false) {
+  async function snapshot(
+    relativePath,
+    nextContent,
+    retention = DEFAULT_RETENTION,
+    canvasMode = 'complete',
+    experimentalHistoryDeltas = false
+  ) {
     validateRetention(retention);
-    if (typeof experimentalHistoryDeltas !== 'boolean') throw new Error('Experimental history deltas must be enabled or disabled.');
-    if (!['complete', 'data'].includes(canvasMode)) throw new Error('Canvas history mode must be complete or data.');
-    if (typeof nextContent !== 'string') throw new Error('Document content must be text.');
+    if (typeof experimentalHistoryDeltas !== 'boolean')
+      {throw new Error('Experimental history deltas must be enabled or disabled.');}
+    if (!['complete', 'data'].includes(canvasMode))
+      {throw new Error('Canvas history mode must be complete or data.');}
+    if (typeof nextContent !== 'string') {throw new Error('Document content must be text.');}
     const currentPath = resolveInVault(relativePath);
-    if (!DOCUMENT.test(currentPath)) return;
+    if (!DOCUMENT.test(currentPath)) {return;}
     let previous;
     try {
       previous = await fs.readFile(currentPath, 'utf8');
     } catch (error) {
-      if (error.code === 'ENOENT') return;
+      if (error.code === 'ENOENT') {return;}
       throw error;
     }
-    if (previous === nextContent) return;
+    if (previous === nextContent) {return;}
     const directory = historyDir(relativePath);
     let snapshotContent = previous;
     if (/\.canvas$/i.test(currentPath)) {
       const layoutPath = path.join(directory, 'layout.json');
       let layout = null;
-      try { layout = JSON.parse(await fs.readFile(layoutPath, 'utf8')); }
-      catch (error) { if (error.code !== 'ENOENT') throw error; }
+      try {
+        layout = JSON.parse(await fs.readFile(layoutPath, 'utf8'));
+      } catch (error) {
+        if (error.code !== 'ENOENT') {throw error;}
+      }
       let before;
       let after;
-      try { before = parseCanvas(previous); } catch { /* Preserve invalid source as a complete revision. */ }
-      try { after = parseCanvas(nextContent); } catch { /* Preserve invalid source as a complete revision. */ }
+      try {
+        before = parseCanvas(previous);
+      } catch {
+        /* Preserve invalid source as a complete revision. */
+      }
+      try {
+        after = parseCanvas(nextContent);
+      } catch {
+        /* Preserve invalid source as a complete revision. */
+      }
       if (after && (canvasMode === 'data' || layout)) {
-        const positions = Object.fromEntries([...(before?.nodes || []), ...after.nodes].map((node) =>
-          [node.id, { x: node.x, y: node.y, width: node.width, height: node.height }]));
+        const positions = Object.fromEntries(
+          [...(before?.nodes || []), ...after.nodes].map((node) => [
+            node.id,
+            { x: node.x, y: node.y, width: node.width, height: node.height },
+          ])
+        );
         await fs.mkdir(directory, { recursive: true });
-        await fs.writeFile(`${layoutPath}.tmp`, JSON.stringify({ ...layout, ...positions }), 'utf8');
+        await fs.writeFile(
+          `${layoutPath}.tmp`,
+          JSON.stringify({ ...layout, ...positions }),
+          'utf8'
+        );
         await fs.rename(`${layoutPath}.tmp`, layoutPath);
       }
       if (canvasMode === 'data' && before && after) {
-        const dataOnly = (canvas) => ({ ...canvas, nodes: canvas.nodes.map(({ x, y, width, height, ...node }) => node) });
+        const dataOnly = (canvas) => ({
+          ...canvas,
+          nodes: canvas.nodes.map(({ x, y, width, height, ...node }) => node),
+        });
         const data = dataOnly(before);
-        if (isDeepStrictEqual(data, dataOnly(after))) return;
+        if (isDeepStrictEqual(data, dataOnly(after))) {return;}
         snapshotContent = JSON.stringify({ taglineCanvasRevision: 1, mode: 'data', data });
       }
     }
     await fs.mkdir(directory, { recursive: true });
     const existing = await listFiles(directory);
-    const lastTimestamp = existing.length ? Number(existing[0].slice(0, existing[0].indexOf('-'))) : 0;
+    const lastTimestamp = existing.length
+      ? Number(existing[0].slice(0, existing[0].indexOf('-')))
+      : 0;
     let stored = snapshotContent;
     let extension = 'snapshot';
     if (experimentalHistoryDeltas && existing.length && retention > 1) {
       const base = await readStored(directory, existing[0]);
       if (base.depth < MAX_DELTA_DEPTH) {
         let start = 0;
-        while (start < base.content.length && start < snapshotContent.length &&
-          base.content[start] === snapshotContent[start]) start++;
+        while (
+          start < base.content.length &&
+          start < snapshotContent.length &&
+          base.content[start] === snapshotContent[start]
+        )
+          {start++;}
         let end = 0;
-        while (end < base.content.length - start && end < snapshotContent.length - start &&
-          base.content[base.content.length - end - 1] === snapshotContent[snapshotContent.length - end - 1]) end++;
+        while (
+          end < base.content.length - start &&
+          end < snapshotContent.length - start &&
+          base.content[base.content.length - end - 1] ===
+            snapshotContent[snapshotContent.length - end - 1]
+        )
+          {end++;}
         const delta = JSON.stringify({
-          version: 1, base: existing[0], baseHash: hash(base.content), hash: hash(snapshotContent),
-          start, deleteCount: base.content.length - start - end,
+          version: 1,
+          base: existing[0],
+          baseHash: hash(base.content),
+          hash: hash(snapshotContent),
+          start,
+          deleteCount: base.content.length - start - end,
           insert: snapshotContent.slice(start, snapshotContent.length - end),
         });
         if (Buffer.byteLength(delta) < Buffer.byteLength(snapshotContent)) {
@@ -147,19 +202,24 @@ function createRevisionHistory({ getVaultRoot, resolveInVault }) {
       const { content } = await readStored(directory, oldestKept);
       const temporary = path.join(directory, `${randomUUID()}.tmp`);
       try {
-        await fs.writeFile(temporary, JSON.stringify({ version: 1, base: null, content, hash: hash(content) }),
-          { encoding: 'utf8', flag: 'wx' });
+        await fs.writeFile(
+          temporary,
+          JSON.stringify({ version: 1, base: null, content, hash: hash(content) }),
+          { encoding: 'utf8', flag: 'wx' }
+        );
         await fs.rename(temporary, path.join(directory, oldestKept));
       } finally {
         await fs.rm(temporary, { force: true });
       }
     }
-    await Promise.all(snapshots.slice(retention).map((file) => fs.unlink(path.join(directory, file))));
+    await Promise.all(
+      snapshots.slice(retention).map((file) => fs.unlink(path.join(directory, file)))
+    );
   }
 
   async function list(relativePath) {
     const documentPath = resolveInVault(relativePath);
-    if (!DOCUMENT.test(documentPath)) throw new Error(HISTORY_TYPES);
+    if (!DOCUMENT.test(documentPath)) {throw new Error(HISTORY_TYPES);}
     const directory = historyDir(relativePath);
     return (await listFiles(directory)).map((id) => ({
       id,
@@ -168,17 +228,25 @@ function createRevisionHistory({ getVaultRoot, resolveInVault }) {
   }
 
   async function read(relativePath, id) {
-    if (typeof id !== 'string' || !SNAPSHOT_ID.test(id)) throw new Error('Invalid revision history entry.');
+    if (typeof id !== 'string' || !SNAPSHOT_ID.test(id))
+      {throw new Error('Invalid revision history entry.');}
     const documentPath = resolveInVault(relativePath);
-    if (!DOCUMENT.test(documentPath)) throw new Error(HISTORY_TYPES);
+    if (!DOCUMENT.test(documentPath)) {throw new Error(HISTORY_TYPES);}
     const directory = historyDir(relativePath);
     const { content } = await readStored(directory, id);
     if (/\.canvas$/i.test(documentPath)) {
       let saved;
-      try { saved = JSON.parse(content); } catch { return content; }
+      try {
+        saved = JSON.parse(content);
+      } catch {
+        return content;
+      }
       if (saved?.taglineCanvasRevision === 1 && saved.mode === 'data') {
         const layout = JSON.parse(await fs.readFile(path.join(directory, 'layout.json'), 'utf8'));
-        return serializeCanvas({ ...saved.data, nodes: saved.data.nodes.map((node) => ({ ...node, ...layout[node.id] })) });
+        return serializeCanvas({
+          ...saved.data,
+          nodes: saved.data.nodes.map((node) => ({ ...node, ...layout[node.id] })),
+        });
       }
     }
     return content;
@@ -190,15 +258,19 @@ function createRevisionHistory({ getVaultRoot, resolveInVault }) {
     try {
       await fs.access(source);
     } catch (error) {
-      if (error.code === 'ENOENT') return;
+      if (error.code === 'ENOENT') {return;}
       throw error;
     }
     await fs.mkdir(destination, { recursive: true });
     const moved = [];
     try {
       const files = await listFiles(source);
-      try { await fs.access(path.join(source, 'layout.json')); files.push('layout.json'); }
-      catch (error) { if (error.code !== 'ENOENT') throw error; }
+      try {
+        await fs.access(path.join(source, 'layout.json'));
+        files.push('layout.json');
+      } catch (error) {
+        if (error.code !== 'ENOENT') {throw error;}
+      }
       for (const id of files) {
         await fs.rename(path.join(source, id), path.join(destination, id));
         moved.push(id);
@@ -214,20 +286,30 @@ function createRevisionHistory({ getVaultRoot, resolveInVault }) {
 
   async function latestWorking(relativePath) {
     const documentPath = resolveInVault(relativePath);
-    if (!DOCUMENT.test(documentPath)) throw new Error(HISTORY_TYPES);
-    const validate = /\.canvas$/i.test(documentPath) ? parseCanvas : /\.flow$/i.test(documentPath) ? parseFlow : null;
+    if (!DOCUMENT.test(documentPath)) {throw new Error(HISTORY_TYPES);}
+    const validate = /\.canvas$/i.test(documentPath)
+      ? parseCanvas
+      : /\.flow$/i.test(documentPath)
+        ? parseFlow
+        : null;
     const working = (content) => {
-      if (!validate) return true;
-      try { validate(content); return true; }
-      catch { return false; } // Invalid revisions are deliberately skipped, newest first.
+      if (!validate) {return true;}
+      try {
+        validate(content);
+        return true;
+      } catch {
+        return false;
+      } // Invalid revisions are deliberately skipped, newest first.
     };
     try {
       const content = await fs.readFile(documentPath, 'utf8');
-      if (working(content)) return { content };
-    } catch (error) { if (error.code !== 'ENOENT') throw error; }
+      if (working(content)) {return { content };}
+    } catch (error) {
+      if (error.code !== 'ENOENT') {throw error;}
+    }
     for (const revision of await list(relativePath)) {
       const content = await read(relativePath, revision.id);
-      if (working(content)) return { ...revision, content };
+      if (working(content)) {return { ...revision, content };}
     }
     return null;
   }

@@ -11,27 +11,29 @@ function registerSummarization({ app, ipcMain }) {
   const pending = new Map();
 
   function ensureWorker() {
-    if (worker) return;
-    worker = new Worker(path.join(__dirname, 'summarizationWorker.cjs'), { workerData: { storage } });
+    if (worker) {return;}
+    worker = new Worker(path.join(__dirname, 'summarizationWorker.cjs'), {
+      workerData: { storage },
+    });
     const instance = worker;
     const fail = (error) => {
-      if (worker !== instance) return;
+      if (worker !== instance) {return;}
       worker = null;
       state = { ...state, busy: false, ready: false, error: error.message };
-      for (const task of pending.values()) task.reject(error);
+      for (const task of pending.values()) {task.reject(error);}
       pending.clear();
     };
     worker.on('message', (message) => {
-      if (worker !== instance) return;
+      if (worker !== instance) {return;}
       if (message.progress) {
         state = { ...state, detail: message.progress };
         return;
       }
       const task = pending.get(message.id);
-      if (!task) return;
+      if (!task) {return;}
       pending.delete(message.id);
       state = { ...state, busy: false, error: message.error || '' };
-      if (message.error) task.reject(new Error(message.error));
+      if (message.error) {task.reject(new Error(message.error));}
       else {
         state = { ...state, ready: true, detail: 'Model ready. Summaries run locally.' };
         task.resolve(message.result);
@@ -39,12 +41,12 @@ function registerSummarization({ app, ipcMain }) {
     });
     worker.on('error', fail);
     worker.on('exit', (code) => {
-      if (worker === instance) fail(new Error(`Summary worker exited (${code}).`));
+      if (worker === instance) {fail(new Error(`Summary worker exited (${code}).`));}
     });
   }
 
   function request(message) {
-    if (state.busy) throw new Error('A summary model task is already running. Please wait.');
+    if (state.busy) {throw new Error('A summary model task is already running. Please wait.');}
     ensureWorker();
     state = { ...state, busy: true, error: '' };
     return new Promise((resolve, reject) => {
@@ -56,16 +58,20 @@ function registerSummarization({ app, ipcMain }) {
 
   ipcMain.handle('summary:status', () => ({ ...state, model: MODEL }));
   ipcMain.handle('summary:load', async () => {
-    if (state.ready) return { ready: true, model: MODEL };
+    if (state.ready) {return { ready: true, model: MODEL };}
     return request({ type: 'load' });
   });
   ipcMain.handle('summary:run', async (_event, content) => {
-    if (typeof content !== 'string' || !content.trim()) throw new Error('There is no document text to summarize.');
-    if (content.length > 500000) throw new Error('The document is too long to summarize (500,000 characters maximum).');
-    if (!state.ready) throw new Error('Download and load the summary model first.');
+    if (typeof content !== 'string' || !content.trim())
+      {throw new Error('There is no document text to summarize.');}
+    if (content.length > 500000)
+      {throw new Error('The document is too long to summarize (500,000 characters maximum).');}
+    if (!state.ready) {throw new Error('Download and load the summary model first.');}
     return request({ type: 'summarize', content });
   });
-  app.on('before-quit', () => { if (worker) worker.terminate(); });
+  app.on('before-quit', () => {
+    if (worker) {worker.terminate();}
+  });
 }
 
 module.exports = { registerSummarization, MODEL };

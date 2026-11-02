@@ -11,7 +11,7 @@ import {
 import { trapTabKey } from './focusScope.js';
 import { translate } from './i18n.js';
 
-/** 
+/**
  * Update the search match count and current-match status in the panel.
  * @param {EditorView} view - The CodeMirror editor view instance.
  * @param {object} queryCache - An object caching the current search query and matches.
@@ -19,12 +19,15 @@ import { translate } from './i18n.js';
  */
 function matchStatus(view, queryCache) {
   const query = getSearchQuery(view.state);
-  if (queryCache.query && queryCache.doc === view.state.doc &&
+  if (
+    queryCache.query &&
+    queryCache.doc === view.state.doc &&
     queryCache.query.search === query.search &&
     queryCache.query.caseSensitive === query.caseSensitive &&
     queryCache.query.wholeWord === query.wholeWord &&
     queryCache.query.literal === query.literal &&
-    queryCache.query.regexp === query.regexp) {
+    queryCache.query.regexp === query.regexp
+  ) {
     return queryCache.matches;
   }
 
@@ -43,7 +46,7 @@ function matchStatus(view, queryCache) {
   return matches;
 }
 
-/** 
+/**
  * Return the match containing the current editor selection, if any.
  * @param {object[]} matches - The list of search matches.
  * @param {object} selection - The current editor selection with `from` and `to` properties.
@@ -54,8 +57,8 @@ function currentMatch(matches, selection) {
   let high = matches.length;
   while (low < high) {
     const middle = (low + high) >>> 1;
-    if (matches[middle].from < selection.from) low = middle + 1;
-    else high = middle;
+    if (matches[middle].from < selection.from) {low = middle + 1;}
+    else {high = middle;}
   }
   return matches[low]?.from === selection.from && matches[low]?.to === selection.to ? low + 1 : 0;
 }
@@ -118,54 +121,61 @@ export function createCodeMirrorFindReplacePanel(view) {
   const cache = { query: null, doc: null, matches: [] };
   let closed = false;
   /** Build a literal CodeMirror search query from the panel controls. @returns {SearchQuery} */
-  const buildQuery = () => new SearchQuery({
-    search: findInput.value,
-    replace: replaceInput.value,
-    caseSensitive: caseInput.checked,
-    wholeWord: wholeWordInput.checked,
-    literal: true,
-  });
+  const buildQuery = () =>
+    new SearchQuery({
+      search: findInput.value,
+      replace: replaceInput.value,
+      caseSensitive: caseInput.checked,
+      wholeWord: wholeWordInput.checked,
+      literal: true,
+    });
   /** Dispatch the current query and optionally navigate to its first match. @param {boolean} [navigate] @returns {void} */
   const updateQuery = (navigate = false) => {
-    if (closed || view.destroyed) return;
+    if (closed || view.destroyed) {return;}
     const query = buildQuery();
     view.dispatch({
       ...(navigate && query.valid ? { selection: { anchor: 0 } } : {}),
       effects: setSearchQuery.of(query),
     });
-    if (navigate && query.valid) findNext(view);
+    if (navigate && query.valid) {findNext(view);}
   };
   /** Refresh result count, control state, and values from the editor's active query. @returns {void} */
   const refresh = () => {
-    if (closed || view.destroyed) return;
+    if (closed || view.destroyed) {return;}
     const query = getSearchQuery(view.state);
     const matches = matchStatus(view, cache);
     const selection = view.state.selection.main;
     const current = query.search ? currentMatch(matches, selection) : 0;
     status.textContent = translate('{current} of {total}', { current, total: matches.length });
-    previousButton.disabled = nextButton.disabled = replaceButton.disabled = replaceAllButton.disabled = matches.length === 0;
-    if (findInput.value !== query.search) findInput.value = query.search;
+    previousButton.disabled =
+      nextButton.disabled =
+      replaceButton.disabled =
+      replaceAllButton.disabled =
+        matches.length === 0;
+    if (findInput.value !== query.search) {findInput.value = query.search;}
     if (document.activeElement !== replaceInput && replaceInput.value !== query.replace) {
       replaceInput.value = query.replace;
     }
     caseInput.checked = query.caseSensitive;
     wholeWordInput.checked = query.wholeWord;
   };
-  /** 
+  /**
    * Clear the active search query, close the panel, and restore editor focus.
    * @returns {void}
    */
   const close = () => {
-    if (closed || view.destroyed) return;
+    if (closed || view.destroyed) {return;}
     const query = getSearchQuery(view.state);
     view.dispatch({
-      effects: setSearchQuery.of(new SearchQuery({
-        search: '',
-        replace: query.replace,
-        caseSensitive: query.caseSensitive,
-        wholeWord: query.wholeWord,
-        literal: true,
-      })),
+      effects: setSearchQuery.of(
+        new SearchQuery({
+          search: '',
+          replace: query.replace,
+          caseSensitive: query.caseSensitive,
+          wholeWord: query.wholeWord,
+          literal: true,
+        })
+      ),
     });
     closeSearchPanel(view);
     view.focus();
@@ -216,8 +226,14 @@ export function createCodeMirrorFindReplacePanel(view) {
       refresh();
     },
     update(update) {
-      if (update.docChanged || update.selectionSet || update.transactions.some((transaction) =>
-        transaction.effects.some((effect) => effect.is(setSearchQuery)))) refresh();
+      if (
+        update.docChanged ||
+        update.selectionSet ||
+        update.transactions.some((transaction) =>
+          transaction.effects.some((effect) => effect.is(setSearchQuery))
+        )
+      )
+        {refresh();}
     },
     destroy() {
       closed = true;

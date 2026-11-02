@@ -4,9 +4,15 @@ const assert = require('node:assert/strict');
 test('note drags accept only existing Markdown files and use exact vault paths', async () => {
   const { draggedNotePath, draggedNoteLink, hasNoteDrag, VAULT_PATH_TYPE, NOTE_LINK_TYPE } =
     await import('../src/lib/noteDrag.js');
-  const transfer = (type, value) => ({ types: [type], getData: (key) => key === type ? value : '' });
+  const transfer = (type, value) => ({
+    types: [type],
+    getData: (key) => (key === type ? value : ''),
+  });
   const paths = ['Beta.md', 'Nested/Beta.md', 'Round.flow'];
-  assert.equal(draggedNotePath(transfer(VAULT_PATH_TYPE, 'Nested/Beta.md'), paths), 'Nested/Beta.md');
+  assert.equal(
+    draggedNotePath(transfer(VAULT_PATH_TYPE, 'Nested/Beta.md'), paths),
+    'Nested/Beta.md'
+  );
   assert.equal(draggedNotePath(transfer(NOTE_LINK_TYPE, 'Beta.md'), paths), 'Beta.md');
   assert.equal(draggedNotePath(transfer(VAULT_PATH_TYPE, 'Round.flow'), paths), null);
   assert.equal(draggedNotePath(transfer(VAULT_PATH_TYPE, 'Nested'), paths), null);

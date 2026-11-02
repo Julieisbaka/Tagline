@@ -1,6 +1,6 @@
 import { splitFrontmatter } from './frontmatter.js';
 
-/** 
+/**
  * Expand date, time, title, path, Markdown body, and raw frontmatter placeholders in a template string.
  * @param {string} text - The template string containing placeholders to expand.
  * @param {string} title - The title to insert into the template.
@@ -18,5 +18,8 @@ export function fillTemplate(text, title, { path = '', content = '' } = {}) {
     content: metadata.body,
     properties: metadata.raw ?? '',
   };
-  return text.replace(/{{(date|time|title|path|content|properties)}}/g, (_match, key) => values[key]);
+  return text.replace(
+    /{{(date|time|title|path|content|properties)}}/g,
+    (_match, key) => values[key]
+  );
 }

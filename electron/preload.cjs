@@ -6,7 +6,11 @@ contextBridge.exposeInMainWorld('api', {
   nativeContextMenu: (items) => ipcRenderer.invoke('app:nativeContextMenu', items),
   nativeConfirm: (options) => ipcRenderer.invoke('app:nativeConfirm', options),
   editText: (action) => ipcRenderer.invoke('app:editText', action),
-  systemLanguages: JSON.parse(decodeURIComponent(process.argv.find((arg) => arg.startsWith('--tagline-languages=')).split('=')[1])),
+  systemLanguages: JSON.parse(
+    decodeURIComponent(
+      process.argv.find((arg) => arg.startsWith('--tagline-languages=')).split('=')[1]
+    )
+  ),
   getInstallationInfo: () => ipcRenderer.invoke('app:installation'),
   checkForUpdates: () => ipcRenderer.invoke('app:checkUpdates'),
   getUpdateState: () => ipcRenderer.invoke('app:getUpdateState'),
@@ -23,13 +27,15 @@ contextBridge.exposeInMainWorld('api', {
     status: () => ipcRenderer.invoke('googleDocs:status'),
     connect: () => ipcRenderer.invoke('googleDocs:connect'),
     cancelConnect: () => ipcRenderer.invoke('googleDocs:cancelConnect'),
-    save: (endpoint, secret, connectionId) => ipcRenderer.invoke('googleDocs:save', endpoint, secret, connectionId),
+    save: (endpoint, secret, connectionId) =>
+      ipcRenderer.invoke('googleDocs:save', endpoint, secret, connectionId),
     disconnect: (connectionId) => ipcRenderer.invoke('googleDocs:disconnect', connectionId),
     sendNote: (document) => ipcRenderer.invoke('googleDocs:sendNote', document),
     uploadFile: (connectionId) => ipcRenderer.invoke('googleDocs:uploadFile', connectionId),
     saveScript: () => ipcRenderer.invoke('googleDocs:saveScript'),
     openSetup: () => ipcRenderer.invoke('googleDocs:openSetup'),
-    openDocument: (url, accountEmail) => ipcRenderer.invoke('googleDocs:openDocument', url, accountEmail),
+    openDocument: (url, accountEmail) =>
+      ipcRenderer.invoke('googleDocs:openDocument', url, accountEmail),
   },
   tabroom: {
     status: () => ipcRenderer.invoke('tabroom:status'),
@@ -37,7 +43,8 @@ contextBridge.exposeInMainWorld('api', {
     logout: () => ipcRenderer.invoke('tabroom:logout'),
     load: (tournament) => ipcRenderer.invoke('tabroom:load', tournament),
     page: (id, index) => ipcRenderer.invoke('tabroom:page', id, index),
-    records: (id, kind, index, query) => ipcRenderer.invoke('tabroom:records', id, kind, index, query),
+    records: (id, kind, index, query) =>
+      ipcRenderer.invoke('tabroom:records', id, kind, index, query),
     openJson: (source) => ipcRenderer.invoke('tabroom:openJson', source),
     snapshotRecordsForJson: (token, kind, index, query) =>
       ipcRenderer.invoke('tabroom:snapshotRecordsForJson', token, kind, index, query),
@@ -45,7 +52,8 @@ contextBridge.exposeInMainWorld('api', {
   },
   openCaselist: {
     writePasswordStatus: () => ipcRenderer.invoke('opencaselist:writePasswordStatus'),
-    verifyWritePassword: (password) => ipcRenderer.invoke('opencaselist:verifyWritePassword', password),
+    verifyWritePassword: (password) =>
+      ipcRenderer.invoke('opencaselist:verifyWritePassword', password),
     configureWritePassword: (enabled, password, currentPassword) =>
       ipcRenderer.invoke('opencaselist:configureWritePassword', enabled, password, currentPassword),
     status: () => ipcRenderer.invoke('opencaselist:status'),
@@ -53,8 +61,10 @@ contextBridge.exposeInMainWorld('api', {
     logout: () => ipcRenderer.invoke('opencaselist:logout'),
     list: (kind, selection) => ipcRenderer.invoke('opencaselist:list', kind, selection),
     search: (caselist, query) => ipcRenderer.invoke('opencaselist:search', caselist, query),
-    resolveTabroomTeam: (caselist, team) => ipcRenderer.invoke('opencaselist:resolveTabroomTeam', caselist, team),
-    write: (action, selection, value) => ipcRenderer.invoke('opencaselist:write', action, selection, value),
+    resolveTabroomTeam: (caselist, team) =>
+      ipcRenderer.invoke('opencaselist:resolveTabroomTeam', caselist, team),
+    write: (action, selection, value) =>
+      ipcRenderer.invoke('opencaselist:write', action, selection, value),
     upload: (selection, value) => ipcRenderer.invoke('opencaselist:upload', selection, value),
     download: (remotePath) => ipcRenderer.invoke('opencaselist:download', remotePath),
   },
@@ -106,11 +116,14 @@ contextBridge.exposeInMainWorld('api', {
   },
   listExtensions: () => ipcRenderer.invoke('extensions:list'),
   loadExtension: (id) => ipcRenderer.invoke('extensions:load', id),
-  completeExtensionInstall: (id, token) => ipcRenderer.invoke('extensions:completeInstall', id, token),
-  setExtensionEnabled: (id, enabled, reviewToken) => ipcRenderer.invoke('extensions:setEnabled', id, enabled, reviewToken),
+  completeExtensionInstall: (id, token) =>
+    ipcRenderer.invoke('extensions:completeInstall', id, token),
+  setExtensionEnabled: (id, enabled, reviewToken) =>
+    ipcRenderer.invoke('extensions:setEnabled', id, enabled, reviewToken),
   openExtensionsFolder: () => ipcRenderer.invoke('extensions:openFolder'),
   getCustomizationLimits: () => ipcRenderer.invoke('customization:get'),
-  exportExtensionSettings: (id, values) => ipcRenderer.invoke('extensions:exportSettings', id, values),
+  exportExtensionSettings: (id, values) =>
+    ipcRenderer.invoke('extensions:exportSettings', id, values),
   setCustomizationLimits: (limits) => ipcRenderer.invoke('customization:set', limits),
   readFont: () => ipcRenderer.invoke('fonts:read'),
   importFont: () => ipcRenderer.invoke('fonts:import'),

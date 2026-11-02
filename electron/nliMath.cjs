@@ -11,11 +11,18 @@ function softmax(values) {
 // Packs whole sentences into passages that fit the model window; oversized
 // sentences are split on word boundaries so nothing is silently truncated.
 function chunkPremise(text, count, budget, maxPassages = MAX_PASSAGES) {
-  if (!Number.isInteger(budget) || budget < 16) throw new Error('The hypothesis leaves no room for the document.');
-  const sentences = text.split(/(?<=[.!?]["'\u201d\u2019)\]]?)\s+|\n+/).map((s) => s.trim()).filter(Boolean);
+  if (!Number.isInteger(budget) || budget < 16)
+    {throw new Error('The hypothesis leaves no room for the document.');}
+  const sentences = text
+    .split(/(?<=[.!?]["'\u201d\u2019)\]]?)\s+|\n+/)
+    .map((s) => s.trim())
+    .filter(Boolean);
   const pieces = [];
   for (const sentence of sentences) {
-    if (count(sentence) <= budget) { pieces.push(sentence); continue; }
+    if (count(sentence) <= budget) {
+      pieces.push(sentence);
+      continue;
+    }
     // Per-word counts are nearly additive; keep a margin for merges at boundaries.
     let words = [];
     let used = 0;
@@ -29,7 +36,7 @@ function chunkPremise(text, count, budget, maxPassages = MAX_PASSAGES) {
       words.push(word);
       used += size;
     }
-    if (words.length) pieces.push(words.join(' '));
+    if (words.length) {pieces.push(words.join(' '));}
   }
   const chunks = [];
   let current = '';
@@ -38,10 +45,10 @@ function chunkPremise(text, count, budget, maxPassages = MAX_PASSAGES) {
     if (current && count(next) > budget) {
       chunks.push(current);
       current = piece;
-    } else current = next;
+    } else {current = next;}
   }
-  if (current) chunks.push(current);
-  if (!chunks.length) throw new Error('The selected text is empty.');
+  if (current) {chunks.push(current);}
+  if (!chunks.length) {throw new Error('The selected text is empty.');}
   return { chunks: chunks.slice(0, maxPassages), truncated: chunks.length > maxPassages };
 }
 

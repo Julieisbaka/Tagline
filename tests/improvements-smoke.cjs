@@ -5,9 +5,11 @@ if (!process.versions.electron) {
   const root = fs.mkdtempSync(path.join(require('node:os').tmpdir(), 'tagline-improvements-'));
   try {
     const result = spawnSync(require('electron'), [__filename], {
-      env: { ...process.env, TAGLINE_IMPROVEMENTS_ROOT: root }, stdio: 'inherit', timeout: 120000,
+      env: { ...process.env, TAGLINE_IMPROVEMENTS_ROOT: root },
+      stdio: 'inherit',
+      timeout: 120000,
     });
-    if (result.error) throw result.error;
+    if (result.error) {throw result.error;}
     process.exitCode = result.status ?? 1;
   } finally {
     fs.rmSync(root, { recursive: true, force: true, maxRetries: 20, retryDelay: 100 });
@@ -23,52 +25,84 @@ const delay = (ms) => new Promise((r) => setTimeout(r, ms));
 
 (async () => {
   const root = process.env.TAGLINE_IMPROVEMENTS_ROOT;
-  if (!root) throw new Error('Run this test through Node or npm run test:improvements.');
+  if (!root) {throw new Error('Run this test through Node or npm run test:improvements.');}
   const vault = path.join(root, 'vault');
   const profile = path.join(root, 'profile');
   await fs.mkdir(path.join(vault, 'Old Folder', 'Sub Folder'), { recursive: true });
   await fs.mkdir(profile);
-  await fs.writeFile(path.join(profile, 'config.json'), JSON.stringify({ lastVault: vault, modelAutoload: false }));
+  await fs.writeFile(
+    path.join(profile, 'config.json'),
+    JSON.stringify({ lastVault: vault, modelAutoload: false })
+  );
   if (process.env.TAGLINE_MODEL_CACHE) {
-    await fs.cp(path.join(process.env.TAGLINE_MODEL_CACHE, 'models'), path.join(profile, 'semantic-search', 'models'), { recursive: true });
+    await fs.cp(
+      path.join(process.env.TAGLINE_MODEL_CACHE, 'models'),
+      path.join(profile, 'semantic-search', 'models'),
+      { recursive: true }
+    );
   }
-  const html = '# HTML\n\n<details open><summary>Extra detail</summary><p>CO<sub>2</sub> and x<sup>2</sup></p></details>\n'
-    + '<script>window.injected = true</script>\n<img src="x" onerror="window.injected = true">\n';
+  const html =
+    '# HTML\n\n<details open><summary>Extra detail</summary><p>CO<sub>2</sub> and x<sup>2</sup></p></details>\n' +
+    '<script>window.injected = true</script>\n<img src="x" onerror="window.injected = true">\n';
   await fs.writeFile(path.join(vault, 'HTML.md'), html);
   await fs.writeFile(path.join(vault, 'Card.md'), '# Cards\n\n#### Tag\n\n==Evidence words==\n');
-  await fs.writeFile(path.join(vault, 'Old Folder', 'Sub Folder', 'Nested.md'), '# Nested\n[[Card]]');
+  await fs.writeFile(
+    path.join(vault, 'Old Folder', 'Sub Folder', 'Nested.md'),
+    '# Nested\n[[Card]]'
+  );
   await fs.writeFile(path.join(vault, 'Links.md'), '[[Old Folder/Sub Folder/Nested#Nested|alias]]');
   app.setPath('userData', profile);
   app.setPath('sessionData', profile);
   const output = path.join(root, 'export.html');
   dialog.showSaveDialog = async (_window, options) => ({
-    canceled: false, filePath: options.defaultPath.endsWith('.docx') ? path.join(root, 'converted.docx') : output,
+    canceled: false,
+    filePath: options.defaultPath.endsWith('.docx') ? path.join(root, 'converted.docx') : output,
   });
   dialog.showMessageBox = async () => ({ response: 0 });
-  const font = process.platform === 'win32' ? path.join(process.env.WINDIR, 'Fonts', 'arial.ttf')
-    : process.platform === 'darwin' ? '/System/Library/Fonts/Supplemental/Arial.ttf'
-      : '/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf';
+  const font =
+    process.platform === 'win32'
+      ? path.join(process.env.WINDIR, 'Fonts', 'arial.ttf')
+      : process.platform === 'darwin'
+        ? '/System/Library/Fonts/Supplemental/Arial.ttf'
+        : '/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf';
   dialog.showOpenDialog = async () => ({ canceled: false, filePaths: [font] });
   app.on('browser-window-created', (_event, win) => {
     win.webContents.once('did-finish-load', async () => {
       const wc = win.webContents;
-      const js = (code) => wc.executeJavaScript(code).catch((e) => { throw new Error(`${e.message}\nScript: ${code}`); });
-      wc.on('console-message', (event) => { if (event.level === 'error') console.error('Renderer:', event.message); });
+      const js = (code) =>
+        wc.executeJavaScript(code).catch((e) => {
+          throw new Error(`${e.message}\nScript: ${code}`);
+        });
+      wc.on('console-message', (event) => {
+        if (event.level === 'error') {console.error('Renderer:', event.message);}
+      });
       const wait = async (code) => {
-        for (let i = 0; i < 120; i++) { if (await js(code)) return; await delay(100); }
-        throw new Error('Timed out: ' + code + '\nFonts: ' + JSON.stringify(await js(
-          "[...document.fonts].map(f => ({ family: f.family, status: f.status }))")));
+        for (let i = 0; i < 120; i++) {
+          if (await js(code)) {return;}
+          await delay(100);
+        }
+        throw new Error(
+          'Timed out: ' +
+            code +
+            '\nFonts: ' +
+            JSON.stringify(
+              await js('[...document.fonts].map(f => ({ family: f.family, status: f.status }))')
+            )
+        );
       };
-      const click = (selector, text) => js(`(() => {
+      const click = (selector, text) =>
+        js(`(() => {
         const el = [...document.querySelectorAll(${JSON.stringify(selector)})].find(e => e.textContent.trim() === ${JSON.stringify(text)});
         if (!el) throw new Error('Missing button ' + ${JSON.stringify(text)}); el.click();
       })()`);
-      const input = (selector, value) => js(`(() => {
+      const input = (selector, value) =>
+        js(`(() => {
         const el = document.querySelector(${JSON.stringify(selector)});
         Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set.call(el, ${JSON.stringify(value)});
         el.dispatchEvent(new Event('input', { bubbles: true }));
       })()`);
-      const mode = (value) => js(`(() => { const el = document.querySelector('.note-actions select');
+      const mode = (value) =>
+        js(`(() => { const el = document.querySelector('.note-actions select');
         el.value = ${JSON.stringify(value)}; el.dispatchEvent(new Event('change', { bubbles: true })); })()`);
       const settings = async () => {
         await js("document.querySelector('.ribbon button:last-child').click()");
@@ -84,8 +118,11 @@ const delay = (ms) => new Promise((r) => setTimeout(r, ms));
         await mode('read');
         await wait("!!document.querySelector('.preview details summary')");
         assert.equal(await js("document.querySelector('.preview sub').textContent"), '2');
-        assert.equal(await js("!!document.querySelector('.preview script, .preview [onerror]')"), false);
-        assert.equal(await js("!!window.injected"), false);
+        assert.equal(
+          await js("!!document.querySelector('.preview script, .preview [onerror]')"),
+          false
+        );
+        assert.equal(await js('!!window.injected'), false);
         await click('.note-actions button', 'Export');
         await wait("!!document.querySelector('.export-dialog')");
         await click('.export-dialog button', 'Save export');
@@ -96,13 +133,18 @@ const delay = (ms) => new Promise((r) => setTimeout(r, ms));
         assert.doesNotMatch(exported, /<script|onerror/);
         const pandoc = await js('window.api.pandocStatus()');
         if (pandoc.available) {
-          await js(`window.api.exportDocument({ title: 'HTML', format: 'docx', html: ${JSON.stringify(exported)} })`);
+          await js(
+            `window.api.exportDocument({ title: 'HTML', format: 'docx', html: ${JSON.stringify(exported)} })`
+          );
           const { importDocument } = require('../electron/documents.cjs');
-          const imported = await importDocument(pandoc.executable, path.join(root, 'converted.docx'));
+          const imported = await importDocument(
+            pandoc.executable,
+            path.join(root, 'converted.docx')
+          );
           assert.match(imported.markdown, /CO/);
           assert.match(imported.markdown, /Extra detail/);
           console.log('PASS: real Pandoc HTML -> DOCX -> Markdown conversion.');
-        } else console.log('NOT TESTED: real Pandoc conversion (Pandoc is not installed).');
+        } else {console.log('NOT TESTED: real Pandoc conversion (Pandoc is not installed).');}
         await js("document.querySelector('.modal-backdrop').click()");
 
         await click('.tree-item', 'Card');
@@ -113,62 +155,114 @@ const delay = (ms) => new Promise((r) => setTimeout(r, ms));
         await input('[name=author]', 'Smith');
         await input('[name=year]', '2024');
         await input('[name=title]', 'A study');
-        assert.equal(await js("document.querySelector('[name=accessed]').type"), 'text', 'no native date control remains');
+        assert.equal(
+          await js("document.querySelector('[name=accessed]').type"),
+          'text',
+          'no native date control remains'
+        );
         await input('[name=accessed]', '2024-01-31');
-        const openCalendar = () => js("document.querySelector('.date-picker [aria-label=\"Choose date\"]').click()");
+        const openCalendar = () =>
+          js('document.querySelector(\'.date-picker [aria-label="Choose date"]\').click()');
         const dialogHeight = await js("document.querySelector('.citation-dialog').offsetHeight");
         await openCalendar();
         await wait("document.activeElement.dataset.date === '2024-01-31'");
-        assert.equal(await js("document.querySelector('.citation-dialog').offsetHeight"), dialogHeight,
-          'opening the picker must not resize the form');
-        assert.equal(await js("document.querySelector('.date-picker-calendar').parentElement === document.body"), true,
-          'the calendar floats outside the scrolling form');
-        assert.ok(await js(`(() => {
+        assert.equal(
+          await js("document.querySelector('.citation-dialog').offsetHeight"),
+          dialogHeight,
+          'opening the picker must not resize the form'
+        );
+        assert.equal(
+          await js(
+            "document.querySelector('.date-picker-calendar').parentElement === document.body"
+          ),
+          true,
+          'the calendar floats outside the scrolling form'
+        );
+        assert.ok(
+          await js(`(() => {
           const r = document.querySelector('.date-picker-calendar').getBoundingClientRect();
           return r.left >= 0 && r.top >= 0 && r.right <= innerWidth && r.bottom <= innerHeight;
-        })()`), 'popup stays inside the viewport');
-        assert.equal(await js("getComputedStyle(document.querySelector('.date-picker')).width"), '200px');
-        await js("document.activeElement.dispatchEvent(new KeyboardEvent('keydown', { key: 'PageDown', bubbles: true, cancelable: true }))");
+        })()`),
+          'popup stays inside the viewport'
+        );
+        assert.equal(
+          await js("getComputedStyle(document.querySelector('.date-picker')).width"),
+          '200px'
+        );
+        await js(
+          "document.activeElement.dispatchEvent(new KeyboardEvent('keydown', { key: 'PageDown', bubbles: true, cancelable: true }))"
+        );
         await wait("document.activeElement.dataset.date === '2024-02-29'");
-        await js("document.activeElement.click()");
+        await js('document.activeElement.click()');
         await wait("!document.querySelector('.date-picker-calendar')");
         assert.equal(await js("document.querySelector('[name=accessed]').value"), '2024-02-29');
         assert.equal(await js("document.activeElement.getAttribute('aria-label')"), 'Choose date');
         await openCalendar();
         await wait("!!document.querySelector('.date-picker-calendar')");
-        await js(`document.querySelector('.date-picker-calendar [aria-label="Next month"]').click()`);
-        await wait("document.querySelector('.date-picker-calendar [role=grid]').getAttribute('aria-label').includes('March')");
-        assert.equal(await js("document.querySelector('[name=accessed]').value"), '2024-02-29',
-          'browsing months does not commit a date');
-        await js(`document.querySelector('.date-picker-calendar [aria-label="Previous month"]').click()`);
+        await js(
+          `document.querySelector('.date-picker-calendar [aria-label="Next month"]').click()`
+        );
+        await wait(
+          "document.querySelector('.date-picker-calendar [role=grid]').getAttribute('aria-label').includes('March')"
+        );
+        assert.equal(
+          await js("document.querySelector('[name=accessed]').value"),
+          '2024-02-29',
+          'browsing months does not commit a date'
+        );
+        await js(
+          `document.querySelector('.date-picker-calendar [aria-label="Previous month"]').click()`
+        );
         await js(`(() => {
           const last = document.querySelector('.date-picker-actions button:last-child'); last.focus();
           last.dispatchEvent(new KeyboardEvent('keydown', { key: 'Tab', bubbles: true, cancelable: true }));
         })()`);
-        assert.equal(await js("document.activeElement.getAttribute('aria-label')"), 'Previous month',
-          'Tab stays inside the open calendar');
-        await js(`document.querySelector('.date-picker-calendar [data-date="2024-02-29"]').focus()`);
-        await js("document.activeElement.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true, cancelable: true }))");
+        assert.equal(
+          await js("document.activeElement.getAttribute('aria-label')"),
+          'Previous month',
+          'Tab stays inside the open calendar'
+        );
+        await js(
+          `document.querySelector('.date-picker-calendar [data-date="2024-02-29"]').focus()`
+        );
+        await js(
+          "document.activeElement.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true, cancelable: true }))"
+        );
         await wait("document.activeElement.dataset.date === '2024-03-01'");
-        await js("document.activeElement.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }))");
+        await js(
+          "document.activeElement.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }))"
+        );
         await wait("!document.querySelector('.date-picker-calendar')");
-        assert.ok(await js("!!document.querySelector('.citation-dialog')"), 'Escape closes the calendar, not the citation dialog');
-        assert.equal(await js("document.querySelector('[name=accessed]').value"), '2024-02-29', 'navigation without selection does not change the value');
+        assert.ok(
+          await js("!!document.querySelector('.citation-dialog')"),
+          'Escape closes the calendar, not the citation dialog'
+        );
+        assert.equal(
+          await js("document.querySelector('[name=accessed]').value"),
+          '2024-02-29',
+          'navigation without selection does not change the value'
+        );
         await openCalendar();
         await click('.date-picker-actions button', 'Clear');
         assert.equal(await js("document.querySelector('[name=accessed]').value"), '');
         await openCalendar();
         await click('.date-picker-actions button', 'Today');
-        assert.equal(await js("document.querySelector('[name=accessed]').value"), await js(`(() => {
+        assert.equal(
+          await js("document.querySelector('[name=accessed]').value"),
+          await js(`(() => {
           const now = new Date();
           return [now.getFullYear(), String(now.getMonth() + 1).padStart(2, '0'), String(now.getDate()).padStart(2, '0')].join('-');
-        })()`));
+        })()`)
+        );
         await input('[name=accessed]', '2023-02-29');
         await click('.citation-dialog button', 'Copy citation');
-        await wait("document.querySelector('.citation-dialog [role=alert]')?.textContent.includes('valid date')");
+        await wait(
+          "document.querySelector('.citation-dialog [role=alert]')?.textContent.includes('valid date')"
+        );
         await input('[name=accessed]', '2024-02-29');
         await openCalendar();
-        assert.equal(await js(`(() => {
+        assert.equal(
+          await js(`(() => {
           const calendar = document.querySelector('.date-picker-calendar');
           const probe = document.createElement('span');
           probe.style.backgroundColor = 'var(--bg-elevated)';
@@ -176,13 +270,19 @@ const delay = (ms) => new Promise((r) => setTimeout(r, ms));
           const matches = getComputedStyle(calendar).backgroundColor === getComputedStyle(probe).backgroundColor;
           probe.remove();
           return matches;
-        })()`), true, 'calendar uses theme tokens');
+        })()`),
+          true,
+          'calendar uses theme tokens'
+        );
         await js(`(() => {
           const el = document.querySelector('[name=author]');
           el.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true })); el.focus();
         })()`);
         await wait("!document.querySelector('.date-picker-calendar')");
-        assert.ok(await js("!!document.querySelector('.citation-dialog')"), 'clicking elsewhere dismisses only the calendar');
+        assert.ok(
+          await js("!!document.querySelector('.citation-dialog')"),
+          'clicking elsewhere dismisses only the calendar'
+        );
         await js(`(() => {
           const el = document.querySelector('[name=accessed]'); el.focus();
           el.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', altKey: true, bubbles: true, cancelable: true }));
@@ -193,36 +293,68 @@ const delay = (ms) => new Promise((r) => setTimeout(r, ms));
         await click('.citation-dialog button', 'Insert citation');
         await wait("!document.querySelector('.citation-dialog')");
         await wait("document.querySelector('.visual-document').textContent.includes('Smith 2024')");
-        assert.ok(await js("document.querySelector('.visual-document').textContent.includes('Accessed 2024-02-29')"));
+        assert.ok(
+          await js(
+            "document.querySelector('.visual-document').textContent.includes('Accessed 2024-02-29')"
+          )
+        );
         // The spoken year adds several syllables; a word-only estimate was 0:01.
-        await wait("document.querySelector('.status-bar').textContent.includes('2 highlighted (~0:02 read)')");
+        await wait(
+          "document.querySelector('.status-bar').textContent.includes('2 highlighted (~0:02 read)')"
+        );
 
         await settings('appearance');
         await js("document.querySelector('[data-section=appearance]').click()");
         assert.equal(await js("document.querySelector('[data-setting=nativeUi]').checked"), false);
-        const checkmark = () => js("getComputedStyle(document.querySelector('[data-setting=nativeUi]'), '::after').content");
+        const checkmark = () =>
+          js(
+            "getComputedStyle(document.querySelector('[data-setting=nativeUi]'), '::after').content"
+          );
         await js("document.querySelector('[data-setting=nativeUi]').click()");
         await wait("document.documentElement.classList.contains('native-ui')");
-        assert.equal(await checkmark(), 'none', 'native checkboxes do not render the custom checkmark');
-        assert.deepEqual(await js(`(() => { const el = document.querySelector('[data-setting=nativeUi]');
+        assert.equal(
+          await checkmark(),
+          'none',
+          'native checkboxes do not render the custom checkmark'
+        );
+        assert.deepEqual(
+          await js(`(() => { const el = document.querySelector('[data-setting=nativeUi]');
           const style = getComputedStyle(el);
           return { appearance: style.appearance, display: style.display, padding: style.padding, border: style.borderWidth };
-        })()`), { appearance: 'auto', display: 'block', padding: '0px', border: '0px' });
+        })()`),
+          { appearance: 'auto', display: 'block', padding: '0px', border: '0px' }
+        );
         await js("document.querySelector('[data-section=editors]').click()");
         await js(`(() => { const el = document.querySelector('[data-setting=sourceLineNumbers]');
           el.focus(); })()`);
-        const nativeState = await js("document.querySelector('[data-setting=sourceLineNumbers]').checked");
+        const nativeState = await js(
+          "document.querySelector('[data-setting=sourceLineNumbers]').checked"
+        );
         wc.sendInputEvent({ type: 'keyDown', keyCode: 'Space' });
         wc.sendInputEvent({ type: 'keyUp', keyCode: 'Space' });
-        await wait(`document.querySelector('[data-setting=sourceLineNumbers]').checked === ${!nativeState}`);
-        assert.equal(await js("getComputedStyle(document.querySelector('[data-setting=sourceLineNumbers]'), '::after').content"), 'none');
+        await wait(
+          `document.querySelector('[data-setting=sourceLineNumbers]').checked === ${!nativeState}`
+        );
+        assert.equal(
+          await js(
+            "getComputedStyle(document.querySelector('[data-setting=sourceLineNumbers]'), '::after').content"
+          ),
+          'none'
+        );
         await js(`(() => { const el = document.querySelector('[data-setting=sourceLineNumbers]');
           el.indeterminate = true; el.disabled = true; })()`);
-        assert.equal(await js("getComputedStyle(document.querySelector('[data-setting=sourceLineNumbers]'), '::after').content"), 'none',
-          'disabled and indeterminate native checkboxes have no custom overlay');
+        assert.equal(
+          await js(
+            "getComputedStyle(document.querySelector('[data-setting=sourceLineNumbers]'), '::after').content"
+          ),
+          'none',
+          'disabled and indeterminate native checkboxes have no custom overlay'
+        );
         await js(`(() => { const el = document.querySelector('[data-setting=sourceLineNumbers]');
           el.indeterminate = false; el.disabled = false; el.click(); })()`);
-        await wait(`document.querySelector('[data-setting=sourceLineNumbers]').checked === ${nativeState}`);
+        await wait(
+          `document.querySelector('[data-setting=sourceLineNumbers]').checked === ${nativeState}`
+        );
         await js("document.querySelector('[data-section=appearance]').click()");
         const theme = async (value) => {
           await js(`(() => { const el = document.querySelector('[data-setting=theme]');
@@ -234,12 +366,24 @@ const delay = (ms) => new Promise((r) => setTimeout(r, ms));
         await theme('dark');
         assert.equal(nativeTheme.themeSource, 'dark');
         await click('.settings button', 'Done');
-        await new Promise((resolve) => { wc.once('did-finish-load', resolve); wc.reload(); });
-        await wait("document.documentElement.classList.contains('native-ui') && !!document.querySelector('.note-actions')");
-        assert.equal(nativeTheme.themeSource, 'dark', 'native preferences survive a renderer reload');
+        await new Promise((resolve) => {
+          wc.once('did-finish-load', resolve);
+          wc.reload();
+        });
+        await wait(
+          "document.documentElement.classList.contains('native-ui') && !!document.querySelector('.note-actions')"
+        );
+        assert.equal(
+          nativeTheme.themeSource,
+          'dark',
+          'native preferences survive a renderer reload'
+        );
         await click('.note-actions button', 'Create citation');
         await wait("document.querySelector('[name=accessed]')?.type === 'date'");
-        assert.equal(await js("!!document.querySelector('.date-picker-calendar, .date-picker button')"), false);
+        assert.equal(
+          await js("!!document.querySelector('.date-picker-calendar, .date-picker button')"),
+          false
+        );
         await input('[name=accessed]', '2024-03-04');
         assert.equal(await js("document.querySelector('[name=accessed]').value"), '2024-03-04');
         const buildMenu = Menu.buildFromTemplate;
@@ -255,12 +399,14 @@ const delay = (ms) => new Promise((r) => setTimeout(r, ms));
           await input('[name=author]', 'Native copy');
           await js(`(() => { const el = document.querySelector('[name=author]'); el.focus(); el.select();
             el.dispatchEvent(new MouseEvent('contextmenu', {bubbles:true,cancelable:true})); })()`);
-          for (let i = 0; i < 40 && !nativeItems; i++) await delay(25);
+          for (let i = 0; i < 40 && !nativeItems; i++) {await delay(25);}
           assert.ok(nativeItems?.some((item) => item.label === 'Copy'));
           await delay(100);
           assert.equal(await require('electron').clipboard.readText(), 'Native copy');
           assert.equal(await js("!!document.querySelector('.context-menu')"), false);
-        } finally { Menu.buildFromTemplate = buildMenu; }
+        } finally {
+          Menu.buildFromTemplate = buildMenu;
+        }
         await click('.citation-dialog button', 'Cancel');
         await settings();
         await js("document.querySelector('[data-section=appearance]').click()");
@@ -268,19 +414,28 @@ const delay = (ms) => new Promise((r) => setTimeout(r, ms));
         await js("document.querySelector('[data-section=advanced]').click()");
         const messageBox = dialog.showMessageBox;
         let confirmation;
-        dialog.showMessageBox = async (_win, options) => { confirmation = options; return { response: 0 }; };
+        dialog.showMessageBox = async (_win, options) => {
+          confirmation = options;
+          return { response: 0 };
+        };
         try {
           await js("document.querySelector('[data-setting=customCssEnabled]').click()");
-          for (let i = 0; i < 40 && !confirmation; i++) await delay(25);
+          for (let i = 0; i < 40 && !confirmation; i++) {await delay(25);}
           assert.ok(confirmation?.message.includes('Custom CSS'));
           await wait("!document.querySelector('[data-setting=customCssEnabled]').checked");
           assert.equal(await js("!!document.querySelector('.confirm-dialog')"), false);
-        } finally { dialog.showMessageBox = messageBox; }
+        } finally {
+          dialog.showMessageBox = messageBox;
+        }
         await js("document.querySelector('[data-section=appearance]').click()");
         await js("document.querySelector('[data-setting=nativeUi]').click()");
         await wait("!document.documentElement.classList.contains('native-ui')");
         await js("document.querySelector('[data-setting=nativeUi]').checked = true");
-        assert.equal(await checkmark(), '""', 'custom checkmarks return when native UI is disabled');
+        assert.equal(
+          await checkmark(),
+          '""',
+          'custom checkmarks return when native UI is disabled'
+        );
         await js("document.querySelector('[data-setting=nativeUi]').checked = false");
         await delay(100);
         assert.equal(nativeTheme.themeSource, 'system');
@@ -295,38 +450,72 @@ const delay = (ms) => new Promise((r) => setTimeout(r, ms));
         assert.equal(status.ready, false);
         assert.equal(status.downloaded, !!process.env.TAGLINE_MODEL_CACHE);
         const modelButton = status.downloaded ? 'Load model' : 'Download model';
-        await wait(`[...document.querySelectorAll('.integration-settings button')].some(b => b.textContent === '${modelButton}')`);
+        await wait(
+          `[...document.querySelectorAll('.integration-settings button')].some(b => b.textContent === '${modelButton}')`
+        );
         await input('[data-setting=visualCacheEntries]', '0');
         await input('[data-setting=visualCacheCharacters]', '1000');
         await input('[data-setting=searchMaxResults]', '1');
         await click('.advanced-settings button', 'Import font file');
         await wait("JSON.parse(localStorage.getItem('tagline-settings')).importedFont > 0");
-        await wait("[...document.fonts].some(f => f.family.replaceAll('\"', '') === 'Tagline Custom' && f.status === 'loaded')");
+        await wait(
+          "[...document.fonts].some(f => f.family.replaceAll('\"', '') === 'Tagline Custom' && f.status === 'loaded')"
+        );
         const fontData = await js('window.api.readFont()');
         assert.ok(fontData.startsWith('data:font/ttf;base64,'));
-        assert.equal(await js("getComputedStyle(document.querySelector('.visual-document')).fontFamily"), '"Tagline Custom"');
-        await new Promise((resolve) => { wc.once('did-finish-load', resolve); wc.reload(); });
-        await wait("[...document.fonts].some(f => f.family.replaceAll('\"', '') === 'Tagline Custom' && f.status === 'loaded')");
+        assert.equal(
+          await js("getComputedStyle(document.querySelector('.visual-document')).fontFamily"),
+          '"Tagline Custom"'
+        );
+        await new Promise((resolve) => {
+          wc.once('did-finish-load', resolve);
+          wc.reload();
+        });
+        await wait(
+          "[...document.fonts].some(f => f.family.replaceAll('\"', '') === 'Tagline Custom' && f.status === 'loaded')"
+        );
         await wait("!!document.querySelector('.visual-document')");
         await settings();
-        assert.equal(await js("JSON.parse(localStorage.getItem('tagline-settings')).visualCacheEntries"), 0);
-        assert.equal(await js("JSON.parse(localStorage.getItem('tagline-settings')).searchMaxResults"), 1);
+        assert.equal(
+          await js("JSON.parse(localStorage.getItem('tagline-settings')).visualCacheEntries"),
+          0
+        );
+        assert.equal(
+          await js("JSON.parse(localStorage.getItem('tagline-settings')).searchMaxResults"),
+          1
+        );
         await click('.advanced-settings button', 'Reset font');
 
         // Existing folders and links remain unchanged; no migration action is offered.
-        assert.equal(await js("[...document.querySelectorAll('.advanced-settings button')].some(b => b.textContent === 'Auto migrate folders')"), false);
+        assert.equal(
+          await js(
+            "[...document.querySelectorAll('.advanced-settings button')].some(b => b.textContent === 'Auto migrate folders')"
+          ),
+          false
+        );
         const links = await fs.readFile(path.join(vault, 'Links.md'), 'utf8');
         assert.equal(links, '[[Old Folder/Sub Folder/Nested#Nested|alias]]');
         assert.ok(await fs.stat(path.join(vault, 'Old Folder', 'Sub Folder', 'Nested.md')));
-        assert.ok(await js("[...document.querySelectorAll('.tree-label')].some(e => e.textContent === 'Old Folder')"));
-        assert.equal(await js("[...document.querySelectorAll('.tree-label')].some(e => e.textContent.includes('Old_Folder'))"), false);
+        assert.ok(
+          await js(
+            "[...document.querySelectorAll('.tree-label')].some(e => e.textContent === 'Old Folder')"
+          )
+        );
+        assert.equal(
+          await js(
+            "[...document.querySelectorAll('.tree-label')].some(e => e.textContent.includes('Old_Folder'))"
+          ),
+          false
+        );
         await click('.settings button', 'Done');
         const createFolder = async (name, displayed = name) => {
-          await js("document.querySelector('.sidebar-header [title=\"New folder\"]').click()");
+          await js('document.querySelector(\'.sidebar-header [title="New folder"]\').click()');
           await wait("!!document.querySelector('.dialog input')");
           await input('.dialog input', name);
           await click('.dialog button', 'OK');
-          await wait(`!![...document.querySelectorAll('.tree-label')].find(e => e.textContent === ${JSON.stringify(displayed)})`);
+          await wait(
+            `!![...document.querySelectorAll('.tree-label')].find(e => e.textContent === ${JSON.stringify(displayed)})`
+          );
         };
         await createFolder('New Folder');
         assert.ok(await fs.stat(path.join(vault, 'New_Folder')));
@@ -340,8 +529,12 @@ const delay = (ms) => new Promise((r) => setTimeout(r, ms));
         await createFolder('Literal Folder', 'Literal Folder 1');
         assert.ok(await fs.stat(path.join(vault, 'Literal Folder 1')));
         // With the setting off, the explorer shows on-disk underscores verbatim.
-        await wait("[...document.querySelectorAll('.tree-label')].some(e => e.textContent === 'Old Folder')");
-        await wait("[...document.querySelectorAll('.tree-label')].some(e => e.textContent === 'New_Folder')");
+        await wait(
+          "[...document.querySelectorAll('.tree-label')].some(e => e.textContent === 'Old Folder')"
+        );
+        await wait(
+          "[...document.querySelectorAll('.tree-label')].some(e => e.textContent === 'New_Folder')"
+        );
         assert.ok(await fs.stat(path.join(vault, 'Old Folder', 'Sub Folder', 'Nested.md')));
         assert.equal(await fs.readFile(path.join(vault, 'Links.md'), 'utf8'), links);
         // Disabling model autoload survives in the main-process config.
@@ -350,13 +543,18 @@ const delay = (ms) => new Promise((r) => setTimeout(r, ms));
           assert.equal((await js('window.api.embeddingStatus()')).ready, true);
           await js('window.api.setModelAutoload(false)');
         }
-        assert.equal(JSON.parse(await fs.readFile(path.join(profile, 'config.json'), 'utf8')).modelAutoload, false);
+        assert.equal(
+          JSON.parse(await fs.readFile(path.join(profile, 'config.json'), 'utf8')).modelAutoload,
+          false
+        );
         // Cmd-compatible menu IPC reaches the same UI on all platforms.
         wc.send('menu:command', 'openSearch');
         await wait("!!document.querySelector('.modal.search')");
         await input('.search .palette-input', 'tag');
         assert.equal(await js("document.querySelectorAll('.search-result').length"), 1);
-        console.log('PASS: safe embedded HTML/export, visual citation insertion/read time, settings limits, fonts, unchanged existing folders, menu IPC.');
+        console.log(
+          'PASS: safe embedded HTML/export, visual citation insertion/read time, settings limits, fonts, unchanged existing folders, menu IPC.'
+        );
         app.exit(0);
       } catch (e) {
         console.error('FAIL:', e.stack || e);

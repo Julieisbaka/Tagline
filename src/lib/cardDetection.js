@@ -19,7 +19,7 @@ export function detectCards(content) {
   let card = null;
   for (const token of tokens) {
     if (token.type === 'heading' && token.depth <= 4) {
-      if (card) card.endLineIndex = lineIndex;
+      if (card) {card.endLineIndex = lineIndex;}
       card = null;
       if (token.depth === 4) {
         card = { title: token.text.trim(), lineIndex, endLineIndex: 0 };
@@ -28,6 +28,6 @@ export function detectCards(content) {
     }
     lineIndex += (token.raw.match(/\n/g) || []).length;
   }
-  if (card) card.endLineIndex = content.split(/\r\n?|\n/).length;
+  if (card) {card.endLineIndex = content.split(/\r\n?|\n/).length;}
   return cards;
 }

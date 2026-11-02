@@ -6,8 +6,10 @@ const root = path.resolve(__dirname, '..');
 const logPath = path.join(root, 'test-all.log');
 const { scripts } = JSON.parse(fs.readFileSync(path.join(root, 'package.json'), 'utf8'));
 const subsets = new Set(['test:all', 'test:shared', 'test:platform']);
-const suites = ['test', ...Object.keys(scripts).filter((name) =>
-  name.startsWith('test:') && !subsets.has(name))];
+const suites = [
+  'test',
+  ...Object.keys(scripts).filter((name) => name.startsWith('test:') && !subsets.has(name)),
+];
 const npmCli = process.env.npm_execpath;
 const MAX_CAPTURED_OUTPUT = 10 * 1024 * 1024;
 const startedAt = Date.now();
@@ -24,10 +26,16 @@ function runSuite(name) {
     let settled = false;
     let child;
     const finish = (result) => {
-      if (settled) return;
+      if (settled) {return;}
       settled = true;
-      if (currentChild === child) currentChild = null;
-      resolve({ suite: name, durationMs: Date.now() - suiteStartedAt, output, outputTruncated, ...result });
+      if (currentChild === child) {currentChild = null;}
+      resolve({
+        suite: name,
+        durationMs: Date.now() - suiteStartedAt,
+        output,
+        outputTruncated,
+        ...result,
+      });
     };
     try {
       child = spawn(process.execPath, [npmCli, 'run', name], {
@@ -36,29 +44,40 @@ function runSuite(name) {
         stdio: ['inherit', 'pipe', 'pipe'],
       });
     } catch (error) {
-      finish({ status: 'failed', detail: error.message, counts: { tests: 1, passed: 0, failed: 1, skipped: 0, cancelled: 0 } });
+      finish({
+        status: 'failed',
+        detail: error.message,
+        counts: { tests: 1, passed: 0, failed: 1, skipped: 0, cancelled: 0 },
+      });
       return;
     }
     currentChild = child;
-    const capture = (stream) => stream.on('data', (chunk) => {
-      if (output.length < MAX_CAPTURED_OUTPUT) {
-        const remaining = MAX_CAPTURED_OUTPUT - output.length;
-        output += chunk.toString('utf8', 0, remaining);
-        if (chunk.length > remaining) outputTruncated = true;
-      } else {
-        outputTruncated = true;
-      }
-    });
+    const capture = (stream) =>
+      stream.on('data', (chunk) => {
+        if (output.length < MAX_CAPTURED_OUTPUT) {
+          const remaining = MAX_CAPTURED_OUTPUT - output.length;
+          output += chunk.toString('utf8', 0, remaining);
+          if (chunk.length > remaining) {outputTruncated = true;}
+        } else {
+          outputTruncated = true;
+        }
+      });
     capture(child.stdout);
     capture(child.stderr);
-    child.once('error', (error) => finish({
-      status: 'failed',
-      detail: error.message,
-      counts: { tests: 1, passed: 0, failed: 1, skipped: 0, cancelled: 0 },
-    }));
+    child.once('error', (error) =>
+      finish({
+        status: 'failed',
+        detail: error.message,
+        counts: { tests: 1, passed: 0, failed: 1, skipped: 0, cancelled: 0 },
+      })
+    );
     child.once('close', (code, signal) => {
       if (interrupted) {
-        finish({ status: 'interrupted', detail: signal || `exit ${code}`, counts: suiteCounts(name, output, 'interrupted') });
+        finish({
+          status: 'interrupted',
+          detail: signal || `exit ${code}`,
+          counts: suiteCounts(name, output, 'interrupted'),
+        });
       } else if (code === 0) {
         finish({ status: 'passed', counts: suiteCounts(name, output, 'passed') });
       } else {
@@ -79,7 +98,7 @@ function reporterCount(output, label) {
   ];
   for (const pattern of patterns) {
     const match = output.match(pattern);
-    if (match) return Number(match[1]);
+    if (match) {return Number(match[1]);}
   }
   return null;
 }
@@ -112,18 +131,20 @@ function formatDuration(durationMs) {
   const hours = Math.floor(seconds / 3600);
   const minutes = Math.floor((seconds % 3600) / 60);
   const remaining = seconds % 60;
-  return [
-    hours ? `${hours}h` : '',
-    hours || minutes ? `${minutes}m` : '',
-    `${remaining}s`,
-  ].filter(Boolean).join(' ');
+  return [hours ? `${hours}h` : '', hours || minutes ? `${minutes}m` : '', `${remaining}s`]
+    .filter(Boolean)
+    .join(' ');
 }
 
 function totals() {
-  return results.reduce((sum, result) => {
-    for (const key of ['tests', 'passed', 'failed', 'skipped', 'cancelled']) sum[key] += result.counts[key];
-    return sum;
-  }, { tests: 0, passed: 0, failed: 0, skipped: 0, cancelled: 0 });
+  return results.reduce(
+    (sum, result) => {
+      for (const key of ['tests', 'passed', 'failed', 'skipped', 'cancelled'])
+        {sum[key] += result.counts[key];}
+      return sum;
+    },
+    { tests: 0, passed: 0, failed: 0, skipped: 0, cancelled: 0 }
+  );
 }
 
 function reportText(logWriteError = '') {
@@ -146,8 +167,8 @@ function reportText(logWriteError = '') {
     'Auth and password rejection cases are expected negative-path checks. They count as passing when their assertions pass.',
   ];
 
-  if (runnerError) lines.push(`Runner error: ${runnerError}`);
-  if (logWriteError) lines.push(`Could not write ${logPath}: ${logWriteError}`);
+  if (runnerError) {lines.push(`Runner error: ${runnerError}`);}
+  if (logWriteError) {lines.push(`Could not write ${logPath}: ${logWriteError}`);}
   return lines.join('\n');
 }
 
@@ -155,9 +176,13 @@ function tapFailureOutput(output) {
   const lines = output.split(/\r?\n/);
   const blocks = [];
   for (let index = 0; index < lines.length; index++) {
-    if (!/^not ok \d+\b/.test(lines[index])) continue;
+    if (!/^not ok \d+\b/.test(lines[index])) {continue;}
     const block = [lines[index]];
-    for (index++; index < lines.length && !/^(?:ok|not ok) \d+\b|^1\.\.\d+/.test(lines[index]); index++) {
+    for (
+      index++;
+      index < lines.length && !/^(?:ok|not ok) \d+\b|^1\.\.\d+/.test(lines[index]);
+      index++
+    ) {
       block.push(lines[index]);
     }
     blocks.push(block.join('\n'));
@@ -169,17 +194,19 @@ function tapFailureOutput(output) {
 function failureOutput(result) {
   if (result.suite === 'test') {
     const failures = tapFailureOutput(result.output);
-    if (failures) return failures;
+    if (failures) {return failures;}
   }
 
   const lines = result.output.split(/\r?\n/);
-  const failureLine = /(?:^FAIL\b|AssertionError|Timed out:|^Error:|TypeError:|ReferenceError:|SyntaxError:|error during build|Build failed|npm error)/i;
+  const failureLine =
+    /(?:^FAIL\b|AssertionError|Timed out:|^Error:|TypeError:|ReferenceError:|SyntaxError:|error during build|Build failed|npm error)/i;
   let start = -1;
   for (let index = 0; index < lines.length; index++) {
-    if (failureLine.test(lines[index])) start = index;
+    if (failureLine.test(lines[index])) {start = index;}
   }
-  const excerpt = (start < 0 ? lines.slice(-80) : lines.slice(start))
-    .filter((line) => !/^(?:✔|ok \d+\b|PASS\b)/.test(line.trim()));
+  const excerpt = (start < 0 ? lines.slice(-80) : lines.slice(start)).filter(
+    (line) => !/^(?:✔|ok \d+\b|PASS\b)/.test(line.trim())
+  );
   return excerpt.join('\n').trim();
 }
 
@@ -189,15 +216,20 @@ function writeLog() {
     'Tagline failed test log',
     `Started: ${new Date(startedAt).toISOString()}`,
     `Duration: ${formatDuration(Date.now() - startedAt)}`,
-    ...failed.map((result) => `Failed suite: ${result.suite} (${formatDuration(result.durationMs)})`),
+    ...failed.map(
+      (result) => `Failed suite: ${result.suite} (${formatDuration(result.durationMs)})`
+    ),
     ...(interrupted ? ['Run interrupted before all suites completed.'] : []),
     ...(!failed.length && !interrupted ? ['No failing tests.'] : []),
   ];
   for (const result of failed) {
-    lines.push('', `===== ${result.suite} failed test${result.outputTruncated ? ' (captured output truncated)' : ''} =====`);
-    if (result.detail) lines.push(`Process result: ${result.detail}`);
+    lines.push(
+      '',
+      `===== ${result.suite} failed test${result.outputTruncated ? ' (captured output truncated)' : ''} =====`
+    );
+    if (result.detail) {lines.push(`Process result: ${result.detail}`);}
     const excerpt = failureOutput(result);
-    if (excerpt) lines.push(excerpt);
+    if (excerpt) {lines.push(excerpt);}
   }
   fs.writeFileSync(logPath, `${lines.join('\n')}\n`, 'utf8');
 }
@@ -214,19 +246,21 @@ function printSummary(logWriteError = '') {
   console.log(`Failed: ${count.failed}`);
   console.log(`Skipped: ${count.skipped}`);
   console.log(`Canceled: ${count.cancelled + (interrupted && currentChild ? 1 : 0)}`);
-  if (notRun) console.log(`Suites not run after interruption: ${notRun}`);
-  console.log('Auth/password rejection scenarios are expected; they pass when the tests assert the errors.');
+  if (notRun) {console.log(`Suites not run after interruption: ${notRun}`);}
+  console.log(
+    'Auth/password rejection scenarios are expected; they pass when the tests assert the errors.'
+  );
   if (logWriteError || count.failed || interrupted || runnerError) {
     console.log(`Failure details: ${logPath}`);
   } else {
     console.log(`Run log: ${logPath}`);
   }
-  if (logWriteError) console.log(`Could not write the log: ${logWriteError}`);
-  if (runnerError) console.log(`Runner error: ${runnerError}`);
+  if (logWriteError) {console.log(`Could not write the log: ${logWriteError}`);}
+  if (runnerError) {console.log(`Runner error: ${runnerError}`);}
 }
 
 function requestInterrupt() {
-  if (interrupted) return;
+  if (interrupted) {return;}
   interrupted = true;
   currentChild?.kill('SIGINT');
 }
@@ -235,7 +269,7 @@ process.on('SIGINT', requestInterrupt);
 process.on('SIGTERM', requestInterrupt);
 
 async function main() {
-  if (!npmCli) runnerError = 'npm_execpath is missing; start this script with npm run test:all.';
+  if (!npmCli) {runnerError = 'npm_execpath is missing; start this script with npm run test:all.';}
   if (!runnerError) {
     const rendererBuild = await runSuite('build');
     if (rendererBuild.status === 'passed') {
@@ -247,23 +281,29 @@ async function main() {
   }
   if (!runnerError) {
     for (const suite of suites) {
-      if (interrupted) break;
+      if (interrupted) {break;}
       results.push(await runSuite(suite));
     }
   }
 
   let logWriteError = '';
-  try { writeLog(); }
-  catch (error) { logWriteError = error.message; }
+  try {
+    writeLog();
+  } catch (error) {
+    logWriteError = error.message;
+  }
   printSummary(logWriteError);
-  if (runnerError || logWriteError || interrupted || totals().failed > 0) process.exitCode = 1;
+  if (runnerError || logWriteError || interrupted || totals().failed > 0) {process.exitCode = 1;}
 }
 
 main().catch((error) => {
   runnerError = error.message;
   let logWriteError = '';
-  try { writeLog(); }
-  catch (writeError) { logWriteError = writeError.message; }
+  try {
+    writeLog();
+  } catch (writeError) {
+    logWriteError = writeError.message;
+  }
   printSummary(logWriteError);
   process.exitCode = 1;
 });

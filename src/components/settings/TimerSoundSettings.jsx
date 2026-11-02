@@ -14,16 +14,19 @@ export default function TimerSoundSettings({ settings, update }) {
       audio.current = null;
       return undefined;
     }
-    window.api.readTimerSound().then((sound) => {
-      if (!sound) throw new Error(t('The saved timer sound is missing. Choose it again.'));
-      if (active) {
-        const player = new Audio(sound.data);
-        player.preload = 'auto';
-        audio.current = player;
-      }
-    }).catch((failure) => {
-      if (active) setError(failure.message);
-    });
+    window.api
+      .readTimerSound()
+      .then((sound) => {
+        if (!sound) {throw new Error(t('The saved timer sound is missing. Choose it again.'));}
+        if (active) {
+          const player = new Audio(sound.data);
+          player.preload = 'auto';
+          audio.current = player;
+        }
+      })
+      .catch((failure) => {
+        if (active) {setError(failure.message);}
+      });
     return () => {
       active = false;
       audio.current?.pause();
@@ -36,7 +39,7 @@ export default function TimerSoundSettings({ settings, update }) {
     setError('');
     try {
       const sound = await window.api.importTimerSound();
-      if (sound) update({ timerSoundName: sound.name, timerSoundEnabled: true });
+      if (sound) {update({ timerSoundName: sound.name, timerSoundEnabled: true });}
     } catch (failure) {
       setError(failure.message);
     } finally {
@@ -69,22 +72,53 @@ export default function TimerSoundSettings({ settings, update }) {
     }
   };
 
-  return <section className="timer-sound-settings">
-    <h4>{t('Timer sound')}</h4>
-    <p>{t('Choose a sound file to play when a speech or prep timer reaches zero. Without a custom sound, Tagline uses its built-in beep.')}</p>
-    <p>{t('Supported formats: MP3, WAV, OGG, M4A, and FLAC. Maximum file size: 10 MB.')}</p>
-    {settings.timerSoundName ? <>
-      <p>{t('Custom sound: {name}', { name: settings.timerSoundName })}</p>
-      <SettingRow label={t('Use custom timer sound')} description={t('Play your selected audio file instead of the built-in beep when a timer ends.')}>
-        <input type="checkbox" data-setting="timerSoundEnabled" checked={!!settings.timerSoundEnabled}
-          onChange={(event) => update({ timerSoundEnabled: event.target.checked })} />
-      </SettingRow>
-      <div className="settings-actions">
-        <button disabled={busy} onClick={preview}>{t('Preview sound')}</button>
-        <button disabled={busy} onClick={choose}>{t('Choose another sound')}</button>
-        <button disabled={busy} onClick={clear}>{t('Use built-in beep')}</button>
-      </div>
-    </> : <button disabled={busy} onClick={choose}>{t('Choose timer sound file')}</button>}
-    {error && <p className="error-text" role="alert">{error}</p>}
-  </section>;
+  return (
+    <section className='timer-sound-settings'>
+      <h4>{t('Timer sound')}</h4>
+      <p>
+        {t(
+          'Choose a sound file to play when a speech or prep timer reaches zero. Without a custom sound, Tagline uses its built-in beep.'
+        )}
+      </p>
+      <p>{t('Supported formats: MP3, WAV, OGG, M4A, and FLAC. Maximum file size: 10 MB.')}</p>
+      {settings.timerSoundName ? (
+        <>
+          <p>{t('Custom sound: {name}', { name: settings.timerSoundName })}</p>
+          <SettingRow
+            label={t('Use custom timer sound')}
+            description={t(
+              'Play your selected audio file instead of the built-in beep when a timer ends.'
+            )}
+          >
+            <input
+              type='checkbox'
+              data-setting='timerSoundEnabled'
+              checked={!!settings.timerSoundEnabled}
+              onChange={(event) => update({ timerSoundEnabled: event.target.checked })}
+            />
+          </SettingRow>
+          <div className='settings-actions'>
+            <button disabled={busy} onClick={preview}>
+              {t('Preview sound')}
+            </button>
+            <button disabled={busy} onClick={choose}>
+              {t('Choose another sound')}
+            </button>
+            <button disabled={busy} onClick={clear}>
+              {t('Use built-in beep')}
+            </button>
+          </div>
+        </>
+      ) : (
+        <button disabled={busy} onClick={choose}>
+          {t('Choose timer sound file')}
+        </button>
+      )}
+      {error && (
+        <p className='error-text' role='alert'>
+          {error}
+        </p>
+      )}
+    </section>
+  );
 }

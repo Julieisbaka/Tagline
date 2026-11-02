@@ -15,8 +15,11 @@ test('passage proximity ranks a focused warrant above scattered term mentions', 
     'A scattered.md': `Grid ${padding}upgrades transmission.`,
     'Z focused.md': `Grid upgrades transmission. ${padding}`,
   };
-  assert.equal(searchVault(equallyLong, { tags: {} }, 'grid transmission')[0].path, 'Z focused.md',
-    'Proximity must break ties between passages with the same words and no exact query phrase');
+  assert.equal(
+    searchVault(equallyLong, { tags: {} }, 'grid transmission')[0].path,
+    'Z focused.md',
+    'Proximity must break ties between passages with the same words and no exact query phrase'
+  );
 });
 
 test('single-edit typo recovery is explicit, conservative and never relaxes constraints', async () => {
@@ -28,7 +31,11 @@ test('single-edit typo recovery is explicit, conservative and never relaxes cons
   const index = { tags: { neg: ['Neg.md'], aff: ['Aff.md'] } };
   for (const typo of ['transmision', 'transmisssion', 'transmissiom', 'transmisison']) {
     const results = searchVault(contents, index, `tag:neg ${typo}`);
-    assert.deepEqual(results.map((result) => result.path), ['Neg.md'], typo);
+    assert.deepEqual(
+      results.map((result) => result.path),
+      ['Neg.md'],
+      typo
+    );
     assert.equal(results[0].approximate, true);
     assert.deepEqual(results[0].matchedTerms, ['transmission']);
   }
@@ -37,7 +44,10 @@ test('single-edit typo recovery is explicit, conservative and never relaxes cons
   assert.deepEqual(searchVault(contents, index, 'transmision nonexistent'), []);
   assert.deepEqual(searchVault({ 'Test.md': 'grid' }, { tags: {} }, 'gird'), []);
   const exact = searchVault({ ...contents, 'Exact.md': 'transmision' }, index, 'transmision');
-  assert.deepEqual(exact.map((result) => result.path), ['Exact.md']);
+  assert.deepEqual(
+    exact.map((result) => result.path),
+    ['Exact.md']
+  );
   assert.equal(exact[0].approximate, undefined);
 });
 
@@ -60,13 +70,30 @@ test('excerpts expose deep matches, fold accents and preserve original character
   const { searchExcerpt } = await import('../src/lib/search.js');
   const text = `${'Background context. '.repeat(40)}Électricité improves grid resilience.`;
   const excerpt = searchExcerpt(text, ['electricite', 'grid']);
-  assert.deepEqual(excerpt.filter((part) => part.match).map((part) => part.text), ['Électricité', 'grid']);
-  assert.ok(excerpt.map((part) => part.text).join('').startsWith('…'));
+  assert.deepEqual(
+    excerpt.filter((part) => part.match).map((part) => part.text),
+    ['Électricité', 'grid']
+  );
+  assert.ok(
+    excerpt
+      .map((part) => part.text)
+      .join('')
+      .startsWith('…')
+  );
   assert.ok(excerpt.map((part) => part.text).join('').length <= 202);
-  assert.deepEqual(searchExcerpt('No matching text', ['grid']), [{ text: 'No matching text', match: false }]);
-  assert.equal(searchExcerpt('😀 Électricité', ['electricite']).filter((part) => part.match)[0].text, 'Électricité');
+  assert.deepEqual(searchExcerpt('No matching text', ['grid']), [
+    { text: 'No matching text', match: false },
+  ]);
+  assert.equal(
+    searchExcerpt('😀 Électricité', ['electricite']).filter((part) => part.match)[0].text,
+    'Électricité'
+  );
   const dense = `${'grid '.repeat(60)}resilience`;
-  assert.ok(searchExcerpt(dense, ['grid', 'resilience']).map((part) => part.text).join('').length <= 202);
+  assert.ok(
+    searchExcerpt(dense, ['grid', 'resilience'])
+      .map((part) => part.text)
+      .join('').length <= 202
+  );
 });
 
 test('hybrid keywords retrieve partial terms without relaxing full-text AND matching', async () => {
@@ -78,10 +105,17 @@ test('hybrid keywords retrieve partial terms without relaxing full-text AND matc
   };
   const index = { tags: {} };
   assert.deepEqual(searchVault(contents, index, 'grid solar'), []);
-  assert.deepEqual(new Set(searchVault(contents, index, 'grid solar', 10, { matchAll: false })
-    .map((item) => item.path)), new Set(['Grid.md', 'Solar.md']));
-  assert.ok(searchVault(contents, index, 'grid solar', 10, { matchAll: false })
-    .every((item) => Number.isFinite(item.rank)));
+  assert.deepEqual(
+    new Set(
+      searchVault(contents, index, 'grid solar', 10, { matchAll: false }).map((item) => item.path)
+    ),
+    new Set(['Grid.md', 'Solar.md'])
+  );
+  assert.ok(
+    searchVault(contents, index, 'grid solar', 10, { matchAll: false }).every((item) =>
+      Number.isFinite(item.rank)
+    )
+  );
 });
 
 test('semantic and keyword candidates share mandatory tags and accent-folded phrase filters', async () => {
@@ -96,11 +130,20 @@ test('semantic and keyword candidates share mandatory tags and accent-folded phr
   assert.deepEqual(filterSearchDocuments(contents, index, 'tag:neg "political capital" energy'), {
     'Exact.md': contents['Exact.md'],
   });
-  assert.deepEqual(searchVault(contents, index, 'tag:neg "political capital" energy', 10, { matchAll: false })
-    .map((item) => item.path), ['Exact.md']);
-  assert.deepEqual(Object.keys(filterSearchDocuments(contents, index, '"ELECTRICITE"')), ['Exact.md']);
+  assert.deepEqual(
+    searchVault(contents, index, 'tag:neg "political capital" energy', 10, { matchAll: false }).map(
+      (item) => item.path
+    ),
+    ['Exact.md']
+  );
+  assert.deepEqual(Object.keys(filterSearchDocuments(contents, index, '"ELECTRICITE"')), [
+    'Exact.md',
+  ]);
   assert.deepEqual(filterSearchDocuments(contents, index, 'tag:missing'), {});
-  assert.deepEqual(Object.keys(filterSearchDocuments(contents, index, 'tag:neg')), ['Exact.md', 'Split.md']);
+  assert.deepEqual(Object.keys(filterSearchDocuments(contents, index, 'tag:neg')), [
+    'Exact.md',
+    'Split.md',
+  ]);
 });
 
 test('rank fusion promotes agreement, retrieves semantic-only matches and limits after fusion', async () => {
@@ -118,22 +161,35 @@ test('rank fusion promotes agreement, retrieves semantic-only matches and limits
   assert.equal(results[0].path, 'Both.md', 'Agreement across independent rankings should win');
   assert.deepEqual(results[0].sources, ['keyword', 'semantic']);
   assert.equal(results[0].score, 0.9);
-  assert.deepEqual(results[0].matches.map((match) => match.line), [2, 5]);
+  assert.deepEqual(
+    results[0].matches.map((match) => match.line),
+    [2, 5]
+  );
   assert.deepEqual(mergeHybridResults(keywords, semantic, 1), [results[0]]);
   assert.ok(results.some((item) => item.path === 'Meaning.md'));
-  const rescaled = mergeHybridResults(keywords.map((item) => ({ ...item, rank: item.rank * 1e8 })),
-    semantic.map((item) => ({ ...item, score: item.score / 1000 })), 3);
-  assert.deepEqual(rescaled.map((item) => item.path), results.map((item) => item.path),
-    'Unlike score scales must not change rank fusion');
+  const rescaled = mergeHybridResults(
+    keywords.map((item) => ({ ...item, rank: item.rank * 1e8 })),
+    semantic.map((item) => ({ ...item, score: item.score / 1000 })),
+    3
+  );
+  assert.deepEqual(
+    rescaled.map((item) => item.path),
+    results.map((item) => item.path),
+    'Unlike score scales must not change rank fusion'
+  );
 });
 
 test('fusion avoids duplicated files, sources and snippets and bounds excerpt count', async () => {
   const { mergeHybridResults } = await import('../src/lib/search.js');
   const keyword = {
-    path: 'Card.md', matches: [
-      { line: 0, text: 'zero' }, { line: 1, text: 'one' },
-      { line: 2, text: 'two' }, { line: 3, text: 'three' }, { line: 4, text: 'four' },
-    ]
+    path: 'Card.md',
+    matches: [
+      { line: 0, text: 'zero' },
+      { line: 1, text: 'one' },
+      { line: 2, text: 'two' },
+      { line: 3, text: 'three' },
+      { line: 4, text: 'four' },
+    ],
   };
   const semantic = { path: 'Card.md', score: 0.7, line: 0, text: 'zero' };
   const [result] = mergeHybridResults([keyword, keyword], [semantic, semantic]);
@@ -145,11 +201,20 @@ test('fusion avoids duplicated files, sources and snippets and bounds excerpt co
 
 test('keyword-only and semantic-only fusion preserve rankings and deterministic ties', async () => {
   const { mergeHybridResults } = await import('../src/lib/search.js');
-  const keywords = [{ path: 'Z.md', matches: [] }, { path: 'A.md', matches: [] }];
+  const keywords = [
+    { path: 'Z.md', matches: [] },
+    { path: 'A.md', matches: [] },
+  ];
   const semantic = [{ path: 'B.md', score: 0.9, line: 0, text: 'evidence' }];
-  assert.deepEqual(mergeHybridResults(keywords, []).map((item) => item.path), ['Z.md', 'A.md']);
+  assert.deepEqual(
+    mergeHybridResults(keywords, []).map((item) => item.path),
+    ['Z.md', 'A.md']
+  );
   assert.deepEqual(mergeHybridResults([], semantic)[0].sources, ['semantic']);
-  assert.deepEqual(mergeHybridResults([keywords[0]], semantic).map((item) => item.path), ['B.md', 'Z.md']);
+  assert.deepEqual(
+    mergeHybridResults([keywords[0]], semantic).map((item) => item.path),
+    ['B.md', 'Z.md']
+  );
   assert.deepEqual(mergeHybridResults([], []), []);
   for (const limit of [0, -1, 1.5, 1001, NaN]) {
     assert.throws(() => mergeHybridResults([], [], limit), /Maximum search results/);

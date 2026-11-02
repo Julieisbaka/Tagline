@@ -10,32 +10,62 @@ test('native UI is opt-in, follows light/dark mode and validates application-onl
   const win = { webContents };
   const event = { sender: webContents, senderFrame: mainFrame };
   let menuItems, confirmOptions;
-  let answer = 1, selection = 0;
+  let answer = 1,
+    selection = 0;
   registerNativeUi({
-    ipcMain: { handle: (name, handler) => { handlers[name] = handler; } },
-    nativeTheme, getWindow: () => win,
+    ipcMain: {
+      handle: (name, handler) => {
+        handlers[name] = handler;
+      },
+    },
+    nativeTheme,
+    getWindow: () => win,
     Menu: {
       buildFromTemplate: (items) => {
         menuItems = items;
-        return { popup: ({ callback }) => { if (selection !== null) items[selection].click(); callback(); } };
-      }
+        return {
+          popup: ({ callback }) => {
+            if (selection !== null) {items[selection].click();}
+            callback();
+          },
+        };
+      },
     },
-    dialog: { showMessageBox: async (_win, options) => { confirmOptions = options; return { response: answer }; } },
+    dialog: {
+      showMessageBox: async (_win, options) => {
+        confirmOptions = options;
+        return { response: answer };
+      },
+    },
   });
   const preferences = handlers['app:setNativeUi'];
   const contextMenu = handlers['app:nativeContextMenu'];
   const confirm = handlers['app:nativeConfirm'];
   assert.throws(() => contextMenu(event, []), /disabled/);
-  assert.throws(() => preferences({ ...event, senderFrame: {} }, { enabled: true, mode: 'dark' }), /only available/);
+  assert.throws(
+    () => preferences({ ...event, senderFrame: {} }, { enabled: true, mode: 'dark' }),
+    /only available/
+  );
   assert.throws(() => preferences(event, { enabled: true, mode: 'invalid' }), /Invalid/);
   preferences(event, { enabled: true, mode: 'dark' });
   assert.equal(nativeTheme.themeSource, 'dark');
-  assert.equal(await contextMenu(event, [{ label: 'Copy', disabled: false }, { label: 'Cut', disabled: true }]), 0);
+  assert.equal(
+    await contextMenu(event, [
+      { label: 'Copy', disabled: false },
+      { label: 'Cut', disabled: true },
+    ]),
+    0
+  );
   assert.equal(menuItems[1].enabled, false);
   selection = null;
   assert.equal(await contextMenu(event, [{ label: 'Copy', disabled: false }]), null);
   assert.throws(() => contextMenu(event, [{ label: 'Copy', disabled: 'no' }]), /Invalid/);
-  const options = { message: 'Delete this?', title: 'Confirm', cancel: 'Cancel', confirm: 'Confirm' };
+  const options = {
+    message: 'Delete this?',
+    title: 'Confirm',
+    cancel: 'Cancel',
+    confirm: 'Confirm',
+  };
   assert.equal(await confirm(event, options), true);
   assert.equal(confirmOptions.defaultId, 0);
   assert.equal(confirmOptions.cancelId, 0);
@@ -52,10 +82,12 @@ test('native UI is opt-in, follows light/dark mode and validates application-onl
 });
 
 test('cache limits trim immediately, enforce character budgets, and allow disabling', async () => {
-  const { configureVisualCache, cacheDocument, cachedDocument } = await import('../src/lib/visualCache.js');
+  const { configureVisualCache, cacheDocument, cachedDocument } =
+    await import('../src/lib/visualCache.js');
   const json = { type: 'doc', content: [] };
   configureVisualCache(2, 1000);
-  cacheDocument('a', json); cacheDocument('b', json);
+  cacheDocument('a', json);
+  cacheDocument('b', json);
   cachedDocument('a');
   cacheDocument('c', json);
   assert.equal(cachedDocument('b'), null);
@@ -93,8 +125,14 @@ test('JSON defaults define settings and independent file-extension labels', asyn
   }
   const fs = require('node:fs');
   const path = require('node:path');
-  const settingsSource = fs.readFileSync(path.join(__dirname, '..', 'src', 'lib', 'settings.js'), 'utf8');
-  const cacheSource = fs.readFileSync(path.join(__dirname, '..', 'src', 'lib', 'visualCache.js'), 'utf8');
+  const settingsSource = fs.readFileSync(
+    path.join(__dirname, '..', 'src', 'lib', 'settings.js'),
+    'utf8'
+  );
+  const cacheSource = fs.readFileSync(
+    path.join(__dirname, '..', 'src', 'lib', 'visualCache.js'),
+    'utf8'
+  );
   assert.match(settingsSource, /defaultSettings\.json/);
   assert.match(cacheSource, /defaults\.visualCacheEntries/);
   assert.match(cacheSource, /defaults\.visualCacheCharacters/);
@@ -112,30 +150,45 @@ test('platform: credentials await async availability, encrypt/decrypt asynchrono
       requests.push(message);
       setImmediate(() => this.emit('message', { id: message.id, result: { ready: true } }));
     }
-    terminate() { }
+    terminate() {}
   }
   const module = { exports: {} };
   const dirname = path.join(__dirname, '..', 'electron');
-  require('node:vm').runInNewContext(await fs.readFile(path.join(dirname, 'embeddings.cjs'), 'utf8'), {
-    module, __dirname: dirname, console,
-    require: (name) => name === 'node:worker_threads' ? { Worker } : require(name),
-  });
+  require('node:vm').runInNewContext(
+    await fs.readFile(path.join(dirname, 'embeddings.cjs'), 'utf8'),
+    {
+      module,
+      __dirname: dirname,
+      console,
+      require: (name) => (name === 'node:worker_threads' ? { Worker } : require(name)),
+    }
+  );
   const app = new EventEmitter();
   app.getPath = () => root;
   let available = false;
   let decrypted = false;
   const handlers = {};
   module.exports.registerEmbeddings({
-    app, ipcMain: { handle: (name, handler) => { handlers[name] = handler; } },
+    app,
+    ipcMain: {
+      handle: (name, handler) => {
+        handlers[name] = handler;
+      },
+    },
     safeStorage: {
-      isAsyncEncryptionAvailable: async () => { await new Promise((resolve) => setImmediate(resolve)); return available; },
+      isAsyncEncryptionAvailable: async () => {
+        await new Promise((resolve) => setImmediate(resolve));
+        return available;
+      },
       encryptStringAsync: async (text) => Buffer.from(Buffer.from(text).toString('hex')),
       decryptStringAsync: async (buffer) => {
         decrypted = true;
         return { result: Buffer.from(buffer.toString(), 'hex').toString(), shouldReEncrypt: false };
       },
     },
-    getVaultRoot: () => root, readConfig: () => ({ modelAutoload: false }), writeConfig() { },
+    getVaultRoot: () => root,
+    readConfig: () => ({ modelAutoload: false }),
+    writeConfig() {},
   });
   t.after(() => app.emit('before-quit'));
   const call = (name, ...args) => handlers[`embeddings:${name}`](null, ...args);
@@ -157,7 +210,12 @@ test('platform: credentials await async availability, encrypt/decrypt asynchrono
 test('citation creator validates, escapes markup, and reading time counts only the spoken lead', async () => {
   const { createCitation, spokenCitations } = await import('../src/lib/citation.js');
   const { cardStats, formatDuration } = await import('../src/lib/card.js');
-  const cite = createCitation({ author: 'Smith', year: '2024', title: 'A *study*', url: 'https://example.com/a(b)' });
+  const cite = createCitation({
+    author: 'Smith',
+    year: '2024',
+    title: 'A *study*',
+    url: 'https://example.com/a(b)',
+  });
   assert.ok(cite.startsWith('**Smith 2024**'));
   assert.ok(cite.includes('\\*study\\*'));
   assert.throws(() => createCitation({ author: '', year: '24' }));
@@ -197,7 +255,10 @@ test('speech estimates expand numbers, years and initialisms and strip nonspoken
   assert.equal(speechStats('2024').syllables, speechStats('twenty twenty four').syllables);
   assert.equal(speechStats('1999').syllables, speechStats('nineteen ninety nine').syllables);
   assert.equal(speechStats('2001').syllables, speechStats('two thousand one').syllables);
-  assert.equal(speechStats('1,234').syllables, speechStats('one thousand two hundred thirty four').syllables);
+  assert.equal(
+    speechStats('1,234').syllables,
+    speechStats('one thousand two hundred thirty four').syllables
+  );
   assert.equal(speechStats('1.5%').syllables, speechStats('one point five percent').syllables);
   assert.equal(speechStats('GDP USA WMD').syllables, 11);
   assert.equal(speechStats('000').syllables, speechStats('zero zero zero').syllables);
@@ -209,7 +270,8 @@ test('speech estimates expand numbers, years and initialisms and strip nonspoken
 test('document and section read times include only highlights and spoken citation leads', async () => {
   const { cardStats, getSectionAt } = await import('../src/lib/card.js');
   const { speechStats } = await import('../src/lib/readTime.js');
-  const content = '#### Ignore heading\n**Smith 2024** — Long publication and credentials\n==Read this==\nNever spoken words';
+  const content =
+    '#### Ignore heading\n**Smith 2024** — Long publication and credentials\n==Read this==\nNever spoken words';
   const expected = speechStats('Read this Smith 2024');
   const stats = cardStats(content);
   assert.equal(stats.syllables, expected.syllables);
@@ -230,8 +292,14 @@ test('full text ranking favors titles and headings before limiting, respects phr
   };
   const index = { tags: { aff: ['Grid.md'] } };
   assert.equal(searchVault(contents, index, 'grid transmission', 1)[0].path, 'Grid.md');
-  assert.deepEqual(searchVault(contents, index, '"political capital"').map((r) => r.path), ['Phrase.md']);
-  assert.deepEqual(searchVault(contents, index, 'tag:aff grid').map((r) => r.path), ['Grid.md']);
+  assert.deepEqual(
+    searchVault(contents, index, '"political capital"').map((r) => r.path),
+    ['Phrase.md']
+  );
+  assert.deepEqual(
+    searchVault(contents, index, 'tag:aff grid').map((r) => r.path),
+    ['Grid.md']
+  );
   assert.equal(searchVault(contents, index, 'electricite')[0].path, 'Résumé.md');
   assert.equal(searchVault(contents, index, '', 1).length, 0);
   const { lexicalAffinity } = require('../electron/embeddingMath.cjs');
@@ -243,11 +311,22 @@ test('full text ranking favors titles and headings before limiting, respects phr
 test('folder normalization preserves existing paths and filenames without migrating folders', async () => {
   const { normalizeFolders, folderPaths } = await import('../src/lib/folderPaths.js');
   assert.equal(normalizeFolders('New Folder/A note.md', false), 'New_Folder/A note.md');
-  assert.equal(normalizeFolders('Old Folder/New Folder/A.md', false, ['Old Folder']), 'Old Folder/New_Folder/A.md');
+  assert.equal(
+    normalizeFolders('Old Folder/New Folder/A.md', false, ['Old Folder']),
+    'Old Folder/New_Folder/A.md'
+  );
   assert.equal(normalizeFolders('New Folder', true), 'New_Folder');
-  const tree = [{ type: 'folder', path: 'A B', children: [{ type: 'folder', path: 'A B/C D', children: [] }] }];
-  assert.equal(normalizeFolders('A B/C D/Card name.md', false, folderPaths(tree)), 'A B/C D/Card name.md');
-  assert.equal(normalizeFolders('A B/C D/New Folder/Card name.md', false, folderPaths(tree)), 'A B/C D/New_Folder/Card name.md');
+  const tree = [
+    { type: 'folder', path: 'A B', children: [{ type: 'folder', path: 'A B/C D', children: [] }] },
+  ];
+  assert.equal(
+    normalizeFolders('A B/C D/Card name.md', false, folderPaths(tree)),
+    'A B/C D/Card name.md'
+  );
+  assert.equal(
+    normalizeFolders('A B/C D/New Folder/Card name.md', false, folderPaths(tree)),
+    'A B/C D/New_Folder/Card name.md'
+  );
 });
 
 test('ranking bounds heading boosts and favors exact words over substring noise', async () => {
@@ -261,7 +340,9 @@ test('ranking bounds heading boosts and favors exact words over substring noise'
   const index = { tags: {} };
   assert.equal(searchVault(contents, index, 'grid transmission', 1)[0].path, 'Grid.md');
   const ranks = searchVault(contents, index, 'grid');
-  assert.ok(ranks.findIndex((r) => r.path === 'Exact.md') < ranks.findIndex((r) => r.path === 'Partial.md'));
+  assert.ok(
+    ranks.findIndex((r) => r.path === 'Exact.md') < ranks.findIndex((r) => r.path === 'Partial.md')
+  );
   assert.deepEqual(searchVault(contents, index, 'grid grid'), ranks);
   assert.ok(ranks.every((r) => Number.isFinite(r.rank)));
   assert.ok(ranks.every((r) => r.matches.length <= 4));
@@ -277,32 +358,59 @@ test('platform: model autoload preference persists and semantic search forwards 
   t.after(() => fs.rm(root, { recursive: true, force: true }));
   const model = path.join(root, 'semantic-search', 'models', 'Xenova', 'all-MiniLM-L6-v2');
   await fs.mkdir(path.join(model, 'onnx'), { recursive: true });
-  await Promise.all(['config.json', 'tokenizer.json', 'tokenizer_config.json', path.join('onnx', 'model_quantized.onnx')]
-    .map((file) => fs.writeFile(path.join(model, file), 'test fixture')));
+  await Promise.all(
+    [
+      'config.json',
+      'tokenizer.json',
+      'tokenizer_config.json',
+      path.join('onnx', 'model_quantized.onnx'),
+    ].map((file) => fs.writeFile(path.join(model, file), 'test fixture'))
+  );
   const requests = [];
   let terminated = false;
   class Worker extends EventEmitter {
     postMessage(message) {
       requests.push(message);
-      setImmediate(() => this.emit('message', { id: message.id, result: message.type === 'search' ? [] : { ready: true } }));
+      setImmediate(() =>
+        this.emit('message', {
+          id: message.id,
+          result: message.type === 'search' ? [] : { ready: true },
+        })
+      );
     }
-    terminate() { terminated = true; }
+    terminate() {
+      terminated = true;
+    }
   }
   const module = { exports: {} };
   const dirname = path.join(__dirname, '..', 'electron');
-  require('node:vm').runInNewContext(await fs.readFile(path.join(dirname, 'embeddings.cjs'), 'utf8'), {
-    module, __dirname: dirname, console,
-    require: (name) => name === 'node:worker_threads' ? { Worker } : require(name),
-  });
+  require('node:vm').runInNewContext(
+    await fs.readFile(path.join(dirname, 'embeddings.cjs'), 'utf8'),
+    {
+      module,
+      __dirname: dirname,
+      console,
+      require: (name) => (name === 'node:worker_threads' ? { Worker } : require(name)),
+    }
+  );
   const { registerEmbeddings } = module.exports;
   const app = new EventEmitter();
   app.getPath = () => root;
   const handlers = {};
   let config = { modelAutoload: false };
   registerEmbeddings({
-    app, ipcMain: { handle: (name, handler) => { handlers[name] = handler; } },
-    safeStorage: { isAsyncEncryptionAvailable: async () => true }, getVaultRoot: () => root,
-    readConfig: () => config, writeConfig: (patch) => { config = { ...config, ...patch }; },
+    app,
+    ipcMain: {
+      handle: (name, handler) => {
+        handlers[name] = handler;
+      },
+    },
+    safeStorage: { isAsyncEncryptionAvailable: async () => true },
+    getVaultRoot: () => root,
+    readConfig: () => config,
+    writeConfig: (patch) => {
+      config = { ...config, ...patch };
+    },
   });
   t.after(() => app.emit('before-quit'));
   const call = (name, ...args) => handlers[`embeddings:${name}`](null, ...args);
@@ -313,13 +421,19 @@ test('platform: model autoload preference persists and semantic search forwards 
   assert.equal(requests.length, 0);
   await call('autoload', true);
   assert.equal(config.modelAutoload, true);
-  assert.deepEqual(requests.map((r) => r.type), ['load']);
+  assert.deepEqual(
+    requests.map((r) => r.type),
+    ['load']
+  );
   await call('autoload', false);
   assert.equal(config.modelAutoload, false);
   assert.equal((await call('status')).ready, true);
   await call('search', { query: 'grid', documents: { 'Grid.md': 'grid' }, maxResults: 1 });
   assert.equal(requests.at(-1).maxResults, 1);
-  await assert.rejects(call('search', { query: 'grid', documents: {}, maxResults: 1001 }), /Invalid semantic search request/);
+  await assert.rejects(
+    call('search', { query: 'grid', documents: {}, maxResults: 1001 }),
+    /Invalid semantic search request/
+  );
   await assert.rejects(call('autoload', 'false'), /Invalid model autoload preference/);
   app.emit('before-quit');
   assert.equal(terminated, true);
@@ -340,68 +454,138 @@ test('platform: macOS desktop wiring provides native window controls, menus and 
   ipcMain.handle = (name, callback) => handlers.set(name, callback);
   app.whenReady = () => Promise.resolve();
   app.getPreferredSystemLanguages = () => ['fr-CA', 'en-US'];
-  app.dock = { setIcon: (icon) => { dockIcon = icon; } };
-  app.setAboutPanelOptions = () => { };
-  app.setName = () => { };
-  app.quit = () => { quit = true; };
+  app.dock = {
+    setIcon: (icon) => {
+      dockIcon = icon;
+    },
+  };
+  app.setAboutPanelOptions = () => {};
+  app.setName = () => {};
+  app.quit = () => {
+    quit = true;
+  };
   class BrowserWindow extends EventEmitter {
     constructor(options) {
       super();
       this.options = options;
       this.webContents = new EventEmitter();
-      this.webContents.setWindowOpenHandler = () => { };
-      this.webContents.send = (channel, command) => { this.sent = { channel, command }; };
+      this.webContents.setWindowOpenHandler = () => {};
+      this.webContents.send = (channel, command) => {
+        this.sent = { channel, command };
+      };
       this.webContents.isDestroyed = () => false;
       this.webContents.isCrashed = () => false;
       windows.push(this);
     }
-    isDestroyed() { return this.destroyed; }
+    isDestroyed() {
+      return this.destroyed;
+    }
     close() {
       let prevented = false;
-      this.emit('close', { preventDefault: () => { prevented = true; } });
-      if (!prevented) { this.destroyed = true; this.emit('closed'); }
+      this.emit('close', {
+        preventDefault: () => {
+          prevented = true;
+        },
+      });
+      if (!prevented) {
+        this.destroyed = true;
+        this.emit('closed');
+      }
     }
-    loadFile() { }
-    static getAllWindows() { return windows.filter((win) => !win.destroyed); }
+    loadFile() {}
+    static getAllWindows() {
+      return windows.filter((win) => !win.destroyed);
+    }
   }
   const electron = {
-    app, BrowserWindow, ipcMain, dialog: {}, shell: {}, safeStorage: {},
+    app,
+    BrowserWindow,
+    ipcMain,
+    dialog: {},
+    shell: {},
+    safeStorage: {},
     Menu: {
       buildFromTemplate: (template) => template,
-      setApplicationMenu: (template) => { menu = template; },
+      setApplicationMenu: (template) => {
+        menu = template;
+      },
     },
   };
   const dirname = path.join(__dirname, '..', 'electron');
-  const fakeProcess = { platform: 'darwin', argv: [], env: { PATH: '/usr/bin:/bin:/usr/local/bin' } };
+  const fakeProcess = {
+    platform: 'darwin',
+    argv: [],
+    env: { PATH: '/usr/bin:/bin:/usr/local/bin' },
+  };
   vm.runInNewContext(fs.readFileSync(path.join(dirname, 'main.cjs'), 'utf8'), {
-    __dirname: dirname, process: fakeProcess, console, URL, setTimeout, clearTimeout,
+    __dirname: dirname,
+    process: fakeProcess,
+    console,
+    URL,
+    setTimeout,
+    clearTimeout,
     require: (name) => {
-      if (name === 'electron') return electron;
+      if (name === 'electron') {return electron;}
       if (name.startsWith('./')) {
-        if (name === './sampleVault.cjs') return { SAMPLE_VAULT: {} };
-        if (name === './installation.cjs') return { installationInfo: () => ({ version: require('../package.json').version }) };
-        if (name === './appUpdates.cjs') return {
-          createUpdateManager: () => ({ installUpdate: async (beforeInstall) => { await beforeInstall(); return { manual: true }; } }),
-        };
-        if (name === './browser.cjs') return { registerBrowser: () => () => { } };
-        if (name === './revisionHistory.cjs') return {
-          DEFAULT_RETENTION: 50,
-          createRevisionHistory: () => ({ snapshot() { }, list() { return []; }, read() { }, rename() { } }),
-        };
-        return Object.fromEntries(['registerPandoc', 'registerEmbeddings', 'registerDocuments', 'registerFonts', 'registerTimerSound', 'registerFlowFiles', 'registerExtensions', 'registerNli', 'registerSummarization', 'registerOpenCaselist', 'registerGoogleDocs', 'registerTabroom', 'registerNativeUi']
-          .map((key) => [key, () => true]));
+        if (name === './sampleVault.cjs') {return { SAMPLE_VAULT: {} };}
+        if (name === './installation.cjs')
+          {return { installationInfo: () => ({ version: require('../package.json').version }) };}
+        if (name === './appUpdates.cjs')
+          {return {
+            createUpdateManager: () => ({
+              installUpdate: async (beforeInstall) => {
+                await beforeInstall();
+                return { manual: true };
+              },
+            }),
+          };}
+        if (name === './browser.cjs') {return { registerBrowser: () => () => {} };}
+        if (name === './revisionHistory.cjs')
+          {return {
+            DEFAULT_RETENTION: 50,
+            createRevisionHistory: () => ({
+              snapshot() {},
+              list() {
+                return [];
+              },
+              read() {},
+              rename() {},
+            }),
+          };}
+        return Object.fromEntries(
+          [
+            'registerPandoc',
+            'registerEmbeddings',
+            'registerDocuments',
+            'registerFonts',
+            'registerTimerSound',
+            'registerFlowFiles',
+            'registerExtensions',
+            'registerNli',
+            'registerSummarization',
+            'registerOpenCaselist',
+            'registerGoogleDocs',
+            'registerTabroom',
+            'registerNativeUi',
+          ].map((key) => [key, () => true])
+        );
       }
       return require(name);
     },
   });
   await new Promise((resolve) => setImmediate(resolve));
   // Finder/Dock launches gain Homebrew and MacTeX without duplicating existing entries.
-  assert.equal(fakeProcess.env.PATH, '/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin:/Library/TeX/texbin');
+  assert.equal(
+    fakeProcess.env.PATH,
+    '/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin:/Library/TeX/texbin'
+  );
   assert.equal(windows[0].options.titleBarStyle, 'hiddenInset');
   assert.equal(windows[0].options.trafficLightPosition.x, 14);
   assert.equal(windows[0].options.webPreferences.sandbox, true);
-  assert.equal(windows[0].options.webPreferences.additionalArguments[0],
-    `--tagline-languages=${encodeURIComponent(JSON.stringify(['fr-CA', 'en-US']))}`);
+  assert.equal(
+    windows[0].options.webPreferences.additionalArguments[0],
+    `--tagline-languages=${encodeURIComponent(JSON.stringify(['fr-CA', 'en-US']))}`
+  );
   assert.ok(dockIcon.endsWith(path.join('build', 'icon.png')));
   assert.equal(menu[0].label, 'Tagline');
   assert.ok(menu[0].submenu.some((item) => item.role === 'services'));
@@ -420,7 +604,11 @@ test('platform: macOS desktop wiring provides native window controls, menus and 
   const installedUpdate = handlers.get('app:installUpdate')();
   ipcMain.emit('app:closeReady', { sender: windows[0].webContents }, true);
   await installedUpdate;
-  assert.equal(windows[0].destroyed, undefined, 'macOS DMG opening does not force-close the workspace');
+  assert.equal(
+    windows[0].destroyed,
+    undefined,
+    'macOS DMG opening does not force-close the workspace'
+  );
   windows[0].close();
   assert.equal(windows[0].sent.channel, 'app:prepareClose');
   assert.equal(windows[0].destroyed, undefined, 'close waits for pending writes');
@@ -431,14 +619,22 @@ test('platform: macOS desktop wiring provides native window controls, menus and 
   assert.equal(windows[0].destroyed, undefined, 'foreign IPC cannot acknowledge another window');
   ipcMain.emit('app:closeReady', { sender: windows[0].webContents }, true);
   assert.equal(windows[0].destroyed, true);
-  assert.equal(ipcMain.listenerCount('app:closeReady'), 0, 'window recreation does not leak IPC handlers');
+  assert.equal(
+    ipcMain.listenerCount('app:closeReady'),
+    0,
+    'window recreation does not leak IPC handlers'
+  );
   assert.equal(ipcMain.listenerCount('app:saveHandlerReady'), 0);
   app.emit('window-all-closed');
   assert.equal(quit, false);
   app.emit('activate');
   assert.equal(windows.length, 2);
   windows[1].close();
-  assert.equal(windows[1].destroyed, true, 'closing before the editor mounts needs no save acknowledgement');
+  assert.equal(
+    windows[1].destroyed,
+    true,
+    'closing before the editor mounts needs no save acknowledgement'
+  );
   app.emit('activate');
   ipcMain.emit('app:saveHandlerReady', { sender: windows[2].webContents }, true);
   app.emit('before-quit');
@@ -456,14 +652,21 @@ test('Pandoc detection supports Apple Silicon and Intel Homebrew without relying
     const tried = [];
     const module = { exports: {} };
     vm.runInNewContext(source, {
-      module, process: { platform: 'darwin' }, setTimeout, clearTimeout,
-      require: (name) => name === 'node:util' ? {
-        promisify: () => async (executable) => {
-          tried.push(executable);
-          if (executable !== installed) throw Object.assign(new Error('Not on PATH'), { code: 'ENOENT' });
-          return { stdout: 'pandoc 3.6\n' };
-        }
-      } : require(name),
+      module,
+      process: { platform: 'darwin' },
+      setTimeout,
+      clearTimeout,
+      require: (name) =>
+        name === 'node:util'
+          ? {
+              promisify: () => async (executable) => {
+                tried.push(executable);
+                if (executable !== installed)
+                  {throw Object.assign(new Error('Not on PATH'), { code: 'ENOENT' });}
+                return { stdout: 'pandoc 3.6\n' };
+              },
+            }
+          : require(name),
     });
     const result = await module.exports.detectPandoc();
     assert.equal(result.executable, installed);
@@ -477,7 +680,15 @@ test('calendar dates stay local, validate leap years and clamp month navigation'
   for (const value of ['2024-02-29', '2000-02-29', '0001-01-01', '0099-12-31', '9999-12-31']) {
     assert.equal(dateValue(parseDate(value)), value);
   }
-  for (const value of ['', '2023-02-29', '1900-02-29', '2024-04-31', '2024-13-01', '0000-01-01', '2024-1-01']) {
+  for (const value of [
+    '',
+    '2023-02-29',
+    '1900-02-29',
+    '2024-04-31',
+    '2024-13-01',
+    '0000-01-01',
+    '2024-1-01',
+  ]) {
     assert.equal(parseDate(value), null);
   }
   assert.equal(dateValue(moveMonth(parseDate('2024-01-31'), 1)), '2024-02-29');

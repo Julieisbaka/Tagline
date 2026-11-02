@@ -32,7 +32,7 @@ export function Palette({ items, placeholder, onSelect, onClose, onCreate, creat
         .sort((a, b) => b.s - a.s)
         .slice(0, 100)
         .map((x) => x.it),
-    [items, query],
+    [items, query]
   );
 
   useEffect(() => setSel(0), [query]);
@@ -40,21 +40,30 @@ export function Palette({ items, placeholder, onSelect, onClose, onCreate, creat
     listRef.current?.children[sel]?.scrollIntoView({ block: 'nearest' });
   }, [sel]);
 
-  const canCreate = onCreate && query.trim() && !filtered.some((f) => f.label.toLowerCase() === query.trim().toLowerCase());
+  const canCreate =
+    onCreate &&
+    query.trim() &&
+    !filtered.some((f) => f.label.toLowerCase() === query.trim().toLowerCase());
   const total = filtered.length + (canCreate ? 1 : 0);
 
   const choose = (i, e) => {
     onClose();
-    if (i < filtered.length) onSelect(filtered[i], e);
-    else if (canCreate) onCreate(query.trim());
+    if (i < filtered.length) {onSelect(filtered[i], e);}
+    else if (canCreate) {onCreate(query.trim());}
   };
 
   return (
     <ModalBackdrop onMouseDown={onClose}>
-      <div className="modal palette" role="dialog" aria-modal="true" aria-label={placeholder} onMouseDown={(e) => e.stopPropagation()}>
+      <div
+        className='modal palette'
+        role='dialog'
+        aria-modal='true'
+        aria-label={placeholder}
+        onMouseDown={(e) => e.stopPropagation()}
+      >
         <input
           autoFocus
-          className="palette-input"
+          className='palette-input'
           aria-label={placeholder}
           placeholder={placeholder}
           value={query}
@@ -68,11 +77,11 @@ export function Palette({ items, placeholder, onSelect, onClose, onCreate, creat
               setSel((s) => Math.max(0, s - 1));
             } else if (e.key === 'Enter') {
               e.preventDefault();
-              if (total) choose(sel, e);
-            } else if (e.key === 'Escape') onClose();
+              if (total) {choose(sel, e);}
+            } else if (e.key === 'Escape') {onClose();}
           }}
         />
-        <div className="palette-list" ref={listRef}>
+        <div className='palette-list' ref={listRef}>
           {filtered.map((it, i) => (
             <div
               key={it.id}
@@ -81,7 +90,7 @@ export function Palette({ items, placeholder, onSelect, onClose, onCreate, creat
               onClick={(e) => choose(i, e)}
             >
               <span>{it.label}</span>
-              {it.detail && <span className="palette-detail">{it.detail}</span>}
+              {it.detail && <span className='palette-detail'>{it.detail}</span>}
               {it.hotkey && <kbd>{it.hotkey}</kbd>}
             </div>
           ))}
@@ -96,7 +105,7 @@ export function Palette({ items, placeholder, onSelect, onClose, onCreate, creat
               </span>
             </div>
           )}
-          {!total && <div className="empty-hint">{t('No matches')}</div>}
+          {!total && <div className='empty-hint'>{t('No matches')}</div>}
         </div>
       </div>
     </ModalBackdrop>
@@ -107,12 +116,18 @@ export function PromptDialog({ title, initial = '', onSubmit, onClose }) {
   const { t } = useI18n();
   const [value, setValue] = useState(initial);
   const submit = () => {
-    if (value.trim()) onSubmit(value.trim());
+    if (value.trim()) {onSubmit(value.trim());}
     onClose();
   };
   return (
     <ModalBackdrop onMouseDown={onClose}>
-      <div className="modal dialog" role="dialog" aria-modal="true" aria-label={title} onMouseDown={(e) => e.stopPropagation()}>
+      <div
+        className='modal dialog'
+        role='dialog'
+        aria-modal='true'
+        aria-label={title}
+        onMouseDown={(e) => e.stopPropagation()}
+      >
         <h3>{title}</h3>
         <input
           autoFocus
@@ -121,13 +136,13 @@ export function PromptDialog({ title, initial = '', onSubmit, onClose }) {
           onFocus={(e) => e.target.select()}
           onChange={(e) => setValue(e.target.value)}
           onKeyDown={(e) => {
-            if (e.key === 'Enter') submit();
-            if (e.key === 'Escape') onClose();
+            if (e.key === 'Enter') {submit();}
+            if (e.key === 'Escape') {onClose();}
           }}
         />
-        <div className="dialog-buttons">
+        <div className='dialog-buttons'>
           <button onClick={onClose}>{t('Cancel')}</button>
-          <button className="primary" onClick={submit}>
+          <button className='primary' onClick={submit}>
             OK
           </button>
         </div>
@@ -136,8 +151,18 @@ export function PromptDialog({ title, initial = '', onSubmit, onClose }) {
   );
 }
 
-export function SettingsDialog({ settings, update, onClose, extensions, onOpenCaselist, onOpenTabroom,
-  speechDoc, speechDocuments = [], onSelectSpeechDoc, initialSection = 'general' }) {
+export function SettingsDialog({
+  settings,
+  update,
+  onClose,
+  extensions,
+  onOpenCaselist,
+  onOpenTabroom,
+  speechDoc,
+  speechDocuments = [],
+  onSelectSpeechDoc,
+  initialSection = 'general',
+}) {
   const { t } = useI18n();
   const [section, setSection] = useState(initialSection);
   const [query, setQuery] = useState('');
@@ -149,14 +174,28 @@ export function SettingsDialog({ settings, update, onClose, extensions, onOpenCa
     const index = () => {
       const next = [...content.querySelectorAll('[data-settings-panel]')].map((panel) => ({
         id: panel.dataset.settingsPanel,
-        entries: [...panel.querySelectorAll('label, h3, h4, p, button, dt')].map((element) => ({
-          element, text: element.textContent.replace(/\s+/g, ' ').trim(),
-        })).filter((entry) => entry.text),
+        entries: [...panel.querySelectorAll('label, h3, h4, p, button, dt')]
+          .map((element) => ({
+            element,
+            text: element.textContent.replace(/\s+/g, ' ').trim(),
+          }))
+          .filter((entry) => entry.text),
       }));
-      setSearchIndex((previous) => previous.length === next.length && next.every((panel, i) =>
-        panel.id === previous[i].id && panel.entries.length === previous[i].entries.length &&
-        panel.entries.every((entry, j) => entry.element === previous[i].entries[j].element &&
-          entry.text === previous[i].entries[j].text)) ? previous : next);
+      setSearchIndex((previous) =>
+        previous.length === next.length &&
+        next.every(
+          (panel, i) =>
+            panel.id === previous[i].id &&
+            panel.entries.length === previous[i].entries.length &&
+            panel.entries.every(
+              (entry, j) =>
+                entry.element === previous[i].entries[j].element &&
+                entry.text === previous[i].entries[j].text
+            )
+        )
+          ? previous
+          : next
+      );
     };
     index();
     const observer = new MutationObserver(index);
@@ -179,32 +218,38 @@ export function SettingsDialog({ settings, update, onClose, extensions, onOpenCa
     ['installation', 'Installation', 'Version, runtime, and local data'],
   ];
   const terms = query.trim().toLocaleLowerCase().split(/\s+/).filter(Boolean);
-  const results = terms.length ? sections.flatMap(([id, label, description]) => {
-    const entries = searchIndex.find((panel) => panel.id === id)?.entries || [];
-    const matches = (text) => terms.every((term) => text.toLocaleLowerCase().includes(term));
-    const entry = entries.find((item) => item.text.toLocaleLowerCase().includes(terms.join(' ')))
-      || entries.find((item) => matches(item.text));
-    return entry || matches(`${t(label)} ${t(description)}`)
-      ? [{ id, label: t(label), entry }] : [];
-  }) : [];
+  const results = terms.length
+    ? sections.flatMap(([id, label, description]) => {
+        const entries = searchIndex.find((panel) => panel.id === id)?.entries || [];
+        const matches = (text) => terms.every((term) => text.toLocaleLowerCase().includes(term));
+        const entry =
+          entries.find((item) => item.text.toLocaleLowerCase().includes(terms.join(' '))) ||
+          entries.find((item) => matches(item.text));
+        return entry || matches(`${t(label)} ${t(description)}`)
+          ? [{ id, label: t(label), entry }]
+          : [];
+      })
+    : [];
   const openResult = ({ id, entry }) => {
     setSection(id);
     setQuery('');
     requestAnimationFrame(() => {
       const target = entry?.element;
       target?.scrollIntoView({ block: 'center' });
-      const control = target?.matches('button') ? target : target?.control || target?.querySelector('input, select, textarea, button');
-      if (control && !control.disabled) control.focus({ preventScroll: true });
+      const control = target?.matches('button')
+        ? target
+        : target?.control || target?.querySelector('input, select, textarea, button');
+      if (control && !control.disabled) {control.focus({ preventScroll: true });}
     });
   };
   const field = (label, key, type = 'text', extra = {}) => (
-    <label className="setting-row">
+    <label className='setting-row'>
       <span>{t(label)}</span>
       <input
         type={type}
         value={settings[key]}
         onChange={(e) => {
-          if (type === 'number' && (!e.target.validity.valid || e.target.value === '')) return;
+          if (type === 'number' && (!e.target.validity.valid || e.target.value === '')) {return;}
           update({ [key]: type === 'number' ? Number(e.target.value) : e.target.value });
         }}
         {...extra}
@@ -212,159 +257,368 @@ export function SettingsDialog({ settings, update, onClose, extensions, onOpenCa
     </label>
   );
   return (
-    <ModalBackdrop className="modal-backdrop settings-backdrop" onMouseDown={onClose}>
-      <div className="modal dialog settings" role="dialog" aria-modal="true" aria-labelledby="settings-title"
-        tabIndex={-1} onMouseDown={(e) => e.stopPropagation()}>
-        <aside className="settings-sidebar">
-          <div className="settings-brand">Tagline <span>{t('Workspace preferences')}</span></div>
-          <div className="settings-search">
-            <input ref={searchRef} type="search" aria-label={t('Search settings')}
-              placeholder={t('Search settings')} value={query} onChange={(event) => setQuery(event.target.value)}
+    <ModalBackdrop className='modal-backdrop settings-backdrop' onMouseDown={onClose}>
+      <div
+        className='modal dialog settings'
+        role='dialog'
+        aria-modal='true'
+        aria-labelledby='settings-title'
+        tabIndex={-1}
+        onMouseDown={(e) => e.stopPropagation()}
+      >
+        <aside className='settings-sidebar'>
+          <div className='settings-brand'>
+            Tagline <span>{t('Workspace preferences')}</span>
+          </div>
+          <div className='settings-search'>
+            <input
+              ref={searchRef}
+              type='search'
+              aria-label={t('Search settings')}
+              placeholder={t('Search settings')}
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
               onKeyDown={(event) => {
                 if (event.key === 'Escape' && query) {
-                  event.preventDefault(); event.stopPropagation(); setQuery('');
+                  event.preventDefault();
+                  event.stopPropagation();
+                  setQuery('');
                 }
-                if (event.key === 'Enter' && results.length) { event.preventDefault(); openResult(results[0]); }
-              }} />
-            {query && <button className="icon-btn" aria-label={t('Clear settings search')}
-              onClick={() => { setQuery(''); searchRef.current.focus(); }}>&times;</button>}
+                if (event.key === 'Enter' && results.length) {
+                  event.preventDefault();
+                  openResult(results[0]);
+                }
+              }}
+            />
+            {query && (
+              <button
+                className='icon-btn'
+                aria-label={t('Clear settings search')}
+                onClick={() => {
+                  setQuery('');
+                  searchRef.current.focus();
+                }}
+              >
+                &times;
+              </button>
+            )}
           </div>
           <nav aria-label={t('Settings sections')}>
-            {sections.map(([id, label]) => <button key={id} data-section={id}
-              aria-current={section === id ? 'page' : undefined} className={section === id ? 'active' : ''}
-              onClick={() => { setSection(id); setQuery(''); }}>{t(label)}</button>)}
+            {sections.map(([id, label]) => (
+              <button
+                key={id}
+                data-section={id}
+                aria-current={section === id ? 'page' : undefined}
+                className={section === id ? 'active' : ''}
+                onClick={() => {
+                  setSection(id);
+                  setQuery('');
+                }}
+              >
+                {t(label)}
+              </button>
+            ))}
           </nav>
           <p>{t('Changes save automatically')}</p>
         </aside>
-        <div className="settings-main">
-          <header className="settings-header">
-            <div><h2 id="settings-title">{t(sections.find(([id]) => id === section)[1])}</h2>
-              <p>{t(sections.find(([id]) => id === section)[2])}</p></div>
-            <button className="settings-close" aria-label={t('Close settings')} onClick={onClose}>&times;</button>
+        <div className='settings-main'>
+          <header className='settings-header'>
+            <div>
+              <h2 id='settings-title'>{t(sections.find(([id]) => id === section)[1])}</h2>
+              <p>{t(sections.find(([id]) => id === section)[2])}</p>
+            </div>
+            <button className='settings-close' aria-label={t('Close settings')} onClick={onClose}>
+              &times;
+            </button>
           </header>
-          {terms.length > 0 && <div className="settings-search-results">
-            <h3>{t('Search results')}</h3>
-            <p role="status">{t('{count} matching sections', { count: results.length })}</p>
-            {!results.length && <p>{t('No matching settings')}</p>}
-            {results.map((result) => <button key={result.id} onClick={() => openResult(result)}>
-              <strong>{result.label}</strong>
-              {result.entry && <span>{result.entry.text}</span>}
-            </button>)}
-          </div>}
-          <div className="settings-content" ref={contentRef} hidden={terms.length > 0}>
-            <section data-settings-panel="general" hidden={section !== 'general'} className="settings-panel">
+          {terms.length > 0 && (
+            <div className='settings-search-results'>
+              <h3>{t('Search results')}</h3>
+              <p role='status'>{t('{count} matching sections', { count: results.length })}</p>
+              {!results.length && <p>{t('No matching settings')}</p>}
+              {results.map((result) => (
+                <button key={result.id} onClick={() => openResult(result)}>
+                  <strong>{result.label}</strong>
+                  {result.entry && <span>{result.entry.text}</span>}
+                </button>
+              ))}
+            </div>
+          )}
+          <div className='settings-content' ref={contentRef} hidden={terms.length > 0}>
+            <section
+              data-settings-panel='general'
+              hidden={section !== 'general'}
+              className='settings-panel'
+            >
               <h3>{t('Speech and reading')}</h3>
               {field('Speaking rate (words per minute)', 'wpm', 'number', { min: 50, max: 1000 })}
               <ReadingSettings settings={settings} update={update} />
               <TimerSoundSettings settings={settings} update={update} />
-              <label className="setting-row"><span>{t('Active speech document')}</span>
-                <select data-setting="speechDoc" value={speechDoc} onChange={(event) => onSelectSpeechDoc(event.target.value)}>
-                  {[...new Set([speechDoc, ...speechDocuments])].filter(Boolean).map((path) =>
-                    <option key={path} value={path}>{path}</option>)}
+              <label className='setting-row'>
+                <span>{t('Active speech document')}</span>
+                <select
+                  data-setting='speechDoc'
+                  value={speechDoc}
+                  onChange={(event) => onSelectSpeechDoc(event.target.value)}
+                >
+                  {[...new Set([speechDoc, ...speechDocuments])].filter(Boolean).map((path) => (
+                    <option key={path} value={path}>
+                      {path}
+                    </option>
+                  ))}
                 </select>
               </label>
-              <p className="settings-help">{t('Speech documents use speech: true in YAML frontmatter. Right-click a Markdown file and choose Set as speech doc to mark it and make it the active destination.')}</p>
+              <p className='settings-help'>
+                {t(
+                  'Speech documents use speech: true in YAML frontmatter. Right-click a Markdown file and choose Set as speech doc to mark it and make it the active destination.'
+                )}
+              </p>
             </section>
-            <section data-settings-panel="editors" hidden={section !== 'editors'} className="settings-panel">
+            <section
+              data-settings-panel='editors'
+              hidden={section !== 'editors'}
+              className='settings-panel'
+            >
               <EditorSettings settings={settings} update={update} />
             </section>
-            <section data-settings-panel="accessibility" hidden={section !== 'accessibility'} className="settings-panel">
-              <label className="setting-row"><span>{t('Show note editor focus outline')}</span>
-                <input type="checkbox" data-setting="editorFocusOutline" checked={settings.editorFocusOutline}
-                  onChange={(event) => update({ editorFocusOutline: event.target.checked })} />
+            <section
+              data-settings-panel='accessibility'
+              hidden={section !== 'accessibility'}
+              className='settings-panel'
+            >
+              <label className='setting-row'>
+                <span>{t('Show note editor focus outline')}</span>
+                <input
+                  type='checkbox'
+                  data-setting='editorFocusOutline'
+                  checked={settings.editorFocusOutline}
+                  onChange={(event) => update({ editorFocusOutline: event.target.checked })}
+                />
               </label>
-              <p className="settings-help">{t('Highlight the focused visual or source note editor. Keyboard focus indicators on other controls remain enabled.')}</p>
+              <p className='settings-help'>
+                {t(
+                  'Highlight the focused visual or source note editor. Keyboard focus indicators on other controls remain enabled.'
+                )}
+              </p>
               {[
                 ['Reduce motion', 'reduceMotion', 'Minimize interface animations and transitions.'],
-                ['Stronger keyboard focus indicators', 'strongFocusIndicators', 'Make the keyboard-focused control easier to see.'],
-                ['Larger interface text', 'largerInterfaceText', 'Enlarge application labels and menus without changing the editor font size.'],
-                ['Larger buttons and click targets', 'largerClickTargets', 'Increase the size of controls to make them easier to activate.'],
-                ['Always underline links', 'underlineLinks', 'Keep links underlined so they are recognizable without relying on color.'],
-              ].map(([label, key, description]) => <SettingRow key={key} label={t(label)} description={t(description)}>
-                <input type="checkbox" data-setting={key} checked={settings[key]}
-                  onChange={(event) => update({ [key]: event.target.checked })} />
-              </SettingRow>)}
-              <p className="settings-help">{t('Reduce motion also respects your operating system preference. Larger targets use a minimum of 48 pixels. Stronger focus includes note editors during keyboard navigation.')}</p>
+                [
+                  'Stronger keyboard focus indicators',
+                  'strongFocusIndicators',
+                  'Make the keyboard-focused control easier to see.',
+                ],
+                [
+                  'Larger interface text',
+                  'largerInterfaceText',
+                  'Enlarge application labels and menus without changing the editor font size.',
+                ],
+                [
+                  'Larger buttons and click targets',
+                  'largerClickTargets',
+                  'Increase the size of controls to make them easier to activate.',
+                ],
+                [
+                  'Always underline links',
+                  'underlineLinks',
+                  'Keep links underlined so they are recognizable without relying on color.',
+                ],
+              ].map(([label, key, description]) => (
+                <SettingRow key={key} label={t(label)} description={t(description)}>
+                  <input
+                    type='checkbox'
+                    data-setting={key}
+                    checked={settings[key]}
+                    onChange={(event) => update({ [key]: event.target.checked })}
+                  />
+                </SettingRow>
+              ))}
+              <p className='settings-help'>
+                {t(
+                  'Reduce motion also respects your operating system preference. Larger targets use a minimum of 48 pixels. Stronger focus includes note editors during keyboard navigation.'
+                )}
+              </p>
             </section>
-            <section data-settings-panel="appearance" hidden={section !== 'appearance'} className="settings-panel">
+            <section
+              data-settings-panel='appearance'
+              hidden={section !== 'appearance'}
+              className='settings-panel'
+            >
               <h3>{t('Theme and typography')}</h3>
               <ThemeSettings settings={settings} update={update} />
-              <AdvancedSettings settings={settings} update={update} section="fonts" />
+              <AdvancedSettings settings={settings} update={update} section='fonts' />
               <CustomCssSettings settings={settings} update={update} />
             </section>
-            <section data-settings-panel="performance" hidden={section !== 'performance'} className="settings-panel">
-              <AdvancedSettings settings={settings} update={update} section="performance" />
+            <section
+              data-settings-panel='performance'
+              hidden={section !== 'performance'}
+              className='settings-panel'
+            >
+              <AdvancedSettings settings={settings} update={update} section='performance' />
             </section>
-            <section data-settings-panel="files" hidden={section !== 'files'} className="settings-panel">
-              <AdvancedSettings settings={settings} update={update} section="files" />
+            <section
+              data-settings-panel='files'
+              hidden={section !== 'files'}
+              className='settings-panel'
+            >
+              <AdvancedSettings settings={settings} update={update} section='files' />
               <h4>{t('Flow file association')}</h4>
-              <p>{t('Installed builds register Tagline as an app for .flow files. To make it the default, use Open With in your file manager and select Tagline. On macOS choose Change All in Get Info.')}</p>
+              <p>
+                {t(
+                  'Installed builds register Tagline as an app for .flow files. To make it the default, use Open With in your file manager and select Tagline. On macOS choose Change All in Get Info.'
+                )}
+              </p>
             </section>
-            <section data-settings-panel="workspace" hidden={section !== 'workspace'} className="settings-panel">
-              <RibbonSettings settings={settings} update={update} contributions={extensions?.ribbonItems} />
-              <AdvancedSettings settings={settings} update={update} section="workspace" />
+            <section
+              data-settings-panel='workspace'
+              hidden={section !== 'workspace'}
+              className='settings-panel'
+            >
+              <RibbonSettings
+                settings={settings}
+                update={update}
+                contributions={extensions?.ribbonItems}
+              />
+              <AdvancedSettings settings={settings} update={update} section='workspace' />
             </section>
-            <section data-settings-panel="history" hidden={section !== 'history'} className="settings-panel">
-              <AdvancedSettings settings={settings} update={update} section="history" />
+            <section
+              data-settings-panel='history'
+              hidden={section !== 'history'}
+              className='settings-panel'
+            >
+              <AdvancedSettings settings={settings} update={update} section='history' />
             </section>
-            <section data-settings-panel="integrations" hidden={section !== 'integrations'} className="settings-panel">
-              <div className="settings-integration-entry">
+            <section
+              data-settings-panel='integrations'
+              hidden={section !== 'integrations'}
+              className='settings-panel'
+            >
+              <div className='settings-integration-entry'>
                 <div>
                   <h3>Tabroom</h3>
-                  <p>{t('View tournament data by ID or URL and save its JSON backup. Optional sign-in uses your Tabroom permissions.')}</p>
+                  <p>
+                    {t(
+                      'View tournament data by ID or URL and save its JSON backup. Optional sign-in uses your Tabroom permissions.'
+                    )}
+                  </p>
                 </div>
-                <div className="integration-buttons">
+                <div className='integration-buttons'>
                   <button onClick={onOpenTabroom}>{t('Open Tabroom')}</button>
                 </div>
               </div>
-              <div className="settings-integration-entry">
+              <div className='settings-integration-entry'>
                 <div>
                   <h3>OpenCaselist</h3>
-                  <p>{t('Browse disclosures, download files, and publish changes using your OpenCaselist account.')}</p>
+                  <p>
+                    {t(
+                      'Browse disclosures, download files, and publish changes using your OpenCaselist account.'
+                    )}
+                  </p>
                 </div>
-                <div className="integration-buttons">
+                <div className='integration-buttons'>
                   <button onClick={onOpenCaselist}>{t('Open OpenCaselist')}</button>
                 </div>
               </div>
               <OpenCaselistSettings />
-              <label className="setting-row"><span>{t('Open websites inside Tagline')}</span>
-                <input type="checkbox" data-setting="embedWebsites" checked={settings.embedWebsites}
-                  onChange={(e) => update({ embedWebsites: e.target.checked })} />
+              <label className='setting-row'>
+                <span>{t('Open websites inside Tagline')}</span>
+                <input
+                  type='checkbox'
+                  data-setting='embedWebsites'
+                  checked={settings.embedWebsites}
+                  onChange={(e) => update({ embedWebsites: e.target.checked })}
+                />
               </label>
-              <p>{t('Websites use a separate signed-in session and identify as standard Chrome. Disable this to use your default browser.')}</p>
+              <p>
+                {t(
+                  'Websites use a separate signed-in session and identify as standard Chrome. Disable this to use your default browser.'
+                )}
+              </p>
               <IntegrationSettings />
             </section>
-            <section data-settings-panel="shortcuts" hidden={section !== 'shortcuts'} className="settings-panel">
-              <KeybindingSettings settings={settings} update={update} extra={extensions?.commands || []} />
+            <section
+              data-settings-panel='shortcuts'
+              hidden={section !== 'shortcuts'}
+              className='settings-panel'
+            >
+              <KeybindingSettings
+                settings={settings}
+                update={update}
+                extra={extensions?.commands || []}
+              />
             </section>
-            <section data-settings-panel="extensions" hidden={section !== 'extensions'} className="settings-panel">
+            <section
+              data-settings-panel='extensions'
+              hidden={section !== 'extensions'}
+              className='settings-panel'
+            >
               {extensions && <ExtensionSettings extensions={extensions} />}
             </section>
-            <section data-settings-panel="advanced" hidden={section !== 'advanced'} className="settings-panel">
+            <section
+              data-settings-panel='advanced'
+              hidden={section !== 'advanced'}
+              className='settings-panel'
+            >
               <CustomizationLimits settings={settings} />
-              <section className="internal-flags">
+              <section className='internal-flags'>
                 <h4>{t('Internal flags')}</h4>
                 <p>{t('These flags record workspace state and dismissed notices.')}</p>
-                <label className="setting-row"><span>{t('Visual editor notice dismissed')}</span>
-                  <input type="checkbox" data-flag="visualNoticeDismissed" checked={!!settings.internalFlags?.visualNoticeDismissed}
-                    onChange={(e) => update({ internalFlags: { ...settings.internalFlags, visualNoticeDismissed: e.target.checked } })} />
+                <label className='setting-row'>
+                  <span>{t('Visual editor notice dismissed')}</span>
+                  <input
+                    type='checkbox'
+                    data-flag='visualNoticeDismissed'
+                    checked={!!settings.internalFlags?.visualNoticeDismissed}
+                    onChange={(e) =>
+                      update({
+                        internalFlags: {
+                          ...settings.internalFlags,
+                          visualNoticeDismissed: e.target.checked,
+                        },
+                      })
+                    }
+                  />
                 </label>
-                <label className="setting-row"><span>{t('Has seen onboarding')}</span>
-                  <input type="checkbox" data-flag="hasSeenOnboarding" checked={!!settings.internalFlags?.hasSeenOnboarding}
-                    onChange={(event) => update({ internalFlags: { ...settings.internalFlags, hasSeenOnboarding: event.target.checked } })} />
+                <label className='setting-row'>
+                  <span>{t('Has seen onboarding')}</span>
+                  <input
+                    type='checkbox'
+                    data-flag='hasSeenOnboarding'
+                    checked={!!settings.internalFlags?.hasSeenOnboarding}
+                    onChange={(event) =>
+                      update({
+                        internalFlags: {
+                          ...settings.internalFlags,
+                          hasSeenOnboarding: event.target.checked,
+                        },
+                      })
+                    }
+                  />
                 </label>
-                <button onClick={() => {
-                  update({ internalFlags: { ...settings.internalFlags, hasSeenOnboarding: false } });
-                  onClose();
-                }}>{t('Show onboarding again')}</button>
+                <button
+                  onClick={() => {
+                    update({
+                      internalFlags: { ...settings.internalFlags, hasSeenOnboarding: false },
+                    });
+                    onClose();
+                  }}
+                >
+                  {t('Show onboarding again')}
+                </button>
               </section>
             </section>
-            <section data-settings-panel="installation" hidden={section !== 'installation'} className="settings-panel">
+            <section
+              data-settings-panel='installation'
+              hidden={section !== 'installation'}
+              className='settings-panel'
+            >
               <InstallationSettings />
             </section>
           </div>
-          <footer className="settings-footer"><span>{t('Settings are saved on this device')}</span>
-            <button className="primary" onClick={onClose}>{t('Done')}</button>
+          <footer className='settings-footer'>
+            <span>{t('Settings are saved on this device')}</span>
+            <button className='primary' onClick={onClose}>
+              {t('Done')}
+            </button>
           </footer>
         </div>
       </div>

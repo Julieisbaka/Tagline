@@ -46,16 +46,20 @@ export default function NoteView({
   onDismissVisualNotice,
 }) {
   const { t, locale } = useI18n();
-  const metadata = useMemo(() => isFlow(path) ? null : readFrontmatter(content), [path, content]);
+  const metadata = useMemo(() => (isFlow(path) ? null : readFrontmatter(content)), [path, content]);
   const localRef = useRef(null);
   const viewRef = editorRef || localRef;
   const blocker = mode === 'visual' ? visualBlocker(content) : null;
   const sourceMode = mode === 'edit' || !!blocker;
   const sendCurrent = () => {
-    if (!sourceMode) return onSendCard(0, visualRef.current ? visualSelection(visualRef.current) : '');
+    if (!sourceMode)
+      {return onSendCard(0, visualRef.current ? visualSelection(visualRef.current) : '');}
     const view = viewRef.current;
     const selection = view?.state.selection.main;
-    return onSendCard(selection?.head ?? cursor, view ? view.state.sliceDoc(selection.from, selection.to) : '');
+    return onSendCard(
+      selection?.head ?? cursor,
+      view ? view.state.sliceDoc(selection.from, selection.to) : ''
+    );
   };
   const [cursor, setCursorState] = useState(0);
   const [visualSection, setVisualSection] = useState('');
@@ -69,34 +73,47 @@ export default function NoteView({
   // Status-bar stats: whole document plus the card under the cursor.
   const docStats = useMemo(() => (isFlow(path) ? null : cardStats(content)), [content, path]);
   const section = useMemo(
-    () => isFlow(path) || mode === 'read' ? null : sourceMode
-      ? getSectionAt(content, cursor) : getSectionAt(visualSection, 0),
-    [content, cursor, mode, path, sourceMode, visualSection],
+    () =>
+      isFlow(path) || mode === 'read'
+        ? null
+        : sourceMode
+          ? getSectionAt(content, cursor)
+          : getSectionAt(visualSection, 0),
+    [content, cursor, mode, path, sourceMode, visualSection]
   );
   const sectionStats = useMemo(() => (section ? cardStats(section.text) : null), [section]);
   const calibration = useMemo(() => {
-    try { return { profile: calibrateReading(settings.readingSamples), error: '' }; }
-    catch (error) { return { profile: null, error: error.message }; }
+    try {
+      return { profile: calibrateReading(settings.readingSamples), error: '' };
+    } catch (error) {
+      return { profile: null, error: error.message };
+    }
   }, [settings.readingSamples]);
 
   const publishCursorStats = useCallback(() => {
-    if (!docStats) return onCursorStats(null);
+    if (!docStats) {return onCursorStats(null);}
     const wpm = settings.wpm || 250;
     const profile = calibration.profile;
     const assessment = readingAssessment(docStats, wpm, profile);
     const parts = {
       cards: t('{count} cards', { count: docStats.cards }),
       words: t('{count} words', { count: docStats.words }),
-      highlighted: t('{count} highlighted (~{time} read)', { count: docStats.highlighted, time: formatDuration(assessment.seconds) }),
+      highlighted: t('{count} highlighted (~{time} read)', {
+        count: docStats.highlighted,
+        time: formatDuration(assessment.seconds),
+      }),
       estimate: t(profile ? 'Personal speech estimate' : 'Default speech estimate'),
     };
-    if (assessment.readingEase !== null) parts.readability = t('Readability {score} / effort {effort}', {
-      score: assessment.readingEase.toFixed(0), effort: assessment.effort.toFixed(0),
-    });
-    if (calibration.error) parts.error = calibration.error;
+    if (assessment.readingEase !== null)
+      {parts.readability = t('Readability {score} / effort {effort}', {
+        score: assessment.readingEase.toFixed(0),
+        effort: assessment.effort.toFixed(0),
+      });}
+    if (calibration.error) {parts.error = calibration.error;}
     if (section && sectionStats) {
       parts.section = t('“{title}”: {count} hl / ~{time}', {
-        title: section.title.slice(0, 30), count: sectionStats.highlighted,
+        title: section.title.slice(0, 30),
+        count: sectionStats.highlighted,
         time: formatDuration(readingSeconds(sectionStats, wpm, profile)),
       });
     }
@@ -116,71 +133,99 @@ export default function NoteView({
 
   const commitTitle = () => {
     const t = title.trim();
-    if (t && t !== baseName(path)) onRename(path, t);
-    else setTitle(baseName(path));
+    if (t && t !== baseName(path)) {onRename(path, t);}
+    else {setTitle(baseName(path));}
   };
 
   if (isFlow(path)) {
     return (
-      <div className="note-view">
-        <div className="note-header">
-          <input className="note-title" value={title} onChange={(e) => setTitle(e.target.value)} onBlur={commitTitle}
-            onKeyDown={(e) => e.key === 'Enter' && e.target.blur()} />
-          <div className="note-actions">
+      <div className='note-view'>
+        <div className='note-header'>
+          <input
+            className='note-title'
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            onBlur={commitTitle}
+            onKeyDown={(e) => e.key === 'Enter' && e.target.blur()}
+          />
+          <div className='note-actions'>
             <button onClick={onOpenHistory}>{t('History')}</button>
-            <select aria-label={t('Flow mode')} value={mode === 'edit' ? 'source' : 'visual'}
-              onChange={(event) => setMode(event.target.value === 'source' ? 'edit' : 'visual')}>
-              <option value="visual">{t('Visual')}</option>
-              <option value="source">{t('JSON source')}</option>
+            <select
+              aria-label={t('Flow mode')}
+              value={mode === 'edit' ? 'source' : 'visual'}
+              onChange={(event) => setMode(event.target.value === 'source' ? 'edit' : 'visual')}
+            >
+              <option value='visual'>{t('Visual')}</option>
+              <option value='source'>{t('JSON source')}</option>
             </select>
           </div>
         </div>
-        <FlowEditor path={path} mode={mode} content={content} onChange={onChange} onRestore={onRestore}
-          focusNewFlowRow={settings.focusNewFlowRow} keybindings={settings.keybindings} settings={settings} />
+        <FlowEditor
+          path={path}
+          mode={mode}
+          content={content}
+          onChange={onChange}
+          onRestore={onRestore}
+          focusNewFlowRow={settings.focusNewFlowRow}
+          keybindings={settings.keybindings}
+          settings={settings}
+        />
       </div>
     );
   }
 
   return (
-    <div className="note-view">
-      <div className="note-header">
+    <div className='note-view'>
+      <div className='note-header'>
         <input
-          className="note-title"
+          className='note-title'
           value={title}
           onChange={(e) => setTitle(e.target.value)}
           onBlur={commitTitle}
           onKeyDown={(e) => e.key === 'Enter' && e.target.blur()}
         />
-        <div className="note-actions">
+        <div className='note-actions'>
           <button onClick={onOpenHistory}>{t('History')}</button>
-          <select aria-label={t('Editor mode')} value={mode} onChange={(e) => setMode(e.target.value)}>
-            <option value="visual">{t('Visual')}</option>
-            <option value="edit">{t('Source')}</option>
-            <option value="read">{t('Read')}</option>
+          <select
+            aria-label={t('Editor mode')}
+            value={mode}
+            onChange={(e) => setMode(e.target.value)}
+          >
+            <option value='visual'>{t('Visual')}</option>
+            <option value='edit'>{t('Source')}</option>
+            <option value='read'>{t('Read')}</option>
           </select>
           <button onClick={onExport}>{t('Export')}</button>
-          {onTestHypothesis && <button title={t('Test a hypothesis against this note (Political DEBATE)')}
-            onClick={onTestHypothesis}>{t('Hypothesis')}</button>}
+          {onTestHypothesis && (
+            <button
+              title={t('Test a hypothesis against this note (Political DEBATE)')}
+              onClick={onTestHypothesis}
+            >
+              {t('Hypothesis')}
+            </button>
+          )}
           {onSummarize && <button onClick={onSummarize}>{t('Summarize')}</button>}
-          {mode !== 'read' && <button onClick={onCreateCitation}>
-            {t('Create citation')}
-          </button>}
+          {mode !== 'read' && <button onClick={onCreateCitation}>{t('Create citation')}</button>}
           {mode === 'read' && (
             <button
               className={`icon-btn${highlightOnly ? ' active' : ''}`}
               title={t('Show highlighted text only')}
               onClick={() => setHighlightOnly(!highlightOnly)}
             >
-              <Icon name="highlighter" />
+              <Icon name='highlighter' />
             </button>
           )}
           {mode !== 'read' && (
-            <button className="icon-btn" title={`${t('Send card')} ${displayBinding(binding('send-card', settings.keybindings))}`} onClick={sendCurrent}>
-              <Icon name="send" />
+            <button
+              className='icon-btn'
+              title={`${t('Send card')} ${displayBinding(binding('send-card', settings.keybindings))}`}
+              onClick={sendCurrent}
+            >
+              <Icon name='send' />
             </button>
           )}
           <button
-            className="icon-btn"
+            className='icon-btn'
             title={`${t(mode !== 'read' ? 'Read' : 'Edit')} ${displayBinding(binding('toggle-mode', settings.keybindings))}`}
             onClick={() => setMode(mode !== 'read' ? 'read' : settings.editorMode)}
           >
@@ -188,22 +233,45 @@ export default function NoteView({
           </button>
         </div>
       </div>
-      {mode === 'visual' && !blocker && !settings.internalFlags?.visualNoticeDismissed && <div className="editor-notice dismissible-notice">
-        <span>{t('Visual edits normalize Markdown formatting. Source mode preserves exact syntax. Ctrl+click a wiki link to follow it.')}</span>
-        <button className="icon-btn" aria-label={t('Dismiss visual editor notice')} onClick={onDismissVisualNotice}>&times;</button>
-      </div>}
-      {blocker && <div className="editor-notice source-fallback" role="status">
-        {t('This note contains {kind}. Showing source to preserve it; visual mode will not rewrite this note.', { kind: t(blocker) })}
-      </div>}
-      {metadata?.error && <div className="editor-notice error-text" role="alert">
-        {t('Invalid YAML frontmatter: {error}', { error: metadata.error })}
-      </div>}
-      {!sourceMode && metadata?.raw !== null && metadata?.prefix && <details className="note-properties">
-        <summary>{t('Properties')}</summary>
-        <pre>{metadata.raw}</pre>
-        <button onClick={() => setMode('edit')}>{t('Edit properties in Source')}</button>
-      </details>}
-      <div className={`note-body${settings.readableWidth ? ' readable' : ''}${settings.editorFocusOutline ? ' editor-focus-outline' : ''}`}>
+      {mode === 'visual' && !blocker && !settings.internalFlags?.visualNoticeDismissed && (
+        <div className='editor-notice dismissible-notice'>
+          <span>
+            {t(
+              'Visual edits normalize Markdown formatting. Source mode preserves exact syntax. Ctrl+click a wiki link to follow it.'
+            )}
+          </span>
+          <button
+            className='icon-btn'
+            aria-label={t('Dismiss visual editor notice')}
+            onClick={onDismissVisualNotice}
+          >
+            &times;
+          </button>
+        </div>
+      )}
+      {blocker && (
+        <div className='editor-notice source-fallback' role='status'>
+          {t(
+            'This note contains {kind}. Showing source to preserve it; visual mode will not rewrite this note.',
+            { kind: t(blocker) }
+          )}
+        </div>
+      )}
+      {metadata?.error && (
+        <div className='editor-notice error-text' role='alert'>
+          {t('Invalid YAML frontmatter: {error}', { error: metadata.error })}
+        </div>
+      )}
+      {!sourceMode && metadata?.raw !== null && metadata?.prefix && (
+        <details className='note-properties'>
+          <summary>{t('Properties')}</summary>
+          <pre>{metadata.raw}</pre>
+          <button onClick={() => setMode('edit')}>{t('Edit properties in Source')}</button>
+        </details>
+      )}
+      <div
+        className={`note-body${settings.readableWidth ? ' readable' : ''}${settings.editorFocusOutline ? ' editor-focus-outline' : ''}`}
+      >
         {sourceMode ? (
           <Editor
             jump={jump?.path === path ? jump : null}
@@ -220,12 +288,22 @@ export default function NoteView({
             viewRef={viewRef}
           />
         ) : mode === 'visual' ? (
-          <VisualEditor value={content} onChange={onChange} onOpenLink={onOpenLink}
+          <VisualEditor
+            value={content}
+            onChange={onChange}
+            onOpenLink={onOpenLink}
             spellcheck={settings.visualSpellcheck}
             onReady={onVisualEditorReady}
             keybindings={settings.keybindings}
-            onSendCard={sendCurrent} onSection={setVisualSection} noteNames={noteNames} notePaths={notePaths} notify={notify} visualRef={visualRef}
-            jump={jump?.path === path ? jump : null} toolbarVisible={settings.visualToolbar} />
+            onSendCard={sendCurrent}
+            onSection={setVisualSection}
+            noteNames={noteNames}
+            notePaths={notePaths}
+            notify={notify}
+            visualRef={visualRef}
+            jump={jump?.path === path ? jump : null}
+            toolbarVisible={settings.visualToolbar}
+          />
         ) : (
           <Preview
             content={content}

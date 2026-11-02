@@ -5,7 +5,7 @@ import { speechStats } from './readTime.js';
 
 const HEADING_RE = /^(#{1,6})\s/;
 
-/** 
+/**
  * Find the heading section containing a Markdown character offset.
  * @param {string} content - The full Markdown content including frontmatter.
  * @param {number} offset - The character offset within the content to locate.
@@ -13,7 +13,7 @@ const HEADING_RE = /^(#{1,6})\s/;
  */
 export function getSectionAt(content, offset) {
   const metadata = splitFrontmatter(content);
-  if (offset < metadata.offset) return null;
+  if (offset < metadata.offset) {return null;}
   content = metadata.body;
   offset -= metadata.offset;
   const lines = content.split('\n');
@@ -37,7 +37,7 @@ export function getSectionAt(content, offset) {
       break;
     }
   }
-  if (start === -1) return null;
+  if (start === -1) {return null;}
   let end = lines.length;
   for (let i = start + 1; i < lines.length; i++) {
     const m = lines[i].match(HEADING_RE);
@@ -46,10 +46,14 @@ export function getSectionAt(content, offset) {
       break;
     }
   }
-  return { text: lines.slice(start, end).join('\n').trimEnd(), level, title: lines[start].replace(HEADING_RE, '') };
+  return {
+    text: lines.slice(start, end).join('\n').trimEnd(),
+    level,
+    title: lines[start].replace(HEADING_RE, ''),
+  };
 }
 
-/** 
+/**
  * Repeatedly remove HTML tags from text without interpreting their contents.
  * @param {string} value - The text from which to strip HTML tags.
  * @returns {string} - The text with HTML tags removed.
@@ -63,15 +67,19 @@ function stripTags(value) {
   return value.replace(/[<>]/g, '');
 }
 
-/** 
+/**
  * Count Unicode words after removing HTML tags and entity markup.
  * @param {string} s - The text in which to count words.
  * @returns {number} - The number of words found in the text.
  */
-const countWords = (s) => (stripTags(s).replace(/&(?:#\d+|#x[\da-f]+|\w+);/gi, ' ')
-  .match(/[\p{L}\p{N}]+(?:['’-][\p{L}\p{N}]+)*/gu) || []).length;
+const countWords = (s) =>
+  (
+    stripTags(s)
+      .replace(/&(?:#\d+|#x[\da-f]+|\w+);/gi, ' ')
+      .match(/[\p{L}\p{N}]+(?:['’-][\p{L}\p{N}]+)*/gu) || []
+  ).length;
 
-/** 
+/**
  * Extract body, highlighted evidence, and spoken citations from a card.
  * @param {string} content - The full Markdown content of the card.
  * @returns {object} - An object containing the body text, highlighted evidence, and spoken citations.
@@ -85,11 +93,12 @@ function evidenceParts(content) {
     .join('\n');
   const evidence = body.replace(/^\*\*[^*\n]+\*\*[^\n]*$/gm, '');
   const highlighted = [...evidence.matchAll(/==([\s\S]*?)==|<mark\b[^>]*>([\s\S]*?)<\/mark>/gi)]
-    .map((m) => (m[1] ?? m[2]).replace(/\+\+/g, '')).join(' ');
+    .map((m) => (m[1] ?? m[2]).replace(/\+\+/g, ''))
+    .join(' ');
   return { body, highlighted, citations: spokenCitations(content) };
 }
 
-/** 
+/**
  * Return highlighted evidence and citation lead text intended to be spoken.
  * @param {string} content - The full Markdown content of the card.
  * @returns {string} - The combined highlighted evidence and spoken citation text.
@@ -99,7 +108,7 @@ export function spokenEvidence(content) {
   return `${highlighted}\n${citations}`.trim();
 }
 
-/** 
+/**
  * Count card, word, highlight, and spoken-citation statistics from Markdown.
  * @param {string} content - The full Markdown content of the card.
  * @returns {object} - An object containing various statistics including word counts, highlighted evidence, citation words, read words, underlined text, and card count.
@@ -109,7 +118,9 @@ export function cardStats(content) {
   content = splitFrontmatter(content).body;
   const { body, highlighted, citations } = evidenceParts(content);
   const citationWords = countWords(citations);
-  const underlined = [...body.matchAll(/\+\+([\s\S]*?)\+\+/g)].map((m) => m[1].replace(/==/g, '')).join(' ');
+  const underlined = [...body.matchAll(/\+\+([\s\S]*?)\+\+/g)]
+    .map((m) => m[1].replace(/==/g, ''))
+    .join(' ');
   return {
     ...speechStats(`${highlighted}\n${citations}`.trim()),
     words: countWords(body.replace(/[=+*_]/g, '')),
@@ -121,7 +132,7 @@ export function cardStats(content) {
   };
 }
 
-/** 
+/**
  * Determine whether a speech document body already contains the specified evidence text, ignoring differences in whitespace.
  * @param {string} document - The full Markdown content of the speech document, including frontmatter.
  * @param {string} text - The evidence text to check for within the document body.
@@ -133,7 +144,7 @@ export function containsEvidence(document, text) {
   return !!needle && normalize(splitFrontmatter(document || '').body).includes(needle);
 }
 
-/** 
+/**
  * Format a nonnegative duration in seconds as minutes and zero-padded seconds.
  * @param {number} totalSeconds - The total duration in seconds to format.
  * @returns {string} - The formatted duration as "minutes:seconds", with seconds zero-padded.

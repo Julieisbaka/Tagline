@@ -13,28 +13,73 @@ import EditorToolbar from './EditorToolbar.jsx';
 import VisualFindReplace from './VisualFindReplace.jsx';
 
 export default function VisualEditor({
-  value, onChange, onOpenLink, onSendCard, onSection, noteNames, notePaths, notify, visualRef, jump, keybindings,
-  toolbarVisible = true, spellcheck = true, onReady,
+  value,
+  onChange,
+  onOpenLink,
+  onSendCard,
+  onSection,
+  noteNames,
+  notePaths,
+  notify,
+  visualRef,
+  jump,
+  keybindings,
+  toolbarVisible = true,
+  spellcheck = true,
+  onReady,
 }) {
   const metadata = useMemo(() => splitFrontmatter(value), [value]);
   const live = useRef({});
   live.current = {
-    onChange: (body) => onChange(metadata.prefix +
-      (metadata.prefix && !metadata.prefix.endsWith('\n') && body ? '\n' : '') + body),
-    onOpenLink, onSendCard, onSection, keybindings, notePaths, notify,
+    onChange: (body) =>
+      onChange(
+        metadata.prefix +
+          (metadata.prefix && !metadata.prefix.endsWith('\n') && body ? '\n' : '') +
+          body
+      ),
+    onOpenLink,
+    onSendCard,
+    onSection,
+    keybindings,
+    notePaths,
+    notify,
   };
-  return <MemoizedDocument value={metadata.body} noteNames={noteNames} visualRef={visualRef} jump={jump}
-    live={live} keybindings={keybindings} toolbarVisible={toolbarVisible} spellcheck={spellcheck} onReady={onReady} />;
+  return (
+    <MemoizedDocument
+      value={metadata.body}
+      noteNames={noteNames}
+      visualRef={visualRef}
+      jump={jump}
+      live={live}
+      keybindings={keybindings}
+      toolbarVisible={toolbarVisible}
+      spellcheck={spellcheck}
+      onReady={onReady}
+    />
+  );
 }
 
-function VisualDocument({ value, noteNames, visualRef, jump, live, keybindings, toolbarVisible, spellcheck, onReady }) {
+function VisualDocument({
+  value,
+  noteNames,
+  visualRef,
+  jump,
+  live,
+  keybindings,
+  toolbarVisible,
+  spellcheck,
+  onReady,
+}) {
   const { t } = useI18n();
   const lastMarkdown = useRef(value);
   const lastProp = useRef(value);
   const initialContent = useRef(null);
   if (!initialContent.current) {
     const cached = cachedDocument(value);
-    initialContent.current = { content: cached || value, contentType: cached ? 'json' : 'markdown' };
+    initialContent.current = {
+      content: cached || value,
+      contentType: cached ? 'json' : 'markdown',
+    };
   }
   const extensions = useMemo(visualExtensions, []);
   const [linkOpen, setLinkOpen] = useState(false);
@@ -47,7 +92,9 @@ function VisualDocument({ value, noteNames, visualRef, jump, live, keybindings, 
       cacheDocument(value, ed.getJSON());
       live.current.onSection(visualSelection(ed, true));
     },
-    onSelectionUpdate({ editor: ed }) { live.current.onSection(visualSelection(ed, true)); },
+    onSelectionUpdate({ editor: ed }) {
+      live.current.onSection(visualSelection(ed, true));
+    },
     onUpdate({ editor: ed }) {
       const text = ed.getMarkdown();
       lastMarkdown.current = text;
@@ -57,12 +104,14 @@ function VisualDocument({ value, noteNames, visualRef, jump, live, keybindings, 
     },
     editorProps: {
       attributes: {
-        class: 'markdown-body visual-document', role: 'textbox',
-        'aria-multiline': 'true', 'aria-label': t('Visual note editor')
+        class: 'markdown-body visual-document',
+        role: 'textbox',
+        'aria-multiline': 'true',
+        'aria-label': t('Visual note editor'),
       },
       handleDOMEvents: {
         dragover(_view, event) {
-          if (!hasNoteDrag(event.dataTransfer)) return false;
+          if (!hasNoteDrag(event.dataTransfer)) {return false;}
           event.preventDefault();
           event.dataTransfer.dropEffect = 'copy';
           return true;
@@ -70,19 +119,28 @@ function VisualDocument({ value, noteNames, visualRef, jump, live, keybindings, 
       },
       handleDrop(view, event) {
         const path = draggedNotePath(event.dataTransfer, live.current.notePaths);
-        if (!path) return false;
+        if (!path) {return false;}
         event.preventDefault();
         const position = view.posAtCoords({ left: event.clientX, top: event.clientY });
         if (!position) {
           live.current.notify(t('Could not insert a link at the drop position.'));
           return true;
         }
-        try { draggedNoteLink(path); }
-        catch (error) { live.current.notify(t(error.message)); return true; }
-        const inserted = visualRef.current?.chain().insertContentAt(position.pos, {
-          type: 'wikiLink', attrs: { target: path, heading: '', alias: '', embed: false },
-        }).focus().run();
-        if (!inserted) live.current.notify(t('Could not insert a link at the drop position.'));
+        try {
+          draggedNoteLink(path);
+        } catch (error) {
+          live.current.notify(t(error.message));
+          return true;
+        }
+        const inserted = visualRef.current
+          ?.chain()
+          .insertContentAt(position.pos, {
+            type: 'wikiLink',
+            attrs: { target: path, heading: '', alias: '', embed: false },
+          })
+          .focus()
+          .run();
+        if (!inserted) {live.current.notify(t('Could not insert a link at the drop position.'));}
         return true;
       },
       handleClick(view, pos, event) {
@@ -94,45 +152,54 @@ function VisualDocument({ value, noteNames, visualRef, jump, live, keybindings, 
         return false;
       },
       handleKeyDown(view, event) {
-        if (event.isComposing) return false;
-        const command = KEYBINDINGS.find((item) => item.scope === 'editor' &&
-          matchesBinding(event, binding(item.id, live.current.keybindings)));
+        if (event.isComposing) {return false;}
+        const command = KEYBINDINGS.find(
+          (item) =>
+            item.scope === 'editor' &&
+            matchesBinding(event, binding(item.id, live.current.keybindings))
+        );
         if (command) {
           event.preventDefault();
           const ed = visualRef.current;
           const cmd = ed.commands;
           const heading = ['pocket', 'hat', 'block', 'tag'].indexOf(command.id);
-          if (command.id === 'find') setFindOpen(true);
-          else if (heading >= 0) cmd.toggleHeading({ level: heading + 1 });
-          else if (['bold', 'cite'].includes(command.id)) cmd.toggleBold();
-          else if (command.id === 'italic') cmd.toggleItalic();
-          else if (['underline', 'underline-alt'].includes(command.id)) cmd.toggleUnderline();
-          else if (command.id === 'emphasis') ed.chain().toggleBold().toggleUnderline().run();
-          else if (command.id === 'highlight') cmd.toggleHighlight();
-          else if (command.id === 'clear-format') cmd.unsetAllMarks();
+          if (command.id === 'find') {setFindOpen(true);}
+          else if (heading >= 0) {cmd.toggleHeading({ level: heading + 1 });}
+          else if (['bold', 'cite'].includes(command.id)) {cmd.toggleBold();}
+          else if (command.id === 'italic') {cmd.toggleItalic();}
+          else if (['underline', 'underline-alt'].includes(command.id)) {cmd.toggleUnderline();}
+          else if (command.id === 'emphasis') {ed.chain().toggleBold().toggleUnderline().run();}
+          else if (command.id === 'highlight') {cmd.toggleHighlight();}
+          else if (command.id === 'clear-format') {cmd.unsetAllMarks();}
           return true;
         }
         // Suppress old primary bindings after remapping or removing them.
-        if (KEYBINDINGS.some((item) => item.scope === 'editor' && matchesBinding(event, item.key))) return true;
+        if (KEYBINDINGS.some((item) => item.scope === 'editor' && matchesBinding(event, item.key)))
+          {return true;}
         return false;
       },
     },
   });
   useEditorState({
     editor,
-    selector: ({ editor: ed }) => ed ? [
-      ...[1, 2, 3, 4].map((level) => ed.isActive('heading', { level })),
-      ed.isActive('bold'), ed.isActive('underline'), ed.isActive('highlight'),
-    ] : [],
+    selector: ({ editor: ed }) =>
+      ed
+        ? [
+            ...[1, 2, 3, 4].map((level) => ed.isActive('heading', { level })),
+            ed.isActive('bold'),
+            ed.isActive('underline'),
+            ed.isActive('highlight'),
+          ]
+        : [],
   });
 
   useEffect(() => {
-    if (!editor) return;
+    if (!editor) {return;}
     editor.setOptions({
       editorProps: {
         ...editor.options.editorProps,
         attributes: { ...editor.options.editorProps.attributes, spellcheck: String(spellcheck) },
-      }
+      },
     });
   }, [editor, spellcheck]);
 
@@ -140,17 +207,20 @@ function VisualDocument({ value, noteNames, visualRef, jump, live, keybindings, 
     visualRef.current = editor;
     onReady?.(editor);
     return () => {
-      if (visualRef.current === editor) visualRef.current = null;
+      if (visualRef.current === editor) {visualRef.current = null;}
       onReady?.(null);
     };
   }, [editor, visualRef, onReady]);
 
   useEffect(() => {
-    if (!editor || value === lastProp.current) return;
+    if (!editor || value === lastProp.current) {return;}
     lastProp.current = value;
     if (value !== lastMarkdown.current) {
       const cached = cachedDocument(value);
-      editor.commands.setContent(cached || value, { contentType: cached ? 'json' : 'markdown', emitUpdate: false });
+      editor.commands.setContent(cached || value, {
+        contentType: cached ? 'json' : 'markdown',
+        emitUpdate: false,
+      });
       cacheDocument(value, editor.getJSON());
       lastMarkdown.current = value;
       live.current.onSection(visualSelection(editor, true));
@@ -158,50 +228,92 @@ function VisualDocument({ value, noteNames, visualRef, jump, live, keybindings, 
   }, [value, editor]);
 
   useEffect(() => {
-    if (!editor || !jump) return;
+    if (!editor || !jump) {return;}
     const heading = jump.heading;
-    if (!heading) return;
+    if (!heading) {return;}
     editor.state.doc.descendants((node, pos) => {
       if (node.type.name === 'heading' && slugify(node.textContent) === slugify(heading)) {
-        editor.chain().setTextSelection(pos + 1).scrollIntoView().run();
+        editor
+          .chain()
+          .setTextSelection(pos + 1)
+          .scrollIntoView()
+          .run();
         return false;
       }
       return undefined;
     });
   }, [jump, editor]);
 
-  if (!editor) return null;
+  if (!editor) {return null;}
   const insertLink = (target) => {
     const m = /^([^\]|#]+)(?:#([^\]|]*))?(?:\|([^\]]*))?$/.exec(target);
-    editor.chain().focus().insertContent({
-      type: 'wikiLink', attrs: {
-        target: m[1], heading: m[2] || '', alias: m[3] || '', embed: false,
-      }
-    }).run();
+    editor
+      .chain()
+      .focus()
+      .insertContent({
+        type: 'wikiLink',
+        attrs: {
+          target: m[1],
+          heading: m[2] || '',
+          alias: m[3] || '',
+          embed: false,
+        },
+      })
+      .run();
     setLinkOpen(false);
   };
   return (
-    <div className="visual-editor">
-      {toolbarVisible && <EditorToolbar keybindings={keybindings} active={{
-        ...Object.fromEntries(['pocket', 'hat', 'block', 'tag'].map((id, index) =>
-          [id, editor.isActive('heading', { level: index + 1 })])),
-        cite: editor.isActive('bold'), underline: editor.isActive('underline'),
-        highlight: editor.isActive('highlight'), find: findOpen, link: linkOpen,
-      }} actions={{
-        ...Object.fromEntries(['pocket', 'hat', 'block', 'tag'].map((id, index) =>
-          [id, () => editor.chain().focus().toggleHeading({ level: index + 1 }).run()])),
-        cite: () => editor.chain().focus().toggleBold().run(),
-        underline: () => editor.chain().focus().toggleUnderline().run(),
-        emphasis: () => editor.chain().focus().toggleBold().toggleUnderline().run(),
-        highlight: () => editor.chain().focus().toggleHighlight().run(),
-        'clear-format': () => editor.chain().focus().unsetAllMarks().run(),
-        link: () => setLinkOpen((open) => !open),
-        find: () => setFindOpen((open) => !open),
-        'send-card': () => live.current.onSendCard(),
-      }} />}
+    <div className='visual-editor'>
+      {toolbarVisible && (
+        <EditorToolbar
+          keybindings={keybindings}
+          active={{
+            ...Object.fromEntries(
+              ['pocket', 'hat', 'block', 'tag'].map((id, index) => [
+                id,
+                editor.isActive('heading', { level: index + 1 }),
+              ])
+            ),
+            cite: editor.isActive('bold'),
+            underline: editor.isActive('underline'),
+            highlight: editor.isActive('highlight'),
+            find: findOpen,
+            link: linkOpen,
+          }}
+          actions={{
+            ...Object.fromEntries(
+              ['pocket', 'hat', 'block', 'tag'].map((id, index) => [
+                id,
+                () =>
+                  editor
+                    .chain()
+                    .focus()
+                    .toggleHeading({ level: index + 1 })
+                    .run(),
+              ])
+            ),
+            cite: () => editor.chain().focus().toggleBold().run(),
+            underline: () => editor.chain().focus().toggleUnderline().run(),
+            emphasis: () => editor.chain().focus().toggleBold().toggleUnderline().run(),
+            highlight: () => editor.chain().focus().toggleHighlight().run(),
+            'clear-format': () => editor.chain().focus().unsetAllMarks().run(),
+            link: () => setLinkOpen((open) => !open),
+            find: () => setFindOpen((open) => !open),
+            'send-card': () => live.current.onSendCard(),
+          }}
+        />
+      )}
       {findOpen && <VisualFindReplace editor={editor} onClose={() => setFindOpen(false)} />}
-      {linkOpen && <EditorLinkForm noteNames={noteNames} onInsert={insertLink}
-        onClose={() => { setLinkOpen(false); editor.view.focus(); }} />}
+      {linkOpen && (
+        <EditorLinkForm
+          noteNames={noteNames}
+          onInsert={insertLink}
+          onClose={() => {
+            setLinkOpen(false);
+            editor.view.focus();
+          }}
+        />
+      )}
       <EditorContent editor={editor} />
     </div>
   );

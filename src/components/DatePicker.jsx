@@ -8,9 +8,17 @@ import { useNativeUi } from '../lib/nativeUi.js';
 
 export default function DatePicker({ name, label, value, onChange }) {
   const native = useNativeUi();
-  return native ? <input type="date" name={name} aria-label={label} value={value}
-    onChange={(event) => onChange(event.target.value)} />
-    : <AppDatePicker name={name} label={label} value={value} onChange={onChange} />;
+  return native ? (
+    <input
+      type='date'
+      name={name}
+      aria-label={label}
+      value={value}
+      onChange={(event) => onChange(event.target.value)}
+    />
+  ) : (
+    <AppDatePicker name={name} label={label} value={value} onChange={onChange} />
+  );
 }
 
 function AppDatePicker({ name, label, value, onChange }) {
@@ -25,14 +33,20 @@ function AppDatePicker({ name, label, value, onChange }) {
   const focusDay = useRef(false);
   const days = monthDays(focused);
   const today = dateValue(new Date());
-  const close = () => { setOpen(false); toggle.current.focus({ preventScroll: true }); };
+  const close = () => {
+    setOpen(false);
+    toggle.current.focus({ preventScroll: true });
+  };
   useEffect(() => {
-    input.current.setCustomValidity(value && !parseDate(value) ? t('Enter a valid date in YYYY-MM-DD format.') : '');
+    input.current.setCustomValidity(
+      value && !parseDate(value) ? t('Enter a valid date in YYYY-MM-DD format.') : ''
+    );
   }, [value, t, locale]);
   useEffect(() => {
-    if (!open) return;
+    if (!open) {return;}
     const outside = (event) => {
-      if (!root.current.contains(event.target) && !popup.current?.contains(event.target)) setOpen(false);
+      if (!root.current.contains(event.target) && !popup.current?.contains(event.target))
+        {setOpen(false);}
     };
     const blur = () => setOpen(false);
     document.addEventListener('pointerdown', outside, true);
@@ -43,7 +57,7 @@ function AppDatePicker({ name, label, value, onChange }) {
     };
   }, [open]);
   useLayoutEffect(() => {
-    if (!open) return;
+    if (!open) {return;}
     const position = () => {
       const field = root.current.getBoundingClientRect();
       const calendar = popup.current;
@@ -70,84 +84,192 @@ function AppDatePicker({ name, label, value, onChange }) {
   }, [open]);
   useLayoutEffect(() => {
     if (open && focusDay.current) {
-      popup.current.querySelector(`[data-date="${dateValue(focused)}"]`)?.focus({ preventScroll: true });
+      popup.current
+        .querySelector(`[data-date="${dateValue(focused)}"]`)
+        ?.focus({ preventScroll: true });
       focusDay.current = false;
     }
   }, [open, focused]);
-  const move = (date) => { focusDay.current = true; setFocused(date); };
-  const select = (date) => { onChange(dateValue(date)); close(); };
+  const move = (date) => {
+    focusDay.current = true;
+    setFocused(date);
+  };
+  const select = (date) => {
+    onChange(dateValue(date));
+    close();
+  };
   const monthLabel = focused.toLocaleDateString(locale, { month: 'long', year: 'numeric' });
   const weekday = new Intl.DateTimeFormat(locale, { weekday: 'short' });
-  return <div className="date-picker" ref={root} onBlur={(event) => {
-    if (!event.currentTarget.contains(event.relatedTarget) && !popup.current?.contains(event.relatedTarget)) setOpen(false);
-  }} onKeyDown={(event) => {
-    if (open && event.key === 'Escape') {
-      event.preventDefault(); event.stopPropagation(); close();
-    }
-  }}>
-    <div className="date-picker-field">
-      <input ref={input} id={id} name={name} type="text" aria-label={label} value={value}
-        placeholder="YYYY-MM-DD" pattern="\d{4}-\d{2}-\d{2}" maxLength={10}
-        onChange={(event) => onChange(event.target.value)}
-        onKeyDown={(event) => {
-          if (event.key === 'ArrowDown' && event.altKey) {
-            event.preventDefault(); focusDay.current = true;
-            setFocused(parseDate(value) || new Date()); setOpen(true);
-          }
-        }} />
-      <button ref={toggle} type="button" aria-label={t('Choose date')} aria-expanded={open}
-        aria-haspopup="dialog" title={t('Choose date')}
-        aria-controls={`${id}-calendar`} onClick={() => {
-          if (open) return close();
-          focusDay.current = true; setFocused(parseDate(value) || new Date()); setOpen(true);
-        }}><Icon name="calendar" /></button>
-    </div>
-    {open && createPortal(<div ref={popup} id={`${id}-calendar`} className="date-picker-calendar"
-      role="dialog" aria-label={t('Choose date')} tabIndex={-1}
-      onMouseDown={(event) => event.stopPropagation()}
+  return (
+    <div
+      className='date-picker'
+      ref={root}
+      onBlur={(event) => {
+        if (
+          !event.currentTarget.contains(event.relatedTarget) &&
+          !popup.current?.contains(event.relatedTarget)
+        )
+          {setOpen(false);}
+      }}
       onKeyDown={(event) => {
-        if (event.key === 'Tab') { trapTabKey(event, popup.current); event.stopPropagation(); }
-      }}>
-      <div className="date-picker-navigation">
-        <button type="button" aria-label={t('Previous month')} onClick={() => setFocused(moveMonth(focused, -1))}>&lt;</button>
-        <span aria-live="polite">{monthLabel}</span>
-        <button type="button" aria-label={t('Next month')} onClick={() => setFocused(moveMonth(focused, 1))}>&gt;</button>
+        if (open && event.key === 'Escape') {
+          event.preventDefault();
+          event.stopPropagation();
+          close();
+        }
+      }}
+    >
+      <div className='date-picker-field'>
+        <input
+          ref={input}
+          id={id}
+          name={name}
+          type='text'
+          aria-label={label}
+          value={value}
+          placeholder='YYYY-MM-DD'
+          pattern='\d{4}-\d{2}-\d{2}'
+          maxLength={10}
+          onChange={(event) => onChange(event.target.value)}
+          onKeyDown={(event) => {
+            if (event.key === 'ArrowDown' && event.altKey) {
+              event.preventDefault();
+              focusDay.current = true;
+              setFocused(parseDate(value) || new Date());
+              setOpen(true);
+            }
+          }}
+        />
+        <button
+          ref={toggle}
+          type='button'
+          aria-label={t('Choose date')}
+          aria-expanded={open}
+          aria-haspopup='dialog'
+          title={t('Choose date')}
+          aria-controls={`${id}-calendar`}
+          onClick={() => {
+            if (open) {return close();}
+            focusDay.current = true;
+            setFocused(parseDate(value) || new Date());
+            setOpen(true);
+          }}
+        >
+          <Icon name='calendar' />
+        </button>
       </div>
-      <table role="grid" aria-label={monthLabel}>
-        <thead><tr>{Array.from({ length: 7 }, (_, day) => {
-          const date = new Date(2024, 0, 7 + day);
-          return <th key={day} scope="col" abbr={date.toLocaleDateString(locale, { weekday: 'long' })}>{weekday.format(date)}</th>;
-        })}</tr></thead>
-        <tbody>{Array.from({ length: days.length / 7 }, (_, week) => <tr key={week}>
-          {days.slice(week * 7, week * 7 + 7).map((date, day) => <td key={day}
-            aria-selected={date ? dateValue(date) === value : undefined}>
-            {date && <button type="button" data-date={dateValue(date)}
-              className={dateValue(date) === value ? 'selected' : ''}
-              tabIndex={dateValue(date) === dateValue(focused) ? 0 : -1}
-              aria-current={dateValue(date) === today ? 'date' : undefined}
-              aria-label={date.toLocaleDateString(locale, { dateStyle: 'full' })}
-              onFocus={() => setFocused(date)} onClick={() => select(date)}
-              onKeyDown={(event) => {
-                let next = new Date(date);
-                if (event.key === 'ArrowLeft') next.setDate(next.getDate() - 1);
-                else if (event.key === 'ArrowRight') next.setDate(next.getDate() + 1);
-                else if (event.key === 'ArrowUp') next.setDate(next.getDate() - 7);
-                else if (event.key === 'ArrowDown') next.setDate(next.getDate() + 7);
-                else if (event.key === 'Home') next.setDate(next.getDate() - next.getDay());
-                else if (event.key === 'End') next.setDate(next.getDate() + 6 - next.getDay());
-                else if (event.key === 'PageUp') next = moveMonth(date, event.shiftKey ? -12 : -1);
-                else if (event.key === 'PageDown') next = moveMonth(date, event.shiftKey ? 12 : 1);
-                else return;
-                event.preventDefault(); event.stopPropagation();
-                if (next.getFullYear() >= 1 && next.getFullYear() <= 9999) move(next);
-              }}>{date.getDate()}</button>}
-          </td>)}
-        </tr>)}</tbody>
-      </table>
-      <div className="date-picker-actions">
-        <button type="button" onClick={() => select(new Date())}>{t('Today')}</button>
-        <button type="button" onClick={() => { onChange(''); close(); }}>{t('Clear')}</button>
-      </div>
-    </div>, document.body)}
-  </div>;
+      {open &&
+        createPortal(
+          <div
+            ref={popup}
+            id={`${id}-calendar`}
+            className='date-picker-calendar'
+            role='dialog'
+            aria-label={t('Choose date')}
+            tabIndex={-1}
+            onMouseDown={(event) => event.stopPropagation()}
+            onKeyDown={(event) => {
+              if (event.key === 'Tab') {
+                trapTabKey(event, popup.current);
+                event.stopPropagation();
+              }
+            }}
+          >
+            <div className='date-picker-navigation'>
+              <button
+                type='button'
+                aria-label={t('Previous month')}
+                onClick={() => setFocused(moveMonth(focused, -1))}
+              >
+                &lt;
+              </button>
+              <span aria-live='polite'>{monthLabel}</span>
+              <button
+                type='button'
+                aria-label={t('Next month')}
+                onClick={() => setFocused(moveMonth(focused, 1))}
+              >
+                &gt;
+              </button>
+            </div>
+            <table role='grid' aria-label={monthLabel}>
+              <thead>
+                <tr>
+                  {Array.from({ length: 7 }, (_, day) => {
+                    const date = new Date(2024, 0, 7 + day);
+                    return (
+                      <th
+                        key={day}
+                        scope='col'
+                        abbr={date.toLocaleDateString(locale, { weekday: 'long' })}
+                      >
+                        {weekday.format(date)}
+                      </th>
+                    );
+                  })}
+                </tr>
+              </thead>
+              <tbody>
+                {Array.from({ length: days.length / 7 }, (_, week) => (
+                  <tr key={week}>
+                    {days.slice(week * 7, week * 7 + 7).map((date, day) => (
+                      <td key={day} aria-selected={date ? dateValue(date) === value : undefined}>
+                        {date && (
+                          <button
+                            type='button'
+                            data-date={dateValue(date)}
+                            className={dateValue(date) === value ? 'selected' : ''}
+                            tabIndex={dateValue(date) === dateValue(focused) ? 0 : -1}
+                            aria-current={dateValue(date) === today ? 'date' : undefined}
+                            aria-label={date.toLocaleDateString(locale, { dateStyle: 'full' })}
+                            onFocus={() => setFocused(date)}
+                            onClick={() => select(date)}
+                            onKeyDown={(event) => {
+                              let next = new Date(date);
+                              if (event.key === 'ArrowLeft') {next.setDate(next.getDate() - 1);}
+                              else if (event.key === 'ArrowRight') {next.setDate(next.getDate() + 1);}
+                              else if (event.key === 'ArrowUp') {next.setDate(next.getDate() - 7);}
+                              else if (event.key === 'ArrowDown') {next.setDate(next.getDate() + 7);}
+                              else if (event.key === 'Home')
+                                {next.setDate(next.getDate() - next.getDay());}
+                              else if (event.key === 'End')
+                                {next.setDate(next.getDate() + 6 - next.getDay());}
+                              else if (event.key === 'PageUp')
+                                {next = moveMonth(date, event.shiftKey ? -12 : -1);}
+                              else if (event.key === 'PageDown')
+                                {next = moveMonth(date, event.shiftKey ? 12 : 1);}
+                              else {return;}
+                              event.preventDefault();
+                              event.stopPropagation();
+                              if (next.getFullYear() >= 1 && next.getFullYear() <= 9999) {move(next);}
+                            }}
+                          >
+                            {date.getDate()}
+                          </button>
+                        )}
+                      </td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            <div className='date-picker-actions'>
+              <button type='button' onClick={() => select(new Date())}>
+                {t('Today')}
+              </button>
+              <button
+                type='button'
+                onClick={() => {
+                  onChange('');
+                  close();
+                }}
+              >
+                {t('Clear')}
+              </button>
+            </div>
+          </div>,
+          document.body
+        )}
+    </div>
+  );
 }

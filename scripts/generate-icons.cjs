@@ -31,7 +31,10 @@ function dib(size, rgba) {
 }
 
 function ico(images) {
-  const entries = images.map(({ size, png, rgba }) => ({ size, data: size >= 256 ? png : dib(size, rgba) }));
+  const entries = images.map(({ size, png, rgba }) => ({
+    size,
+    data: size >= 256 ? png : dib(size, rgba),
+  }));
   const header = Buffer.alloc(6 + 16 * entries.length);
   header.writeUInt16LE(0, 0);
   header.writeUInt16LE(1, 2);
@@ -55,7 +58,10 @@ app.whenReady().then(async () => {
     const svg = await fs.readFile(path.join(BUILD, 'icon.svg'), 'utf8');
     const win = new BrowserWindow({ show: false, webPreferences: { sandbox: true } });
     await win.loadURL('data:text/html,<!doctype html><title>icons</title>');
-    const render = (size) => win.webContents.executeJavaScript(`new Promise((resolve, reject) => {
+    const render = (size) =>
+      win.webContents
+        .executeJavaScript(
+          `new Promise((resolve, reject) => {
       const img = new Image();
       img.onload = () => {
         const canvas = document.createElement('canvas');
@@ -67,15 +73,24 @@ app.whenReady().then(async () => {
       };
       img.onerror = () => reject(new Error('Could not decode icon.svg'));
       img.src = 'data:image/svg+xml;base64,${Buffer.from(svg).toString('base64')}';
-    })`).then(({ png, rgba }) => ({ size, png: Buffer.from(png, 'base64'), rgba }));
+    })`
+        )
+        .then(({ png, rgba }) => ({ size, png: Buffer.from(png, 'base64'), rgba }));
 
     const icons = [];
-    for (const size of ICO_SIZES) icons.push(await render(size));
+    for (const size of ICO_SIZES) {icons.push(await render(size));}
     await fs.writeFile(path.join(BUILD, 'icon.ico'), ico(icons));
     await fs.writeFile(path.join(BUILD, 'icon.png'), (await render(512)).png);
     const chunks = [];
-    for (const [type, size] of [['icp4', 16], ['icp5', 32], ['icp6', 64], ['ic07', 128],
-    ['ic08', 256], ['ic09', 512], ['ic10', 1024]]) {
+    for (const [type, size] of [
+      ['icp4', 16],
+      ['icp5', 32],
+      ['icp6', 64],
+      ['ic07', 128],
+      ['ic08', 256],
+      ['ic09', 512],
+      ['ic10', 1024],
+    ]) {
       const png = (await render(size)).png;
       const chunk = Buffer.alloc(8);
       chunk.write(type, 0, 'ascii');

@@ -33,9 +33,9 @@ test('platform: Pandoc uses literal arguments and reports failed conversion', as
     const child = new EventEmitter();
     child.stdin = new PassThrough();
     child.stderr = new PassThrough();
-    child.kill = () => { };
+    child.kill = () => {};
     child.stdin.on('finish', () => {
-      if (exitCode) child.stderr.write('PDF engine is missing');
+      if (exitCode) {child.stderr.write('PDF engine is missing');}
       setImmediate(() => child.emit('close', exitCode));
     });
     return child;
@@ -43,13 +43,20 @@ test('platform: Pandoc uses literal arguments and reports failed conversion', as
   // Require after installing the spawn mock; no real Pandoc is needed.
   const { convert } = require('../electron/pandoc.cjs');
   const input = {
-    executable: 'C:\\Program Files\\Pandoc\\pandoc.exe', html: '<h1>Card</h1>',
-    format: 'docx', outputPath: 'C:\\exports\\test & title.docx', title: 'test & title'
+    executable: 'C:\\Program Files\\Pandoc\\pandoc.exe',
+    html: '<h1>Card</h1>',
+    format: 'docx',
+    outputPath: 'C:\\exports\\test & title.docx',
+    title: 'test & title',
   };
   assert.deepEqual(await convert(input), { warnings: '' });
   assert.equal(call.options.shell, false);
   assert.ok(call.args.includes('--sandbox'));
-  assert.ok(call.args.includes(`--lua-filter=${require('node:path').join(__dirname, '..', 'electron', 'highlightRoundTrip.lua')}`));
+  assert.ok(
+    call.args.includes(
+      `--lua-filter=${require('node:path').join(__dirname, '..', 'electron', 'highlightRoundTrip.lua')}`
+    )
+  );
   assert.ok(call.args.includes(input.outputPath));
   assert.ok(call.args.includes('title=test & title'));
   assert.equal(call.args[0], '--from=html');
@@ -60,13 +67,19 @@ test('platform: Pandoc uses literal arguments and reports failed conversion', as
 
 test('platform: Pandoc rejects an explicitly configured missing executable', async () => {
   const { detectPandoc } = require('../electron/pandoc.cjs');
-  await assert.rejects(detectPandoc('C:\\nonexistent-debate-test\\pandoc.exe'), /Cannot run Pandoc/);
+  await assert.rejects(
+    detectPandoc('C:\\nonexistent-debate-test\\pandoc.exe'),
+    /Cannot run Pandoc/
+  );
 });
 
 test('RTF highlight export adds a yellow color entry and selects its index', () => {
   const { addRtfHighlightColor } = require('../electron/pandoc.cjs');
-  const rtf = '{\\rtf1{\\colortbl;\\red255\\green0\\blue0;\\red0\\green0\\blue255;}A {\\highlight99 highlighted}.}';
-  assert.equal(addRtfHighlightColor(rtf),
-    '{\\rtf1{\\colortbl;\\red255\\green0\\blue0;\\red0\\green0\\blue255;\\red255\\green255\\blue0;}A {\\highlight3 highlighted}.}');
+  const rtf =
+    '{\\rtf1{\\colortbl;\\red255\\green0\\blue0;\\red0\\green0\\blue255;}A {\\highlight99 highlighted}.}';
+  assert.equal(
+    addRtfHighlightColor(rtf),
+    '{\\rtf1{\\colortbl;\\red255\\green0\\blue0;\\red0\\green0\\blue255;\\red255\\green255\\blue0;}A {\\highlight3 highlighted}.}'
+  );
   assert.equal(addRtfHighlightColor('{\\rtf1 plain}'), '{\\rtf1 plain}');
 });

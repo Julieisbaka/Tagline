@@ -8,16 +8,36 @@ export const FORMATS = {
     label: 'High school policy (8-3-5)',
     prep: 8,
     speeches: [
-      ['1AC', 8], ['CX', 3], ['1NC', 8], ['CX', 3], ['2AC', 8], ['CX', 3],
-      ['2NC', 8], ['CX', 3], ['1NR', 5], ['1AR', 5], ['2NR', 5], ['2AR', 5],
+      ['1AC', 8],
+      ['CX', 3],
+      ['1NC', 8],
+      ['CX', 3],
+      ['2AC', 8],
+      ['CX', 3],
+      ['2NC', 8],
+      ['CX', 3],
+      ['1NR', 5],
+      ['1AR', 5],
+      ['2NR', 5],
+      ['2AR', 5],
     ],
   },
   college: {
     label: 'College policy (9-3-6)',
     prep: 10,
     speeches: [
-      ['1AC', 9], ['CX', 3], ['1NC', 9], ['CX', 3], ['2AC', 9], ['CX', 3],
-      ['2NC', 9], ['CX', 3], ['1NR', 6], ['1AR', 6], ['2NR', 6], ['2AR', 6],
+      ['1AC', 9],
+      ['CX', 3],
+      ['1NC', 9],
+      ['CX', 3],
+      ['2AC', 9],
+      ['CX', 3],
+      ['2NC', 9],
+      ['CX', 3],
+      ['1NR', 6],
+      ['1AR', 6],
+      ['2NR', 6],
+      ['2AR', 6],
     ],
   },
 };
@@ -48,9 +68,9 @@ function useCountdown(initial, onComplete) {
   onCompleteRef.current = onComplete;
 
   useEffect(() => {
-    if (!running) return undefined;
+    if (!running) {return undefined;}
     const id = setInterval(() => {
-      if (deadline.current === null) return;
+      if (deadline.current === null) {return;}
       const next = remainingAt(deadline.current);
       setRemaining(next);
       if (next === 0) {
@@ -76,7 +96,7 @@ function useCountdown(initial, onComplete) {
       }
     },
     stop: () => {
-      if (deadline.current !== null) setRemaining(remainingAt(deadline.current));
+      if (deadline.current !== null) {setRemaining(remainingAt(deadline.current));}
       deadline.current = null;
       setRunning(false);
     },
@@ -88,7 +108,12 @@ function useCountdown(initial, onComplete) {
   };
 }
 
-export default function Timer({ format, onFormatChange, timerSoundEnabled = false, timerSoundName = '' }) {
+export default function Timer({
+  format,
+  onFormatChange,
+  timerSoundEnabled = false,
+  timerSoundName = '',
+}) {
   const { t } = useI18n();
   const fmt = FORMATS[format];
   const [speech, setSpeech] = useState(0);
@@ -99,11 +124,17 @@ export default function Timer({ format, onFormatChange, timerSoundEnabled = fals
       return;
     }
     if (!timerSound) {
-      window.dispatchEvent(new CustomEvent('app-error', { detail: t('The custom timer sound is not available.') }));
+      window.dispatchEvent(
+        new CustomEvent('app-error', { detail: t('The custom timer sound is not available.') })
+      );
       return;
     }
     const audio = new Audio(timerSound);
-    audio.play().catch((error) => window.dispatchEvent(new CustomEvent('app-error', { detail: error.message })));
+    audio
+      .play()
+      .catch((error) =>
+        window.dispatchEvent(new CustomEvent('app-error', { detail: error.message }))
+      );
   };
   const main = useCountdown(fmt ? fmt.speeches[0][1] * 60 : 0, playEndSound);
   const aff = useCountdown(fmt ? fmt.prep * 60 : 0, playEndSound);
@@ -112,14 +143,19 @@ export default function Timer({ format, onFormatChange, timerSoundEnabled = fals
   useEffect(() => {
     let active = true;
     setTimerSound(null);
-    if (!timerSoundEnabled || !timerSoundName) return undefined;
-    window.api.readTimerSound().then((sound) => {
-      if (!sound) throw new Error(t('The saved timer sound is missing. Choose it again.'));
-      if (active) setTimerSound(sound.data);
-    }).catch((error) => {
-      if (active) window.dispatchEvent(new CustomEvent('app-error', { detail: error.message }));
-    });
-    return () => { active = false; };
+    if (!timerSoundEnabled || !timerSoundName) {return undefined;}
+    window.api
+      .readTimerSound()
+      .then((sound) => {
+        if (!sound) {throw new Error(t('The saved timer sound is missing. Choose it again.'));}
+        if (active) {setTimerSound(sound.data);}
+      })
+      .catch((error) => {
+        if (active) {window.dispatchEvent(new CustomEvent('app-error', { detail: error.message }));}
+      });
+    return () => {
+      active = false;
+    };
   }, [timerSoundEnabled, timerSoundName, t]);
 
   const selectSpeech = (i) => {
@@ -144,16 +180,29 @@ export default function Timer({ format, onFormatChange, timerSoundEnabled = fals
 
   const low = main.remaining <= 30 && main.remaining > 0;
 
-  if (!fmt) return <div className="timer">
-    <p role="alert">{t('Unsupported timer preset. Select a current preset.')}</p>
-    <select aria-label={t('Timer preset')} value="" onChange={(event) => changeFormat(event.target.value)}>
-      <option value="" disabled>{t('Select a preset')}</option>
-      {Object.entries(FORMATS).map(([key, value]) => <option key={key} value={key}>{t(value.label)}</option>)}
-    </select>
-  </div>;
+  if (!fmt)
+    {return (
+      <div className='timer'>
+        <p role='alert'>{t('Unsupported timer preset. Select a current preset.')}</p>
+        <select
+          aria-label={t('Timer preset')}
+          value=''
+          onChange={(event) => changeFormat(event.target.value)}
+        >
+          <option value='' disabled>
+            {t('Select a preset')}
+          </option>
+          {Object.entries(FORMATS).map(([key, value]) => (
+            <option key={key} value={key}>
+              {t(value.label)}
+            </option>
+          ))}
+        </select>
+      </div>
+    );}
 
   return (
-    <div className="timer">
+    <div className='timer'>
       <select value={format} onChange={(e) => changeFormat(e.target.value)}>
         {Object.entries(FORMATS).map(([k, v]) => (
           <option key={k} value={k}>
@@ -162,9 +211,13 @@ export default function Timer({ format, onFormatChange, timerSoundEnabled = fals
         ))}
       </select>
 
-      <div className="timer-speeches">
+      <div className='timer-speeches'>
         {fmt.speeches.map(([name], i) => (
-          <button key={i} className={`speech-btn${i === speech ? ' active' : ''}`} onClick={() => selectSpeech(i)}>
+          <button
+            key={i}
+            className={`speech-btn${i === speech ? ' active' : ''}`}
+            onClick={() => selectSpeech(i)}
+          >
             {name}
           </button>
         ))}
@@ -173,9 +226,9 @@ export default function Timer({ format, onFormatChange, timerSoundEnabled = fals
       <div className={`timer-display${low ? ' low' : ''}${main.remaining === 0 ? ' done' : ''}`}>
         {formatDuration(main.remaining)}
       </div>
-      <div className="timer-controls">
+      <div className='timer-controls'>
         <button
-          className="primary"
+          className='primary'
           onClick={() => {
             aff.stop();
             neg.stop();
@@ -185,20 +238,22 @@ export default function Timer({ format, onFormatChange, timerSoundEnabled = fals
           {t(main.running ? 'Pause' : 'Start')}
         </button>
         <button onClick={() => main.reset(fmt.speeches[speech][1] * 60)}>{t('Reset')}</button>
-        <button onClick={() => speech < fmt.speeches.length - 1 && selectSpeech(speech + 1)}>{t('Next')}</button>
+        <button onClick={() => speech < fmt.speeches.length - 1 && selectSpeech(speech + 1)}>
+          {t('Next')}
+        </button>
       </div>
 
       <h4>{t('Prep time')}</h4>
-      <div className="prep-row">
+      <div className='prep-row'>
         {[
           ['aff', 'Aff', aff],
           ['neg', 'Neg', neg],
         ].map(([key, label, timer]) => (
           <div key={key} className={`prep-box side-${key}${timer.running ? ' running' : ''}`}>
-            <div className="prep-label">{t(label)}</div>
-            <div className="prep-time">{formatDuration(timer.remaining)}</div>
+            <div className='prep-label'>{t(label)}</div>
+            <div className='prep-time'>{formatDuration(timer.remaining)}</div>
             <button onClick={() => startPrep(key)}>{t(timer.running ? 'Pause' : 'Start')}</button>
-            <button className="link-btn" onClick={() => timer.reset(fmt.prep * 60)}>
+            <button className='link-btn' onClick={() => timer.reset(fmt.prep * 60)}>
               {t('reset')}
             </button>
           </div>

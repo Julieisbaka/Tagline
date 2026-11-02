@@ -32,7 +32,12 @@ export function normalizeCheckup(options = {}) {
       ? CITATION_FIELDS.filter((field) => options.requiredFields.includes(field))
       : DEFAULT_CHECKUP.requiredFields,
     staleYears: clampInt(options.staleYears, 1, 100, DEFAULT_CHECKUP.staleYears),
-    linkTimeoutSeconds: clampInt(options.linkTimeoutSeconds, 1, 60, DEFAULT_CHECKUP.linkTimeoutSeconds),
+    linkTimeoutSeconds: clampInt(
+      options.linkTimeoutSeconds,
+      1,
+      60,
+      DEFAULT_CHECKUP.linkTimeoutSeconds
+    ),
     archiveFallback: options.archiveFallback ?? DEFAULT_CHECKUP.archiveFallback,
   };
 }
@@ -45,14 +50,21 @@ export function normalizeCheckup(options = {}) {
 export function scanCards(files) {
   const cards = [];
   for (const [path, content] of Object.entries(files || {})) {
-    if (!isMarkdown(path)) continue;
+    if (!isMarkdown(path)) {continue;}
     const text = String(content ?? '');
     const lines = text.split(/\r\n?|\n/);
     const references = markdown.lexer(splitFrontmatter(text).body).links;
     for (const card of detectCards(text)) {
-      const { citation, uncertainFields } = extractCardCitation(lines.slice(card.lineIndex + 1, card.endLineIndex).join('\n'), references);
+      const { citation, uncertainFields } = extractCardCitation(
+        lines.slice(card.lineIndex + 1, card.endLineIndex).join('\n'),
+        references
+      );
       cards.push({
-        path, title: card.title, lineIndex: card.lineIndex, citation, citationUncertainFields: uncertainFields,
+        path,
+        title: card.title,
+        lineIndex: card.lineIndex,
+        citation,
+        citationUncertainFields: uncertainFields,
       });
     }
   }
@@ -85,16 +97,26 @@ export function auditCards(cards, options = {}, now = new Date()) {
       if (!card.citation) {
         issues.push({ ...base, kind: 'missing_citation' });
       } else {
-        const uncertain = requiredFields.filter((field) => card.citationUncertainFields?.includes(field));
-        const missing = requiredFields.filter((field) => !card.citation[field] && !uncertain.includes(field));
-        if (missing.length) issues.push({ ...base, kind: 'missing_fields', fields: missing });
-        if (uncertain.length) issues.push({ ...base, kind: 'uncertain_fields', fields: uncertain });
+        const uncertain = requiredFields.filter((field) =>
+          card.citationUncertainFields?.includes(field)
+        );
+        const missing = requiredFields.filter(
+          (field) => !card.citation[field] && !uncertain.includes(field)
+        );
+        if (missing.length) {issues.push({ ...base, kind: 'missing_fields', fields: missing });}
+        if (uncertain.length) {issues.push({ ...base, kind: 'uncertain_fields', fields: uncertain });}
       }
     }
     if (checks.stale && card.citation?.year) {
       const age = currentYear - Number(card.citation.year);
       if (age > staleYears) {
-        issues.push({ ...base, kind: 'stale_date', year: card.citation.year, age, threshold: staleYears });
+        issues.push({
+          ...base,
+          kind: 'stale_date',
+          year: card.citation.year,
+          age,
+          threshold: staleYears,
+        });
       }
     }
   }
@@ -113,7 +135,7 @@ export function linkIssues(cards, results) {
   for (const card of cards) {
     const url = card.citation?.url;
     const result = url && results?.[url];
-    if (result?.status !== 'dead') continue;
+    if (result?.status !== 'dead') {continue;}
     issues.push({
       path: card.path,
       card: card.title,
@@ -128,8 +150,13 @@ export function linkIssues(cards, results) {
 }
 
 const comparableFields = ['author', 'year', 'title', 'publication'];
-const normalizeField = (value) => value.normalize('NFKC').toLocaleLowerCase()
-  .replace(/[^\p{L}\p{N}]+/gu, ' ').trim().replace(/\s+/g, ' ');
+const normalizeField = (value) =>
+  value
+    .normalize('NFKC')
+    .toLocaleLowerCase()
+    .replace(/[^\p{L}\p{N}]+/gu, ' ')
+    .trim()
+    .replace(/\s+/g, ' ');
 
 /** Compare only present, unambiguous fields against fetched source metadata. */
 export function sourceIssues(cards, results) {
@@ -137,7 +164,7 @@ export function sourceIssues(cards, results) {
   for (const card of cards) {
     const url = card.citation?.url;
     const result = url && results[url];
-    if (!result) continue;
+    if (!result) {continue;}
     const base = { path: card.path, card: card.title, lineIndex: card.lineIndex };
     if (result.error) {
       issues.push({ ...base, kind: 'source_unavailable', reason: result.error });
@@ -147,17 +174,19 @@ export function sourceIssues(cards, results) {
     for (const field of comparableFields) {
       const citationValue = card.citation[field];
       const sourceValue = result.metadata?.[field];
-      if (!citationValue || !sourceValue || card.citationUncertainFields?.includes(field)) continue;
+      if (!citationValue || !sourceValue || card.citationUncertainFields?.includes(field)) {continue;}
       const cited = normalizeField(citationValue);
       const source = normalizeField(sourceValue);
-      if (!cited || !source) continue;
+      if (!cited || !source) {continue;}
       compared++;
-      const sameAuthor = field === 'author' && (` ${source} `.includes(` ${cited} `) || ` ${cited} `.includes(` ${source} `));
+      const sameAuthor =
+        field === 'author' &&
+        (` ${source} `.includes(` ${cited} `) || ` ${cited} `.includes(` ${source} `));
       if (cited !== source && !sameAuthor) {
         issues.push({ ...base, kind: 'source_mismatch', field, citationValue, sourceValue });
       }
     }
-    if (!compared) issues.push({ ...base, kind: 'source_not_comparable' });
+    if (!compared) {issues.push({ ...base, kind: 'source_not_comparable' });}
   }
   return issues;
 }
@@ -170,7 +199,7 @@ export function annotateEvidence(files, cards, issues, categories, describe) {
   const updated = { ...files };
   const byPath = new Map();
   for (const card of cards) {
-    if (!byPath.has(card.path)) byPath.set(card.path, []);
+    if (!byPath.has(card.path)) {byPath.set(card.path, []);}
     byPath.get(card.path).push(card);
   }
   for (const [path, fileCards] of byPath) {
@@ -183,20 +212,40 @@ export function annotateEvidence(files, cards, issues, categories, describe) {
       let end = card.lineIndex + 1;
       while (end < lines.length) {
         let next = end;
-        while (next < lines.length && !lines[next].trim()) next++;
-        const match = lines[next]?.match(/^<!-- Evidence checkup \((citation|link|source)\): (.*) -->$/);
-        if (!match) break;
+        while (next < lines.length && !lines[next].trim()) {next++;}
+        const match = lines[next]?.match(
+          /^<!-- Evidence checkup \((citation|link|source)\): (.*) -->$/
+        );
+        if (!match) {break;}
         spacing.push(...lines.slice(end, next));
         comments.set(match[1], lines[next]);
         end = next + 1;
       }
       for (const category of categories) {
-        const messages = issues.filter((issue) => issue.path === path && issue.lineIndex === card.lineIndex &&
-          (issue.kind === 'dead_link' ? 'link' : issue.kind === 'source_mismatch' ? 'source' :
-            issue.kind.startsWith('source_') ? null : 'citation') === category)
-          .map((issue) => describe(issue).replace(/[\r\n]+/g, ' ').replace(/-{2,}/g, (dashes) => [...dashes].join(' ')));
-        if (messages.length) comments.set(category, `<!-- Evidence checkup (${category}): ${messages.join(' | ')} -->`);
-        else comments.delete(category);
+        const messages = issues
+          .filter(
+            (issue) =>
+              issue.path === path &&
+              issue.lineIndex === card.lineIndex &&
+              (issue.kind === 'dead_link'
+                ? 'link'
+                : issue.kind === 'source_mismatch'
+                  ? 'source'
+                  : issue.kind.startsWith('source_')
+                    ? null
+                    : 'citation') === category
+          )
+          .map((issue) =>
+            describe(issue)
+              .replace(/[\r\n]+/g, ' ')
+              .replace(/-{2,}/g, (dashes) => [...dashes].join(' '))
+          );
+        if (messages.length)
+          {comments.set(
+            category,
+            `<!-- Evidence checkup (${category}): ${messages.join(' | ')} -->`
+          );}
+        else {comments.delete(category);}
       }
       lines.splice(card.lineIndex + 1, end - card.lineIndex - 1, ...comments.values(), ...spacing);
     }

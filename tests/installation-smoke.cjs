@@ -10,14 +10,23 @@ if (!process.versions.electron) {
       const installed = path.join(root, version, 'dist');
       fs.cpSync(path.join(__dirname, '..', 'dist'), installed, { recursive: true });
       const result = spawnSync(require('electron'), [__filename], {
-        env: { ...process.env, TAGLINE_INSTALLATION_ROOT: root, TAGLINE_INSTALLATION_VERSION: version },
-        stdio: 'inherit', timeout: 60000,
+        env: {
+          ...process.env,
+          TAGLINE_INSTALLATION_ROOT: root,
+          TAGLINE_INSTALLATION_VERSION: version,
+        },
+        stdio: 'inherit',
+        timeout: 60000,
       });
-      if (result.error) throw result.error;
+      if (result.error) {throw result.error;}
       assert.equal(result.status, 0, `Installation launch ${version} failed`);
     }
-    console.log('PASS: simulated version/location upgrade preserves profile, settings, tabs, extensions, models, credentials and vault history.');
-  } finally { fs.rmSync(root, { recursive: true, force: true, maxRetries: 20, retryDelay: 100 }); }
+    console.log(
+      'PASS: simulated version/location upgrade preserves profile, settings, tabs, extensions, models, credentials and vault history.'
+    );
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true, maxRetries: 20, retryDelay: 100 });
+  }
   return;
 }
 
@@ -29,35 +38,45 @@ const first = version === '1.0.0';
 const profile = path.join(root, 'Tagline');
 const vault = path.join(root, 'vault');
 const openedUrls = [];
-shell.openExternal = async (url) => { openedUrls.push(url); };
+shell.openExternal = async (url) => {
+  openedUrls.push(url);
+};
 let releaseCalls = 0;
 const installerBytes = Buffer.from('Verified test installer, never executable.');
 const installerName = `Tagline-9.0.0-${process.platform === 'darwin' ? `mac-${process.arch}.dmg` : 'win-x64.exe'}`;
-const installerHash = require('node:crypto').createHash('sha256').update(installerBytes).digest('hex');
+const installerHash = require('node:crypto')
+  .createHash('sha256')
+  .update(installerBytes)
+  .digest('hex');
 let invalidChecksum = true;
 global.fetch = async (url) => {
   if (url.endsWith('/releases/latest')) {
     releaseCalls++;
-    if (releaseCalls === 2) throw new Error('Simulated GitHub rate limit');
-    return new Response(JSON.stringify({
-      tag_name: 'v9.0.0',
-      assets: [{ name: installerName, size: installerBytes.length }, { name: 'SHA256SUMS.txt' }]
-    }));
+    if (releaseCalls === 2) {throw new Error('Simulated GitHub rate limit');}
+    return new Response(
+      JSON.stringify({
+        tag_name: 'v9.0.0',
+        assets: [{ name: installerName, size: installerBytes.length }, { name: 'SHA256SUMS.txt' }],
+      })
+    );
   }
-  if (url.endsWith('/SHA256SUMS.txt')) return new Response(`${invalidChecksum ? 'a'.repeat(64) : installerHash}  ${installerName}\n`);
-  if (url.endsWith('/' + installerName)) return new Response(installerBytes);
+  if (url.endsWith('/SHA256SUMS.txt'))
+    {return new Response(`${invalidChecksum ? 'a'.repeat(64) : installerHash}  ${installerName}\n`);}
+  if (url.endsWith('/' + installerName)) {return new Response(installerBytes);}
   throw new Error('Unexpected test network request: ' + url);
 };
 const updateModule = require('../electron/appUpdates.cjs');
 const realCreateUpdateManager = updateModule.createUpdateManager;
 let installerOpened = false;
-updateModule.createUpdateManager = (options) => realCreateUpdateManager({
-  ...options, install: async ({ file }) => {
-    assert.deepEqual(fs.readFileSync(file), installerBytes);
-    installerOpened = true;
-    return { manual: process.platform === 'darwin' };
-  },
-});
+updateModule.createUpdateManager = (options) =>
+  realCreateUpdateManager({
+    ...options,
+    install: async ({ file }) => {
+      assert.deepEqual(fs.readFileSync(file), installerBytes);
+      installerOpened = true;
+      return { manual: process.platform === 'darwin' };
+    },
+  });
 app.setPath('appData', root);
 app.setPath('userData', profile);
 fs.mkdirSync(path.join(root, 'downloads'), { recursive: true });
@@ -67,16 +86,26 @@ Object.defineProperty(app, 'isPackaged', { value: true });
 app.getVersion = () => version;
 const loadFile = BrowserWindow.prototype.loadFile;
 BrowserWindow.prototype.loadFile = function (file, ...args) {
-  return loadFile.call(this, file === path.join(__dirname, '..', 'dist', 'index.html')
-    ? path.join(root, version, 'dist', 'index.html') : file, ...args);
+  return loadFile.call(
+    this,
+    file === path.join(__dirname, '..', 'dist', 'index.html')
+      ? path.join(root, version, 'dist', 'index.html')
+      : file,
+    ...args
+  );
 };
 if (first) {
   fs.mkdirSync(vault, { recursive: true });
   fs.mkdirSync(profile, { recursive: true });
   fs.writeFileSync(path.join(vault, 'Card.md'), '# Saved evidence\n\nKeep this note.\n');
-  fs.writeFileSync(path.join(profile, 'config.json'), JSON.stringify({
-    lastVault: vault, modelAutoload: false, upgradeSentinel: { keep: true },
-  }));
+  fs.writeFileSync(
+    path.join(profile, 'config.json'),
+    JSON.stringify({
+      lastVault: vault,
+      modelAutoload: false,
+      upgradeSentinel: { keep: true },
+    })
+  );
 }
 
 app.on('browser-window-created', (_event, win) => {
@@ -84,15 +113,17 @@ app.on('browser-window-created', (_event, win) => {
     const js = (code) => win.webContents.executeJavaScript(code);
     const wait = async (code) => {
       for (let i = 0; i < 150; i++) {
-        if (await js(code)) return;
+        if (await js(code)) {return;}
         await new Promise((resolve) => setTimeout(resolve, 50));
       }
       throw new Error(`Timed out: ${code}`);
     };
     try {
-      await wait("!!document.querySelector('.onboarding-skip') || JSON.parse(localStorage.getItem('tagline-settings'))?.internalFlags.hasSeenOnboarding");
+      await wait(
+        "!!document.querySelector('.onboarding-skip') || JSON.parse(localStorage.getItem('tagline-settings'))?.internalFlags.hasSeenOnboarding"
+      );
       await js("document.querySelector('.onboarding-skip')?.click()");
-      await wait("!!document.querySelector('.tree-item[title=\"Card.md\"]')");
+      await wait('!!document.querySelector(\'.tree-item[title="Card.md"]\')');
       assert.equal(app.getName(), 'Tagline');
       const info = await js('window.api.getInstallationInfo()');
       assert.equal(info.version, version);
@@ -103,14 +134,24 @@ app.on('browser-window-created', (_event, win) => {
       if (first) {
         const created = await js(`Promise.all(Array.from({ length: 8 }, (_, i) =>
           window.api.create('Concurrent.md', 'Note ' + i)))`);
-        assert.equal(new Set(created).size, created.length, 'Concurrent note creation must use distinct filenames');
+        assert.equal(
+          new Set(created).size,
+          created.length,
+          'Concurrent note creation must use distinct filenames'
+        );
         for (const [index, file] of created.entries()) {
           assert.equal(fs.readFileSync(path.join(vault, file), 'utf8'), `Note ${index}`);
           fs.unlinkSync(path.join(vault, file));
         }
-        const folders = await js(`Promise.all(Array.from({ length: 8 }, () => window.api.mkdir('Concurrent folder', true)))`);
-        assert.equal(new Set(folders).size, folders.length, 'Concurrent folder creation must use distinct paths');
-        for (const folder of folders) fs.rmdirSync(path.join(vault, folder));
+        const folders = await js(
+          `Promise.all(Array.from({ length: 8 }, () => window.api.mkdir('Concurrent folder', true)))`
+        );
+        assert.equal(
+          new Set(folders).size,
+          folders.length,
+          'Concurrent folder creation must use distinct paths'
+        );
+        for (const folder of folders) {fs.rmdirSync(path.join(vault, folder));}
         const disk = require('node:fs/promises');
         const writeFile = disk.writeFile;
         const card = path.join(vault, 'Card.md');
@@ -122,25 +163,47 @@ app.on('browser-window-created', (_event, win) => {
           }
           return writeFile(file, ...args);
         };
-        try { await assert.rejects(js("window.api.write('Card.md', 'Unsaved edit')"), /disk full/); }
-        finally { disk.writeFile = writeFile; }
-        assert.equal(fs.readFileSync(card, 'utf8'), original, 'Failed saves must not truncate the original note');
-        assert.equal(fs.readdirSync(vault).some((file) => file.startsWith('.tagline-save-')), false,
-          'Failed saves clean up temporary files');
+        try {
+          await assert.rejects(js("window.api.write('Card.md', 'Unsaved edit')"), /disk full/);
+        } finally {
+          disk.writeFile = writeFile;
+        }
+        assert.equal(
+          fs.readFileSync(card, 'utf8'),
+          original,
+          'Failed saves must not truncate the original note'
+        );
+        assert.equal(
+          fs.readdirSync(vault).some((file) => file.startsWith('.tagline-save-')),
+          false,
+          'Failed saves clean up temporary files'
+        );
         const defaults = require('../src/lib/defaultSettings.json');
         const settings = {
-          ...defaults, internalFlags: { ...defaults.internalFlags, hasSeenOnboarding: true }, wpm: 333, theme: 'high-contrast-dark', modelAutoload: false,
-          customCss: '.note-title { font-weight: 600; }', keybindings: { settings: 'Mod+,' },
-          themeSettings: { dark: { customOption: 'saved' } }
+          ...defaults,
+          internalFlags: { ...defaults.internalFlags, hasSeenOnboarding: true },
+          wpm: 333,
+          theme: 'high-contrast-dark',
+          modelAutoload: false,
+          customCss: '.note-title { font-weight: 600; }',
+          keybindings: { settings: 'Mod+,' },
+          themeSettings: { dark: { customOption: 'saved' } },
         };
         await js(`localStorage.setItem('tagline-settings', ${JSON.stringify(JSON.stringify(settings))});
           localStorage.setItem('tagline-extension:upgrade-test', '{"saved":"extension data"}');
-          localStorage.setItem(${JSON.stringify(`tabs:${vault}`)}, ${JSON.stringify(JSON.stringify({
-          tabs: [{ id: 'saved-card', kind: 'file', path: 'Card.md' }], activeId: 'saved-card',
-        }))});`);
+          localStorage.setItem(${JSON.stringify(`tabs:${vault}`)}, ${JSON.stringify(
+            JSON.stringify({
+              tabs: [{ id: 'saved-card', kind: 'file', path: 'Card.md' }],
+              activeId: 'saved-card',
+            })
+          )});`);
         const retained = {
           'extensions/upgrade-test/manifest.json': JSON.stringify({
-            manifestVersion: 1, id: 'upgrade-test', name: 'Upgrade test', version: '1.0.0', main: 'main.js',
+            manifestVersion: 1,
+            id: 'upgrade-test',
+            name: 'Upgrade test',
+            version: '1.0.0',
+            main: 'main.js',
           }),
           'extensions/upgrade-test/main.js': '// Saved extension\n',
           'semantic-search/models/keep.bin': 'cached model bytes',
@@ -150,85 +213,165 @@ app.on('browser-window-created', (_event, win) => {
           fs.writeFileSync(path.join(profile, file), text);
         }
         const encrypted = await safeStorage.isAsyncEncryptionAvailable();
-        const credential = encrypted ? await safeStorage.encryptStringAsync('upgrade-test-token') : Buffer.from('sentinel');
+        const credential = encrypted
+          ? await safeStorage.encryptStringAsync('upgrade-test-token')
+          : Buffer.from('sentinel');
         fs.writeFileSync(path.join(profile, 'credential-preservation.bin'), credential);
-        await js("window.api.write('Card.md', '# Saved evidence\\n\\nUpdated before upgrade.\\n', 50)");
-        fs.writeFileSync(path.join(root, 'expected.json'), JSON.stringify({
-          settings, retained, encrypted, credential: credential.toString('base64'),
-          history: await js("window.api.listHistory('Card.md')"),
-        }));
+        await js(
+          "window.api.write('Card.md', '# Saved evidence\\n\\nUpdated before upgrade.\\n', 50)"
+        );
+        fs.writeFileSync(
+          path.join(root, 'expected.json'),
+          JSON.stringify({
+            settings,
+            retained,
+            encrypted,
+            credential: credential.toString('base64'),
+            history: await js("window.api.listHistory('Card.md')"),
+          })
+        );
       } else {
         const expected = JSON.parse(fs.readFileSync(path.join(root, 'expected.json'), 'utf8'));
         await wait("!!document.querySelector('.note-title')");
         const settings = await js("JSON.parse(localStorage.getItem('tagline-settings'))");
-        for (const [key, value] of Object.entries(expected.settings)) assert.deepEqual(settings[key], value, key);
-        assert.deepEqual(await js("JSON.parse(localStorage.getItem('tagline-extension:upgrade-test'))"), { saved: 'extension data' });
+        for (const [key, value] of Object.entries(expected.settings))
+          {assert.deepEqual(settings[key], value, key);}
+        assert.deepEqual(
+          await js("JSON.parse(localStorage.getItem('tagline-extension:upgrade-test'))"),
+          { saved: 'extension data' }
+        );
         assert.equal(await js("document.querySelector('.note-title').value"), 'Card');
         assert.equal(await js('document.documentElement.dataset.theme'), 'high-contrast-dark');
         for (const [file, text] of Object.entries(expected.retained))
-          assert.equal(fs.readFileSync(path.join(profile, file), 'utf8'), text);
-        assert.equal(fs.readFileSync(path.join(profile, 'credential-preservation.bin')).toString('base64'), expected.credential);
+          {assert.equal(fs.readFileSync(path.join(profile, file), 'utf8'), text);}
+        assert.equal(
+          fs.readFileSync(path.join(profile, 'credential-preservation.bin')).toString('base64'),
+          expected.credential
+        );
         if (expected.encrypted) {
-          const decrypted = await safeStorage.decryptStringAsync(fs.readFileSync(path.join(profile, 'credential-preservation.bin')));
+          const decrypted = await safeStorage.decryptStringAsync(
+            fs.readFileSync(path.join(profile, 'credential-preservation.bin'))
+          );
           assert.equal(decrypted.result, 'upgrade-test-token');
         }
-        assert.deepEqual(JSON.parse(fs.readFileSync(path.join(profile, 'config.json'), 'utf8')).upgradeSentinel, { keep: true });
-        assert.match(fs.readFileSync(path.join(vault, 'Card.md'), 'utf8'), /Updated before upgrade/);
+        assert.deepEqual(
+          JSON.parse(fs.readFileSync(path.join(profile, 'config.json'), 'utf8')).upgradeSentinel,
+          { keep: true }
+        );
+        assert.match(
+          fs.readFileSync(path.join(vault, 'Card.md'), 'utf8'),
+          /Updated before upgrade/
+        );
         assert.deepEqual(await js("window.api.listHistory('Card.md')"), expected.history);
         assert.ok(expected.history.length > 0);
         await js("document.querySelector('.ribbon-settings-button').click()");
         await wait("!!document.querySelector('[data-section=installation]')");
         await js("document.querySelector('[data-section=installation]').click()");
         await wait("!!document.querySelector('.installation-details')");
-        const reportWidth = await js("document.querySelector('.installation-report').getBoundingClientRect().width");
-        const settingsWidth = await js("document.querySelector('.installation-settings').getBoundingClientRect().width");
-        assert.ok(reportWidth > settingsWidth * 0.8, 'Copyable bug report details should fill the settings width');
+        const reportWidth = await js(
+          "document.querySelector('.installation-report').getBoundingClientRect().width"
+        );
+        const settingsWidth = await js(
+          "document.querySelector('.installation-settings').getBoundingClientRect().width"
+        );
+        assert.ok(
+          reportWidth > settingsWidth * 0.8,
+          'Copyable bug report details should fill the settings width'
+        );
         const displayed = await js("document.querySelector('.installation-settings').textContent");
         assert.ok(displayed.includes(version));
         assert.ok(displayed.includes(profile));
         assert.ok(displayed.includes('does not check for or install updates automatically'));
         assert.equal(releaseCalls, 0, 'opening settings never contacts GitHub automatically');
-        await js("[...document.querySelectorAll('.installation-settings button')].find(el => el.textContent === 'Check for updates').click()");
-        await wait("document.querySelector('.installation-settings [role=status]')?.textContent.includes('v9.0.0')");
-        await js("[...document.querySelectorAll('.installation-settings button')].find(el => el.textContent === 'Check for updates').click()");
-        await wait("document.querySelector('.installation-settings [role=alert]')?.textContent.includes('Simulated GitHub rate limit')");
-        await js("[...document.querySelectorAll('.installation-settings button')].find(el => el.textContent === 'Check for updates').click()");
-        await wait("!![...document.querySelectorAll('.installation-settings button')].find(el => el.textContent === 'Download update')");
-        await js("[...document.querySelectorAll('.installation-settings button')].find(el => el.textContent === 'Download update').click()");
-        await wait("document.querySelector('.installation-settings [role=alert]')?.textContent.includes('verification failed')");
+        await js(
+          "[...document.querySelectorAll('.installation-settings button')].find(el => el.textContent === 'Check for updates').click()"
+        );
+        await wait(
+          "document.querySelector('.installation-settings [role=status]')?.textContent.includes('v9.0.0')"
+        );
+        await js(
+          "[...document.querySelectorAll('.installation-settings button')].find(el => el.textContent === 'Check for updates').click()"
+        );
+        await wait(
+          "document.querySelector('.installation-settings [role=alert]')?.textContent.includes('Simulated GitHub rate limit')"
+        );
+        await js(
+          "[...document.querySelectorAll('.installation-settings button')].find(el => el.textContent === 'Check for updates').click()"
+        );
+        await wait(
+          "!![...document.querySelectorAll('.installation-settings button')].find(el => el.textContent === 'Download update')"
+        );
+        await js(
+          "[...document.querySelectorAll('.installation-settings button')].find(el => el.textContent === 'Download update').click()"
+        );
+        await wait(
+          "document.querySelector('.installation-settings [role=alert]')?.textContent.includes('verification failed')"
+        );
         assert.equal(installerOpened, false);
         invalidChecksum = false;
-        await js("[...document.querySelectorAll('.installation-settings button')].find(el => el.textContent === 'Download update').click()");
-        await wait("!![...document.querySelectorAll('.installation-settings button')].find(el => /Install update and restart|Open installer/.test(el.textContent))");
-        assert.equal((await js("window.api.getUpdateState()")).status, 'ready');
-        await js("[...document.querySelectorAll('.installation-settings button')].find(el => el.textContent === 'GitHub repository').click()");
-        await js("[...document.querySelectorAll('.installation-settings button')].find(el => el.textContent === 'View releases').click()");
-        assert.deepEqual(openedUrls, ['https://github.com/Julieisbaka/Tagline', 'https://github.com/Julieisbaka/Tagline/releases']);
-        await assert.rejects(js("window.api.openProjectPage('https://example.com')"), /Unknown project page/);
+        await js(
+          "[...document.querySelectorAll('.installation-settings button')].find(el => el.textContent === 'Download update').click()"
+        );
+        await wait(
+          "!![...document.querySelectorAll('.installation-settings button')].find(el => /Install update and restart|Open installer/.test(el.textContent))"
+        );
+        assert.equal((await js('window.api.getUpdateState()')).status, 'ready');
+        await js(
+          "[...document.querySelectorAll('.installation-settings button')].find(el => el.textContent === 'GitHub repository').click()"
+        );
+        await js(
+          "[...document.querySelectorAll('.installation-settings button')].find(el => el.textContent === 'View releases').click()"
+        );
+        assert.deepEqual(openedUrls, [
+          'https://github.com/Julieisbaka/Tagline',
+          'https://github.com/Julieisbaka/Tagline/releases',
+        ]);
+        await assert.rejects(
+          js("window.api.openProjectPage('https://example.com')"),
+          /Unknown project page/
+        );
         await js("document.querySelector('.installation-settings > button.danger').click()");
         await wait("!!document.querySelector('.uninstall-dialog')");
-        const uninstallChoices = await js("document.querySelector('.uninstall-dialog').textContent");
+        const uninstallChoices = await js(
+          "document.querySelector('.uninstall-dialog').textContent"
+        );
         assert.ok(uninstallChoices.includes('Keep profile data'));
         assert.ok(uninstallChoices.includes('Remove profile data'));
         assert.ok(uninstallChoices.includes('vault files and revision history'));
-        assert.equal(await js("document.querySelector('.uninstall-dialog input[type=radio]').checked"), true);
+        assert.equal(
+          await js("document.querySelector('.uninstall-dialog input[type=radio]').checked"),
+          true
+        );
         await js("document.querySelector('.uninstall-dialog button').click()");
         await wait("!document.querySelector('.uninstall-dialog')");
         const originalQuit = app.quit;
         let quitRequested = false;
-        app.quit = () => { quitRequested = true; };
+        app.quit = () => {
+          quitRequested = true;
+        };
         try {
-          await js("[...document.querySelectorAll('.installation-settings button')].find(el => /Install update and restart|Open installer/.test(el.textContent)).click()");
-          await wait(`window.api.getUpdateState().then(state => state.status === '${process.platform === 'darwin' ? 'ready' : 'installing'}')`);
+          await js(
+            "[...document.querySelectorAll('.installation-settings button')].find(el => /Install update and restart|Open installer/.test(el.textContent)).click()"
+          );
+          await wait(
+            `window.api.getUpdateState().then(state => state.status === '${process.platform === 'darwin' ? 'ready' : 'installing'}')`
+          );
           await new Promise((resolve) => setTimeout(resolve, 50));
           assert.equal(installerOpened, true);
           assert.equal(quitRequested, process.platform !== 'darwin');
-        } finally { app.quit = originalQuit; }
+        } finally {
+          app.quit = originalQuit;
+        }
       }
       app.exit(0);
-    } catch (error) { console.error(error); app.exit(1); }
+    } catch (error) {
+      console.error(error);
+      app.exit(1);
+    }
   });
 });
-require(process.env.TAGLINE_INSTALLATION_APP
-  ? path.join(process.env.TAGLINE_INSTALLATION_APP, 'electron', 'main.cjs')
-  : '../electron/main.cjs');
+require(
+  process.env.TAGLINE_INSTALLATION_APP
+    ? path.join(process.env.TAGLINE_INSTALLATION_APP, 'electron', 'main.cjs')
+    : '../electron/main.cjs'
+);

@@ -62,6 +62,6 @@
 }
 
 .uninstall-dialog .danger,
-.installation-settings>.danger {
+.installation-settings > .danger {
   color: var(--danger);
 }

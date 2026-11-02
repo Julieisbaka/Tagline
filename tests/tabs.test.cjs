@@ -11,7 +11,10 @@ test('workspace tabs restore only valid vault-relative paths and known tab kinds
     activeId: 'graph',
   });
   assert.deepEqual(restored, {
-    tabs: [{ id: 'one', kind: 'file', path: 'Folder/Note.md' }, { id: 'graph', kind: 'graph' }],
+    tabs: [
+      { id: 'one', kind: 'file', path: 'Folder/Note.md' },
+      { id: 'graph', kind: 'graph' },
+    ],
     activeId: 'graph',
     warning: null,
   });
@@ -21,9 +24,22 @@ test('workspace tabs restore only valid vault-relative paths and known tab kinds
     { tabs: [{ id: 'one', kind: 'unknown' }], activeId: null },
     { tabs: [{ id: 'one', kind: 'file', path: '../outside.md' }], activeId: null },
     { tabs: [{ id: 'one', kind: 'file', path: 'C:\\outside.md' }], activeId: null },
-    { tabs: [{ id: 'same', kind: 'graph' }, { id: 'same', kind: 'file', path: 'Note.md' }], activeId: null },
-    { tabs: [{ id: 'one', kind: 'graph' }, { id: 'two', kind: 'graph' }], activeId: null },
-  ]) assert.throws(() => restoreTabs(saved));
+    {
+      tabs: [
+        { id: 'same', kind: 'graph' },
+        { id: 'same', kind: 'file', path: 'Note.md' },
+      ],
+      activeId: null,
+    },
+    {
+      tabs: [
+        { id: 'one', kind: 'graph' },
+        { id: 'two', kind: 'graph' },
+      ],
+      activeId: null,
+    },
+  ])
+    {assert.throws(() => restoreTabs(saved));}
 });
 
 test('workspace tabs recover when the saved active ID no longer exists', async () => {
@@ -33,14 +49,20 @@ test('workspace tabs recover when the saved active ID no longer exists', async (
     activeId: 'one',
     warning: 'The saved active tab was unavailable; the first open tab was selected.',
   };
-  assert.deepEqual(restoreTabs({
-    tabs: [{ id: 'one', kind: 'file', path: 'Note.md' }],
-    activeId: 'deleted',
-  }), expected);
-  assert.deepEqual(restoreTabs({
-    tabs: [{ id: 'one', kind: 'file', path: 'Note.md' }],
-    activeId: '',
-  }), expected);
+  assert.deepEqual(
+    restoreTabs({
+      tabs: [{ id: 'one', kind: 'file', path: 'Note.md' }],
+      activeId: 'deleted',
+    }),
+    expected
+  );
+  assert.deepEqual(
+    restoreTabs({
+      tabs: [{ id: 'one', kind: 'file', path: 'Note.md' }],
+      activeId: '',
+    }),
+    expected
+  );
 });
 
 test('tabs reorder by destination index without mutating the existing order', async () => {

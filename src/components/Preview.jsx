@@ -1,19 +1,27 @@
 import { useEffect, useMemo, useRef } from 'react';
 import { renderMarkdown, slugify } from '../lib/markdown.js';
 
-export default function Preview({ content, resolve, onOpenLink, onTagClick, highlightOnly, scrollTo, className = '' }) {
+export default function Preview({
+  content,
+  resolve,
+  onOpenLink,
+  onTagClick,
+  highlightOnly,
+  scrollTo,
+  className = '',
+}) {
   const ref = useRef(null);
   const html = useMemo(() => renderMarkdown(content, resolve), [content, resolve]);
 
   useEffect(() => {
-    if (!scrollTo?.heading || !ref.current) return;
+    if (!scrollTo?.heading || !ref.current) {return;}
     const el = ref.current.querySelector(`#${CSS.escape(slugify(scrollTo.heading))}`);
     el?.scrollIntoView({ block: 'start' });
   }, [scrollTo, html]);
 
   const onClick = (e) => {
     const link = e.target.closest('a');
-    if (!link) return;
+    if (!link) {return;}
     if (link.classList.contains('internal-link')) {
       e.preventDefault();
       onOpenLink(link.dataset.href, link.dataset.heading, e.ctrlKey || e.metaKey);

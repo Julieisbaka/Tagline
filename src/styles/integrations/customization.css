@@ -32,7 +32,7 @@
   font-size: 12px;
 }
 
-.theme-metadata dl>div {
+.theme-metadata dl > div {
   display: flex;
   gap: 12px;
   margin-block: 4px;
@@ -177,7 +177,7 @@
   background: var(--bg-hover);
 }
 
-.keybinding-row>button:not(.mini) {
+.keybinding-row > button:not(.mini) {
   min-width: 140px;
   font: 12px var(--font-mono);
 }

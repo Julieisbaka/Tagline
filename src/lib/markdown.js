@@ -2,14 +2,17 @@ import DOMPurify from 'dompurify';
 import { Marked } from 'marked';
 import { splitFrontmatter } from './frontmatter.js';
 
-/** 
+/**
  * Escape text for insertion into HTML markup.
  * This function replaces special characters in the input string with their corresponding HTML entities to prevent HTML injection and ensure safe rendering within HTML content.
  * @param {string} s - The input string to escape.
  * @returns {string} - The escaped string safe for HTML insertion.
  */
 const escapeHtml = (s) =>
-  s.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
+  s.replace(
+    /[&<>"']/g,
+    (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]
+  );
 
 /** Create a link extension bound to the resolver for one Markdown render. @param {function} resolver @returns {object} */
 const createWikilinkExtension = (resolver) => ({
@@ -18,8 +21,15 @@ const createWikilinkExtension = (resolver) => ({
   start: (src) => src.match(/!?\[\[/)?.index,
   tokenizer(src) {
     const m = /^(!?)\[\[([^\]|#]+)(#[^\]|]*)?(?:\|([^\]]*))?\]\]/.exec(src);
-    if (!m) return undefined;
-    return { type: 'wikilink', raw: m[0], embed: !!m[1], target: m[2].trim(), heading: m[3] || '', alias: m[4] };
+    if (!m) {return undefined;}
+    return {
+      type: 'wikilink',
+      raw: m[0],
+      embed: !!m[1],
+      target: m[2].trim(),
+      heading: m[3] || '',
+      alias: m[4],
+    };
   },
   renderer(tok) {
     const resolved = resolver(tok.target);
@@ -29,7 +39,7 @@ const createWikilinkExtension = (resolver) => ({
   },
 });
 
-/** 
+/**
  * Create a Marked inline extension for a paired debate-formatting delimiter.
  * This function generates a custom inline extension for the Marked parser that recognizes a specific paired delimiter (e.g., == for highlights) and wraps the enclosed content in the specified HTML tag with an optional CSS class.
  * @param {string} name - The name of the extension.
@@ -50,7 +60,7 @@ const makeWrap = (name, delim, tag, cls = '') => {
     },
     tokenizer(src) {
       const m = re.exec(src);
-      if (!m) return undefined;
+      if (!m) {return undefined;}
       return { type: name, raw: m[0], tokens: this.lexer.inlineTokens(m[1]) };
     },
     renderer(tok) {
@@ -65,7 +75,7 @@ const tag = {
   start: (src) => src.match(/(^|\s)#[A-Za-z]/)?.index,
   tokenizer(src) {
     const m = /^(\s?)#([A-Za-z][\w/-]*)/.exec(src);
-    if (!m) return undefined;
+    if (!m) {return undefined;}
     return { type: 'tag', raw: m[0], lead: m[1], tag: m[2] };
   },
   renderer(tok) {
@@ -98,7 +108,7 @@ export const createMarkdownParser = (resolver) => {
   return parser;
 };
 
-/** 
+/**
  * Create a stable lowercase Markdown heading anchor slug.
  * This function generates a URL-friendly slug from the given heading text by converting it to lowercase, removing HTML entities and non-word characters, trimming whitespace, and replacing spaces with hyphens. It is used to assign consistent IDs to Markdown headings for linking and navigation purposes.
  * @param {string} text - The heading text to convert into a slug.
@@ -113,7 +123,7 @@ export function slugify(text) {
     .replace(/\s+/g, '-');
 }
 
-/** 
+/**
  * Render Tagline Markdown to sanitized HTML, resolving internal links with an optional callback.
  * This function takes a Markdown string, parses it into HTML using the Marked parser with custom extensions, and then sanitizes the resulting HTML using DOMPurify to prevent XSS and other security issues. An optional resolver callback can be provided to handle internal link resolution.
  * @param {string} src - The Markdown source string to render.

@@ -246,7 +246,13 @@
   padding: 0;
   border: 0;
   border-radius: 0;
-  background: linear-gradient(135deg, transparent 50%, var(--text-muted) 50%, var(--text-muted) 57%, transparent 57%);
+  background: linear-gradient(
+    135deg,
+    transparent 50%,
+    var(--text-muted) 50%,
+    var(--text-muted) 57%,
+    transparent 57%
+  );
   cursor: nwse-resize;
   touch-action: none;
 }

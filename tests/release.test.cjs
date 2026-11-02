@@ -3,11 +3,23 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 const { createHash } = require('node:crypto');
-const workflow = require('js-yaml').load(fs.readFileSync(path.join(__dirname, '..', '.github', 'workflows', 'release.yml'), 'utf8'));
-const AsyncFunction = Object.getPrototypeOf(async function () { }).constructor;
+const workflow = require('js-yaml').load(
+  fs.readFileSync(path.join(__dirname, '..', '.github', 'workflows', 'release.yml'), 'utf8')
+);
+const AsyncFunction = Object.getPrototypeOf(async function () {}).constructor;
 const context = { repo: { owner: 'test', repo: 'tagline' }, sha: 'selected-commit' };
-const missing = () => { throw Object.assign(new Error('Not found'), { status: 404 }); };
-const core = { setOutput() { }, summary: { addLink() { return this; }, write() { } } };
+const missing = () => {
+  throw Object.assign(new Error('Not found'), { status: 404 });
+};
+const core = {
+  setOutput() {},
+  summary: {
+    addLink() {
+      return this;
+    },
+    write() {},
+  },
+};
 
 function containsUrl(text, expectedUrl) {
   const expected = new URL(expectedUrl);
@@ -31,17 +43,40 @@ test('packaging retains only target ONNX binaries and preserves runtime dependen
   const directoryStat = { isDirectory: () => true };
   for (const [target, platform] of Object.entries(platforms)) {
     for (const arch of architectures) {
-      const matcher = getNodeModuleFileMatcher(root, root, (pattern) => pattern.replaceAll('${arch}', arch),
-        build[target], { config: build, debugLogger: { isEnabled: false } });
+      const matcher = getNodeModuleFileMatcher(
+        root,
+        root,
+        (pattern) => pattern.replaceAll('${arch}', arch),
+        build[target],
+        { config: build, debugLogger: { isEnabled: false } }
+      );
       const accepts = matcher.createFilter();
       for (const os of Object.values(platforms)) {
         for (const cpu of architectures) {
           for (const napi of ['napi-v6', 'napi-v7']) {
-            for (const file of ['onnxruntime_binding.node', 'onnxruntime.dll', 'libonnxruntime.so.1',
-              'libonnxruntime.dylib', 'DirectML.dll', 'dxcompiler.dll', 'dxil.dll']) {
-              const relative = path.join('node_modules', 'onnxruntime-node', 'bin', napi, os, cpu, file);
-              assert.equal(accepts(path.join(root, relative), fileStat), os === platform && cpu === arch,
-                `${target}-${arch}: ${relative}`);
+            for (const file of [
+              'onnxruntime_binding.node',
+              'onnxruntime.dll',
+              'libonnxruntime.so.1',
+              'libonnxruntime.dylib',
+              'DirectML.dll',
+              'dxcompiler.dll',
+              'dxil.dll',
+            ]) {
+              const relative = path.join(
+                'node_modules',
+                'onnxruntime-node',
+                'bin',
+                napi,
+                os,
+                cpu,
+                file
+              );
+              assert.equal(
+                accepts(path.join(root, relative), fileStat),
+                os === platform && cpu === arch,
+                `${target}-${arch}: ${relative}`
+              );
             }
           }
         }
@@ -53,9 +88,20 @@ test('packaging retains only target ONNX binaries and preserves runtime dependen
         'node_modules/@huggingface/transformers/dist/transformers.node.mjs',
         'node_modules/onnxruntime-web/dist/ort-wasm-simd-threaded.wasm',
       ]) {
-        assert.ok(accepts(path.resolve(root, relative), fileStat), `${target}-${arch}: keep ${relative}`);
+        assert.ok(
+          accepts(path.resolve(root, relative), fileStat),
+          `${target}-${arch}: keep ${relative}`
+        );
       }
-      const nativeDir = path.join(root, 'node_modules', 'onnxruntime-node', 'bin', 'napi-v6', platform, arch);
+      const nativeDir = path.join(
+        root,
+        'node_modules',
+        'onnxruntime-node',
+        'bin',
+        'napi-v6',
+        platform,
+        arch
+      );
       for (let dir = nativeDir; dir !== root; dir = path.dirname(dir)) {
         if (path.basename(dir) !== 'node_modules') {
           assert.ok(accepts(dir, directoryStat), `${target}-${arch}: traverse ${dir}`);
@@ -71,8 +117,10 @@ test('release workflow runs only manually, packages all architectures and publis
   assert.deepEqual(workflow.jobs.publish.needs, ['version', 'build']);
   assert.equal(workflow.jobs.publish.permissions.contents, 'write');
   assert.equal(workflow.concurrency['cancel-in-progress'], false);
-  assert.deepEqual(workflow.jobs.build.strategy.matrix.include.map(({ platform, arch }) => `${platform}-${arch}`),
-    ['win-x64', 'mac-x64', 'mac-arm64']);
+  assert.deepEqual(
+    workflow.jobs.build.strategy.matrix.include.map(({ platform, arch }) => `${platform}-${arch}`),
+    ['win-x64', 'mac-x64', 'mac-arm64']
+  );
   assert.ok(workflow.jobs.build.steps.some((step) => step.run?.includes('--publish never')));
   assert.ok(workflow.jobs.build.steps.some((step) => step.run === 'npm run test:installation'));
 });
@@ -80,102 +128,189 @@ test('release workflow runs only manually, packages all architectures and publis
 test('release tests shared logic once and gates every platform build on it', () => {
   const { scripts } = require('../package.json');
   assert.equal(scripts.test, 'node --test --test-reporter=tap "tests/*.test.cjs"');
-  assert.equal(scripts['test:shared'], 'node --test --test-skip-pattern=^platform: "tests/*.test.cjs"');
-  assert.equal(scripts['test:platform'], 'node --test --test-name-pattern=^platform: "tests/*.test.cjs"');
+  assert.equal(
+    scripts['test:shared'],
+    'node --test --test-skip-pattern=^platform: "tests/*.test.cjs"'
+  );
+  assert.equal(
+    scripts['test:platform'],
+    'node --test --test-name-pattern=^platform: "tests/*.test.cjs"'
+  );
   assert.equal(workflow.jobs.test.needs, 'version');
   assert.equal(workflow.jobs.test['runs-on'], 'ubuntu-latest');
   assert.deepEqual(workflow.jobs.build.needs, ['version', 'test']);
-  for (const [job, command] of [[workflow.jobs.test, 'npm run test:shared'], [workflow.jobs.build, 'npm run test:platform']]) {
+  for (const [job, command] of [
+    [workflow.jobs.test, 'npm run test:shared'],
+    [workflow.jobs.build, 'npm run test:platform'],
+  ]) {
     const commands = job.steps.map((step) => step.run).filter(Boolean);
     const commandIndex = commands.findIndex((run) => run.includes(command));
     assert.notEqual(commandIndex, -1);
     assert.equal(commands.filter((run) => run.includes(command)).length, 1);
     assert.ok(commands.indexOf('npm ci') < commandIndex);
-    assert.ok(!commands.includes('npm test'), 'the full suite must not repeat inside the release matrix');
-    assert.equal(job.steps.find((step) => step.uses === 'actions/setup-node@v4').with['node-version'], '24');
+    assert.ok(
+      !commands.includes('npm test'),
+      'the full suite must not repeat inside the release matrix'
+    );
+    assert.equal(
+      job.steps.find((step) => step.uses === 'actions/setup-node@v4').with['node-version'],
+      '24'
+    );
   }
   assert.ok(!workflow.jobs.test.strategy, 'shared tests do not use a platform matrix');
-  const sharedCommand = workflow.jobs.test.steps.find((step) => step.run?.includes('npm run test:shared')).run;
-  assert.ok(sharedCommand.includes('npm run build'), 'shared tests and the renderer build run together');
-  assert.ok(workflow.jobs.test.steps.some((step) =>
-    step.uses === 'actions/upload-artifact@v4' && step.with.name === 'renderer-dist'));
-  assert.ok(workflow.jobs.build.steps.some((step) =>
-    step.uses === 'actions/download-artifact@v4' && step.with.name === 'renderer-dist'));
+  const sharedCommand = workflow.jobs.test.steps.find((step) =>
+    step.run?.includes('npm run test:shared')
+  ).run;
+  assert.ok(
+    sharedCommand.includes('npm run build'),
+    'shared tests and the renderer build run together'
+  );
+  assert.ok(
+    workflow.jobs.test.steps.some(
+      (step) => step.uses === 'actions/upload-artifact@v4' && step.with.name === 'renderer-dist'
+    )
+  );
+  assert.ok(
+    workflow.jobs.build.steps.some(
+      (step) => step.uses === 'actions/download-artifact@v4' && step.with.name === 'renderer-dist'
+    )
+  );
   const builds = workflow.jobs.build.steps.map((step) => step.run).filter(Boolean);
   assert.ok(!builds.includes('npm run build'), 'platform jobs reuse the shared renderer build');
   assert.ok(builds.indexOf('npm run test:platform') < builds.indexOf('npm run test:installation'));
-  assert.ok(builds.indexOf('npm run test:installation') < builds.findIndex((run) => run.includes('electron-builder')));
+  assert.ok(
+    builds.indexOf('npm run test:installation') <
+      builds.findIndex((run) => run.includes('electron-builder'))
+  );
 });
 
 test('full test runner builds the renderer once and standalone smoke scripts prepare it', () => {
   const { scripts } = require('../package.json');
-  const runner = fs.readFileSync(path.join(__dirname, '..', 'scripts', 'run-all-tests.cjs'), 'utf8');
-  const smokeRunner = fs.readFileSync(path.join(__dirname, '..', 'scripts', 'run-smoke.cjs'), 'utf8');
+  const runner = fs.readFileSync(
+    path.join(__dirname, '..', 'scripts', 'run-all-tests.cjs'),
+    'utf8'
+  );
+  const smokeRunner = fs.readFileSync(
+    path.join(__dirname, '..', 'scripts', 'run-smoke.cjs'),
+    'utf8'
+  );
   assert.match(runner, /runSuite\('build'\)/);
   assert.match(runner, /TAGLINE_TEST_DIST_READY = '1'/);
   assert.match(smokeRunner, /TAGLINE_TEST_DIST_READY !== '1'/);
-  assert.equal(Object.values(scripts).filter((command) => command.includes('scripts/run-smoke.cjs')).length, 20);
+  assert.equal(
+    Object.values(scripts).filter((command) => command.includes('scripts/run-smoke.cjs')).length,
+    20
+  );
 });
 
-function preflight({ version = '1.2.3', lockVersion = version, tagCommit, release, status = 404 } = {}) {
+function preflight({
+  version = '1.2.3',
+  lockVersion = version,
+  tagCommit,
+  release,
+  status = 404,
+} = {}) {
   const script = workflow.jobs.version.steps.find((step) => step.id === 'version').with.script;
   const outputs = {};
-  return new AsyncFunction('require', 'github', 'context', 'core', script)((name) => {
-    if (name === 'node:fs') return {
-      readFileSync: (file) => JSON.stringify(file === 'package.json'
-        ? { version } : { version: lockVersion, packages: { '': { version: lockVersion } } })
-    };
-    if (name === 'node:child_process') return {
-      execFileSync: (_file, args) => args[0] === 'tag'
-        ? tagCommit ? `v${version}\n` : '' : tagCommit
-    };
-    throw new Error(`Unexpected import: ${name}`);
-  }, {
-    rest: {
-      repos: {
-        getReleaseByTag: async () => {
-          if (!release) throw Object.assign(new Error('API error'), { status });
-          return { data: release };
-        }
-      }
+  return new AsyncFunction('require', 'github', 'context', 'core', script)(
+    (name) => {
+      if (name === 'node:fs')
+        {return {
+          readFileSync: (file) =>
+            JSON.stringify(
+              file === 'package.json'
+                ? { version }
+                : { version: lockVersion, packages: { '': { version: lockVersion } } }
+            ),
+        };}
+      if (name === 'node:child_process')
+        {return {
+          execFileSync: (_file, args) =>
+            args[0] === 'tag' ? (tagCommit ? `v${version}\n` : '') : tagCommit,
+        };}
+      throw new Error(`Unexpected import: ${name}`);
+    },
+    {
+      rest: {
+        repos: {
+          getReleaseByTag: async () => {
+            if (!release) {throw Object.assign(new Error('API error'), { status });}
+            return { data: release };
+          },
+        },
+      },
+    },
+    context,
+    {
+      setOutput: (key, value) => {
+        outputs[key] = value;
+      },
     }
-  }, context, { setOutput: (key, value) => { outputs[key] = value; } }).then(() => outputs);
+  ).then(() => outputs);
 }
 
 test('release preflight uses package version and refuses mismatched locks, tags and published releases', async () => {
   assert.deepEqual(await preflight(), { version: '1.2.3', tag: 'v1.2.3' });
-  assert.deepEqual(await preflight({ tagCommit: context.sha, release: { draft: true } }),
-    { version: '1.2.3', tag: 'v1.2.3' });
+  assert.deepEqual(await preflight({ tagCommit: context.sha, release: { draft: true } }), {
+    version: '1.2.3',
+    tag: 'v1.2.3',
+  });
   await assert.rejects(preflight({ lockVersion: '1.2.2' }), /package-lock/);
   await assert.rejects(preflight({ tagCommit: 'another-commit' }), /another commit/);
   await assert.rejects(preflight({ release: { draft: false } }), /already published/);
-  await assert.rejects(preflight({ release: { draft: true, target_commitish: 'another-commit' } }), /draft for another commit/);
+  await assert.rejects(
+    preflight({ release: { draft: true, target_commitish: 'another-commit' } }),
+    /draft for another commit/
+  );
   await assert.rejects(preflight({ status: 403 }), /API error/);
 });
 
-async function publish({ draft, failUpload, extraFile, previous = true,
+async function publish({
+  draft,
+  failUpload,
+  extraFile,
+  previous = true,
   records = [
     { sha: 'abc123456789', subject: 'Fix a setting', email: 'existing@example.test' },
-    { sha: 'fed987654321', subject: 'Add [links] and *formatting*', email: 'existing@example.test' },
-  ], notes = 'Changes', oldEmails = ['existing@example.test'], authors = {}, earlierAuthors = [],
-  pulls = {}, apiError, draftBody = 'Handwritten release notes.\n\n<!-- tagline-release-commits -->\nOutdated commit list',
+    {
+      sha: 'fed987654321',
+      subject: 'Add [links] and *formatting*',
+      email: 'existing@example.test',
+    },
+  ],
+  notes = 'Changes',
+  oldEmails = ['existing@example.test'],
+  authors = {},
+  earlierAuthors = [],
+  pulls = {},
+  apiError,
+  draftBody = 'Handwritten release notes.\n\n<!-- tagline-release-commits -->\nOutdated commit list',
 } = {}) {
   const script = workflow.jobs.publish.steps.find((step) => step.with?.script).with.script;
-  const files = Object.fromEntries(['win-x64.exe', 'mac-x64.dmg', 'mac-arm64.dmg']
-    .map((suffix) => [`Tagline-1.2.3-${suffix}`, Buffer.from(suffix)]));
-  if (extraFile) files[extraFile] = Buffer.from('unexpected');
+  const files = Object.fromEntries(
+    ['win-x64.exe', 'mac-x64.dmg', 'mac-arm64.dmg'].map((suffix) => [
+      `Tagline-1.2.3-${suffix}`,
+      Buffer.from(suffix),
+    ])
+  );
+  if (extraFile) {files[extraFile] = Buffer.from('unexpected');}
   const calls = [];
   const repos = {
-    getReleaseByTag: async () => draft === undefined ? missing() : {
-      data: {
-        id: 10, draft, html_url: 'https://example.test/release',
-        body: draftBody,
-      }
-    },
+    getReleaseByTag: async () =>
+      draft === undefined
+        ? missing()
+        : {
+            data: {
+              id: 10,
+              draft,
+              html_url: 'https://example.test/release',
+              body: draftBody,
+            },
+          },
     generateReleaseNotes: async () => ({ data: { body: notes } }),
-    listPullRequestsAssociatedWithCommit() { },
+    listPullRequestsAssociatedWithCommit() {},
     getCommit: async ({ ref }) => {
-      if (apiError) throw new Error(apiError);
+      if (apiError) {throw new Error(apiError);}
       return { data: { author: authors[ref] || null } };
     },
     listCommits: async ({ author, sha, per_page }) => {
@@ -186,48 +321,76 @@ async function publish({ draft, failUpload, extraFile, previous = true,
       calls.push(['create', options]);
       return { data: { id: 10, draft: true, html_url: 'https://example.test/release' } };
     },
-    listReleaseAssets() { },
-    listReleases() { },
-    deleteReleaseAsset: async (options) => { calls.push(['delete', options]); },
+    listReleaseAssets() {},
+    listReleases() {},
+    deleteReleaseAsset: async (options) => {
+      calls.push(['delete', options]);
+    },
     uploadReleaseAsset: async (options) => {
-      if (failUpload) throw new Error('Upload failed');
+      if (failUpload) {throw new Error('Upload failed');}
       calls.push(['upload', options]);
     },
-    updateRelease: async (options) => { calls.push(['publish', options]); },
+    updateRelease: async (options) => {
+      calls.push(['publish', options]);
+    },
   };
-  const execute = () => new AsyncFunction('require', 'github', 'context', 'core', 'process', script)((name) => {
-    if (name === 'node:crypto') return { createHash };
-    if (name === 'node:child_process') return {
-      execFileSync: (_file, args) => {
-        if (args[0] === 'merge-base') {
-          if (args[2] === 'refs/tags/v9.9.9') throw Object.assign(new Error('Unrelated branch'), { status: 1 });
-          return '';
-        }
-        calls.push(['log', args]);
-        if (args.includes('--format=%aE')) return oldEmails.join('\n');
-        assert.ok(args.includes('--no-merges'));
-        return records.map(({ sha, subject, email }) => `${sha}\0${subject}\0${email}`).join('\n') + '\n';
-      }
-    };
-    if (name === 'node:fs') return {
-      readdirSync: () => Object.keys(files),
-      readFileSync: (file) => files[file.replace('artifacts/', '')],
-      writeFileSync: (file, text) => { files[file.replace('artifacts/', '')] = Buffer.from(text); },
-    };
-    throw new Error(`Unexpected import: ${name}`);
-  }, {
-    rest: { repos }, paginate: async (method, options) => method === repos.listReleases
-      ? previous ? [{ draft: true, tag_name: 'v1.2.4' }, { draft: false, tag_name: 'v9.9.9' },
-      { draft: false, tag_name: 'v1.2.2' }] : []
-      : method === repos.listPullRequestsAssociatedWithCommit
-        ? (() => {
-          if (apiError) throw new Error(apiError);
-          calls.push(['pulls', options.commit_sha]);
-          return pulls[options.commit_sha] || [];
-        })()
-        : draft ? [{ id: 99 }] : []
-  }, context, core,
-    { env: { VERSION: '1.2.3', TAG: 'v1.2.3' } });
+  const execute = () =>
+    new AsyncFunction('require', 'github', 'context', 'core', 'process', script)(
+      (name) => {
+        if (name === 'node:crypto') {return { createHash };}
+        if (name === 'node:child_process')
+          {return {
+            execFileSync: (_file, args) => {
+              if (args[0] === 'merge-base') {
+                if (args[2] === 'refs/tags/v9.9.9')
+                  {throw Object.assign(new Error('Unrelated branch'), { status: 1 });}
+                return '';
+              }
+              calls.push(['log', args]);
+              if (args.includes('--format=%aE')) {return oldEmails.join('\n');}
+              assert.ok(args.includes('--no-merges'));
+              return (
+                records
+                  .map(({ sha, subject, email }) => `${sha}\0${subject}\0${email}`)
+                  .join('\n') + '\n'
+              );
+            },
+          };}
+        if (name === 'node:fs')
+          {return {
+            readdirSync: () => Object.keys(files),
+            readFileSync: (file) => files[file.replace('artifacts/', '')],
+            writeFileSync: (file, text) => {
+              files[file.replace('artifacts/', '')] = Buffer.from(text);
+            },
+          };}
+        throw new Error(`Unexpected import: ${name}`);
+      },
+      {
+        rest: { repos },
+        paginate: async (method, options) =>
+          method === repos.listReleases
+            ? previous
+              ? [
+                  { draft: true, tag_name: 'v1.2.4' },
+                  { draft: false, tag_name: 'v9.9.9' },
+                  { draft: false, tag_name: 'v1.2.2' },
+                ]
+              : []
+            : method === repos.listPullRequestsAssociatedWithCommit
+              ? (() => {
+                  if (apiError) {throw new Error(apiError);}
+                  calls.push(['pulls', options.commit_sha]);
+                  return pulls[options.commit_sha] || [];
+                })()
+              : draft
+                ? [{ id: 99 }]
+                : [],
+      },
+      context,
+      core,
+      { env: { VERSION: '1.2.3', TAG: 'v1.2.3' } }
+    );
   return { execute, files, calls };
 }
 
@@ -238,14 +401,21 @@ test('release uploads exactly three installers and correct checksums before publ
   assert.equal(created.draft, true);
   assert.equal(created.target_commitish, context.sha);
   assert.match(created.body, /What's changed.*commits/);
-  assert.match(created.body, /Fix a setting.*https:\/\/github.com\/test\/tagline\/commit\/abc123456789/);
+  assert.match(
+    created.body,
+    /Fix a setting.*https:\/\/github.com\/test\/tagline\/commit\/abc123456789/
+  );
   assert.ok(created.body.includes('Add \\[links\\] and \\*formatting\\*'));
-  assert.ok(calls.find(([name]) => name === 'log')[1].includes('refs/tags/v1.2.2..selected-commit'));
+  assert.ok(
+    calls.find(([name]) => name === 'log')[1].includes('refs/tags/v1.2.2..selected-commit')
+  );
   assert.equal(calls.filter(([name]) => name === 'upload').length, 4);
   const checksums = files['SHA256SUMS.txt'].toString();
   for (const [file, data] of Object.entries(files)) {
     if (file !== 'SHA256SUMS.txt')
-      assert.ok(checksums.includes(`${createHash('sha256').update(data).digest('hex')}  ${file}\n`));
+      {assert.ok(
+        checksums.includes(`${createHash('sha256').update(data).digest('hex')}  ${file}\n`)
+      );}
   }
   assert.equal(calls.at(-1)[0], 'publish');
   assert.equal(calls.at(-1)[1].draft, false);
@@ -253,16 +423,31 @@ test('release uploads exactly three installers and correct checksums before publ
 
 test('release lists only direct user-facing commits not already represented by merged pull requests', async () => {
   const subjects = [
-    'test: internal', 'refactor: internal', 'test(editor): internal', 'refactor!: internal',
-    'Merge pull request #12 from topic', "Merge branch 'main'", 'Merge remote-tracking branch origin/main',
-    'Merged feature', 'Squashed feature (#12)', 'Rebased feature', 'Direct fix', 'Unmerged work',
-    'Other repository association', 'Unlisted pull request',
+    'test: internal',
+    'refactor: internal',
+    'test(editor): internal',
+    'refactor!: internal',
+    'Merge pull request #12 from topic',
+    "Merge branch 'main'",
+    'Merge remote-tracking branch origin/main',
+    'Merged feature',
+    'Squashed feature (#12)',
+    'Rebased feature',
+    'Direct fix',
+    'Unmerged work',
+    'Other repository association',
+    'Unlisted pull request',
   ];
-  const records = subjects.map((subject, i) => ({ sha: `sha${i}`, subject, email: 'existing@example.test' }));
+  const records = subjects.map((subject, i) => ({
+    sha: `sha${i}`,
+    subject,
+    email: 'existing@example.test',
+  }));
   const h = await publish({
     records,
-    notes: "## What's Changed\n* Feature https://github.com/test/tagline/pull/12\n"
-      + '* Other https://github.com/other/tagline/pull/13\n',
+    notes:
+      "## What's Changed\n* Feature https://github.com/test/tagline/pull/12\n" +
+      '* Other https://github.com/other/tagline/pull/13\n',
     pulls: {
       sha7: [{ number: 12, merged_at: 'today' }],
       sha8: [{ number: 12, merged_at: 'today' }],
@@ -275,9 +460,12 @@ test('release lists only direct user-facing commits not already represented by m
   await h.execute();
   const body = h.calls.find(([name]) => name === 'create')[1].body;
   const section = body.split("## What's changed - commits")[1];
-  for (const subject of subjects.slice(0, 10)) assert.ok(!section.includes(subject), subject);
-  for (const subject of subjects.slice(10)) assert.ok(section.includes(subject), subject);
-  assert.ok(containsUrl(body, 'https://github.com/test/tagline/pull/12'), 'generated pull request notes remain intact');
+  for (const subject of subjects.slice(0, 10)) {assert.ok(!section.includes(subject), subject);}
+  for (const subject of subjects.slice(10)) {assert.ok(section.includes(subject), subject);}
+  assert.ok(
+    containsUrl(body, 'https://github.com/test/tagline/pull/12'),
+    'generated pull request notes remain intact'
+  );
 });
 
 test('release omits commits prefixed with ignore: from the changelog and new contributors', async () => {
@@ -285,7 +473,11 @@ test('release omits commits prefixed with ignore: from the changelog and new con
     records: [
       { sha: 'visible', subject: 'Add a feature', email: 'visible@example.test' },
       { sha: 'ignored', subject: 'ignore: internal cleanup', email: 'ignored@example.test' },
-      { sha: 'ignored-case', subject: 'Ignore: another internal change', email: 'case@example.test' },
+      {
+        sha: 'ignored-case',
+        subject: 'Ignore: another internal change',
+        email: 'case@example.test',
+      },
     ],
     authors: {
       visible: { login: 'Visible', type: 'User' },
@@ -302,13 +494,18 @@ test('release omits commits prefixed with ignore: from the changelog and new con
   assert.ok(body.includes('@Visible'));
   assert.ok(!body.includes('@Ignored'));
   assert.ok(!body.includes('@CaseIgnored'));
-  assert.ok(!h.calls.some(([name, options]) =>
-    name === 'pulls' && ['ignored', 'ignored-case'].includes(options)));
+  assert.ok(
+    !h.calls.some(
+      ([name, options]) => name === 'pulls' && ['ignored', 'ignored-case'].includes(options)
+    )
+  );
 });
 
 test('release limits displayed commits to the latest 20 after filtering and links the full comparison', async () => {
   const records = Array.from({ length: 27 }, (_, i) => ({
-    sha: `commit${i}`, subject: `Change ${i}`, email: 'existing@example.test',
+    sha: `commit${i}`,
+    subject: `Change ${i}`,
+    email: 'existing@example.test',
   }));
   records.push({ sha: 'internal', subject: 'test: not counted', email: 'existing@example.test' });
   for (const previous of [true, false]) {
@@ -320,9 +517,14 @@ test('release limits displayed commits to the latest 20 after filtering and link
     assert.ok(body.includes('* Change 7 ('));
     assert.ok(body.includes('* Change 26 ('));
     assert.match(body, /Showing the latest 20 of 27 direct commits/);
-    assert.ok(containsUrl(body, previous
-      ? 'https://github.com/test/tagline/compare/v1.2.2...selected-commit'
-      : 'https://github.com/test/tagline/commits/selected-commit'));
+    assert.ok(
+      containsUrl(
+        body,
+        previous
+          ? 'https://github.com/test/tagline/compare/v1.2.2...selected-commit'
+          : 'https://github.com/test/tagline/commits/selected-commit'
+      )
+    );
   }
 });
 
@@ -336,8 +538,9 @@ test('new contributors use all prior history, include PR authors, exclude bots a
   ];
   const h = await publish({
     records,
-    notes: "## What's Changed\n* Feature https://github.com/test/tagline/pull/12\n\n"
-      + '## New Contributors\n* @Returning made their first contribution\n\n**Full Changelog**: old-link\n',
+    notes:
+      "## What's Changed\n* Feature https://github.com/test/tagline/pull/12\n\n" +
+      '## New Contributors\n* @Returning made their first contribution\n\n**Full Changelog**: old-link\n',
     authors: {
       returning: { login: 'Returning', type: 'User' },
       new: { login: 'NewPerson', type: 'User' },
@@ -354,10 +557,18 @@ test('new contributors use all prior history, include PR authors, exclude bots a
   assert.ok(!body.includes('@automation'));
   assert.equal([...body.matchAll(/@NewPerson/g)].length, 1);
   assert.ok(body.indexOf('## New Contributors') > body.indexOf("## What's changed - commits"));
-  assert.match(body, /@NewPerson made their first contribution in https:\/\/github.com\/test\/tagline\/pull\/12\n$/);
-  assert.ok(!body.includes('* Add feature ('), 'the PR contribution is not repeated as a direct commit');
-  assert.deepEqual(h.calls.find(([name, args]) => name === 'earlier' && args.author === 'Returning')[1],
-    { author: 'Returning', sha: 'refs/tags/v1.2.2', per_page: 1 });
+  assert.match(
+    body,
+    /@NewPerson made their first contribution in https:\/\/github.com\/test\/tagline\/pull\/12\n$/
+  );
+  assert.ok(
+    !body.includes('* Add feature ('),
+    'the PR contribution is not repeated as a direct commit'
+  );
+  assert.deepEqual(
+    h.calls.find(([name, args]) => name === 'earlier' && args.author === 'Returning')[1],
+    { author: 'Returning', sha: 'refs/tags/v1.2.2', per_page: 1 }
+  );
 });
 
 test('release removes incorrect generated contributors and safely regenerates draft contributor sections', async () => {
@@ -369,11 +580,13 @@ test('release removes incorrect generated contributors and safely regenerates dr
   assert.ok(!body.includes('## New Contributors'));
   assert.ok(body.includes('## Other notes\nKeep this.'));
   const draft = await publish({
-    draft: true, previous: false,
+    draft: true,
+    previous: false,
     records: [{ sha: 'first', subject: 'First feature', email: 'first@example.test' }],
     authors: { first: { login: 'First', type: 'User' } },
-    draftBody: 'Handwritten notes.\n\n## New Contributors\n* @Wrong\n\n'
-      + '<!-- tagline-release-commits -->\nOld generated content',
+    draftBody:
+      'Handwritten notes.\n\n## New Contributors\n* @Wrong\n\n' +
+      '<!-- tagline-release-commits -->\nOld generated content',
   });
   await draft.execute();
   const updated = draft.calls.find(([name]) => name === 'publish')[1].body;
@@ -381,7 +594,10 @@ test('release removes incorrect generated contributors and safely regenerates dr
   assert.ok(!updated.includes('@Wrong'));
   assert.ok(!updated.includes('Old generated content'));
   assert.equal([...updated.matchAll(/## New Contributors/g)].length, 1);
-  assert.match(updated, /@First made their first contribution in https:\/\/github.com\/test\/tagline\/commit\/first\n$/);
+  assert.match(
+    updated,
+    /@First made their first contribution in https:\/\/github.com\/test\/tagline\/commit\/first\n$/
+  );
 });
 
 test('release metadata lookup failures stop publishing instead of silently misreporting notes', async () => {
@@ -395,7 +611,8 @@ test('draft commit filtering uses the pull requests in the retained release text
     draft: true,
     records: [{ sha: 'feature', subject: 'PR feature', email: 'existing@example.test' }],
     notes: "## What's Changed\nhttps://github.com/test/tagline/pull/99",
-    draftBody: "Edited changes\nhttps://github.com/test/tagline/pull/12\n\n<!-- tagline-release-commits -->\nOld list",
+    draftBody:
+      'Edited changes\nhttps://github.com/test/tagline/pull/12\n\n<!-- tagline-release-commits -->\nOld list',
     pulls: { feature: [{ number: 12, merged_at: 'today' }] },
   });
   await h.execute();
@@ -410,7 +627,10 @@ test('release resumes drafts and never publishes partial, unexpected or already 
   const resumed = await publish({ draft: true });
   await resumed.execute();
   assert.ok(resumed.calls.some(([name]) => name === 'delete'));
-  assert.equal(resumed.calls.some(([name]) => name === 'create'), false);
+  assert.equal(
+    resumed.calls.some(([name]) => name === 'create'),
+    false
+  );
   assert.match(resumed.calls.at(-1)[1].body, /Fix a setting/);
   assert.match(resumed.calls.at(-1)[1].body, /Handwritten release notes/);
   assert.doesNotMatch(resumed.calls.at(-1)[1].body, /Outdated commit list/);
@@ -420,6 +640,9 @@ test('release resumes drafts and never publishes partial, unexpected or already 
   for (const options of [{ failUpload: true }, { extraFile: 'extra.exe' }, { draft: false }]) {
     const attempt = await publish(options);
     await assert.rejects(attempt.execute());
-    assert.equal(attempt.calls.some(([name]) => name === 'publish'), false);
+    assert.equal(
+      attempt.calls.some(([name]) => name === 'publish'),
+      false
+    );
   }
 });

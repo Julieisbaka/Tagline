@@ -13,49 +13,103 @@ export default function VaultManagerDialog({ onOpen, onChoose, onSample, onClose
     try {
       setVaults(await window.api.listRecentVaults());
       setError('');
-    } catch (e) { setError(e.message); }
+    } catch (e) {
+      setError(e.message);
+    }
   };
-  useEffect(() => { refresh(); }, []);
+  useEffect(() => {
+    refresh();
+  }, []);
 
   const run = async (action) => {
     setBusy(true);
     setError('');
     try {
-      if (await action()) onClose();
-      else await refresh();
-    } catch (e) { setError(e.message); }
-    finally { setBusy(false); }
+      if (await action()) {onClose();}
+      else {await refresh();}
+    } catch (e) {
+      setError(e.message);
+    } finally {
+      setBusy(false);
+    }
   };
 
-  return <ModalBackdrop onMouseDown={() => !busy && onClose()}>
-    <div className="modal dialog vault-manager-dialog" role="dialog" aria-modal="true"
-      aria-labelledby="vault-manager-title" onMouseDown={(e) => e.stopPropagation()}>
-      <h3 id="vault-manager-title">{t('Manage vaults')}</h3>
-      <p>{t('Open a saved vault without browsing for its folder. Remove a vault from this list without deleting its files.')}</p>
-      {vaults.length ? <ul className="vault-manager-list">
-        {vaults.map((vault) => <li key={vault.root}>
-          <div className="vault-manager-details">
-            <strong>{vault.name}</strong>
-            <span>{vault.root}</span>
-            {!vault.exists && <span className="error-text">{t('Folder not found')}</span>}
-          </div>
-          <div className="vault-manager-actions">
-            <button disabled={busy || !vault.exists} onClick={() => run(() => onOpen(vault.root))}>{t('Open')}</button>
-            <button disabled={busy || !vault.exists} onClick={() => window.api.revealRecentVault(vault.root)
-              .catch((e) => setError(e.message))}>{t('Show in file explorer')}</button>
-            <button disabled={busy} onClick={async () => {
-              try { await window.api.forgetRecentVault(vault.root); await refresh(); }
-              catch (e) { setError(e.message); }
-            }}>{t('Remove from list')}</button>
-          </div>
-        </li>)}
-      </ul> : <p>{t('No saved vaults yet.')}</p>}
-      {error && <p className="error-text" role="alert">{error}</p>}
-      <div className="dialog-buttons vault-manager-footer">
-        {onSample && <button disabled={busy} onClick={() => run(onSample)}>{t('Create sample vault')}</button>}
-        <button disabled={busy} onClick={() => run(onChoose)}>{t('Add existing or create vault…')}</button>
-        <button onClick={onClose}>{t('Close')}</button>
+  return (
+    <ModalBackdrop onMouseDown={() => !busy && onClose()}>
+      <div
+        className='modal dialog vault-manager-dialog'
+        role='dialog'
+        aria-modal='true'
+        aria-labelledby='vault-manager-title'
+        onMouseDown={(e) => e.stopPropagation()}
+      >
+        <h3 id='vault-manager-title'>{t('Manage vaults')}</h3>
+        <p>
+          {t(
+            'Open a saved vault without browsing for its folder. Remove a vault from this list without deleting its files.'
+          )}
+        </p>
+        {vaults.length ? (
+          <ul className='vault-manager-list'>
+            {vaults.map((vault) => (
+              <li key={vault.root}>
+                <div className='vault-manager-details'>
+                  <strong>{vault.name}</strong>
+                  <span>{vault.root}</span>
+                  {!vault.exists && <span className='error-text'>{t('Folder not found')}</span>}
+                </div>
+                <div className='vault-manager-actions'>
+                  <button
+                    disabled={busy || !vault.exists}
+                    onClick={() => run(() => onOpen(vault.root))}
+                  >
+                    {t('Open')}
+                  </button>
+                  <button
+                    disabled={busy || !vault.exists}
+                    onClick={() =>
+                      window.api.revealRecentVault(vault.root).catch((e) => setError(e.message))
+                    }
+                  >
+                    {t('Show in file explorer')}
+                  </button>
+                  <button
+                    disabled={busy}
+                    onClick={async () => {
+                      try {
+                        await window.api.forgetRecentVault(vault.root);
+                        await refresh();
+                      } catch (e) {
+                        setError(e.message);
+                      }
+                    }}
+                  >
+                    {t('Remove from list')}
+                  </button>
+                </div>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p>{t('No saved vaults yet.')}</p>
+        )}
+        {error && (
+          <p className='error-text' role='alert'>
+            {error}
+          </p>
+        )}
+        <div className='dialog-buttons vault-manager-footer'>
+          {onSample && (
+            <button disabled={busy} onClick={() => run(onSample)}>
+              {t('Create sample vault')}
+            </button>
+          )}
+          <button disabled={busy} onClick={() => run(onChoose)}>
+            {t('Add existing or create vault…')}
+          </button>
+          <button onClick={onClose}>{t('Close')}</button>
+        </div>
       </div>
-    </div>
-  </ModalBackdrop>;
+    </ModalBackdrop>
+  );
 }

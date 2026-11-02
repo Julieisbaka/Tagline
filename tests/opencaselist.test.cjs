@@ -4,38 +4,91 @@ const { EventEmitter } = require('node:events');
 const fs = require('node:fs/promises');
 const path = require('node:path');
 const os = require('node:os');
-const { createOpenCaselist, registerOpenCaselist, teamRoute, roundData, responseBytes, PARTITION } = require('../electron/opencaselist.cjs');
+const {
+  createOpenCaselist,
+  registerOpenCaselist,
+  teamRoute,
+  roundData,
+  responseBytes,
+  PARTITION,
+} = require('../electron/opencaselist.cjs');
 const { resolveCaselistTeam } = require('../electron/tabroomCaselist.cjs');
 
 const selection = { caselist: 'ndt2026', school: 'School', team: 'AB' };
-const round = { tournament: 'Tournament', side: 'A', round: '1', opponent: 'Other school', report: 'Report' };
-const json = (data, status = 200) => new Response(JSON.stringify(data), { status, headers: { 'Content-Type': 'application/json' } });
+const round = {
+  tournament: 'Tournament',
+  side: 'A',
+  round: '1',
+  opponent: 'Other school',
+  report: 'Report',
+};
+const json = (data, status = 200) =>
+  new Response(JSON.stringify(data), { status, headers: { 'Content-Type': 'application/json' } });
 function setup(options = {}) {
-  const requests = [], confirmations = [];
+  const requests = [],
+    confirmations = [];
   let config = options.config || {};
   let clock = Date.now();
   const cookies = new EventEmitter();
-  let stored = [{ name: 'caselist_token', domain: '.opencaselist.com', value: 'private-test-cookie', expirationDate: Date.now() / 1000 + 1000 }];
+  let stored = [
+    {
+      name: 'caselist_token',
+      domain: '.opencaselist.com',
+      value: 'private-test-cookie',
+      expirationDate: Date.now() / 1000 + 1000,
+    },
+  ];
   cookies.get = async () => stored;
-  cookies.flushStore = async () => { };
+  cookies.flushStore = async () => {};
   const session = {
     cookies,
-    clearStorageData: async () => { stored = []; },
-    fetch: async (url, init) => { requests.push({ url, init }); return options.response ? options.response(url, init) : json([]); },
+    clearStorageData: async () => {
+      stored = [];
+    },
+    fetch: async (url, init) => {
+      requests.push({ url, init });
+      return options.response ? options.response(url, init) : json([]);
+    },
   };
   const dialog = {
-    showMessageBox: async (_win, value) => { confirmations.push(value); return { response: options.confirm ?? 1 }; },
-    showOpenDialog: async () => ({ canceled: !options.upload, filePaths: options.upload ? [options.upload] : [] }),
-    showSaveDialog: async () => { throw new Error('Vault downloads must not open a system file picker.'); },
+    showMessageBox: async (_win, value) => {
+      confirmations.push(value);
+      return { response: options.confirm ?? 1 };
+    },
+    showOpenDialog: async () => ({
+      canceled: !options.upload,
+      filePaths: options.upload ? [options.upload] : [],
+    }),
+    showSaveDialog: async () => {
+      throw new Error('Vault downloads must not open a system file picker.');
+    },
   };
   const serviceOptions = {
-    session, dialog, getWindow: () => ({}), getVaultRoot: options.getVaultRoot || (() => options.root), BrowserWindow: options.BrowserWindow,
-    readConfig: () => config, writeConfig: (patch) => { config = { ...config, ...patch }; }, now: () => clock,
+    session,
+    dialog,
+    getWindow: () => ({}),
+    getVaultRoot: options.getVaultRoot || (() => options.root),
+    BrowserWindow: options.BrowserWindow,
+    readConfig: () => config,
+    writeConfig: (patch) => {
+      config = { ...config, ...patch };
+    },
+    now: () => clock,
   };
   const service = createOpenCaselist(serviceOptions);
   return {
-    service, session, requests, confirmations, setCookies: (next) => { stored = next; },
-    getConfig: () => config, advance: (ms) => { clock += ms; }, restart: () => createOpenCaselist(serviceOptions),
+    service,
+    session,
+    requests,
+    confirmations,
+    setCookies: (next) => {
+      stored = next;
+    },
+    getConfig: () => config,
+    advance: (ms) => {
+      clock += ms;
+    },
+    restart: () => createOpenCaselist(serviceOptions),
   };
 }
 async function temporary(t) {
@@ -45,26 +98,53 @@ async function temporary(t) {
 }
 
 const tabroomTeam = {
-  chapter: '100', school: 'Example School', schoolCode: 'EX', name: 'Example School AB', code: 'EX AB',
-  students: [{ id: '10', first: 'Alice', last: 'Able' }, { id: '11', first: 'Bob', last: 'Baker' }],
+  chapter: '100',
+  school: 'Example School',
+  schoolCode: 'EX',
+  name: 'Example School AB',
+  code: 'EX AB',
+  students: [
+    { id: '10', first: 'Alice', last: 'Able' },
+    { id: '11', first: 'Bob', last: 'Baker' },
+  ],
 };
 const wikiSchool = { name: 'ExampleSchool', display_name: 'Example School', chapter_id: 100 };
 const wikiTeam = {
-  name: 'AB', display_name: 'Example School AB',
-  debater1_student_id: 11, debater2_student_id: 10,
-  debater1_first: 'Bob', debater1_last: 'Baker', debater2_first: 'Alice', debater2_last: 'Able'
+  name: 'AB',
+  display_name: 'Example School AB',
+  debater1_student_id: 11,
+  debater2_student_id: 10,
+  debater1_first: 'Bob',
+  debater1_last: 'Baker',
+  debater2_first: 'Alice',
+  debater2_last: 'Able',
 };
-const resolveTeam = (team = tabroomTeam, schools = [wikiSchool], teams = [wikiTeam], event = 'cx') =>
+const resolveTeam = (
+  team = tabroomTeam,
+  schools = [wikiSchool],
+  teams = [wikiTeam],
+  event = 'cx'
+) =>
   resolveCaselistTeam({
-    caselist: 'ndt2026', team, list: async (kind) =>
-      kind === 'caselists' ? [{ name: 'ndt2026', event }] : kind === 'schools' ? schools : teams
+    caselist: 'ndt2026',
+    team,
+    list: async (kind) =>
+      kind === 'caselists' ? [{ name: 'ndt2026', event }] : kind === 'schools' ? schools : teams,
   });
 
 test('Tabroom matching verifies shared chapter and complete student IDs, independent of team code and roster order', async () => {
-  const result = await resolveTeam({ ...tabroomTeam, name: 'Different tournament name', code: '999' });
+  const result = await resolveTeam({
+    ...tabroomTeam,
+    name: 'Different tournament name',
+    code: '999',
+  });
   assert.equal(result.status, 'matched');
   assert.equal(result.reason, 'chapter-and-student-ids');
-  assert.deepEqual(result.candidates[0].selection, { caselist: 'ndt2026', school: 'ExampleSchool', team: 'AB' });
+  assert.deepEqual(result.candidates[0].selection, {
+    caselist: 'ndt2026',
+    school: 'ExampleSchool',
+    team: 'AB',
+  });
   assert.equal(result.candidates[0].evidence, 'student-ids');
 });
 
@@ -84,18 +164,38 @@ test('codes and names only suggest candidates, and missing or conflicting identi
     const result = await resolveTeam(team, [school], [wiki]);
     assert.equal(result.status, status, JSON.stringify({ team, school, wiki, result }));
   }
-  const names = await resolveTeam({ ...tabroomTeam, name: '', code: '', students: tabroomTeam.students.map(({ first, last }) => ({ first, last })) });
+  const names = await resolveTeam({
+    ...tabroomTeam,
+    name: '',
+    code: '',
+    students: tabroomTeam.students.map(({ first, last }) => ({ first, last })),
+  });
   assert.equal(names.status, 'candidate');
   assert.equal(names.candidates[0].evidence, 'student-names');
 });
 
 test('matching reports ambiguity rather than choosing a school or team arbitrarily', async () => {
-  assert.equal((await resolveTeam(tabroomTeam, [wikiSchool, { ...wikiSchool, name: 'Other' }])).status, 'ambiguous');
-  const multiple = await resolveTeam(tabroomTeam, [wikiSchool], [wikiTeam, { ...wikiTeam, name: 'Other' }]);
+  assert.equal(
+    (await resolveTeam(tabroomTeam, [wikiSchool, { ...wikiSchool, name: 'Other' }])).status,
+    'ambiguous'
+  );
+  const multiple = await resolveTeam(
+    tabroomTeam,
+    [wikiSchool],
+    [wikiTeam, { ...wikiTeam, name: 'Other' }]
+  );
   assert.equal(multiple.status, 'ambiguous');
   assert.equal(multiple.candidates.length, 2);
-  assert.equal((await resolveTeam({ ...tabroomTeam, students: [] }, [wikiSchool],
-    [wikiTeam, { ...wikiTeam, name: 'CD', display_name: 'Example School AB' }])).status, 'ambiguous');
+  assert.equal(
+    (
+      await resolveTeam(
+        { ...tabroomTeam, students: [] },
+        [wikiSchool],
+        [wikiTeam, { ...wikiTeam, name: 'CD', display_name: 'Example School AB' }]
+      )
+    ).status,
+    'ambiguous'
+  );
   assert.equal((await resolveTeam(tabroomTeam, [], [])).status, 'unmatched');
 });
 
@@ -105,8 +205,11 @@ test('single-initial tournament codes can suggest real two-letter wiki slugs wit
   assert.equal(result.status, 'candidate');
   assert.equal(result.candidates[0].selection.team, 'AbBa');
   assert.equal(result.candidates[0].evidence, 'team-code');
-  const duplicate = await resolveTeam({ ...tabroomTeam, students: [] }, [wikiSchool],
-    [realSlug, { ...realSlug, name: 'AbBa1' }]);
+  const duplicate = await resolveTeam(
+    { ...tabroomTeam, students: [] },
+    [wikiSchool],
+    [realSlug, { ...realSlug, name: 'AbBa1' }]
+  );
   assert.equal(duplicate.status, 'ambiguous');
 });
 
@@ -121,58 +224,124 @@ test('generated surname codes find actual redacted or missing-roster teams in ei
     }
   }
   const redacted = {
-    name: 'BaAb', debater1_first: 'Bo.....', debater1_last: 'Ba.....',
-    debater2_first: 'Al.....', debater2_last: 'Ab.....'
+    name: 'BaAb',
+    debater1_first: 'Bo.....',
+    debater1_last: 'Ba.....',
+    debater2_first: 'Al.....',
+    debater2_last: 'Ab.....',
   };
-  assert.equal((await resolveTeam(tabroomTeam, [wikiSchool], [redacted])).candidates[0].evidence, 'generated-code');
-  const ambiguous = await resolveTeam(tabroomTeam, [wikiSchool], [{ name: 'AbBa' }, { name: 'AbBa1' }, { name: 'BaAb2' }]);
+  assert.equal(
+    (await resolveTeam(tabroomTeam, [wikiSchool], [redacted])).candidates[0].evidence,
+    'generated-code'
+  );
+  const ambiguous = await resolveTeam(
+    tabroomTeam,
+    [wikiSchool],
+    [{ name: 'AbBa' }, { name: 'AbBa1' }, { name: 'BaAb2' }]
+  );
   assert.equal(ambiguous.status, 'ambiguous');
   assert.equal(ambiguous.candidates.length, 3);
-  assert.ok(ambiguous.candidates.every((candidate) => candidate.evidence === 'generated-code' && !candidate.verified));
+  assert.ok(
+    ambiguous.candidates.every(
+      (candidate) => candidate.evidence === 'generated-code' && !candidate.verified
+    )
+  );
 });
 
 test('generated fallback respects event rules, missing names, real slug boundaries and school/identity conflicts', async () => {
   const ld = { ...tabroomTeam, code: '', name: '', students: [{ first: 'Alice', last: 'Able' }] };
-  assert.equal((await resolveTeam(ld, [wikiSchool], [{ name: 'AlAb' }], 'ld')).candidates[0].evidence, 'generated-code');
-  assert.equal((await resolveTeam(ld, [wikiSchool], [{ name: 'AlAb1' }], 'ld')).status, 'candidate');
+  assert.equal(
+    (await resolveTeam(ld, [wikiSchool], [{ name: 'AlAb' }], 'ld')).candidates[0].evidence,
+    'generated-code'
+  );
+  assert.equal(
+    (await resolveTeam(ld, [wikiSchool], [{ name: 'AlAb1' }], 'ld')).status,
+    'candidate'
+  );
   assert.equal((await resolveTeam(ld, [wikiSchool], [{ name: 'Ab' }], 'ld')).status, 'unmatched');
   for (const name of ['AbBaOther', 'AbBa0', 'AbBa01', 'AbBa-1']) {
     assert.equal((await resolveTeam(tabroomTeam, [wikiSchool], [{ name }])).status, 'unmatched');
   }
-  for (const students of [[{ first: 'Alice' }, { last: 'Baker' }], [{ last: '123' }, { last: 'Baker' }],
-  [{ last: 'Ab.....' }, { last: 'Baker' }], Array(5).fill({ last: 'Able' })]) {
-    assert.equal((await resolveTeam({ ...tabroomTeam, students }, [wikiSchool], [{ name: 'AbBa' }])).status, 'unmatched');
+  for (const students of [
+    [{ first: 'Alice' }, { last: 'Baker' }],
+    [{ last: '123' }, { last: 'Baker' }],
+    [{ last: 'Ab.....' }, { last: 'Baker' }],
+    Array(5).fill({ last: 'Able' }),
+  ]) {
+    assert.equal(
+      (await resolveTeam({ ...tabroomTeam, students }, [wikiSchool], [{ name: 'AbBa' }])).status,
+      'unmatched'
+    );
   }
-  assert.equal((await resolveTeam(tabroomTeam, [wikiSchool], [{ name: 'AbBa' }], null)).status, 'unmatched');
-  assert.equal((await resolveTeam(tabroomTeam, [wikiSchool], [{ name: 'AbBa' }], 'unknown')).status, 'unmatched');
-  assert.equal((await resolveTeam(tabroomTeam, [{ ...wikiSchool, chapter_id: 999 }], [{ name: 'AbBa' }])).status, 'unmatched');
-  assert.equal((await resolveTeam(tabroomTeam, [wikiSchool], [{
-    name: 'AbBa', debater1_student_id: 900, debater2_student_id: 901,
-  }])).status, 'unmatched');
-  const preferred = await resolveTeam(tabroomTeam, [wikiSchool], [
-    { ...wikiTeam, name: 'AbBa' }, { name: 'AbBa1' },
-  ]);
+  assert.equal(
+    (await resolveTeam(tabroomTeam, [wikiSchool], [{ name: 'AbBa' }], null)).status,
+    'unmatched'
+  );
+  assert.equal(
+    (await resolveTeam(tabroomTeam, [wikiSchool], [{ name: 'AbBa' }], 'unknown')).status,
+    'unmatched'
+  );
+  assert.equal(
+    (await resolveTeam(tabroomTeam, [{ ...wikiSchool, chapter_id: 999 }], [{ name: 'AbBa' }]))
+      .status,
+    'unmatched'
+  );
+  assert.equal(
+    (
+      await resolveTeam(
+        tabroomTeam,
+        [wikiSchool],
+        [
+          {
+            name: 'AbBa',
+            debater1_student_id: 900,
+            debater2_student_id: 901,
+          },
+        ]
+      )
+    ).status,
+    'unmatched'
+  );
+  const preferred = await resolveTeam(
+    tabroomTeam,
+    [wikiSchool],
+    [{ ...wikiTeam, name: 'AbBa' }, { name: 'AbBa1' }]
+  );
   assert.equal(preferred.status, 'matched');
   assert.equal(preferred.candidates.length, 1);
-  const names = await resolveTeam({ ...tabroomTeam, students: tabroomTeam.students.map(({ first, last }) => ({ first, last })) },
-    [wikiSchool], [{ ...wikiTeam, name: 'AbBa' }, { name: 'AbBa1' }]);
+  const names = await resolveTeam(
+    { ...tabroomTeam, students: tabroomTeam.students.map(({ first, last }) => ({ first, last })) },
+    [wikiSchool],
+    [{ ...wikiTeam, name: 'AbBa' }, { name: 'AbBa1' }]
+  );
   assert.equal(names.candidates.length, 1);
   assert.equal(names.candidates[0].evidence, 'student-names');
 });
 
 test('backend team resolution requires an explicit existing caselist and uses authenticated reads with real URL slugs', async () => {
   const mock = setup({
-    response: (url) => json(url.includes('/teams') ? [wikiTeam] :
-      url.includes('/schools') ? [wikiSchool] : [{ name: 'ndt2026' }])
+    response: (url) =>
+      json(
+        url.includes('/teams')
+          ? [wikiTeam]
+          : url.includes('/schools')
+            ? [wikiSchool]
+            : [{ name: 'ndt2026' }]
+      ),
   });
   const result = await mock.service.resolveTabroomTeam('ndt2026', tabroomTeam);
   assert.equal(result.status, 'matched');
   assert.equal(result.candidates[0].url, 'https://opencaselist.com/ndt2026/ExampleSchool/AB');
   assert.equal(mock.requests.length, 3);
-  assert.ok(mock.requests.every(({ init }) => init.method === 'GET' && init.credentials === 'include'));
+  assert.ok(
+    mock.requests.every(({ init }) => init.method === 'GET' && init.credentials === 'include')
+  );
   await assert.rejects(mock.service.resolveTabroomTeam('', tabroomTeam), /Invalid/);
   await assert.rejects(mock.service.resolveTabroomTeam('ndt2025', tabroomTeam), /existing/);
-  await assert.rejects(mock.service.resolveTabroomTeam('ndt2026', { ...tabroomTeam, students: [null] }), /Invalid/);
+  await assert.rejects(
+    mock.service.resolveTabroomTeam('ndt2026', { ...tabroomTeam, students: [null] }),
+    /Invalid/
+  );
   const expired = setup();
   expired.setCookies([]);
   await assert.rejects(expired.service.resolveTabroomTeam('ndt2026', tabroomTeam), /Sign in again/);
@@ -182,15 +351,29 @@ test('backend team resolution requires an explicit existing caselist and uses au
 
 test('backend matching escapes verified slugs and rejects results after a session change', async () => {
   const encoded = setup({
-    response: (url) => json(url.includes('/teams') ? [{ ...wikiTeam, name: 'AbBa & 1' }] :
-      url.includes('/schools') ? [{ ...wikiSchool, name: 'Example School' }] : [{ name: 'ndt2026' }])
+    response: (url) =>
+      json(
+        url.includes('/teams')
+          ? [{ ...wikiTeam, name: 'AbBa & 1' }]
+          : url.includes('/schools')
+            ? [{ ...wikiSchool, name: 'Example School' }]
+            : [{ name: 'ndt2026' }]
+      ),
   });
   const result = await encoded.service.resolveTabroomTeam('ndt2026', tabroomTeam);
-  assert.equal(result.candidates[0].url, 'https://opencaselist.com/ndt2026/Example%20School/AbBa%20%26%201');
+  assert.equal(
+    result.candidates[0].url,
+    'https://opencaselist.com/ndt2026/Example%20School/AbBa%20%26%201'
+  );
   let complete;
-  const changing = setup({ response: () => new Promise((resolve) => { complete = resolve; }) });
+  const changing = setup({
+    response: () =>
+      new Promise((resolve) => {
+        complete = resolve;
+      }),
+  });
   const pending = changing.service.resolveTabroomTeam('ndt2026', tabroomTeam);
-  while (!complete) await new Promise((resolve) => setImmediate(resolve));
+  while (!complete) {await new Promise((resolve) => setImmediate(resolve));}
   await changing.service.logout();
   complete(json([{ name: 'ndt2026' }]));
   await assert.rejects(pending, /session changed/);
@@ -210,10 +393,15 @@ test('session status never exposes cookies and honors expiry and logout', async 
 });
 
 test('authenticated API requests use only fixed HTTPS endpoints and the isolated cookie jar', async () => {
-  const mock = setup({ response: () => json([{ name: 'Team', round_id: 1, path: 'ndt2026/School/AB' }]) });
+  const mock = setup({
+    response: () => json([{ name: 'Team', round_id: 1, path: 'ndt2026/School/AB' }]),
+  });
   await mock.service.list('rounds', selection);
   await mock.service.search('ndt2026', 'evidence & schools');
-  assert.equal(mock.requests[0].url, 'https://api.opencaselist.com/v1/caselists/ndt2026/schools/School/teams/AB/rounds');
+  assert.equal(
+    mock.requests[0].url,
+    'https://api.opencaselist.com/v1/caselists/ndt2026/schools/School/teams/AB/rounds'
+  );
   assert.equal(mock.requests[0].init.credentials, 'include');
   assert.equal(mock.requests[0].init.redirect, 'error');
   assert.equal(mock.requests[0].init.headers, undefined);
@@ -226,8 +414,20 @@ test('authenticated API requests use only fixed HTTPS endpoints and the isolated
 
 test('caselist lists use the API name identifier and retain display and archive metadata', async () => {
   const caselists = [
-    { caselist_id: 1, name: 'ndt2026', display_name: 'College Policy 2026', year: 2026, archived: false },
-    { caselist_id: 2, name: 'ndt2025', display_name: 'College Policy 2025', year: 2025, archived: true },
+    {
+      caselist_id: 1,
+      name: 'ndt2026',
+      display_name: 'College Policy 2026',
+      year: 2026,
+      archived: false,
+    },
+    {
+      caselist_id: 2,
+      name: 'ndt2025',
+      display_name: 'College Policy 2025',
+      year: 2025,
+      archived: true,
+    },
   ];
   const mock = setup({ response: () => json(caselists) });
   assert.deepEqual(await mock.service.list('caselists'), caselists);
@@ -241,7 +441,10 @@ test('caselist lists use the API name identifier and retain display and archive 
 test('401 requires sign-in without retrying, while 403 preserves authentication', async () => {
   for (const status of [401, 403]) {
     const mock = setup({ response: () => json({ message: 'Denied' }, status) });
-    await assert.rejects(mock.service.list('caselists'), status === 401 ? /expired/ : /trusted status/);
+    await assert.rejects(
+      mock.service.list('caselists'),
+      status === 401 ? /expired/ : /trusted status/
+    );
     assert.equal(mock.requests.length, 1);
     assert.equal((await mock.service.status()).signedIn, status === 403);
   }
@@ -249,19 +452,28 @@ test('401 requires sign-in without retrying, while 403 preserves authentication'
 
 test('signing in again during a cookie lookup cancels requests from the previous session', async () => {
   class LoginWindow extends EventEmitter {
-    constructor() { super(); this.webContents = new EventEmitter(); this.webContents.setWindowOpenHandler = () => { }; }
+    constructor() {
+      super();
+      this.webContents = new EventEmitter();
+      this.webContents.setWindowOpenHandler = () => {};
+    }
     async loadURL() {
       const cookie = { name: 'caselist_token', domain: '.opencaselist.com', value: 'new-session' };
       mock.setCookies([cookie]);
       mock.session.cookies.emit('changed', {}, cookie, 'explicit', false);
     }
-    close() { this.emit('closed'); }
+    close() {
+      this.emit('closed');
+    }
   }
   const mock = setup({ BrowserWindow: LoginWindow });
   const getCookies = mock.session.cookies.get;
   const cookieSnapshot = await mock.session.cookies.get();
   let finishLookup;
-  mock.session.cookies.get = () => new Promise((resolve) => { finishLookup = resolve; });
+  mock.session.cookies.get = () =>
+    new Promise((resolve) => {
+      finishLookup = resolve;
+    });
   const pending = mock.service.list('rounds', selection);
   mock.session.cookies.get = getCookies;
   await mock.service.login();
@@ -271,9 +483,16 @@ test('signing in again during a cookie lookup cancels requests from the previous
 });
 
 test('network failures and malformed responses surface errors without credential leakage or automatic writes', async () => {
-  const network = setup({ response: () => { throw new Error('private-test-cookie'); } });
-  await assert.rejects(network.service.write('create-round', selection, round),
-    (error) => /Check your connection/.test(error.message) && !error.message.includes('private-test-cookie'));
+  const network = setup({
+    response: () => {
+      throw new Error('private-test-cookie');
+    },
+  });
+  await assert.rejects(
+    network.service.write('create-round', selection, round),
+    (error) =>
+      /Check your connection/.test(error.message) && !error.message.includes('private-test-cookie')
+  );
   assert.equal(network.requests.length, 1);
   const invalid = setup({ response: () => new Response('<html>Not JSON</html>') });
   await assert.rejects(invalid.service.list('caselists'), /invalid response/);
@@ -283,24 +502,50 @@ test('network failures and malformed responses surface errors without credential
 
 test('round and citation changes require confirmation and preserve existing attachments', async () => {
   const cancelled = setup({ confirm: 0 });
-  assert.deepEqual(await cancelled.service.write('delete-round', { ...selection, round: 1 }), { cancelled: true });
+  assert.deepEqual(await cancelled.service.write('delete-round', { ...selection, round: 1 }), {
+    cancelled: true,
+  });
   assert.equal(cancelled.requests.length, 0);
   assert.equal(cancelled.confirmations[0].defaultId, 0);
-  const mock = setup({ response: (_url, init) => init.method === 'GET' ? json({ ...round, opensource: 'existing.docx' }) : json({ message: 'Saved' }) });
-  await mock.service.write('update-round', { ...selection, round: 10 }, { ...round, opensource: 'injected.docx', password: 'ignored' });
+  const mock = setup({
+    response: (_url, init) =>
+      init.method === 'GET'
+        ? json({ ...round, opensource: 'existing.docx' })
+        : json({ message: 'Saved' }),
+  });
+  await mock.service.write(
+    'update-round',
+    { ...selection, round: 10 },
+    { ...round, opensource: 'injected.docx', password: 'ignored' }
+  );
   assert.equal(mock.requests.length, 2);
   const body = JSON.parse(mock.requests[1].init.body);
   assert.equal(body.opensource, 'existing.docx');
   assert.equal(body.password, undefined);
   assert.equal(mock.requests[1].init.method, 'PUT');
-  await mock.service.write('create-cite', selection, { round_id: 10, title: 'Evidence', cites: 'Cite text' });
-  assert.deepEqual(JSON.parse(mock.requests.at(-1).init.body), { round_id: 10, title: 'Evidence', cites: 'Cite text' });
-  await assert.rejects(mock.service.write('delete-round', { ...selection, round: '../delete' }), /Invalid/);
+  await mock.service.write('create-cite', selection, {
+    round_id: 10,
+    title: 'Evidence',
+    cites: 'Cite text',
+  });
+  assert.deepEqual(JSON.parse(mock.requests.at(-1).init.body), {
+    round_id: 10,
+    title: 'Evidence',
+    cites: 'Cite text',
+  });
+  await assert.rejects(
+    mock.service.write('delete-round', { ...selection, round: '../delete' }),
+    /Invalid/
+  );
 });
 
 test('write protection defaults off and stores only a randomly salted PBKDF2 hash', async () => {
   const mock = setup();
-  assert.deepEqual(mock.service.writePasswordStatus(), { enabled: false, passwordSet: false, unlocked: true });
+  assert.deepEqual(mock.service.writePasswordStatus(), {
+    enabled: false,
+    passwordSet: false,
+    unlocked: true,
+  });
   await mock.service.write('create-round', selection, round);
   await mock.service.configureWritePassword(true, 'tournament password');
   const config = mock.getConfig();
@@ -309,8 +554,16 @@ test('write protection defaults off and stores only a randomly salted PBKDF2 has
   assert.match(config.opencaselistWritePassword.hash, /^[a-f0-9]{64}$/);
   assert.ok(!JSON.stringify(config).includes('tournament password'));
   const { pbkdf2Sync } = require('node:crypto');
-  assert.equal(config.opencaselistWritePassword.hash,
-    pbkdf2Sync('tournament password', config.opencaselistWritePassword.salt, 600000, 32, 'sha256').toString('hex'));
+  assert.equal(
+    config.opencaselistWritePassword.hash,
+    pbkdf2Sync(
+      'tournament password',
+      config.opencaselistWritePassword.salt,
+      600000,
+      32,
+      'sha256'
+    ).toString('hex')
+  );
   const previous = config.opencaselistWritePassword;
   await mock.service.configureWritePassword(true, 'tournament password', 'tournament password');
   assert.notEqual(mock.getConfig().opencaselistWritePassword.salt, previous.salt);
@@ -319,7 +572,13 @@ test('write protection defaults off and stores only a randomly salted PBKDF2 has
 test('all round, citation and upload writes are guarded in the main process, but reads are not', async () => {
   const mock = setup();
   await mock.service.configureWritePassword(true, 'tournament password');
-  for (const action of ['create-round', 'update-round', 'delete-round', 'create-cite', 'delete-cite']) {
+  for (const action of [
+    'create-round',
+    'update-round',
+    'delete-round',
+    'create-cite',
+    'delete-cite',
+  ]) {
     await assert.rejects(mock.service.write(action, selection, round), /password required/);
   }
   await assert.rejects(mock.service.upload(selection, round), /password required/);
@@ -347,7 +606,10 @@ test('write unlock lasts for 30 minutes of write activity and is not persisted a
   assert.equal(mock.restart().writePasswordStatus().unlocked, false);
   await mock.service.list('rounds', selection);
   mock.advance(60 * 1000);
-  await assert.rejects(mock.service.write('delete-round', { ...selection, round: 1 }), /password required/);
+  await assert.rejects(
+    mock.service.write('delete-round', { ...selection, round: 1 }),
+    /password required/
+  );
   await mock.service.verifyWritePassword('tournament password');
   await mock.service.logout();
   assert.equal(mock.service.writePasswordStatus().unlocked, false);
@@ -359,8 +621,14 @@ test('changing or disabling protection always requires the current password and 
   await mock.service.verifyWritePassword('first password');
   await assert.rejects(mock.service.configureWritePassword(false), /Invalid write password/);
   await assert.rejects(mock.service.configureWritePassword(false, undefined, 'wrong'), /Incorrect/);
-  await assert.rejects(mock.service.configureWritePassword(true, 'replacement', 'wrong'), /Incorrect/);
-  await assert.rejects(mock.service.configureWritePassword(true, '', 'first password'), /Invalid new/);
+  await assert.rejects(
+    mock.service.configureWritePassword(true, 'replacement', 'wrong'),
+    /Incorrect/
+  );
+  await assert.rejects(
+    mock.service.configureWritePassword(true, '', 'first password'),
+    /Invalid new/
+  );
   assert.equal(mock.getConfig().opencaselistRequirePasswordForWrites, true);
   await mock.service.configureWritePassword(true, 'replacement', 'first password');
   assert.equal(mock.service.writePasswordStatus().unlocked, false);
@@ -372,7 +640,10 @@ test('changing or disabling protection always requires the current password and 
 
 test('enabled protection without a password fails closed and can be configured in Settings', async () => {
   const mock = setup({ config: { opencaselistRequirePasswordForWrites: true } });
-  await assert.rejects(mock.service.write('create-round', selection, round), /Settings > Integrations/);
+  await assert.rejects(
+    mock.service.write('create-round', selection, round),
+    /Settings > Integrations/
+  );
   await assert.rejects(mock.service.upload(selection, round), /Settings > Integrations/);
   await assert.rejects(mock.service.verifyWritePassword('anything'), /Settings > Integrations/);
   await mock.service.list('rounds', selection);
@@ -426,7 +697,9 @@ test('platform: downloads stay inside the vault, never overwrite and preserve ex
   const bytes = Buffer.from([0, 255, 11, 22]);
   const target = path.join(root, 'Evidence.docx');
   const mock = setup({ root, response: () => new Response(bytes) });
-  assert.deepEqual(await mock.service.download('caselist/Evidence.docx'), { path: 'Evidence.docx' });
+  assert.deepEqual(await mock.service.download('caselist/Evidence.docx'), {
+    path: 'Evidence.docx',
+  });
   assert.deepEqual(await fs.readFile(target), bytes);
   await assert.rejects(mock.service.download('caselist/Evidence.docx'), /already exists/);
   assert.equal(mock.requests.length, 1);
@@ -440,7 +713,11 @@ test('platform: downloads stay inside the vault, never overwrite and preserve ex
 test('platform: downloads reject existing directory links and unsafe filenames without opening a picker', async (t) => {
   const root = await temporary(t);
   const outside = await temporary(t);
-  await fs.symlink(outside, path.join(root, 'Evidence.docx'), process.platform === 'win32' ? 'junction' : 'dir');
+  await fs.symlink(
+    outside,
+    path.join(root, 'Evidence.docx'),
+    process.platform === 'win32' ? 'junction' : 'dir'
+  );
   const mock = setup({ root });
   await assert.rejects(mock.service.download('Evidence.docx'), /already exists/);
   for (const name of ['..', 'folder/', 'CON.docx', 'NUL.pdf']) {
@@ -453,34 +730,52 @@ test('platform: downloads do not save after a vault switch and cannot overwrite 
   const root = await temporary(t);
   let current = root;
   const changed = setup({
-    root, getVaultRoot: () => current, response: () => {
+    root,
+    getVaultRoot: () => current,
+    response: () => {
       current = null;
       return new Response('download');
-    }
+    },
   });
   await assert.rejects(changed.service.download('Evidence.docx'), /vault changed/);
   assert.deepEqual(await fs.readdir(root), []);
   const racing = setup({
-    root, response: async () => {
+    root,
+    response: async () => {
       await fs.writeFile(path.join(root, 'Evidence.docx'), 'keep');
       return new Response('download');
-    }
+    },
   });
   await assert.rejects(racing.service.download('Evidence.docx'), { code: 'EEXIST' });
   assert.equal(await fs.readFile(path.join(root, 'Evidence.docx'), 'utf8'), 'keep');
 });
 test('response limits apply while streaming even when Content-Length is absent', async () => {
   await assert.rejects(responseBytes(new Response('12345'), 4), /too large/);
-  await assert.rejects(responseBytes(new Response('1', { headers: { 'Content-Length': '100' } }), 4), /too large/);
+  await assert.rejects(
+    responseBytes(new Response('1', { headers: { 'Content-Length': '100' } }), 4),
+    /too large/
+  );
 });
 
 test('login uses an isolated sandbox with no preload and blocks off-site navigation', async () => {
   const windows = [];
   class LoginWindow extends EventEmitter {
-    constructor(options) { super(); this.options = options; this.webContents = new EventEmitter(); this.webContents.setWindowOpenHandler = (fn) => { this.popup = fn; }; windows.push(this); }
-    async loadURL(url) { this.url = url; }
-    close() { this.emit('closed'); }
-    focus() { }
+    constructor(options) {
+      super();
+      this.options = options;
+      this.webContents = new EventEmitter();
+      this.webContents.setWindowOpenHandler = (fn) => {
+        this.popup = fn;
+      };
+      windows.push(this);
+    }
+    async loadURL(url) {
+      this.url = url;
+    }
+    close() {
+      this.emit('closed');
+    }
+    focus() {}
   }
   const mock = setup({ BrowserWindow: LoginWindow });
   const login = mock.service.login();
@@ -492,13 +787,33 @@ test('login uses an isolated sandbox with no preload and blocks off-site navigat
   assert.equal(win.options.webPreferences.nodeIntegration, false);
   assert.equal(win.options.webPreferences.preload, undefined);
   let prevented = false;
-  win.webContents.emit('will-navigate', { preventDefault: () => { prevented = true; } }, 'https://evil.test');
+  win.webContents.emit(
+    'will-navigate',
+    {
+      preventDefault: () => {
+        prevented = true;
+      },
+    },
+    'https://evil.test'
+  );
   assert.equal(prevented, true);
   assert.deepEqual(win.popup({ url: 'https://evil.test' }), { action: 'deny' });
   await assert.rejects(mock.service.login(), /already open/);
-  assert.equal((await mock.session.cookies.get()).length, 0, 'Sign-in clears rejected tokens so the official login form can open');
-  mock.setCookies([{ name: 'caselist_token', domain: '.opencaselist.com', value: 'new-private-token' }]);
-  mock.session.cookies.emit('changed', {}, { name: 'caselist_token', domain: '.opencaselist.com', value: 'private' }, 'explicit', false);
+  assert.equal(
+    (await mock.session.cookies.get()).length,
+    0,
+    'Sign-in clears rejected tokens so the official login form can open'
+  );
+  mock.setCookies([
+    { name: 'caselist_token', domain: '.opencaselist.com', value: 'new-private-token' },
+  ]);
+  mock.session.cookies.emit(
+    'changed',
+    {},
+    { name: 'caselist_token', domain: '.opencaselist.com', value: 'private' },
+    'explicit',
+    false
+  );
   assert.equal((await login).signedIn, true);
   assert.equal(mock.session.cookies.listenerCount('changed'), 0);
 });
@@ -506,13 +821,22 @@ test('login uses an isolated sandbox with no preload and blocks off-site navigat
 test('cancelling or failing sign-in cleans up listeners without retaining a rejected cookie', async () => {
   for (const cancelled of [true, false]) {
     class LoginWindow extends EventEmitter {
-      constructor() { super(); this.webContents = new EventEmitter(); this.webContents.setWindowOpenHandler = () => { }; }
-      async loadURL() { if (cancelled) this.close(); throw new Error('Navigation aborted'); }
-      close() { this.emit('closed'); }
+      constructor() {
+        super();
+        this.webContents = new EventEmitter();
+        this.webContents.setWindowOpenHandler = () => {};
+      }
+      async loadURL() {
+        if (cancelled) {this.close();}
+        throw new Error('Navigation aborted');
+      }
+      close() {
+        this.emit('closed');
+      }
     }
     const mock = setup({ BrowserWindow: LoginWindow });
-    if (cancelled) assert.equal((await mock.service.login()).signedIn, false);
-    else await assert.rejects(mock.service.login(), /could not open/);
+    if (cancelled) {assert.equal((await mock.service.login()).signedIn, false);}
+    else {await assert.rejects(mock.service.login(), /could not open/);}
     assert.equal(mock.session.cookies.listenerCount('changed'), 0);
     assert.equal((await mock.service.status()).signedIn, false);
   }
@@ -520,7 +844,12 @@ test('cancelling or failing sign-in cleans up listeners without retaining a reje
 
 test('logging out invalidates in-flight API responses', async () => {
   let complete;
-  const mock = setup({ response: () => new Promise((resolve) => { complete = resolve; }) });
+  const mock = setup({
+    response: () =>
+      new Promise((resolve) => {
+        complete = resolve;
+      }),
+  });
   const request = mock.service.list('caselists');
   await new Promise((resolve) => setImmediate(resolve));
   await mock.service.logout();
@@ -534,16 +863,31 @@ test('OpenCaselist IPC is lazy and rejects extensions, subframes and other windo
   let created = false;
   const win = { webContents: { mainFrame: {} } };
   registerOpenCaselist({
-    ipcMain: { handle: (channel, fn) => { handlers[channel] = fn; } },
-    session: { fromPartition: () => { created = true; throw new Error('Should not initialize'); } },
+    ipcMain: {
+      handle: (channel, fn) => {
+        handlers[channel] = fn;
+      },
+    },
+    session: {
+      fromPartition: () => {
+        created = true;
+        throw new Error('Should not initialize');
+      },
+    },
     getWindow: () => win,
   });
   assert.equal(PARTITION, 'persist:opencaselist');
   assert.equal(created, false);
   assert.equal(typeof handlers['opencaselist:resolveTabroomTeam'], 'function');
   for (const event of [{ sender: {} }, { sender: win.webContents, senderFrame: {} }]) {
-    assert.throws(() => handlers['opencaselist:status'](event), /only available to the application/);
-    assert.throws(() => handlers['opencaselist:resolveTabroomTeam'](event, 'ndt2026', tabroomTeam), /only available to the application/);
+    assert.throws(
+      () => handlers['opencaselist:status'](event),
+      /only available to the application/
+    );
+    assert.throws(
+      () => handlers['opencaselist:resolveTabroomTeam'](event, 'ndt2026', tabroomTeam),
+      /only available to the application/
+    );
   }
   assert.equal(created, false);
 });

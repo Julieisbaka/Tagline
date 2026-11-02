@@ -1,4 +1,22 @@
-module.exports = async function runScenario({ win, wc, vault, fs, path, assert, delay, js, wait, click, button, open, point, press, drag, context, saved }) {
+module.exports = async function runScenario({
+  win,
+  wc,
+  vault,
+  fs,
+  path,
+  assert,
+  delay,
+  js,
+  wait,
+  click,
+  button,
+  open,
+  point,
+  press,
+  drag,
+  context,
+  saved,
+}) {
   await open('Alpha.md');
   await wait("!!document.querySelector('.status-bar [data-bar-item=words]')");
   await js(`(() => {
@@ -37,7 +55,10 @@ module.exports = async function runScenario({ win, wc, vault, fs, path, assert, 
   await wait("!!document.querySelector('.visual-document')");
   await context('.status-bar [data-bar-item=words]');
   await button('.context-menu button', 'Move left');
-  assert.ok((await saved('statusBarItems')).indexOf('words') < (await saved('statusBarItems')).indexOf('cards'));
+  assert.ok(
+    (await saved('statusBarItems')).indexOf('words') <
+      (await saved('statusBarItems')).indexOf('cards')
+  );
   await context('.status-bar [data-bar-item=words]');
   await button('.context-menu button', 'Hide Word count');
   assert.equal((await saved('statusBarItems')).includes('words'), false);
@@ -46,33 +67,61 @@ module.exports = async function runScenario({ win, wc, vault, fs, path, assert, 
   assert.equal((await saved('statusBarItems')).at(-1), 'words');
   await context('.sidebar-header [data-bar-item=newCanvas]');
   await button('.context-menu button', 'Move left');
-  assert.deepEqual((await saved('fileManagerItems')).slice(0, 3), ['newNote', 'newCanvas', 'newFlow']);
+  assert.deepEqual((await saved('fileManagerItems')).slice(0, 3), [
+    'newNote',
+    'newCanvas',
+    'newFlow',
+  ]);
   await context('.sidebar-header [data-bar-item=newCanvas]');
   await button('.context-menu button', 'Hide New canvas');
-  assert.equal(await js("!!document.querySelector('.sidebar-header [aria-label=\"New canvas\"]')"), false);
+  assert.equal(
+    await js('!!document.querySelector(\'.sidebar-header [aria-label="New canvas"]\')'),
+    false
+  );
   await delay(1200);
-  await new Promise((resolve) => { wc.once('did-finish-load', resolve); wc.reload(); });
+  await new Promise((resolve) => {
+    wc.once('did-finish-load', resolve);
+    wc.reload();
+  });
   await wait("!!document.querySelector('.sidebar-header')");
-  assert.equal(await js("!!document.querySelector('.sidebar-header [aria-label=\"New canvas\"]')"), false);
+  assert.equal(
+    await js('!!document.querySelector(\'.sidebar-header [aria-label="New canvas"]\')'),
+    false
+  );
   assert.equal((await saved('statusBarItems')).at(-1), 'words');
   await js(`(() => { const value = JSON.parse(localStorage.getItem('tagline-settings'));
     value.fileManagerItems = []; value.statusBarItems = [];
     localStorage.setItem('tagline-settings', JSON.stringify(value)); })()`);
-  await new Promise((resolve) => { wc.once('did-finish-load', resolve); wc.reload(); });
+  await new Promise((resolve) => {
+    wc.once('did-finish-load', resolve);
+    wc.reload();
+  });
   await wait("!!document.querySelector('.sidebar-header')");
   assert.equal(await js("document.querySelectorAll('.configurable-bar-item').length"), 0);
-  assert.equal(await js("document.querySelector('.status-bar').getBoundingClientRect().height >= 28"), true);
-  assert.equal(await js("document.querySelector('.sidebar-header').getBoundingClientRect().height >= 40"), true);
+  assert.equal(
+    await js("document.querySelector('.status-bar').getBoundingClientRect().height >= 28"),
+    true
+  );
+  assert.equal(
+    await js("document.querySelector('.sidebar-header').getBoundingClientRect().height >= 40"),
+    true
+  );
   await context('.sidebar-header');
   await button('.context-menu button', 'Restore default items');
-  assert.equal(await js("!!document.querySelector('.sidebar-header [aria-label=\"New canvas\"]')"), true);
+  assert.equal(
+    await js('!!document.querySelector(\'.sidebar-header [aria-label="New canvas"]\')'),
+    true
+  );
   await context('.status-bar');
   await button('.context-menu button', 'Restore default items');
   await open('Alpha.md');
   await wait("!!document.querySelector('[data-editor-action=link]')");
   await click('[data-editor-action=link]');
   await wait("!!document.querySelector('.wiki-link-options')");
-  assert.equal(await js("document.querySelector('.visual-link-form input').hasAttribute('list')"), false);
+  assert.equal(
+    await js("document.querySelector('.visual-link-form input').hasAttribute('list')"),
+    false
+  );
   await button('.wiki-link-options button', 'Beta');
   assert.equal(await js("document.querySelector('.visual-link-form input').value"), 'Beta');
   await js(`(() => { const el = document.querySelector('.visual-link-form input');
@@ -84,7 +133,11 @@ module.exports = async function runScenario({ win, wc, vault, fs, path, assert, 
   wc.sendInputEvent({ type: 'keyDown', keyCode: 'Return' });
   wc.sendInputEvent({ type: 'keyUp', keyCode: 'Return' });
   await wait("document.querySelector('.visual-link-form input').value === 'Alpha#Claim|Evidence'");
-  assert.equal(await js("!!document.querySelector('.visual-link-form')"), true, 'choosing a suggestion does not submit prematurely');
+  assert.equal(
+    await js("!!document.querySelector('.visual-link-form')"),
+    true,
+    'choosing a suggestion does not submit prematurely'
+  );
   await button('.visual-link-form button', 'Insert link');
   await wait("!document.querySelector('.visual-link-form')");
 };

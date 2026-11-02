@@ -4,7 +4,13 @@ import { languages } from '@codemirror/language-data';
 import { codeFolding, indentUnit } from '@codemirror/language';
 import { openSearchPanel, search, searchKeymap } from '@codemirror/search';
 import { EditorSelection, EditorState, Prec } from '@codemirror/state';
-import { EditorView, highlightActiveLine, highlightActiveLineGutter, keymap, lineNumbers } from '@codemirror/view';
+import {
+  EditorView,
+  highlightActiveLine,
+  highlightActiveLineGutter,
+  keymap,
+  lineNumbers,
+} from '@codemirror/view';
 import CodeMirror from '@uiw/react-codemirror';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { createCodeMirrorFindReplacePanel } from '../lib/codeMirrorFindReplace.js';
@@ -24,14 +30,33 @@ import EditorLinkForm from './EditorLinkForm.jsx';
 import EditorToolbar from './EditorToolbar.jsx';
 
 const SOURCE_ACTIONS = {
-  pocket: setHeading(1), hat: setHeading(2), block: setHeading(3), tag: setHeading(4),
-  cite: toggleWrap('**'), bold: toggleWrap('**'), italic: toggleWrap('*'),
-  underline: toggleWrap('++'), 'underline-alt': toggleWrap('++'),
-  emphasis: toggleWrap('**++', '++**'), highlight: toggleWrap('=='), 'clear-format': clearFormatting,
+  pocket: setHeading(1),
+  hat: setHeading(2),
+  block: setHeading(3),
+  tag: setHeading(4),
+  cite: toggleWrap('**'),
+  bold: toggleWrap('**'),
+  italic: toggleWrap('*'),
+  underline: toggleWrap('++'),
+  'underline-alt': toggleWrap('++'),
+  emphasis: toggleWrap('**++', '++**'),
+  highlight: toggleWrap('=='),
+  'clear-format': clearFormatting,
 };
 
 export default function Editor({
-  value, onChange, noteNames, notePaths, notify, onOpenLink, onSendCard, onCursor, viewRef, keybindings, settings, jump,
+  value,
+  onChange,
+  noteNames,
+  notePaths,
+  notify,
+  onOpenLink,
+  onSendCard,
+  onCursor,
+  viewRef,
+  keybindings,
+  settings,
+  jump,
 }) {
   const { t, locale } = useI18n();
   const ownViewRef = useRef(null);
@@ -41,7 +66,7 @@ export default function Editor({
   const cb = useRef({});
   cb.current = { noteNames, notePaths, notify, onOpenLink, onSendCard, onCursor, t };
   useEffect(() => {
-    if (!view || jump?.line == null) return;
+    if (!view || jump?.line == null) {return;}
     const line = view.state.doc.line(Math.min(jump.line + 1, view.state.doc.lines));
     view.dispatch({
       selection: EditorSelection.cursor(line.from),
@@ -53,7 +78,7 @@ export default function Editor({
   const extensions = useMemo(() => {
     const wikiComplete = (ctx) => {
       const m = ctx.matchBefore(/\[\[[^\]\n]*/);
-      if (!m) return null;
+      if (!m) {return null;}
       return {
         from: m.from + 2,
         options: cb.current.noteNames.map((n) => ({ label: n, apply: `${n}]]`, type: 'text' })),
@@ -65,10 +90,16 @@ export default function Editor({
       find: openSearchPanel,
       ...SOURCE_ACTIONS,
     };
-    const debateKeys = Prec.highest(keymap.of(KEYBINDINGS.filter((item) =>
-      item.scope === 'editor' && binding(item.id, keybindings)).map((item) => ({
-        key: editorBinding(binding(item.id, keybindings)), run: actions[item.id],
-      }))));
+    const debateKeys = Prec.highest(
+      keymap.of(
+        KEYBINDINGS.filter((item) => item.scope === 'editor' && binding(item.id, keybindings)).map(
+          (item) => ({
+            key: editorBinding(binding(item.id, keybindings)),
+            run: actions[item.id],
+          })
+        )
+      )
+    );
 
     return [
       search({ top: true, createPanel: createCodeMirrorFindReplacePanel }),
@@ -80,7 +111,9 @@ export default function Editor({
       ...(settings.sourceLineNumbers ? [lineNumbers()] : []),
       ...(settings.sourceLineWrapping ? [EditorView.lineWrapping] : []),
       ...(settings.sourceActiveLine ? [highlightActiveLine()] : []),
-      ...(settings.sourceActiveLine && settings.sourceLineNumbers ? [highlightActiveLineGutter()] : []),
+      ...(settings.sourceActiveLine && settings.sourceLineNumbers
+        ? [highlightActiveLineGutter()]
+        : []),
       ...(settings.sourceAutocomplete ? [autocompletion({ override: [wikiComplete] })] : []),
       debateKeys,
       ...debateDecorations,
@@ -90,17 +123,19 @@ export default function Editor({
         'aria-multiline': 'true',
         spellcheck: String(settings.sourceSpellcheck !== false),
       }),
-      ...(settings.sourceActiveLine ? [EditorView.theme({ '.cm-activeLine': { backgroundColor: 'var(--bg-hover)' } })] : []),
+      ...(settings.sourceActiveLine
+        ? [EditorView.theme({ '.cm-activeLine': { backgroundColor: 'var(--bg-hover)' } })]
+        : []),
       EditorView.domEventHandlers({
         dragover(e) {
-          if (!hasNoteDrag(e.dataTransfer)) return false;
+          if (!hasNoteDrag(e.dataTransfer)) {return false;}
           e.preventDefault();
           e.dataTransfer.dropEffect = 'copy';
           return true;
         },
         drop(e, view) {
           const path = draggedNotePath(e.dataTransfer, cb.current.notePaths);
-          if (!path) return false;
+          if (!path) {return false;}
           e.preventDefault();
           const pos = view.posAtCoords({ x: e.clientX, y: e.clientY });
           if (pos == null) {
@@ -108,67 +143,105 @@ export default function Editor({
             return true;
           }
           let text;
-          try { text = draggedNoteLink(path); }
-          catch (error) { cb.current.notify(cb.current.t(error.message)); return true; }
-          view.dispatch({ changes: { from: pos, insert: text }, selection: { anchor: pos + text.length } });
+          try {
+            text = draggedNoteLink(path);
+          } catch (error) {
+            cb.current.notify(cb.current.t(error.message));
+            return true;
+          }
+          view.dispatch({
+            changes: { from: pos, insert: text },
+            selection: { anchor: pos + text.length },
+          });
           view.focus();
           return true;
         },
         mousedown(e, view) {
-          if (!(e.ctrlKey || e.metaKey)) return false;
+          if (!(e.ctrlKey || e.metaKey)) {return false;}
           const pos = view.posAtCoords({ x: e.clientX, y: e.clientY });
           const link = pos != null && linkAt(view.state, pos);
-          if (!link) return false;
+          if (!link) {return false;}
           e.preventDefault();
           cb.current.onOpenLink?.(link.target, link.heading, e.shiftKey);
           return true;
         },
       }),
       EditorView.updateListener.of((u) => {
-        if (u.selectionSet || u.docChanged) cb.current.onCursor?.(u.state.selection.main.head);
+        if (u.selectionSet || u.docChanged) {cb.current.onCursor?.(u.state.selection.main.head);}
         if (u.selectionSet) {
           const { from, to } = u.state.selection.main;
-          applicationEvents.emit('editor.selectionChanged', { mode: 'edit', selection: { from, to } });
+          applicationEvents.emit('editor.selectionChanged', {
+            mode: 'edit',
+            selection: { from, to },
+          });
         }
       }),
     ];
-  }, [keybindings, settings.sourceActiveLine, settings.sourceAutocomplete, settings.sourceLineNumbers, settings.sourceLineWrapping,
-    settings.sourceTabSize, settings.sourceIndentWithTabs, settings.sourceCodeFolding, settings.sourceSpellcheck, locale]);
+  }, [
+    keybindings,
+    settings.sourceActiveLine,
+    settings.sourceAutocomplete,
+    settings.sourceLineNumbers,
+    settings.sourceLineWrapping,
+    settings.sourceTabSize,
+    settings.sourceIndentWithTabs,
+    settings.sourceCodeFolding,
+    settings.sourceSpellcheck,
+    locale,
+  ]);
 
   const run = (command) => () => {
     const view = ownViewRef.current;
-    if (!view || view.destroyed) return;
+    if (!view || view.destroyed) {return;}
     command(view);
     view.focus();
   };
   return (
-    <div className="source-editor">
-      {settings.visualToolbar && <EditorToolbar keybindings={keybindings} active={{ link: linkOpen }} actions={{
-        ...Object.fromEntries(Object.entries(SOURCE_ACTIONS).map(([id, action]) => [id, run(action)])),
-        link: () => setLinkOpen((open) => !open),
-        find: () => openSearchPanel(ownViewRef.current),
-        'send-card': () => {
-          const view = ownViewRef.current;
-          const { from, to, head } = view.state.selection.main;
-          onSendCard(head, view.state.sliceDoc(from, to));
-        },
-      }} />}
-      {linkOpen && <EditorLinkForm noteNames={noteNames} onClose={() => {
-        setLinkOpen(false); ownViewRef.current?.focus();
-      }} onInsert={(target) => {
-        const view = ownViewRef.current;
-        const { from, to } = view.state.selection.main;
-        const text = `[[${target}]]`;
-        view.dispatch({ changes: { from, to, insert: text }, selection: { anchor: from + text.length } });
-        setLinkOpen(false);
-        view.focus();
-      }} />}
+    <div className='source-editor'>
+      {settings.visualToolbar && (
+        <EditorToolbar
+          keybindings={keybindings}
+          active={{ link: linkOpen }}
+          actions={{
+            ...Object.fromEntries(
+              Object.entries(SOURCE_ACTIONS).map(([id, action]) => [id, run(action)])
+            ),
+            link: () => setLinkOpen((open) => !open),
+            find: () => openSearchPanel(ownViewRef.current),
+            'send-card': () => {
+              const view = ownViewRef.current;
+              const { from, to, head } = view.state.selection.main;
+              onSendCard(head, view.state.sliceDoc(from, to));
+            },
+          }}
+        />
+      )}
+      {linkOpen && (
+        <EditorLinkForm
+          noteNames={noteNames}
+          onClose={() => {
+            setLinkOpen(false);
+            ownViewRef.current?.focus();
+          }}
+          onInsert={(target) => {
+            const view = ownViewRef.current;
+            const { from, to } = view.state.selection.main;
+            const text = `[[${target}]]`;
+            view.dispatch({
+              changes: { from, to, insert: text },
+              selection: { anchor: from + text.length },
+            });
+            setLinkOpen(false);
+            view.focus();
+          }}
+        />
+      )}
       <CodeMirror
-        className="editor"
+        className='editor'
         value={value}
         onChange={onChange}
         extensions={extensions}
-        theme="none"
+        theme='none'
         basicSetup={{
           highlightSelectionMatches: settings.sourceSelectionMatches,
           lineNumbers: false,
@@ -185,10 +258,10 @@ export default function Editor({
         onCreateEditor={(view) => {
           ownViewRef.current = view;
           setView(view);
-          if (viewRef) viewRef.current = view;
+          if (viewRef) {viewRef.current = view;}
           applicationEvents.emit('editor.ready', { mode: 'edit' });
         }}
-        height="100%"
+        height='100%'
         autoFocus
       />
     </div>

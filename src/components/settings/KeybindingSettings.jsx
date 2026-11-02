@@ -1,6 +1,14 @@
 import { useState } from 'react';
 import { useI18n } from '../../lib/i18n.js';
-import { binding, bindingConflict, displayBinding, eventBinding, KEYBINDINGS, reservedBinding, validBinding } from '../../lib/keybindings.js';
+import {
+  binding,
+  bindingConflict,
+  displayBinding,
+  eventBinding,
+  KEYBINDINGS,
+  reservedBinding,
+  validBinding,
+} from '../../lib/keybindings.js';
 
 export default function KeybindingSettings({ settings, update, extra = [] }) {
   const { t } = useI18n();
@@ -14,41 +22,107 @@ export default function KeybindingSettings({ settings, update, extra = [] }) {
       return;
     }
     const conflict = bindingConflict(id, key, overrides, extra);
-    if (conflict) { setError(t('Shortcut already assigned to: {command}', { command: t(conflict.label) })); return; }
+    if (conflict) {
+      setError(t('Shortcut already assigned to: {command}', { command: t(conflict.label) }));
+      return;
+    }
     setError('');
     update({ keybindings: { ...overrides, [id]: key } });
     setRecording(null);
   };
-  return <section className="keybinding-settings">
-    <p>{t('Select a shortcut and press a key combination. Escape cancels; Delete removes it. Changes save automatically.')}</p>
-    <button onClick={() => { update({ keybindings: {} }); setError(''); setRecording(null); }}>{t('Reset all shortcuts')}</button>
-    {error && <p role="alert" className="error-text">{error}</p>}
-    {['app', 'editor', 'flow', 'canvas', 'extensions'].map((scope) => <section key={scope} hidden={scope === 'extensions' && !extra.length}>
-      <h4>{t({ app: 'Application', editor: 'Note editing', flow: 'Flow editing', canvas: 'Canvas editing', extensions: 'Extensions' }[scope])}</h4>
-      {(scope === 'extensions' ? extra : KEYBINDINGS.filter((item) => item.scope === scope)).map((item) => <div className="setting-row keybinding-row" key={item.id}>
-        <span>{t(item.label)}</span>
-        <button className={recording === item.id ? 'recording' : ''} data-binding={item.id}
-          aria-label={t('Shortcut for {command}', { command: t(item.label) })}
-          onBlur={() => setRecording(null)}
-          onClick={() => { setRecording(item.id); setError(''); }}
-          onKeyDown={(event) => {
-            if (recording !== item.id) return;
-            event.preventDefault(); event.stopPropagation();
-            if (event.key === 'Escape' && item.id !== 'flow-deselect') { setRecording(null); return; }
-            if (event.key === 'Delete' || event.key === 'Backspace') { save(item.id, ''); return; }
-            const key = eventBinding(event);
-            if (!key) return;
-            if (!event.ctrlKey && !event.metaKey && !event.altKey && !/^F\d{1,2}$/.test(event.key) &&
-              !(item.scope === 'flow' && plainFlowKeys.includes(item.id))) {
-              setError(t('Use a modifier key or a function key to avoid replacing normal typing.')); return;
-            }
-            save(item.id, key);
-          }}>
-          {recording === item.id ? t('Press shortcut...') : displayBinding(binding(item.id, overrides, extra)) || t('Not assigned')}
-        </button>
-        <button className="mini" aria-label={t('Remove shortcut for {command}', { command: t(item.label) })}
-          onClick={() => save(item.id, '')}>{t('Clear')}</button>
-      </div>)}
-    </section>)}
-  </section>;
+  return (
+    <section className='keybinding-settings'>
+      <p>
+        {t(
+          'Select a shortcut and press a key combination. Escape cancels; Delete removes it. Changes save automatically.'
+        )}
+      </p>
+      <button
+        onClick={() => {
+          update({ keybindings: {} });
+          setError('');
+          setRecording(null);
+        }}
+      >
+        {t('Reset all shortcuts')}
+      </button>
+      {error && (
+        <p role='alert' className='error-text'>
+          {error}
+        </p>
+      )}
+      {['app', 'editor', 'flow', 'canvas', 'extensions'].map((scope) => (
+        <section key={scope} hidden={scope === 'extensions' && !extra.length}>
+          <h4>
+            {t(
+              {
+                app: 'Application',
+                editor: 'Note editing',
+                flow: 'Flow editing',
+                canvas: 'Canvas editing',
+                extensions: 'Extensions',
+              }[scope]
+            )}
+          </h4>
+          {(scope === 'extensions'
+            ? extra
+            : KEYBINDINGS.filter((item) => item.scope === scope)
+          ).map((item) => (
+            <div className='setting-row keybinding-row' key={item.id}>
+              <span>{t(item.label)}</span>
+              <button
+                className={recording === item.id ? 'recording' : ''}
+                data-binding={item.id}
+                aria-label={t('Shortcut for {command}', { command: t(item.label) })}
+                onBlur={() => setRecording(null)}
+                onClick={() => {
+                  setRecording(item.id);
+                  setError('');
+                }}
+                onKeyDown={(event) => {
+                  if (recording !== item.id) {return;}
+                  event.preventDefault();
+                  event.stopPropagation();
+                  if (event.key === 'Escape' && item.id !== 'flow-deselect') {
+                    setRecording(null);
+                    return;
+                  }
+                  if (event.key === 'Delete' || event.key === 'Backspace') {
+                    save(item.id, '');
+                    return;
+                  }
+                  const key = eventBinding(event);
+                  if (!key) {return;}
+                  if (
+                    !event.ctrlKey &&
+                    !event.metaKey &&
+                    !event.altKey &&
+                    !/^F\d{1,2}$/.test(event.key) &&
+                    !(item.scope === 'flow' && plainFlowKeys.includes(item.id))
+                  ) {
+                    setError(
+                      t('Use a modifier key or a function key to avoid replacing normal typing.')
+                    );
+                    return;
+                  }
+                  save(item.id, key);
+                }}
+              >
+                {recording === item.id
+                  ? t('Press shortcut...')
+                  : displayBinding(binding(item.id, overrides, extra)) || t('Not assigned')}
+              </button>
+              <button
+                className='mini'
+                aria-label={t('Remove shortcut for {command}', { command: t(item.label) })}
+                onClick={() => save(item.id, '')}
+              >
+                {t('Clear')}
+              </button>
+            </div>
+          ))}
+        </section>
+      ))}
+    </section>
+  );
 }

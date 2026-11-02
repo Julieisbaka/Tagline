@@ -86,17 +86,17 @@
   outline: 1px solid var(--accent);
 }
 
-.visual-document ul[data-type="taskList"] {
+.visual-document ul[data-type='taskList'] {
   list-style: none;
   padding-left: 8px;
 }
 
-.visual-document li[data-type="taskItem"] {
+.visual-document li[data-type='taskItem'] {
   display: flex;
   gap: 8px;
 }
 
-.visual-document li[data-type="taskItem"]>div {
+.visual-document li[data-type='taskItem'] > div {
   flex: 1;
 }
 
@@ -145,7 +145,7 @@
   overflow-wrap: anywhere;
 }
 
-.wiki-link-options button[aria-selected="true"] {
+.wiki-link-options button[aria-selected='true'] {
   background: var(--accent-dim);
   color: var(--accent);
 }
@@ -169,7 +169,7 @@
   font-size: 12px;
 }
 
-.visual-find-row>input {
+.visual-find-row > input {
   flex: 1 1 180px;
   min-width: 100px;
 }
@@ -180,7 +180,7 @@
   gap: 4px;
 }
 
-.visual-find-row input[type="checkbox"] {
+.visual-find-row input[type='checkbox'] {
   accent-color: var(--accent);
 }
 

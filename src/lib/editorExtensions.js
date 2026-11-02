@@ -46,7 +46,11 @@ export function toggleWrap(open, close = open) {
           range: EditorSelection.range(range.from - open.length, range.to - open.length),
         };
       }
-      if (text.startsWith(open) && text.endsWith(close) && text.length >= open.length + close.length) {
+      if (
+        text.startsWith(open) &&
+        text.endsWith(close) &&
+        text.length >= open.length + close.length
+      ) {
         const inner = text.slice(open.length, text.length - close.length);
         return {
           changes: { from: range.from, to: range.to, insert: inner },
@@ -88,7 +92,7 @@ function markPlugin(regexp, cls) {
         this.decorations = decorator.updateDeco(u, this.decorations);
       },
     }),
-    { decorations: (v) => v.decorations },
+    { decorations: (v) => v.decorations }
   );
 }
 
@@ -106,7 +110,8 @@ export function linkAt(state, pos) {
   const re = /\[\[([^\]|#]+)(#[^\]|]*)?(\|[^\]]*)?\]\]/g;
   for (const m of line.text.matchAll(re)) {
     const from = line.from + m.index;
-    if (pos >= from && pos <= from + m[0].length) return { target: m[1].trim(), heading: (m[2] || '').slice(1) };
+    if (pos >= from && pos <= from + m[0].length)
+      {return { target: m[1].trim(), heading: (m[2] || '').slice(1) };}
   }
   return null;
 }
@@ -132,8 +137,13 @@ export const settingsCodeMirrorTheme = EditorView.theme(
   {
     '&': { color: 'var(--text)' },
     '.cm-content': { caretColor: 'var(--accent)', color: 'var(--text)' },
-    '&.cm-focused .cm-selectionBackground, .cm-selectionBackground': { backgroundColor: 'var(--selection) !important' },
-    '.cm-content ::selection': { backgroundColor: 'var(--selection) !important', color: 'var(--selection-text) !important' },
+    '&.cm-focused .cm-selectionBackground, .cm-selectionBackground': {
+      backgroundColor: 'var(--selection) !important',
+    },
+    '.cm-content ::selection': {
+      backgroundColor: 'var(--selection) !important',
+      color: 'var(--selection-text) !important',
+    },
     '.cm-cursor, .cm-dropCursor': { borderLeftColor: 'var(--accent)', borderLeftWidth: '2px' },
     '.cm-tooltip': {
       backgroundColor: 'var(--bg-elevated)',
@@ -141,7 +151,10 @@ export const settingsCodeMirrorTheme = EditorView.theme(
       color: 'var(--text)',
     },
     '.cm-tooltip-autocomplete ul': { backgroundColor: 'var(--bg-elevated)', color: 'var(--text)' },
-    '.cm-tooltip-autocomplete ul li': { backgroundColor: 'var(--bg-elevated)', color: 'var(--text)' },
+    '.cm-tooltip-autocomplete ul li': {
+      backgroundColor: 'var(--bg-elevated)',
+      color: 'var(--text)',
+    },
     '.cm-tooltip-autocomplete ul li[aria-selected]': {
       backgroundColor: 'var(--bg-hover)',
       color: 'var(--text-strong)',
@@ -149,25 +162,43 @@ export const settingsCodeMirrorTheme = EditorView.theme(
     },
     '.cm-completionLabel': { color: 'inherit' },
     '.cm-completionDetail': { color: 'var(--text-muted)' },
-    '.cm-tooltip-autocomplete ul li[aria-selected] .cm-completionDetail': { color: 'var(--text-strong)' },
-    '.cm-completionMatchedText': { color: 'inherit', fontWeight: '700', textDecoration: 'underline' },
+    '.cm-tooltip-autocomplete ul li[aria-selected] .cm-completionDetail': {
+      color: 'var(--text-strong)',
+    },
+    '.cm-completionMatchedText': {
+      color: 'inherit',
+      fontWeight: '700',
+      textDecoration: 'underline',
+    },
   },
-  { dark: true },
+  { dark: true }
 );
 
 export const editorTheme = [
   EditorView.theme(
     {
       '&': { height: '100%', backgroundColor: 'transparent', color: 'var(--text)' },
-      '.cm-scroller': { fontFamily: 'var(--font-text)', fontSize: 'var(--editor-font-size)', lineHeight: 'var(--visual-line-height, 1.65)' },
-      '.cm-content': { padding: '24px 28px 40vh', caretColor: 'var(--accent)', color: 'var(--text)' },
+      '.cm-scroller': {
+        fontFamily: 'var(--font-text)',
+        fontSize: 'var(--editor-font-size)',
+        lineHeight: 'var(--visual-line-height, 1.65)',
+      },
+      '.cm-content': {
+        padding: '24px 28px 40vh',
+        caretColor: 'var(--accent)',
+        color: 'var(--text)',
+      },
       '.cm-line': { padding: '0 4px' },
       '.cm-cursor, .cm-dropCursor': { borderLeftColor: 'var(--accent)', borderLeftWidth: '2px' },
       '&.cm-focused .cm-selectionBackground, .cm-selectionBackground, ::selection': {
         backgroundColor: 'var(--selection) !important',
       },
       '.cm-activeLine': { backgroundColor: 'transparent' },
-      '.cm-gutters': { backgroundColor: 'var(--bg-secondary)', color: 'var(--text-muted)', borderRight: '1px solid var(--border)' },
+      '.cm-gutters': {
+        backgroundColor: 'var(--bg-secondary)',
+        color: 'var(--text-muted)',
+        borderRight: '1px solid var(--border)',
+      },
       '.cm-searchMatch': {
         backgroundColor: 'var(--highlight-bg)',
         color: 'var(--highlight-text)',
@@ -179,7 +210,7 @@ export const editorTheme = [
         outline: '2px solid var(--accent)',
       },
     },
-    { dark: true },
+    { dark: true }
   ),
   syntaxHighlighting(highlightStyle),
   settingsCodeMirrorTheme,

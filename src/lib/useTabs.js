@@ -20,29 +20,44 @@ export function restoreTabs(saved) {
   const paths = new Set();
   let graphCount = 0;
   const tabs = saved.tabs.map((tab) => {
-    if (!tab || typeof tab !== 'object' || Array.isArray(tab) ||
-      typeof tab.id !== 'string' || !tab.id || ids.has(tab.id)) {
+    if (
+      !tab ||
+      typeof tab !== 'object' ||
+      Array.isArray(tab) ||
+      typeof tab.id !== 'string' ||
+      !tab.id ||
+      ids.has(tab.id)
+    ) {
       throw new Error('Saved tab IDs must be unique non-empty strings.');
     }
     ids.add(tab.id);
     if (tab.kind === 'graph') {
-      if (++graphCount > 1) throw new Error('Only one graph tab can be restored.');
+      if (++graphCount > 1) {throw new Error('Only one graph tab can be restored.');}
       return { id: tab.id, kind: 'graph' };
     }
-    if (tab.kind !== 'file' || typeof tab.path !== 'string' || !tab.path.trim() ||
-      /^[\\/]|^[a-z]:/i.test(tab.path) || tab.path.split(/[\\/]/).includes('..') || paths.has(tab.path)) {
+    if (
+      tab.kind !== 'file' ||
+      typeof tab.path !== 'string' ||
+      !tab.path.trim() ||
+      /^[\\/]|^[a-z]:/i.test(tab.path) ||
+      tab.path.split(/[\\/]/).includes('..') ||
+      paths.has(tab.path)
+    ) {
       throw new Error('Saved file tabs must have unique vault-relative paths.');
     }
     paths.add(tab.path);
     return { id: tab.id, kind: 'file', path: tab.path };
   });
-  const hasSavedActive = typeof saved.activeId === 'string' && tabs.some((tab) => tab.id === saved.activeId);
+  const hasSavedActive =
+    typeof saved.activeId === 'string' && tabs.some((tab) => tab.id === saved.activeId);
   const activeId = hasSavedActive ? saved.activeId : tabs[0]?.id || null;
   return {
     tabs,
     activeId,
-    warning: saved.activeId != null && !hasSavedActive
-      ? 'The saved active tab was unavailable; the first open tab was selected.' : null,
+    warning:
+      saved.activeId != null && !hasSavedActive
+        ? 'The saved active tab was unavailable; the first open tab was selected.'
+        : null,
   };
 }
 
@@ -55,17 +70,17 @@ export function restoreTabs(saved) {
  */
 export function reorderTabs(tabs, id, targetIndex) {
   const sourceIndex = tabs.findIndex((tab) => tab.id === id);
-  if (!Number.isInteger(targetIndex) || sourceIndex < 0) return tabs;
+  if (!Number.isInteger(targetIndex) || sourceIndex < 0) {return tabs;}
   const next = [...tabs];
   const [moved] = next.splice(sourceIndex, 1);
   const destination = Math.max(0, Math.min(targetIndex, next.length));
-  if (sourceIndex === destination) return tabs;
+  if (sourceIndex === destination) {return tabs;}
   next.splice(destination, 0, moved);
   return next;
 }
 
 // Workspace tabs, persisted per vault.
-/** 
+/**
  * React hook for open-tab state, persistence, and vault-backed tab operations.
  * @param {string} vaultRoot - The root path of the vault to associate tabs with.
  * @param {boolean} [persist=true] - Whether to persist tabs in localStorage.
@@ -96,7 +111,7 @@ export function useTabs(vaultRoot, persist = true) {
         const restored = restoreTabs(saved);
         setTabs(restored.tabs);
         setActiveId(restored.activeId);
-        if (restored.warning) setError(restored.warning);
+        if (restored.warning) {setError(restored.warning);}
       } else if (previousVault.current !== storageKey) {
         setTabs([]);
         setActiveId(null);
@@ -121,7 +136,7 @@ export function useTabs(vaultRoot, persist = true) {
   }, [tabs, activeId, storageKey, loadedKey, loadKey, persist]);
 
   useEffect(() => {
-    if (activeId && !tabs.some((tab) => tab.id === activeId)) setActiveId(tabs[0]?.id || null);
+    if (activeId && !tabs.some((tab) => tab.id === activeId)) {setActiveId(tabs[0]?.id || null);}
   }, [tabs, activeId]);
 
   const activeTab = tabs.find((t) => t.id === activeId) || null;
@@ -129,7 +144,7 @@ export function useTabs(vaultRoot, persist = true) {
   const openPath = useCallback(
     (path, newTab = false) => {
       const existing = tabs.find((t) => t.path === path);
-      if (existing) return setActiveId(existing.id);
+      if (existing) {return setActiveId(existing.id);}
       const current = tabs.find((t) => t.id === activeId);
       if (!newTab && current && current.kind === 'file') {
         setTabs(tabs.map((t) => (t.id === current.id ? { ...t, path } : t)));
@@ -140,12 +155,12 @@ export function useTabs(vaultRoot, persist = true) {
       setActiveId(tab.id);
       return undefined;
     },
-    [tabs, activeId],
+    [tabs, activeId]
   );
 
   const openGraph = useCallback(() => {
     const existing = tabs.find((t) => t.kind === 'graph');
-    if (existing) return setActiveId(existing.id);
+    if (existing) {return setActiveId(existing.id);}
     const tab = { id: newId(), kind: 'graph' };
     setTabs([...tabs, tab]);
     setActiveId(tab.id);
@@ -157,21 +172,25 @@ export function useTabs(vaultRoot, persist = true) {
       const i = tabs.findIndex((t) => t.id === id);
       const next = tabs.filter((t) => t.id !== id);
       setTabs(next);
-      if (id === activeId) setActiveId(next[Math.min(i, next.length - 1)]?.id || null);
+      if (id === activeId) {setActiveId(next[Math.min(i, next.length - 1)]?.id || null);}
     },
-    [tabs, activeId],
+    [tabs, activeId]
   );
 
   const renamePath = useCallback((from, to) => {
     setTabs((prev) =>
       prev.map((t) =>
-        t.path && (t.path === from || t.path.startsWith(from + '/')) ? { ...t, path: to + t.path.slice(from.length) } : t,
-      ),
+        t.path && (t.path === from || t.path.startsWith(from + '/'))
+          ? { ...t, path: to + t.path.slice(from.length) }
+          : t
+      )
     );
   }, []);
 
   const removePath = useCallback((path) => {
-    setTabs((prev) => prev.filter((t) => !(t.path && (t.path === path || t.path.startsWith(path + '/')))));
+    setTabs((prev) =>
+      prev.filter((t) => !(t.path && (t.path === path || t.path.startsWith(path + '/'))))
+    );
   }, []);
 
   // Drop tabs whose files vanished (e.g. deleted outside the app).
@@ -182,7 +201,7 @@ export function useTabs(vaultRoot, persist = true) {
     });
   }, []);
 
-  /** 
+  /**
    * Keep the selected tab open and close all other tabs.
    * @param {string} id - The ID of the tab to keep open.
    * @returns {void}
@@ -196,7 +215,19 @@ export function useTabs(vaultRoot, persist = true) {
   }, []);
   const clearError = useCallback(() => setError(null), []);
   return {
-    tabs, activeTab, activeId, setActiveId, openPath, openGraph, close, closeOthers,
-    renamePath, removePath, prune, reorder, error, clearError,
+    tabs,
+    activeTab,
+    activeId,
+    setActiveId,
+    openPath,
+    openGraph,
+    close,
+    closeOthers,
+    renamePath,
+    removePath,
+    prune,
+    reorder,
+    error,
+    clearError,
   };
 }

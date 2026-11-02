@@ -6,7 +6,7 @@ let summarizer;
 let queue = Promise.resolve();
 
 async function getSummarizer(report) {
-  if (summarizer) return summarizer;
+  if (summarizer) {return summarizer;}
   const { env, pipeline } = await import('@huggingface/transformers');
   delete process.env.HF_TOKEN;
   delete process.env.HF_ACCESS_TOKEN;
@@ -27,9 +27,12 @@ async function getSummarizer(report) {
     summarizer = await pipeline('summarization', MODEL, {
       dtype: 'q8',
       device: 'cpu',
-      progress_callback: (progress) => report(progress.status === 'progress'
-        ? `Downloading ${progress.file}: ${Math.round(progress.progress || 0)}%`
-        : `${progress.status}: ${progress.file || MODEL}`),
+      progress_callback: (progress) =>
+        report(
+          progress.status === 'progress'
+            ? `Downloading ${progress.file}: ${Math.round(progress.progress || 0)}%`
+            : `${progress.status}: ${progress.file || MODEL}`
+        ),
     });
     return summarizer;
   } finally {
@@ -43,7 +46,8 @@ async function summarize(content, report) {
   report('Summarizing document locally...');
   const result = await model(content, { max_new_tokens: 512 });
   const summary = Array.isArray(result) ? result[0]?.summary_text : result?.summary_text;
-  if (typeof summary !== 'string' || !summary.trim()) throw new Error('The model returned an empty summary.');
+  if (typeof summary !== 'string' || !summary.trim())
+    {throw new Error('The model returned an empty summary.');}
   return summary.trim();
 }
 
@@ -51,12 +55,16 @@ parentPort.on('message', (message) => {
   queue = queue.then(async () => {
     const report = (detail) => parentPort.postMessage({ id: message.id, progress: detail });
     try {
-      const result = message.type === 'summarize'
-        ? await summarize(message.content, report)
-        : (await getSummarizer(report), { ready: true, model: MODEL });
+      const result =
+        message.type === 'summarize'
+          ? await summarize(message.content, report)
+          : (await getSummarizer(report), { ready: true, model: MODEL });
       parentPort.postMessage({ id: message.id, result });
     } catch (error) {
-      parentPort.postMessage({ id: message.id, error: `Document summarization failed: ${error.message}` });
+      parentPort.postMessage({
+        id: message.id,
+        error: `Document summarization failed: ${error.message}`,
+      });
     }
   });
 });

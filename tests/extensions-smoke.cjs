@@ -5,11 +5,15 @@ if (!process.versions.electron) {
   const root = fs.mkdtempSync(path.join(require('node:os').tmpdir(), 'tagline-extensions-'));
   try {
     const result = spawnSync(require('electron'), [__filename], {
-      env: { ...process.env, TAGLINE_EXTENSIONS_ROOT: root }, stdio: 'inherit', timeout: 120000,
+      env: { ...process.env, TAGLINE_EXTENSIONS_ROOT: root },
+      stdio: 'inherit',
+      timeout: 120000,
     });
-    if (result.error) throw result.error;
+    if (result.error) {throw result.error;}
     process.exitCode = result.status ?? 1;
-  } finally { fs.rmSync(root, { recursive: true, force: true, maxRetries: 20, retryDelay: 100 }); }
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true, maxRetries: 20, retryDelay: 100 });
+  }
   return;
 }
 
@@ -189,7 +193,7 @@ tagline.commands.register('save-checks', async () => {
 
 (async () => {
   const root = process.env.TAGLINE_EXTENSIONS_ROOT;
-  if (!root) throw new Error('Run through npm run test:extensions.');
+  if (!root) {throw new Error('Run through npm run test:extensions.');}
   const profile = path.join(root, 'profile');
   const vault = path.join(root, 'vault');
   app.setPath('userData', profile);
@@ -202,46 +206,102 @@ tagline.commands.register('save-checks', async () => {
   let slowSave = false;
   const originalWrite = fs.writeFile;
   fs.writeFile = async (file, ...args) => {
-    if (file === path.join(vault, 'Renamed Operations.md') ||
-      path.dirname(file) === vault && path.basename(file).startsWith('.tagline-save-')) {
-      if (failSave) { failSave = false; throw new Error('Simulated disk write failure'); }
-      if (slowSave) await delay(700);
+    if (
+      file === path.join(vault, 'Renamed Operations.md') ||
+      (path.dirname(file) === vault && path.basename(file).startsWith('.tagline-save-'))
+    ) {
+      if (failSave) {
+        failSave = false;
+        throw new Error('Simulated disk write failure');
+      }
+      if (slowSave) {await delay(700);}
     }
     return originalWrite(file, ...args);
   };
-  await fs.writeFile(path.join(ext('demo'), 'manifest.json'), JSON.stringify({
-    manifestVersion: 1, id: 'demo', name: 'Demo', version: '1.0.0', description: 'Smoke test extension',
-    main: 'main.js', permissions: ['editor', 'vault:read', 'vault:write', 'events', 'ui'],
-    contributes: {
-      commands: [{ id: 'stamp', title: 'Stamp note', key: 'Mod+Alt+K' }, { id: 'index', title: 'Build index' },
-      { id: 'escape', title: 'Try escaping', key: 'Mod+N' }, { id: 'spin', title: 'Spin forever' },
-      { id: 'flood', title: 'Flood messages' }, { id: 'pending', title: 'Pending limit' },
-      { id: 'vault-apis', title: 'Exercise vault APIs' },
-      { id: 'save-checks', title: 'Exercise save failures and in-flight flush' },
-      { id: 'capabilities', title: 'Exercise editor events and UI' },
-      { id: 'source-selection', title: 'Set source selection' },
-      { id: 'document-apis', title: 'Exercise document APIs' }],
-      ribbonItems: [{ id: 'documents', title: 'Document tools', icon: 'canvas', command: 'document-apis' }],
-      panels: [{ id: 'status', title: 'Status' }],
-      webviews: [{ id: 'details', title: 'Details' }],
-      themes: ['themes/ocean.json'],
-    },
-  }));
+  await fs.writeFile(
+    path.join(ext('demo'), 'manifest.json'),
+    JSON.stringify({
+      manifestVersion: 1,
+      id: 'demo',
+      name: 'Demo',
+      version: '1.0.0',
+      description: 'Smoke test extension',
+      main: 'main.js',
+      permissions: ['editor', 'vault:read', 'vault:write', 'events', 'ui'],
+      contributes: {
+        commands: [
+          { id: 'stamp', title: 'Stamp note', key: 'Mod+Alt+K' },
+          { id: 'index', title: 'Build index' },
+          { id: 'escape', title: 'Try escaping', key: 'Mod+N' },
+          { id: 'spin', title: 'Spin forever' },
+          { id: 'flood', title: 'Flood messages' },
+          { id: 'pending', title: 'Pending limit' },
+          { id: 'vault-apis', title: 'Exercise vault APIs' },
+          { id: 'save-checks', title: 'Exercise save failures and in-flight flush' },
+          { id: 'capabilities', title: 'Exercise editor events and UI' },
+          { id: 'source-selection', title: 'Set source selection' },
+          { id: 'document-apis', title: 'Exercise document APIs' },
+        ],
+        ribbonItems: [
+          { id: 'documents', title: 'Document tools', icon: 'canvas', command: 'document-apis' },
+        ],
+        panels: [{ id: 'status', title: 'Status' }],
+        webviews: [{ id: 'details', title: 'Details' }],
+        themes: ['themes/ocean.json'],
+      },
+    })
+  );
   await fs.writeFile(path.join(ext('demo'), 'main.js'), DEMO);
-  await fs.writeFile(path.join(ext('demo'), 'themes', 'ocean.json'), JSON.stringify({
-    version: 1, name: 'Ocean', mode: 'dark', colors: { accent: '#12a4d9' },
-    variables: { 'font-ui': 'monospace', 'editor-font-size': '21px', 'extension-token': '12px' },
-    metadata: { author: 'Theme author', accessibility: { contrast: 'high', reducedMotion: true, notes: 'Test declaration, not certification.' } },
-    settings: [
-      { id: 'selection-color', title: 'Selection color', type: 'string', default: '#123456', variable: 'selection' },
-      { id: 'reading-size', title: 'Reading size', type: 'number', default: 21, min: 12, max: 30, variable: 'editor-font-size', unit: 'px' },
-    ],
-  }));
-  await fs.writeFile(path.join(ext('nosy'), 'manifest.json'), JSON.stringify({
-    manifestVersion: 1, id: 'nosy', name: 'Nosy', version: '0.1.0', main: 'main.js',
-    contributes: { commands: [{ id: 'peek', title: 'Peek' }] },
-  }));
-  await fs.writeFile(path.join(ext('nosy'), 'main.js'),
+  await fs.writeFile(
+    path.join(ext('demo'), 'themes', 'ocean.json'),
+    JSON.stringify({
+      version: 1,
+      name: 'Ocean',
+      mode: 'dark',
+      colors: { accent: '#12a4d9' },
+      variables: { 'font-ui': 'monospace', 'editor-font-size': '21px', 'extension-token': '12px' },
+      metadata: {
+        author: 'Theme author',
+        accessibility: {
+          contrast: 'high',
+          reducedMotion: true,
+          notes: 'Test declaration, not certification.',
+        },
+      },
+      settings: [
+        {
+          id: 'selection-color',
+          title: 'Selection color',
+          type: 'string',
+          default: '#123456',
+          variable: 'selection',
+        },
+        {
+          id: 'reading-size',
+          title: 'Reading size',
+          type: 'number',
+          default: 21,
+          min: 12,
+          max: 30,
+          variable: 'editor-font-size',
+          unit: 'px',
+        },
+      ],
+    })
+  );
+  await fs.writeFile(
+    path.join(ext('nosy'), 'manifest.json'),
+    JSON.stringify({
+      manifestVersion: 1,
+      id: 'nosy',
+      name: 'Nosy',
+      version: '0.1.0',
+      main: 'main.js',
+      contributes: { commands: [{ id: 'peek', title: 'Peek' }] },
+    })
+  );
+  await fs.writeFile(
+    path.join(ext('nosy'), 'main.js'),
     `tagline.onInstall(async () => {
       const attempts = ((await tagline.storage.get('installAttempts')) || 0) + 1;
       await tagline.storage.set('installAttempts', attempts);
@@ -251,70 +311,139 @@ tagline.commands.register('save-checks', async () => {
       await tagline.storage.set('installPermissionDenied', denied);
       if (attempts === 1) throw new Error('Retry first install setup');
     });
-    tagline.commands.register('peek', async () => { await tagline.vault.list(); });`);
+    tagline.commands.register('peek', async () => { await tagline.vault.list(); });`
+  );
   await fs.writeFile(path.join(vault, 'Card.md'), '# Card\n\nEvidence.\n');
-  await fs.writeFile(path.join(vault, 'Round.flow'), JSON.stringify({ version: 1, sheets: [{ name: 'Case', columns: ['1AC'], rows: [['A']] }] }));
+  await fs.writeFile(
+    path.join(vault, 'Round.flow'),
+    JSON.stringify({ version: 1, sheets: [{ name: 'Case', columns: ['1AC'], rows: [['A']] }] })
+  );
   const demoManifest = require('../electron/extensions.cjs').validateManifest(
-    JSON.parse(await fs.readFile(path.join(ext('demo'), 'manifest.json'), 'utf8')), ext('demo'));
+    JSON.parse(await fs.readFile(path.join(ext('demo'), 'manifest.json'), 'utf8')),
+    ext('demo')
+  );
   const demoReview = JSON.stringify({
     permissions: [...demoManifest.permissions].sort(),
-    settings: demoManifest.contributes.settings, ribbonItems: demoManifest.contributes.ribbonItems,
-    panels: demoManifest.contributes.panels, webviews: demoManifest.contributes.webviews,
+    settings: demoManifest.contributes.settings,
+    ribbonItems: demoManifest.contributes.ribbonItems,
+    panels: demoManifest.contributes.panels,
+    webviews: demoManifest.contributes.webviews,
   });
-  await fs.writeFile(path.join(profile, 'config.json'), JSON.stringify({
-    modelAutoload: false, lastVault: vault, enabledExtensions: ['demo', 'nosy'],
-    extensionReviews: { demo: demoReview },
-  }));
+  await fs.writeFile(
+    path.join(profile, 'config.json'),
+    JSON.stringify({
+      modelAutoload: false,
+      lastVault: vault,
+      enabledExtensions: ['demo', 'nosy'],
+      extensionReviews: { demo: demoReview },
+    })
+  );
 
   app.on('browser-window-created', (_event, win) => {
     win.webContents.setBackgroundThrottling(false);
     win.webContents.once('did-finish-load', async () => {
       const wc = win.webContents;
       const js = (code) => wc.executeJavaScript(code);
-      wc.on('console-message', (event) => { if (event.level === 'error' || event.level === 'warning') console.error('Renderer:', event.message); });
+      wc.on('console-message', (event) => {
+        if (event.level === 'error' || event.level === 'warning')
+          {console.error('Renderer:', event.message);}
+      });
       const wait = async (code, label = code) => {
-        for (let i = 0; i < 100; i++) { if (await js(code)) return; await delay(100); }
+        for (let i = 0; i < 100; i++) {
+          if (await js(code)) {return;}
+          await delay(100);
+        }
         throw new Error('Timed out: ' + label);
       };
-      const toast = async (pattern) => wait(`/${pattern}/.test(document.querySelector('.toast')?.textContent || '')`, `toast ${pattern}`);
+      const toast = async (pattern) =>
+        wait(
+          `/${pattern}/.test(document.querySelector('.toast')?.textContent || '')`,
+          `toast ${pattern}`
+        );
       const palette = async (label) => {
         for (let attempt = 0; attempt < 50; attempt++) {
-          await js(`window.dispatchEvent(new KeyboardEvent('keydown', { key: 'p', ctrlKey: ${process.platform !== 'darwin'}, metaKey: ${process.platform === 'darwin'}, bubbles: true }))`);
+          await js(
+            `window.dispatchEvent(new KeyboardEvent('keydown', { key: 'p', ctrlKey: ${process.platform !== 'darwin'}, metaKey: ${process.platform === 'darwin'}, bubbles: true }))`
+          );
           await wait(`!!document.querySelector('.palette input')`, 'palette');
           await js(`(() => { const input = document.querySelector('.palette input');
             const set = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set;
             set.call(input, ${JSON.stringify(label)}); input.dispatchEvent(new Event('input', { bubbles: true })); })()`);
           await delay(100);
-          const found = await js(`[...document.querySelectorAll('.palette-list > *')].some((el) => el.textContent.includes(${JSON.stringify(label)}))`);
-          await js(`document.querySelector('.palette input')?.dispatchEvent(new KeyboardEvent('keydown', { key: '${found ? 'Enter' : 'Escape'}', bubbles: true }))`);
+          const found = await js(
+            `[...document.querySelectorAll('.palette-list > *')].some((el) => el.textContent.includes(${JSON.stringify(label)}))`
+          );
+          await js(
+            `document.querySelector('.palette input')?.dispatchEvent(new KeyboardEvent('keydown', { key: '${found ? 'Enter' : 'Escape'}', bubbles: true }))`
+          );
           await delay(200);
-          if (found) return;
+          if (found) {return;}
         }
         throw new Error('Command never appeared: ' + label);
       };
       try {
-        win.show(); win.focus();
+        win.show();
+        win.focus();
         await wait("!!document.querySelector('.onboarding-skip')");
         await js("document.querySelector('.onboarding-skip').click()");
-        await wait("document.querySelector('.extension-webview-dialog')?.textContent.includes('Details')");
+        await wait(
+          "document.querySelector('.extension-webview-dialog')?.textContent.includes('Details')"
+        );
         await js("document.querySelector('.extension-webview-dialog button').click()");
-        await wait("JSON.parse(localStorage.getItem('tagline-extension:nosy'))?.installAttempts === 1");
+        await wait(
+          "JSON.parse(localStorage.getItem('tagline-extension:nosy'))?.installAttempts === 1"
+        );
         await js("document.querySelector('.ribbon-settings-button').click()");
         await wait("!!document.querySelector('.settings')");
         await js("document.querySelector('[data-section=extensions]').click()");
-        await wait("document.querySelector('[data-extension=nosy]')?.textContent.includes('Retry first install setup')");
+        await wait(
+          "document.querySelector('[data-extension=nosy]')?.textContent.includes('Retry first install setup')"
+        );
         let installed = JSON.parse(await fs.readFile(path.join(profile, 'config.json'), 'utf8'));
-        assert.equal(installed.initializedExtensions.includes('nosy'), false, 'failed setup does not mark installation complete');
-        await js("[...document.querySelectorAll('.settings button')].find(el => el.textContent === 'Reload extensions').click()");
-        await wait("JSON.parse(localStorage.getItem('tagline-extension:nosy'))?.installAttempts === 2");
-        await wait("document.querySelector('[data-extension=nosy]') && !document.querySelector('[data-extension=nosy]').textContent.includes('Retry first install setup')");
-        await js("[...document.querySelectorAll('.settings button')].find(el => el.textContent === 'Done').click()");
-        await wait(`document.querySelectorAll('iframe[data-extension]').length === 2`, 'extension frames');
-        assert.equal(await js("JSON.parse(localStorage.getItem('tagline-extension:demo')).installRuns"), 1);
-        assert.equal(await js("JSON.parse(localStorage.getItem('tagline-extension:nosy')).installPermissionDenied"), true);
-        assert.equal(await js(`document.querySelector('iframe[data-extension="demo"]').getAttribute('sandbox')`), 'allow-scripts');
+        assert.equal(
+          installed.initializedExtensions.includes('nosy'),
+          false,
+          'failed setup does not mark installation complete'
+        );
+        await js(
+          "[...document.querySelectorAll('.settings button')].find(el => el.textContent === 'Reload extensions').click()"
+        );
+        await wait(
+          "JSON.parse(localStorage.getItem('tagline-extension:nosy'))?.installAttempts === 2"
+        );
+        await wait(
+          "document.querySelector('[data-extension=nosy]') && !document.querySelector('[data-extension=nosy]').textContent.includes('Retry first install setup')"
+        );
+        await js(
+          "[...document.querySelectorAll('.settings button')].find(el => el.textContent === 'Done').click()"
+        );
+        await wait(
+          `document.querySelectorAll('iframe[data-extension]').length === 2`,
+          'extension frames'
+        );
+        assert.equal(
+          await js("JSON.parse(localStorage.getItem('tagline-extension:demo')).installRuns"),
+          1
+        );
+        assert.equal(
+          await js(
+            "JSON.parse(localStorage.getItem('tagline-extension:nosy')).installPermissionDenied"
+          ),
+          true
+        );
+        assert.equal(
+          await js(
+            `document.querySelector('iframe[data-extension="demo"]').getAttribute('sandbox')`
+          ),
+          'allow-scripts'
+        );
 
-        assert.deepEqual(await js(`[...document.querySelectorAll('.tree-item')].map((el) => el.textContent.trim()).sort()`), ['Card', 'Round']);
+        assert.deepEqual(
+          await js(
+            `[...document.querySelectorAll('.tree-item')].map((el) => el.textContent.trim()).sort()`
+          ),
+          ['Card', 'Round']
+        );
 
         await palette('Demo: Try escaping');
         await toast('Demo: undefined,undefined,no-storage,no-dom,no-network,undefined,undefined');
@@ -327,7 +456,10 @@ tagline.commands.register('save-checks', async () => {
 
         await palette('Demo: Build index');
         await toast('Demo: Indexed 2 files, run 1');
-        await wait(`[...document.querySelectorAll('.tree-item')].some((el) => el.textContent.trim() === 'Index')`, 'index file');
+        await wait(
+          `[...document.querySelectorAll('.tree-item')].some((el) => el.textContent.trim() === 'Index')`,
+          'index file'
+        );
         let index = '';
         for (let i = 0; i < 50 && !index.includes('Round.flow'); i++) {
           index = await fs.readFile(path.join(vault, 'Index.md'), 'utf8').catch(() => '');
@@ -337,42 +469,103 @@ tagline.commands.register('save-checks', async () => {
 
         await palette('Demo: Exercise vault APIs');
         await toast('Demo: Vault APIs passed');
-        assert.equal(await fs.readFile(path.join(vault, 'Renamed Operations.md'), 'utf8'), 'winner-saved');
-        assert.equal(await fs.readFile(path.join(vault, 'Operation Links.md'), 'utf8'), '[[Renamed Operations]]');
+        assert.equal(
+          await fs.readFile(path.join(vault, 'Renamed Operations.md'), 'utf8'),
+          'winner-saved'
+        );
+        assert.equal(
+          await fs.readFile(path.join(vault, 'Operation Links.md'), 'utf8'),
+          '[[Renamed Operations]]'
+        );
         await assert.rejects(fs.access(path.join(vault, 'Operations.md')));
         await assert.rejects(fs.access(path.join(vault, 'Delete Me.md')));
         const data = await js("JSON.parse(localStorage.getItem('tagline-extension:demo'))");
         assert.equal(data.watchStopped, true);
-        assert.ok(data.watchEvents.some(event => event.type === 'create' && event.path === 'Operations.md'));
-        assert.ok(data.watchEvents.some(event => event.type === 'change' && event.path === 'Operations.md'));
-        assert.ok(data.watchEvents.some(event => event.type === 'delete' && event.path === 'Operations.md'));
-        assert.ok(data.watchEvents.some(event => event.type === 'create' && event.path === 'Renamed Operations.md'));
+        assert.ok(
+          data.watchEvents.some(
+            (event) => event.type === 'create' && event.path === 'Operations.md'
+          )
+        );
+        assert.ok(
+          data.watchEvents.some(
+            (event) => event.type === 'change' && event.path === 'Operations.md'
+          )
+        );
+        assert.ok(
+          data.watchEvents.some(
+            (event) => event.type === 'delete' && event.path === 'Operations.md'
+          )
+        );
+        assert.ok(
+          data.watchEvents.some(
+            (event) => event.type === 'create' && event.path === 'Renamed Operations.md'
+          )
+        );
         failSave = slowSave = true;
         await palette('Demo: Exercise save failures and in-flight flush');
-        await wait("JSON.parse(localStorage.getItem('tagline-extension:demo')).saveChecks === true");
-        assert.equal(await fs.readFile(path.join(vault, 'Renamed Operations.md'), 'utf8'), 'inflight-saved');
+        await wait(
+          "JSON.parse(localStorage.getItem('tagline-extension:demo')).saveChecks === true"
+        );
+        assert.equal(
+          await fs.readFile(path.join(vault, 'Renamed Operations.md'), 'utf8'),
+          'inflight-saved'
+        );
         slowSave = false;
 
-        await js(`[...document.querySelectorAll('.tree-item')].find((el) => el.textContent.trim() === 'Card').click()`);
+        await js(
+          `[...document.querySelectorAll('.tree-item')].find((el) => el.textContent.trim() === 'Card').click()`
+        );
         await wait(`!!document.querySelector('.ProseMirror')`, 'visual editor');
         await js(`document.querySelector('.ProseMirror').focus()`);
-        wc.sendInputEvent({ type: 'keyDown', keyCode: 'K', modifiers: [process.platform === 'darwin' ? 'meta' : 'control', 'alt'] });
-        wc.sendInputEvent({ type: 'keyUp', keyCode: 'K', modifiers: [process.platform === 'darwin' ? 'meta' : 'control', 'alt'] });
-        await wait(`document.querySelector('.ProseMirror').textContent.includes('Stamped Card.md')`, 'stamped text');
+        wc.sendInputEvent({
+          type: 'keyDown',
+          keyCode: 'K',
+          modifiers: [process.platform === 'darwin' ? 'meta' : 'control', 'alt'],
+        });
+        wc.sendInputEvent({
+          type: 'keyUp',
+          keyCode: 'K',
+          modifiers: [process.platform === 'darwin' ? 'meta' : 'control', 'alt'],
+        });
+        await wait(
+          `document.querySelector('.ProseMirror').textContent.includes('Stamped Card.md')`,
+          'stamped text'
+        );
         await palette('Demo: Exercise editor events and UI');
-        await wait("JSON.parse(localStorage.getItem('tagline-extension:demo')).panelCheck?.reply === true", 'panel round-trip');
-        await wait("JSON.parse(localStorage.getItem('tagline-extension:demo')).webviewCheck?.ready === true", 'webview messaging');
-        await wait("JSON.parse(localStorage.getItem('tagline-extension:demo')).uiReport?.theme.id === 'dark'", 'UI kit initializes before extension scripts');
-        const uiReport = await js("JSON.parse(localStorage.getItem('tagline-extension:demo')).uiReport");
+        await wait(
+          "JSON.parse(localStorage.getItem('tagline-extension:demo')).panelCheck?.reply === true",
+          'panel round-trip'
+        );
+        await wait(
+          "JSON.parse(localStorage.getItem('tagline-extension:demo')).webviewCheck?.ready === true",
+          'webview messaging'
+        );
+        await wait(
+          "JSON.parse(localStorage.getItem('tagline-extension:demo')).uiReport?.theme.id === 'dark'",
+          'UI kit initializes before extension scripts'
+        );
+        const uiReport = await js(
+          "JSON.parse(localStorage.getItem('tagline-extension:demo')).uiReport"
+        );
         assert.equal(uiReport.labels.length, 3);
-        assert.ok(uiReport.labels.every(label => label.associated), 'kit inputs have associated native labels');
+        assert.ok(
+          uiReport.labels.every((label) => label.associated),
+          'kit inputs have associated native labels'
+        );
         assert.equal(uiReport.notice, 'status');
         assert.equal(uiReport.selectionText, 'rgb(255, 255, 255)');
         const capabilities = await js("JSON.parse(localStorage.getItem('tagline-extension:demo'))");
         assert.deepEqual(capabilities.installRegistration, {
-          invalidInstallRejected: true, duplicateInstallRejected: true, lateInstallRejected: true,
+          invalidInstallRejected: true,
+          duplicateInstallRejected: true,
+          lateInstallRejected: true,
         });
-        assert.deepEqual(capabilities.helperLibraryCheck.canvasLink, { type: 'file', path: 'Round.flow', heading: '', label: 'Round' });
+        assert.deepEqual(capabilities.helperLibraryCheck.canvasLink, {
+          type: 'file',
+          path: 'Round.flow',
+          heading: '',
+          label: 'Round',
+        });
         assert.deepEqual(capabilities.helperLibraryCheck.suggestions, ['Card.md']);
         assert.ok(capabilities.helperLibraryCheck.canvasId);
         assert.deepEqual(capabilities.helperLibraryCheck.moved, { nodes: [], edges: [] });
@@ -383,8 +576,12 @@ tagline.commands.register('save-checks', async () => {
         assert.equal(capabilities.textCheck, 'Evidence');
         assert.deepEqual(capabilities.helperLibraryCheck, {
           slug: 'climate-impact',
-          outline: [{ level: 1, text: 'Case', line: 0 }, { level: 4, text: 'Card', line: 2 }],
-          links: ['Card'], tags: ['aff'],
+          outline: [
+            { level: 1, text: 'Case', line: 0 },
+            { level: 4, text: 'Card', line: 2 },
+          ],
+          links: ['Card'],
+          tags: ['aff'],
           card: { text: '#### Card\n\n==Evidence==', level: 4, title: 'Card' },
           speech: 2,
           duration: '1:30',
@@ -412,30 +609,62 @@ tagline.commands.register('save-checks', async () => {
         });
         assert.equal(capabilities.webviewCheck.networkBlocked, true);
         assert.equal(capabilities.webviewCheck.api, 'undefined');
-        assert.equal(await js("document.querySelector('.extension-panel iframe').getAttribute('sandbox')"), 'allow-scripts');
+        assert.equal(
+          await js("document.querySelector('.extension-panel iframe').getAttribute('sandbox')"),
+          'allow-scripts'
+        );
         await js("document.querySelector('.extension-webview-dialog header button').click()");
         await js(`(() => { const select = document.querySelector('.note-actions select');
           select.value = 'edit'; select.dispatchEvent(new Event('change', { bubbles: true })); })()`);
         await wait("!!document.querySelector('.cm-content')", 'source editor');
         await palette('Demo: Set source selection');
-        await wait("JSON.parse(localStorage.getItem('tagline-extension:demo')).sourceSelection?.to === 4", 'source selection');
-        assert.deepEqual((await js("JSON.parse(localStorage.getItem('tagline-extension:demo'))")).sourceSelection, { from: 0, to: 4 });
-        await js(`[...document.querySelectorAll('.tree-item')].find(el => el.textContent.trim() === 'Round').click()`);
+        await wait(
+          "JSON.parse(localStorage.getItem('tagline-extension:demo')).sourceSelection?.to === 4",
+          'source selection'
+        );
+        assert.deepEqual(
+          (await js("JSON.parse(localStorage.getItem('tagline-extension:demo'))")).sourceSelection,
+          { from: 0, to: 4 }
+        );
+        await js(
+          `[...document.querySelectorAll('.tree-item')].find(el => el.textContent.trim() === 'Round').click()`
+        );
         await wait("!!document.querySelector('.flow-grid textarea')");
-        await wait("!!document.querySelector('.ribbon [data-ribbon-item=\"ext:demo.documents\"]')");
-        await js("document.querySelector('.ribbon [data-ribbon-item=\"ext:demo.documents\"]').click()");
-        await wait("JSON.parse(localStorage.getItem('tagline-extension:demo')).documentCheck === 'Extension canvas'");
-        assert.deepEqual(await js("JSON.parse(localStorage.getItem('tagline-extension:demo')).documentKind"),
-          { kind: 'flow', editorKind: null, selection: null });
-        assert.equal(JSON.parse(await fs.readFile(path.join(vault, 'Round.flow'), 'utf8')).sheets[0].rows[0][0], 'Extension evidence');
-        assert.equal(JSON.parse(await fs.readFile(path.join(vault, 'Map.canvas'), 'utf8')).nodes[0].text, 'Extension canvas');
+        await wait('!!document.querySelector(\'.ribbon [data-ribbon-item="ext:demo.documents"]\')');
+        await js(
+          'document.querySelector(\'.ribbon [data-ribbon-item="ext:demo.documents"]\').click()'
+        );
+        await wait(
+          "JSON.parse(localStorage.getItem('tagline-extension:demo')).documentCheck === 'Extension canvas'"
+        );
+        assert.deepEqual(
+          await js("JSON.parse(localStorage.getItem('tagline-extension:demo')).documentKind"),
+          { kind: 'flow', editorKind: null, selection: null }
+        );
+        assert.equal(
+          JSON.parse(await fs.readFile(path.join(vault, 'Round.flow'), 'utf8')).sheets[0]
+            .rows[0][0],
+          'Extension evidence'
+        );
+        assert.equal(
+          JSON.parse(await fs.readFile(path.join(vault, 'Map.canvas'), 'utf8')).nodes[0].text,
+          'Extension canvas'
+        );
         await js(`(() => { const button = document.querySelector('.ribbon [data-ribbon-item="ext:demo.documents"]');
           button.focus(); button.dispatchEvent(new KeyboardEvent('keydown', { key: 'ContextMenu', bubbles: true })); })()`);
         await wait("!!document.querySelector('.context-menu')");
-        await js(`[...document.querySelectorAll('.context-menu button')].find(el => el.textContent === 'Remove from sidebar').click()`);
-        await wait("!document.querySelector('.ribbon [data-ribbon-item=\"ext:demo.documents\"]')");
-        assert.ok(await js("JSON.parse(localStorage.getItem('tagline-settings')).hiddenRibbonItems.includes('ext:demo.documents')"));
-        await js(`[...document.querySelectorAll('.tree-item')].find(el => el.textContent.trim() === 'Card').click()`);
+        await js(
+          `[...document.querySelectorAll('.context-menu button')].find(el => el.textContent === 'Remove from sidebar').click()`
+        );
+        await wait('!document.querySelector(\'.ribbon [data-ribbon-item="ext:demo.documents"]\')');
+        assert.ok(
+          await js(
+            "JSON.parse(localStorage.getItem('tagline-settings')).hiddenRibbonItems.includes('ext:demo.documents')"
+          )
+        );
+        await js(
+          `[...document.querySelectorAll('.tree-item')].find(el => el.textContent.trim() === 'Card').click()`
+        );
         await wait("!!document.querySelector('.cm-content')");
         await js(`(() => { const select = document.querySelector('.note-actions select');
           select.value = 'visual'; select.dispatchEvent(new Event('change', { bubbles: true })); })()`);
@@ -444,27 +673,65 @@ tagline.commands.register('save-checks', async () => {
         // Mod+N stays with the built-in "New note"; the extension's default key was dropped.
         assert.equal(await js(`document.querySelectorAll('.palette').length`), 0);
 
-        await js(`window.dispatchEvent(new KeyboardEvent('keydown', { key: ',', ctrlKey: ${process.platform !== 'darwin'}, metaKey: ${process.platform === 'darwin'}, bubbles: true }))`);
+        await js(
+          `window.dispatchEvent(new KeyboardEvent('keydown', { key: ',', ctrlKey: ${process.platform !== 'darwin'}, metaKey: ${process.platform === 'darwin'}, bubbles: true }))`
+        );
         await wait(`!!document.querySelector('.dialog.settings')`, 'settings');
-        await wait(`document.querySelector('.dialog.settings').contains(document.activeElement)`, 'focus inside settings');
-        assert.equal(await js(`[...document.querySelectorAll('select option')].some((o) => o.textContent === 'Ocean (Demo)')`), true);
+        await wait(
+          `document.querySelector('.dialog.settings').contains(document.activeElement)`,
+          'focus inside settings'
+        );
+        assert.equal(
+          await js(
+            `[...document.querySelectorAll('select option')].some((o) => o.textContent === 'Ocean (Demo)')`
+          ),
+          true
+        );
         await js(`(() => { const el = document.querySelector('[data-setting="theme"]');
           el.value = 'ext:demo:0'; el.dispatchEvent(new Event('change', { bubbles: true })); })()`);
-        await wait(`getComputedStyle(document.documentElement).getPropertyValue('--editor-font-size') === '21px'`, 'theme variables applied');
-        assert.equal(await js(`getComputedStyle(document.documentElement).getPropertyValue('--font-ui')`), 'monospace');
-        await wait("JSON.parse(localStorage.getItem('tagline-extension:demo')).uiReport?.theme.id === 'ext:demo:0'", 'panel theme updates live');
+        await wait(
+          `getComputedStyle(document.documentElement).getPropertyValue('--editor-font-size') === '21px'`,
+          'theme variables applied'
+        );
+        assert.equal(
+          await js(`getComputedStyle(document.documentElement).getPropertyValue('--font-ui')`),
+          'monospace'
+        );
+        await wait(
+          "JSON.parse(localStorage.getItem('tagline-extension:demo')).uiReport?.theme.id === 'ext:demo:0'",
+          'panel theme updates live'
+        );
         await delay(250);
-        await js("void document.querySelector('.extension-panel iframe').contentWindow.postMessage({type:'extension-ui-message',payload:{inspect:true}},'*')");
-        await wait("JSON.parse(localStorage.getItem('tagline-extension:demo')).uiReport.button === 'rgb(18, 164, 217)'", 'shared primary button follows theme accent');
-        assert.equal(await js("JSON.parse(localStorage.getItem('tagline-extension:demo')).uiReport.theme.metadata.accessibility.contrast"), 'high');
+        await js(
+          "void document.querySelector('.extension-panel iframe').contentWindow.postMessage({type:'extension-ui-message',payload:{inspect:true}},'*')"
+        );
+        await wait(
+          "JSON.parse(localStorage.getItem('tagline-extension:demo')).uiReport.button === 'rgb(18, 164, 217)'",
+          'shared primary button follows theme accent'
+        );
+        assert.equal(
+          await js(
+            "JSON.parse(localStorage.getItem('tagline-extension:demo')).uiReport.theme.metadata.accessibility.contrast"
+          ),
+          'high'
+        );
         wc.debugger.attach('1.3');
-        await wc.debugger.sendCommand('Emulation.setEmulatedMedia', { features: [{ name: 'prefers-reduced-motion', value: 'reduce' }] });
+        await wc.debugger.sendCommand('Emulation.setEmulatedMedia', {
+          features: [{ name: 'prefers-reduced-motion', value: 'reduce' }],
+        });
         assert.equal(await js("matchMedia('(prefers-reduced-motion: reduce)').matches"), true);
-        await wait("JSON.parse(localStorage.getItem('tagline-extension:demo')).uiReport?.theme.reducedMotion === true");
+        await wait(
+          "JSON.parse(localStorage.getItem('tagline-extension:demo')).uiReport?.theme.reducedMotion === true"
+        );
         await wc.debugger.sendCommand('Emulation.setEmulatedMedia', { features: [] });
-        await wait("JSON.parse(localStorage.getItem('tagline-extension:demo')).uiReport?.theme.reducedMotion === false");
+        await wait(
+          "JSON.parse(localStorage.getItem('tagline-extension:demo')).uiReport?.theme.reducedMotion === false"
+        );
         wc.debugger.detach();
-        assert.match(await js("document.querySelector('.theme-metadata').textContent"), /author provided/);
+        assert.match(
+          await js("document.querySelector('.theme-metadata').textContent"),
+          /author provided/
+        );
         assert.equal(await js("document.querySelectorAll('[data-theme-setting]').length"), 2);
         await js(`(() => {
           const set = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set;
@@ -476,63 +743,139 @@ tagline.commands.register('save-checks', async () => {
           Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set.call(input, '24');
           input.dispatchEvent(new Event('input', {bubbles:true}));
         })()`);
-        await js(`[...document.querySelectorAll('.theme-options button')].find(el => el.textContent === 'Apply theme settings').click()`);
-        await wait("getComputedStyle(document.documentElement).getPropertyValue('--selection') === '#abcdef'");
-        await wait("JSON.parse(localStorage.getItem('tagline-extension:demo')).uiReport?.selection === 'rgb(171, 205, 239)'");
-        assert.equal(await js("getComputedStyle(document.documentElement).getPropertyValue('--editor-font-size')"), '24px');
+        await js(
+          `[...document.querySelectorAll('.theme-options button')].find(el => el.textContent === 'Apply theme settings').click()`
+        );
+        await wait(
+          "getComputedStyle(document.documentElement).getPropertyValue('--selection') === '#abcdef'"
+        );
+        await wait(
+          "JSON.parse(localStorage.getItem('tagline-extension:demo')).uiReport?.selection === 'rgb(171, 205, 239)'"
+        );
+        assert.equal(
+          await js(
+            "getComputedStyle(document.documentElement).getPropertyValue('--editor-font-size')"
+          ),
+          '24px'
+        );
         await js(`(() => { const el = document.querySelector('[data-setting="theme"]');
           el.value = 'dark'; el.dispatchEvent(new Event('change', { bubbles: true })); })()`);
-        await wait(`getComputedStyle(document.documentElement).getPropertyValue('--editor-font-size') === '16px'`, 'font preference restored');
-        assert.equal(await js(`getComputedStyle(document.documentElement).getPropertyValue('--extension-token')`), '');
-        assert.equal(await js("document.querySelectorAll('[data-theme-setting]').length"), 0, 'options only appear for active theme');
+        await wait(
+          `getComputedStyle(document.documentElement).getPropertyValue('--editor-font-size') === '16px'`,
+          'font preference restored'
+        );
+        assert.equal(
+          await js(
+            `getComputedStyle(document.documentElement).getPropertyValue('--extension-token')`
+          ),
+          ''
+        );
+        assert.equal(
+          await js("document.querySelectorAll('[data-theme-setting]').length"),
+          0,
+          'options only appear for active theme'
+        );
         await js(`(() => { const el = document.querySelector('[data-setting="theme"]');
           el.value = 'ext:demo:0'; el.dispatchEvent(new Event('change', { bubbles: true })); })()`);
-        await wait("getComputedStyle(document.documentElement).getPropertyValue('--selection') === '#abcdef'");
-        await js(`[...document.querySelectorAll('.theme-options button')].find(el => el.textContent === 'Reset theme settings').click()`);
-        await wait("getComputedStyle(document.documentElement).getPropertyValue('--selection') === '#123456'");
+        await wait(
+          "getComputedStyle(document.documentElement).getPropertyValue('--selection') === '#abcdef'"
+        );
+        await js(
+          `[...document.querySelectorAll('.theme-options button')].find(el => el.textContent === 'Reset theme settings').click()`
+        );
+        await wait(
+          "getComputedStyle(document.documentElement).getPropertyValue('--selection') === '#123456'"
+        );
         await js(`(() => { const el = document.querySelector('[data-setting="theme"]');
           el.value = 'dark'; el.dispatchEvent(new Event('change', { bubbles: true })); })()`);
         await js(`document.querySelector('[data-section="extensions"]').click()`);
         await wait(`document.querySelectorAll('.extension-card').length === 2`, 'extension cards');
-        assert.match(await js(`document.querySelector('[data-extension="demo"]').textContent`), /Create and change notes/);
+        assert.match(
+          await js(`document.querySelector('[data-extension="demo"]').textContent`),
+          /Create and change notes/
+        );
 
         await js(`document.querySelector('[data-section="files"]').click()`);
         await js(`document.querySelector('[data-setting="hideFlowExtension"]').click()`);
-        await wait(`[...document.querySelectorAll('.tree-item')].some((el) => el.textContent.trim() === 'Round.flow')`, 'flow extension shown');
+        await wait(
+          `[...document.querySelectorAll('.tree-item')].some((el) => el.textContent.trim() === 'Round.flow')`,
+          'flow extension shown'
+        );
 
         await js(`document.querySelector('[data-section="extensions"]').click()`);
-        await js(`document.querySelector('[data-extension="nosy"] input[type="checkbox"]').click()`);
-        await wait(`document.querySelectorAll('iframe[data-extension]').length === 1`, 'disabled extension unloaded');
+        await js(
+          `document.querySelector('[data-extension="nosy"] input[type="checkbox"]').click()`
+        );
+        await wait(
+          `document.querySelectorAll('iframe[data-extension]').length === 1`,
+          'disabled extension unloaded'
+        );
         const config = JSON.parse(await fs.readFile(path.join(profile, 'config.json'), 'utf8'));
         assert.deepEqual(config.enabledExtensions, ['demo']);
-        await js(`[...document.querySelectorAll('.settings button')].find(el => el.textContent.trim() === 'Done').click()`);
+        await js(
+          `[...document.querySelectorAll('.settings button')].find(el => el.textContent.trim() === 'Done').click()`
+        );
         await palette('Demo: Spin forever');
         assert.equal(await js('6 * 7'), 42, 'App stays responsive during an extension loop');
         await toast('Demo: Extension stopped responding');
-        await wait(`!document.querySelector('iframe[data-extension="demo"]')`, 'runaway worker removed');
-        await wait("document.querySelectorAll('.extension-surface').length === 0", 'stopped extension surfaces removed');
+        await wait(
+          `!document.querySelector('iframe[data-extension="demo"]')`,
+          'runaway worker removed'
+        );
+        await wait(
+          "document.querySelectorAll('.extension-surface').length === 0",
+          'stopped extension surfaces removed'
+        );
         await palette('Demo: Spin forever');
         await toast('Demo was stopped');
-        await js(`window.dispatchEvent(new KeyboardEvent('keydown', { key: ',', ctrlKey: ${process.platform !== 'darwin'}, metaKey: ${process.platform === 'darwin'}, bubbles: true }))`);
+        await js(
+          `window.dispatchEvent(new KeyboardEvent('keydown', { key: ',', ctrlKey: ${process.platform !== 'darwin'}, metaKey: ${process.platform === 'darwin'}, bubbles: true }))`
+        );
         await wait(`!!document.querySelector('.settings')`, 'settings after runaway loop');
         await js(`document.querySelector('[data-section="extensions"]').click()`);
-        await js(`[...document.querySelectorAll('.settings button')].find(el => el.textContent.trim() === 'Reload extensions').click()`);
+        await js(
+          `[...document.querySelectorAll('.settings button')].find(el => el.textContent.trim() === 'Reload extensions').click()`
+        );
         await wait(`!!document.querySelector('iframe[data-extension="demo"]')`, 'worker reloaded');
-        assert.equal(await js("JSON.parse(localStorage.getItem('tagline-extension:demo')).installRuns"), 1, 'install setup never repeats on reload');
-        assert.equal(await js("JSON.parse(localStorage.getItem('tagline-extension:nosy')).installAttempts"), 2, 'successful install remains complete when disabled');
-        assert.equal(await js("!!document.querySelector('.ribbon [data-ribbon-item=\"ext:demo.documents\"]')"), false,
-          'removed extension shortcuts stay hidden after extension reload');
-        await js(`[...document.querySelectorAll('.settings button')].find(el => el.textContent.trim() === 'Done').click()`);
+        assert.equal(
+          await js("JSON.parse(localStorage.getItem('tagline-extension:demo')).installRuns"),
+          1,
+          'install setup never repeats on reload'
+        );
+        assert.equal(
+          await js("JSON.parse(localStorage.getItem('tagline-extension:nosy')).installAttempts"),
+          2,
+          'successful install remains complete when disabled'
+        );
+        assert.equal(
+          await js('!!document.querySelector(\'.ribbon [data-ribbon-item="ext:demo.documents"]\')'),
+          false,
+          'removed extension shortcuts stay hidden after extension reload'
+        );
+        await js(
+          `[...document.querySelectorAll('.settings button')].find(el => el.textContent.trim() === 'Done').click()`
+        );
         await palette('Demo: Flood messages');
         await toast('exceeded 200 messages');
-        await wait(`!document.querySelector('iframe[data-extension="demo"]')`, 'flooding worker removed');
+        await wait(
+          `!document.querySelector('iframe[data-extension="demo"]')`,
+          'flooding worker removed'
+        );
         console.log('Extension smoke test passed');
         app.exit(0);
       } catch (error) {
-        console.error(error, await js(`JSON.stringify({ toast: document.querySelector('.toast')?.textContent, palette: !!document.querySelector('.palette'), ui: JSON.parse(localStorage.getItem('tagline-extension:demo') || '{}').uiReport, items: [...document.querySelectorAll('.palette-list > *')].map((el) => el.textContent).slice(0, 5) })`));
+        console.error(
+          error,
+          await js(
+            `JSON.stringify({ toast: document.querySelector('.toast')?.textContent, palette: !!document.querySelector('.palette'), ui: JSON.parse(localStorage.getItem('tagline-extension:demo') || '{}').uiReport, items: [...document.querySelectorAll('.palette-list > *')].map((el) => el.textContent).slice(0, 5) })`
+          )
+        );
         app.exit(1);
       }
     });
   });
   require('../electron/main.cjs');
-})().catch((error) => { console.error(error); app.exit(1); });
+})().catch((error) => {
+  console.error(error);
+  app.exit(1);
+});

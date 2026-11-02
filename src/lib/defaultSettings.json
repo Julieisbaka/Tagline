@@ -72,13 +72,7 @@
     "rightPanel"
   ],
   "hiddenRibbonItems": [],
-  "fileManagerItems": [
-    "newNote",
-    "newFlow",
-    "newCanvas",
-    "newFolder",
-    "refresh"
-  ],
+  "fileManagerItems": ["newNote", "newFlow", "newCanvas", "newFolder", "refresh"],
   "statusBarItems": [
     "section",
     "cards",

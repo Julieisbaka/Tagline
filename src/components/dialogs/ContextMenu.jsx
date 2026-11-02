@@ -6,8 +6,11 @@ import { useNativeUi } from '../../lib/nativeUi.js';
 
 export default function ContextMenu({ x, y, items, onClose }) {
   const native = useNativeUi();
-  return native ? <NativeContextMenu items={items} onClose={onClose} />
-    : <AppContextMenu x={x} y={y} items={items} onClose={onClose} />;
+  return native ? (
+    <NativeContextMenu items={items} onClose={onClose} />
+  ) : (
+    <AppContextMenu x={x} y={y} items={items} onClose={onClose} />
+  );
 }
 
 function NativeContextMenu({ items, onClose }) {
@@ -16,18 +19,22 @@ function NativeContextMenu({ items, onClose }) {
   useEffect(() => {
     let active = true;
     const { items, onClose, t } = initial.current;
-    window.api.nativeContextMenu(items.map((item) => ({ label: t(item.label), disabled: !!item.disabled })))
+    window.api
+      .nativeContextMenu(items.map((item) => ({ label: t(item.label), disabled: !!item.disabled })))
       .then(async (index) => {
-        if (!active) return;
+        if (!active) {return;}
         onClose();
-        if (index !== null) await items[index].run();
-      }).catch((error) => {
+        if (index !== null) {await items[index].run();}
+      })
+      .catch((error) => {
         if (active) {
           onClose();
           window.dispatchEvent(new CustomEvent('app-error', { detail: error.message }));
         }
       });
-    return () => { active = false; };
+    return () => {
+      active = false;
+    };
   }, []);
   return null;
 }
@@ -44,8 +51,15 @@ function AppContextMenu({ x, y, items, onClose }) {
     el.querySelector('button:not(:disabled)')?.focus({ preventScroll: true });
   }, [x, y]);
   useEffect(() => {
-    const outside = (e) => { if (!ref.current?.contains(e.target)) onClose(); };
-    const escape = (e) => { if (e.key === 'Escape') { e.preventDefault(); onClose(); } };
+    const outside = (e) => {
+      if (!ref.current?.contains(e.target)) {onClose();}
+    };
+    const escape = (e) => {
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        onClose();
+      }
+    };
     window.addEventListener('pointerdown', outside, true);
     window.addEventListener('keydown', escape);
     window.addEventListener('blur', onClose);
@@ -58,30 +72,62 @@ function AppContextMenu({ x, y, items, onClose }) {
     };
   }, [onClose]);
   return createPortal(
-    <div ref={ref} className="context-menu" role="menu" tabIndex={-1} style={{ left: x, top: y }}
-      onPointerDown={(e) => e.stopPropagation()} onMouseDown={(e) => e.stopPropagation()}
+    <div
+      ref={ref}
+      className='context-menu'
+      role='menu'
+      tabIndex={-1}
+      style={{ left: x, top: y }}
+      onPointerDown={(e) => e.stopPropagation()}
+      onMouseDown={(e) => e.stopPropagation()}
       onClick={(e) => e.stopPropagation()}
-      onContextMenu={(e) => { e.preventDefault(); e.stopPropagation(); }} onKeyDown={(e) => {
+      onContextMenu={(e) => {
+        e.preventDefault();
         e.stopPropagation();
-        if (e.key === 'Escape') { e.preventDefault(); onClose(); return; }
-        if (e.key === 'Tab') { trapTabKey(e, ref.current); return; }
-        if (!['ArrowDown', 'ArrowUp', 'Home', 'End'].includes(e.key)) return;
+      }}
+      onKeyDown={(e) => {
+        e.stopPropagation();
+        if (e.key === 'Escape') {
+          e.preventDefault();
+          onClose();
+          return;
+        }
+        if (e.key === 'Tab') {
+          trapTabKey(e, ref.current);
+          return;
+        }
+        if (!['ArrowDown', 'ArrowUp', 'Home', 'End'].includes(e.key)) {return;}
         e.preventDefault();
         const buttons = [...ref.current.querySelectorAll('button:not(:disabled)')];
         const i = buttons.indexOf(document.activeElement);
-        const next = e.key === 'Home' ? 0 : e.key === 'End' ? buttons.length - 1
-          : (i + (e.key === 'ArrowDown' ? 1 : -1) + buttons.length) % buttons.length;
+        const next =
+          e.key === 'Home'
+            ? 0
+            : e.key === 'End'
+              ? buttons.length - 1
+              : (i + (e.key === 'ArrowDown' ? 1 : -1) + buttons.length) % buttons.length;
         buttons[next]?.focus();
-      }}>
+      }}
+    >
       {items.map(({ label, run, disabled, danger }, i) => (
-        <button key={i} role="menuitem" disabled={disabled}
+        <button
+          key={i}
+          role='menuitem'
+          disabled={disabled}
           className={`context-item${danger ? ' danger' : ''}`}
           onClick={async () => {
             onClose();
-            try { await run(); }
-            catch (error) { window.dispatchEvent(new CustomEvent('app-error', { detail: error.message })); }
-          }}>{t(label)}</button>
+            try {
+              await run();
+            } catch (error) {
+              window.dispatchEvent(new CustomEvent('app-error', { detail: error.message }));
+            }
+          }}
+        >
+          {t(label)}
+        </button>
       ))}
-    </div>, document.body
+    </div>,
+    document.body
   );
 }

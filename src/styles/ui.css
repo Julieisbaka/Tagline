@@ -12,8 +12,12 @@ button {
   border-radius: 6px;
   padding: 5px 12px;
   cursor: pointer;
-  transition: background-color 140ms ease, border-color 140ms ease, color 140ms ease,
-    box-shadow 140ms ease, transform 140ms ease;
+  transition:
+    background-color 140ms ease,
+    border-color 140ms ease,
+    color 140ms ease,
+    box-shadow 140ms ease,
+    transform 140ms ease;
 }
 
 button:hover {
@@ -48,7 +52,9 @@ textarea {
   border-radius: 6px;
   padding: 5px 8px;
   outline: none;
-  transition: border-color 140ms ease, box-shadow 140ms ease;
+  transition:
+    border-color 140ms ease,
+    box-shadow 140ms ease;
 }
 
 input:focus,
@@ -80,7 +86,6 @@ select optgroup {
 }
 
 @supports (appearance: base-select) {
-
   select:not([multiple]):not([size]),
   select:not([multiple]):not([size])::picker(select) {
     appearance: base-select;
@@ -115,7 +120,7 @@ select optgroup {
   }
 }
 
-input[type="checkbox"] {
+input[type='checkbox'] {
   flex-shrink: 0;
   width: 16px;
   height: 16px;
@@ -123,7 +128,7 @@ input[type="checkbox"] {
   vertical-align: middle;
 }
 
-:root:not(.native-ui) input[type="checkbox"] {
+:root:not(.native-ui) input[type='checkbox'] {
   appearance: none;
   display: inline-grid;
   place-content: center;
@@ -132,13 +137,13 @@ input[type="checkbox"] {
   background: var(--bg);
 }
 
-:root:not(.native-ui) input[type="checkbox"]:checked {
+:root:not(.native-ui) input[type='checkbox']:checked {
   background: var(--accent);
   border-color: var(--accent);
 }
 
-:root:not(.native-ui) input[type="checkbox"]:checked::after {
-  content: "";
+:root:not(.native-ui) input[type='checkbox']:checked::after {
+  content: '';
   width: 4px;
   height: 8px;
   margin-top: -3px;
@@ -176,7 +181,7 @@ input[type="checkbox"] {
   background: var(--bg-secondary);
 }
 
-.tl-card>h3 {
+.tl-card > h3 {
   margin: 0 0 10px;
   font-size: 1em;
   color: var(--text-strong);
@@ -189,11 +194,11 @@ input[type="checkbox"] {
   background: var(--bg-elevated);
 }
 
-.tl-notice[data-tone="warning"] {
+.tl-notice[data-tone='warning'] {
   border-color: var(--warning);
 }
 
-.tl-notice[data-tone="error"] {
+.tl-notice[data-tone='error'] {
   border-color: var(--danger);
 }
 
@@ -202,7 +207,6 @@ input[type="checkbox"] {
 }
 
 @media (prefers-reduced-motion: reduce) {
-
   *,
   *::before,
   *::after {
