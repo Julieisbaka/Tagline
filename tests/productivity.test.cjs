@@ -429,7 +429,7 @@ test('platform: extension manifests validate ids, permissions, commands and cont
   assert.deepEqual(ok.contributes.commands, [{ id: 'count', title: 'Count', key: 'Mod+Alt+K' }]);
   assert.throws(() => validateManifest({ ...base, manifestVersion: 2 }, root), /manifestVersion/);
   assert.throws(() => validateManifest({ ...base, id: 'Bad_Id' }, root), /id must be/);
-  assert.throws(() => validateManifest({ ...base, permissions: ['network'] }, root), /permissions/);
+  assert.throws(() => validateManifest({ ...base, permissions: ['unknown'] }, root), /permissions/);
   assert.throws(
     () =>
       validateManifest({ ...base, contributes: { commands: [{ id: 'go', title: 'Go' }] } }, root),
