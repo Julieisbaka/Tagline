@@ -37,6 +37,7 @@ export default function SearchModal({
     ++requestId.current;
     setSemanticResults(null);
     setError('');
+    setBusy(false);
     return () => {
       ++requestId.current;
     };
@@ -103,7 +104,9 @@ export default function SearchModal({
         );
       }
     } finally {
-      setBusy(false);
+      if (id === requestId.current) {
+        setBusy(false);
+      }
     }
   };
 

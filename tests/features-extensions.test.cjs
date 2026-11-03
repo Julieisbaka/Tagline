@@ -1,11 +1,6 @@
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
-const fs = require('node:fs');
 const path = require('node:path');
-const childProcess = require('node:child_process');
-const fsAsync = require('node:fs/promises');
-const os = require('node:os');
-const { promisify } = require('node:util');
 
 test('extension capabilities validate selection, command, helper, event and UI contracts', async () => {
   const { ExtensionHost } = await import('../src/lib/extensions.js');

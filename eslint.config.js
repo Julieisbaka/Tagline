@@ -1,4 +1,6 @@
 import globals from 'globals';
+import react from 'eslint-plugin-react';
+import reactHooks from 'eslint-plugin-react-hooks';
 
 export default [
   {
@@ -11,12 +13,14 @@ export default [
       },
       globals: { ...globals.browser, ...globals.node },
     },
+    plugins: { react, 'react-hooks': reactHooks },
     rules: {
-      // Existing codebase uses single-statement blocks without braces and == in
-      // places; keep as warnings so lint passes while still flagging them.
-      'curly': 'warn',
-      'eqeqeq': ['warn', 'always'],
-      'no-unused-vars': ['warn', { argsIgnorePattern: '^_' }],
+      // Existing codebase uses single-statement blocks without braces.
+      curly: 'warn',
+      eqeqeq: ['warn', 'always', { null: 'ignore' }],
+      'no-unused-vars': ['warn', { argsIgnorePattern: '^_', ignoreRestSiblings: true }],
+      'react/jsx-uses-vars': 'error',
+      'react-hooks/exhaustive-deps': 'warn',
     },
   },
   {

@@ -156,35 +156,6 @@ function totals() {
   );
 }
 
-function reportText(logWriteError = '') {
-  const count = totals();
-  const notRun = interrupted ? suites.length - results.length : 0;
-  const testsRan = count.passed + count.failed + count.cancelled;
-  const durationMs = Date.now() - startedAt;
-  const lines = [
-    'Tagline full test run',
-    `Started: ${new Date(startedAt).toISOString()}`,
-    `Duration: ${formatDuration(durationMs)}`,
-    `Test cases: ${count.tests} (individual node:test cases plus one case per smoke suite)`,
-    `Tests run: ${testsRan}`,
-    `Passed: ${count.passed}`,
-    `Failed: ${count.failed}`,
-    `Skipped: ${count.skipped}`,
-    `Canceled: ${count.cancelled + (interrupted && currentChild ? 1 : 0)}`,
-    `Suites completed: ${results.length}/${suites.length}`,
-    ...(notRun ? [`Suites not run after interruption: ${notRun}`] : []),
-    'Auth and password rejection cases are expected negative-path checks. They count as passing when their assertions pass.',
-  ];
-
-  if (runnerError) {
-    lines.push(`Runner error: ${runnerError}`);
-  }
-  if (logWriteError) {
-    lines.push(`Could not write ${logPath}: ${logWriteError}`);
-  }
-  return lines.join('\n');
-}
-
 function tapFailureOutput(output) {
   const lines = output.split(/\r?\n/);
   const blocks = [];

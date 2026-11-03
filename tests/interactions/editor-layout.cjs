@@ -1,9 +1,5 @@
 module.exports = async function runScenario({
-  win,
   wc,
-  vault,
-  fs,
-  path,
   assert,
   delay,
   js,
@@ -11,9 +7,6 @@ module.exports = async function runScenario({
   click,
   button,
   open,
-  point,
-  press,
-  drag,
   context,
   saved,
 }) {

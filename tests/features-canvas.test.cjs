@@ -1,11 +1,5 @@
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
-const fs = require('node:fs');
-const path = require('node:path');
-const childProcess = require('node:child_process');
-const fsAsync = require('node:fs/promises');
-const os = require('node:os');
-const { promisify } = require('node:util');
 
 test('argument-map relations are JSON Canvas edges and do not affect note links', async () => {
   const { createArgumentEdge, parseCanvas, serializeCanvas } = await import('../src/lib/canvas.js');

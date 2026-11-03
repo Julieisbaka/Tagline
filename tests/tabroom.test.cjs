@@ -10,7 +10,7 @@ const {
   tournamentId,
   PARTITION,
 } = require('../electron/tabroom.cjs');
-const { normalizeSnapshot, snapshotRecords } = require('../electron/tabroomData.cjs');
+const { normalizeSnapshot } = require('../electron/tabroomData.cjs');
 
 const tournament = {
   id: 123,
