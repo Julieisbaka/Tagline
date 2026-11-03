@@ -138,7 +138,7 @@ do not wait for the user to finish that UI inside the callback.
 | `description` | No | String, at most 500 characters. |
 | `author` | No | String, at most 500 characters. |
 | `main` | For commands | Relative path to a `.js` file. Optional for theme-only extensions. |
-| `permissions` | No | Array containing only `editor`, `editor:active-note`, `settings`, `vault:read`, `vault:write`, `events`, or `ui`. Defaults to `[]`. |
+| `permissions` | No | Array containing only `editor`, `editor:active-note`, `settings`, `vault:read`, `vault:write`, `events`, `ui`, or `network`. Defaults to `[]`. |
 | `contributes.commands` | No | At most 50 command declarations; defaults to `[]`. |
 | `contributes.themes` | No | At most 20 relative `.json` paths; defaults to `[]`. |
 | `contributes.settings` | No | At most 32 typed setting declarations; requires `settings`. Defaults to `[]`. |

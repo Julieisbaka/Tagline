@@ -48,7 +48,8 @@
           "vault:write",
           "settings",
           "events",
-          "ui"
+          "ui",
+          "network"
         ]
       }
     },
