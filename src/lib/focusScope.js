@@ -58,7 +58,8 @@ export function trapTabKey(event, root) {
  */
 export function containFocus(root, previousFocus = root.ownerDocument.activeElement, modal = true) {
   const document = root.ownerDocument;
-  const scope = { root };
+  const parent = [...scopes].reverse().find((candidate) => candidate.root.contains(previousFocus));
+  const scope = { root, previousFocus, parent };
   const siblings = [];
   for (let branch = root; modal && branch.parentElement; branch = branch.parentElement) {
     for (const sibling of branch.parentElement.children) {
@@ -115,12 +116,24 @@ export function containFocus(root, previousFocus = root.ownerDocument.activeElem
       }
     }
     queueMicrotask(() => {
+      const activeScope = scopes.at(-1);
       if (
-        previousFocus?.isConnected &&
-        !previousFocus.closest('[inert]') &&
-        (document.activeElement === document.body || root.contains(document.activeElement))
+        document.activeElement !== document.body &&
+        !root.contains(document.activeElement) &&
+        !activeScope?.root.contains(document.activeElement)
       ) {
-        previousFocus.focus({ preventScroll: true });
+        return;
+      }
+      for (let candidate = scope; candidate; candidate = candidate.parent) {
+        if (candidate.previousFocus?.isConnected && !candidate.previousFocus.closest('[inert]')) {
+          candidate.previousFocus.focus({ preventScroll: true });
+          return;
+        }
+      }
+      if (activeScope?.root.isConnected) {
+        (focusableElements(activeScope.root)[0] || activeScope.root).focus({
+          preventScroll: true,
+        });
       }
     });
   };

@@ -62,7 +62,6 @@
 .panel-splitter:focus-visible,
 body.resizing-panels .panel-splitter:active {
   background: var(--accent);
-  outline: none;
 }
 
 body.resizing-panels,

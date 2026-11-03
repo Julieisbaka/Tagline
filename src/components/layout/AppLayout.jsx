@@ -166,10 +166,16 @@ export default function AppLayout({ app }) {
       showStartActions={!v.vault}
     />
   );
+  const toastStatus = (
+    <div className='sr-only' role='status' aria-live='polite' aria-atomic='true'>
+      {toast || ''}
+    </div>
+  );
 
   if (!v.vault) {
     return (
       <>
+        {toastStatus}
         <TextContextMenu />
         {window.api.platform === 'darwin' && <div className='mac-titlebar'>Tagline</div>}
         <Welcome
@@ -193,7 +199,11 @@ export default function AppLayout({ app }) {
         {websiteView && <div className='welcome-website'>{websiteView}</div>}
         {extensionWebviews}
         {onboarding}
-        {toast && <div className='toast'>{toast}</div>}
+        {toast && (
+          <div className='toast' aria-hidden='true'>
+            {toast}
+          </div>
+        )}
       </>
     );
   }
@@ -325,6 +335,7 @@ export default function AppLayout({ app }) {
       className={`app${window.api.platform === 'darwin' ? ' mac-app' : ''}`}
       style={{ '--sidebar-width': `${sidebarWidth}px`, '--right-panel-width': `${rightWidth}px` }}
     >
+      {toastStatus}
       <TextContextMenu />
       {window.api.platform === 'darwin' && <div className='mac-titlebar'>Tagline</div>}
       <Ribbon
@@ -551,7 +562,11 @@ export default function AppLayout({ app }) {
           onClose={() => setModal(null)}
         />
       )}
-      {toast && <div className='toast'>{toast}</div>}
+      {toast && (
+        <div className='toast' aria-hidden='true'>
+          {toast}
+        </div>
+      )}
       {extensionWebviews}
       {onboarding}
     </div>

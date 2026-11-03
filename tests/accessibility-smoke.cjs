@@ -81,6 +81,50 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
           `${selector} wraps Shift+Tab`
         );
       };
+      const checkAccessibleNames = async () => {
+        const unnamed = await js(`(() => {
+          const controls = [...document.querySelectorAll(
+            'button, input, select, textarea, a[href], summary, [role=button], [role=link], [role=option], [role=tab], [contenteditable=true]'
+          )].filter(element =>
+            element.getClientRects().length &&
+            !element.disabled &&
+            !element.closest('[hidden], [inert]')
+          );
+          const hasName = element => {
+            const labelledBy = (element.getAttribute('aria-labelledby') || '')
+              .split(/\\s+/)
+              .map(id => document.getElementById(id)?.textContent || '')
+              .join(' ')
+              .trim();
+            return !!(
+              element.getAttribute('aria-label')?.trim() ||
+              labelledBy ||
+              element.labels?.length ||
+              element.getAttribute('title')?.trim() ||
+              element.innerText?.trim() ||
+              ((element.tagName === 'INPUT' && ['button', 'submit'].includes(element.type)) && element.value)
+            );
+          };
+          const dialogs = [...document.querySelectorAll('[role=dialog], [role=alertdialog]')]
+            .filter(element => element.getClientRects().length && !element.closest('[hidden], [inert]'))
+            .filter(element => {
+              const labelIds = (element.getAttribute('aria-labelledby') || '').split(/\\s+/);
+              return !element.getAttribute('aria-label')?.trim() &&
+                !labelIds.some(id => document.getElementById(id)?.textContent.trim());
+            })
+            .map(element => element.outerHTML.slice(0, 240));
+          return {
+            controls: controls.filter(element => !hasName(element)).map(element => element.outerHTML),
+            dialogs,
+          };
+        })()`);
+        assert.deepEqual(
+          unnamed.controls,
+          [],
+          `interactive controls lack accessible names: ${unnamed.controls.join('\\n')}`
+        );
+        assert.deepEqual(unnamed.dialogs, [], `dialogs lack accessible names: ${unnamed.dialogs.join('\\n')}`);
+      };
       const change = async (selector, value) => {
         await js(`(() => {
           const select = document.querySelector(${JSON.stringify(selector)});
@@ -91,28 +135,36 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
       };
       try {
         await wait("!!document.querySelector('.onboarding-skip')");
+        await checkAccessibleNames();
         await checkTabLoop('.onboarding-dialog');
         await key('Escape');
         await wait("!document.querySelector('.onboarding-dialog')");
         await wait('!!document.querySelector(\'.tree-item[title="Card.md"]\')');
         await js('document.querySelector(\'.tree-item[title="Card.md"]\').click()');
         await wait("!!document.querySelector('.visual-document')");
+        await checkAccessibleNames();
         await js("document.querySelector('.visual-document').focus()");
         assert.equal(
           await js('getComputedStyle(document.activeElement).outlineStyle'),
-          'none',
-          'note focus outline is disabled by default'
+          'solid',
+          'visual editor has a keyboard focus indicator by default'
         );
         await change('[aria-label="Editor mode"]', 'edit');
         await wait("!!document.querySelector('.editor .cm-content')");
+        await wait(
+          "document.querySelector('[data-announcement=editor-mode]').textContent.includes('Source')"
+        );
         await js("document.querySelector('.editor .cm-content').focus()");
         assert.equal(
           await js('getComputedStyle(document.activeElement).outlineStyle'),
-          'none',
-          'source note focus outline is also disabled by default'
+          'solid',
+          'source editor has a keyboard focus indicator by default'
         );
         await change('[aria-label="Editor mode"]', 'visual');
         await wait("!!document.querySelector('.visual-document')");
+        await wait(
+          "document.querySelector('[data-announcement=editor-mode]').textContent.includes('Visual')"
+        );
         const visualActions = await js(
           "[...document.querySelectorAll('[data-editor-action]')].map(el => el.dataset.editorAction)"
         );
@@ -121,6 +173,7 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
         );
         await wait("!!document.querySelector('.settings')");
         await checkTabLoop('.settings');
+        await checkAccessibleNames();
         await js("document.querySelector('[data-section=accessibility]').click()");
         await js("document.querySelector('[data-setting=editorFocusOutline]').click()");
         assert.equal(
@@ -268,9 +321,32 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
           true,
           'context menu restores focus'
         );
+        await js(`document.querySelector('.tree-item[title="Card.md"]').dispatchEvent(new MouseEvent('contextmenu', {
+          bubbles: true, clientX: 100, clientY: 100,
+        }))`);
+        await wait("!!document.querySelector('.context-menu')");
+        await js(
+          "[...document.querySelectorAll('.context-menu button')].find(button => button.textContent.trim() === 'Delete').click()"
+        );
+        await wait("!!document.querySelector('.confirm-dialog')");
+        await checkTabLoop('.confirm-dialog');
+        await checkAccessibleNames();
+        await key('Escape');
+        await wait("!document.querySelector('.confirm-dialog')");
+        await wait("document.activeElement.matches('.note-title')");
         await key('P', [primary]);
         await wait("!!document.querySelector('.palette')");
         await checkTabLoop('.palette');
+        await checkAccessibleNames();
+        const selectedPaletteOption = await js(
+          "document.activeElement.getAttribute('aria-activedescendant')"
+        );
+        await key('ArrowDown');
+        assert.notEqual(
+          await js("document.activeElement.getAttribute('aria-activedescendant')"),
+          selectedPaletteOption,
+          'palette arrow navigation updates the active option'
+        );
         await key('Escape');
         await wait("!document.querySelector('.palette')");
         for (const mode of ['visual', 'edit']) {
@@ -303,7 +379,12 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
           assert.equal(
             await js('getComputedStyle(document.activeElement).outlineStyle'),
             'solid',
-            'opt-in editor focus outline works in both modes'
+            'editor focus indicator is visible in both modes'
+          );
+          assert.equal(
+            await js("parseFloat(getComputedStyle(document.activeElement).outlineWidth) >= 2"),
+            true,
+            'the editor focus preference emphasizes the focus indicator'
           );
           assert.equal(
             await js(`document.querySelector('${editor}').getAttribute('aria-multiline')`),
@@ -372,8 +453,12 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
         await js("document.querySelector('.visual-document').focus()");
         assert.equal(
           await js('getComputedStyle(document.activeElement).outlineStyle'),
-          'none',
-          'disabling the setting removes the note outline immediately'
+          'solid',
+          'disabling emphasis preserves the basic keyboard focus indicator'
+        );
+        assert.ok(
+          await js("parseFloat(getComputedStyle(document.activeElement).outlineWidth) < 2.4"),
+          'basic focus indicator is thinner when emphasis is disabled'
         );
         assert.equal(
           await js("JSON.parse(localStorage.getItem('tagline-settings')).editorFocusOutline"),

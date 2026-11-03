@@ -138,6 +138,7 @@ export default function RightPanel(props) {
             key={id}
             className={`icon-btn${tab === id ? ' active' : ''}`}
             title={t(title)}
+            aria-label={t(title)}
             onClick={() => setTab(id)}
           >
             <Icon name={icon} />

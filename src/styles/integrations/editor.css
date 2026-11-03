@@ -51,13 +51,14 @@
 
 .visual-document:focus-visible,
 .editor .cm-content:focus-visible {
-  outline: none;
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
 }
 
 .editor-focus-outline .visual-document:focus-visible,
 .editor-focus-outline .editor .cm-content:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: -2px;
+  outline-width: 3px;
+  outline-offset: -3px;
 }
 
 .note-properties {

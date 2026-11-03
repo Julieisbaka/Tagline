@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useId, useMemo, useRef, useState } from 'react';
 import { useI18n } from '../../lib/i18n.js';
 import { fuzzyScore } from '../../lib/vault.js';
 import AdvancedSettings from '../settings/AdvancedSettings.jsx';
@@ -20,6 +20,7 @@ import ModalBackdrop from './ModalBackdrop.jsx';
 // Generic fuzzy-filtered list modal used for quick switcher, commands, templates.
 export function Palette({ items, placeholder, onSelect, onClose, onCreate, createLabel }) {
   const { t } = useI18n();
+  const listId = useId();
   const [query, setQuery] = useState('');
   const [sel, setSel] = useState(0);
   const listRef = useRef(null);
@@ -67,7 +68,13 @@ export function Palette({ items, placeholder, onSelect, onClose, onCreate, creat
         <input
           autoFocus
           className='palette-input'
+          role='combobox'
           aria-label={placeholder}
+          aria-autocomplete='list'
+          aria-expanded={total > 0}
+          aria-haspopup='listbox'
+          aria-controls={listId}
+          aria-activedescendant={total ? `${listId}-option-${sel}` : undefined}
           placeholder={placeholder}
           value={query}
           onChange={(e) => setQuery(e.target.value)}
@@ -88,11 +95,20 @@ export function Palette({ items, placeholder, onSelect, onClose, onCreate, creat
             }
           }}
         />
-        <div className='palette-list' ref={listRef}>
+        <div
+          className='palette-list'
+          id={listId}
+          role='listbox'
+          aria-label={placeholder}
+          ref={listRef}
+        >
           {filtered.map((it, i) => (
             <div
               key={it.id}
+              id={`${listId}-option-${i}`}
               className={`palette-item${i === sel ? ' selected' : ''}`}
+              role='option'
+              aria-selected={i === sel}
               onMouseEnter={() => setSel(i)}
               onClick={(e) => choose(i, e)}
             >
@@ -103,7 +119,10 @@ export function Palette({ items, placeholder, onSelect, onClose, onCreate, creat
           ))}
           {canCreate && (
             <div
+              id={`${listId}-option-${filtered.length}`}
               className={`palette-item${sel === filtered.length ? ' selected' : ''}`}
+              role='option'
+              aria-selected={sel === filtered.length}
               onMouseEnter={() => setSel(filtered.length)}
               onClick={() => choose(filtered.length)}
             >
@@ -112,8 +131,12 @@ export function Palette({ items, placeholder, onSelect, onClose, onCreate, creat
               </span>
             </div>
           )}
-          {!total && <div className='empty-hint'>{t('No matches')}</div>}
         </div>
+        {!total && (
+          <div className='empty-hint' role='status'>
+            {t('No matches')}
+          </div>
+        )}
       </div>
     </ModalBackdrop>
   );
@@ -404,7 +427,7 @@ export function SettingsDialog({
               className='settings-panel'
             >
               <label className='setting-row'>
-                <span>{t('Show note editor focus outline')}</span>
+                <span>{t('Emphasize editor focus outline')}</span>
                 <input
                   type='checkbox'
                   data-setting='editorFocusOutline'
@@ -414,7 +437,7 @@ export function SettingsDialog({
               </label>
               <p className='settings-help'>
                 {t(
-                  'Highlight the focused visual or source note editor. Keyboard focus indicators on other controls remain enabled.'
+                  'Use a thicker accent outline for the focused visual or source note editor. A basic keyboard focus indicator always remains visible.'
                 )}
               </p>
               {[

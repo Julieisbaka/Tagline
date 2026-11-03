@@ -131,6 +131,9 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
         await js('document.querySelector(\'.note-actions [title^="Send card"]\').click()');
         const initialSpeech = await waitFile((c) => c && c.includes('Warrant text'));
         assert.match(initialSpeech, /^---\nspeech: true\n---\n/);
+        await wait(
+          "document.querySelector('.sr-only[role=status]')?.textContent.includes('Sent to Speech')"
+        );
         await js('document.querySelector(\'[title="Current speech document"]\').click()');
         await wait(
           "[...document.querySelectorAll('.tab')].some(t => t.textContent.includes('Speech'))"

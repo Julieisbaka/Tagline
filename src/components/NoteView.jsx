@@ -46,6 +46,29 @@ export default function NoteView({
   onDismissVisualNotice,
 }) {
   const { t, locale } = useI18n();
+  const previousMode = useRef({ path, mode });
+  const [modeAnnouncement, setModeAnnouncement] = useState('');
+  useEffect(() => {
+    const previous = previousMode.current;
+    previousMode.current = { path, mode };
+    if (previous.path === path && previous.mode !== mode) {
+      const label = isFlow(path)
+        ? t(mode === 'edit' ? 'JSON source' : 'Visual')
+        : t(mode === 'visual' ? 'Visual' : mode === 'edit' ? 'Source' : 'Read');
+      setModeAnnouncement(t('Editor mode changed to {mode}', { mode: label }));
+    }
+  }, [path, mode, t]);
+  const modeStatus = (
+    <span
+      className='sr-only'
+      data-announcement='editor-mode'
+      role='status'
+      aria-live='polite'
+      aria-atomic='true'
+    >
+      {modeAnnouncement}
+    </span>
+  );
   const metadata = useMemo(() => (isFlow(path) ? null : readFrontmatter(content)), [path, content]);
   const localRef = useRef(null);
   const viewRef = editorRef || localRef;
@@ -149,9 +172,11 @@ export default function NoteView({
   if (isFlow(path)) {
     return (
       <div className='note-view'>
+        {modeStatus}
         <div className='note-header'>
           <input
             className='note-title'
+            aria-label={t('Note title')}
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             onBlur={commitTitle}
@@ -185,9 +210,11 @@ export default function NoteView({
 
   return (
     <div className='note-view'>
+      {modeStatus}
       <div className='note-header'>
         <input
           className='note-title'
+          aria-label={t('Note title')}
           value={title}
           onChange={(e) => setTitle(e.target.value)}
           onBlur={commitTitle}
@@ -218,6 +245,7 @@ export default function NoteView({
           {mode === 'read' && (
             <button
               className={`icon-btn${highlightOnly ? ' active' : ''}`}
+              aria-label={t('Show highlighted text only')}
               title={t('Show highlighted text only')}
               onClick={() => setHighlightOnly(!highlightOnly)}
             >
@@ -227,6 +255,7 @@ export default function NoteView({
           {mode !== 'read' && (
             <button
               className='icon-btn'
+              aria-label={t('Send card')}
               title={`${t('Send card')} ${displayBinding(binding('send-card', settings.keybindings))}`}
               onClick={sendCurrent}
             >
@@ -235,6 +264,7 @@ export default function NoteView({
           )}
           <button
             className='icon-btn'
+            aria-label={t(mode !== 'read' ? 'Read note' : 'Edit note')}
             title={`${t(mode !== 'read' ? 'Read' : 'Edit')} ${displayBinding(binding('toggle-mode', settings.keybindings))}`}
             onClick={() => setMode(mode !== 'read' ? 'read' : settings.editorMode)}
           >
