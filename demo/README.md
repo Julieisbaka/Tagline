@@ -36,6 +36,7 @@ the dashboard as a lightweight welcome. Reloading does not repeat setup.
 | Show and validate settings | `settings.get`, rejected `settings.set` | `settings` |
 | Fetch public repository metadata | `network.fetch` with HTTPS and the reviewed `api.github.com` host | `network` |
 | Run storage demo | `storage.get`, `storage.set`, deleting with `null` | None |
+| Run secrets demo | `secrets.set`, `has`, `get`, `delete` (OS-encrypted) | `secrets` |
 | Write vault index note | `vault.list`, `vault.read`, `vault.write` | `vault:read`, `vault:write` |
 | Run vault lifecycle demo | `vault.watch`, `write`, `append`, `read`, `compareAndSwap`, `flush`, `rename`, `delete` | `vault:read`, `vault:write` |
 | Open API dashboard | `panels.setHtml`, `show`, `onMessage`, `postMessage` | `ui` |

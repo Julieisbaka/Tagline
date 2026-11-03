@@ -25,6 +25,7 @@ const { registerExtensions } = require('./extensions.cjs');
 const { extractCitation } = require('./citationMetadata.cjs');
 const { checkLinks } = require('./evidenceLinks.cjs');
 const { registerFlowFiles } = require('./flowFiles.cjs');
+const { registerUriHandler } = require('./uri.cjs');
 const { registerBrowser } = require('./browser.cjs');
 const { DEFAULT_RETENTION, createRevisionHistory } = require('./revisionHistory.cjs');
 const { NOTE_EXTS, listVault: walk, readVaultSnapshot } = require('./vaultFiles.cjs');
@@ -773,6 +774,7 @@ const primary = registerFlowFiles({
 });
 
 if (primary) {
+  registerUriHandler({ app, ipcMain, getWindow: () => win, createWindow });
   app.whenReady().then(() => {
     if (process.platform === 'darwin') {
       app.dock.setIcon(path.join(__dirname, '..', 'build', 'icon.png'));
@@ -808,6 +810,7 @@ if (primary) {
       writeConfig,
       dialog,
       getWindow: () => win,
+      safeStorage,
     });
     const { readToken } = registerEmbeddings({
       app,

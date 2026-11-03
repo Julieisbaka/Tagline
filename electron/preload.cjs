@@ -109,6 +109,12 @@ contextBridge.exposeInMainWorld('api', {
     ipcRenderer.on('flow:available', listener);
     return () => ipcRenderer.removeListener('flow:available', listener);
   },
+  nextUri: () => ipcRenderer.invoke('uri:pending'),
+  onUriAvailable: (callback) => {
+    const listener = () => callback();
+    ipcRenderer.on('uri:available', listener);
+    return () => ipcRenderer.removeListener('uri:available', listener);
+  },
   onMenuCommand: (callback) => {
     const listener = (_e, command) => callback(command);
     ipcRenderer.on('menu:command', listener);
@@ -118,6 +124,9 @@ contextBridge.exposeInMainWorld('api', {
   loadExtension: (id) => ipcRenderer.invoke('extensions:load', id),
   extensionNetworkFetch: (id, url, options) =>
     ipcRenderer.invoke('extensions:networkFetch', id, url, options),
+  extensionSecret: (id, action, key, value) =>
+    ipcRenderer.invoke('extensions:secret', id, action, key, value),
+  clearExtensionSecrets: (id) => ipcRenderer.invoke('extensions:clearSecrets', id),
   completeExtensionInstall: (id, token) =>
     ipcRenderer.invoke('extensions:completeInstall', id, token),
   setExtensionEnabled: (id, enabled, reviewToken) =>

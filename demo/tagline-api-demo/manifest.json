@@ -14,7 +14,8 @@
     "vault:write",
     "events",
     "ui",
-    "network"
+    "network",
+    "secrets"
   ],
   "networkHosts": ["api.github.com"],
   "contributes": {
@@ -83,6 +84,10 @@
       {
         "id": "storage",
         "title": "Run storage demo"
+      },
+      {
+        "id": "secrets",
+        "title": "Run secrets demo"
       },
       {
         "id": "vault-index",

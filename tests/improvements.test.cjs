@@ -571,6 +571,8 @@ test('platform: macOS desktop wiring provides native window controls, menus and 
             'registerFonts',
             'registerTimerSound',
             'registerFlowFiles',
+            'registerUriHandler',
+            'registerMcp',
             'registerExtensions',
             'registerNli',
             'registerSummarization',

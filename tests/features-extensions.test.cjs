@@ -552,8 +552,12 @@ test('platform: extensions can be uninstalled and their saved grants are cleared
         config = { ...config, ...patch };
       },
     });
+    const secretFile = path.join(root, 'extension-secrets', 'remove-me.bin');
+    await fsAsync.mkdir(path.dirname(secretFile), { recursive: true });
+    await fsAsync.writeFile(secretFile, 'encrypted extension secret');
     await handlers['extensions:uninstall'](null, 'remove-me');
     await assert.rejects(fsAsync.stat(folder), { code: 'ENOENT' });
+    await assert.rejects(fsAsync.stat(secretFile), { code: 'ENOENT' });
     assert.deepEqual(config.enabledExtensions, []);
     assert.deepEqual(config.extensionReviews, {});
     assert.deepEqual(config.extensionPermissions, {});

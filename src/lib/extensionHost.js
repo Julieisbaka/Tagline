@@ -433,6 +433,14 @@ export class ExtensionHost {
         this.watches.get(args[0])?.();
         return this.watches.delete(args[0]);
       }
+      case 'secrets.get':
+      case 'secrets.has': {
+        this.require('secrets');
+        return b.secret(this.manifest.id, method.slice(8), requireText(args[0], 'Key', 200));
+      }
+      case 'secrets.set':
+        this.require('secrets');
+        return b.secret(this.manifest.id, 'set', requireText(args[0], 'Key', 200), args[1]);
       case 'storage.get':
         return this.storage()[requireText(args[0], 'Key', 200)] ?? null;
       case 'storage.set': {
