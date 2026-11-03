@@ -432,6 +432,15 @@ const delay = (ms) => new Promise((r) => setTimeout(r, ms));
           });
           await delay(30);
         }
+        const draggedSidebarWidth = await rect('.sidebar');
+        await js("window.dispatchEvent(new CustomEvent('app-error', { detail: '' }))");
+        await delay(100);
+        const sidebarAfterRender = await rect('.sidebar');
+        assert.equal(
+          Math.round(sidebarAfterRender.w),
+          Math.round(draggedSidebarWidth.w),
+          'sidebar width survives a React rerender during drag'
+        );
         win.webContents.sendInputEvent({
           type: 'mouseUp',
           x: x + 120,
@@ -468,6 +477,15 @@ const delay = (ms) => new Promise((r) => setTimeout(r, ms));
           });
           await delay(30);
         }
+        const draggedRightWidth = await rect('.right-panel');
+        await js("window.dispatchEvent(new CustomEvent('app-error', { detail: '' }))");
+        await delay(100);
+        const rightPanelAfterRender = await rect('.right-panel');
+        assert.equal(
+          Math.round(rightPanelAfterRender.w),
+          Math.round(draggedRightWidth.w),
+          'right panel width survives a React rerender during drag'
+        );
         win.webContents.sendInputEvent({
           type: 'mouseUp',
           x: rx - 100,
@@ -494,6 +512,37 @@ const delay = (ms) => new Promise((r) => setTimeout(r, ms));
           'ArrowLeft grows right panel'
         );
         assert.equal(await js("document.body.classList.contains('resizing-panels')"), false);
+        await js(`(() => {
+          const settings = JSON.parse(localStorage.getItem('tagline-settings'));
+          settings.sidebarWidth = 10000;
+          settings.rightPanelWidth = 10000;
+          localStorage.setItem('tagline-settings', JSON.stringify(settings));
+        })()`);
+        const reloadComplete = new Promise((resolve) =>
+          win.webContents.once('did-finish-load', resolve)
+        );
+        win.webContents.reload();
+        await reloadComplete;
+        await delay(500);
+        const normalizedWidths = await js(`(() => {
+          const settings = JSON.parse(localStorage.getItem('tagline-settings'));
+          return {
+            sidebar: settings.sidebarWidth,
+            right: settings.rightPanelWidth,
+            renderedSidebar: Math.round(document.querySelector('.sidebar').getBoundingClientRect().width),
+            renderedRight: Math.round(document.querySelector('.right-panel').getBoundingClientRect().width),
+          };
+        })()`);
+        assert.equal(
+          normalizedWidths.sidebar,
+          normalizedWidths.renderedSidebar,
+          'sidebar width is normalized during vault initialization'
+        );
+        assert.equal(
+          normalizedWidths.right,
+          normalizedWidths.renderedRight,
+          'right panel width is normalized during vault initialization'
+        );
         console.log('PASS layout');
         app.exit(0);
       } catch (e) {

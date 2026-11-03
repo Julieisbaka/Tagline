@@ -32,13 +32,17 @@ export default function Splitter({ panel, side, width, otherWidth, onChange, lab
     if (!drag.current) {
       return;
     }
-    const { current } = drag.current;
+    const dragState = drag.current;
+    const finalWidth = dragState.current;
+    const needsPersist = finalWidth !== dragState.reported;
     drag.current = null;
     document.body.classList.remove('resizing-panels');
     if (event?.currentTarget?.hasPointerCapture?.(event.pointerId)) {
       event.currentTarget.releasePointerCapture(event.pointerId);
     }
-    onChange(current);
+    if (needsPersist) {
+      onChange(finalWidth);
+    }
   };
   const step = (delta) => onChange(clampPanel(panel, width + delta, otherWidth));
   return (
@@ -58,15 +62,26 @@ export default function Splitter({ panel, side, width, otherWidth, onChange, lab
         }
         event.preventDefault();
         event.currentTarget.setPointerCapture(event.pointerId);
-        drag.current = { startX: event.clientX, startWidth: width, current: width };
+        drag.current = {
+          startX: event.clientX,
+          startWidth: width,
+          current: width,
+          reported: width,
+        };
         document.body.classList.add('resizing-panels');
       }}
       onPointerMove={(event) => {
         if (!drag.current) {
           return;
         }
-        const delta = event.clientX - drag.current.startX;
-        drag.current.current = live(drag.current.startWidth + (side === 'left' ? delta : -delta));
+        const current = drag.current;
+        const delta = event.clientX - current.startX;
+        const next = live(current.startWidth + (side === 'left' ? delta : -delta));
+        if (next !== current.current) {
+          current.current = next;
+          onChange(next);
+          current.reported = next;
+        }
       }}
       onPointerUp={finish}
       onPointerCancel={finish}

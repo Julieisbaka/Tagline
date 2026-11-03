@@ -74,6 +74,29 @@ export default function App() {
     settings.sidebarWidth,
     showRight ? rightWidth : 0
   );
+  const normalizedWidthVault = useRef(null);
+  useEffect(() => {
+    const root = v.vault?.root;
+    if (!v.ready || !root) {
+      normalizedWidthVault.current = null;
+      return;
+    }
+    if (normalizedWidthVault.current === root) {
+      return;
+    }
+    normalizedWidthVault.current = root;
+    if (settings.sidebarWidth !== sidebarWidth || settings.rightPanelWidth !== rightWidth) {
+      updateSettings({ sidebarWidth, rightPanelWidth: rightWidth });
+    }
+  }, [
+    v.ready,
+    v.vault?.root,
+    settings.sidebarWidth,
+    settings.rightPanelWidth,
+    sidebarWidth,
+    rightWidth,
+    updateSettings,
+  ]);
   const editorRef = useRef(null);
   const visualRef = useRef(null);
   const [visualEditor, setVisualEditor] = useState(null);
