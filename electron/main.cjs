@@ -36,6 +36,7 @@ const { registerTabroom } = require('./tabroom.cjs');
 const { registerGoogleDocs } = require('./googleDocs.cjs');
 const keyDefinitions = require('../src/lib/keybindings.json');
 const { registerNativeUi } = require('./nativeUi.cjs');
+const { registerMcp } = require('./mcp.cjs');
 
 const isDev = process.argv.includes('--dev');
 // Keep profile and OS credential identity stable across versions and install locations.
@@ -320,40 +321,37 @@ function registerIpc() {
 
   ipcMain.handle('fs:read', async (_e, rel) => fs.readFile(resolveInVault(rel), 'utf8'));
 
-  ipcMain.handle(
-    'fs:write',
-    async (
-      _e,
-      rel,
-      content,
-      retention = DEFAULT_RETENTION,
-      canvasMode = 'complete',
-      experimentalHistoryDeltas = false
-    ) => {
-      const full = resolveInVault(rel);
-      await history.snapshot(rel, content, retention, canvasMode, experimentalHistoryDeltas);
-      await fs.mkdir(path.dirname(full), { recursive: true });
-      let mode;
-      try {
-        mode = (await fs.stat(full)).mode;
-      } catch (error) {
-        if (error.code !== 'ENOENT') {
-          throw error;
-        }
-      }
-      const temporary = path.join(path.dirname(full), `.tagline-save-${randomUUID()}.tmp`);
-      try {
-        await fs.writeFile(temporary, content, { encoding: 'utf8', flag: 'wx', mode });
-        await fs.rename(temporary, full);
-      } catch (error) {
-        if (error.code !== 'EEXIST') {
-          await fs.rm(temporary, { force: true });
-        }
+  async function writeVaultFile(
+    rel,
+    content,
+    retention = DEFAULT_RETENTION,
+    canvasMode = 'complete',
+    experimentalHistoryDeltas = false
+  ) {
+    const full = resolveInVault(rel);
+    await history.snapshot(rel, content, retention, canvasMode, experimentalHistoryDeltas);
+    await fs.mkdir(path.dirname(full), { recursive: true });
+    let mode;
+    try {
+      mode = (await fs.stat(full)).mode;
+    } catch (error) {
+      if (error.code !== 'ENOENT') {
         throw error;
       }
-      return true;
     }
-  );
+    const temporary = path.join(path.dirname(full), `.tagline-save-${randomUUID()}.tmp`);
+    try {
+      await fs.writeFile(temporary, content, { encoding: 'utf8', flag: 'wx', mode });
+      await fs.rename(temporary, full);
+    } catch (error) {
+      if (error.code !== 'EEXIST') {
+        await fs.rm(temporary, { force: true });
+      }
+      throw error;
+    }
+    return true;
+  }
+  ipcMain.handle('fs:write', (_e, ...args) => writeVaultFile(...args));
 
   ipcMain.handle('fs:create', async (_e, rel, content = '') => {
     await fs.mkdir(path.dirname(resolveInVault(rel)), { recursive: true });
@@ -388,7 +386,7 @@ function registerIpc() {
     }
   });
 
-  ipcMain.handle('fs:rename', async (_e, from, to) => {
+  async function renameVaultPath(from, to) {
     const dest = resolveInVault(to);
     if (fssync.existsSync(dest)) {
       return { ok: false, code: 'destination-exists' };
@@ -430,6 +428,19 @@ function registerIpc() {
       throw error;
     }
     return { ok: true, path: toPosix(to) };
+  }
+  ipcMain.handle('fs:rename', (_e, from, to) => renameVaultPath(from, to));
+
+  registerMcp({
+    app,
+    ipcMain,
+    getWindow: () => win,
+    getVaultRoot: () => vaultRoot,
+    readConfig,
+    writeConfig,
+    writeNote: (rel, content) => writeVaultFile(rel, content),
+    renamePath: renameVaultPath,
+    trashItem: (full) => shell.trashItem(full),
   });
 
   ipcMain.handle('fs:delete', async (_e, rel) => {

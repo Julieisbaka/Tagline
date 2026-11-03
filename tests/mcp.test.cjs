@@ -1,0 +1,247 @@
+const { test } = require('node:test');
+const assert = require('node:assert/strict');
+const fs = require('node:fs/promises');
+const os = require('node:os');
+const path = require('node:path');
+const { createMcpHttpServer, createMcpService, normalizeConfig } = require('../electron/mcp.cjs');
+const { registerExtensions } = require('../electron/extensions.cjs');
+
+async function withMcp(run, { allowWrites = true } = {}) {
+  const vault = await fs.mkdtemp(path.join(os.tmpdir(), 'tagline-mcp-'));
+  await fs.mkdir(path.join(vault, 'Case'), { recursive: true });
+  await fs.writeFile(
+    path.join(vault, 'Case', 'Plan.md'),
+    '# Plan\n\nText about Nuclear war\n## Solvency\n'
+  );
+  const events = [];
+  const service = createMcpService({
+    getVaultRoot: () => vault,
+    getAllowWrites: () => allowWrites,
+    writeNote: (rel, content) => fs.writeFile(path.join(vault, rel), content),
+    renamePath: async (from, to) => {
+      await fs.rename(path.join(vault, from), path.join(vault, to));
+      return { ok: true, path: to };
+    },
+    trashItem: (full) => fs.rm(full, { recursive: true }),
+    notifyChanged: () => events.push('changed'),
+    openNote: (rel) => events.push(`open:${rel}`),
+  });
+  const server = createMcpHttpServer({ service, getToken: () => 'a'.repeat(32) });
+  const port = await server.listen(0);
+  const post = (body, headers = {}) =>
+    fetch(`http://127.0.0.1:${port}/mcp`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${'a'.repeat(32)}`,
+        ...headers,
+      },
+      body: JSON.stringify(body),
+    });
+  let id = 0;
+  const call = async (name, args) => {
+    const response = await (
+      await post({
+        jsonrpc: '2.0',
+        id: ++id,
+        method: 'tools/call',
+        params: { name, arguments: args },
+      })
+    ).json();
+    return response.result;
+  };
+  try {
+    await run({ vault, port, post, call, events });
+  } finally {
+    await server.close();
+    await fs.rm(vault, { recursive: true, force: true });
+  }
+}
+
+test('MCP server requires the bearer token and rejects browser origins', async () => {
+  await withMcp(async ({ port, post }) => {
+    const body = { jsonrpc: '2.0', id: 1, method: 'ping' };
+    assert.equal((await post(body, { Authorization: 'Bearer wrong' })).status, 401);
+    assert.equal((await post(body, { Origin: 'https://example.com' })).status, 403);
+    const hostStatus = await new Promise((resolve, reject) => {
+      const req = require('node:http').request(
+        { host: '127.0.0.1', port, path: '/mcp', method: 'POST', headers: { Host: 'evil.example' } },
+        (res) => {
+          res.resume();
+          resolve(res.statusCode);
+        },
+      );
+      req.on('error', reject);
+      req.end('{}');
+    });
+    assert.equal(hostStatus, 403);
+    assert.equal((await fetch(`http://127.0.0.1:${port}/mcp`)).status, 401);
+    assert.equal((await post(body)).status, 200);
+    assert.equal((await post({ jsonrpc: '2.0', method: 'notifications/initialized' })).status, 202);
+  });
+});
+
+test('MCP initialize negotiates protocol and lists tools and resources', async () => {
+  await withMcp(async ({ post }) => {
+    const init = await (
+      await post({
+        jsonrpc: '2.0',
+        id: 1,
+        method: 'initialize',
+        params: { protocolVersion: '2025-03-26', capabilities: {}, clientInfo: { name: 'test' } },
+      })
+    ).json();
+    assert.equal(init.result.protocolVersion, '2025-03-26');
+    assert.equal(init.result.serverInfo.name, 'tagline');
+    const tools = await (await post({ jsonrpc: '2.0', id: 2, method: 'tools/list' })).json();
+    assert.ok(tools.result.tools.some((tool) => tool.name === 'write_note'));
+    const resources = await (
+      await post({ jsonrpc: '2.0', id: 3, method: 'resources/list' })
+    ).json();
+    const uri = resources.result.resources[0].uri;
+    const read = await (
+      await post({ jsonrpc: '2.0', id: 4, method: 'resources/read', params: { uri } })
+    ).json();
+    assert.match(read.result.contents[0].text, /Solvency/);
+    const unknown = await (await post({ jsonrpc: '2.0', id: 5, method: 'nope' })).json();
+    assert.equal(unknown.error.code, -32601);
+  });
+});
+
+test('MCP tools read, search, write, rename and delete inside the vault', async () => {
+  await withMcp(async ({ vault, call, events }) => {
+    const read = await call('read_note', { path: 'Case/Plan' });
+    assert.match(read.content[0].text, /Nuclear war/);
+    const outline = JSON.parse(
+      (await call('get_outline', { path: 'Case/Plan.md' })).content[0].text
+    );
+    assert.deepEqual(
+      outline.headings.map((heading) => [heading.level, heading.text]),
+      [
+        [1, 'Plan'],
+        [2, 'Solvency'],
+      ]
+    );
+    const found = JSON.parse((await call('search_notes', { query: 'nuclear' })).content[0].text);
+    assert.equal(found.matches[0].line, 3);
+
+    assert.equal(
+      (await call('write_note', { path: 'Case/New', content: 'hello' })).isError,
+      undefined
+    );
+    assert.equal(await fs.readFile(path.join(vault, 'Case', 'New.md'), 'utf8'), 'hello');
+    const clash = await call('write_note', { path: 'Case/New', content: 'again' });
+    assert.equal(clash.isError, true);
+    await call('append_to_note', { path: 'Case/New', content: 'more' });
+    assert.equal(await fs.readFile(path.join(vault, 'Case', 'New.md'), 'utf8'), 'hello\nmore');
+    await call('rename_path', { from: 'Case/New.md', to: 'Case/Moved' });
+    assert.equal(await fs.readFile(path.join(vault, 'Case', 'Moved.md'), 'utf8'), 'hello\nmore');
+    await call('delete_path', { path: 'Case/Moved.md' });
+    await assert.rejects(fs.access(path.join(vault, 'Case', 'Moved.md')));
+    await call('open_note', { path: 'Case/Plan' });
+    assert.ok(events.includes('open:Case/Plan.md'));
+    assert.ok(events.filter((event) => event === 'changed').length >= 4);
+  });
+});
+
+test('MCP tools refuse paths outside the vault and writes in read-only mode', async () => {
+  await withMcp(async ({ call }) => {
+    for (const bad of [
+      '../outside.md',
+      'C:\\Windows\\win.ini',
+      '/etc/passwd',
+      '.tagline/history.md',
+    ]) {
+      const result = await call('write_note', { path: bad, content: 'x' });
+      assert.equal(result.isError, true, bad);
+    }
+    assert.equal((await call('read_note', { path: '../secret' })).isError, true);
+  });
+  await withMcp(
+    async ({ call }) => {
+      assert.equal((await call('write_note', { path: 'a', content: 'x' })).isError, true);
+      assert.equal((await call('read_note', { path: 'Case/Plan' })).isError, undefined);
+    },
+    { allowWrites: false }
+  );
+});
+
+test('MCP configuration is normalized', () => {
+  assert.deepEqual(normalizeConfig({ port: 80, allowWrites: false }), {
+    enabled: false,
+    allowWrites: false,
+    port: 38419,
+    token: '',
+  });
+});
+
+test('platform: dropping an extension folder installs and enables it, gating reviewed permissions', async () => {
+  const root = await fs.mkdtemp(path.join(os.tmpdir(), 'tagline-install-'));
+  try {
+    const manifest = (extra) =>
+      JSON.stringify({
+        manifestVersion: 1,
+        id: 'dropped',
+        name: 'Dropped',
+        version: '1.0.0',
+        ...extra,
+      });
+    const source = path.join(root, 'downloads', 'dropped');
+    await fs.mkdir(path.join(source, 'node_modules'), { recursive: true });
+    await fs.writeFile(path.join(source, 'manifest.json'), manifest({ main: 'main.js' }));
+    await fs.writeFile(path.join(source, 'main.js'), 'void 0;');
+    await fs.writeFile(path.join(source, 'node_modules', 'skip.js'), 'x');
+    let config = {};
+    const handlers = {};
+    registerExtensions({
+      app: { getPath: () => root },
+      shell: {},
+      ipcMain: { handle: (name, handler) => (handlers[name] = handler) },
+      readConfig: () => config,
+      writeConfig: (patch) => (config = { ...config, ...patch }),
+      dialog: {},
+      getWindow: () => null,
+    });
+    const result = await handlers['extensions:installFolder']({}, path.join(root, 'downloads'));
+    assert.deepEqual(
+      { id: result.id, enabled: result.enabled, replaced: result.replaced },
+      { id: 'dropped', enabled: true, replaced: false }
+    );
+    assert.deepEqual(config.enabledExtensions, ['dropped']);
+    await fs.access(path.join(root, 'extensions', 'dropped', 'main.js'));
+    await assert.rejects(fs.access(path.join(root, 'extensions', 'dropped', 'node_modules')));
+
+    await fs.writeFile(
+      path.join(source, 'manifest.json'),
+      manifest({
+        main: 'main.js',
+        version: '2.0.0',
+        permissions: ['network'],
+        networkHosts: ['example.com'],
+      })
+    );
+    const updated = await handlers['extensions:installFolder'](
+      {},
+      path.join(source, 'manifest.json')
+    );
+    assert.equal(updated.replaced, true);
+    assert.equal(updated.reviewRequired, true);
+    assert.equal(updated.enabled, false);
+
+    config = {};
+    await fs.rm(path.join(root, 'extensions'), { recursive: true });
+    await fs.writeFile(
+      path.join(source, 'manifest.json'),
+      manifest({ main: 'main.js', permissions: ['ui'] })
+    );
+    const gated = await handlers['extensions:installFolder']({}, source);
+    assert.equal(gated.reviewRequired, true);
+    assert.equal(config.enabledExtensions, undefined);
+
+    await fs.rm(path.join(source, 'manifest.json'));
+    await assert.rejects(handlers['extensions:installFolder']({}, source), /No manifest\.json/);
+    await assert.rejects(handlers['extensions:installFolder']({}, 'relative'), /Choose a folder/);
+  } finally {
+    await fs.rm(root, { recursive: true, force: true });
+  }
+});

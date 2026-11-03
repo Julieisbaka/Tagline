@@ -268,12 +268,18 @@ export default function CanvasEditor({
               : []),
             {
               label: 'Connect nodes',
+              command: 'canvas-connect',
               run: () => {
                 setConnectionStart(targetNode.id);
                 setConnecting(true);
               },
             },
-            { label: 'Delete node', danger: true, run: () => removeNode(targetNode.id) },
+            {
+              label: 'Delete node',
+              command: 'canvas-delete',
+              danger: true,
+              run: () => removeNode(targetNode.id),
+            },
           ]
         : targetEdge
           ? [
@@ -299,6 +305,7 @@ export default function CanvasEditor({
               },
               {
                 label: 'Delete connection',
+                command: 'canvas-delete',
                 danger: true,
                 run: () => {
                   update({
@@ -311,6 +318,7 @@ export default function CanvasEditor({
             ]
           : ['text', 'file', 'link', 'group'].map((type) => ({
               label: t('Add {type}', { type: t(type) }),
+              command: `canvas-add-${type}`,
               run: () => addNode(type, position, null),
             }));
       setSelectedNode(targetNode?.id || null);

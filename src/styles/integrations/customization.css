@@ -88,6 +88,17 @@
   text-align: center;
 }
 
+.extension-dropzone {
+  border: 2px dashed transparent;
+  border-radius: 8px;
+  transition: border-color 0.12s;
+}
+
+.extension-dropzone.dragging {
+  border-color: var(--accent);
+  background: var(--accent-dim);
+}
+
 .extension-list {
   list-style: none;
   margin: 0;

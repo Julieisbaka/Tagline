@@ -10,6 +10,7 @@ import { buildCommands, fillTemplate } from './lib/commands.js';
 import { markSpeechDocument, speechDocumentPaths } from './lib/frontmatter.js';
 import { useI18n } from './lib/i18n.js';
 import { binding, displayBinding, KEYBINDINGS, matchesBinding } from './lib/keybindings.js';
+import { KeybindingsContext } from './lib/keybindingContext.js';
 import { slugify } from './lib/markdown.js';
 import { useSettings } from './lib/settings.js';
 import { useAppExtensions } from './lib/useAppExtensions.js';
@@ -684,6 +685,23 @@ export default function App() {
   useEffect(() => {
     window.api.setKeybindings(settings.keybindings).catch((error) => notify(error.message));
   }, [settings.keybindings, notify]);
+  const mcpRef = useRef({});
+  mcpRef.current = { reload: v.reload, open };
+  useEffect(() => {
+    const offChanged = window.api.onVaultChanged(() => mcpRef.current.reload());
+    const offOpen = window.api.onMcpOpen(async (path) => {
+      await mcpRef.current.reload();
+      mcpRef.current.open(path);
+    });
+    return () => {
+      offChanged();
+      offOpen();
+    };
+  }, []);
+  const keybindingContext = useMemo(
+    () => ({ overrides: settings.keybindings, extra: ext.commands }),
+    [settings.keybindings, ext.commands]
+  );
 
   useEffect(() => {
     const onKey = (e) => {
@@ -740,55 +758,57 @@ export default function App() {
       onSelect: (cmd) => cmd.run(),
     });
   return (
-    <AppLayout
-      app={{
-        t,
-        settings,
-        updateSettings,
-        v,
-        tabs,
-        paths,
-        noteNames,
-        resolve,
-        activePath,
-        activeContent,
-        mode,
-        sourceFallback,
-        stats,
-        setStats,
-        showLeft,
-        showRight,
-        sidebarWidth,
-        rightWidth,
-        lastFile,
-        website,
-        setWebsite,
-        modal,
-        setModal,
-        jump,
-        setJump,
-        highlightOnly,
-        setHighlightOnly,
-        toast,
-        ext,
-        ctx,
-        actions,
-        open,
-        openLink,
-        sendCard,
-        setMode,
-        editorRef,
-        visualRef,
-        cursorRef,
-        createAndOpen,
-        doRename,
-        notify,
-        insertCitation,
-        setVisualEditor,
-        speechDoc,
-        speechDocuments,
-        favorites,
-      }}
-    />
+    <KeybindingsContext.Provider value={keybindingContext}>
+      <AppLayout
+        app={{
+          t,
+          settings,
+          updateSettings,
+          v,
+          tabs,
+          paths,
+          noteNames,
+          resolve,
+          activePath,
+          activeContent,
+          mode,
+          sourceFallback,
+          stats,
+          setStats,
+          showLeft,
+          showRight,
+          sidebarWidth,
+          rightWidth,
+          lastFile,
+          website,
+          setWebsite,
+          modal,
+          setModal,
+          jump,
+          setJump,
+          highlightOnly,
+          setHighlightOnly,
+          toast,
+          ext,
+          ctx,
+          actions,
+          open,
+          openLink,
+          sendCard,
+          setMode,
+          editorRef,
+          visualRef,
+          cursorRef,
+          createAndOpen,
+          doRename,
+          notify,
+          insertCitation,
+          setVisualEditor,
+          speechDoc,
+          speechDocuments,
+          favorites,
+        }}
+      />
+    </KeybindingsContext.Provider>
   );
 }

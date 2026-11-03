@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useI18n } from '../../lib/i18n.js';
 import GoogleDocsSettings from './GoogleDocsSettings.jsx';
+import McpSettings from './McpSettings.jsx';
 
 export default function IntegrationSettings() {
   const { t } = useI18n();
@@ -101,6 +102,7 @@ export default function IntegrationSettings() {
         </button>
       </div>
       <GoogleDocsSettings />
+      <McpSettings />
       <h4>{t('Semantic search (local embeddings)')}</h4>
       <label className='setting-row'>
         <span>{t('Automatically load downloaded model at startup')}</span>

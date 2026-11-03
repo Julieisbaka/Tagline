@@ -3,6 +3,8 @@ import { createPortal } from 'react-dom';
 import { useI18n } from '../../lib/i18n.js';
 import { containFocus, trapTabKey } from '../../lib/focusScope.js';
 import { useNativeUi } from '../../lib/nativeUi.js';
+import { useShortcutLookup } from '../../lib/keybindingContext.js';
+import { displayBinding } from '../../lib/keybindings.js';
 
 export default function ContextMenu({ x, y, items, onClose }) {
   const native = useNativeUi();
@@ -15,12 +17,19 @@ export default function ContextMenu({ x, y, items, onClose }) {
 
 function NativeContextMenu({ items, onClose }) {
   const { t } = useI18n();
-  const initial = useRef({ items, onClose, t });
+  const shortcut = useShortcutLookup();
+  const initial = useRef({ items, onClose, t, shortcut });
   useEffect(() => {
     let active = true;
-    const { items, onClose, t } = initial.current;
+    const { items, onClose, t, shortcut } = initial.current;
     window.api
-      .nativeContextMenu(items.map((item) => ({ label: t(item.label), disabled: !!item.disabled })))
+      .nativeContextMenu(
+        items.map((item) => ({
+          label: t(item.label),
+          disabled: !!item.disabled,
+          accelerator: shortcut(item.command),
+        }))
+      )
       .then(async (index) => {
         if (!active) {
           return;
@@ -47,6 +56,7 @@ function AppContextMenu({ x, y, items, onClose }) {
   const ref = useRef(null);
   const previousFocus = useRef(document.activeElement);
   const { t } = useI18n();
+  const shortcut = useShortcutLookup();
   useLayoutEffect(() => containFocus(ref.current, previousFocus.current, false), []);
   useLayoutEffect(() => {
     const el = ref.current;
@@ -117,24 +127,31 @@ function AppContextMenu({ x, y, items, onClose }) {
         buttons[next]?.focus();
       }}
     >
-      {items.map(({ label, run, disabled, danger }, i) => (
-        <button
-          key={i}
-          role='menuitem'
-          disabled={disabled}
-          className={`context-item${danger ? ' danger' : ''}`}
-          onClick={async () => {
-            onClose();
-            try {
-              await run();
-            } catch (error) {
-              window.dispatchEvent(new CustomEvent('app-error', { detail: error.message }));
+      {items.map(({ label, run, disabled, danger, command }, i) => {
+        const hint = displayBinding(shortcut(command));
+        return (
+          <button
+            key={i}
+            role='menuitem'
+            disabled={disabled}
+            className={`context-item${danger ? ' danger' : ''}`}
+            data-hint={hint || undefined}
+            aria-keyshortcuts={
+              hint ? hint.replace('Ctrl', 'Control').replace('Cmd', 'Meta') : undefined
             }
-          }}
-        >
-          {t(label)}
-        </button>
-      ))}
+            onClick={async () => {
+              onClose();
+              try {
+                await run();
+              } catch (error) {
+                window.dispatchEvent(new CustomEvent('app-error', { detail: error.message }));
+              }
+            }}
+          >
+            {t(label)}
+          </button>
+        );
+      })}
     </div>,
     document.body
   );

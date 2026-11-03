@@ -1,4 +1,4 @@
-const { contextBridge, ipcRenderer } = require('electron');
+const { contextBridge, ipcRenderer, webUtils } = require('electron');
 
 contextBridge.exposeInMainWorld('api', {
   platform: process.platform,
@@ -123,6 +123,24 @@ contextBridge.exposeInMainWorld('api', {
   setExtensionEnabled: (id, enabled, reviewToken) =>
     ipcRenderer.invoke('extensions:setEnabled', id, enabled, reviewToken),
   openExtensionsFolder: () => ipcRenderer.invoke('extensions:openFolder'),
+  pathForFile: (file) => webUtils.getPathForFile(file),
+  installExtensionFolder: (source) => ipcRenderer.invoke('extensions:installFolder', source),
+  chooseExtensionFolder: () => ipcRenderer.invoke('extensions:chooseAndInstall'),
+  mcp: {
+    status: () => ipcRenderer.invoke('mcp:status'),
+    configure: (options) => ipcRenderer.invoke('mcp:configure', options),
+    regenerateToken: () => ipcRenderer.invoke('mcp:regenerateToken'),
+  },
+  onVaultChanged: (callback) => {
+    const listener = () => callback();
+    ipcRenderer.on('mcp:vaultChanged', listener);
+    return () => ipcRenderer.removeListener('mcp:vaultChanged', listener);
+  },
+  onMcpOpen: (callback) => {
+    const listener = (_event, rel) => callback(rel);
+    ipcRenderer.on('mcp:open', listener);
+    return () => ipcRenderer.removeListener('mcp:open', listener);
+  },
   getCustomizationLimits: () => ipcRenderer.invoke('customization:get'),
   exportExtensionSettings: (id, values) =>
     ipcRenderer.invoke('extensions:exportSettings', id, values),

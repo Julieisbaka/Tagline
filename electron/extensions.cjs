@@ -18,6 +18,75 @@ const PERMISSIONS = [
   'network',
 ];
 const ID = /^[a-z0-9][a-z0-9-]{1,63}$/;
+const REVIEW_PERMISSIONS = ['settings', 'editor:active-note', 'events', 'ui', 'network'];
+const MAX_INSTALL_FILES = 5000;
+const MAX_INSTALL_BYTES = 50 * 1024 * 1024;
+const SKIPPED_NAMES = new Set(['.git', 'node_modules']);
+
+// Accepts the extension folder, its manifest.json, or a wrapper folder holding exactly one extension.
+async function findManifestRoot(source) {
+  const stat = await fs.stat(source).catch(() => null);
+  if (!stat) {
+    throw new Error('That path no longer exists.');
+  }
+  let dir = source;
+  if (stat.isFile()) {
+    if (path.basename(source).toLowerCase() !== 'manifest.json') {
+      throw new Error('Drop a folder that contains a manifest.json file.');
+    }
+    dir = path.dirname(source);
+  }
+  const hasManifest = (candidate) =>
+    fs.stat(path.join(candidate, 'manifest.json')).then(
+      (item) => item.isFile(),
+      () => false
+    );
+  if (await hasManifest(dir)) {
+    return dir;
+  }
+  const nested = [];
+  for (const entry of await fs.readdir(dir, { withFileTypes: true })) {
+    const candidate = path.join(dir, entry.name);
+    if (entry.isDirectory() && !SKIPPED_NAMES.has(entry.name) && (await hasManifest(candidate))) {
+      nested.push(candidate);
+    }
+  }
+  if (nested.length === 1) {
+    return nested[0];
+  }
+  throw new Error(
+    nested.length
+      ? 'Several extensions were found. Drop one extension folder at a time.'
+      : `No manifest.json found in "${path.basename(dir)}".`
+  );
+}
+
+async function assertCopyable(root) {
+  let files = 0;
+  let bytes = 0;
+  const pending = [root];
+  while (pending.length) {
+    for (const entry of await fs.readdir(pending.pop(), { withFileTypes: true })) {
+      if (SKIPPED_NAMES.has(entry.name) || entry.isSymbolicLink()) {
+        continue;
+      }
+      const full = path.join(entry.parentPath, entry.name);
+      if (entry.isDirectory()) {
+        pending.push(full);
+      } else if (entry.isFile()) {
+        files += 1;
+        bytes += (await fs.stat(full)).size;
+      }
+      if (files > MAX_INSTALL_FILES || bytes > MAX_INSTALL_BYTES) {
+        throw new Error('Extension folder is too large to install.');
+      }
+    }
+  }
+}
+
+async function copyFilter(source) {
+  return !SKIPPED_NAMES.has(path.basename(source)) && !(await fs.lstat(source)).isSymbolicLink();
+}
 
 function relativeFile(root, value, ext) {
   if (
@@ -436,6 +505,113 @@ function registerExtensions({ app, ipcMain, shell, readConfig, writeConfig, dial
     recent.push(now);
     networkRequestTimes.set(id, recent);
     return requestExtensionNetwork(item.networkHosts, url, options);
+  });
+
+  // Copies a dropped or chosen folder (or its manifest.json) into the extensions folder and enables
+  // it when it declares no review-gated permission; otherwise the user reviews it in Settings.
+  async function installFromFolder(source) {
+    if (typeof source !== 'string' || !path.isAbsolute(source)) {
+      throw new Error('Choose a folder that contains a manifest.json file.');
+    }
+    const root = await findManifestRoot(source);
+    const manifest = validateManifest(
+      JSON.parse(await fs.readFile(path.join(root, 'manifest.json'), 'utf8')),
+      root,
+      limits()
+    );
+    if (manifest.main) {
+      await containedFile(root, manifest.main, '.js');
+    }
+    for (const theme of manifest.contributes.themes) {
+      await containedFile(root, theme, '.json');
+    }
+    const installed = await scan();
+    const existing = installed.find((item) => item.id === manifest.id);
+    const taken = new Set(installed.map((item) => item.folder));
+    let name = manifest.id;
+    for (let i = 2; !existing && taken.has(name); i++) {
+      name = `${manifest.id}-${i}`;
+    }
+    const target = existing ? existing.root : path.join(folder(), name);
+    const inPlace = (await fs.realpath(root).catch(() => root)) === (await realpathOrSelf(target));
+    if (!inPlace) {
+      await copyExtension(root, target);
+    }
+    const gated = manifest.permissions.some((permission) =>
+      REVIEW_PERMISSIONS.includes(permission)
+    );
+    const wasEnabled = enabledIds().includes(manifest.id);
+    let enabled = wasEnabled;
+    if (!gated && !wasEnabled) {
+      writeConfig({
+        enabledExtensions: [...enabledIds(), manifest.id],
+        extensionReviews: {
+          ...readConfig().extensionReviews,
+          [manifest.id]: reviewSignature(manifest),
+        },
+      });
+      enabled = true;
+    } else if (!gated) {
+      writeConfig({
+        extensionReviews: {
+          ...readConfig().extensionReviews,
+          [manifest.id]: reviewSignature(manifest),
+        },
+      });
+    }
+    const reviewRequired = gated && (!wasEnabled || needsReview(manifest, readConfig()));
+    return {
+      id: manifest.id,
+      name: manifest.name,
+      version: manifest.version,
+      replaced: !!existing,
+      enabled: enabled && !reviewRequired,
+      reviewRequired,
+    };
+  }
+
+  const realpathOrSelf = (target) => fs.realpath(target).catch(() => path.resolve(target));
+
+  async function copyExtension(source, target) {
+    await assertCopyable(source);
+    const staging = path.join(app.getPath('userData'), 'extension-staging', randomUUID());
+    await fs.mkdir(path.dirname(staging), { recursive: true });
+    try {
+      await fs.cp(source, staging, { recursive: true, filter: copyFilter });
+      await fs.mkdir(path.dirname(target), { recursive: true });
+      const backup = `${staging}.previous`;
+      const hadPrevious = await fs.rename(target, backup).then(
+        () => true,
+        (error) => {
+          if (error.code !== 'ENOENT') {
+            throw error;
+          }
+          return false;
+        }
+      );
+      try {
+        await fs.rename(staging, target);
+      } catch (error) {
+        if (hadPrevious) {
+          await fs.rename(backup, target);
+        }
+        throw error;
+      }
+      if (hadPrevious) {
+        await fs.rm(backup, { recursive: true, force: true });
+      }
+    } finally {
+      await fs.rm(staging, { recursive: true, force: true });
+    }
+  }
+
+  ipcMain.handle('extensions:installFolder', (_event, source) => installFromFolder(source));
+  ipcMain.handle('extensions:chooseAndInstall', async () => {
+    const result = await dialog.showOpenDialog(getWindow(), {
+      title: 'Install extension from folder',
+      properties: ['openDirectory'],
+    });
+    return result.canceled || !result.filePaths[0] ? null : installFromFolder(result.filePaths[0]);
   });
 
   ipcMain.handle('extensions:openFolder', async () => {

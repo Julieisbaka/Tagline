@@ -145,6 +145,8 @@ export default function ExtensionSettings({ extensions }) {
   const { t } = useI18n();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  const [notice, setNotice] = useState('');
+  const [dragging, setDragging] = useState(false);
   const act = async (task) => {
     setBusy(true);
     setError('');
@@ -156,15 +158,93 @@ export default function ExtensionSettings({ extensions }) {
       setBusy(false);
     }
   };
+  const install = (task) =>
+    act(async () => {
+      setNotice('');
+      const results = [];
+      const failures = [];
+      for (const source of await task()) {
+        try {
+          const result = await window.api.installExtensionFolder(source);
+          if (result) {
+            results.push(result);
+          }
+        } catch (err) {
+          failures.push(err.message);
+        }
+      }
+      await extensions.reload();
+      setNotice(
+        results
+          .map((item) =>
+            item.reviewRequired
+              ? t('Installed {name}. Review its permissions below, then enable it.', {
+                  name: item.name,
+                })
+              : t('Installed and enabled {name} v{version}.', {
+                  name: item.name,
+                  version: item.version,
+                })
+          )
+          .join(' ')
+      );
+      if (failures.length) {
+        throw new Error(failures.join(' '));
+      }
+    });
+  const hasFiles = (event) => [...(event.dataTransfer?.types || [])].includes('Files');
   return (
-    <>
+    <div
+      className={`extension-dropzone${dragging ? ' dragging' : ''}`}
+      data-extension-dropzone
+      onDragEnter={(event) => {
+        if (hasFiles(event)) {
+          event.preventDefault();
+          setDragging(true);
+        }
+      }}
+      onDragOver={(event) => {
+        if (hasFiles(event)) {
+          event.preventDefault();
+          event.dataTransfer.dropEffect = 'copy';
+        }
+      }}
+      onDragLeave={(event) => {
+        if (!event.currentTarget.contains(event.relatedTarget)) {
+          setDragging(false);
+        }
+      }}
+      onDrop={(event) => {
+        if (!hasFiles(event)) {
+          return;
+        }
+        event.preventDefault();
+        setDragging(false);
+        const files = [...event.dataTransfer.files];
+        install(async () => files.map((file) => window.api.pathForFile(file)).filter(Boolean));
+      }}
+    >
       <h3>{t('Installed extensions')}</h3>
       <p>
         {t(
           'Extensions run in a sandbox without direct network, Node.js, or page access. The network permission can contact only the HTTPS hosts listed on the extension card. Enable only extensions you trust.'
         )}
       </p>
+      <p className='extension-drop-hint'>
+        {t('Drag an extension folder here to install it. The folder must contain manifest.json.')}
+      </p>
       <div className='settings-actions'>
+        <button
+          disabled={busy}
+          onClick={() =>
+            install(async () => {
+              const result = await window.api.chooseExtensionFolder();
+              return result ? [result] : [];
+            })
+          }
+        >
+          {t('Install from folder…')}
+        </button>
         <button onClick={() => act(() => window.api.openExtensionsFolder())}>
           {t('Open extensions folder')}
         </button>
@@ -172,6 +252,7 @@ export default function ExtensionSettings({ extensions }) {
           {t('Reload extensions')}
         </button>
       </div>
+      {notice && <p role='status'>{notice}</p>}
       {error && (
         <p role='alert' className='error-text'>
           {error}
@@ -179,9 +260,7 @@ export default function ExtensionSettings({ extensions }) {
       )}
       {!extensions.extensions.length && (
         <p className='settings-empty'>
-          {t(
-            'No extensions installed. Add a folder containing manifest.json to the extensions folder, then reload.'
-          )}
+          {t('No extensions installed. Drag a folder containing manifest.json onto this page.')}
         </p>
       )}
       <ul className='extension-list'>
@@ -238,6 +317,6 @@ export default function ExtensionSettings({ extensions }) {
           </li>
         ))}
       </ul>
-    </>
+    </div>
   );
 }

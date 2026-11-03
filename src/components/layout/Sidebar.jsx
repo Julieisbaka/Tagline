@@ -13,10 +13,10 @@ function ContextMenu({ menu, onClose, actions, favorites }) {
   const isFolder = node.type === 'folder';
   const items = isFolder
     ? [
-        ['New note', () => actions.newNote(node.path)],
-        ['New flow', () => actions.newFlow(node.path)],
-        ['New canvas', () => actions.newCanvas(node.path)],
-        ['New folder', () => actions.newFolder(node.path)],
+        ['New note', () => actions.newNote(node.path), 'new-note'],
+        ['New flow', () => actions.newFlow(node.path), 'new-flow'],
+        ['New canvas', () => actions.newCanvas(node.path), 'new-canvas'],
+        ['New folder', () => actions.newFolder(node.path), 'new-folder'],
         ...(node.path
           ? [
               ['Rename…', () => actions.rename(node)],
@@ -48,7 +48,12 @@ function ContextMenu({ menu, onClose, actions, favorites }) {
       x={menu.x}
       y={menu.y}
       onClose={onClose}
-      items={items.map(([label, run]) => ({ label, run, danger: label === 'Delete' }))}
+      items={items.map(([label, run, command]) => ({
+        label,
+        run,
+        command,
+        danger: label === 'Delete',
+      }))}
     />
   );
 }

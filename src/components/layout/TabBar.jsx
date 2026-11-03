@@ -89,7 +89,7 @@ export default function TabBar({
               x: e.clientX,
               y: e.clientY,
               items: [
-                { label: 'Close tab', run: () => onClose(t.id) },
+                { label: 'Close tab', command: 'close-tab', run: () => onClose(t.id) },
                 { label: 'Close other tabs', run: () => onCloseOthers(t.id) },
                 ...(t.kind === 'file'
                   ? [

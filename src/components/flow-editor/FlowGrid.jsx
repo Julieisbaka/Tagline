@@ -48,7 +48,7 @@ export default function FlowGrid({
                 className={`side-${sideOf(col)}`}
                 onContextMenu={(e) =>
                   context(e, [
-                    { label: 'Add column', run: addColumn },
+                    { label: 'Add column', command: 'flow-add-column', run: addColumn },
                     {
                       label: 'Remove column',
                       run: () => removeColumn(c),
@@ -113,10 +113,18 @@ export default function FlowGrid({
                         run: async () =>
                           paste(await navigator.clipboard.readText(), area.top, area.left),
                       },
-                      { label: 'Clear selected cells', run: () => clear(area) },
-                      { label: 'Select all cells', run: selectAll },
-                      { label: 'Insert row above', run: () => insertRowAbove(r, c) },
-                      { label: 'Insert row below', run: () => addRow(r, c) },
+                      {
+                        label: 'Clear selected cells',
+                        command: 'flow-clear-selection',
+                        run: () => clear(area),
+                      },
+                      { label: 'Select all cells', command: 'flow-select-all', run: selectAll },
+                      {
+                        label: 'Insert row above',
+                        command: 'flow-row-above',
+                        run: () => insertRowAbove(r, c),
+                      },
+                      { label: 'Insert row below', command: 'flow-row', run: () => addRow(r, c) },
                       { label: 'Clear cell', run: () => setCell(r, c, '') },
                       { label: 'Remove row', run: () => removeRow(r), danger: true },
                     ]);

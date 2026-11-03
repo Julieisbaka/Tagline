@@ -329,6 +329,20 @@
   color: var(--danger);
 }
 
+.context-menu .context-item[data-hint] {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 24px;
+}
+
+.context-item[data-hint]::after {
+  content: attr(data-hint);
+  font-size: 11px;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
 /* Toast */
 .toast {
   position: fixed;

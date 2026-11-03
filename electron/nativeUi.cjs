@@ -1,3 +1,15 @@
+// Converts Tagline shortcut syntax to an Electron accelerator shown beside a native menu item.
+function toAccelerator(shortcut) {
+  if (!shortcut) {
+    return undefined;
+  }
+  return shortcut
+    .replace(/\bMod\b/g, 'CmdOrCtrl')
+    .replace(/\bMeta\b/g, 'Super')
+    .replace(/\bArrow(Up|Down|Left|Right)\b/g, '$1')
+    .replace(/\bEscape\b/g, 'Esc');
+}
+
 function registerNativeUi({ ipcMain, nativeTheme, Menu, dialog, getWindow }) {
   let enabled = false;
   const authorize = (event) => {
@@ -37,22 +49,34 @@ function registerNativeUi({ ipcMain, nativeTheme, Menu, dialog, getWindow }) {
           !item ||
           typeof item.label !== 'string' ||
           item.label.length > 2000 ||
-          typeof item.disabled !== 'boolean'
+          typeof item.disabled !== 'boolean' ||
+          (item.accelerator !== undefined && typeof item.accelerator !== 'string')
       )
     ) {
       throw new Error('Invalid native menu.');
     }
     return new Promise((resolve) => {
       let selected = null;
-      const menu = Menu.buildFromTemplate(
-        items.map((item, index) => ({
-          label: item.label,
-          enabled: !item.disabled,
-          click: () => {
-            selected = index;
-          },
-        }))
-      );
+      const build = (withAccelerators) =>
+        Menu.buildFromTemplate(
+          items.map((item, index) => ({
+            label: item.label,
+            enabled: !item.disabled,
+            ...(withAccelerators && toAccelerator(item.accelerator)
+              ? { accelerator: toAccelerator(item.accelerator), registerAccelerator: false }
+              : {}),
+            click: () => {
+              selected = index;
+            },
+          }))
+        );
+      let menu;
+      try {
+        menu = build(true);
+      } catch {
+        // An unsupported key name must not stop the menu from opening.
+        menu = build(false);
+      }
       menu.popup({ window: win, callback: () => resolve(selected) });
     });
   });
