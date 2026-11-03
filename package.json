@@ -119,7 +119,7 @@
     "@huggingface/transformers": "^4.3.2",
     "@lezer/highlight": "^1.2.5",
     "@tiptap/core": "^3.32.0",
-    "@tiptap/extension-find-and-replace": "^3.32.0",
+    "@tiptap/extension-find-and-replace": "^3.32.2",
     "@tiptap/extension-highlight": "^3.32.0",
     "@tiptap/extension-table": "^3.32.0",
     "@tiptap/extension-task-item": "^3.32.0",
