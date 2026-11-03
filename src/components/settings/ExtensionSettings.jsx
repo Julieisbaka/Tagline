@@ -11,6 +11,7 @@ const PERMISSION_LABELS = {
   'editor:active-note': 'Watch active-note paths without reading note content',
   events: 'Subscribe to application events and exchange custom extension events',
   ui: 'Display sandboxed panels, webviews and ribbon shortcuts',
+  network: 'Reserved for a future host-mediated network API; currently grants no access',
 };
 
 function ExtensionSettingsForm({ item, extensions }) {

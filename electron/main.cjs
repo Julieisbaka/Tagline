@@ -556,6 +556,35 @@ function buildMenu() {
       win.webContents.once('did-finish-load', () => win.webContents.send('menu:command', name));
     } else {win.webContents.send('menu:command', name);}
   };
+  const showExtensionSecurity = async () => {
+    const options = {
+      type: 'info',
+      title: 'Extension security and review',
+      message: 'Extensions are reviewed before they can be enabled.',
+      detail: [
+        'Every extension manifest is scanned and validated whenever the extension list reloads.',
+        '',
+        'The capabilities settings, editor:active-note, events, ui and network are review-gated. Enabling an extension that declares any of them requires the current review token, computed from its declared permissions, settings, ribbon items, panels and webviews.',
+        '',
+        'Approving an extension stores the review signature in the app configuration (extensionReviews in config.json). If any reviewed field changes later — including adding the network permission — the stored approval no longer matches, the extension is treated as disabled, and you must review and enable it again.',
+        '',
+        'Nothing here happens silently. The native menu cannot enable or approve an extension; only Settings > Extensions can enable one, and only with a current, matching token. The menu can only open that page.',
+        '',
+        'The network permission grants nothing today. It is reserved for a future host-mediated network API; the sandbox CSP still blocks all network requests, and enabling an extension with the network permission does not open any connection.',
+        '',
+        'Extensions installed before reviews were introduced are treated as needing review if they declare a review-gated capability.',
+      ].join('\n'),
+      buttons: ['Open Settings > Extensions', 'Close'],
+      defaultId: 0,
+      cancelId: 1,
+      noLink: true,
+    };
+    const result =
+      win && !win.isDestroyed()
+        ? await dialog.showMessageBox(win, options)
+        : await dialog.showMessageBox(options);
+    if (result.response === 0) {command('openExtensionsSettings')();}
+  };
   const template = [
     ...(process.platform === 'darwin'
       ? [
@@ -634,6 +663,12 @@ function buildMenu() {
         { role: 'zoomOut' },
         { type: 'separator' },
         { role: 'togglefullscreen' },
+      ],
+    },
+    {
+      label: 'Help',
+      submenu: [
+        { label: 'Extension security and review…', click: showExtensionSecurity },
       ],
     },
   ];

@@ -21,7 +21,9 @@ For a complete working example of almost every API in this reference, see the
 1. Open **Settings > Extensions > Open extensions folder**.
 2. Create a subfolder containing `manifest.json` and its referenced files.
 3. Select **Reload extensions**.
-4. Review the listed permissions, then enable the extension.
+4. Review the listed permissions, then enable the extension. Approving an extension
+   that declares a review-gated capability is explicit; see
+   [Review before enabling](#review-before-enabling).
 5. Find its commands in the command palette (`Mod+P`), and its themes in
    **Settings > Appearance > Theme**.
 
@@ -170,11 +172,54 @@ initialization and await their registration before the entry script finishes.
 | `vault:write` | Create, replace, rename, trash, and flush supported notes. Append and compare-and-swap also require `vault:read`. |
 | `events` | Subscribe to application events (also requires each event's data permission); subscribe to custom events and emit events in this extension's namespace. |
 | `ui` | Display declared ribbon shortcuts, sandboxed panels and webviews; exchange messages with surfaces. |
+| `network` | Reserved for a future host-mediated network API. Grants no network access today; enabling an extension with this permission does not open any connection. |
 | None | Register declared commands, notify the user, use private extension storage, contribute JSON themes. |
 
 Undeclared permission checks reject API calls. There is no direct Node.js,
 Electron `window.api`, application DOM, profile storage, arbitrary filesystem,
 or network access. The sandbox CSP blocks network requests and external resources.
+
+### Review before enabling
+
+Enabling an extension that declares any of the following capabilities is gated
+behind an explicit review of its declared manifest:
+
+| Gated capability |
+| --- |
+| `settings` |
+| `editor:active-note` |
+| `events` |
+| `ui` |
+| `network` |
+
+The app computes a review token from the manifest: it serializes the declared
+permissions (sorted), the declared settings, any declared ribbon items, and any
+declared panels and webviews, then derives a SHA-256 token from that value.
+Reloading extensions recomputes the token against the stored approval.
+
+- The token changes whenever any reviewed field changes. Adding `network`, or
+  changing a declared setting, invalidates any previous approval.
+- Enabling such an extension is only possible with a token derived from the current
+  manifest. Enabling with a missing or stale token is rejected with
+  "Extension permissions or settings changed. Reload and review before enabling."
+- On a successful enable, the review signature is stored in the app configuration
+  (`extensionReviews` in `config.json`). On every launch and reload, each extension
+  manifest is scanned again and its stored approval is compared against its current
+  signature.
+- If the signature no longer matches, the extension is treated as disabled: its host
+  does not start, its commands are unavailable, and selectable extension themes fall
+  back to the default palette, until you review and enable it again.
+- An extension that declares a gated capability but has no stored approval (for
+  example, one installed before reviews were introduced) is likewise treated as
+  needing review and is not enabled.
+- Review is never granted silently. The native menu can only open **Settings >
+  Extensions**; it cannot enable or approve anything. Only that page can enable an
+  extension, and only with the current token.
+
+`network` is review-gated but grants nothing today. It is reserved for a future
+host-mediated network API; the sandbox CSP still blocks all network requests and
+external resources, and enabling an extension with `network` does not open any
+connection.
 
 ### Resource safeguards
 

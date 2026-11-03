@@ -485,6 +485,7 @@ export default function App() {
     openGraph: tabs.openGraph,
     openSettings: actions.settings,
     openWorkspaceSettings: () => setModal({ type: 'settings', section: 'workspace' }),
+    openExtensionsSettings: () => setModal({ type: 'settings', section: 'extensions' }),
     toggleLeft: () => setShowLeft((s) => !s),
     toggleRight: () => setShowRight((s) => !s),
     openSpeechDoc: async () => {
@@ -583,7 +584,7 @@ export default function App() {
   useEffect(
     () =>
       window.api.onMenuCommand((command) => {
-        const vaultless = ['switchVault', 'openSettings', 'createCitation'];
+        const vaultless = ['switchVault', 'openSettings', 'createCitation', 'openExtensionsSettings'];
         if (vaultRef.current || vaultless.includes(command)) {ctxRef.current[command]?.();}
       }),
     []

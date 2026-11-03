@@ -14,6 +14,7 @@ const PERMISSIONS = [
   'editor:active-note',
   'events',
   'ui',
+  'network',
 ];
 const ID = /^[a-z0-9][a-z0-9-]{1,63}$/;
 
@@ -182,9 +183,11 @@ function reviewSignature(manifest) {
 function needsReview(manifest, config) {
   const approved = config.extensionReviews?.[manifest.id];
   if (approved !== undefined) {return approved !== reviewSignature(manifest);}
-  // Preserve old enabled extensions, but never silently grant either new capability.
+  // Legacy extensions without a stored review may keep running only when they declare
+  // no review-gated capability; settings, editor:active-note, events, ui and network
+  // always require an explicit, matching review before they are enabled.
   return manifest.permissions.some((permission) =>
-    ['settings', 'editor:active-note', 'events', 'ui'].includes(permission)
+    ['settings', 'editor:active-note', 'events', 'ui', 'network'].includes(permission)
   );
 }
 
@@ -317,7 +320,7 @@ function registerExtensions({ app, ipcMain, shell, readConfig, writeConfig, dial
       enabled &&
       ((reviewToken !== undefined && reviewToken !== item.reviewToken) ||
         (item.permissions.some((permission) =>
-          ['settings', 'editor:active-note', 'events', 'ui'].includes(permission)
+          ['settings', 'editor:active-note', 'events', 'ui', 'network'].includes(permission)
         ) &&
           reviewToken !== item.reviewToken))
     ) {
