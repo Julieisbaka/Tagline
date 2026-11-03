@@ -21,7 +21,9 @@ const createWikilinkExtension = (resolver) => ({
   start: (src) => src.match(/!?\[\[/)?.index,
   tokenizer(src) {
     const m = /^(!?)\[\[([^\]|#]+)(#[^\]|]*)?(?:\|([^\]]*))?\]\]/.exec(src);
-    if (!m) {return undefined;}
+    if (!m) {
+      return undefined;
+    }
     return {
       type: 'wikilink',
       raw: m[0],
@@ -60,7 +62,9 @@ const makeWrap = (name, delim, tag, cls = '') => {
     },
     tokenizer(src) {
       const m = re.exec(src);
-      if (!m) {return undefined;}
+      if (!m) {
+        return undefined;
+      }
       return { type: name, raw: m[0], tokens: this.lexer.inlineTokens(m[1]) };
     },
     renderer(tok) {
@@ -75,7 +79,9 @@ const tag = {
   start: (src) => src.match(/(^|\s)#[A-Za-z]/)?.index,
   tokenizer(src) {
     const m = /^(\s?)#([A-Za-z][\w/-]*)/.exec(src);
-    if (!m) {return undefined;}
+    if (!m) {
+      return undefined;
+    }
     return { type: 'tag', raw: m[0], lead: m[1], tag: m[2] };
   },
   renderer(tok) {

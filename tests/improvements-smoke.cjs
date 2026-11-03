@@ -9,7 +9,9 @@ if (!process.versions.electron) {
       stdio: 'inherit',
       timeout: 120000,
     });
-    if (result.error) {throw result.error;}
+    if (result.error) {
+      throw result.error;
+    }
     process.exitCode = result.status ?? 1;
   } finally {
     fs.rmSync(root, { recursive: true, force: true, maxRetries: 20, retryDelay: 100 });
@@ -25,7 +27,9 @@ const delay = (ms) => new Promise((r) => setTimeout(r, ms));
 
 (async () => {
   const root = process.env.TAGLINE_IMPROVEMENTS_ROOT;
-  if (!root) {throw new Error('Run this test through Node or npm run test:improvements.');}
+  if (!root) {
+    throw new Error('Run this test through Node or npm run test:improvements.');
+  }
   const vault = path.join(root, 'vault');
   const profile = path.join(root, 'profile');
   await fs.mkdir(path.join(vault, 'Old Folder', 'Sub Folder'), { recursive: true });
@@ -74,11 +78,15 @@ const delay = (ms) => new Promise((r) => setTimeout(r, ms));
           throw new Error(`${e.message}\nScript: ${code}`);
         });
       wc.on('console-message', (event) => {
-        if (event.level === 'error') {console.error('Renderer:', event.message);}
+        if (event.level === 'error') {
+          console.error('Renderer:', event.message);
+        }
       });
       const wait = async (code) => {
         for (let i = 0; i < 120; i++) {
-          if (await js(code)) {return;}
+          if (await js(code)) {
+            return;
+          }
           await delay(100);
         }
         throw new Error(
@@ -144,7 +152,9 @@ const delay = (ms) => new Promise((r) => setTimeout(r, ms));
           assert.match(imported.markdown, /CO/);
           assert.match(imported.markdown, /Extra detail/);
           console.log('PASS: real Pandoc HTML -> DOCX -> Markdown conversion.');
-        } else {console.log('NOT TESTED: real Pandoc conversion (Pandoc is not installed).');}
+        } else {
+          console.log('NOT TESTED: real Pandoc conversion (Pandoc is not installed).');
+        }
         await js("document.querySelector('.modal-backdrop').click()");
 
         await click('.tree-item', 'Card');
@@ -399,7 +409,9 @@ const delay = (ms) => new Promise((r) => setTimeout(r, ms));
           await input('[name=author]', 'Native copy');
           await js(`(() => { const el = document.querySelector('[name=author]'); el.focus(); el.select();
             el.dispatchEvent(new MouseEvent('contextmenu', {bubbles:true,cancelable:true})); })()`);
-          for (let i = 0; i < 40 && !nativeItems; i++) {await delay(25);}
+          for (let i = 0; i < 40 && !nativeItems; i++) {
+            await delay(25);
+          }
           assert.ok(nativeItems?.some((item) => item.label === 'Copy'));
           await delay(100);
           assert.equal(await require('electron').clipboard.readText(), 'Native copy');
@@ -420,7 +432,9 @@ const delay = (ms) => new Promise((r) => setTimeout(r, ms));
         };
         try {
           await js("document.querySelector('[data-setting=customCssEnabled]').click()");
-          for (let i = 0; i < 40 && !confirmation; i++) {await delay(25);}
+          for (let i = 0; i < 40 && !confirmation; i++) {
+            await delay(25);
+          }
           assert.ok(confirmation?.message.includes('Custom CSS'));
           await wait("!document.querySelector('[data-setting=customCssEnabled]').checked");
           assert.equal(await js("!!document.querySelector('.confirm-dialog')"), false);

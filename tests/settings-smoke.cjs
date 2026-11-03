@@ -9,7 +9,9 @@ if (!process.versions.electron) {
       stdio: 'inherit',
       timeout: 120000,
     });
-    if (result.error) {throw result.error;}
+    if (result.error) {
+      throw result.error;
+    }
     process.exitCode = result.status ?? 1;
   } finally {
     fs.rmSync(root, { recursive: true, force: true, maxRetries: 20, retryDelay: 100 });
@@ -26,7 +28,9 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 (async () => {
   const root = process.env.TAGLINE_SETTINGS_ROOT;
-  if (!root) {throw new Error('Run through npm run test:settings.');}
+  if (!root) {
+    throw new Error('Run through npm run test:settings.');
+  }
   const profile = path.join(root, 'profile');
   const vault = path.join(root, 'vault');
   const otherVault = path.join(root, 'other-vault');
@@ -66,7 +70,9 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
         });
       const wait = async (code) => {
         for (let i = 0; i < 100; i++) {
-          if (await js(code)) {return;}
+          if (await js(code)) {
+            return;
+          }
           await delay(100);
         }
         throw new Error(
@@ -127,7 +133,9 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
       const done = () => button('.settings button', 'Done');
       const toggle = async (key, value) => {
         const checked = await js(`document.querySelector('[data-setting="${key}"]').checked`);
-        if (checked !== value) {await click(`[data-setting="${key}"]`);}
+        if (checked !== value) {
+          await click(`[data-setting="${key}"]`);
+        }
         await wait(`JSON.parse(localStorage.getItem('tagline-settings')).${key} === ${value}`);
       };
       const reload = async () => {
@@ -389,8 +397,9 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
               ['x', 'y', 'width', 'height'].every(
                 (key) => Math.abs(box[key] - area[key] * wc.getZoomFactor()) <= 1
               )
-            )
-              {break;}
+            ) {
+              break;
+            }
             await delay(100);
           }
           assert.equal(area.inside, true, 'Browser stays inside the note workspace');
@@ -774,7 +783,9 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
             value
           );
         }
-        for (const [key, value] of Object.entries(editorDefaults)) {await toggle(key, !value);}
+        for (const [key, value] of Object.entries(editorDefaults)) {
+          await toggle(key, !value);
+        }
         await input('[data-setting=sourceTabSize]', '4');
         await input('[data-setting=readableWidthPixels]', '600');
         await done();
@@ -1032,7 +1043,9 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
           'reduced motion stops automatic graph movement'
         );
         await settings('accessibility');
-        for (const key of accessibilityKeys) {await toggle(key, false);}
+        for (const key of accessibilityKeys) {
+          await toggle(key, false);
+        }
         await done();
         assert.equal(
           await js("document.documentElement.classList.contains('reduce-motion')"),
@@ -1063,13 +1076,14 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
         })`)
         );
         for (const view of win.contentView.children) {
-          if (view.webContents)
-            {console.error(
+          if (view.webContents) {
+            console.error(
               'Website history:',
               view.webContents.navigationHistory.canGoBack(),
               view.webContents.navigationHistory.getActiveIndex(),
               view.webContents.navigationHistory.getAllEntries().map((entry) => entry.url)
-            );}
+            );
+          }
         }
         app.exit(1);
       }

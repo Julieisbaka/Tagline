@@ -46,9 +46,13 @@ async function setup(t, options = {}) {
     shell: {
       openExternal: async (url) => {
         opened.push(url);
-        if (!url.startsWith('https://accounts.google.com/')) {return;}
+        if (!url.startsWith('https://accounts.google.com/')) {
+          return;
+        }
         authUrl = new URL(url);
-        if (options.browser) {return options.browser(authUrl);}
+        if (options.browser) {
+          return options.browser(authUrl);
+        }
         const callback = new URL(authUrl.searchParams.get('redirect_uri'));
         callback.search = new URLSearchParams({
           code: 'test-auth-code',
@@ -77,18 +81,26 @@ async function setup(t, options = {}) {
       assert.equal(init.credentials, 'omit');
       if (options.response) {
         const response = await options.response(url, init);
-        if (response) {return response;}
+        if (response) {
+          return response;
+        }
       }
-      if (url === TOKEN_URL) {return json(validTokens);}
-      if (url === USERINFO_URL) {return json(account);}
-      if (url === UPLOAD_URL)
-        {return json({ id: 'new-doc', mimeType: 'application/vnd.google-apps.document' });}
-      if (url === 'https://script.google.com/macros/s/legacy/exec')
-        {return json({
+      if (url === TOKEN_URL) {
+        return json(validTokens);
+      }
+      if (url === USERINFO_URL) {
+        return json(account);
+      }
+      if (url === UPLOAD_URL) {
+        return json({ id: 'new-doc', mimeType: 'application/vnd.google-apps.document' });
+      }
+      if (url === 'https://script.google.com/macros/s/legacy/exec') {
+        return json({
           ok: true,
           code: 200,
           account: { email: 'legacy@example.com', displayName: 'Legacy' },
-        });}
+        });
+      }
       assert.fail(`Unexpected endpoint: ${url}`);
     },
   };
@@ -331,7 +343,9 @@ test('canceling during the token exchange aborts the request and cannot persist 
   });
   const mock = await setup(t, {
     response: (url, init) => {
-      if (url !== TOKEN_URL) {return;}
+      if (url !== TOKEN_URL) {
+        return;
+      }
       return new Promise((_resolve, reject) => {
         init.signal.addEventListener('abort', () => reject(new Error('aborted')), { once: true });
         started();
@@ -382,7 +396,9 @@ test('an upload confirmation locks connection changes and cancellation leaves th
   });
   const mock = await setup(t, {
     confirm: (settings) => {
-      if (settings.message.startsWith('Connect')) {return 1;}
+      if (settings.message.startsWith('Connect')) {
+        return 1;
+      }
       return new Promise((resolve) => {
         finish = resolve;
         showConfirmation();
@@ -460,7 +476,9 @@ test('declared and streamed OAuth responses are bounded and canceled without sav
     let canceled = false;
     const mock = await setup(t, {
       response: (url) => {
-        if (url !== TOKEN_URL) {return;}
+        if (url !== TOKEN_URL) {
+          return;
+        }
         return new Response(
           new ReadableStream({
             pull(controller) {

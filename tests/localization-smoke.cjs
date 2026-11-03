@@ -13,7 +13,9 @@ if (!process.versions.electron) {
         stdio: 'inherit',
         timeout: 40000,
       });
-      if (result.error) {throw result.error;}
+      if (result.error) {
+        throw result.error;
+      }
       if (result.status !== 0) {
         process.exitCode = result.status ?? 1;
         break;
@@ -36,7 +38,9 @@ app.on('browser-window-created', (_event, win) => {
     const js = (code) => win.webContents.executeJavaScript(code);
     const wait = async (code) => {
       for (let i = 0; i < 200; i++) {
-        if (await js(code)) {return;}
+        if (await js(code)) {
+          return;
+        }
         await delay(50);
       }
       throw new Error(`Timed out: ${code}`);

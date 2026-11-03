@@ -52,20 +52,34 @@ export function parseFlowCells(text) {
       if (quoted && text[i + 1] === '"') {
         cell += '"';
         i++;
-      } else {quoted = !quoted;}
+      } else {
+        quoted = !quoted;
+      }
     } else if (!quoted && (char === '\t' || char === '\n' || char === '\r')) {
       rows.at(-1).push(cell);
       cell = '';
       if (char !== '\t') {
-        if (char === '\r' && text[i + 1] === '\n') {i++;}
+        if (char === '\r' && text[i + 1] === '\n') {
+          i++;
+        }
         rows.push([]);
       }
-    } else {cell += char;}
+    } else {
+      cell += char;
+    }
   }
-  if (quoted) {throw new Error('The pasted cell data has an unclosed quoted value.');}
+  if (quoted) {
+    throw new Error('The pasted cell data has an unclosed quoted value.');
+  }
   rows.at(-1).push(cell);
-  if (rows.length > 1 && rows.at(-1).length === 1 && rows.at(-1)[0] === '' && /[\r\n]$/.test(text))
-    {rows.pop();}
+  if (
+    rows.length > 1 &&
+    rows.at(-1).length === 1 &&
+    rows.at(-1)[0] === '' &&
+    /[\r\n]$/.test(text)
+  ) {
+    rows.pop();
+  }
   return rows;
 }
 
@@ -80,7 +94,9 @@ export function parseFlowCells(text) {
 export function pasteFlowCells(sheet, top, left, cells) {
   const width = Math.max(sheet.columns.length, left + Math.max(...cells.map((row) => row.length)));
   const height = Math.max(sheet.rows.length, top + cells.length);
-  if (width * height > 100000) {throw new Error('Pasting would exceed 100,000 flow cells.');}
+  if (width * height > 100000) {
+    throw new Error('Pasting would exceed 100,000 flow cells.');
+  }
   const columns = [
     ...sheet.columns,
     ...Array.from({ length: width - sheet.columns.length }, () => 'New'),

@@ -111,7 +111,9 @@ function VisualDocument({
       },
       handleDOMEvents: {
         dragover(_view, event) {
-          if (!hasNoteDrag(event.dataTransfer)) {return false;}
+          if (!hasNoteDrag(event.dataTransfer)) {
+            return false;
+          }
           event.preventDefault();
           event.dataTransfer.dropEffect = 'copy';
           return true;
@@ -119,7 +121,9 @@ function VisualDocument({
       },
       handleDrop(view, event) {
         const path = draggedNotePath(event.dataTransfer, live.current.notePaths);
-        if (!path) {return false;}
+        if (!path) {
+          return false;
+        }
         event.preventDefault();
         const position = view.posAtCoords({ left: event.clientX, top: event.clientY });
         if (!position) {
@@ -140,7 +144,9 @@ function VisualDocument({
           })
           .focus()
           .run();
-        if (!inserted) {live.current.notify(t('Could not insert a link at the drop position.'));}
+        if (!inserted) {
+          live.current.notify(t('Could not insert a link at the drop position.'));
+        }
         return true;
       },
       handleClick(view, pos, event) {
@@ -152,7 +158,9 @@ function VisualDocument({
         return false;
       },
       handleKeyDown(view, event) {
-        if (event.isComposing) {return false;}
+        if (event.isComposing) {
+          return false;
+        }
         const command = KEYBINDINGS.find(
           (item) =>
             item.scope === 'editor' &&
@@ -163,19 +171,31 @@ function VisualDocument({
           const ed = visualRef.current;
           const cmd = ed.commands;
           const heading = ['pocket', 'hat', 'block', 'tag'].indexOf(command.id);
-          if (command.id === 'find') {setFindOpen(true);}
-          else if (heading >= 0) {cmd.toggleHeading({ level: heading + 1 });}
-          else if (['bold', 'cite'].includes(command.id)) {cmd.toggleBold();}
-          else if (command.id === 'italic') {cmd.toggleItalic();}
-          else if (['underline', 'underline-alt'].includes(command.id)) {cmd.toggleUnderline();}
-          else if (command.id === 'emphasis') {ed.chain().toggleBold().toggleUnderline().run();}
-          else if (command.id === 'highlight') {cmd.toggleHighlight();}
-          else if (command.id === 'clear-format') {cmd.unsetAllMarks();}
+          if (command.id === 'find') {
+            setFindOpen(true);
+          } else if (heading >= 0) {
+            cmd.toggleHeading({ level: heading + 1 });
+          } else if (['bold', 'cite'].includes(command.id)) {
+            cmd.toggleBold();
+          } else if (command.id === 'italic') {
+            cmd.toggleItalic();
+          } else if (['underline', 'underline-alt'].includes(command.id)) {
+            cmd.toggleUnderline();
+          } else if (command.id === 'emphasis') {
+            ed.chain().toggleBold().toggleUnderline().run();
+          } else if (command.id === 'highlight') {
+            cmd.toggleHighlight();
+          } else if (command.id === 'clear-format') {
+            cmd.unsetAllMarks();
+          }
           return true;
         }
         // Suppress old primary bindings after remapping or removing them.
-        if (KEYBINDINGS.some((item) => item.scope === 'editor' && matchesBinding(event, item.key)))
-          {return true;}
+        if (
+          KEYBINDINGS.some((item) => item.scope === 'editor' && matchesBinding(event, item.key))
+        ) {
+          return true;
+        }
         return false;
       },
     },
@@ -194,7 +214,9 @@ function VisualDocument({
   });
 
   useEffect(() => {
-    if (!editor) {return;}
+    if (!editor) {
+      return;
+    }
     editor.setOptions({
       editorProps: {
         ...editor.options.editorProps,
@@ -207,13 +229,17 @@ function VisualDocument({
     visualRef.current = editor;
     onReady?.(editor);
     return () => {
-      if (visualRef.current === editor) {visualRef.current = null;}
+      if (visualRef.current === editor) {
+        visualRef.current = null;
+      }
       onReady?.(null);
     };
   }, [editor, visualRef, onReady]);
 
   useEffect(() => {
-    if (!editor || value === lastProp.current) {return;}
+    if (!editor || value === lastProp.current) {
+      return;
+    }
     lastProp.current = value;
     if (value !== lastMarkdown.current) {
       const cached = cachedDocument(value);
@@ -228,9 +254,13 @@ function VisualDocument({
   }, [value, editor]);
 
   useEffect(() => {
-    if (!editor || !jump) {return;}
+    if (!editor || !jump) {
+      return;
+    }
     const heading = jump.heading;
-    if (!heading) {return;}
+    if (!heading) {
+      return;
+    }
     editor.state.doc.descendants((node, pos) => {
       if (node.type.name === 'heading' && slugify(node.textContent) === slugify(heading)) {
         editor
@@ -244,7 +274,9 @@ function VisualDocument({
     });
   }, [jump, editor]);
 
-  if (!editor) {return null;}
+  if (!editor) {
+    return null;
+  }
   const insertLink = (target) => {
     const m = /^([^\]|#]+)(?:#([^\]|]*))?(?:\|([^\]]*))?$/.exec(target);
     editor

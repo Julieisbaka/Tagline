@@ -24,7 +24,9 @@ export default function ConfirmProvider({ children }) {
     setRequest(queue.current[0] || null);
   };
   useEffect(() => {
-    if (!native || !request) {return;}
+    if (!native || !request) {
+      return;
+    }
     let active = true;
     window.api
       .nativeConfirm({
@@ -34,10 +36,14 @@ export default function ConfirmProvider({ children }) {
         confirm: t('Confirm'),
       })
       .then((accepted) => {
-        if (active) {answer(accepted);}
+        if (active) {
+          answer(accepted);
+        }
       })
       .catch((error) => {
-        if (!active) {return;}
+        if (!active) {
+          return;
+        }
         window.dispatchEvent(new CustomEvent('app-error', { detail: error.message }));
         answer(false);
       });
@@ -47,7 +53,9 @@ export default function ConfirmProvider({ children }) {
   }, [native, request, t]);
   useEffect(
     () => () => {
-      for (const item of queue.current) {item.resolve(false);}
+      for (const item of queue.current) {
+        item.resolve(false);
+      }
       queue.current = [];
     },
     []

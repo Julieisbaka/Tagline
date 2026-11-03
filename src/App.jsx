@@ -95,7 +95,9 @@ export default function App() {
     !!visualBlocker(activeContent || '');
 
   useEffect(() => {
-    if (v.ready && settings.closeMissingTabs) {tabs.prune(new Set(paths));}
+    if (v.ready && settings.closeMissingTabs) {
+      tabs.prune(new Set(paths));
+    }
   }, [v.ready, paths, settings.closeMissingTabs, tabs.tabs]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
@@ -115,15 +117,20 @@ export default function App() {
     toastTimer.current = setTimeout(() => setToast(null), 2500);
   }, []);
   useEffect(() => {
-    if (!tabs.error) {return;}
+    if (!tabs.error) {
+      return;
+    }
     notify(tabs.error);
     tabs.clearError();
   }, [tabs.error, tabs.clearError, notify]);
   useEffect(
     () =>
       window.api.onWebsiteLink((url) => {
-        if (settings.embedWebsites) {setWebsite(url);}
-        else {window.api.websiteAction('external', url).catch((e) => notify(e.message));}
+        if (settings.embedWebsites) {
+          setWebsite(url);
+        } else {
+          window.api.websiteAction('external', url).catch((e) => notify(e.message));
+        }
       }),
     [settings.embedWebsites, notify]
   );
@@ -139,7 +146,9 @@ export default function App() {
   // Remember the most recent note so the graph's local mode has a focus.
   const [lastFile, setLastFile] = useState(null);
   useEffect(() => {
-    if (activePath) {setLastFile(activePath);}
+    if (activePath) {
+      setLastFile(activePath);
+    }
   }, [activePath]);
 
   useEffect(() => {
@@ -152,17 +161,23 @@ export default function App() {
   flowVaultRef.current = v;
   const [externalFlow, setExternalFlow] = useState(null);
   useEffect(() => {
-    if (!v.initialized) {return;}
+    if (!v.initialized) {
+      return;
+    }
     let processing = false;
     let disposed = false;
     const drain = async () => {
-      if (processing || disposed) {return;}
+      if (processing || disposed) {
+        return;
+      }
       processing = true;
       try {
         let file;
         while (!disposed && (file = await window.api.nextFlowFile())) {
           const result = await flowVaultRef.current.openFlowFile(file);
-          if (!disposed) {setExternalFlow(result);}
+          if (!disposed) {
+            setExternalFlow(result);
+          }
         }
       } catch (error) {
         notify(error.message);
@@ -211,7 +226,9 @@ export default function App() {
           `${target.replace(/\.md$/i, '')}.md`,
           `# ${baseName(target)}\n\n`
         );
-        if (!path) {return;}
+        if (!path) {
+          return;
+        }
         notify(t('Created “{name}”', { name: baseName(path) }));
       }
       tabs.openPath(path, newTab);
@@ -228,18 +245,23 @@ export default function App() {
 
   const ensureSpeechDoc = useCallback(
     async (path) => {
-      if (!path || !isMarkdown(path))
-        {throw new Error(t('Speech documents must be Markdown files.'));}
+      if (!path || !isMarkdown(path)) {
+        throw new Error(t('Speech documents must be Markdown files.'));
+      }
       let result = path;
       if (v.contents[path] !== undefined) {
         const content = markSpeechDocument(v.contents[path]);
         if (content !== v.contents[path]) {
           v.updateContent(path, content);
-          if (!(await v.flush())) {return null;}
+          if (!(await v.flush())) {
+            return null;
+          }
         }
       } else {
         result = await v.createFile(path, markSpeechDocument('# Speech Document\n\n'));
-        if (!result) {return null;}
+        if (!result) {
+          return null;
+        }
       }
       updateSettings({ speechDoc: result });
       return result;
@@ -249,7 +271,9 @@ export default function App() {
 
   const doRename = async (from, to) => {
     const result = await v.rename(from, to);
-    if (!result) {return;}
+    if (!result) {
+      return;
+    }
     tabs.renamePath(from, result);
     favorites.rename(from, result);
     if (settings.speechDoc === from || settings.speechDoc.startsWith(from + '/')) {
@@ -262,14 +286,18 @@ export default function App() {
     text,
     message = 'Open a note in an editing mode to insert text.'
   ) => {
-    if (!activePath || !isMarkdown(activePath) || mode === 'read') {throw new Error(t(message));}
+    if (!activePath || !isMarkdown(activePath) || mode === 'read') {
+      throw new Error(t(message));
+    }
     if (mode === 'visual' && !sourceFallback && visualRef.current) {
       visualRef.current.chain().focus().insertContent(text, { contentType: 'markdown' }).run();
     } else if (editorRef.current) {
       const view = editorRef.current;
       view.dispatch(view.state.replaceSelection(text));
       view.focus();
-    } else {throw new Error(t('The editor is not ready.'));}
+    } else {
+      throw new Error(t('The editor is not ready.'));
+    }
   };
   const insertCitation = (text) =>
     insertAtCursor(text + '\n\n', 'Open a note in an editing mode to insert a citation.');
@@ -336,7 +364,9 @@ export default function App() {
       ),
     move: doRename,
     remove: async (node) => {
-      if (!(await confirm(t('Move “{name}” to the trash?', { name: node.name })))) {return;}
+      if (!(await confirm(t('Move “{name}” to the trash?', { name: node.name })))) {
+        return;
+      }
       if (await v.remove(node.path)) {
         tabs.removePath(node.path);
         favorites.remove(node.path);
@@ -345,7 +375,9 @@ export default function App() {
     setSpeechDoc: async (path) => {
       try {
         const selected = await ensureSpeechDoc(path);
-        if (selected) {notify(t('Speech doc set to “{name}”', { name: baseName(selected) }));}
+        if (selected) {
+          notify(t('Speech doc set to “{name}”', { name: baseName(selected) }));
+        }
       } catch (error) {
         notify(error.message);
       }
@@ -354,20 +386,29 @@ export default function App() {
 
   const sendCard = useCallback(
     async (offset = cursorRef.current, selection = '') => {
-      if (!activePath || !isMarkdown(activePath)) {return;}
-      if (speechDoc === activePath) {return notify(t('This note is the speech doc'));}
+      if (!activePath || !isMarkdown(activePath)) {
+        return;
+      }
+      if (speechDoc === activePath) {
+        return notify(t('This note is the speech doc'));
+      }
       const text =
         selection ||
         (mode === 'visual' && visualRef.current
           ? visualSelection(visualRef.current)
           : getSectionAt(activeContent || '', offset)?.text);
-      if (!text) {return notify(t('Put the cursor inside a card (under a heading) first'));}
+      if (!text) {
+        return notify(t('Put the cursor inside a card (under a heading) first'));
+      }
       try {
         let doc = speechDoc;
-        if (!isMarkdown(doc)) {throw new Error(t('Speech documents must be Markdown files.'));}
+        if (!isMarkdown(doc)) {
+          throw new Error(t('Speech documents must be Markdown files.'));
+        }
         if (v.contents[doc] != null) {
-          if (!speechDocuments.includes(doc))
-            {throw new Error(t('Select a marked speech document before sending cards.'));}
+          if (!speechDocuments.includes(doc)) {
+            throw new Error(t('Select a marked speech document before sending cards.'));
+          }
           const destination = v.contents[doc];
           if (
             settings.warnDuplicateSend &&
@@ -375,13 +416,18 @@ export default function App() {
             !(await confirm(
               t('This evidence is already in “{name}”. Send it again?', { name: baseName(doc) })
             ))
-          )
-            {return;}
+          ) {
+            return;
+          }
           v.updateContent(doc, `${destination.trimEnd()}\n\n${text}\n`);
-          if (!(await v.flush())) {return;}
+          if (!(await v.flush())) {
+            return;
+          }
         } else {
           doc = await v.createFile(doc, markSpeechDocument(`# Speech Document\n\n${text}\n`));
-          if (!doc) {return;}
+          if (!doc) {
+            return;
+          }
         }
         updateSettings({ speechDoc: doc });
         notify(t('Sent to {name}', { name: baseName(doc) }));
@@ -406,8 +452,9 @@ export default function App() {
 
   const templates = paths.filter((p) => p.toLowerCase().startsWith('templates/') && isMarkdown(p));
   const pickTemplate = (onPick) => {
-    if (!templates.length)
-      {return notify(t('Add markdown files to a “Templates” folder to use templates'));}
+    if (!templates.length) {
+      return notify(t('Add markdown files to a “Templates” folder to use templates'));
+    }
     return setModal({
       type: 'palette',
       placeholder: t('Choose a template…'),
@@ -428,7 +475,9 @@ export default function App() {
     readMode: () => setMode('read'),
     openHistory: async () => {
       try {
-        if (activePath && (await v.flush())) {setModal({ type: 'history', path: activePath });}
+        if (activePath && (await v.flush())) {
+          setModal({ type: 'history', path: activePath });
+        }
       } catch (error) {
         notify(error.message);
       }
@@ -437,12 +486,16 @@ export default function App() {
     previousTab: () => {
       const i = tabs.tabs.findIndex((tab) => tab.id === tabs.activeId);
       const previous = tabs.tabs[(i - 1 + tabs.tabs.length) % tabs.tabs.length];
-      if (previous) {tabs.setActiveId(previous.id);}
+      if (previous) {
+        tabs.setActiveId(previous.id);
+      }
     },
     nextTab: () => {
       const i = tabs.tabs.findIndex((tab) => tab.id === tabs.activeId);
       const next = tabs.tabs[(i + 1) % tabs.tabs.length];
-      if (next) {tabs.setActiveId(next.id);}
+      if (next) {
+        tabs.setActiveId(next.id);
+      }
     },
     openSwitcher: () => setModal({ type: 'switcher' }),
     openSearch: () => setModal({ type: 'search' }),
@@ -475,8 +528,9 @@ export default function App() {
           return;
         }
         const view = editorRef.current;
-        if (mode === 'read' || !view)
-          {return notify(t('Switch to an editing mode to insert a template'));}
+        if (mode === 'read' || !view) {
+          return notify(t('Switch to an editing mode to insert a template'));
+        }
         view.dispatch(view.state.replaceSelection(template));
         view.focus();
         return undefined;
@@ -494,7 +548,9 @@ export default function App() {
           throw new Error(t('Select a marked speech document before sending cards.'));
         }
         const path = await ensureSpeechDoc(speechDoc);
-        if (path) {open(path, true);}
+        if (path) {
+          open(path, true);
+        }
       } catch (error) {
         notify(error.message);
       }
@@ -505,7 +561,9 @@ export default function App() {
         `Speech Docs/Speech ${stamp}.md`,
         markSpeechDocument(`# Speech – ${stamp}\n\n`)
       );
-      if (p) {updateSettings({ speechDoc: p });}
+      if (p) {
+        updateSettings({ speechDoc: p });
+      }
     },
     switchVault: v.chooseVault,
     createSample: v.createSample,
@@ -527,8 +585,9 @@ export default function App() {
         ? setModal({ type: 'export' })
         : notify(t('Export is available for Markdown notes and speech documents.')),
     testHypothesis: () => {
-      if (!activePath || !isMarkdown(activePath))
-        {return notify(t('Open a Markdown note to test a hypothesis.'));}
+      if (!activePath || !isMarkdown(activePath)) {
+        return notify(t('Open a Markdown note to test a hypothesis.'));
+      }
       const view = editorRef.current;
       const source = (mode === 'edit' || sourceFallback) && view;
       const sources = {
@@ -545,7 +604,9 @@ export default function App() {
       return setModal({ type: 'hypothesis', sources });
     },
     summarize: (path, content) => {
-      if (!path || !isMarkdown(path)) {return notify(t('Open a Markdown document to summarize it.'));}
+      if (!path || !isMarkdown(path)) {
+        return notify(t('Open a Markdown document to summarize it.'));
+      }
       return setModal({ type: 'summary', title: baseName(path), content: content || '' });
     },
     importDocument: () => setModal({ type: 'import' }),
@@ -556,8 +617,9 @@ export default function App() {
       setHighlightOnly((h) => !h);
     },
     sendCard: () => {
-      if (mode === 'read')
-        {return notify(t('Switch to an editing mode and place the cursor in a card'));}
+      if (mode === 'read') {
+        return notify(t('Switch to an editing mode and place the cursor in a card'));
+      }
       const view = editorRef.current;
       if ((mode === 'edit' || sourceFallback) && view) {
         const { from, to, head } = view.state.selection.main;
@@ -584,8 +646,15 @@ export default function App() {
   useEffect(
     () =>
       window.api.onMenuCommand((command) => {
-        const vaultless = ['switchVault', 'openSettings', 'createCitation', 'openExtensionsSettings'];
-        if (vaultRef.current || vaultless.includes(command)) {ctxRef.current[command]?.();}
+        const vaultless = [
+          'switchVault',
+          'openSettings',
+          'createCitation',
+          'openExtensionsSettings',
+        ];
+        if (vaultRef.current || vaultless.includes(command)) {
+          ctxRef.current[command]?.();
+        }
       }),
     []
   );
@@ -595,7 +664,9 @@ export default function App() {
 
   useEffect(() => {
     const onKey = (e) => {
-      if (e.defaultPrevented || e.isComposing || modal) {return;}
+      if (e.defaultPrevented || e.isComposing || modal) {
+        return;
+      }
       const c = ctxRef.current;
       const command = KEYBINDINGS.find(
         (item) => item.scope === 'app' && matchesBinding(e, binding(item.id, settings.keybindings))
@@ -610,7 +681,9 @@ export default function App() {
         c[command.action]?.();
         return;
       }
-      if (command) {return;}
+      if (command) {
+        return;
+      }
       // Built-in shortcuts win over extension defaults that happen to collide.
       const contributed =
         v.vault &&

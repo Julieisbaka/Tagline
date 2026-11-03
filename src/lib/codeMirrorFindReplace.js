@@ -57,8 +57,11 @@ function currentMatch(matches, selection) {
   let high = matches.length;
   while (low < high) {
     const middle = (low + high) >>> 1;
-    if (matches[middle].from < selection.from) {low = middle + 1;}
-    else {high = middle;}
+    if (matches[middle].from < selection.from) {
+      low = middle + 1;
+    } else {
+      high = middle;
+    }
   }
   return matches[low]?.from === selection.from && matches[low]?.to === selection.to ? low + 1 : 0;
 }
@@ -131,17 +134,23 @@ export function createCodeMirrorFindReplacePanel(view) {
     });
   /** Dispatch the current query and optionally navigate to its first match. @param {boolean} [navigate] @returns {void} */
   const updateQuery = (navigate = false) => {
-    if (closed || view.destroyed) {return;}
+    if (closed || view.destroyed) {
+      return;
+    }
     const query = buildQuery();
     view.dispatch({
       ...(navigate && query.valid ? { selection: { anchor: 0 } } : {}),
       effects: setSearchQuery.of(query),
     });
-    if (navigate && query.valid) {findNext(view);}
+    if (navigate && query.valid) {
+      findNext(view);
+    }
   };
   /** Refresh result count, control state, and values from the editor's active query. @returns {void} */
   const refresh = () => {
-    if (closed || view.destroyed) {return;}
+    if (closed || view.destroyed) {
+      return;
+    }
     const query = getSearchQuery(view.state);
     const matches = matchStatus(view, cache);
     const selection = view.state.selection.main;
@@ -152,7 +161,9 @@ export function createCodeMirrorFindReplacePanel(view) {
       replaceButton.disabled =
       replaceAllButton.disabled =
         matches.length === 0;
-    if (findInput.value !== query.search) {findInput.value = query.search;}
+    if (findInput.value !== query.search) {
+      findInput.value = query.search;
+    }
     if (document.activeElement !== replaceInput && replaceInput.value !== query.replace) {
       replaceInput.value = query.replace;
     }
@@ -164,7 +175,9 @@ export function createCodeMirrorFindReplacePanel(view) {
    * @returns {void}
    */
   const close = () => {
-    if (closed || view.destroyed) {return;}
+    if (closed || view.destroyed) {
+      return;
+    }
     const query = getSearchQuery(view.state);
     view.dispatch({
       effects: setSearchQuery.of(
@@ -232,8 +245,9 @@ export function createCodeMirrorFindReplacePanel(view) {
         update.transactions.some((transaction) =>
           transaction.effects.some((effect) => effect.is(setSearchQuery))
         )
-      )
-        {refresh();}
+      ) {
+        refresh();
+      }
     },
     destroy() {
       closed = true;

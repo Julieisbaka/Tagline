@@ -73,7 +73,9 @@ const delay = (ms) => new Promise((r) => setTimeout(r, ms));
       const js = (source) => wc.executeJavaScript(source);
       const waitFor = async (source) => {
         for (let i = 0; i < 100; i++) {
-          if (await js(source)) {return;}
+          if (await js(source)) {
+            return;
+          }
           await delay(100);
         }
         throw new Error('Timed out: ' + source);

@@ -59,8 +59,9 @@ test('analysis requests are validated before reaching the model', () => {
   );
   assert.throws(() => validateAnalysis(null), /Invalid/);
   assert.match(DEFAULT_REPO, REPO_PATTERN);
-  for (const bad of ['../etc', 'owner', 'a/b/c', 'https://huggingface.co/a/b', 'own er/x'])
-    {assert.doesNotMatch(bad, REPO_PATTERN);}
+  for (const bad of ['../etc', 'owner', 'a/b/c', 'https://huggingface.co/a/b', 'own er/x']) {
+    assert.doesNotMatch(bad, REPO_PATTERN);
+  }
 });
 
 test('note Markdown becomes clean premise text and hypotheses follow the model card templates', async () => {

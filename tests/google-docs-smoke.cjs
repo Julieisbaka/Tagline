@@ -9,7 +9,9 @@ if (!process.versions.electron) {
       stdio: 'inherit',
       timeout: 90000,
     });
-    if (result.error) {throw result.error;}
+    if (result.error) {
+      throw result.error;
+    }
     process.exitCode = result.status ?? 1;
   } finally {
     fs.rmSync(root, { recursive: true, force: true, maxRetries: 20, retryDelay: 100 });
@@ -26,7 +28,9 @@ const nativeFetch = global.fetch;
 
 (async () => {
   const root = process.env.TAGLINE_GOOGLE_DOCS_ROOT;
-  if (!root) {throw new Error('Run through npm run test:google-docs.');}
+  if (!root) {
+    throw new Error('Run through npm run test:google-docs.');
+  }
   const profile = path.join(root, 'profile');
   const vault = path.join(root, 'vault');
   await fs.mkdir(profile);
@@ -57,23 +61,25 @@ const nativeFetch = global.fetch;
   let confirm = 1,
     resultCode = 201;
   global.fetch = async (url, init) => {
-    if (url === TOKEN_URL)
-      {return new Response(
+    if (url === TOKEN_URL) {
+      return new Response(
         JSON.stringify({
           access_token: 'smoke-access-token',
           refresh_token: 'smoke-refresh-token',
           token_type: 'Bearer',
           scope: SCOPES.join(' '),
         })
-      );}
-    if (url === USERINFO_URL)
-      {return new Response(
+      );
+    }
+    if (url === USERINFO_URL) {
+      return new Response(
         JSON.stringify({
           sub: 'smoke-subject',
           email: personalAccount.email,
           email_verified: true,
         })
-      );}
+      );
+    }
     if (url === UPLOAD_URL) {
       assert.equal(init.headers.Authorization, 'Bearer smoke-access-token');
       assert.equal(init.method, 'POST');
@@ -89,15 +95,16 @@ const nativeFetch = global.fetch;
     const payload = JSON.parse(init.body);
     const account = url === schoolEndpoint ? schoolAccount : personalAccount;
     assert.equal(payload.secret, url === schoolEndpoint ? schoolSecret : secret);
-    if (payload.action === 'account')
-      {return new Response(
+    if (payload.action === 'account') {
+      return new Response(
         JSON.stringify({
           ok: true,
           code: 200,
           document: null,
           account,
         })
-      );}
+      );
+    }
     assert.equal(payload.expectedAccount, account.email);
     sent.push({ ...payload, endpoint: url });
     return new Response(
@@ -125,7 +132,9 @@ const nativeFetch = global.fetch;
   shell.openExternal = async (url) => {
     opened.push(url);
     if (url.startsWith('https://accounts.google.com/')) {
-      if (holdOAuth) {return;}
+      if (holdOAuth) {
+        return;
+      }
       const authorization = new URL(url);
       const callback = new URL(authorization.searchParams.get('redirect_uri'));
       callback.search = new URLSearchParams({
@@ -141,7 +150,9 @@ const nativeFetch = global.fetch;
       const js = (code) => win.webContents.executeJavaScript(code);
       const wait = async (code) => {
         for (let i = 0; i < 120; i++) {
-          if (await js(code)) {return;}
+          if (await js(code)) {
+            return;
+          }
           await new Promise((resolve) => setTimeout(resolve, 50));
         }
         throw new Error(`Timed out: ${code}`);

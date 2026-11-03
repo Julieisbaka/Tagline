@@ -68,9 +68,13 @@ function useCountdown(initial, onComplete) {
   onCompleteRef.current = onComplete;
 
   useEffect(() => {
-    if (!running) {return undefined;}
+    if (!running) {
+      return undefined;
+    }
     const id = setInterval(() => {
-      if (deadline.current === null) {return;}
+      if (deadline.current === null) {
+        return;
+      }
       const next = remainingAt(deadline.current);
       setRemaining(next);
       if (next === 0) {
@@ -96,7 +100,9 @@ function useCountdown(initial, onComplete) {
       }
     },
     stop: () => {
-      if (deadline.current !== null) {setRemaining(remainingAt(deadline.current));}
+      if (deadline.current !== null) {
+        setRemaining(remainingAt(deadline.current));
+      }
       deadline.current = null;
       setRunning(false);
     },
@@ -143,15 +149,23 @@ export default function Timer({
   useEffect(() => {
     let active = true;
     setTimerSound(null);
-    if (!timerSoundEnabled || !timerSoundName) {return undefined;}
+    if (!timerSoundEnabled || !timerSoundName) {
+      return undefined;
+    }
     window.api
       .readTimerSound()
       .then((sound) => {
-        if (!sound) {throw new Error(t('The saved timer sound is missing. Choose it again.'));}
-        if (active) {setTimerSound(sound.data);}
+        if (!sound) {
+          throw new Error(t('The saved timer sound is missing. Choose it again.'));
+        }
+        if (active) {
+          setTimerSound(sound.data);
+        }
       })
       .catch((error) => {
-        if (active) {window.dispatchEvent(new CustomEvent('app-error', { detail: error.message }));}
+        if (active) {
+          window.dispatchEvent(new CustomEvent('app-error', { detail: error.message }));
+        }
       });
     return () => {
       active = false;
@@ -180,8 +194,8 @@ export default function Timer({
 
   const low = main.remaining <= 30 && main.remaining > 0;
 
-  if (!fmt)
-    {return (
+  if (!fmt) {
+    return (
       <div className='timer'>
         <p role='alert'>{t('Unsupported timer preset. Select a current preset.')}</p>
         <select
@@ -199,7 +213,8 @@ export default function Timer({
           ))}
         </select>
       </div>
-    );}
+    );
+  }
 
   return (
     <div className='timer'>

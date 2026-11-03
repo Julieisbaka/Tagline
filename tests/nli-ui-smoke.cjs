@@ -12,7 +12,9 @@ if (!process.versions.electron) {
       stdio: 'inherit',
       timeout: 300000,
     });
-    if (result.error) {throw result.error;}
+    if (result.error) {
+      throw result.error;
+    }
     process.exitCode = result.status ?? 1;
   } finally {
     fs.rmSync(root, { recursive: true, force: true, maxRetries: 20, retryDelay: 100 });
@@ -28,7 +30,9 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 (async () => {
   const root = process.env.TAGLINE_NLI_ROOT;
-  if (!root) {throw new Error('Run through npm run test:nli-ui.');}
+  if (!root) {
+    throw new Error('Run through npm run test:nli-ui.');
+  }
   const model = process.env.TAGLINE_NLI_MODEL ? path.resolve(process.env.TAGLINE_NLI_MODEL) : null;
   const profile = path.join(root, 'profile');
   const vault = path.join(root, 'vault');
@@ -55,7 +59,9 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
       const js = (code) => win.webContents.executeJavaScript(code);
       const wait = async (code, tries = 100) => {
         for (let i = 0; i < tries; i++) {
-          if (await js(code)) {return;}
+          if (await js(code)) {
+            return;
+          }
           await delay(100);
         }
         throw new Error(

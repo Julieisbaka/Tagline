@@ -383,7 +383,9 @@ test('extension message limits use a rolling second instead of allowing boundary
     {},
     { extensionMessagesPerSecond: 10 }
   );
-  for (let i = 0; i < 10; i++) {assert.equal(host.acceptMessage(990 + i), true);}
+  for (let i = 0; i < 10; i++) {
+    assert.equal(host.acceptMessage(990 + i), true);
+  }
   assert.equal(host.acceptMessage(1001), false, 'fixed-window boundary does not reset capacity');
   assert.equal(host.acceptMessage(1990), true, 'only the oldest message expires');
   assert.equal(host.acceptMessage(1990), false);

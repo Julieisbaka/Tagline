@@ -25,7 +25,9 @@ test('native UI is opt-in, follows light/dark mode and validates application-onl
         menuItems = items;
         return {
           popup: ({ callback }) => {
-            if (selection !== null) {items[selection].click();}
+            if (selection !== null) {
+              items[selection].click();
+            }
             callback();
           },
         };
@@ -525,23 +527,31 @@ test('platform: macOS desktop wiring provides native window controls, menus and 
     setTimeout,
     clearTimeout,
     require: (name) => {
-      if (name === 'electron') {return electron;}
+      if (name === 'electron') {
+        return electron;
+      }
       if (name.startsWith('./')) {
-        if (name === './sampleVault.cjs') {return { SAMPLE_VAULT: {} };}
-        if (name === './installation.cjs')
-          {return { installationInfo: () => ({ version: require('../package.json').version }) };}
-        if (name === './appUpdates.cjs')
-          {return {
+        if (name === './sampleVault.cjs') {
+          return { SAMPLE_VAULT: {} };
+        }
+        if (name === './installation.cjs') {
+          return { installationInfo: () => ({ version: require('../package.json').version }) };
+        }
+        if (name === './appUpdates.cjs') {
+          return {
             createUpdateManager: () => ({
               installUpdate: async (beforeInstall) => {
                 await beforeInstall();
                 return { manual: true };
               },
             }),
-          };}
-        if (name === './browser.cjs') {return { registerBrowser: () => () => {} };}
-        if (name === './revisionHistory.cjs')
-          {return {
+          };
+        }
+        if (name === './browser.cjs') {
+          return { registerBrowser: () => () => {} };
+        }
+        if (name === './revisionHistory.cjs') {
+          return {
             DEFAULT_RETENTION: 50,
             createRevisionHistory: () => ({
               snapshot() {},
@@ -551,7 +561,8 @@ test('platform: macOS desktop wiring provides native window controls, menus and 
               read() {},
               rename() {},
             }),
-          };}
+          };
+        }
         return Object.fromEntries(
           [
             'registerPandoc',
@@ -661,8 +672,9 @@ test('Pandoc detection supports Apple Silicon and Intel Homebrew without relying
           ? {
               promisify: () => async (executable) => {
                 tried.push(executable);
-                if (executable !== installed)
-                  {throw Object.assign(new Error('Not on PATH'), { code: 'ENOENT' });}
+                if (executable !== installed) {
+                  throw Object.assign(new Error('Not on PATH'), { code: 'ENOENT' });
+                }
                 return { stdout: 'pandoc 3.6\n' };
               },
             }

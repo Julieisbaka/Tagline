@@ -22,9 +22,13 @@ const subscribe = (fn) => {
  * @returns {void}
  */
 export function setLanguage(next) {
-  if (!Object.hasOwn(catalogs, next)) {throw new Error(`Unsupported language: ${next}`);}
+  if (!Object.hasOwn(catalogs, next)) {
+    throw new Error(`Unsupported language: ${next}`);
+  }
   document.documentElement.lang = next;
-  if (language === next) {return;}
+  if (language === next) {
+    return;
+  }
   language = next;
   listeners.forEach((fn) => fn());
 }

@@ -47,7 +47,9 @@ function setup(options = {}) {
     }
     async loadURL(url) {
       this.url = url;
-      if (options.loginError) {throw new Error('offline');}
+      if (options.loginError) {
+        throw new Error('offline');
+      }
     }
     close() {
       this.emit('closed');
@@ -81,8 +83,9 @@ test('Tabroom accepts IDs and official tournament URLs but never arbitrary reque
     ' 00123 ',
     'https://www.tabroom.com/index/tourn/index.mhtml?tourn_id=123',
     'https://www.tabroom.com/api/download_data.mhtml?tourn_id=123&other=ignored',
-  ])
-    {assert.equal(tournamentId(input), '123');}
+  ]) {
+    assert.equal(tournamentId(input), '123');
+  }
   for (const input of [
     '',
     0,
@@ -100,8 +103,9 @@ test('Tabroom accepts IDs and official tournament URLs but never arbitrary reque
     'https://www.tabroom.com/?tourn_id=../private',
     'https://www.tabroom.com/',
     'x'.repeat(2049),
-  ])
-    {assert.throws(() => tournamentId(input), /valid|https/);}
+  ]) {
+    assert.throws(() => tournamentId(input), /valid|https/);
+  }
 });
 
 test('Tabroom loads public data through the isolated cookie jar and returns paged JSON', async () => {
@@ -126,8 +130,9 @@ test('Tabroom loads public data through the isolated cookie jar and returns page
   const pages = Array.from({ length: result.pages }, (_, i) => mock.service.page(result.id, i));
   assert.equal(pages[0], result.preview);
   assert.deepEqual(JSON.parse(pages.join('')), data);
-  for (const index of [-1, 3, 0.5, '0'])
-    {assert.throws(() => mock.service.page('123', index), /Invalid/);}
+  for (const index of [-1, 3, 0.5, '0']) {
+    assert.throws(() => mock.service.page('123', index), /Invalid/);
+  }
   assert.throws(() => mock.service.page('456', 0), /again/);
 });
 
@@ -519,8 +524,9 @@ test('snapshot distinguishes missing, null, redacted and explicitly empty collec
     { schools: [null] },
     { categories: [{ events: 'hidden' }] },
     { schools: [{ entries: [{ students: {} }] }] },
-  ])
-    {assert.ok(normalizeSnapshot(invalid).warnings.length);}
+  ]) {
+    assert.ok(normalizeSnapshot(invalid).warnings.length);
+  }
 });
 
 test('unsupported collection shapes warn without preventing raw inspection or exact backup export', async (t) => {
@@ -561,8 +567,9 @@ test('structured records are filtered and bounded to 50 per page, with validated
     ['judges', '0', ''],
     ['judges', 0, null],
     ['judges', 0, 'x'.repeat(201)],
-  ])
-    {assert.throws(() => mock.service.records(123, kind, page, query), /Invalid/);}
+  ]) {
+    assert.throws(() => mock.service.records(123, kind, page, query), /Invalid/);
+  }
   assert.throws(() => mock.service.records(124, 'judges', 0, ''), /again/);
   await mock.service.logout();
   assert.throws(() => mock.service.records(123, 'judges', 0, ''), /again/);

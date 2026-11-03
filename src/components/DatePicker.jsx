@@ -43,10 +43,13 @@ function AppDatePicker({ name, label, value, onChange }) {
     );
   }, [value, t, locale]);
   useEffect(() => {
-    if (!open) {return;}
+    if (!open) {
+      return;
+    }
     const outside = (event) => {
-      if (!root.current.contains(event.target) && !popup.current?.contains(event.target))
-        {setOpen(false);}
+      if (!root.current.contains(event.target) && !popup.current?.contains(event.target)) {
+        setOpen(false);
+      }
     };
     const blur = () => setOpen(false);
     document.addEventListener('pointerdown', outside, true);
@@ -57,7 +60,9 @@ function AppDatePicker({ name, label, value, onChange }) {
     };
   }, [open]);
   useLayoutEffect(() => {
-    if (!open) {return;}
+    if (!open) {
+      return;
+    }
     const position = () => {
       const field = root.current.getBoundingClientRect();
       const calendar = popup.current;
@@ -108,8 +113,9 @@ function AppDatePicker({ name, label, value, onChange }) {
         if (
           !event.currentTarget.contains(event.relatedTarget) &&
           !popup.current?.contains(event.relatedTarget)
-        )
-          {setOpen(false);}
+        ) {
+          setOpen(false);
+        }
       }}
       onKeyDown={(event) => {
         if (open && event.key === 'Escape') {
@@ -149,7 +155,9 @@ function AppDatePicker({ name, label, value, onChange }) {
           title={t('Choose date')}
           aria-controls={`${id}-calendar`}
           onClick={() => {
-            if (open) {return close();}
+            if (open) {
+              return close();
+            }
             focusDay.current = true;
             setFocused(parseDate(value) || new Date());
             setOpen(true);
@@ -226,22 +234,30 @@ function AppDatePicker({ name, label, value, onChange }) {
                             onClick={() => select(date)}
                             onKeyDown={(event) => {
                               let next = new Date(date);
-                              if (event.key === 'ArrowLeft') {next.setDate(next.getDate() - 1);}
-                              else if (event.key === 'ArrowRight') {next.setDate(next.getDate() + 1);}
-                              else if (event.key === 'ArrowUp') {next.setDate(next.getDate() - 7);}
-                              else if (event.key === 'ArrowDown') {next.setDate(next.getDate() + 7);}
-                              else if (event.key === 'Home')
-                                {next.setDate(next.getDate() - next.getDay());}
-                              else if (event.key === 'End')
-                                {next.setDate(next.getDate() + 6 - next.getDay());}
-                              else if (event.key === 'PageUp')
-                                {next = moveMonth(date, event.shiftKey ? -12 : -1);}
-                              else if (event.key === 'PageDown')
-                                {next = moveMonth(date, event.shiftKey ? 12 : 1);}
-                              else {return;}
+                              if (event.key === 'ArrowLeft') {
+                                next.setDate(next.getDate() - 1);
+                              } else if (event.key === 'ArrowRight') {
+                                next.setDate(next.getDate() + 1);
+                              } else if (event.key === 'ArrowUp') {
+                                next.setDate(next.getDate() - 7);
+                              } else if (event.key === 'ArrowDown') {
+                                next.setDate(next.getDate() + 7);
+                              } else if (event.key === 'Home') {
+                                next.setDate(next.getDate() - next.getDay());
+                              } else if (event.key === 'End') {
+                                next.setDate(next.getDate() + 6 - next.getDay());
+                              } else if (event.key === 'PageUp') {
+                                next = moveMonth(date, event.shiftKey ? -12 : -1);
+                              } else if (event.key === 'PageDown') {
+                                next = moveMonth(date, event.shiftKey ? 12 : 1);
+                              } else {
+                                return;
+                              }
                               event.preventDefault();
                               event.stopPropagation();
-                              if (next.getFullYear() >= 1 && next.getFullYear() <= 9999) {move(next);}
+                              if (next.getFullYear() >= 1 && next.getFullYear() <= 9999) {
+                                move(next);
+                              }
                             }}
                           >
                             {date.getDate()}

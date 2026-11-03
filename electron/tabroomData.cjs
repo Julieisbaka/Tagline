@@ -17,13 +17,19 @@ function normalizeSnapshot(data) {
   );
   const maps = Object.fromEntries(Object.keys(collections).map((kind) => [kind, new Map()]));
   const items = (parent, key, collection) => {
-    if (parent[key] == null) {return [];}
+    if (parent[key] == null) {
+      return [];
+    }
     if (!Array.isArray(parent[key])) {
       warnings.add(key);
       return [];
     }
-    if (collection) {collections[collection].available = true;}
-    if (parent[key].some((item) => !record(item))) {warnings.add(key);}
+    if (collection) {
+      collections[collection].available = true;
+    }
+    if (parent[key].some((item) => !record(item))) {
+      warnings.add(key);
+    }
     return parent[key].filter(record);
   };
   const add = (kind, row) => {
@@ -31,38 +37,44 @@ function normalizeSnapshot(data) {
     const previous = maps[kind].get(key);
     if (previous) {
       for (const [key, value] of Object.entries(row)) {
-        if (!previous[key] || (Array.isArray(previous[key]) && !previous[key].length))
-          {previous[key] = value;}
+        if (!previous[key] || (Array.isArray(previous[key]) && !previous[key].length)) {
+          previous[key] = value;
+        }
       }
-      if (kind === 'judges')
-        {previous.categories = [...new Set([...previous.categories, ...row.categories])];}
+      if (kind === 'judges') {
+        previous.categories = [...new Set([...previous.categories, ...row.categories])];
+      }
       return previous;
     }
     maps[kind].set(key, row);
     return row;
   };
   const schoolRecords = items(data, 'schools', 'schools');
-  for (const school of schoolRecords)
-    {add('schools', {
+  for (const school of schoolRecords) {
+    add('schools', {
       id: identifier(school.id),
       name: text(school.name),
       code: text(school.code),
       chapter: identifier(school.chapter),
       state: text(school.state),
-    });}
+    });
+  }
   const findSchool = (id) => maps.schools.get(`id:${identifier(id)}`);
   const studentsFor = (entry, school) => {
-    if (entry.students == null) {return [];}
+    if (entry.students == null) {
+      return [];
+    }
     if (!Array.isArray(entry.students)) {
       warnings.add('students');
       return [];
     }
     return entry.students.map((student) => {
-      if (!record(student))
-        {student = (Array.isArray(school?.students) ? school.students : []).find(
+      if (!record(student)) {
+        student = (Array.isArray(school?.students) ? school.students : []).find(
           (item) =>
             record(item) && identifier(item.id) && identifier(item.id) === identifier(student)
-        ) || { id: student };}
+        ) || { id: student };
+      }
       const id = identifier(student.id);
       return {
         id,
@@ -76,7 +88,9 @@ function normalizeSnapshot(data) {
   };
   const addTeam = (entry, event, school) => {
     if (text(entry.code).toUpperCase() === 'TBA') {
-      if (identifier(entry.id)) {placeholderTeams.add(identifier(entry.id));}
+      if (identifier(entry.id)) {
+        placeholderTeams.add(identifier(entry.id));
+      }
       return;
     }
     const schoolId = identifier(entry.school) || identifier(school?.id);
@@ -119,24 +133,37 @@ function normalizeSnapshot(data) {
       code: text(event.abbr),
       type: text(event.type),
     });
-    for (const entry of items(event, 'entries', 'teams')) {addTeam(entry, row);}
+    for (const entry of items(event, 'entries', 'teams')) {
+      addTeam(entry, row);
+    }
   };
-  for (const event of items(data, 'events', 'events')) {addEvent(event);}
-  for (const judge of items(data, 'judges', 'judges')) {addJudge(judge);}
+  for (const event of items(data, 'events', 'events')) {
+    addEvent(event);
+  }
+  for (const judge of items(data, 'judges', 'judges')) {
+    addJudge(judge);
+  }
   for (const category of items(data, 'categories')) {
-    for (const event of items(category, 'events', 'events')) {addEvent(event);}
-    for (const judge of items(category, 'judges', 'judges')) {addJudge(judge, category);}
+    for (const event of items(category, 'events', 'events')) {
+      addEvent(event);
+    }
+    for (const judge of items(category, 'judges', 'judges')) {
+      addJudge(judge, category);
+    }
   }
   for (const school of schoolRecords) {
     for (const entry of items(school, 'entries', 'teams')) {
       addTeam(entry, maps.events.get(`id:${identifier(entry.event)}`), school);
     }
-    for (const judge of items(school, 'judges', 'judges')) {addJudge(judge, null, school);}
+    for (const judge of items(school, 'judges', 'judges')) {
+      addJudge(judge, null, school);
+    }
   }
-  for (const [kind, map] of Object.entries(maps))
-    {collections[kind].rows = [...map.values()].filter(
+  for (const [kind, map] of Object.entries(maps)) {
+    collections[kind].rows = [...map.values()].filter(
       (row) => kind !== 'teams' || !placeholderTeams.has(row.id)
-    );}
+    );
+  }
   return {
     metadata: {
       location: [text(data.city), text(data.state), text(data.country)].filter(Boolean).join(', '),
@@ -149,10 +176,12 @@ function normalizeSnapshot(data) {
 }
 
 function snapshotRecords(snapshot, kind, page = 0, query = '') {
-  if (typeof kind !== 'string' || !Object.hasOwn(snapshot.collections, kind))
-    {throw new Error('Invalid Tabroom data section.');}
-  if (!Number.isSafeInteger(page) || page < 0 || typeof query !== 'string' || query.length > 200)
-    {throw new Error('Invalid Tabroom table request.');}
+  if (typeof kind !== 'string' || !Object.hasOwn(snapshot.collections, kind)) {
+    throw new Error('Invalid Tabroom data section.');
+  }
+  if (!Number.isSafeInteger(page) || page < 0 || typeof query !== 'string' || query.length > 200) {
+    throw new Error('Invalid Tabroom table request.');
+  }
   const collection = snapshot.collections[kind];
   const search = query.trim().toLocaleLowerCase();
   const rows = search
@@ -169,7 +198,9 @@ function snapshotRecords(snapshot, kind, page = 0, query = '') {
       )
     : collection.rows;
   const pages = Math.max(1, Math.ceil(rows.length / 50));
-  if (page >= pages) {throw new Error('Invalid Tabroom table page.');}
+  if (page >= pages) {
+    throw new Error('Invalid Tabroom table page.');
+  }
   return {
     available: collection.available,
     total: rows.length,

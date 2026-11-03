@@ -14,8 +14,12 @@ export const validBinding = (key) =>
   );
 /** Return whether a shortcut is reserved for an editor or platform command. @param {string} key @returns {boolean} */
 export function reservedBinding(key, id = '') {
-  if (id === 'flow-undo' && key === 'Mod+Z') {return false;}
-  if (id === 'flow-redo' && ['Mod+Shift+Z', 'Mod+Y'].includes(key)) {return false;}
+  if (id === 'flow-undo' && key === 'Mod+Z') {
+    return false;
+  }
+  if (id === 'flow-redo' && ['Mod+Shift+Z', 'Mod+Y'].includes(key)) {
+    return false;
+  }
   return [
     'Mod+A',
     'Mod+C',
@@ -43,24 +47,41 @@ export function reservedBinding(key, id = '') {
 
 /** Convert a keyboard event into Tagline's normalized shortcut syntax. @param {KeyboardEvent} event @param {string} [platform] @returns {string} */
 export function eventBinding(event, platform = window.api.platform) {
-  if (['Control', 'Meta', 'Alt', 'Shift', 'Dead', 'Unidentified'].includes(event.key)) {return '';}
+  if (['Control', 'Meta', 'Alt', 'Shift', 'Dead', 'Unidentified'].includes(event.key)) {
+    return '';
+  }
   const modifiers = [];
-  if (platform === 'darwin' ? event.metaKey : event.ctrlKey) {modifiers.push('Mod');}
-  if (platform === 'darwin' && event.ctrlKey) {modifiers.push('Ctrl');}
-  if (platform !== 'darwin' && event.metaKey) {modifiers.push('Meta');}
-  if (event.altKey) {modifiers.push('Alt');}
-  if (event.shiftKey) {modifiers.push('Shift');}
+  if (platform === 'darwin' ? event.metaKey : event.ctrlKey) {
+    modifiers.push('Mod');
+  }
+  if (platform === 'darwin' && event.ctrlKey) {
+    modifiers.push('Ctrl');
+  }
+  if (platform !== 'darwin' && event.metaKey) {
+    modifiers.push('Meta');
+  }
+  if (event.altKey) {
+    modifiers.push('Alt');
+  }
+  if (event.shiftKey) {
+    modifiers.push('Shift');
+  }
   let key =
     event.key === ' ' ? 'Space' : event.key.length === 1 ? event.key.toUpperCase() : event.key;
-  if (event.altKey && /^Key[A-Z]$/.test(event.code)) {key = event.code.slice(3);}
-  if ((event.ctrlKey || event.metaKey) && /^Digit[0-9]$/.test(event.code))
-    {key = event.code.slice(5);}
+  if (event.altKey && /^Key[A-Z]$/.test(event.code)) {
+    key = event.code.slice(3);
+  }
+  if ((event.ctrlKey || event.metaKey) && /^Digit[0-9]$/.test(event.code)) {
+    key = event.code.slice(5);
+  }
   return [...modifiers, key].join('+');
 }
 
 /** Test whether a keyboard event matches a configured shortcut. @param {KeyboardEvent} event @param {string} shortcut @param {string} [platform] @returns {boolean} */
 export function matchesBinding(event, shortcut, platform = window.api.platform) {
-  if (!shortcut) {return false;}
+  if (!shortcut) {
+    return false;
+  }
   // Explicit Ctrl remains Ctrl on macOS; Mod follows the platform primary modifier.
   /** Normalize platform-specific Mod syntax for shortcut comparison. @param {string} value @returns {string} */
   const normalize = (value) => value.replace(/\bMod\b/g, platform === 'darwin' ? 'Meta' : 'Ctrl');
@@ -70,7 +91,9 @@ export function matchesBinding(event, shortcut, platform = window.api.platform) 
 // `extra` holds extension command definitions, which always use the app scope.
 /** Find conflicts for a proposed binding in built-in and contributed commands. @param {string} id @param {string} key @param {object} overrides @param {object[]} [extra] @returns {object|null} */
 export function bindingConflict(id, key, overrides, extra = []) {
-  if (!key) {return null;}
+  if (!key) {
+    return null;
+  }
   const all = [...definitions, ...extra];
   const target = all.find((item) => item.id === id);
   return all.find(

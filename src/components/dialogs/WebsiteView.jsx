@@ -18,7 +18,9 @@ export default function WebsiteView({ url, onClose }) {
   useEffect(() => {
     const unsubscribe = window.api.onWebsiteState((next) => {
       setState(next);
-      if (next.url) {setAddress(next.url);}
+      if (next.url) {
+        setAddress(next.url);
+      }
     });
     const rectangle = () => {
       const { x, y, width, height } = surface.current.getBoundingClientRect();
@@ -31,7 +33,9 @@ export default function WebsiteView({ url, onClose }) {
     const observer = new ResizeObserver(resize);
     observer.observe(surface.current);
     // The surface can move without resizing when sibling chrome changes height.
-    if (surface.current.parentElement) {observer.observe(surface.current.parentElement);}
+    if (surface.current.parentElement) {
+      observer.observe(surface.current.parentElement);
+    }
     window.addEventListener('resize', resize);
     return () => {
       observer.disconnect();

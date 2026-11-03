@@ -32,7 +32,9 @@ export function restoreTabs(saved) {
     }
     ids.add(tab.id);
     if (tab.kind === 'graph') {
-      if (++graphCount > 1) {throw new Error('Only one graph tab can be restored.');}
+      if (++graphCount > 1) {
+        throw new Error('Only one graph tab can be restored.');
+      }
       return { id: tab.id, kind: 'graph' };
     }
     if (
@@ -70,11 +72,15 @@ export function restoreTabs(saved) {
  */
 export function reorderTabs(tabs, id, targetIndex) {
   const sourceIndex = tabs.findIndex((tab) => tab.id === id);
-  if (!Number.isInteger(targetIndex) || sourceIndex < 0) {return tabs;}
+  if (!Number.isInteger(targetIndex) || sourceIndex < 0) {
+    return tabs;
+  }
   const next = [...tabs];
   const [moved] = next.splice(sourceIndex, 1);
   const destination = Math.max(0, Math.min(targetIndex, next.length));
-  if (sourceIndex === destination) {return tabs;}
+  if (sourceIndex === destination) {
+    return tabs;
+  }
   next.splice(destination, 0, moved);
   return next;
 }
@@ -111,7 +117,9 @@ export function useTabs(vaultRoot, persist = true) {
         const restored = restoreTabs(saved);
         setTabs(restored.tabs);
         setActiveId(restored.activeId);
-        if (restored.warning) {setError(restored.warning);}
+        if (restored.warning) {
+          setError(restored.warning);
+        }
       } else if (previousVault.current !== storageKey) {
         setTabs([]);
         setActiveId(null);
@@ -136,7 +144,9 @@ export function useTabs(vaultRoot, persist = true) {
   }, [tabs, activeId, storageKey, loadedKey, loadKey, persist]);
 
   useEffect(() => {
-    if (activeId && !tabs.some((tab) => tab.id === activeId)) {setActiveId(tabs[0]?.id || null);}
+    if (activeId && !tabs.some((tab) => tab.id === activeId)) {
+      setActiveId(tabs[0]?.id || null);
+    }
   }, [tabs, activeId]);
 
   const activeTab = tabs.find((t) => t.id === activeId) || null;
@@ -144,7 +154,9 @@ export function useTabs(vaultRoot, persist = true) {
   const openPath = useCallback(
     (path, newTab = false) => {
       const existing = tabs.find((t) => t.path === path);
-      if (existing) {return setActiveId(existing.id);}
+      if (existing) {
+        return setActiveId(existing.id);
+      }
       const current = tabs.find((t) => t.id === activeId);
       if (!newTab && current && current.kind === 'file') {
         setTabs(tabs.map((t) => (t.id === current.id ? { ...t, path } : t)));
@@ -160,7 +172,9 @@ export function useTabs(vaultRoot, persist = true) {
 
   const openGraph = useCallback(() => {
     const existing = tabs.find((t) => t.kind === 'graph');
-    if (existing) {return setActiveId(existing.id);}
+    if (existing) {
+      return setActiveId(existing.id);
+    }
     const tab = { id: newId(), kind: 'graph' };
     setTabs([...tabs, tab]);
     setActiveId(tab.id);
@@ -172,7 +186,9 @@ export function useTabs(vaultRoot, persist = true) {
       const i = tabs.findIndex((t) => t.id === id);
       const next = tabs.filter((t) => t.id !== id);
       setTabs(next);
-      if (id === activeId) {setActiveId(next[Math.min(i, next.length - 1)]?.id || null);}
+      if (id === activeId) {
+        setActiveId(next[Math.min(i, next.length - 1)]?.id || null);
+      }
     },
     [tabs, activeId]
   );

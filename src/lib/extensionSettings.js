@@ -11,7 +11,9 @@ import { readStoredJson } from './storedJson.js';
  */
 function definition(manifest, key) {
   const setting = manifest.contributes.settings?.find((item) => item.id === key);
-  if (!setting) {throw new Error(`Extension setting "${key}" is not declared.`);}
+  if (!setting) {
+    throw new Error(`Extension setting "${key}" is not declared.`);
+  }
   return setting;
 }
 
@@ -55,8 +57,9 @@ export function setExtensionSettings(manifest, values) {
     data[key] = validateSettingValue(definition(manifest, key), value);
   }
   const text = JSON.stringify(data);
-  if (text.length > getRuntimeLimits().extensionStorageCharacters)
-    {throw new Error('Extension settings exceed the configured storage limit.');}
+  if (text.length > getRuntimeLimits().extensionStorageCharacters) {
+    throw new Error('Extension settings exceed the configured storage limit.');
+  }
   localStorage.setItem(`tagline-extension-settings:${manifest.id}`, text);
   window.dispatchEvent(new CustomEvent('extension-settings-changed'));
   return true;

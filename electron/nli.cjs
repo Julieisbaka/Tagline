@@ -16,7 +16,9 @@ async function hasModelFiles(dir) {
     await Promise.all(MODEL_FILES.map((file) => fs.access(path.join(dir, file))));
     return true;
   } catch (e) {
-    if (e.code === 'ENOENT') {return false;}
+    if (e.code === 'ENOENT') {
+      return false;
+    }
     throw e;
   }
 }
@@ -31,13 +33,18 @@ function validateAnalysis(request) {
     throw new Error('Invalid analysis request.');
   }
   const premise = request.premise.trim();
-  if (!premise) {throw new Error('There is no text to analyze.');}
-  if (premise.length > 200000)
-    {throw new Error('The text is too long to analyze (200,000 characters maximum).');}
+  if (!premise) {
+    throw new Error('There is no text to analyze.');
+  }
+  if (premise.length > 200000) {
+    throw new Error('The text is too long to analyze (200,000 characters maximum).');
+  }
   const hypotheses = request.hypotheses
     .map((h) => (typeof h === 'string' ? h.trim() : ''))
     .filter(Boolean);
-  if (!hypotheses.length) {throw new Error('Enter at least one hypothesis.');}
+  if (!hypotheses.length) {
+    throw new Error('Enter at least one hypothesis.');
+  }
   if (hypotheses.length > 10 || hypotheses.some((h) => h.length > 400)) {
     throw new Error('Use at most 10 hypotheses of up to 400 characters each.');
   }
@@ -55,8 +62,9 @@ function registerNli({ app, ipcMain, dialog, getWindow, readConfig, writeConfig,
 
   const source = () => {
     const saved = readConfig().nliModel || {};
-    if (typeof saved.folder === 'string' && path.isAbsolute(saved.folder))
-      {return { folder: saved.folder };}
+    if (typeof saved.folder === 'string' && path.isAbsolute(saved.folder)) {
+      return { folder: saved.folder };
+    }
     return {
       repo:
         typeof saved.repo === 'string' && REPO_PATTERN.test(saved.repo) ? saved.repo : DEFAULT_REPO,
@@ -71,43 +79,61 @@ function registerNli({ app, ipcMain, dialog, getWindow, readConfig, writeConfig,
   function stop(detail = 'Model not loaded.') {
     const instance = worker;
     worker = null;
-    for (const task of pending.values()) {task.reject(new Error('The model was unloaded.'));}
+    for (const task of pending.values()) {
+      task.reject(new Error('The model was unloaded.'));
+    }
     pending.clear();
     state = { busy: false, ready: false, detail, error: '' };
-    if (instance) {instance.terminate();}
+    if (instance) {
+      instance.terminate();
+    }
   }
 
   function ensureWorker() {
-    if (worker) {return;}
+    if (worker) {
+      return;
+    }
     worker = new Worker(path.join(__dirname, 'nliWorker.cjs'));
     const instance = worker;
     const fail = (e) => {
-      if (worker !== instance) {return;}
-      for (const task of pending.values()) {task.reject(e);}
+      if (worker !== instance) {
+        return;
+      }
+      for (const task of pending.values()) {
+        task.reject(e);
+      }
       pending.clear();
       worker = null;
       state = { ...state, busy: false, ready: false, error: e.message };
     };
     worker.on('message', (message) => {
-      if (worker !== instance) {return;}
+      if (worker !== instance) {
+        return;
+      }
       if (message.progress) {
         state = { ...state, detail: message.progress };
         return;
       }
       const task = pending.get(message.id);
-      if (!task) {return;}
+      if (!task) {
+        return;
+      }
       pending.delete(message.id);
       state = { ...state, busy: false, error: message.error || '' };
-      if (message.error) {task.reject(new Error(message.error));}
-      else {task.resolve(message.result);}
+      if (message.error) {
+        task.reject(new Error(message.error));
+      } else {
+        task.resolve(message.result);
+      }
     });
     worker.on('error', fail);
     worker.on('exit', (code) => fail(new Error(`Political DEBATE worker exited (${code}).`)));
   }
 
   function request(message) {
-    if (state.busy)
-      {throw new Error('The Political DEBATE model is busy. Please wait for it to finish.');}
+    if (state.busy) {
+      throw new Error('The Political DEBATE model is busy. Please wait for it to finish.');
+    }
     ensureWorker();
     state = { ...state, busy: true, error: '' };
     return new Promise((resolve, reject) => {
@@ -124,22 +150,31 @@ function registerNli({ app, ipcMain, dialog, getWindow, readConfig, writeConfig,
     downloaded: state.ready || (await downloaded()),
   }));
   ipcMain.handle('nli:setRepo', async (_e, repo) => {
-    if (typeof repo !== 'string') {throw new Error('Invalid model repository.');}
+    if (typeof repo !== 'string') {
+      throw new Error('Invalid model repository.');
+    }
     const clean = repo.trim() || DEFAULT_REPO;
-    if (!REPO_PATTERN.test(clean))
-      {throw new Error('Enter a Hugging Face model ID such as owner/model-name.');}
-    if (state.busy) {throw new Error('Wait for the current model task to finish.');}
+    if (!REPO_PATTERN.test(clean)) {
+      throw new Error('Enter a Hugging Face model ID such as owner/model-name.');
+    }
+    if (state.busy) {
+      throw new Error('Wait for the current model task to finish.');
+    }
     writeConfig({ nliModel: { repo: clean } });
     stop();
     return source();
   });
   ipcMain.handle('nli:chooseFolder', async () => {
-    if (state.busy) {throw new Error('Wait for the current model task to finish.');}
+    if (state.busy) {
+      throw new Error('Wait for the current model task to finish.');
+    }
     const result = await dialog.showOpenDialog(getWindow(), {
       title: 'Choose a converted Political DEBATE ONNX folder',
       properties: ['openDirectory'],
     });
-    if (result.canceled || !result.filePaths[0]) {return null;}
+    if (result.canceled || !result.filePaths[0]) {
+      return null;
+    }
     const folder = result.filePaths[0];
     if (!(await hasModelFiles(folder))) {
       throw new Error(
@@ -151,7 +186,9 @@ function registerNli({ app, ipcMain, dialog, getWindow, readConfig, writeConfig,
     return source();
   });
   ipcMain.handle('nli:load', async () => {
-    if (state.ready) {return { ready: true };}
+    if (state.ready) {
+      return { ready: true };
+    }
     const current = source();
     const online = !current.folder && !(await downloaded());
     state = { ...state, detail: online ? 'Starting download...' : 'Loading model...' };
@@ -171,7 +208,9 @@ function registerNli({ app, ipcMain, dialog, getWindow, readConfig, writeConfig,
   });
   ipcMain.handle('nli:analyze', async (_e, payload) => {
     const valid = validateAnalysis(payload);
-    if (!state.ready) {throw new Error('Load the Political DEBATE model first.');}
+    if (!state.ready) {
+      throw new Error('Load the Political DEBATE model first.');
+    }
     const result = await request({ type: 'analyze', ...valid });
     state = { ...state, detail: 'Model ready. Analysis runs locally.' };
     return result;

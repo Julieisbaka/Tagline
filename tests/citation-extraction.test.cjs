@@ -76,7 +76,9 @@ test('does not interpret code, quoted examples or ordinary emphasis as citations
     const result = extractCardCitation(body);
     if (body.startsWith('**Inflation')) {
       assert.deepEqual(result.uncertainFields, ['author', 'year']);
-    } else {assert.equal(result.citation, null);}
+    } else {
+      assert.equal(result.citation, null);
+    }
   }
 });
 

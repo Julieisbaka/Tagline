@@ -66,7 +66,9 @@ export default function Editor({
   const cb = useRef({});
   cb.current = { noteNames, notePaths, notify, onOpenLink, onSendCard, onCursor, t };
   useEffect(() => {
-    if (!view || jump?.line == null) {return;}
+    if (!view || jump?.line == null) {
+      return;
+    }
     const line = view.state.doc.line(Math.min(jump.line + 1, view.state.doc.lines));
     view.dispatch({
       selection: EditorSelection.cursor(line.from),
@@ -78,7 +80,9 @@ export default function Editor({
   const extensions = useMemo(() => {
     const wikiComplete = (ctx) => {
       const m = ctx.matchBefore(/\[\[[^\]\n]*/);
-      if (!m) {return null;}
+      if (!m) {
+        return null;
+      }
       return {
         from: m.from + 2,
         options: cb.current.noteNames.map((n) => ({ label: n, apply: `${n}]]`, type: 'text' })),
@@ -128,14 +132,18 @@ export default function Editor({
         : []),
       EditorView.domEventHandlers({
         dragover(e) {
-          if (!hasNoteDrag(e.dataTransfer)) {return false;}
+          if (!hasNoteDrag(e.dataTransfer)) {
+            return false;
+          }
           e.preventDefault();
           e.dataTransfer.dropEffect = 'copy';
           return true;
         },
         drop(e, view) {
           const path = draggedNotePath(e.dataTransfer, cb.current.notePaths);
-          if (!path) {return false;}
+          if (!path) {
+            return false;
+          }
           e.preventDefault();
           const pos = view.posAtCoords({ x: e.clientX, y: e.clientY });
           if (pos == null) {
@@ -157,17 +165,23 @@ export default function Editor({
           return true;
         },
         mousedown(e, view) {
-          if (!(e.ctrlKey || e.metaKey)) {return false;}
+          if (!(e.ctrlKey || e.metaKey)) {
+            return false;
+          }
           const pos = view.posAtCoords({ x: e.clientX, y: e.clientY });
           const link = pos != null && linkAt(view.state, pos);
-          if (!link) {return false;}
+          if (!link) {
+            return false;
+          }
           e.preventDefault();
           cb.current.onOpenLink?.(link.target, link.heading, e.shiftKey);
           return true;
         },
       }),
       EditorView.updateListener.of((u) => {
-        if (u.selectionSet || u.docChanged) {cb.current.onCursor?.(u.state.selection.main.head);}
+        if (u.selectionSet || u.docChanged) {
+          cb.current.onCursor?.(u.state.selection.main.head);
+        }
         if (u.selectionSet) {
           const { from, to } = u.state.selection.main;
           applicationEvents.emit('editor.selectionChanged', {
@@ -192,7 +206,9 @@ export default function Editor({
 
   const run = (command) => () => {
     const view = ownViewRef.current;
-    if (!view || view.destroyed) {return;}
+    if (!view || view.destroyed) {
+      return;
+    }
     command(view);
     view.focus();
   };
@@ -258,7 +274,9 @@ export default function Editor({
         onCreateEditor={(view) => {
           ownViewRef.current = view;
           setView(view);
-          if (viewRef) {viewRef.current = view;}
+          if (viewRef) {
+            viewRef.current = view;
+          }
           applicationEvents.emit('editor.ready', { mode: 'edit' });
         }}
         height='100%'

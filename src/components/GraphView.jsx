@@ -3,26 +3,44 @@ import { useI18n } from '../lib/i18n.js';
 import { displayName } from '../lib/vault.js';
 
 function nodeColor(tags) {
-  if (tags.includes('aff')) {return '--aff';}
-  if (tags.includes('neg')) {return '--neg';}
-  if (tags.includes('opponent')) {return '--warning';}
+  if (tags.includes('aff')) {
+    return '--aff';
+  }
+  if (tags.includes('neg')) {
+    return '--neg';
+  }
+  if (tags.includes('opponent')) {
+    return '--warning';
+  }
   return '--text-muted';
 }
 
 function buildGraph(index, activePath, local, showOrphans, showMarkdownExtension) {
   const md = index.paths.filter((p) => p.endsWith('.md'));
   const tagsOf = {};
-  for (const [tag, ps] of Object.entries(index.tags))
-    {for (const p of ps) {(tagsOf[p] ||= []).push(tag);}}
+  for (const [tag, ps] of Object.entries(index.tags)) {
+    for (const p of ps) {
+      (tagsOf[p] ||= []).push(tag);
+    }
+  }
   let edges = [];
-  for (const [src, targets] of Object.entries(index.links))
-    {for (const t of targets) {if (t !== src) {edges.push([src, t]);}}}
+  for (const [src, targets] of Object.entries(index.links)) {
+    for (const t of targets) {
+      if (t !== src) {
+        edges.push([src, t]);
+      }
+    }
+  }
   let include = new Set(md);
   if (local && activePath) {
     include = new Set([activePath]);
     for (const [a, b] of edges) {
-      if (a === activePath) {include.add(b);}
-      if (b === activePath) {include.add(a);}
+      if (a === activePath) {
+        include.add(b);
+      }
+      if (b === activePath) {
+        include.add(a);
+      }
     }
   } else if (!showOrphans) {
     include = new Set(edges.flat());
@@ -186,7 +204,9 @@ export default function GraphView({ index, activePath, onOpen, showMarkdownExten
     window.addEventListener('accessibilitychange', updateMotion);
 
     const draw = () => {
-      if (!reducedMotion) {step();}
+      if (!reducedMotion) {
+        step();
+      }
       ctx.clearRect(0, 0, w, h);
       ctx.save();
       ctx.translate(w / 2 + view.x, h / 2 + view.y);
@@ -227,7 +247,9 @@ export default function GraphView({ index, activePath, onOpen, showMarkdownExten
 
     const rect = () => canvas.getBoundingClientRect();
     const onDown = (e) => {
-      if (e.button !== 0) {return;}
+      if (e.button !== 0) {
+        return;
+      }
       const r = rect();
       const n = nodeAt(e.clientX - r.left, e.clientY - r.top);
       drag = { node: n, sx: e.clientX, sy: e.clientY, vx: view.x, vy: view.y, moved: false };
@@ -237,7 +259,9 @@ export default function GraphView({ index, activePath, onOpen, showMarkdownExten
       const cx = e.clientX - r.left;
       const cy = e.clientY - r.top;
       if (drag) {
-        if (Math.abs(e.clientX - drag.sx) + Math.abs(e.clientY - drag.sy) > 3) {drag.moved = true;}
+        if (Math.abs(e.clientX - drag.sx) + Math.abs(e.clientY - drag.sy) > 3) {
+          drag.moved = true;
+        }
         if (drag.node && drag.moved) {
           const p = pos.get(drag.node.id);
           const wpt = toWorld(cx, cy);
@@ -256,8 +280,9 @@ export default function GraphView({ index, activePath, onOpen, showMarkdownExten
       }
     };
     const onUp = (e) => {
-      if (drag && drag.node && !drag.moved)
-        {live.current.onOpen(drag.node.path || drag.node.id, e.ctrlKey || e.metaKey);}
+      if (drag && drag.node && !drag.moved) {
+        live.current.onOpen(drag.node.path || drag.node.id, e.ctrlKey || e.metaKey);
+      }
       if (drag?.node && drag.moved) {
         const p = pos.get(drag.node.id);
         p.vx = 0;
@@ -271,9 +296,13 @@ export default function GraphView({ index, activePath, onOpen, showMarkdownExten
       const r = rect();
       const cx = e.clientX - r.left - w / 2;
       const cy = e.clientY - r.top - h / 2;
-      if (!e.deltaY) {return;}
+      if (!e.deltaY) {
+        return;
+      }
       const k = Math.min(4, Math.max(0.2, view.k * (e.deltaY < 0 ? 1.1 : 0.9)));
-      if (k === view.k) {return;}
+      if (k === view.k) {
+        return;
+      }
       Object.assign(view, {
         k,
         x: cx - ((cx - view.x) * k) / view.k,

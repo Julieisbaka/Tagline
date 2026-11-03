@@ -13,9 +13,13 @@ export function dateValue(date) {
  * @returns {Date|null} - The corresponding Date object if valid, or null if invalid.
  */
 export function parseDate(value) {
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) {return null;}
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    return null;
+  }
   const [year, month, day] = value.split('-').map(Number);
-  if (year < 1 || month < 1 || month > 12 || day < 1 || day > 31) {return null;}
+  if (year < 1 || month < 1 || month > 12 || day < 1 || day > 31) {
+    return null;
+  }
   const date = new Date(0);
   date.setHours(12, 0, 0, 0);
   date.setFullYear(year, month - 1, day);
@@ -52,7 +56,9 @@ export function monthDays(date) {
   end.setMonth(end.getMonth() + 1, 0);
   return Array.from({ length: Math.ceil((offset + end.getDate()) / 7) * 7 }, (_, index) => {
     const day = index - offset + 1;
-    if (day < 1 || day > end.getDate()) {return null;}
+    if (day < 1 || day > end.getDate()) {
+      return null;
+    }
     const result = new Date(start);
     result.setDate(day);
     return result;

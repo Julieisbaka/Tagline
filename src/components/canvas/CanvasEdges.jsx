@@ -31,7 +31,9 @@ const CanvasEdges = memo(function CanvasEdges({
       {edges.map((item, index) => {
         const from = nodes.get(item.fromNode),
           to = nodes.get(item.toNode);
-        if (!from || !to) {return null;}
+        if (!from || !to) {
+          return null;
+        }
         const a = sidePoint(from, item.fromSide || 'right');
         const b = sidePoint(to, item.toSide || 'left');
         return (

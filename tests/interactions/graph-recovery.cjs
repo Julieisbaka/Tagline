@@ -118,8 +118,9 @@ module.exports = async function runScenario({
     await button('.confirm-dialog button', 'Confirm');
     await wait("!document.querySelector('.json-recovery button')");
     await wait("document.querySelector('.toast')?.textContent === 'Working save restored.'");
-    for (let i = 0; i < 40 && (await fs.readFile(path.join(vault, file), 'utf8')) !== valid; i++)
-      {await delay(50);}
+    for (let i = 0; i < 40 && (await fs.readFile(path.join(vault, file), 'utf8')) !== valid; i++) {
+      await delay(50);
+    }
     assert.equal(await fs.readFile(path.join(vault, file), 'utf8'), valid);
     const latest = await js(`window.api.listHistory(${JSON.stringify(file)})`);
     assert.equal(
@@ -149,8 +150,9 @@ module.exports = async function runScenario({
     await wait("!!document.querySelector('.confirm-dialog')");
     await button('.confirm-dialog button', 'Confirm');
     await wait("!document.querySelector('.json-recovery button')");
-    for (let i = 0; i < 40 && (await fs.readFile(path.join(vault, file), 'utf8')) !== valid; i++)
-      {await delay(50);}
+    for (let i = 0; i < 40 && (await fs.readFile(path.join(vault, file), 'utf8')) !== valid; i++) {
+      await delay(50);
+    }
     assert.equal(
       await fs.readFile(path.join(vault, file), 'utf8'),
       valid,

@@ -96,10 +96,15 @@ export default function EvidenceCheckupDialog({
     ) {
       throw new Error(t('Notes changed since the scan. Scan again before adding comments.'));
     }
-    for (const path of paths) {updateContent(path, updated[path]);}
-    if (paths.length && !(await flush()))
-      {throw new Error(t('Could not save evidence checkup comments.'));}
-    if (paths.length) {setMessage(t('Comments updated in {count} notes.', { count: paths.length }));}
+    for (const path of paths) {
+      updateContent(path, updated[path]);
+    }
+    if (paths.length && !(await flush())) {
+      throw new Error(t('Could not save evidence checkup comments.'));
+    }
+    if (paths.length) {
+      setMessage(t('Comments updated in {count} notes.', { count: paths.length }));
+    }
     return updated;
   };
 
@@ -178,7 +183,9 @@ export default function EvidenceCheckupDialog({
     });
 
   const issues = useMemo(() => {
-    if (!scan) {return [];}
+    if (!scan) {
+      return [];
+    }
     return [
       ...scan.issues,
       ...(settings.checks.links && links ? linkIssues(scan.cards, links) : []),
@@ -189,7 +196,9 @@ export default function EvidenceCheckupDialog({
   const grouped = useMemo(() => {
     const byPath = new Map();
     for (const issue of issues) {
-      if (!byPath.has(issue.path)) {byPath.set(issue.path, []);}
+      if (!byPath.has(issue.path)) {
+        byPath.set(issue.path, []);
+      }
       byPath.get(issue.path).push(issue);
     }
     return [...byPath];
@@ -197,31 +206,39 @@ export default function EvidenceCheckupDialog({
 
   const linkCount = scan ? citedUrls(scan.cards).length : 0;
   const describe = (issue) => {
-    if (issue.kind === 'missing_fields')
-      {return t('Missing {fields}.', {
+    if (issue.kind === 'missing_fields') {
+      return t('Missing {fields}.', {
         fields: issue.fields.map((field) => t(FIELD_LABELS[field])).join(', '),
-      });}
-    if (issue.kind === 'uncertain_fields')
-      {return t('Review uncertain fields: {fields}.', {
+      });
+    }
+    if (issue.kind === 'uncertain_fields') {
+      return t('Review uncertain fields: {fields}.', {
         fields: issue.fields.map((field) => t(FIELD_LABELS[field])).join(', '),
-      });}
-    if (issue.kind === 'stale_date')
-      {return t('Source from {year} is {age} years old (threshold {years}).', {
+      });
+    }
+    if (issue.kind === 'stale_date') {
+      return t('Source from {year} is {age} years old (threshold {years}).', {
         year: issue.year,
         age: issue.age,
         years: issue.threshold,
-      });}
-    if (issue.kind === 'dead_link')
-      {return t('Link no longer resolves ({reason}).', { reason: issue.reason });}
-    if (issue.kind === 'source_mismatch')
-      {return t('{field}: citation says “{citation}”; source metadata says “{source}”.', {
+      });
+    }
+    if (issue.kind === 'dead_link') {
+      return t('Link no longer resolves ({reason}).', { reason: issue.reason });
+    }
+    if (issue.kind === 'source_mismatch') {
+      return t('{field}: citation says “{citation}”; source metadata says “{source}”.', {
         field: t(FIELD_LABELS[issue.field]),
         citation: issue.citationValue,
         source: issue.sourceValue,
-      });}
-    if (issue.kind === 'source_unavailable') {return issue.reason;}
-    if (issue.kind === 'source_not_comparable')
-      {return t('No certain citation fields were available in the source metadata for comparison.');}
+      });
+    }
+    if (issue.kind === 'source_unavailable') {
+      return issue.reason;
+    }
+    if (issue.kind === 'source_not_comparable') {
+      return t('No certain citation fields were available in the source metadata for comparison.');
+    }
     return t('No citation line.');
   };
 

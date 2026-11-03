@@ -28,7 +28,9 @@ function probe(url, method, timeoutMs, redirects = 0) {
       (response) => {
         response.resume();
         if ([301, 302, 303, 307, 308].includes(response.statusCode) && response.headers.location) {
-          if (redirects >= MAX_REDIRECTS) {return reject(new Error('too many redirects'));}
+          if (redirects >= MAX_REDIRECTS) {
+            return reject(new Error('too many redirects'));
+          }
           try {
             resolve(
               probe(
@@ -108,8 +110,12 @@ async function checkUrl(address, { timeoutMs, archiveFallback }) {
   }
   try {
     let status = await probe(url, 'HEAD', timeoutMs);
-    if ([405, 501].includes(status)) {status = await probe(url, 'GET', timeoutMs);}
-    if (status >= 200 && status < 400) {return { status: 'ok' };}
+    if ([405, 501].includes(status)) {
+      status = await probe(url, 'GET', timeoutMs);
+    }
+    if (status >= 200 && status < 400) {
+      return { status: 'ok' };
+    }
     if (DEAD_STATUSES.has(status)) {
       const archiveUrl = archiveFallback ? await archiveSnapshot(address, timeoutMs) : '';
       return { status: 'dead', reason: `HTTP ${status}`, archiveUrl };

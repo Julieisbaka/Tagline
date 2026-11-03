@@ -12,7 +12,9 @@ if (!process.versions.electron) {
       stdio: 'inherit',
       timeout: 90000,
     });
-    if (result.error) {throw result.error;}
+    if (result.error) {
+      throw result.error;
+    }
     process.exitCode = result.status ?? 1;
   } finally {
     fs.rmSync(root, { recursive: true, force: true, maxRetries: 20, retryDelay: 100 });
@@ -63,7 +65,9 @@ app.on('browser-window-created', (_event, win) => {
     const js = (code) => win.webContents.executeJavaScript(code);
     const wait = async (code) => {
       for (let i = 0; i < 200; i++) {
-        if (await js(code)) {return;}
+        if (await js(code)) {
+          return;
+        }
         await new Promise((resolve) => setTimeout(resolve, 50));
       }
       throw new Error(`Timed out: ${code}`);

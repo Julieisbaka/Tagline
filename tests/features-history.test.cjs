@@ -131,8 +131,9 @@ test('platform: revision history snapshots changed documents, enforces retention
   const resolveInVault = (rel) => {
     const full = path.resolve(root, rel);
     const relative = path.relative(root, full);
-    if (relative.startsWith('..') || path.isAbsolute(relative))
-      {throw new Error('Path escapes vault');}
+    if (relative.startsWith('..') || path.isAbsolute(relative)) {
+      throw new Error('Path escapes vault');
+    }
     return full;
   };
   const history = createRevisionHistory({ getVaultRoot: () => root, resolveInVault });

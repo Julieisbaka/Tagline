@@ -79,7 +79,9 @@ export function createSearchEngine(contents, index) {
       .map(([path, content]) => {
         const tokens = words(content);
         const counts = new Map();
-        for (const token of tokens) {counts.set(token, (counts.get(token) || 0) + 1);}
+        for (const token of tokens) {
+          counts.set(token, (counts.get(token) || 0) + 1);
+        }
         const title = fold(baseName(path));
         const lines = content
           .split('\n')
@@ -90,7 +92,9 @@ export function createSearchEngine(contents, index) {
 
   return (query, maxResults = defaults.searchMaxResults, { matchAll = true } = {}) => {
     validateLimit(maxResults);
-    if (!query.trim()) {return [];}
+    if (!query.trim()) {
+      return [];
+    }
     const parsed = parseQuery(query);
     const { terms, phrases } = parsed;
     const documents = [...prepared.values()].filter((doc) =>
@@ -102,7 +106,9 @@ export function createSearchEngine(contents, index) {
       maxResults,
       matchAll
     );
-    if (exact.length || !terms.length) {return exact;}
+    if (exact.length || !terms.length) {
+      return exact;
+    }
 
     // Only recover typos when exact search is empty; quoted phrases stay literal.
     const vocabulary = new Set(
@@ -114,11 +120,14 @@ export function createSearchEngine(contents, index) {
         term.length < 5 ||
         words(term).length !== 1 ||
         documents.some((doc) => `${doc.title} ${doc.body}`.includes(term))
-      )
-        {return [term];}
+      ) {
+        return [term];
+      }
       return [term, ...[...vocabulary].filter((word) => oneEditApart(term, word))];
     });
-    if (alternatives.every((items) => items.length === 1)) {return [];}
+    if (alternatives.every((items) => items.length === 1)) {
+      return [];
+    }
     return rankDocuments(documents, alternatives, maxResults, matchAll).map((result) => ({
       ...result,
       approximate: true,
@@ -127,9 +136,13 @@ export function createSearchEngine(contents, index) {
 }
 
 function oneEditApart(a, b) {
-  if (Math.abs(a.length - b.length) > 1) {return false;}
+  if (Math.abs(a.length - b.length) > 1) {
+    return false;
+  }
   let i = 0;
-  while (i < a.length && a[i] === b[i]) {i++;}
+  while (i < a.length && a[i] === b[i]) {
+    i++;
+  }
   if (a.length === b.length) {
     return (
       a.slice(i + 1) === b.slice(i + 1) ||
@@ -152,13 +165,17 @@ function rankDocuments(documents, alternatives, maxResults, matchAll) {
       const terms = alternatives.map((items) =>
         items.find((term) => `${title} ${body}`.includes(term))
       );
-      if (terms.length && !(matchAll ? terms.every(Boolean) : terms.some(Boolean))) {return [];}
+      if (terms.length && !(matchAll ? terms.every(Boolean) : terms.some(Boolean))) {
+        return [];
+      }
       const matchedTerms = terms.filter(Boolean);
       const queryText = matchedTerms.join(' ');
       let rank = 0;
       const titleWords = new Set(words(title));
       for (const [i, term] of terms.entries()) {
-        if (!term) {continue;}
+        if (!term) {
+          continue;
+        }
         // BM25 saturation and length normalization avoid rewarding long, repetitive files.
         const exact = counts.get(term) || 0;
         const tf = exact || body.split(term).length - 1;
@@ -170,19 +187,29 @@ function rankDocuments(documents, alternatives, maxResults, matchAll) {
           (partial ? 0.35 : 1) *
           idf *
           ((tf * 2.2) / (tf + 1.2 * (0.25 + (0.75 * length) / Math.max(1, average))));
-        if (title === term) {rank += 12;}
-        else if (titleWords.has(term)) {rank += 6;}
-        else if (title.includes(term)) {rank += 2;}
+        if (title === term) {
+          rank += 12;
+        } else if (titleWords.has(term)) {
+          rank += 6;
+        } else if (title.includes(term)) {
+          rank += 2;
+        }
       }
-      if (queryText && title === queryText) {rank += 8;}
-      if (queryText && body.includes(queryText)) {rank += 3;}
+      if (queryText && title === queryText) {
+        rank += 8;
+      }
+      if (queryText && body.includes(queryText)) {
+        rank += 3;
+      }
       const headingTerms = new Set();
       const passages = lines
         .map(({ text, line, normalized }) => {
           const found = matchedTerms.filter((term) => normalized.includes(term));
           const count = found.length;
           const heading = /^#{1,6}\s/.test(text);
-          if (heading) {found.forEach((term) => headingTerms.add(term));}
+          if (heading) {
+            found.forEach((term) => headingTerms.add(term));
+          }
           const positions = found.map((term) => normalized.indexOf(term));
           const span = count > 1 ? Math.max(...positions) - Math.min(...positions) : 0;
           const proximity = count > 1 ? count / (1 + span / 80) : 0;
@@ -217,7 +244,9 @@ export function searchExcerpt(text, terms, maxLength = 200) {
   let offset = 0;
   for (const character of text) {
     const value = fold(character);
-    for (let i = 0; i < value.length; i++) {offsets.push(offset);}
+    for (let i = 0; i < value.length; i++) {
+      offsets.push(offset);
+    }
     normalized += value;
     offset += character.length;
   }
@@ -238,7 +267,9 @@ export function searchExcerpt(text, terms, maxLength = 200) {
   for (let left = 0; left < ranges.length; left++) {
     const candidate = Math.max(0, ranges[left][0] - 40);
     right = Math.max(left, right);
-    while (right < ranges.length && ranges[right][1] <= candidate + maxLength) {right++;}
+    while (right < ranges.length && ranges[right][1] <= candidate + maxLength) {
+      right++;
+    }
     if (right - left > bestCount) {
       start = candidate;
       bestCount = right - left;
@@ -247,15 +278,25 @@ export function searchExcerpt(text, terms, maxLength = 200) {
   const end = Math.min(text.length, start + maxLength);
   const segments = [];
   let cursor = start;
-  if (start) {segments.push({ text: '…', match: false });}
+  if (start) {
+    segments.push({ text: '…', match: false });
+  }
   for (const [from, to] of ranges) {
-    if (to <= cursor || from >= end) {continue;}
-    if (from > cursor) {segments.push({ text: text.slice(cursor, from), match: false });}
+    if (to <= cursor || from >= end) {
+      continue;
+    }
+    if (from > cursor) {
+      segments.push({ text: text.slice(cursor, from), match: false });
+    }
     segments.push({ text: text.slice(Math.max(cursor, from), Math.min(end, to)), match: true });
     cursor = Math.min(end, to);
   }
-  if (cursor < end) {segments.push({ text: text.slice(cursor, end), match: false });}
-  if (end < text.length) {segments.push({ text: '…', match: false });}
+  if (cursor < end) {
+    segments.push({ text: text.slice(cursor, end), match: false });
+  }
+  if (end < text.length) {
+    segments.push({ text: '…', match: false });
+  }
   return segments;
 }
 
@@ -280,7 +321,9 @@ export function mergeHybridResults(
   ]) {
     const seen = new Set();
     results.forEach((result, position) => {
-      if (seen.has(result.path)) {return;}
+      if (seen.has(result.path)) {
+        return;
+      }
       seen.add(result.path);
       const item = merged.get(result.path) || {
         path: result.path,
@@ -291,8 +334,12 @@ export function mergeHybridResults(
       // Reciprocal-rank fusion combines unlike scores without treating cosine as BM25.
       item.rank += 1 / (60 + position + 1);
       item.sources.push(source);
-      if (result.matchedTerms) {item.matchedTerms = result.matchedTerms;}
-      if (result.approximate) {item.approximate = true;}
+      if (result.matchedTerms) {
+        item.matchedTerms = result.matchedTerms;
+      }
+      if (result.approximate) {
+        item.approximate = true;
+      }
       const matches =
         source === 'keyword' ? result.matches : [{ line: result.line, text: result.text }];
       for (const match of matches) {
@@ -303,7 +350,9 @@ export function mergeHybridResults(
           item.matches.push(match);
         }
       }
-      if (source === 'semantic') {item.score = result.score;}
+      if (source === 'semantic') {
+        item.score = result.score;
+      }
       merged.set(result.path, item);
     });
   }

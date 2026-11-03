@@ -62,8 +62,9 @@ export default function EditorSettings({ settings, update }) {
           step='1'
           value={settings.fontSize}
           onChange={(event) => {
-            if (event.target.validity.valid && event.target.value !== '')
-              {update({ fontSize: Number(event.target.value) });}
+            if (event.target.validity.valid && event.target.value !== '') {
+              update({ fontSize: Number(event.target.value) });
+            }
           }}
         />
       </SettingRow>
@@ -87,8 +88,9 @@ export default function EditorSettings({ settings, update }) {
           step='20'
           value={settings.readableWidthPixels}
           onChange={(event) => {
-            if (event.target.validity.valid && event.target.value !== '')
-              {update({ readableWidthPixels: Number(event.target.value) });}
+            if (event.target.validity.valid && event.target.value !== '') {
+              update({ readableWidthPixels: Number(event.target.value) });
+            }
           }}
         />
       </label>
@@ -182,8 +184,9 @@ export default function EditorSettings({ settings, update }) {
           step='1'
           value={settings.sourceTabSize}
           onChange={(event) => {
-            if (event.target.validity.valid && event.target.value !== '')
-              {update({ sourceTabSize: Number(event.target.value) });}
+            if (event.target.validity.valid && event.target.value !== '') {
+              update({ sourceTabSize: Number(event.target.value) });
+            }
           }}
         />
       </SettingRow>

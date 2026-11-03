@@ -25,19 +25,29 @@ function compareVersions(left, right) {
   const compare = (x, y) => (x === y ? 0 : x < y ? -1 : 1);
   for (let index = 0; index < 3; index++) {
     const order = compare(a.core[index], b.core[index]);
-    if (order) {return order;}
+    if (order) {
+      return order;
+    }
   }
-  if (!a.pre.length || !b.pre.length) {return compare(!a.pre.length, !b.pre.length);}
+  if (!a.pre.length || !b.pre.length) {
+    return compare(!a.pre.length, !b.pre.length);
+  }
   for (let index = 0; index < Math.max(a.pre.length, b.pre.length); index++) {
-    if (a.pre[index] === undefined) {return -1;}
-    if (b.pre[index] === undefined) {return 1;}
+    if (a.pre[index] === undefined) {
+      return -1;
+    }
+    if (b.pre[index] === undefined) {
+      return 1;
+    }
     const x = a.pre[index],
       y = b.pre[index],
       xn = /^\d+$/.test(x),
       yn = /^\d+$/.test(y);
     const order =
       xn && yn ? compare(BigInt(x), BigInt(y)) : xn !== yn ? (xn ? -1 : 1) : compare(x, y);
-    if (order) {return order;}
+    if (order) {
+      return order;
+    }
   }
   return 0;
 }
@@ -60,9 +70,12 @@ async function checkForUpdates(
       "GitHub could not find a release accessible without signing in (HTTP 404). The repository may be private, or no stable release may be publicly available. This check does not use your browser's GitHub sign-in. Open View releases to check with your signed-in account."
     );
   }
-  if (response.status === 403 || response.status === 429)
-    {throw new Error('GitHub rate limit reached. Try again later.');}
-  if (!response.ok) {throw new Error(`GitHub release check failed (HTTP ${response.status}).`);}
+  if (response.status === 403 || response.status === 429) {
+    throw new Error('GitHub rate limit reached. Try again later.');
+  }
+  if (!response.ok) {
+    throw new Error(`GitHub release check failed (HTTP ${response.status}).`);
+  }
   const release = await response.json();
   if (!release || release.draft || release.prerelease || typeof release.tag_name !== 'string') {
     throw new Error('GitHub returned an invalid release.');

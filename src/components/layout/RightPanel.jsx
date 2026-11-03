@@ -26,7 +26,9 @@ function Backlinks({ activePath, index, contents, onOpen, settings }) {
   const name = activePath ? baseName(activePath) : '';
   const linked = (activePath && index.backlinks[activePath]) || [];
   const unlinked = useMemo(() => {
-    if (!name || name.length < 3) {return [];}
+    if (!name || name.length < 3) {
+      return [];
+    }
     const lower = name.toLowerCase();
     return Object.keys(contents).filter(
       (p) =>
@@ -37,8 +39,9 @@ function Backlinks({ activePath, index, contents, onOpen, settings }) {
     );
   }, [contents, name, activePath, linked]);
 
-  if (!activePath)
-    {return <div className='empty-hint'>{t('Open a note to see its backlinks.')}</div>;}
+  if (!activePath) {
+    return <div className='empty-hint'>{t('Open a note to see its backlinks.')}</div>;
+  }
   return (
     <div>
       <div className='panel-section-title'>
@@ -79,12 +82,13 @@ function Backlinks({ activePath, index, contents, onOpen, settings }) {
 function Outline({ content, onJump }) {
   const { t } = useI18n();
   const items = useMemo(() => outline(content || ''), [content]);
-  if (!items.length)
-    {return (
+  if (!items.length) {
+    return (
       <div className='empty-hint'>
         {t('No headings. Use F4–F7 to add pockets, hats, blocks and tags.')}
       </div>
-    );}
+    );
+  }
   const labels = ['', 'Pocket', 'Hat', 'Block', 'Tag', 'H5', 'H6'];
   return (
     <div className='outline'>
@@ -108,7 +112,9 @@ function Tags({ index, onTagClick }) {
   const tags = Object.entries(index.tags).sort(
     (a, b) => b[1].length - a[1].length || a[0].localeCompare(b[0])
   );
-  if (!tags.length) {return <div className='empty-hint'>{tr('No #tags yet.')}</div>;}
+  if (!tags.length) {
+    return <div className='empty-hint'>{tr('No #tags yet.')}</div>;
+  }
   return (
     <div className='tag-list'>
       {tags.map(([t, ps]) => (

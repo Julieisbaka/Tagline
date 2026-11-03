@@ -46,8 +46,12 @@ export function baseName(p) {
  */
 export function displayName(p, hideFlowExtension = true, showMarkdownExtension = false) {
   const file = p.split('/').pop();
-  if (isMarkdown(p)) {return showMarkdownExtension ? file : baseName(p);}
-  if (isCanvas(p)) {return baseName(p);}
+  if (isMarkdown(p)) {
+    return showMarkdownExtension ? file : baseName(p);
+  }
+  if (isCanvas(p)) {
+    return baseName(p);
+  }
   return hideFlowExtension ? baseName(p) : file;
 }
 
@@ -92,7 +96,9 @@ function stripCode(content) {
  */
 export function extractLinks(content) {
   const out = [];
-  for (const m of stripCode(content).matchAll(WIKILINK_RE)) {out.push(m[2].trim());}
+  for (const m of stripCode(content).matchAll(WIKILINK_RE)) {
+    out.push(m[2].trim());
+  }
   return out;
 }
 
@@ -104,7 +110,9 @@ export function extractLinks(content) {
 export function extractTags(content) {
   const out = new Set();
   const text = stripCode(content).replace(/^#{1,6}\s/gm, '');
-  for (const m of text.matchAll(TAG_RE)) {out.add(m[2].toLowerCase());}
+  for (const m of text.matchAll(TAG_RE)) {
+    out.add(m[2].toLowerCase());
+  }
   return [...out];
 }
 
@@ -116,14 +124,22 @@ export function extractTags(content) {
  */
 export function resolveLink(target, paths) {
   const exact = paths.find((path) => path.toLowerCase() === target.trim().toLowerCase());
-  if (exact) {return exact;}
+  if (exact) {
+    return exact;
+  }
   const t = target.trim().toLowerCase().replace(/\.md$/, '');
-  if (!t) {return null;}
+  if (!t) {
+    return null;
+  }
   let best = null;
   for (const p of paths) {
     const lower = p.toLowerCase().replace(/\.(md|flow)$/, '');
-    if (lower === t) {return p;}
-    if (!best && (lower.endsWith('/' + t) || baseName(p).toLowerCase() === t)) {best = p;}
+    if (lower === t) {
+      return p;
+    }
+    if (!best && (lower.endsWith('/' + t) || baseName(p).toLowerCase() === t)) {
+      best = p;
+    }
   }
   return best;
 }
@@ -145,7 +161,9 @@ function createLinkResolver(paths) {
    * @returns {void}
    */
   const addFirst = (map, key, path) => {
-    if (!map.has(key)) {map.set(key, path);}
+    if (!map.has(key)) {
+      map.set(key, path);
+    }
   };
   for (const path of paths) {
     const lower = path.toLowerCase();
@@ -164,7 +182,9 @@ function createLinkResolver(paths) {
   return (target) => {
     const normalizedTarget = target.trim().toLowerCase();
     const exact = exactPaths.get(normalizedTarget);
-    if (exact) {return exact;}
+    if (exact) {
+      return exact;
+    }
     const name = normalizedTarget.replace(/\.md$/, '');
     return name ? normalizedPaths.get(name) || fallbackPaths.get(name) || null : null;
   };
@@ -188,19 +208,25 @@ export function buildIndex(contents) {
   const tags = {};
   const unresolved = {};
   for (const p of paths) {
-    if (!isMarkdown(p)) {continue;}
+    if (!isMarkdown(p)) {
+      continue;
+    }
     const content = contents[p] || '';
     links[p] = [];
     for (const target of extractLinks(content)) {
       const resolved = resolve(target);
       if (resolved) {
-        if (!links[p].includes(resolved)) {links[p].push(resolved);}
+        if (!links[p].includes(resolved)) {
+          links[p].push(resolved);
+        }
         (backlinks[resolved] ||= new Set()).add(p);
       } else {
         (unresolved[target] ||= new Set()).add(p);
       }
     }
-    for (const tag of extractTags(content)) {(tags[tag] ||= []).push(p);}
+    for (const tag of extractTags(content)) {
+      (tags[tag] ||= []).push(p);
+    }
   }
   /**
    * Convert object values from sets to plain arrays for indexed results.
@@ -223,7 +249,9 @@ export function rewriteLinks(content, oldPath, newPath, allPaths) {
   const newName = newPath.replace(/\.(md|flow)$/i, '');
   return content.replace(WIKILINK_RE, (full, bang, target, heading = '', alias = '') => {
     const resolved = resolveLink(target, allPaths);
-    if (resolved !== oldPath) {return full;}
+    if (resolved !== oldPath) {
+      return full;
+    }
     return `${bang}[[${newName}${heading}${alias}]]`;
   });
 }
@@ -242,7 +270,9 @@ export function outline(content) {
   const out = [];
   let line = 0;
   for (const token of Lexer.lex(content)) {
-    if (token.type === 'heading') {out.push({ level: token.depth, text: token.text.trim(), line });}
+    if (token.type === 'heading') {
+      out.push({ level: token.depth, text: token.text.trim(), line });
+    }
     line += (token.raw.match(/\n/g) || []).length;
   }
   return out;
@@ -256,8 +286,11 @@ export function outline(content) {
  */
 export function flattenTree(tree, acc = []) {
   for (const n of tree) {
-    if (n.type === 'folder') {flattenTree(n.children, acc);}
-    else {acc.push(n.path);}
+    if (n.type === 'folder') {
+      flattenTree(n.children, acc);
+    } else {
+      acc.push(n.path);
+    }
   }
   return acc;
 }
@@ -271,14 +304,20 @@ export function flattenTree(tree, acc = []) {
 export function fuzzyScore(query, text) {
   const q = query.toLowerCase();
   const t = text.toLowerCase();
-  if (!q) {return 1;}
+  if (!q) {
+    return 1;
+  }
   const idx = t.indexOf(q);
-  if (idx !== -1) {return 1000 - idx - t.length * 0.1;}
+  if (idx !== -1) {
+    return 1000 - idx - t.length * 0.1;
+  }
   let ti = 0;
   let score = 0;
   for (const ch of q) {
     const found = t.indexOf(ch, ti);
-    if (found === -1) {return -1;}
+    if (found === -1) {
+      return -1;
+    }
     score += found === ti ? 5 : 1;
     ti = found + 1;
   }

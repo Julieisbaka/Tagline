@@ -23,8 +23,12 @@ async function uninstallApplication({
   fileSystem = fs,
   environment = process.env,
 }) {
-  if (typeof removeProfile !== 'boolean') {throw new Error('Invalid profile removal choice.');}
-  if (!app.isPackaged) {throw new Error('Uninstall is only available in packaged builds.');}
+  if (typeof removeProfile !== 'boolean') {
+    throw new Error('Invalid profile removal choice.');
+  }
+  if (!app.isPackaged) {
+    throw new Error('Uninstall is only available in packaged builds.');
+  }
 
   const executable = app.getPath('exe');
   const profile = app.getPath('userData');
@@ -35,7 +39,9 @@ async function uninstallApplication({
     try {
       await fileSystem.access(uninstaller);
     } catch (error) {
-      if (error.code === 'ENOENT') {throw new Error('The Tagline uninstaller could not be found.');}
+      if (error.code === 'ENOENT') {
+        throw new Error('The Tagline uninstaller could not be found.');
+      }
       throw error;
     }
     const script = [
@@ -86,9 +92,12 @@ async function uninstallApplication({
   let revealTarget = environment.APPIMAGE || executable;
   if (platform === 'darwin') {
     let parent = path.posix.resolve(executable);
-    while (path.posix.dirname(parent) !== parent && path.posix.extname(parent) !== '.app')
-      {parent = path.posix.dirname(parent);}
-    if (path.posix.extname(parent) !== '.app') {parent = executable;}
+    while (path.posix.dirname(parent) !== parent && path.posix.extname(parent) !== '.app') {
+      parent = path.posix.dirname(parent);
+    }
+    if (path.posix.extname(parent) !== '.app') {
+      parent = executable;
+    }
     revealTarget = parent;
   }
   shell.showItemInFolder(revealTarget);

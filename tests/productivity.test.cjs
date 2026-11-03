@@ -103,7 +103,9 @@ test('citation URLs reject local networks, credentials and non-web schemes', asy
     '::ffff:127.0.0.1',
     'fc00::1',
     '2001:db8::1',
-  ]) { assert.equal(publicAddress(address), false, address); }
+  ]) {
+    assert.equal(publicAddress(address), false, address);
+  }
   assert.equal(publicAddress('8.8.8.8'), true);
   assert.equal(publicAddress('2606:4700:4700::1111'), true);
   for (const url of [
@@ -113,7 +115,9 @@ test('citation URLs reject local networks, credentials and non-web schemes', asy
     'http://[::1]',
     'https://user:password@example.com',
     'https://example.com:8080',
-  ]) { assert.throws(() => validateUrl(url)); }
+  ]) {
+    assert.throws(() => validateUrl(url));
+  }
   await assert.rejects(extractCitation('http://127.0.0.1'), /private network/);
 });
 
@@ -189,7 +193,9 @@ test('citation transport pins public DNS results and handles redirects, errors a
       };
       process.nextTick(() =>
         options.lookup(url.hostname, { all: true }, (error, addresses) => {
-          if (error) { return request.destroy(error); }
+          if (error) {
+            return request.destroy(error);
+          }
           assert.equal(addresses[0].address, address);
           const response = new EventEmitter();
           response.statusCode = route === 'redirect' ? 302 : route === 'denied' ? 403 : 200;
@@ -199,17 +205,19 @@ test('citation transport pins public DNS results and handles redirects, errors a
           };
           response.resume = () => request.emit('close');
           callback(response);
-          if (response.statusCode !== 200) { return; }
+          if (response.statusCode !== 200) {
+            return;
+          }
           const body = crossref
             ? JSON.stringify({
-              status: 'ok',
-              message: {
-                title: ['Public metadata title'],
-                author: [{ given: 'Ada', family: 'Lovelace' }],
-                issued: { 'date-parts': [[2024, 3, 5]] },
-                'container-title': ['Journal of Scholarly Metadata'],
-              },
-            })
+                status: 'ok',
+                message: {
+                  title: ['Public metadata title'],
+                  author: [{ given: 'Ada', family: 'Lovelace' }],
+                  issued: { 'date-parts': [[2024, 3, 5]] },
+                  'container-title': ['Journal of Scholarly Metadata'],
+                },
+              })
             : route === 'large'
               ? 'a'.repeat(2_000_001)
               : '<meta name="author" content="A Writer"><meta property="og:title" content="Example story">';
@@ -346,9 +354,9 @@ test('platform: OS flow opens handle cold starts, second instances, macOS events
     const win = {
       isDestroyed: () => false,
       isMinimized: () => false,
-      show() { },
+      show() {},
       focus: () => focused++,
-      webContents: { send() { } },
+      webContents: { send() {} },
     };
     registerFlowFiles({
       app,
@@ -358,7 +366,7 @@ test('platform: OS flow opens handle cold starts, second instances, macOS events
         },
       },
       getWindow: () => win,
-      createWindow() { },
+      createWindow() {},
       getVaultRoot: () => current,
       openVault: async (dir) => {
         current = dir;
@@ -470,7 +478,9 @@ test('platform: extension manifests validate ids, permissions, commands and cont
       path.join(userData, 'extensions', folder, 'manifest.json'),
       JSON.stringify(manifest)
     );
-    for (const [name, text] of Object.entries(files)) { await fs.writeFile(path.join(userData, 'extensions', folder, name), text); }
+    for (const [name, text] of Object.entries(files)) {
+      await fs.writeFile(path.join(userData, 'extensions', folder, name), text);
+    }
   };
   await write(
     'a',
@@ -520,7 +530,7 @@ test('platform: extension manifests validate ids, permissions, commands and cont
 });
 
 test('extension default shortcuts never shadow built-ins and .flow labels follow the setting', async () => {
-  global.window = { api: { platform: 'win32' }, addEventListener() { }, dispatchEvent() { } };
+  global.window = { api: { platform: 'win32' }, addEventListener() {}, dispatchEvent() {} };
   const { usableDefaultKey, extensionCommandId } = await import('../src/lib/extensions.js');
   const { displayName } = await import('../src/lib/vault.js');
   assert.equal(extensionCommandId('word-tools', 'count'), 'ext:word-tools.count');

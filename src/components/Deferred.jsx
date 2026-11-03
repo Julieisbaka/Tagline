@@ -38,17 +38,23 @@ export function deferred(load, modal = false) {
         });
       pending.then(
         (view) => {
-          if (active) {setView(() => view);}
+          if (active) {
+            setView(() => view);
+          }
         },
         (error) => {
-          if (active) {setError(error);}
+          if (active) {
+            setError(error);
+          }
         }
       );
       return () => {
         active = false;
       };
     }, []);
-    if (error) {throw error;}
+    if (error) {
+      throw error;
+    }
     return View ? <View {...viewProps} /> : status(null);
   }
   return function Deferred(props) {

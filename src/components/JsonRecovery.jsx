@@ -12,15 +12,20 @@ export default function JsonRecovery({ path, content, onRestore }) {
     let active = true;
     setSaved(null);
     setError('');
-    if (path)
-      {window.api
+    if (path) {
+      window.api
         .latestWorkingHistory(path)
         .then((revision) => {
-          if (active) {setSaved(revision);}
+          if (active) {
+            setSaved(revision);
+          }
         })
         .catch((failure) => {
-          if (active) {setError(failure.message);}
-        });}
+          if (active) {
+            setError(failure.message);
+          }
+        });
+    }
     return () => {
       active = false;
     };
@@ -37,8 +42,9 @@ export default function JsonRecovery({ path, content, onRestore }) {
                   'Restore the most recent working save? The current source will be kept in revision history.'
                 )
               ))
-            )
-              {return;}
+            ) {
+              return;
+            }
             setBusy(true);
             setError('');
             try {

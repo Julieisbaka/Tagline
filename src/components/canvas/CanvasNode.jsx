@@ -29,8 +29,11 @@ const CanvasNode = memo(function CanvasNode({
   const resolve = useCallback((target) => resolveLink(target, paths), [paths]);
   const link = node.type === 'link' ? resolveCanvasLink(node.url, paths) : null;
   const openLinkNode = () => {
-    if (link?.type === 'file') {onOpenFile(link.path, link.heading ? `#${link.heading}` : undefined);}
-    else if (link?.type === 'web') {onOpenUrl(link.url);}
+    if (link?.type === 'file') {
+      onOpenFile(link.path, link.heading ? `#${link.heading}` : undefined);
+    } else if (link?.type === 'web') {
+      onOpenUrl(link.url);
+    }
   };
   return (
     <article
@@ -39,7 +42,9 @@ const CanvasNode = memo(function CanvasNode({
       tabIndex={0}
       aria-label={t('Canvas node: {type}', { type: t(node.type) })}
       onKeyDown={(event) => {
-        if (event.target !== event.currentTarget) {return;}
+        if (event.target !== event.currentTarget) {
+          return;
+        }
         if (event.key === 'Enter' || event.key === ' ') {
           event.preventDefault();
           onSelect(node.id);
@@ -71,7 +76,9 @@ const CanvasNode = memo(function CanvasNode({
         className='canvas-node-header'
         data-drag-handle
         onPointerDown={(event) => {
-          if (event.button !== 0 || event.target.closest('button, input')) {return;}
+          if (event.button !== 0 || event.target.closest('button, input')) {
+            return;
+          }
           event.preventDefault();
           onStartGesture(event, { id: node.id, type: 'move' });
         }}
@@ -145,7 +152,9 @@ const CanvasNode = memo(function CanvasNode({
               disabled={!resolveLink(node.file, paths)}
               onClick={() => {
                 const path = resolveLink(node.file, paths);
-                if (path) {onOpenFile(path, node.subpath);}
+                if (path) {
+                  onOpenFile(path, node.subpath);
+                }
               }}
             >
               {node.file || t('Open file')}
@@ -196,7 +205,9 @@ const CanvasNode = memo(function CanvasNode({
           className='canvas-resize-handle'
           aria-label={t('Resize node')}
           onPointerDown={(event) => {
-            if (event.button !== 0) {return;}
+            if (event.button !== 0) {
+              return;
+            }
             event.preventDefault();
             event.stopPropagation();
             onStartGesture(event, {

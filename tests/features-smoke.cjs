@@ -58,10 +58,12 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
   childProcess.execFile = (exe, args, options, callback) => {
     if (args[0] === '--version' || args.some((a) => a === '--from=docx')) {
       setImmediate(() => {
-        if (!pandocAvailable)
-          {return callback(Object.assign(new Error('Not found'), { code: 'ENOENT' }));}
-        if (importFails && args[0] !== '--version')
-          {return callback(new Error('Document conversion failed'));}
+        if (!pandocAvailable) {
+          return callback(Object.assign(new Error('Not found'), { code: 'ENOENT' }));
+        }
+        if (importFails && args[0] !== '--version') {
+          return callback(new Error('Document conversion failed'));
+        }
         callback(
           null,
           args[0] === '--version'
@@ -97,7 +99,9 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
       const wc = win.webContents;
       const errors = [];
       wc.on('console-message', (e) => {
-        if (e.level === 'error') {errors.push(e.message);}
+        if (e.level === 'error') {
+          errors.push(e.message);
+        }
       });
       const js = (s) =>
         wc.executeJavaScript(s).catch((error) => {
@@ -106,7 +110,9 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
         });
       const wait = async (s) => {
         for (let i = 0; i < 100; i++) {
-          if (await js(s)) {return;}
+          if (await js(s)) {
+            return;
+          }
           await delay(100);
         }
         throw new Error('Timed out: ' + s);

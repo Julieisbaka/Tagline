@@ -55,7 +55,9 @@ function accelerator(id) {
   return value ? value.replace(/\bMod\b/g, 'CmdOrCtrl').replace(/\bMeta\b/g, 'Super') : undefined;
 }
 
-if (process.platform === 'win32') {app.setAppUserModelId('app.tagline');}
+if (process.platform === 'win32') {
+  app.setAppUserModelId('app.tagline');
+}
 // Apps launched from Finder/Dock get a minimal PATH; add Homebrew and MacTeX so Pandoc and its PDF engines resolve.
 if (process.platform === 'darwin') {
   const current = (process.env.PATH || '').split(':').filter(Boolean);
@@ -82,7 +84,9 @@ function writeConfig(patch) {
 
 // Resolve a vault-relative path and refuse anything that escapes the vault.
 function resolveInVault(rel = '') {
-  if (!vaultRoot) {throw new Error('No vault open');}
+  if (!vaultRoot) {
+    throw new Error('No vault open');
+  }
   const full = path.resolve(vaultRoot, rel);
   const relCheck = path.relative(vaultRoot, full);
   if (relCheck.startsWith('..') || path.isAbsolute(relCheck)) {
@@ -98,8 +102,9 @@ function uniquePath(rel, folder = false, underscoreFolders = false) {
   const stem = rel.slice(0, rel.length - ext.length);
   let candidate = rel;
   let i = 1;
-  while (fssync.existsSync(resolveInVault(candidate)))
-    {candidate = `${stem}${underscoreFolders ? '_' : ' '}${i++}${ext}`;}
+  while (fssync.existsSync(resolveInVault(candidate))) {
+    candidate = `${stem}${underscoreFolders ? '_' : ' '}${i++}${ext}`;
+  }
   return candidate;
 }
 
@@ -140,7 +145,9 @@ async function listRecentVaults() {
       try {
         exists = (await fs.stat(root)).isDirectory();
       } catch (error) {
-        if (error.code !== 'ENOENT' && error.code !== 'ENOTDIR') {throw error;}
+        if (error.code !== 'ENOENT' && error.code !== 'ENOTDIR') {
+          throw error;
+        }
       }
       return { root, name: path.basename(root), exists };
     })
@@ -153,15 +160,18 @@ function registerIpc() {
     if (
       event.sender !== win?.webContents ||
       !['undo', 'redo', 'cut', 'copy', 'paste', 'selectAll'].includes(action)
-    )
-      {throw new Error('Invalid text editing action.');}
+    ) {
+      throw new Error('Invalid text editing action.');
+    }
     return event.sender[action]();
   });
   const updates = createUpdateManager({
     app,
     shell,
     notify: (state) => {
-      if (win && !win.isDestroyed()) {win.webContents.send('app:updateState', state);}
+      if (win && !win.isDestroyed()) {
+        win.webContents.send('app:updateState', state);
+      }
     },
   });
   ipcMain.handle('app:installation', () => installationInfo(app));
@@ -170,16 +180,22 @@ function registerIpc() {
   ipcMain.handle('app:downloadUpdate', () => updates.download());
   ipcMain.handle('app:installUpdate', async () => {
     const result = await updates.installUpdate(saveBeforeUpdate);
-    if (!result.manual) {app.quit();}
+    if (!result.manual) {
+      app.quit();
+    }
     return result;
   });
   ipcMain.handle('app:openProjectPage', (_event, page) => {
-    if (!['repository', 'releases'].includes(page)) {throw new Error('Unknown project page.');}
+    if (!['repository', 'releases'].includes(page)) {
+      throw new Error('Unknown project page.');
+    }
     return shell.openExternal(page === 'repository' ? REPOSITORY_URL : RELEASES_URL);
   });
   ipcMain.handle('app:uninstall', async (_event, removeProfile) => {
     const result = await uninstallApplication({ app, shell, removeProfile });
-    if (!result.manual) {app.quit();}
+    if (!result.manual) {
+      app.quit();
+    }
     return result;
   });
   const history = createRevisionHistory({
@@ -217,14 +233,17 @@ function registerIpc() {
   });
   ipcMain.handle('vault:getLast', async () => {
     const { lastVault } = readConfig();
-    if (lastVault && fssync.existsSync(lastVault)) {return openVault(lastVault);}
+    if (lastVault && fssync.existsSync(lastVault)) {
+      return openVault(lastVault);
+    }
     return null;
   });
 
   ipcMain.handle('vault:listRecent', listRecentVaults);
   ipcMain.handle('vault:openRecent', async (_event, root) => {
-    if (typeof root !== 'string' || !path.isAbsolute(root))
-      {throw new Error('Invalid saved vault path.');}
+    if (typeof root !== 'string' || !path.isAbsolute(root)) {
+      throw new Error('Invalid saved vault path.');
+    }
     const recent = await listRecentVaults();
     const key = (value) => (process.platform === 'win32' ? value.toLowerCase() : value);
     if (!recent?.some((item) => item.exists && key(item.root) === key(path.resolve(root)))) {
@@ -233,8 +252,9 @@ function registerIpc() {
     return openVault(root);
   });
   ipcMain.handle('vault:forgetRecent', (_event, root) => {
-    if (typeof root !== 'string' || !path.isAbsolute(root))
-      {throw new Error('Invalid saved vault path.');}
+    if (typeof root !== 'string' || !path.isAbsolute(root)) {
+      throw new Error('Invalid saved vault path.');
+    }
     const key = (value) => (process.platform === 'win32' ? value.toLowerCase() : value);
     const recent = readConfig().recentVaults;
     const recentVaults = (Array.isArray(recent) ? recent : []).filter(
@@ -250,15 +270,18 @@ function registerIpc() {
     return true;
   });
   ipcMain.handle('vault:revealRecent', async (_event, root) => {
-    if (typeof root !== 'string' || !path.isAbsolute(root))
-      {throw new Error('Invalid saved vault path.');}
+    if (typeof root !== 'string' || !path.isAbsolute(root)) {
+      throw new Error('Invalid saved vault path.');
+    }
     const recent = await listRecentVaults();
     const key = (value) => (process.platform === 'win32' ? value.toLowerCase() : value);
     if (!recent?.some((item) => item.exists && key(item.root) === key(path.resolve(root)))) {
       throw new Error('That saved vault is unavailable.');
     }
     const error = await shell.openPath(root);
-    if (error) {throw new Error(error);}
+    if (error) {
+      throw new Error(error);
+    }
   });
 
   ipcMain.handle('vault:choose', async () => {
@@ -266,7 +289,9 @@ function registerIpc() {
       title: 'Open or create a vault folder',
       properties: ['openDirectory', 'createDirectory'],
     });
-    if (res.canceled || !res.filePaths[0]) {return null;}
+    if (res.canceled || !res.filePaths[0]) {
+      return null;
+    }
     return openVault(res.filePaths[0]);
   });
 
@@ -275,12 +300,16 @@ function registerIpc() {
       title: 'Choose a folder for the sample vault',
       properties: ['openDirectory', 'createDirectory'],
     });
-    if (res.canceled || !res.filePaths[0]) {return null;}
+    if (res.canceled || !res.filePaths[0]) {
+      return null;
+    }
     const info = await openVault(path.join(res.filePaths[0], 'Tagline Sample Vault'));
     for (const [rel, content] of Object.entries(SAMPLE_VAULT)) {
       const full = resolveInVault(rel);
       await fs.mkdir(path.dirname(full), { recursive: true });
-      if (!fssync.existsSync(full)) {await fs.writeFile(full, content, 'utf8');}
+      if (!fssync.existsSync(full)) {
+        await fs.writeFile(full, content, 'utf8');
+      }
     }
     return info;
   });
@@ -308,14 +337,18 @@ function registerIpc() {
       try {
         mode = (await fs.stat(full)).mode;
       } catch (error) {
-        if (error.code !== 'ENOENT') {throw error;}
+        if (error.code !== 'ENOENT') {
+          throw error;
+        }
       }
       const temporary = path.join(path.dirname(full), `.tagline-save-${randomUUID()}.tmp`);
       try {
         await fs.writeFile(temporary, content, { encoding: 'utf8', flag: 'wx', mode });
         await fs.rename(temporary, full);
       } catch (error) {
-        if (error.code !== 'EEXIST') {await fs.rm(temporary, { force: true });}
+        if (error.code !== 'EEXIST') {
+          await fs.rm(temporary, { force: true });
+        }
         throw error;
       }
       return true;
@@ -330,13 +363,17 @@ function registerIpc() {
         await fs.writeFile(resolveInVault(finalRel), content, { encoding: 'utf8', flag: 'wx' });
         return toPosix(finalRel);
       } catch (error) {
-        if (error.code !== 'EEXIST') {throw error;}
+        if (error.code !== 'EEXIST') {
+          throw error;
+        }
       }
     }
   });
 
   ipcMain.handle('fs:mkdir', async (_e, rel, underscoreFolders) => {
-    if (typeof underscoreFolders !== 'boolean') {throw new Error('Invalid folder path preference.');}
+    if (typeof underscoreFolders !== 'boolean') {
+      throw new Error('Invalid folder path preference.');
+    }
     await fs.mkdir(path.dirname(resolveInVault(rel)), { recursive: true });
     while (true) {
       const finalRel = uniquePath(rel, true, underscoreFolders);
@@ -344,14 +381,18 @@ function registerIpc() {
         await fs.mkdir(resolveInVault(finalRel));
         return toPosix(finalRel);
       } catch (error) {
-        if (error.code !== 'EEXIST') {throw error;}
+        if (error.code !== 'EEXIST') {
+          throw error;
+        }
       }
     }
   });
 
   ipcMain.handle('fs:rename', async (_e, from, to) => {
     const dest = resolveInVault(to);
-    if (fssync.existsSync(dest)) {return { ok: false, code: 'destination-exists' };}
+    if (fssync.existsSync(dest)) {
+      return { ok: false, code: 'destination-exists' };
+    }
     const source = resolveInVault(from);
     const stat = await fs.stat(source);
     let documents = [];
@@ -359,8 +400,11 @@ function registerIpc() {
       const collect = (nodes, base) => {
         for (const node of nodes) {
           const relative = `${base}/${node.path}`;
-          if (node.type === 'folder') {collect(node.children, base);}
-          else {documents.push(relative);}
+          if (node.type === 'folder') {
+            collect(node.children, base);
+          } else {
+            documents.push(relative);
+          }
         }
       };
       collect(await walk(source), from);
@@ -370,8 +414,9 @@ function registerIpc() {
     await fs.mkdir(path.dirname(dest), { recursive: true });
     const migrated = [];
     const rollbackHistory = async () => {
-      for (const [oldPath, newPath] of [...migrated].reverse())
-        {await history.rename(newPath, oldPath);}
+      for (const [oldPath, newPath] of [...migrated].reverse()) {
+        await history.rename(newPath, oldPath);
+      }
     };
     try {
       for (const oldPath of documents) {
@@ -389,7 +434,9 @@ function registerIpc() {
 
   ipcMain.handle('fs:delete', async (_e, rel) => {
     const full = resolveInVault(rel);
-    if (full === vaultRoot) {throw new Error('Refusing to delete vault root');}
+    if (full === vaultRoot) {
+      throw new Error('Refusing to delete vault root');
+    }
     await shell.trashItem(full);
     return true;
   });
@@ -454,18 +501,22 @@ function createWindow() {
         clearTimeout(timeout);
         ipcMain.removeListener('app:closeReady', saved);
         target.removeListener('closed', closed);
-        if (error) {reject(error);}
-        else {resolve();}
+        if (error) {
+          reject(error);
+        } else {
+          resolve();
+        }
       };
       const saved = (event, success) => {
-        if (event.sender === target.webContents)
-          {finish(
+        if (event.sender === target.webContents) {
+          finish(
             success === true
               ? null
               : new Error(
                   'Pending edits could not be saved. Resolve the save error before installing.'
                 )
-          );}
+          );
+        }
       };
       const closed = () => finish(new Error('The workspace closed before the update could start.'));
       const timeout = setTimeout(
@@ -477,16 +528,25 @@ function createWindow() {
       target.webContents.send('app:prepareClose');
     });
   const saveHandlerReady = (event, ready) => {
-    if (event.sender === win?.webContents) {hasSaveHandler = ready === true;}
+    if (event.sender === win?.webContents) {
+      hasSaveHandler = ready === true;
+    }
   };
   const closeReady = (event, success) => {
-    if (event.sender !== win?.webContents || !preparingClose) {return;}
+    if (event.sender !== win?.webContents || !preparingClose) {
+      return;
+    }
     preparingClose = false;
     if (success === true) {
       readyToClose = true;
-      if (quitRequested) {app.quit();}
-      else {win.close();}
-    } else {quitRequested = false;}
+      if (quitRequested) {
+        app.quit();
+      } else {
+        win.close();
+      }
+    } else {
+      quitRequested = false;
+    }
   };
   ipcMain.on('app:closeReady', closeReady);
   ipcMain.on('app:saveHandlerReady', saveHandlerReady);
@@ -512,32 +572,46 @@ function createWindow() {
   });
   win.webContents.on('render-process-gone', () => closeWebsiteView());
   win.webContents.on('did-start-navigation', (_event, _url, isInPlace, isMainFrame) => {
-    if (isMainFrame && !isInPlace) {closeWebsiteView();}
+    if (isMainFrame && !isInPlace) {
+      closeWebsiteView();
+    }
   });
   const openWebsite = (url) => win.webContents.send('browser:link', url);
   win.webContents.setWindowOpenHandler(({ url }) => {
-    if (/^https?:/i.test(url)) {openWebsite(url);}
+    if (/^https?:/i.test(url)) {
+      openWebsite(url);
+    }
     return { action: 'deny' };
   });
   win.webContents.on('will-frame-navigate', (event) => {
-    if (event.isMainFrame) {return;}
+    if (event.isMainFrame) {
+      return;
+    }
     const destination = new URL(event.url);
-    if (destination.protocol === 'about:' && ['srcdoc', 'blank'].includes(destination.pathname))
-      {return;}
+    if (destination.protocol === 'about:' && ['srcdoc', 'blank'].includes(destination.pathname)) {
+      return;
+    }
     const allowed = ['extension-sandbox.html', 'extension-webview.html'].map((file) =>
       isDev
         ? `http://localhost:5173/${file}`
         : require('node:url').pathToFileURL(path.join(__dirname, '..', 'dist', file)).href
     );
-    if (!allowed.includes(destination.href)) {event.preventDefault();}
+    if (!allowed.includes(destination.href)) {
+      event.preventDefault();
+    }
   });
   win.webContents.on('will-navigate', (e, url) => {
     const destination = new URL(url);
     const current = new URL(win.webContents.getURL());
-    if (destination.origin === current.origin && destination.pathname === current.pathname) {return;}
+    if (destination.origin === current.origin && destination.pathname === current.pathname) {
+      return;
+    }
     e.preventDefault();
-    if (/^https?:/i.test(url)) {openWebsite(url);}
-    else {console.warn('Blocked navigation outside the application document:', url);}
+    if (/^https?:/i.test(url)) {
+      openWebsite(url);
+    } else {
+      console.warn('Blocked navigation outside the application document:', url);
+    }
   });
 
   if (isDev) {
@@ -554,7 +628,9 @@ function buildMenu() {
     if (!win || win.isDestroyed()) {
       createWindow();
       win.webContents.once('did-finish-load', () => win.webContents.send('menu:command', name));
-    } else {win.webContents.send('menu:command', name);}
+    } else {
+      win.webContents.send('menu:command', name);
+    }
   };
   const showExtensionSecurity = async () => {
     const options = {
@@ -583,7 +659,9 @@ function buildMenu() {
       win && !win.isDestroyed()
         ? await dialog.showMessageBox(win, options)
         : await dialog.showMessageBox(options);
-    if (result.response === 0) {command('openExtensionsSettings')();}
+    if (result.response === 0) {
+      command('openExtensionsSettings')();
+    }
   };
   const template = [
     ...(process.platform === 'darwin'
@@ -667,9 +745,7 @@ function buildMenu() {
     },
     {
       label: 'Help',
-      submenu: [
-        { label: 'Extension security and review…', click: showExtensionSecurity },
-      ],
+      submenu: [{ label: 'Extension security and review…', click: showExtensionSecurity }],
     },
   ];
   // Custom menu so app shortcuts like Ctrl+W/Ctrl+R don't close/reload the window.
@@ -685,10 +761,11 @@ const primary = registerFlowFiles({
   openVault,
 });
 
-if (primary)
-  {app.whenReady().then(() => {
-    if (process.platform === 'darwin')
-      {app.dock.setIcon(path.join(__dirname, '..', 'build', 'icon.png'));}
+if (primary) {
+  app.whenReady().then(() => {
+    if (process.platform === 'darwin') {
+      app.dock.setIcon(path.join(__dirname, '..', 'build', 'icon.png'));
+    }
     app.setAboutPanelOptions({
       applicationName: 'Tagline',
       applicationVersion: installationInfo(app).version,
@@ -733,14 +810,19 @@ if (primary)
     registerSummarization({ app, ipcMain });
     createWindow();
     app.on('activate', () => {
-      if (BrowserWindow.getAllWindows().length === 0) {createWindow();}
+      if (BrowserWindow.getAllWindows().length === 0) {
+        createWindow();
+      }
     });
-  });}
+  });
+}
 
 let quitRequested = false;
 app.on('before-quit', () => {
   quitRequested = true;
 });
 app.on('window-all-closed', () => {
-  if (process.platform !== 'darwin') {app.quit();}
+  if (process.platform !== 'darwin') {
+    app.quit();
+  }
 });

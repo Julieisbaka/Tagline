@@ -9,7 +9,9 @@ if (!process.versions.electron) {
       stdio: 'inherit',
       timeout: 120000,
     });
-    if (result.error) {throw result.error;}
+    if (result.error) {
+      throw result.error;
+    }
     process.exitCode = result.status ?? 1;
   } finally {
     fs.rmSync(root, { recursive: true, force: true, maxRetries: 20, retryDelay: 100 });
@@ -26,7 +28,9 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 (async () => {
   const root = process.env.TAGLINE_PRODUCTIVITY_ROOT;
-  if (!root) {throw new Error('Run through npm run test:productivity.');}
+  if (!root) {
+    throw new Error('Run through npm run test:productivity.');
+  }
   const profile = path.join(root, 'profile');
   app.setPath('userData', profile);
   if (process.env.TAGLINE_SECONDARY) {
@@ -62,11 +66,15 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
           throw new Error(`${error.message}\nScript: ${code}`);
         });
       wc.on('console-message', (event) => {
-        if (event.level === 'error') {console.error('Renderer:', event.message);}
+        if (event.level === 'error') {
+          console.error('Renderer:', event.message);
+        }
       });
       const wait = async (code) => {
         for (let i = 0; i < 100; i++) {
-          if (await js(code)) {return;}
+          if (await js(code)) {
+            return;
+          }
           await delay(100);
         }
         throw new Error('Timed out: ' + code);

@@ -50,7 +50,9 @@ export function normalizeCheckup(options = {}) {
 export function scanCards(files) {
   const cards = [];
   for (const [path, content] of Object.entries(files || {})) {
-    if (!isMarkdown(path)) {continue;}
+    if (!isMarkdown(path)) {
+      continue;
+    }
     const text = String(content ?? '');
     const lines = text.split(/\r\n?|\n/);
     const references = markdown.lexer(splitFrontmatter(text).body).links;
@@ -103,8 +105,12 @@ export function auditCards(cards, options = {}, now = new Date()) {
         const missing = requiredFields.filter(
           (field) => !card.citation[field] && !uncertain.includes(field)
         );
-        if (missing.length) {issues.push({ ...base, kind: 'missing_fields', fields: missing });}
-        if (uncertain.length) {issues.push({ ...base, kind: 'uncertain_fields', fields: uncertain });}
+        if (missing.length) {
+          issues.push({ ...base, kind: 'missing_fields', fields: missing });
+        }
+        if (uncertain.length) {
+          issues.push({ ...base, kind: 'uncertain_fields', fields: uncertain });
+        }
       }
     }
     if (checks.stale && card.citation?.year) {
@@ -135,7 +141,9 @@ export function linkIssues(cards, results) {
   for (const card of cards) {
     const url = card.citation?.url;
     const result = url && results?.[url];
-    if (result?.status !== 'dead') {continue;}
+    if (result?.status !== 'dead') {
+      continue;
+    }
     issues.push({
       path: card.path,
       card: card.title,
@@ -164,7 +172,9 @@ export function sourceIssues(cards, results) {
   for (const card of cards) {
     const url = card.citation?.url;
     const result = url && results[url];
-    if (!result) {continue;}
+    if (!result) {
+      continue;
+    }
     const base = { path: card.path, card: card.title, lineIndex: card.lineIndex };
     if (result.error) {
       issues.push({ ...base, kind: 'source_unavailable', reason: result.error });
@@ -174,10 +184,14 @@ export function sourceIssues(cards, results) {
     for (const field of comparableFields) {
       const citationValue = card.citation[field];
       const sourceValue = result.metadata?.[field];
-      if (!citationValue || !sourceValue || card.citationUncertainFields?.includes(field)) {continue;}
+      if (!citationValue || !sourceValue || card.citationUncertainFields?.includes(field)) {
+        continue;
+      }
       const cited = normalizeField(citationValue);
       const source = normalizeField(sourceValue);
-      if (!cited || !source) {continue;}
+      if (!cited || !source) {
+        continue;
+      }
       compared++;
       const sameAuthor =
         field === 'author' &&
@@ -186,7 +200,9 @@ export function sourceIssues(cards, results) {
         issues.push({ ...base, kind: 'source_mismatch', field, citationValue, sourceValue });
       }
     }
-    if (!compared) {issues.push({ ...base, kind: 'source_not_comparable' });}
+    if (!compared) {
+      issues.push({ ...base, kind: 'source_not_comparable' });
+    }
   }
   return issues;
 }
@@ -199,7 +215,9 @@ export function annotateEvidence(files, cards, issues, categories, describe) {
   const updated = { ...files };
   const byPath = new Map();
   for (const card of cards) {
-    if (!byPath.has(card.path)) {byPath.set(card.path, []);}
+    if (!byPath.has(card.path)) {
+      byPath.set(card.path, []);
+    }
     byPath.get(card.path).push(card);
   }
   for (const [path, fileCards] of byPath) {
@@ -212,11 +230,15 @@ export function annotateEvidence(files, cards, issues, categories, describe) {
       let end = card.lineIndex + 1;
       while (end < lines.length) {
         let next = end;
-        while (next < lines.length && !lines[next].trim()) {next++;}
+        while (next < lines.length && !lines[next].trim()) {
+          next++;
+        }
         const match = lines[next]?.match(
           /^<!-- Evidence checkup \((citation|link|source)\): (.*) -->$/
         );
-        if (!match) {break;}
+        if (!match) {
+          break;
+        }
         spacing.push(...lines.slice(end, next));
         comments.set(match[1], lines[next]);
         end = next + 1;
@@ -240,12 +262,14 @@ export function annotateEvidence(files, cards, issues, categories, describe) {
               .replace(/[\r\n]+/g, ' ')
               .replace(/-{2,}/g, (dashes) => [...dashes].join(' '))
           );
-        if (messages.length)
-          {comments.set(
+        if (messages.length) {
+          comments.set(
             category,
             `<!-- Evidence checkup (${category}): ${messages.join(' | ')} -->`
-          );}
-        else {comments.delete(category);}
+          );
+        } else {
+          comments.delete(category);
+        }
       }
       lines.splice(card.lineIndex + 1, end - card.lineIndex - 1, ...comments.values(), ...spacing);
     }

@@ -57,11 +57,14 @@ export default function ConfigurableBar({
       aria-label={t(label)}
       tabIndex={0}
       onContextMenu={(event) => {
-        if (!event.target.closest('.context-menu'))
-          {context(event, event.target.closest('[data-bar-item]')?.dataset.barItem);}
+        if (!event.target.closest('.context-menu')) {
+          context(event, event.target.closest('[data-bar-item]')?.dataset.barItem);
+        }
       }}
       onKeyDown={(event) => {
-        if (event.key !== 'ContextMenu' && !(event.key === 'F10' && event.shiftKey)) {return;}
+        if (event.key !== 'ContextMenu' && !(event.key === 'F10' && event.shiftKey)) {
+          return;
+        }
         const target = event.target.closest('[data-bar-item]') || event.currentTarget;
         const rect = target.getBoundingClientRect();
         context(
@@ -72,7 +75,9 @@ export default function ConfigurableBar({
     >
       {items.map((id) => {
         const content = renderItem(id);
-        if (!content) {return null;}
+        if (!content) {
+          return null;
+        }
         return (
           <span
             className='configurable-bar-item'

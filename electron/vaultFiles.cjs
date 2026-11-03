@@ -11,7 +11,9 @@ async function loadVault(dir, base, includeContents) {
   for (const directory of directories) {
     const entries = await fs.readdir(directory.dir, { withFileTypes: true });
     for (const entry of entries) {
-      if (entry.name.startsWith('.')) {continue;}
+      if (entry.name.startsWith('.')) {
+        continue;
+      }
       const rel = directory.base ? `${directory.base}/${entry.name}` : entry.name;
       const full = path.join(directory.dir, entry.name);
       if (entry.isDirectory()) {
@@ -35,20 +37,29 @@ async function loadVault(dir, base, includeContents) {
       while (next < files.length) {
         const { full, node } = files[next++];
         node.mtime = (await fs.stat(full)).mtimeMs;
-        if (includeContents) {texts.set(node.path, await fs.readFile(full, 'utf8'));}
+        if (includeContents) {
+          texts.set(node.path, await fs.readFile(full, 'utf8'));
+        }
       }
     })
   );
   const failed = workers.find((worker) => worker.status === 'rejected');
-  if (failed) {throw failed.reason;}
+  if (failed) {
+    throw failed.reason;
+  }
   const contents = {};
   const collect = (nodes) => {
     for (const node of nodes) {
-      if (node.type === 'folder') {collect(node.children);}
-      else {contents[node.path] = texts.get(node.path);}
+      if (node.type === 'folder') {
+        collect(node.children);
+      } else {
+        contents[node.path] = texts.get(node.path);
+      }
     }
   };
-  if (includeContents) {collect(tree);}
+  if (includeContents) {
+    collect(tree);
+  }
   return { tree, contents };
 }
 

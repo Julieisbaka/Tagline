@@ -5,12 +5,17 @@ export default function TextContextMenu() {
   const [menu, setMenu] = useState(null);
   useEffect(() => {
     const open = (event) => {
-      if (event.defaultPrevented || event.target.closest('.context-menu')) {return;}
+      if (event.defaultPrevented || event.target.closest('.context-menu')) {
+        return;
+      }
       const target = event.target.closest('input, textarea, [contenteditable="true"]');
       const selection = window.getSelection();
-      if (!target && !selection?.toString()) {return;}
-      if (target?.matches('input[type="checkbox"], input[type="radio"], input[type="range"]'))
-        {return;}
+      if (!target && !selection?.toString()) {
+        return;
+      }
+      if (target?.matches('input[type="checkbox"], input[type="radio"], input[type="range"]')) {
+        return;
+      }
       event.preventDefault();
       const editable = target && !target.readOnly && !target.disabled;
       const inputSelection =
@@ -28,9 +33,12 @@ export default function TextContextMenu() {
           throw new Error('The selected text is no longer available.');
         }
         target?.focus({ preventScroll: true });
-        if (!target) {document.activeElement?.blur();}
-        if (inputSelection) {target.setSelectionRange(...inputSelection);}
-        else if (range) {
+        if (!target) {
+          document.activeElement?.blur();
+        }
+        if (inputSelection) {
+          target.setSelectionRange(...inputSelection);
+        } else if (range) {
           selection.removeAllRanges();
           selection.addRange(range);
         }

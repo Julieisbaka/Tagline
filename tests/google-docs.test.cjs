@@ -55,7 +55,9 @@ async function webhook(overrides = {}) {
       : {
           About: {
             get: () => {
-              if (overrides.identityError) {throw overrides.identityError;}
+              if (overrides.identityError) {
+                throw overrides.identityError;
+              }
               return {
                 user: {
                   emailAddress: (overrides.account || ACCOUNT).email,
@@ -67,7 +69,9 @@ async function webhook(overrides = {}) {
           Files: {
             create: (...args) => {
               calls.push(args);
-              if (overrides.error) {throw overrides.error;}
+              if (overrides.error) {
+                throw overrides.error;
+              }
               return overrides.file === undefined ? { id: DOCUMENT.id } : overrides.file;
             },
           },
@@ -93,7 +97,9 @@ async function webhook(overrides = {}) {
     assert.deepEqual(Object.keys(reply).sort(), ['account', 'code', 'document', 'message', 'ok']);
     assert.equal(Number.isInteger(reply.code), true);
     assert.equal(reply.ok, reply.code === 200 || reply.code === 201);
-    if (!reply.ok) {assert.equal(reply.document, null);}
+    if (!reply.ok) {
+      assert.equal(reply.document, null);
+    }
     return reply;
   };
   return { context, calls, payload, post };
@@ -247,7 +253,9 @@ async function client(t, options = {}) {
     fetchImpl: async (url, init) => {
       requests.push({ url, init });
       if (init.body && JSON.parse(init.body).action === 'account') {
-        if (options.identityResponse) {return options.identityResponse(url, init);}
+        if (options.identityResponse) {
+          return options.identityResponse(url, init);
+        }
         return identity(accounts.get(url) || ACCOUNT);
       }
       return options.response ? options.response(url, init) : success();
@@ -290,8 +298,9 @@ test('platform: invalid endpoints, weak secrets, and unavailable OS encryption c
     `${ENDPOINT}?secret=private`,
     'https://user:password@script.google.com/macros/s/id/exec',
     'https://localhost/exec',
-  ])
-    {assert.throws(() => validateEndpoint(url), /URL/);}
+  ]) {
+    assert.throws(() => validateEndpoint(url), /URL/);
+  }
   await assert.rejects(mock.service.save(ENDPOINT, 'weak'), /32-256/);
   const unavailable = await client(t, { encryption: false });
   await assert.rejects(unavailable.service.save(ENDPOINT, SECRET), /encryption is unavailable/);
@@ -472,7 +481,9 @@ test('platform: multiple connections keep secrets separate and require an explic
       const payload = JSON.parse(init.body);
       mock.requests.push({ url, init });
       const account = mock.accounts.get(url);
-      if (payload.action === 'account') {return identity(account);}
+      if (payload.action === 'account') {
+        return identity(account);
+      }
       assert.equal(payload.secret, url === schoolEndpoint ? schoolSecret : SECRET);
       assert.equal(payload.expectedAccount, account.email);
       return success(account);

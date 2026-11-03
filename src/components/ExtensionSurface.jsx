@@ -33,9 +33,13 @@ export default function ExtensionSurface({ surface, onClose }) {
 
   useEffect(() => {
     const receive = (event) => {
-      if (event.source !== frame.current?.contentWindow || !event.data) {return;}
+      if (event.source !== frame.current?.contentWindow || !event.data) {
+        return;
+      }
       const now = performance.now();
-      if (now - rate.current.start >= 1000) {rate.current = { start: now, count: 0 };}
+      if (now - rate.current.start >= 1000) {
+        rate.current = { start: now, count: 0 };
+      }
       if (++rate.current.count > host.limits.extensionMessagesPerSecond) {
         host.bridge.notify(`${title}: Webview message rate exceeded; surface closed.`);
         onClose(surface);
@@ -57,8 +61,9 @@ export default function ExtensionSurface({ surface, onClose }) {
     window.addEventListener('message', receive);
     return () => {
       window.removeEventListener('message', receive);
-      if (host.surfaceTransports.get(`${kind}:${id}`) === send)
-        {host.surfaceTransports.delete(`${kind}:${id}`);}
+      if (host.surfaceTransports.get(`${kind}:${id}`) === send) {
+        host.surfaceTransports.delete(`${kind}:${id}`);
+      }
     };
   }, [host, kind, id, title, surface, onClose]);
 

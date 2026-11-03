@@ -27,8 +27,12 @@ async function transformers() {
 }
 
 async function loadModel(token, online, report) {
-  if (extractor) {return extractor;}
-  if (pipelinePromise) {return pipelinePromise;}
+  if (extractor) {
+    return extractor;
+  }
+  if (pipelinePromise) {
+    return pipelinePromise;
+  }
   pipelinePromise = (async () => {
     const { env, pipeline } = await transformers();
     env.allowRemoteModels = online;
@@ -37,8 +41,9 @@ async function loadModel(token, online, report) {
       const headers = new Headers(options.headers);
       headers.delete('authorization');
       // Only send a user token to the actual Hugging Face origin.
-      if (token && new URL(url).origin === 'https://huggingface.co')
-        {headers.set('Authorization', `Bearer ${token}`);}
+      if (token && new URL(url).origin === 'https://huggingface.co') {
+        headers.set('Authorization', `Bearer ${token}`);
+      }
       const timeout = AbortSignal.timeout(180000);
       const signal = options.signal ? AbortSignal.any([options.signal, timeout]) : timeout;
       return fetcher(url, { ...options, headers, signal });
@@ -82,7 +87,9 @@ async function search({ query, documents, vault, maxResults = 200 }, report) {
   try {
     saved = await fs.readFile(indexFile, 'utf8');
   } catch (e) {
-    if (e.code !== 'ENOENT') {throw new Error(`Cannot read semantic index: ${e.message}`);}
+    if (e.code !== 'ENOENT') {
+      throw new Error(`Cannot read semantic index: ${e.message}`);
+    }
   }
   if (saved !== undefined) {
     try {
@@ -103,11 +110,14 @@ async function search({ query, documents, vault, maxResults = 200 }, report) {
     const cached = validCachedVectors(entry, hash, chunks.length, queryVector.length)
       ? entry
       : null;
-    if (entry?.hash === hash && !cached)
-      {console.warn(`Rebuilding invalid cached vectors for ${file}`);}
+    if (entry?.hash === hash && !cached) {
+      console.warn(`Rebuilding invalid cached vectors for ${file}`);
+    }
     const vectors = cached ? cached.vectors : [];
     if (!cached) {
-      for (const chunk of chunks) {vectors.push(await embed(model, chunk.text));}
+      for (const chunk of chunks) {
+        vectors.push(await embed(model, chunk.text));
+      }
     }
     nextCache[file] = { hash, vectors };
     let best = null;
@@ -117,10 +127,13 @@ async function search({ query, documents, vault, maxResults = 200 }, report) {
         score +
         0.08 * lexicalAffinity(query, chunk.text) +
         0.04 * lexicalAffinity(query, path.basename(file, '.md').replace(/_/g, ' '));
-      if (!best || rank > best.rank)
-        {best = { path: file, score, rank, line: chunk.line, text: chunk.text.slice(0, 300) };}
+      if (!best || rank > best.rank) {
+        best = { path: file, score, rank, line: chunk.line, text: chunk.text.slice(0, 300) };
+      }
     });
-    if (best) {matches.push(best);}
+    if (best) {
+      matches.push(best);
+    }
     report(`Indexed ${++count} / ${Object.keys(documents).length} notes locally`);
   }
   await fs.mkdir(indexDir, { recursive: true });

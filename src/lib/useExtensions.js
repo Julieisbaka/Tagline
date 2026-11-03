@@ -82,10 +82,11 @@ export function useExtensions({ bridgeRef, notify }) {
       },
       postSurfaceMessage: (host, kind, id, payload) => {
         const send = host.surfaceTransports.get(`${kind}:${id}`);
-        if (!send)
-          {throw new Error(
+        if (!send) {
+          throw new Error(
             'Contribution is not mounted. Wait for its ready message before sending.'
-          );}
+          );
+        }
         send(payload);
       },
       list: () => bridgeRef.current.list(),
@@ -112,7 +113,9 @@ export function useExtensions({ bridgeRef, notify }) {
     const nextCommands = [];
     const loaded = await Promise.all(
       list.map(async (item) => {
-        if (item.error || !item.enabled) {return item;}
+        if (item.error || !item.enabled) {
+          return item;
+        }
         try {
           const {
             source,
@@ -121,7 +124,9 @@ export function useExtensions({ bridgeRef, notify }) {
             firstInstall,
             installToken,
           } = await window.api.loadExtension(item.id);
-          if (current !== generation.current) {return item;}
+          if (current !== generation.current) {
+            return item;
+          }
           files.forEach((theme, index) =>
             themes.push({
               ...validateTheme(theme, limits),
@@ -167,7 +172,9 @@ export function useExtensions({ bridgeRef, notify }) {
         }
       })
     );
-    if (current !== generation.current) {return;}
+    if (current !== generation.current) {
+      return;
+    }
     registerExtensionThemes(themes);
     setExtensions(loaded);
     setCommands(nextCommands);
@@ -190,7 +197,9 @@ export function useExtensions({ bridgeRef, notify }) {
     (item) => {
       try {
         const host = hosts.current.get(item.extensionId);
-        if (!host) {throw new Error('Extension is not running. Reload it in Settings > Extensions.');}
+        if (!host) {
+          throw new Error('Extension is not running. Reload it in Settings > Extensions.');
+        }
         host.run(item.command);
       } catch (error) {
         notify(error.message);

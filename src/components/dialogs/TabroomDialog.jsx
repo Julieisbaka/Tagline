@@ -23,16 +23,22 @@ export default function TabroomDialog({ onClose }) {
     try {
       await action();
     } catch (error) {
-      if (active.current) {setError(error.message);}
+      if (active.current) {
+        setError(error.message);
+      }
     } finally {
-      if (active.current) {setBusy(false);}
+      if (active.current) {
+        setBusy(false);
+      }
     }
   };
   useEffect(() => {
     active.current = true;
     run(async () => {
       const status = await api.status();
-      if (active.current) {setSession(status);}
+      if (active.current) {
+        setSession(status);
+      }
     });
     return () => {
       active.current = false;
@@ -44,7 +50,9 @@ export default function TabroomDialog({ onClose }) {
     setPage(0);
   };
   const close = () => {
-    if (!busy) {onClose();}
+    if (!busy) {
+      onClose();
+    }
   };
   const changePage = (index) =>
     run(async () => {
@@ -96,7 +104,9 @@ export default function TabroomDialog({ onClose }) {
                   run(async () => {
                     clear();
                     const status = await api.login();
-                    if (active.current) {setSession(status);}
+                    if (active.current) {
+                      setSession(status);
+                    }
                   })
                 }
               >
@@ -108,7 +118,9 @@ export default function TabroomDialog({ onClose }) {
                   run(async () => {
                     clear();
                     const status = await api.logout();
-                    if (active.current) {setSession(status);}
+                    if (active.current) {
+                      setSession(status);
+                    }
                   })
                 }
               >
@@ -172,8 +184,9 @@ export default function TabroomDialog({ onClose }) {
                 onClick={() =>
                   run(async () => {
                     const result = await api.download(tournament.id);
-                    if (!result.cancelled && active.current)
-                      {setMessage(t('Saved tournament JSON: {path}', { path: result.path }));}
+                    if (!result.cancelled && active.current) {
+                      setMessage(t('Saved tournament JSON: {path}', { path: result.path }));
+                    }
                   })
                 }
               >

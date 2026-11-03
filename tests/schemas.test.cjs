@@ -20,7 +20,9 @@ const ajv = new Ajv({
   strictRequired: false,
   allowUnionTypes: true,
 });
-for (const [name, schema] of Object.entries(schemas)) {ajv.addSchema(schema, `${name}.schema.json`);}
+for (const [name, schema] of Object.entries(schemas)) {
+  ajv.addSchema(schema, `${name}.schema.json`);
+}
 const validators = Object.fromEntries(
   names.map((name) => [name, ajv.getSchema(`${name}.schema.json`)])
 );
@@ -231,6 +233,7 @@ test('extension settings exports have a version, matching ID shape and scalar va
     { version: 1, extensionId: 'demo', values: [] },
     { version: 1, extensionId: 'demo', values: { enabled: null } },
     { version: 1, extensionId: 'demo', values: { unknown: {} } },
-  ])
-    {check('extension-settings', invalid, false);}
+  ]) {
+    check('extension-settings', invalid, false);
+  }
 });

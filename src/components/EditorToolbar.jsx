@@ -26,7 +26,9 @@ export default function EditorToolbar({ actions, active = {}, keybindings }) {
       role='toolbar'
       aria-label={t('Card formatting')}
       onKeyDown={(event) => {
-        if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) {return;}
+        if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) {
+          return;
+        }
         event.preventDefault();
         const buttons = [...event.currentTarget.querySelectorAll('button')];
         const index = buttons.indexOf(document.activeElement);

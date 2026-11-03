@@ -72,15 +72,16 @@ export const WikiLink = Node.create({
     start: (src) => src.search(/!?\[\[/),
     tokenize(src) {
       const m = /^(!?)\[\[([^\]|#]+)(?:#([^\]|]*))?(?:\|([^\]]*))?\]\]/.exec(src);
-      if (m)
-        {return {
+      if (m) {
+        return {
           type: 'wikiLink',
           raw: m[0],
           target: m[2],
           heading: m[3] || '',
           alias: m[4] || '',
           embed: !!m[1],
-        };}
+        };
+      }
       return undefined;
     },
   },
@@ -137,7 +138,9 @@ export const EvidenceCheckupComment = Node.create({
     tokenize(src) {
       const match =
         /^<!-- Evidence checkup \((citation|link|source)\): ([^\r\n]*?) -->(?:\r?\n|$)/.exec(src);
-      if (!match) {return undefined;}
+      if (!match) {
+        return undefined;
+      }
       return { type: 'evidenceCheckupComment', raw: match[0], category: match[1], text: match[2] };
     },
   },

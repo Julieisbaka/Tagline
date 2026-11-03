@@ -38,8 +38,9 @@ test('workspace tabs restore only valid vault-relative paths and known tab kinds
       ],
       activeId: null,
     },
-  ])
-    {assert.throws(() => restoreTabs(saved));}
+  ]) {
+    assert.throws(() => restoreTabs(saved));
+  }
 });
 
 test('workspace tabs recover when the saved active ID no longer exists', async () => {

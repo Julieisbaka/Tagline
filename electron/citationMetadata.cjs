@@ -84,14 +84,18 @@ function slugTitle(pathname) {
       (part) =>
         /[a-z]/i.test(part) && part.includes('-') && !/^(?:index|amp)(?:\.\w+)?$/i.test(part)
     );
-  if (!segment) {return '';}
+  if (!segment) {
+    return '';
+  }
   const words = decodeURIComponent(segment)
     .replace(/\.\w+$/, '')
     .replace(/-(?:19|20)\d{2}-\d{2}-\d{2}$/, '')
     .replace(/-?[a-z]*\d{5,}[a-z\d]*$/i, '')
     .split(/[-_]+/)
     .filter(Boolean);
-  if (words.length < 2) {return '';}
+  if (words.length < 2) {
+    return '';
+  }
   const title = words.join(' ');
   return title[0].toUpperCase() + title.slice(1);
 }
@@ -113,11 +117,13 @@ function parseUrl(address) {
       : '';
   const titleMatch = rule.title && url.pathname.match(rule.title);
   let title = '';
-  if (titleMatch)
-    {title = rule.titleFrom
+  if (titleMatch) {
+    title = rule.titleFrom
       ? rule.titleFrom(titleMatch)
-      : titleMatch.slice(1).join(' ').toUpperCase();}
-  else if (known || rule.host) {title = slugTitle(url.pathname);}
+      : titleMatch.slice(1).join(' ').toUpperCase();
+  } else if (known || rule.host) {
+    title = slugTitle(url.pathname);
+  }
   return {
     author: '',
     title,
@@ -152,8 +158,9 @@ function validateUrl(value) {
     url.username ||
     url.password ||
     (url.port && !['80', '443'].includes(url.port))
-  )
-    {throw new Error('Use a public HTTP or HTTPS article URL.');}
+  ) {
+    throw new Error('Use a public HTTP or HTTPS article URL.');
+  }
   const host = url.hostname.replace(/^\[|\]$/g, '');
   if (host === 'localhost' || host.endsWith('.local') || (net.isIP(host) && !publicAddress(host))) {
     throw new Error('Local and private network URLs are not supported.');
@@ -164,7 +171,9 @@ function validateUrl(value) {
 // DNS lookup that refuses hosts resolving to private or local addresses.
 function publicLookup(host, options, callback) {
   dns.lookup(host, { all: true }, (error, addresses) => {
-    if (error) {return callback(error);}
+    if (error) {
+      return callback(error);
+    }
     if (!addresses.length || addresses.some(({ address }) => !publicAddress(address))) {
       return callback(new Error('Local and private network URLs are not supported.'));
     }
@@ -186,7 +195,9 @@ function download(url, redirects = 0, responseType = 'html') {
       (response) => {
         if ([301, 302, 303, 307, 308].includes(response.statusCode)) {
           response.resume();
-          if (redirects >= 4) {return reject(new Error('The article redirected too many times.'));}
+          if (redirects >= 4) {
+            return reject(new Error('The article redirected too many times.'));
+          }
           try {
             resolve(
               download(
@@ -225,9 +236,11 @@ function download(url, redirects = 0, responseType = 'html') {
         const chunks = [];
         response.on('data', (chunk) => {
           size += chunk.length;
-          if (size > 2_000_000)
-            {request.destroy(new Error('The article is too large to extract metadata.'));}
-          else {chunks.push(chunk);}
+          if (size > 2_000_000) {
+            request.destroy(new Error('The article is too large to extract metadata.'));
+          } else {
+            chunks.push(chunk);
+          }
         });
         response.on('error', reject);
         response.on('end', () => {
@@ -300,8 +313,12 @@ function names(value) {
   return []
     .concat(value || [])
     .map((item) => {
-      if (typeof item === 'string') {return text(item);}
-      if (!item || typeof item !== 'object') {return '';}
+      if (typeof item === 'string') {
+        return text(item);
+      }
+      if (!item || typeof item !== 'object') {
+        return '';
+      }
       const name =
         item.name ||
         item.alternateName ||
@@ -313,7 +330,9 @@ function names(value) {
 }
 
 function canonicalPageUrl(value, base) {
-  if (typeof value !== 'string' || !value) {return '';}
+  if (typeof value !== 'string' || !value) {
+    return '';
+  }
   try {
     const url = new URL(value, base);
     return `${url.origin}${url.pathname.replace(/\/+$/, '') || '/'}`.toLowerCase();
@@ -330,7 +349,9 @@ function parseMetadata(html, address, { allowUrlFallback = true } = {}) {
     const key = (values.property || values.name || values.itemprop || '').toLowerCase();
     if (key && values.content) {
       const entries = meta.get(key) || [];
-      if (!entries.includes(values.content)) {entries.push(values.content);}
+      if (!entries.includes(values.content)) {
+        entries.push(values.content);
+      }
       meta.set(key, entries);
     }
   }
@@ -348,8 +369,9 @@ function parseMetadata(html, address, { allowUrlFallback = true } = {}) {
   }
   const articles = [];
   const visit = (value) => {
-    if (Array.isArray(value)) {value.forEach(visit);}
-    else if (value && typeof value === 'object') {
+    if (Array.isArray(value)) {
+      value.forEach(visit);
+    } else if (value && typeof value === 'object') {
       const types = []
         .concat(value['@type'] || [])
         .map((type) => String(type).split(/[\/#]/).pop().toLowerCase());
@@ -360,7 +382,11 @@ function parseMetadata(html, address, { allowUrlFallback = true } = {}) {
       ) {
         articles.push(value);
       }
-      for (const [key, child] of Object.entries(value)) {if (key !== '@context') {visit(child);}}
+      for (const [key, child] of Object.entries(value)) {
+        if (key !== '@context') {
+          visit(child);
+        }
+      }
     }
   };
   for (const match of html.matchAll(
@@ -454,7 +480,9 @@ function parseMetadata(html, address, { allowUrlFallback = true } = {}) {
 
 function doiFromUrl(address) {
   const url = validateUrl(address);
-  if (!/^(?:dx\.)?doi\.org$/i.test(url.hostname)) {return '';}
+  if (!/^(?:dx\.)?doi\.org$/i.test(url.hostname)) {
+    return '';
+  }
   let doi;
   try {
     doi = decodeURIComponent(url.pathname).replace(/^\/+|\/+$/g, '');
@@ -464,8 +492,9 @@ function doiFromUrl(address) {
   if (
     !/^10\.\d{4,9}\/[-._;()/:+A-Z0-9]+$/i.test(doi) ||
     doi.split('/').some((part) => !part || part === '.' || part === '..')
-  )
-    {return '';}
+  ) {
+    return '';
+  }
   return doi;
 }
 
@@ -476,7 +505,9 @@ function crossrefYear(value) {
 
 async function crossrefCitation(address) {
   const doi = doiFromUrl(address);
-  if (!doi) {return null;}
+  if (!doi) {
+    return null;
+  }
   const path = doi.split('/').map(encodeURIComponent).join('/');
   const endpoint = validateUrl(`https://api.crossref.org/works/doi/${path}`);
   const { json } = await download(endpoint, 0, 'json');
@@ -507,15 +538,18 @@ async function crossrefCitation(address) {
 }
 
 async function extractCitation(value, { sourceOnly = false } = {}) {
-  if (typeof value !== 'string' || value.length > 8000)
-    {throw new Error('Enter a valid article URL.');}
+  if (typeof value !== 'string' || value.length > 8000) {
+    throw new Error('Enter a valid article URL.');
+  }
   const fromUrl = parseUrl(value);
   const doi = doiFromUrl(value);
   let crossrefError = null;
   if (doi) {
     try {
       const metadata = await crossrefCitation(value);
-      if (metadata) {return metadata;}
+      if (metadata) {
+        return metadata;
+      }
     } catch (error) {
       crossrefError = error;
     }
@@ -526,10 +560,11 @@ async function extractCitation(value, { sourceOnly = false } = {}) {
     fields = parseMetadata(html, url, { allowUrlFallback: !sourceOnly });
   } catch (error) {
     if (sourceOnly) {
-      if (crossrefError)
-        {throw new Error(
+      if (crossrefError) {
+        throw new Error(
           `DOI metadata lookup failed (${crossrefError.message}); publisher metadata lookup failed (${error.message}).`
-        );}
+        );
+      }
       throw error;
     }
     const hasUsefulUrlFields =
@@ -545,10 +580,11 @@ async function extractCitation(value, { sourceOnly = false } = {}) {
     return fromUrl;
   }
   if (!fields.title && !fields.author && !fields.year && (!sourceOnly || !fields.publication)) {
-    if (crossrefError)
-      {throw new Error(
+    if (crossrefError) {
+      throw new Error(
         `No article metadata was found. The Crossref lookup also failed (${crossrefError.message}). Enter citation details manually.`
-      );}
+      );
+    }
     throw new Error('No article metadata was found. Enter citation details manually.');
   }
   return fields;

@@ -94,8 +94,9 @@ test('invalid theme settings and accessibility declarations fail explicitly', as
     [{ ...example.settings[1], unit: 'url(evil)' }],
     [{ ...example.settings[1], default: Infinity }],
     [{ ...example.settings[2], default: 'url(https://example.com)', enum: undefined }],
-  ])
-    {assert.throws(() => validateTheme({ ...example, settings }));}
+  ]) {
+    assert.throws(() => validateTheme({ ...example, settings }));
+  }
   for (const metadata of [
     null,
     [],
@@ -105,8 +106,9 @@ test('invalid theme settings and accessibility declarations fail explicitly', as
     { tags: [1] },
     { accessibility: { colorVision: ['unknown'] } },
     { author: 'a'.repeat(501) },
-  ])
-    {assert.throws(() => validateTheme({ ...example, metadata }));}
+  ]) {
+    assert.throws(() => validateTheme({ ...example, metadata }));
+  }
 });
 
 test('theme option values are isolated by theme and unavailable theme choices retain their fallback', async () => {

@@ -14,17 +14,22 @@ function registerFonts({ app, ipcMain, dialog, getWindow }) {
   const read = async () => {
     try {
       const saved = JSON.parse(await fs.readFile(file, 'utf8'));
-      if (!Object.values(types).includes(saved.mime) || typeof saved.data !== 'string')
-        {throw new Error('Invalid saved font.');}
+      if (!Object.values(types).includes(saved.mime) || typeof saved.data !== 'string') {
+        throw new Error('Invalid saved font.');
+      }
       return `data:${saved.mime};base64,${saved.data}`;
     } catch (e) {
-      if (e.code === 'ENOENT') {return null;}
+      if (e.code === 'ENOENT') {
+        return null;
+      }
       throw e;
     }
   };
   ipcMain.handle('fonts:read', read);
   ipcMain.handle('fonts:activate', async () => {
-    if (!pendingFont) {throw new Error('Import a font before activating it.');}
+    if (!pendingFont) {
+      throw new Error('Import a font before activating it.');
+    }
     await fs.mkdir(folder, { recursive: true });
     await fs.writeFile(file, JSON.stringify(pendingFont));
     pendingFont = null;
@@ -35,11 +40,17 @@ function registerFonts({ app, ipcMain, dialog, getWindow }) {
       properties: ['openFile'],
       filters: [{ name: 'Fonts', extensions: ['woff2', 'woff', 'ttf', 'otf'] }],
     });
-    if (result.canceled) {return null;}
+    if (result.canceled) {
+      return null;
+    }
     const source = result.filePaths[0];
-    if (!types[path.extname(source).toLowerCase()]) {throw new Error('Unsupported font format.');}
+    if (!types[path.extname(source).toLowerCase()]) {
+      throw new Error('Unsupported font format.');
+    }
     const stat = await fs.stat(source);
-    if (stat.size > 20 * 1024 * 1024) {throw new Error('Font files must be smaller than 20 MB.');}
+    if (stat.size > 20 * 1024 * 1024) {
+      throw new Error('Font files must be smaller than 20 MB.');
+    }
     const data = await fs.readFile(source);
     const signature = data.subarray(0, 4).toString('hex');
     if (!['774f4632', '774f4646', '00010000', '4f54544f', '74727565'].includes(signature)) {

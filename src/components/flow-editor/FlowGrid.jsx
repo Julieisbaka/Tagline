@@ -95,12 +95,15 @@ export default function FlowGrid({
                       !multi &&
                       e.target instanceof HTMLTextAreaElement &&
                       e.target.selectionStart !== e.target.selectionEnd
-                    )
-                      {return;}
+                    ) {
+                      return;
+                    }
                     const area = inside(r, c)
                       ? bounds
                       : cellBounds({ row: r, column: c }, { row: r, column: c });
-                    if (!inside(r, c)) {choose(r, c);}
+                    if (!inside(r, c)) {
+                      choose(r, c);
+                    }
                     e.currentTarget.querySelector('textarea')?.focus({ preventScroll: true });
                     context(e, [
                       { label: 'Copy cells', run: () => copy(area) },
@@ -126,25 +129,32 @@ export default function FlowGrid({
                     spellCheck={settings.flowSpellcheck !== false}
                     value={cell}
                     onPointerDown={(event) => {
-                      if (event.button !== 0) {return;}
+                      if (event.button !== 0) {
+                        return;
+                      }
                       if (event.shiftKey) {
                         event.preventDefault();
                         choose(r, c, true);
-                      } else {choose(r, c);}
+                      } else {
+                        choose(r, c);
+                      }
                     }}
                     onFocus={() => {
                       if (keepSelection.current) {
                         keepSelection.current = false;
                         return;
                       }
-                      if (!inside(r, c)) {choose(r, c);}
+                      if (!inside(r, c)) {
+                        choose(r, c);
+                      }
                     }}
                     onCopy={(event) => {
                       if (
                         !multi &&
                         event.currentTarget.selectionStart !== event.currentTarget.selectionEnd
-                      )
-                        {return;}
+                      ) {
+                        return;
+                      }
                       event.preventDefault();
                       event.clipboardData.setData(
                         'text/plain',
@@ -158,8 +168,9 @@ export default function FlowGrid({
                       if (
                         !multi &&
                         event.currentTarget.selectionStart !== event.currentTarget.selectionEnd
-                      )
-                        {return;}
+                      ) {
+                        return;
+                      }
                       event.preventDefault();
                       const area =
                         bounds || cellBounds({ row: r, column: c }, { row: r, column: c });
@@ -170,7 +181,9 @@ export default function FlowGrid({
                       const text = event.clipboardData.getData('text/plain');
                       const quotedCell =
                         event.currentTarget.value === '' && /^"(?:[^"]|"")*"$/s.test(text);
-                      if (!multi && !quotedCell && !/[\t\r\n]/.test(text)) {return;}
+                      if (!multi && !quotedCell && !/[\t\r\n]/.test(text)) {
+                        return;
+                      }
                       event.preventDefault();
                       try {
                         paste(text, multi ? bounds.top : r, multi ? bounds.left : c);

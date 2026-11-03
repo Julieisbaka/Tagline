@@ -18,10 +18,14 @@ export default function CustomizationLimits({ settings }) {
     window.api
       .getCustomizationLimits()
       .then((limits) => {
-        if (!disposed) {setValues(limits);}
+        if (!disposed) {
+          setValues(limits);
+        }
       })
       .catch((err) => {
-        if (!disposed) {setError(err.message);}
+        if (!disposed) {
+          setError(err.message);
+        }
       });
     return () => {
       disposed = true;

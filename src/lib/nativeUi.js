@@ -10,7 +10,9 @@ const listeners = new Set();
  * @returns {void}
  */
 export function setNativeUi(value) {
-  if (enabled === value) {return;}
+  if (enabled === value) {
+    return;
+  }
   enabled = value;
   document.documentElement.classList.toggle('native-ui', value);
   listeners.forEach((listener) => listener());

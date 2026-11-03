@@ -9,7 +9,9 @@ if (!process.versions.electron) {
       stdio: 'inherit',
       timeout: 120000,
     });
-    if (result.error) {throw result.error;}
+    if (result.error) {
+      throw result.error;
+    }
     process.exitCode = result.status ?? 1;
   } finally {
     fs.rmSync(root, { recursive: true, force: true, maxRetries: 20, retryDelay: 100 });
@@ -193,7 +195,9 @@ tagline.commands.register('save-checks', async () => {
 
 (async () => {
   const root = process.env.TAGLINE_EXTENSIONS_ROOT;
-  if (!root) {throw new Error('Run through npm run test:extensions.');}
+  if (!root) {
+    throw new Error('Run through npm run test:extensions.');
+  }
   const profile = path.join(root, 'profile');
   const vault = path.join(root, 'vault');
   app.setPath('userData', profile);
@@ -214,7 +218,9 @@ tagline.commands.register('save-checks', async () => {
         failSave = false;
         throw new Error('Simulated disk write failure');
       }
-      if (slowSave) {await delay(700);}
+      if (slowSave) {
+        await delay(700);
+      }
     }
     return originalWrite(file, ...args);
   };
@@ -345,12 +351,15 @@ tagline.commands.register('save-checks', async () => {
       const wc = win.webContents;
       const js = (code) => wc.executeJavaScript(code);
       wc.on('console-message', (event) => {
-        if (event.level === 'error' || event.level === 'warning')
-          {console.error('Renderer:', event.message);}
+        if (event.level === 'error' || event.level === 'warning') {
+          console.error('Renderer:', event.message);
+        }
       });
       const wait = async (code, label = code) => {
         for (let i = 0; i < 100; i++) {
-          if (await js(code)) {return;}
+          if (await js(code)) {
+            return;
+          }
           await delay(100);
         }
         throw new Error('Timed out: ' + label);
@@ -377,7 +386,9 @@ tagline.commands.register('save-checks', async () => {
             `document.querySelector('.palette input')?.dispatchEvent(new KeyboardEvent('keydown', { key: '${found ? 'Enter' : 'Escape'}', bubbles: true }))`
           );
           await delay(200);
-          if (found) {return;}
+          if (found) {
+            return;
+          }
         }
         throw new Error('Command never appeared: ' + label);
       };

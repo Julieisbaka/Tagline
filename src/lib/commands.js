@@ -85,8 +85,12 @@ export function buildCommands(ctx, overrides = {}) {
   ];
   const available = list.filter((item) => ctx.isMarkdown || !markdownOnly.includes(item.id));
   for (const item of KEYBINDINGS) {
-    if (available.some((command) => command.id === item.id)) {continue;}
-    if (item.markdown && !ctx.isMarkdown) {continue;}
+    if (available.some((command) => command.id === item.id)) {
+      continue;
+    }
+    if (item.markdown && !ctx.isMarkdown) {
+      continue;
+    }
     if (item.scope === 'app' && (!item.note || ctx.hasNote) && ctx[item.action]) {
       available.push(c(item.id, item.label, ctx[item.action]));
     } else if (

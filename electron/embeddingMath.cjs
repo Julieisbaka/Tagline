@@ -5,19 +5,25 @@ const digest = (text) => createHash('sha256').update(text).digest('hex');
 function chunksFor(content, maxWords = 160, overlap = 30) {
   const words = [];
   content.split('\n').forEach((line, lineNumber) => {
-    for (const word of line.match(/\S+/g) || []) {words.push({ text: word, line: lineNumber });}
+    for (const word of line.match(/\S+/g) || []) {
+      words.push({ text: word, line: lineNumber });
+    }
   });
   const chunks = [];
   for (let i = 0; i < words.length; i += maxWords - overlap) {
     const slice = words.slice(i, i + maxWords);
     chunks.push({ text: slice.map((w) => w.text).join(' '), line: slice[0].line });
-    if (i + maxWords >= words.length) {break;}
+    if (i + maxWords >= words.length) {
+      break;
+    }
   }
   return chunks;
 }
 
 function cosine(a, b) {
-  if (a.length !== b.length || !a.length) {throw new Error('Incompatible embedding dimensions.');}
+  if (a.length !== b.length || !a.length) {
+    throw new Error('Incompatible embedding dimensions.');
+  }
   let dot = 0;
   let normA = 0;
   let normB = 0;
@@ -43,9 +49,12 @@ function lexicalAffinity(query, text) {
 
 function parseEmbeddingCache(content, model) {
   const saved = JSON.parse(content);
-  if (!saved || typeof saved !== 'object' || Array.isArray(saved))
-    {throw new Error('Invalid semantic index.');}
-  if (saved.model !== model) {return {};}
+  if (!saved || typeof saved !== 'object' || Array.isArray(saved)) {
+    throw new Error('Invalid semantic index.');
+  }
+  if (saved.model !== model) {
+    return {};
+  }
   if (!saved.documents || typeof saved.documents !== 'object' || Array.isArray(saved.documents)) {
     throw new Error('Invalid semantic index documents.');
   }

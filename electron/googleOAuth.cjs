@@ -33,18 +33,25 @@ function createGoogleOAuth({ shell, fetchImpl = fetch, authorizationTimeout = 18
       );
     }
     const limit = 64 * 1024;
-    if (!response.body) {throw new Error('Google returned an empty response.');}
+    if (!response.body) {
+      throw new Error('Google returned an empty response.');
+    }
     const reader = response.body.getReader();
     let bytes = 0;
     const chunks = [];
     try {
-      if (Number(response.headers.get('content-length')) > limit)
-        {throw new Error('Google response is too large.');}
+      if (Number(response.headers.get('content-length')) > limit) {
+        throw new Error('Google response is too large.');
+      }
       while (true) {
         const { done, value } = await reader.read();
-        if (done) {break;}
+        if (done) {
+          break;
+        }
         bytes += value.byteLength;
-        if (bytes > limit) {throw new Error('Google response is too large.');}
+        if (bytes > limit) {
+          throw new Error('Google response is too large.');
+        }
         chunks.push(Buffer.from(value));
       }
     } catch {
@@ -68,20 +75,23 @@ function createGoogleOAuth({ shell, fetchImpl = fetch, authorizationTimeout = 18
       );
     }
     if (!response.ok) {
-      if (data?.error === 'invalid_grant' || response.status === 401)
-        {throw new Error(
+      if (data?.error === 'invalid_grant' || response.status === 401) {
+        throw new Error(
           'Google authorization expired or was revoked. Reconnect this Google account in Settings. Testing-mode authorization may expire after seven days.'
-        );}
-      if (response.status === 403)
-        {throw new Error(
+        );
+      }
+      if (response.status === 403) {
+        throw new Error(
           'Google denied access. Check granted permissions, Drive API availability, account policies, storage and quotas.'
-        );}
+        );
+      }
       throw new Error(
         `Google request failed (HTTP ${response.status}).${upload ? ' Check Drive before retrying.' : ' Check the OAuth client configuration and try again.'}`
       );
     }
-    if (!data || typeof data !== 'object' || Array.isArray(data))
-      {throw new Error('Google returned an invalid response.');}
+    if (!data || typeof data !== 'object' || Array.isArray(data)) {
+      throw new Error('Google returned an invalid response.');
+    }
     return data;
   };
   const tokens = async (parameters, requireRefresh, signal) => {
@@ -103,10 +113,11 @@ function createGoogleOAuth({ shell, fetchImpl = fetch, authorizationTimeout = 18
         (typeof data.refresh_token !== 'string' ||
           !data.refresh_token ||
           data.refresh_token.length > 16384))
-    )
-      {throw new Error(
+    ) {
+      throw new Error(
         'Google did not return valid offline authorization. Connect the account again.'
-      );}
+      );
+    }
     const granted = typeof data.scope === 'string' ? data.scope.split(' ') : [];
     if (
       requireRefresh &&
@@ -115,10 +126,11 @@ function createGoogleOAuth({ shell, fetchImpl = fetch, authorizationTimeout = 18
         !granted.some(
           (scope) => scope === 'email' || scope === 'https://www.googleapis.com/auth/userinfo.email'
         ))
-    )
-      {throw new Error(
+    ) {
+      throw new Error(
         'Google did not grant all required permissions. Connect again and allow email and file access.'
-      );}
+      );
+    }
     return { accessToken: data.access_token, refreshToken: data.refresh_token };
   };
   const account = async (accessToken, signal) => {
@@ -134,12 +146,15 @@ function createGoogleOAuth({ shell, fetchImpl = fetch, authorizationTimeout = 18
       data.email.length > 254 ||
       !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.email) ||
       data.email_verified !== true
-    )
-      {throw new Error('Google did not identify a verified account.');}
+    ) {
+      throw new Error('Google did not identify a verified account.');
+    }
     return { subject: data.sub, account: { email: data.email.toLowerCase(), displayName: '' } };
   };
   const authorize = async () => {
-    if (cancelPending) {throw new Error('Google sign-in is already in progress.');}
+    if (cancelPending) {
+      throw new Error('Google sign-in is already in progress.');
+    }
     const state = randomBytes(32).toString('base64url');
     const verifier = randomBytes(48).toString('base64url');
     let cancelReason;
@@ -234,7 +249,9 @@ function createGoogleOAuth({ shell, fetchImpl = fetch, authorizationTimeout = 18
         controller.signal
       );
       const identity = await account(result.accessToken, controller.signal);
-      if (cancelReason) {throw cancelReason;}
+      if (cancelReason) {
+        throw cancelReason;
+      }
       return { ...result, ...identity };
     } catch (error) {
       throw cancelReason || error;
@@ -274,10 +291,11 @@ function createGoogleOAuth({ shell, fetchImpl = fetch, authorizationTimeout = 18
       typeof data.id !== 'string' ||
       !/^[A-Za-z0-9_-]+$/.test(data.id) ||
       data.mimeType !== 'application/vnd.google-apps.document'
-    )
-      {throw new Error(
+    ) {
+      throw new Error(
         'Google Drive did not confirm a new Google Doc. Check Drive before retrying.'
-      );}
+      );
+    }
     return { id: data.id, title, url: `https://docs.google.com/document/d/${data.id}/edit` };
   };
   return { authorize, refresh, account, upload, cancel: () => cancelPending?.() };

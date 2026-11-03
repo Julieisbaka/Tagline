@@ -105,8 +105,9 @@ export function useSettings() {
       ['large-interface-text', settings.largerInterfaceText],
       ['large-click-targets', settings.largerClickTargets],
       ['underline-links', settings.underlineLinks],
-    ])
-      {root.classList.toggle(name, enabled);}
+    ]) {
+      root.classList.toggle(name, enabled);
+    }
     root.style.setProperty('--readable-content-width', `${settings.readableWidthPixels}px`);
     window.dispatchEvent(new Event('accessibilitychange'));
   }, [
@@ -121,7 +122,9 @@ export function useSettings() {
     configureVisualCache(settings.visualCacheEntries, settings.visualCacheCharacters);
   }, [settings.visualCacheEntries, settings.visualCacheCharacters]);
   useLayoutEffect(() => {
-    if (!settings.customCssEnabled || !settings.customCss) {return;}
+    if (!settings.customCssEnabled || !settings.customCss) {
+      return;
+    }
     const style = document.createElement('style');
     style.id = 'tagline-custom-css';
     style.textContent = settings.customCss;
@@ -169,21 +172,29 @@ export function useSettings() {
     themeRevision,
   ]);
   useEffect(() => {
-    if (!settings.importedFont) {return;}
+    if (!settings.importedFont) {
+      return;
+    }
     let disposed = false;
     let face;
     window.api
       .readFont()
       .then(async (data) => {
-        if (!data) {throw new Error('The imported font is missing. Import it again in Settings.');}
+        if (!data) {
+          throw new Error('The imported font is missing. Import it again in Settings.');
+        }
         face = new FontFace('Tagline Custom', `url("${data}")`);
         await face.load();
-        if (!disposed) {document.fonts.add(face);}
+        if (!disposed) {
+          document.fonts.add(face);
+        }
       })
       .catch((e) => window.dispatchEvent(new CustomEvent('app-error', { detail: e.message })));
     return () => {
       disposed = true;
-      if (face) {document.fonts.delete(face);}
+      if (face) {
+        document.fonts.delete(face);
+      }
     };
   }, [settings.importedFont]);
   useEffect(() => {

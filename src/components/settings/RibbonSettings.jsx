@@ -17,7 +17,9 @@ export default function RibbonSettings({ settings, update, contributions = [] })
   const move = (id, offset) => {
     const index = availableItems.indexOf(id);
     const neighbor = availableItems[index + offset];
-    if (index < 0 || !neighbor) {return;}
+    if (index < 0 || !neighbor) {
+      return;
+    }
     const next = [...visibleItems];
     const source = visibleItems.indexOf(id);
     const destination = visibleItems.indexOf(neighbor);

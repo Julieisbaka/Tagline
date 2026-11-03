@@ -214,27 +214,31 @@ function preflight({
   const outputs = {};
   return new AsyncFunction('require', 'github', 'context', 'core', script)(
     (name) => {
-      if (name === 'node:fs')
-        {return {
+      if (name === 'node:fs') {
+        return {
           readFileSync: (file) =>
             JSON.stringify(
               file === 'package.json'
                 ? { version }
                 : { version: lockVersion, packages: { '': { version: lockVersion } } }
             ),
-        };}
-      if (name === 'node:child_process')
-        {return {
+        };
+      }
+      if (name === 'node:child_process') {
+        return {
           execFileSync: (_file, args) =>
             args[0] === 'tag' ? (tagCommit ? `v${version}\n` : '') : tagCommit,
-        };}
+        };
+      }
       throw new Error(`Unexpected import: ${name}`);
     },
     {
       rest: {
         repos: {
           getReleaseByTag: async () => {
-            if (!release) {throw Object.assign(new Error('API error'), { status });}
+            if (!release) {
+              throw Object.assign(new Error('API error'), { status });
+            }
             return { data: release };
           },
         },
@@ -293,7 +297,9 @@ async function publish({
       Buffer.from(suffix),
     ])
   );
-  if (extraFile) {files[extraFile] = Buffer.from('unexpected');}
+  if (extraFile) {
+    files[extraFile] = Buffer.from('unexpected');
+  }
   const calls = [];
   const repos = {
     getReleaseByTag: async () =>
@@ -310,7 +316,9 @@ async function publish({
     generateReleaseNotes: async () => ({ data: { body: notes } }),
     listPullRequestsAssociatedWithCommit() {},
     getCommit: async ({ ref }) => {
-      if (apiError) {throw new Error(apiError);}
+      if (apiError) {
+        throw new Error(apiError);
+      }
       return { data: { author: authors[ref] || null } };
     },
     listCommits: async ({ author, sha, per_page }) => {
@@ -327,7 +335,9 @@ async function publish({
       calls.push(['delete', options]);
     },
     uploadReleaseAsset: async (options) => {
-      if (failUpload) {throw new Error('Upload failed');}
+      if (failUpload) {
+        throw new Error('Upload failed');
+      }
       calls.push(['upload', options]);
     },
     updateRelease: async (options) => {
@@ -337,17 +347,22 @@ async function publish({
   const execute = () =>
     new AsyncFunction('require', 'github', 'context', 'core', 'process', script)(
       (name) => {
-        if (name === 'node:crypto') {return { createHash };}
-        if (name === 'node:child_process')
-          {return {
+        if (name === 'node:crypto') {
+          return { createHash };
+        }
+        if (name === 'node:child_process') {
+          return {
             execFileSync: (_file, args) => {
               if (args[0] === 'merge-base') {
-                if (args[2] === 'refs/tags/v9.9.9')
-                  {throw Object.assign(new Error('Unrelated branch'), { status: 1 });}
+                if (args[2] === 'refs/tags/v9.9.9') {
+                  throw Object.assign(new Error('Unrelated branch'), { status: 1 });
+                }
                 return '';
               }
               calls.push(['log', args]);
-              if (args.includes('--format=%aE')) {return oldEmails.join('\n');}
+              if (args.includes('--format=%aE')) {
+                return oldEmails.join('\n');
+              }
               assert.ok(args.includes('--no-merges'));
               return (
                 records
@@ -355,15 +370,17 @@ async function publish({
                   .join('\n') + '\n'
               );
             },
-          };}
-        if (name === 'node:fs')
-          {return {
+          };
+        }
+        if (name === 'node:fs') {
+          return {
             readdirSync: () => Object.keys(files),
             readFileSync: (file) => files[file.replace('artifacts/', '')],
             writeFileSync: (file, text) => {
               files[file.replace('artifacts/', '')] = Buffer.from(text);
             },
-          };}
+          };
+        }
         throw new Error(`Unexpected import: ${name}`);
       },
       {
@@ -379,7 +396,9 @@ async function publish({
               : []
             : method === repos.listPullRequestsAssociatedWithCommit
               ? (() => {
-                  if (apiError) {throw new Error(apiError);}
+                  if (apiError) {
+                    throw new Error(apiError);
+                  }
                   calls.push(['pulls', options.commit_sha]);
                   return pulls[options.commit_sha] || [];
                 })()
@@ -412,10 +431,11 @@ test('release uploads exactly three installers and correct checksums before publ
   assert.equal(calls.filter(([name]) => name === 'upload').length, 4);
   const checksums = files['SHA256SUMS.txt'].toString();
   for (const [file, data] of Object.entries(files)) {
-    if (file !== 'SHA256SUMS.txt')
-      {assert.ok(
+    if (file !== 'SHA256SUMS.txt') {
+      assert.ok(
         checksums.includes(`${createHash('sha256').update(data).digest('hex')}  ${file}\n`)
-      );}
+      );
+    }
   }
   assert.equal(calls.at(-1)[0], 'publish');
   assert.equal(calls.at(-1)[1].draft, false);
@@ -460,8 +480,12 @@ test('release lists only direct user-facing commits not already represented by m
   await h.execute();
   const body = h.calls.find(([name]) => name === 'create')[1].body;
   const section = body.split("## What's changed - commits")[1];
-  for (const subject of subjects.slice(0, 10)) {assert.ok(!section.includes(subject), subject);}
-  for (const subject of subjects.slice(10)) {assert.ok(section.includes(subject), subject);}
+  for (const subject of subjects.slice(0, 10)) {
+    assert.ok(!section.includes(subject), subject);
+  }
+  for (const subject of subjects.slice(10)) {
+    assert.ok(section.includes(subject), subject);
+  }
   assert.ok(
     containsUrl(body, 'https://github.com/test/tagline/pull/12'),
     'generated pull request notes remain intact'

@@ -35,7 +35,9 @@ test('platform: Pandoc uses literal arguments and reports failed conversion', as
     child.stderr = new PassThrough();
     child.kill = () => {};
     child.stdin.on('finish', () => {
-      if (exitCode) {child.stderr.write('PDF engine is missing');}
+      if (exitCode) {
+        child.stderr.write('PDF engine is missing');
+      }
       setImmediate(() => child.emit('close', exitCode));
     });
     return child;

@@ -1,7 +1,9 @@
 const { WebContentsView } = require('electron');
 
 function webUrl(value) {
-  if (typeof value !== 'string' || value.length > 8192) {throw new Error('Invalid website URL.');}
+  if (typeof value !== 'string' || value.length > 8192) {
+    throw new Error('Invalid website URL.');
+  }
   const url = new URL(value);
   if (!['https:', 'http:'].includes(url.protocol) || url.username || url.password) {
     throw new Error('Only HTTP and HTTPS website URLs without embedded credentials are supported.');
@@ -27,19 +29,29 @@ function registerBrowser({ ipcMain, shell, getWindow }) {
   let browserSession;
   let resizeHandler;
   const close = () => {
-    if (!view) {return;}
+    if (!view) {
+      return;
+    }
     const previous = view;
     view = null;
-    if (downloadHandler) {browserSession.removeListener('will-download', downloadHandler);}
+    if (downloadHandler) {
+      browserSession.removeListener('will-download', downloadHandler);
+    }
     const window = getWindow();
     if (window && !window.isDestroyed()) {
-      if (resizeHandler) {window.removeListener('resize', resizeHandler);}
+      if (resizeHandler) {
+        window.removeListener('resize', resizeHandler);
+      }
       window.contentView.removeChildView(previous);
     }
-    if (!previous.webContents.isDestroyed()) {previous.webContents.close();}
+    if (!previous.webContents.isDestroyed()) {
+      previous.webContents.close();
+    }
   };
   const state = () => {
-    if (!view || view.webContents.isDestroyed()) {return;}
+    if (!view || view.webContents.isDestroyed()) {
+      return;
+    }
     const wc = view.webContents;
     getWindow()?.webContents.send('browser:state', {
       url: wc.getURL(),
@@ -140,8 +152,9 @@ function registerBrowser({ ipcMain, shell, getWindow }) {
       'did-stop-loading',
       'did-navigate',
       'did-navigate-in-page',
-    ])
-      {wc.on(event, state);}
+    ]) {
+      wc.on(event, state);
+    }
     wc.on('did-fail-load', (_event, code, description, _url, isMainFrame) => {
       if (isMainFrame && code !== -3) {
         error = description;
@@ -160,24 +173,37 @@ function registerBrowser({ ipcMain, shell, getWindow }) {
     await navigate(target);
   });
   handle('browser:bounds', (rectangle) => {
-    if (!view) {return;}
+    if (!view) {
+      return;
+    }
     const box = bounds(rectangle);
     view.setBounds(box);
   });
   handle('browser:close', close);
   handle('browser:action', async (action, url) => {
-    if (action === 'external') {return shell.openExternal(webUrl(url));}
-    if (!view) {throw new Error('No website is open.');}
+    if (action === 'external') {
+      return shell.openExternal(webUrl(url));
+    }
+    if (!view) {
+      throw new Error('No website is open.');
+    }
     const wc = view.webContents;
-    if (action === 'navigate') {return navigate(url);}
-    if (action === 'archive') {return navigate(archiveUrl(url));}
-    if (action === 'back' && wc.navigationHistory.canGoBack()) {wc.navigationHistory.goBack();}
-    else if (action === 'forward' && wc.navigationHistory.canGoForward())
-      {wc.navigationHistory.goForward();}
-    else if (action === 'reload') {
+    if (action === 'navigate') {
+      return navigate(url);
+    }
+    if (action === 'archive') {
+      return navigate(archiveUrl(url));
+    }
+    if (action === 'back' && wc.navigationHistory.canGoBack()) {
+      wc.navigationHistory.goBack();
+    } else if (action === 'forward' && wc.navigationHistory.canGoForward()) {
+      wc.navigationHistory.goForward();
+    } else if (action === 'reload') {
       error = '';
       wc.reload();
-    } else {throw new Error('Website navigation is unavailable.');}
+    } else {
+      throw new Error('Website navigation is unavailable.');
+    }
   });
   return close;
 }

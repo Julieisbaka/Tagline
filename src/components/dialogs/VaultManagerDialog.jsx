@@ -25,8 +25,11 @@ export default function VaultManagerDialog({ onOpen, onChoose, onSample, onClose
     setBusy(true);
     setError('');
     try {
-      if (await action()) {onClose();}
-      else {await refresh();}
+      if (await action()) {
+        onClose();
+      } else {
+        await refresh();
+      }
     } catch (e) {
       setError(e.message);
     } finally {

@@ -11,10 +11,16 @@ export default memo(function CanvasFilePreview({ path, subpath, contents, paths,
   const content = path ? contents[path] : undefined;
   const resolve = useCallback((target) => resolveLink(target, paths), [paths]);
   const parsed = useMemo(() => {
-    if (content === undefined) {return {};}
+    if (content === undefined) {
+      return {};
+    }
     try {
-      if (isFlow(path)) {return { flow: parseFlow(content) };}
-      if (isCanvas(path)) {return { canvas: parseCanvas(content) };}
+      if (isFlow(path)) {
+        return { flow: parseFlow(content) };
+      }
+      if (isCanvas(path)) {
+        return { canvas: parseCanvas(content) };
+      }
       let text = content;
       if (subpath?.startsWith('#')) {
         const headings = outline(content);
@@ -37,16 +43,21 @@ export default memo(function CanvasFilePreview({ path, subpath, contents, paths,
     () => new Map(parsed.canvas?.nodes.map((node) => [node.id, node])),
     [parsed.canvas]
   );
-  if (!path) {return null;}
-  if (content === undefined) {return <p role='status'>{t('Loading…')}</p>;}
-  if (parsed.error)
-    {return (
+  if (!path) {
+    return null;
+  }
+  if (content === undefined) {
+    return <p role='status'>{t('Loading…')}</p>;
+  }
+  if (parsed.error) {
+    return (
       <p className='error-text' role='alert'>
         {parsed.error}
       </p>
-    );}
-  if (isMarkdown(path))
-    {return (
+    );
+  }
+  if (isMarkdown(path)) {
+    return (
       <Preview
         className='canvas-node-preview'
         content={parsed.text}
@@ -54,9 +65,10 @@ export default memo(function CanvasFilePreview({ path, subpath, contents, paths,
         onOpenLink={onOpenLink}
         onTagClick={() => {}}
       />
-    );}
-  if (parsed.flow)
-    {return (
+    );
+  }
+  if (parsed.flow) {
+    return (
       <div className='canvas-node-preview canvas-file-flow'>
         {parsed.flow.sheets.map((sheet, index) => (
           <section key={index}>
@@ -82,7 +94,8 @@ export default memo(function CanvasFilePreview({ path, subpath, contents, paths,
           </section>
         ))}
       </div>
-    );}
+    );
+  }
   const nodes = parsed.canvas?.nodes || [];
   const left = Math.min(0, ...nodes.map((node) => node.x));
   const top = Math.min(0, ...nodes.map((node) => node.y));

@@ -27,16 +27,22 @@ export default function IntegrationSettings() {
         }
       })
       .catch((e) => {
-        if (!disposed) {setError(e.message);}
+        if (!disposed) {
+          setError(e.message);
+        }
       });
     const interval = setInterval(() => {
       window.api
         .embeddingStatus()
         .then((e) => {
-          if (!disposed) {setEmbedding(e);}
+          if (!disposed) {
+            setEmbedding(e);
+          }
         })
         .catch((e) => {
-          if (!disposed) {setError(e.message);}
+          if (!disposed) {
+            setError(e.message);
+          }
         });
     }, 1000);
     return () => {
@@ -79,7 +85,9 @@ export default function IntegrationSettings() {
           onClick={() =>
             run(async () => {
               const info = await window.api.choosePandoc();
-              if (info) {setPandoc(info);}
+              if (info) {
+                setPandoc(info);
+              }
             })
           }
         >
@@ -207,12 +215,16 @@ function PoliticalDebateSettings() {
     window.api
       .nliStatus()
       .then((s) => {
-        if (disposed) {return;}
+        if (disposed) {
+          return;
+        }
         setStatus(s);
         setRepo(s.source.repo || s.defaultRepo);
       })
       .catch((e) => {
-        if (!disposed) {setError(e.message);}
+        if (!disposed) {
+          setError(e.message);
+        }
       });
     return () => {
       disposed = true;

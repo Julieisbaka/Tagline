@@ -16,10 +16,14 @@ export default function SummaryDialog({ content, title, onClose }) {
       window.api
         .summaryStatus()
         .then((value) => {
-          if (!disposed) {setStatus(value);}
+          if (!disposed) {
+            setStatus(value);
+          }
         })
         .catch((e) => {
-          if (!disposed) {setError(e.message);}
+          if (!disposed) {
+            setError(e.message);
+          }
         });
     refresh();
     const interval = setInterval(refresh, 750);
@@ -34,7 +38,9 @@ export default function SummaryDialog({ content, title, onClose }) {
     setError('');
     try {
       const result = await action();
-      if (typeof result === 'string') {setSummary(result);}
+      if (typeof result === 'string') {
+        setSummary(result);
+      }
       setStatus(await window.api.summaryStatus());
     } catch (e) {
       setError(e.message);

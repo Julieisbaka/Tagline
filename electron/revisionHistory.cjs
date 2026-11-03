@@ -24,7 +24,9 @@ function createRevisionHistory({ getVaultRoot, resolveInVault }) {
   const historyDir = (relativePath) => {
     const full = resolveInVault(relativePath);
     const rel = path.relative(getVaultRoot(), full);
-    if (!DOCUMENT.test(rel)) {throw new Error(HISTORY_TYPES);}
+    if (!DOCUMENT.test(rel)) {
+      throw new Error(HISTORY_TYPES);
+    }
     return path.join(resolveInVault('.tagline/history'), rel);
   };
 
@@ -35,7 +37,9 @@ function createRevisionHistory({ getVaultRoot, resolveInVault }) {
         .map((entry) => entry.name)
         .sort((a, b) => b.localeCompare(a));
     } catch (error) {
-      if (error.code === 'ENOENT') {return [];}
+      if (error.code === 'ENOENT') {
+        return [];
+      }
       throw error;
     }
   };
@@ -46,7 +50,9 @@ function createRevisionHistory({ getVaultRoot, resolveInVault }) {
     }
     seen.add(id);
     const stored = await fs.readFile(path.join(directory, id), 'utf8');
-    if (id.endsWith('.snapshot')) {return { content: stored, depth: 0 };}
+    if (id.endsWith('.snapshot')) {
+      return { content: stored, depth: 0 };
+    }
     const delta = JSON.parse(stored);
     if (delta?.version !== 1 || typeof delta.hash !== 'string') {
       throw new Error('Invalid revision history delta.');
@@ -64,8 +70,9 @@ function createRevisionHistory({ getVaultRoot, resolveInVault }) {
         !Number.isSafeInteger(delta.deleteCount) ||
         delta.deleteCount < 0 ||
         typeof delta.insert !== 'string'
-      )
-        {throw new Error('Invalid revision history delta.');}
+      ) {
+        throw new Error('Invalid revision history delta.');
+      }
       const base = await readStored(directory, delta.base, seen);
       if (
         hash(base.content) !== delta.baseHash ||
@@ -79,7 +86,9 @@ function createRevisionHistory({ getVaultRoot, resolveInVault }) {
         base.content.slice(delta.start + delta.deleteCount);
       depth = base.depth + 1;
     }
-    if (hash(content) !== delta.hash) {throw new Error('Revision history checksum does not match.');}
+    if (hash(content) !== delta.hash) {
+      throw new Error('Revision history checksum does not match.');
+    }
     return { content, depth };
   }
 
@@ -91,21 +100,31 @@ function createRevisionHistory({ getVaultRoot, resolveInVault }) {
     experimentalHistoryDeltas = false
   ) {
     validateRetention(retention);
-    if (typeof experimentalHistoryDeltas !== 'boolean')
-      {throw new Error('Experimental history deltas must be enabled or disabled.');}
-    if (!['complete', 'data'].includes(canvasMode))
-      {throw new Error('Canvas history mode must be complete or data.');}
-    if (typeof nextContent !== 'string') {throw new Error('Document content must be text.');}
+    if (typeof experimentalHistoryDeltas !== 'boolean') {
+      throw new Error('Experimental history deltas must be enabled or disabled.');
+    }
+    if (!['complete', 'data'].includes(canvasMode)) {
+      throw new Error('Canvas history mode must be complete or data.');
+    }
+    if (typeof nextContent !== 'string') {
+      throw new Error('Document content must be text.');
+    }
     const currentPath = resolveInVault(relativePath);
-    if (!DOCUMENT.test(currentPath)) {return;}
+    if (!DOCUMENT.test(currentPath)) {
+      return;
+    }
     let previous;
     try {
       previous = await fs.readFile(currentPath, 'utf8');
     } catch (error) {
-      if (error.code === 'ENOENT') {return;}
+      if (error.code === 'ENOENT') {
+        return;
+      }
       throw error;
     }
-    if (previous === nextContent) {return;}
+    if (previous === nextContent) {
+      return;
+    }
     const directory = historyDir(relativePath);
     let snapshotContent = previous;
     if (/\.canvas$/i.test(currentPath)) {
@@ -114,7 +133,9 @@ function createRevisionHistory({ getVaultRoot, resolveInVault }) {
       try {
         layout = JSON.parse(await fs.readFile(layoutPath, 'utf8'));
       } catch (error) {
-        if (error.code !== 'ENOENT') {throw error;}
+        if (error.code !== 'ENOENT') {
+          throw error;
+        }
       }
       let before;
       let after;
@@ -149,7 +170,9 @@ function createRevisionHistory({ getVaultRoot, resolveInVault }) {
           nodes: canvas.nodes.map(({ x, y, width, height, ...node }) => node),
         });
         const data = dataOnly(before);
-        if (isDeepStrictEqual(data, dataOnly(after))) {return;}
+        if (isDeepStrictEqual(data, dataOnly(after))) {
+          return;
+        }
         snapshotContent = JSON.stringify({ taglineCanvasRevision: 1, mode: 'data', data });
       }
     }
@@ -168,16 +191,18 @@ function createRevisionHistory({ getVaultRoot, resolveInVault }) {
           start < base.content.length &&
           start < snapshotContent.length &&
           base.content[start] === snapshotContent[start]
-        )
-          {start++;}
+        ) {
+          start++;
+        }
         let end = 0;
         while (
           end < base.content.length - start &&
           end < snapshotContent.length - start &&
           base.content[base.content.length - end - 1] ===
             snapshotContent[snapshotContent.length - end - 1]
-        )
-          {end++;}
+        ) {
+          end++;
+        }
         const delta = JSON.stringify({
           version: 1,
           base: existing[0],
@@ -219,7 +244,9 @@ function createRevisionHistory({ getVaultRoot, resolveInVault }) {
 
   async function list(relativePath) {
     const documentPath = resolveInVault(relativePath);
-    if (!DOCUMENT.test(documentPath)) {throw new Error(HISTORY_TYPES);}
+    if (!DOCUMENT.test(documentPath)) {
+      throw new Error(HISTORY_TYPES);
+    }
     const directory = historyDir(relativePath);
     return (await listFiles(directory)).map((id) => ({
       id,
@@ -228,10 +255,13 @@ function createRevisionHistory({ getVaultRoot, resolveInVault }) {
   }
 
   async function read(relativePath, id) {
-    if (typeof id !== 'string' || !SNAPSHOT_ID.test(id))
-      {throw new Error('Invalid revision history entry.');}
+    if (typeof id !== 'string' || !SNAPSHOT_ID.test(id)) {
+      throw new Error('Invalid revision history entry.');
+    }
     const documentPath = resolveInVault(relativePath);
-    if (!DOCUMENT.test(documentPath)) {throw new Error(HISTORY_TYPES);}
+    if (!DOCUMENT.test(documentPath)) {
+      throw new Error(HISTORY_TYPES);
+    }
     const directory = historyDir(relativePath);
     const { content } = await readStored(directory, id);
     if (/\.canvas$/i.test(documentPath)) {
@@ -258,7 +288,9 @@ function createRevisionHistory({ getVaultRoot, resolveInVault }) {
     try {
       await fs.access(source);
     } catch (error) {
-      if (error.code === 'ENOENT') {return;}
+      if (error.code === 'ENOENT') {
+        return;
+      }
       throw error;
     }
     await fs.mkdir(destination, { recursive: true });
@@ -269,7 +301,9 @@ function createRevisionHistory({ getVaultRoot, resolveInVault }) {
         await fs.access(path.join(source, 'layout.json'));
         files.push('layout.json');
       } catch (error) {
-        if (error.code !== 'ENOENT') {throw error;}
+        if (error.code !== 'ENOENT') {
+          throw error;
+        }
       }
       for (const id of files) {
         await fs.rename(path.join(source, id), path.join(destination, id));
@@ -286,14 +320,18 @@ function createRevisionHistory({ getVaultRoot, resolveInVault }) {
 
   async function latestWorking(relativePath) {
     const documentPath = resolveInVault(relativePath);
-    if (!DOCUMENT.test(documentPath)) {throw new Error(HISTORY_TYPES);}
+    if (!DOCUMENT.test(documentPath)) {
+      throw new Error(HISTORY_TYPES);
+    }
     const validate = /\.canvas$/i.test(documentPath)
       ? parseCanvas
       : /\.flow$/i.test(documentPath)
         ? parseFlow
         : null;
     const working = (content) => {
-      if (!validate) {return true;}
+      if (!validate) {
+        return true;
+      }
       try {
         validate(content);
         return true;
@@ -303,13 +341,19 @@ function createRevisionHistory({ getVaultRoot, resolveInVault }) {
     };
     try {
       const content = await fs.readFile(documentPath, 'utf8');
-      if (working(content)) {return { content };}
+      if (working(content)) {
+        return { content };
+      }
     } catch (error) {
-      if (error.code !== 'ENOENT') {throw error;}
+      if (error.code !== 'ENOENT') {
+        throw error;
+      }
     }
     for (const revision of await list(relativePath)) {
       const content = await read(relativePath, revision.id);
-      if (working(content)) {return { ...revision, content };}
+      if (working(content)) {
+        return { ...revision, content };
+      }
     }
     return null;
   }

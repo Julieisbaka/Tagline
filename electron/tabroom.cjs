@@ -10,8 +10,9 @@ const JSON_SNAPSHOT_LIMIT = 4;
 
 function tournamentId(value) {
   let id = typeof value === 'number' ? String(value) : value;
-  if (typeof id !== 'string' || id.length > 2048)
-    {throw new Error('Enter a valid Tabroom tournament ID or URL.');}
+  if (typeof id !== 'string' || id.length > 2048) {
+    throw new Error('Enter a valid Tabroom tournament ID or URL.');
+  }
   id = id.trim();
   if (!/^\d+$/.test(id)) {
     let url;
@@ -25,12 +26,14 @@ function tournamentId(value) {
       url.username ||
       url.password ||
       url.searchParams.getAll('tourn_id').length !== 1
-    )
-      {throw new Error('Use an https://www.tabroom.com URL with one tourn_id.');}
+    ) {
+      throw new Error('Use an https://www.tabroom.com URL with one tourn_id.');
+    }
     id = url.searchParams.get('tourn_id');
   }
-  if (!/^\d+$/.test(id) || !Number.isSafeInteger(Number(id)) || Number(id) < 1)
-    {throw new Error('Enter a valid Tabroom tournament ID.');}
+  if (!/^\d+$/.test(id) || !Number.isSafeInteger(Number(id)) || Number(id) < 1) {
+    throw new Error('Enter a valid Tabroom tournament ID.');
+  }
   return String(Number(id));
 }
 
@@ -44,8 +47,9 @@ function createTabroom({ session, BrowserWindow, dialog, getWindow }) {
     cached = undefined;
   };
   const unchanged = (started) => {
-    if (started !== generation)
-      {throw new Error('Tabroom session or tournament changed. Load the tournament again.');}
+    if (started !== generation) {
+      throw new Error('Tabroom session or tournament changed. Load the tournament again.');
+    }
   };
   const status = async () => {
     const cookies = await session.cookies.get({ url: ORIGIN });
@@ -86,7 +90,9 @@ function createTabroom({ session, BrowserWindow, dialog, getWindow }) {
       } catch {
         /* Invalid navigation targets are blocked. */
       }
-      if (!allowed) {event.preventDefault();}
+      if (!allowed) {
+        event.preventDefault();
+      }
     };
     win.webContents.on('will-navigate', guard);
     win.webContents.on('will-redirect', guard);
@@ -100,7 +106,9 @@ function createTabroom({ session, BrowserWindow, dialog, getWindow }) {
     try {
       await win.loadURL(`${ORIGIN}/user/login/login.mhtml`);
     } catch (error) {
-      if (loginWindow === win) {win.close();}
+      if (loginWindow === win) {
+        win.close();
+      }
       await closed;
       throw new Error(`Tabroom sign-in could not open: ${error.message}`);
     }
@@ -132,8 +140,9 @@ function createTabroom({ session, BrowserWindow, dialog, getWindow }) {
     }
     if (!response.ok) {
       await response.body?.cancel();
-      if (response.status === 401 || response.status === 403)
-        {throw new Error('Tabroom denied access. Sign in and check your tournament permissions.');}
+      if (response.status === 401 || response.status === 403) {
+        throw new Error('Tabroom denied access. Sign in and check your tournament permissions.');
+      }
       throw new Error(`Tabroom request failed (${response.status}).`);
     }
     if (Number(response.headers.get('content-length')) > MAX_JSON) {
@@ -142,10 +151,14 @@ function createTabroom({ session, BrowserWindow, dialog, getWindow }) {
     }
     const chunks = [];
     let size = 0;
-    if (!response.body) {throw new Error('Tabroom returned an empty response.');}
+    if (!response.body) {
+      throw new Error('Tabroom returned an empty response.');
+    }
     for await (const chunk of response.body) {
       size += chunk.byteLength;
-      if (size > MAX_JSON) {throw new Error('Tabroom response exceeds the 32 MiB limit.');}
+      if (size > MAX_JSON) {
+        throw new Error('Tabroom response exceeds the 32 MiB limit.');
+      }
       chunks.push(Buffer.from(chunk));
     }
     unchanged(started);
@@ -158,8 +171,9 @@ function createTabroom({ session, BrowserWindow, dialog, getWindow }) {
         'Tabroom did not return valid JSON. Check the tournament ID or sign in again.'
       );
     }
-    if (!data || typeof data !== 'object' || Array.isArray(data) || String(data.id) !== id)
-      {throw new Error('Tabroom returned unexpected tournament data.');}
+    if (!data || typeof data !== 'object' || Array.isArray(data) || String(data.id) !== id) {
+      throw new Error('Tabroom returned unexpected tournament data.');
+    }
     const formatted = JSON.stringify(data, null, 2);
     const snapshot = normalizeSnapshot(data);
     cached = { id, bytes, formatted, snapshot };
@@ -185,22 +199,27 @@ function createTabroom({ session, BrowserWindow, dialog, getWindow }) {
     };
   };
   const records = (id, kind, index, query) => {
-    if (!cached || tournamentId(id) !== cached.id) {throw new Error('Load the tournament again.');}
+    if (!cached || tournamentId(id) !== cached.id) {
+      throw new Error('Load the tournament again.');
+    }
     return snapshotRecords(cached.snapshot, kind, index, query);
   };
   const openJson = (source) => {
-    if (typeof source !== 'string' || Buffer.byteLength(source, 'utf8') > MAX_JSON)
-      {throw new Error('Tournament JSON must be a string no larger than 32 MiB.');}
+    if (typeof source !== 'string' || Buffer.byteLength(source, 'utf8') > MAX_JSON) {
+      throw new Error('Tournament JSON must be a string no larger than 32 MiB.');
+    }
     let data;
     try {
       data = JSON.parse(source.replace(/^\uFEFF/, ''));
     } catch {
       throw new Error('The JSON file is not valid JSON.');
     }
-    if (!data || typeof data !== 'object' || Array.isArray(data))
-      {throw new Error('This JSON does not contain a Tabroom tournament snapshot.');}
-    if (!['categories', 'events', 'judges', 'schools'].some((key) => Array.isArray(data[key])))
-      {throw new Error('This JSON does not contain Tabroom tournament collections.');}
+    if (!data || typeof data !== 'object' || Array.isArray(data)) {
+      throw new Error('This JSON does not contain a Tabroom tournament snapshot.');
+    }
+    if (!['categories', 'events', 'judges', 'schools'].some((key) => Array.isArray(data[key]))) {
+      throw new Error('This JSON does not contain Tabroom tournament collections.');
+    }
     let id;
     try {
       id = tournamentId(data.id);
@@ -210,8 +229,9 @@ function createTabroom({ session, BrowserWindow, dialog, getWindow }) {
     const snapshot = normalizeSnapshot(data);
     const token = randomUUID();
     jsonSnapshots.set(token, { id, snapshot });
-    while (jsonSnapshots.size > JSON_SNAPSHOT_LIMIT)
-      {jsonSnapshots.delete(jsonSnapshots.keys().next().value);}
+    while (jsonSnapshots.size > JSON_SNAPSHOT_LIMIT) {
+      jsonSnapshots.delete(jsonSnapshots.keys().next().value);
+    }
     const formatted = JSON.stringify(data, null, 2);
     return {
       token,
@@ -237,18 +257,25 @@ function createTabroom({ session, BrowserWindow, dialog, getWindow }) {
   };
   const snapshotRecordsForJson = (token, kind, index, query) => {
     const entry = jsonSnapshots.get(token);
-    if (!entry) {throw new Error('Tournament JSON data expired. Reopen the file.');}
+    if (!entry) {
+      throw new Error('Tournament JSON data expired. Reopen the file.');
+    }
     return snapshotRecords(entry.snapshot, kind, index, query);
   };
   const page = (id, index) => {
-    if (!cached || tournamentId(id) !== cached.id) {throw new Error('Load the tournament again.');}
-    if (!Number.isSafeInteger(index) || index < 0 || index * PAGE_SIZE >= cached.formatted.length)
-      {throw new Error('Invalid Tabroom data page.');}
+    if (!cached || tournamentId(id) !== cached.id) {
+      throw new Error('Load the tournament again.');
+    }
+    if (!Number.isSafeInteger(index) || index < 0 || index * PAGE_SIZE >= cached.formatted.length) {
+      throw new Error('Invalid Tabroom data page.');
+    }
     return cached.formatted.slice(index * PAGE_SIZE, (index + 1) * PAGE_SIZE);
   };
   const download = async (value) => {
     const id = tournamentId(value);
-    if (!cached || cached.id !== id) {throw new Error('Load the tournament before saving its JSON.');}
+    if (!cached || cached.id !== id) {
+      throw new Error('Load the tournament before saving its JSON.');
+    }
     const started = generation;
     const snapshot = cached;
     const result = await dialog.showSaveDialog(getWindow(), {
@@ -256,9 +283,13 @@ function createTabroom({ session, BrowserWindow, dialog, getWindow }) {
       defaultPath: `tabroom-${id}.json`,
       filters: [{ name: 'JSON', extensions: ['json'] }],
     });
-    if (result.canceled) {return { cancelled: true };}
+    if (result.canceled) {
+      return { cancelled: true };
+    }
     unchanged(started);
-    if (!result.filePath) {throw new Error('Choose a destination for the Tabroom JSON.');}
+    if (!result.filePath) {
+      throw new Error('Choose a destination for the Tabroom JSON.');
+    }
     await fs.writeFile(result.filePath, snapshot.bytes, { mode: 0o600 });
     return { path: result.filePath };
   };
@@ -279,8 +310,12 @@ function registerTabroom({ ipcMain, session, BrowserWindow, dialog, getWindow })
     'download',
   ]) {
     ipcMain.handle(`tabroom:${action}`, (event, ...args) => {
-      if (event.sender !== getWindow()?.webContents || event.senderFrame !== event.sender.mainFrame)
-        {throw new Error('Tabroom is only available to the application.');}
+      if (
+        event.sender !== getWindow()?.webContents ||
+        event.senderFrame !== event.sender.mainFrame
+      ) {
+        throw new Error('Tabroom is only available to the application.');
+      }
       if (!service) {
         const isolated = session.fromPartition(PARTITION);
         isolated.setPermissionRequestHandler((_contents, _permission, callback) => callback(false));

@@ -24,10 +24,15 @@ const call = (message) =>
   new Promise((resolve, reject) => {
     const id = ++sequence;
     const listener = (reply) => {
-      if (reply.id !== id || reply.progress) {return;}
+      if (reply.id !== id || reply.progress) {
+        return;
+      }
       worker.off('message', listener);
-      if (reply.error) {reject(new Error(reply.error));}
-      else {resolve(reply.result);}
+      if (reply.error) {
+        reject(new Error(reply.error));
+      } else {
+        resolve(reply.result);
+      }
     };
     worker.on('message', listener);
     worker.postMessage({ ...message, id });
@@ -61,8 +66,9 @@ const call = (message) =>
       'This text is about foreign policy.',
     ],
   });
-  for (const item of result.results)
-    {console.log(`${(item.entailment * 100).toFixed(1)}%  ${item.hypothesis}`);}
+  for (const item of result.results) {
+    console.log(`${(item.entailment * 100).toFixed(1)}%  ${item.hypothesis}`);
+  }
   const [support, oppose, topic] = result.results.map((item) => item.entailment);
   assert.ok(support > 0.5, 'Supportive stance is entailed');
   assert.ok(oppose < 0.5 && topic < 0.5, 'Opposing stance and unrelated topic are not entailed');
@@ -90,6 +96,7 @@ const call = (message) =>
   })
   .finally(async () => {
     await worker.terminate();
-    if (storage)
-      {fs.rmSync(storage, { recursive: true, force: true, maxRetries: 20, retryDelay: 100 });}
+    if (storage) {
+      fs.rmSync(storage, { recursive: true, force: true, maxRetries: 20, retryDelay: 100 });
+    }
   });

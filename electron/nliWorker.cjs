@@ -6,7 +6,9 @@ let loaded = null;
 let queue = Promise.resolve();
 
 async function load({ source, storage, token, online }, report) {
-  if (loaded) {return loaded.info;}
+  if (loaded) {
+    return loaded.info;
+  }
   const { env, AutoTokenizer, AutoModelForSequenceClassification } =
     await import('@huggingface/transformers');
   delete process.env.HF_TOKEN;
@@ -27,8 +29,9 @@ async function load({ source, storage, token, online }, report) {
   env.fetch = async (url, options = {}) => {
     const headers = new Headers(options.headers);
     headers.delete('authorization');
-    if (token && new URL(url).origin === 'https://huggingface.co')
-      {headers.set('Authorization', `Bearer ${token}`);}
+    if (token && new URL(url).origin === 'https://huggingface.co') {
+      headers.set('Authorization', `Bearer ${token}`);
+    }
     const timeout = AbortSignal.timeout(600000);
     const signal = options.signal ? AbortSignal.any([options.signal, timeout]) : timeout;
     return fetcher(url, { ...options, headers, signal });
@@ -69,11 +72,15 @@ async function load({ source, storage, token, online }, report) {
 }
 
 async function analyze({ premise, hypotheses }, report) {
-  if (!loaded) {throw new Error('Load the model first.');}
+  if (!loaded) {
+    throw new Error('Load the model first.');
+  }
   const { tokenizer, model, entailment } = loaded;
   const count = (text) => tokenizer.encode(text, { add_special_tokens: false }).length;
   const longest = Math.max(...hypotheses.map(count));
-  if (longest > 128) {throw new Error('Hypotheses must be at most 128 tokens.');}
+  if (longest > 128) {
+    throw new Error('Hypotheses must be at most 128 tokens.');
+  }
   const { chunks, truncated } = chunkPremise(premise, count, MAX_POSITIONS - longest - 4);
   const results = [];
   for (const [i, hypothesis] of hypotheses.entries()) {

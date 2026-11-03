@@ -50,14 +50,18 @@ export default function FlowSheetTabs({
               event.currentTarget.classList.add('dragging');
             }}
             onDragOver={(event) => {
-              if (draggedSheet.current === null) {return;}
+              if (draggedSheet.current === null) {
+                return;
+              }
               event.preventDefault();
               event.dataTransfer.dropEffect = 'move';
               const rect = event.currentTarget.getBoundingClientRect();
               setSheetDropIndex(i + (event.clientX > rect.left + rect.width / 2 ? 1 : 0));
             }}
             onDrop={(event) => {
-              if (draggedSheet.current === null) {return;}
+              if (draggedSheet.current === null) {
+                return;
+              }
               event.preventDefault();
               const rect = event.currentTarget.getBoundingClientRect();
               const destination = i + (event.clientX > rect.left + rect.width / 2 ? 1 : 0);
@@ -101,7 +105,9 @@ export default function FlowSheetTabs({
                 ) {
                   event.preventDefault();
                   const destination = i + (event.key === 'ArrowLeft' ? -1 : 1);
-                  if (destination < 0 || destination >= data.sheets.length) {return;}
+                  if (destination < 0 || destination >= data.sheets.length) {
+                    return;
+                  }
                   reorderSheet(i, destination);
                   requestAnimationFrame(() =>
                     sheetTabsRef.current

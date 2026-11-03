@@ -19,8 +19,9 @@ const ERROR_MESSAGES = {
 };
 
 function validateEndpoint(value) {
-  if (typeof value !== 'string' || value.length > 2048)
-    {throw new Error('Enter a Google Apps Script deployment URL.');}
+  if (typeof value !== 'string' || value.length > 2048) {
+    throw new Error('Enter a Google Apps Script deployment URL.');
+  }
   const clean = value.trim();
   let url;
   try {
@@ -37,10 +38,11 @@ function validateEndpoint(value) {
     !match ||
     [...url.searchParams.keys()].some((key) => key !== 'authuser') ||
     url.searchParams.getAll('authuser').length > 1
-  )
-    {throw new Error(
+  ) {
+    throw new Error(
       'Use the https://script.google.com/macros/s/DEPLOYMENT_ID/exec web app URL. Only an optional authuser account hint is accepted.'
-    );}
+    );
+  }
   // Browser account indices do not select a web app's executing account.
   return `https://script.google.com/macros/s/${match[1]}/exec`;
 }
@@ -51,8 +53,9 @@ function validateTitle(value) {
     !value.trim() ||
     value.length > 200 ||
     /[\u0000-\u001f]/.test(value)
-  )
-    {throw new Error('Use a document title of 1-200 characters without control characters.');}
+  ) {
+    throw new Error('Use a document title of 1-200 characters without control characters.');
+  }
   return value.trim();
 }
 
@@ -65,10 +68,11 @@ function validateAccount(value) {
     typeof value.displayName !== 'string' ||
     value.displayName.length > 200 ||
     /[\u0000-\u001f]/.test(value.displayName)
-  )
-    {throw new Error(
+  ) {
+    throw new Error(
       'The webhook did not identify a valid Google account. Update and redeploy the bundled script, then verify the connection.'
-    );}
+    );
+  }
   return { email: value.email.toLowerCase(), displayName: value.displayName };
 }
 
@@ -78,16 +82,22 @@ async function readReply(response, expectedCode) {
     await response.body?.cancel();
     throw new Error('The Google Docs webhook response is too large.');
   }
-  if (!response.body) {throw new Error('The Google Docs webhook returned an empty response.');}
+  if (!response.body) {
+    throw new Error('The Google Docs webhook returned an empty response.');
+  }
   const reader = response.body.getReader();
   const chunks = [];
   let length = 0;
   try {
     while (true) {
       const { done, value } = await reader.read();
-      if (done) {break;}
+      if (done) {
+        break;
+      }
       length += value.byteLength;
-      if (length > limit) {throw new Error('The Google Docs webhook response is too large.');}
+      if (length > limit) {
+        throw new Error('The Google Docs webhook response is too large.');
+      }
       chunks.push(Buffer.from(value));
     }
   } finally {
@@ -107,15 +117,19 @@ async function readReply(response, expectedCode) {
     typeof result !== 'object' ||
     !Number.isInteger(result.code) ||
     typeof result.ok !== 'boolean'
-  )
-    {throw new Error('The Google Docs webhook returned an invalid result code.');}
+  ) {
+    throw new Error('The Google Docs webhook returned an invalid result code.');
+  }
   if (result.code !== expectedCode || !result.ok) {
-    if (result.ok || !Object.hasOwn(ERROR_MESSAGES, result.code))
-      {throw new Error('The Google Docs webhook returned an unsupported result code.');}
+    if (result.ok || !Object.hasOwn(ERROR_MESSAGES, result.code)) {
+      throw new Error('The Google Docs webhook returned an unsupported result code.');
+    }
     throw new Error(`Google Docs (${result.code}): ${ERROR_MESSAGES[result.code]}`);
   }
   const account = validateAccount(result.account);
-  if (expectedCode === 200) {return { account };}
+  if (expectedCode === 200) {
+    return { account };
+  }
   const doc = result.document;
   if (
     !doc ||
@@ -123,8 +137,9 @@ async function readReply(response, expectedCode) {
     !/^[A-Za-z0-9_-]+$/.test(doc.id) ||
     doc.url !== `https://docs.google.com/document/d/${doc.id}/edit` ||
     typeof doc.title !== 'string'
-  )
-    {throw new Error('The webhook returned invalid document details. Check Drive before retrying.');}
+  ) {
+    throw new Error('The webhook returned invalid document details. Check Drive before retrying.');
+  }
   return {
     canceled: false,
     code: 201,
@@ -143,7 +158,9 @@ function createGoogleDocs({ app, safeStorage, dialog, shell, getWindow, fetchImp
     try {
       contents = await fs.readFile(configFile, 'utf8');
     } catch (error) {
-      if (error.code === 'ENOENT') {return { version: 2, connections: [] };}
+      if (error.code === 'ENOENT') {
+        return { version: 2, connections: [] };
+      }
       throw error;
     }
     const config = JSON.parse(contents);
@@ -168,12 +185,15 @@ function createGoogleDocs({ app, safeStorage, dialog, shell, getWindow, fetchImp
       ) ||
       new Set(config.connections.map((connection) => connection.id)).size !==
         config.connections.length
-    )
-      {throw new Error(
+    ) {
+      throw new Error(
         'The saved Google Docs configuration is invalid. Disconnect and configure it again.'
-      );}
+      );
+    }
     for (const connection of config.connections) {
-      if (connection.type !== 'oauth') {connection.endpoint = validateEndpoint(connection.endpoint);}
+      if (connection.type !== 'oauth') {
+        connection.endpoint = validateEndpoint(connection.endpoint);
+      }
       connection.account = validateAccount(connection.account);
     }
     return config;
@@ -190,8 +210,9 @@ function createGoogleDocs({ app, safeStorage, dialog, shell, getWindow, fetchImp
   };
   const connectionFor = (config, id) => {
     const connection = config.connections.find((item) => item.id === id);
-    if (!connection)
-      {throw new Error('Select a saved Google account connection in Settings > Integrations.');}
+    if (!connection) {
+      throw new Error('Select a saved Google account connection in Settings > Integrations.');
+    }
     return connection;
   };
   const status = async () => {
@@ -225,8 +246,9 @@ function createGoogleDocs({ app, safeStorage, dialog, shell, getWindow, fetchImp
           redirect.origin !== 'https://script.googleusercontent.com' ||
           redirect.username ||
           redirect.password
-        )
-          {throw new Error('Untrusted redirect');}
+        ) {
+          throw new Error('Untrusted redirect');
+        }
         await response.body?.cancel();
         response = await fetchImpl(redirect.href, {
           method: 'GET',
@@ -249,8 +271,9 @@ function createGoogleDocs({ app, safeStorage, dialog, shell, getWindow, fetchImp
     return readReply(response, expectedCode);
   };
   const decrypt = async (connection) => {
-    if (!(await safeStorage.isAsyncEncryptionAvailable()))
-      {throw new Error('OS credential encryption is unavailable.');}
+    if (!(await safeStorage.isAsyncEncryptionAvailable())) {
+      throw new Error('OS credential encryption is unavailable.');
+    }
     try {
       return (
         await safeStorage.decryptStringAsync(Buffer.from(connection.encryptedSecret, 'base64'))
@@ -261,34 +284,44 @@ function createGoogleDocs({ app, safeStorage, dialog, shell, getWindow, fetchImp
   };
   const save = async (endpoint, secret, connectionId) => {
     endpoint = validateEndpoint(endpoint);
-    if (typeof secret !== 'string') {throw new Error('Enter a webhook secret.');}
-    if (!(await safeStorage.isAsyncEncryptionAvailable()))
-      {throw new Error('OS credential encryption is unavailable.');}
-    if (configuring || sending)
-      {throw new Error('A Google Docs connection change or upload is already in progress.');}
+    if (typeof secret !== 'string') {
+      throw new Error('Enter a webhook secret.');
+    }
+    if (!(await safeStorage.isAsyncEncryptionAvailable())) {
+      throw new Error('OS credential encryption is unavailable.');
+    }
+    if (configuring || sending) {
+      throw new Error('A Google Docs connection change or upload is already in progress.');
+    }
     configuring = true;
     try {
       const config = await readConfig();
       const current = connectionId === undefined ? null : connectionFor(config, connectionId);
-      if (current?.type === 'oauth')
-        {throw new Error('Choose an Apps Script connection to edit its webhook.');}
+      if (current?.type === 'oauth') {
+        throw new Error('Choose an Apps Script connection to edit its webhook.');
+      }
       let encryptedSecret;
       if (secret === '') {
-        if (!current || current.endpoint !== endpoint)
-          {throw new Error(
+        if (!current || current.endpoint !== endpoint) {
+          throw new Error(
             'Enter the WEBHOOK_SECRET for this deployment; secrets cannot be reused across connections.'
-          );}
+          );
+        }
         secret = await decrypt(current);
         encryptedSecret = current.encryptedSecret;
       } else {
-        if (!/^[!-~]{32,256}$/.test(secret))
-          {throw new Error('The webhook secret must contain 32-256 non-space ASCII characters.');}
+        if (!/^[!-~]{32,256}$/.test(secret)) {
+          throw new Error('The webhook secret must contain 32-256 non-space ASCII characters.');
+        }
         encryptedSecret = (await safeStorage.encryptStringAsync(secret)).toString('base64');
       }
-      if (config.connections.some((item) => item.id !== current?.id && item.endpoint === endpoint))
-        {throw new Error(
+      if (
+        config.connections.some((item) => item.id !== current?.id && item.endpoint === endpoint)
+      ) {
+        throw new Error(
           'This deployment already has a saved connection. Select it to update or verify it.'
-        );}
+        );
+      }
       const { account } = await request(endpoint, { action: 'account', secret }, 200);
       const confirmation = await dialog.showMessageBox(getWindow(), {
         type: 'question',
@@ -299,7 +332,9 @@ function createGoogleDocs({ app, safeStorage, dialog, shell, getWindow, fetchImp
         cancelId: 0,
         noLink: true,
       });
-      if (confirmation.response !== 1) {return { ...(await status()), canceled: true };}
+      if (confirmation.response !== 1) {
+        return { ...(await status()), canceled: true };
+      }
       const connection = { id: current?.id || randomUUID(), endpoint, encryptedSecret, account };
       config.connections = current
         ? config.connections.map((item) => (item.id === current.id ? connection : item))
@@ -311,15 +346,17 @@ function createGoogleDocs({ app, safeStorage, dialog, shell, getWindow, fetchImp
     }
   };
   const encryptTokens = async (refreshToken) => {
-    if (!(await safeStorage.isAsyncEncryptionAvailable()))
-      {throw new Error('OS credential encryption is unavailable.');}
+    if (!(await safeStorage.isAsyncEncryptionAvailable())) {
+      throw new Error('OS credential encryption is unavailable.');
+    }
     return (await safeStorage.encryptStringAsync(JSON.stringify({ refreshToken }))).toString(
       'base64'
     );
   };
   const decryptTokens = async (connection) => {
-    if (!(await safeStorage.isAsyncEncryptionAvailable()))
-      {throw new Error('OS credential encryption is unavailable.');}
+    if (!(await safeStorage.isAsyncEncryptionAvailable())) {
+      throw new Error('OS credential encryption is unavailable.');
+    }
     let tokens;
     try {
       tokens = JSON.parse(
@@ -334,15 +371,18 @@ function createGoogleDocs({ app, safeStorage, dialog, shell, getWindow, fetchImp
       typeof tokens.refreshToken !== 'string' ||
       !tokens.refreshToken ||
       tokens.refreshToken.length > 16384
-    )
-      {throw new Error('Invalid saved Google authorization. Reconnect this account in Settings.');}
+    ) {
+      throw new Error('Invalid saved Google authorization. Reconnect this account in Settings.');
+    }
     return tokens;
   };
   const connect = async () => {
-    if (configuring || sending)
-      {throw new Error('A Google Docs connection change or upload is already in progress.');}
-    if (!(await safeStorage.isAsyncEncryptionAvailable()))
-      {throw new Error('OS credential encryption is unavailable.');}
+    if (configuring || sending) {
+      throw new Error('A Google Docs connection change or upload is already in progress.');
+    }
+    if (!(await safeStorage.isAsyncEncryptionAvailable())) {
+      throw new Error('OS credential encryption is unavailable.');
+    }
     configuring = true;
     try {
       const config = await readConfig();
@@ -359,7 +399,9 @@ function createGoogleDocs({ app, safeStorage, dialog, shell, getWindow, fetchImp
         cancelId: 0,
         noLink: true,
       });
-      if (confirmation.response !== 1) {return { ...(await status()), canceled: true };}
+      if (confirmation.response !== 1) {
+        return { ...(await status()), canceled: true };
+      }
       const connection = {
         id: current?.id || randomUUID(),
         type: 'oauth',
@@ -377,8 +419,9 @@ function createGoogleDocs({ app, safeStorage, dialog, shell, getWindow, fetchImp
     }
   };
   const disconnect = async (connectionId) => {
-    if (configuring || sending)
-      {throw new Error('A Google Docs connection change or upload is already in progress.');}
+    if (configuring || sending) {
+      throw new Error('A Google Docs connection change or upload is already in progress.');
+    }
     configuring = true;
     try {
       const config = await readConfig();
@@ -392,10 +435,12 @@ function createGoogleDocs({ app, safeStorage, dialog, shell, getWindow, fetchImp
   };
   const upload = async (title, mimeType, bytes, connectionId) => {
     title = validateTitle(title);
-    if (!bytes.length || bytes.length > MAX_BYTES)
-      {throw new Error('Upload a non-empty document no larger than 5 MiB.');}
-    if (sending || configuring)
-      {throw new Error('A Google Docs upload or connection change is already in progress.');}
+    if (!bytes.length || bytes.length > MAX_BYTES) {
+      throw new Error('Upload a non-empty document no larger than 5 MiB.');
+    }
+    if (sending || configuring) {
+      throw new Error('A Google Docs upload or connection change is already in progress.');
+    }
     sending = true;
     try {
       const saved = await readConfig();
@@ -404,10 +449,14 @@ function createGoogleDocs({ app, safeStorage, dialog, shell, getWindow, fetchImp
         const credentials = await decryptTokens(config);
         const tokens = await oauth.refresh(credentials.refreshToken);
         const identity = await oauth.account(tokens.accessToken);
-        if (identity.subject !== config.subject || identity.account.email !== config.account.email)
-          {throw new Error(
+        if (
+          identity.subject !== config.subject ||
+          identity.account.email !== config.account.email
+        ) {
+          throw new Error(
             'Google returned a different account. Reconnect the selected account before uploading.'
-          );}
+          );
+        }
         if (tokens.refreshToken && tokens.refreshToken !== credentials.refreshToken) {
           config.encryptedTokens = await encryptTokens(tokens.refreshToken);
           await writeConfig(saved);
@@ -421,7 +470,9 @@ function createGoogleDocs({ app, safeStorage, dialog, shell, getWindow, fetchImp
           cancelId: 0,
           noLink: true,
         });
-        if (confirmation.response !== 1) {return { canceled: true };}
+        if (confirmation.response !== 1) {
+          return { canceled: true };
+        }
         const document = await oauth.upload(tokens.accessToken, title, mimeType, bytes);
         return {
           canceled: false,
@@ -432,7 +483,9 @@ function createGoogleDocs({ app, safeStorage, dialog, shell, getWindow, fetchImp
       }
       const secret = await decrypt(config);
       const { account } = await request(config.endpoint, { action: 'account', secret }, 200);
-      if (account.email !== config.account.email) {throw new Error(ERROR_MESSAGES[409]);}
+      if (account.email !== config.account.email) {
+        throw new Error(ERROR_MESSAGES[409]);
+      }
       const confirmation = await dialog.showMessageBox(getWindow(), {
         type: 'question',
         message: 'Send this document to Google Drive?',
@@ -442,7 +495,9 @@ function createGoogleDocs({ app, safeStorage, dialog, shell, getWindow, fetchImp
         cancelId: 0,
         noLink: true,
       });
-      if (confirmation.response !== 1) {return { canceled: true };}
+      if (confirmation.response !== 1) {
+        return { canceled: true };
+      }
       const result = await request(
         config.endpoint,
         {
@@ -455,18 +510,20 @@ function createGoogleDocs({ app, safeStorage, dialog, shell, getWindow, fetchImp
         },
         201
       );
-      if (result.account.email !== account.email)
-        {throw new Error(
+      if (result.account.email !== account.email) {
+        throw new Error(
           'The webhook returned a different Google account. Check Drive before retrying; reverify the connection.'
-        );}
+        );
+      }
       return result;
     } finally {
       sending = false;
     }
   };
   const sendNote = async (document) => {
-    if (!document || typeof document.html !== 'string')
-      {throw new Error('Invalid Google Docs note export.');}
+    if (!document || typeof document.html !== 'string') {
+      throw new Error('Invalid Google Docs note export.');
+    }
     return upload(
       document.title,
       'text/html',
@@ -480,13 +537,20 @@ function createGoogleDocs({ app, safeStorage, dialog, shell, getWindow, fetchImp
       properties: ['openFile'],
       filters: [{ name: 'DOCX and HTML documents', extensions: ['docx', 'html', 'htm'] }],
     });
-    if (result.canceled) {return { canceled: true };}
+    if (result.canceled) {
+      return { canceled: true };
+    }
     const file = result.filePaths[0];
     const suffix = path.extname(file);
     const extension = suffix.toLowerCase();
     const stat = await fs.stat(file);
-    if (!stat.isFile() || stat.size > MAX_BYTES || !['.docx', '.html', '.htm'].includes(extension))
-      {throw new Error('Choose a DOCX or HTML file no larger than 5 MiB.');}
+    if (
+      !stat.isFile() ||
+      stat.size > MAX_BYTES ||
+      !['.docx', '.html', '.htm'].includes(extension)
+    ) {
+      throw new Error('Choose a DOCX or HTML file no larger than 5 MiB.');
+    }
     return upload(
       path.basename(file, suffix),
       extension === '.docx' ? DOCX : 'text/html',
@@ -500,7 +564,9 @@ function createGoogleDocs({ app, safeStorage, dialog, shell, getWindow, fetchImp
       defaultPath: 'tagline-google-docs.gs',
       filters: [{ name: 'Google Apps Script', extensions: ['gs'] }],
     });
-    if (result.canceled) {return { canceled: true };}
+    if (result.canceled) {
+      return { canceled: true };
+    }
     await fs.copyFile(path.join(__dirname, 'google-docs-webhook.gs'), result.filePath);
     return { canceled: false, path: result.filePath };
   };
@@ -508,8 +574,9 @@ function createGoogleDocs({ app, safeStorage, dialog, shell, getWindow, fetchImp
     if (
       typeof url !== 'string' ||
       !/^https:\/\/docs\.google\.com\/document\/d\/[A-Za-z0-9_-]+\/edit$/.test(url)
-    )
-      {throw new Error('Invalid Google Docs document URL.');}
+    ) {
+      throw new Error('Invalid Google Docs document URL.');
+    }
     const account = validateAccount({ email: accountEmail, displayName: '' });
     await shell.openExternal(`${url}?authuser=${encodeURIComponent(account.email)}`);
   };
@@ -531,8 +598,9 @@ function registerGoogleDocs(options) {
   const handle = (name, action) =>
     options.ipcMain.handle(`googleDocs:${name}`, (event, ...args) => {
       const contents = options.getWindow()?.webContents;
-      if (!contents || event.sender !== contents || event.senderFrame !== contents.mainFrame)
-        {throw new Error('Google Docs is only available to the application main frame.');}
+      if (!contents || event.sender !== contents || event.senderFrame !== contents.mainFrame) {
+        throw new Error('Google Docs is only available to the application main frame.');
+      }
       return action(...args);
     });
   for (const name of [
@@ -545,8 +613,9 @@ function registerGoogleDocs(options) {
     'uploadFile',
     'saveScript',
     'openDocument',
-  ])
-    {handle(name, (...args) => service[name](...args));}
+  ]) {
+    handle(name, (...args) => service[name](...args));
+  }
   handle('openSetup', () => options.shell.openExternal('https://script.google.com/home/start'));
   options.app.once('before-quit', service.cancelConnect);
   return service;

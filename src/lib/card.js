@@ -13,7 +13,9 @@ const HEADING_RE = /^(#{1,6})\s/;
  */
 export function getSectionAt(content, offset) {
   const metadata = splitFrontmatter(content);
-  if (offset < metadata.offset) {return null;}
+  if (offset < metadata.offset) {
+    return null;
+  }
   content = metadata.body;
   offset -= metadata.offset;
   const lines = content.split('\n');
@@ -37,7 +39,9 @@ export function getSectionAt(content, offset) {
       break;
     }
   }
-  if (start === -1) {return null;}
+  if (start === -1) {
+    return null;
+  }
   let end = lines.length;
   for (let i = start + 1; i < lines.length; i++) {
     const m = lines[i].match(HEADING_RE);

@@ -155,8 +155,9 @@ test('theme and extension limits validate ceilings and apply to manifest and the
     { themePreviewBytes: 1023 },
     { themePreviewBytes: 4194305 },
     { extensionStartupMs: Infinity },
-  ])
-    {assert.throws(() => validateLimits(value));}
+  ]) {
+    assert.throws(() => validateLimits(value));
+  }
   const limits = validateLimits({ themeVariables: 1, extensionCommands: 1, extensionSettings: 1 });
   const theme = {
     version: 1,

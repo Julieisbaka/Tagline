@@ -10,7 +10,9 @@ if (!process.versions.electron) {
       stdio: 'inherit',
       timeout: 120000,
     });
-    if (result.error) {throw result.error;}
+    if (result.error) {
+      throw result.error;
+    }
     process.exitCode = result.status ?? 1;
   } finally {
     fs.rmSync(root, { recursive: true, force: true, maxRetries: 20, retryDelay: 100 });
@@ -42,7 +44,9 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
       const js = (code) => wc.executeJavaScript(code);
       const wait = async (code) => {
         for (let i = 0; i < 100; i++) {
-          if (await js(code)) {return;}
+          if (await js(code)) {
+            return;
+          }
           await delay(50);
         }
         throw new Error(

@@ -78,7 +78,9 @@ app.whenReady().then(async () => {
         .then(({ png, rgba }) => ({ size, png: Buffer.from(png, 'base64'), rgba }));
 
     const icons = [];
-    for (const size of ICO_SIZES) {icons.push(await render(size));}
+    for (const size of ICO_SIZES) {
+      icons.push(await render(size));
+    }
     await fs.writeFile(path.join(BUILD, 'icon.ico'), ico(icons));
     await fs.writeFile(path.join(BUILD, 'icon.png'), (await render(512)).png);
     const chunks = [];

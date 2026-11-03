@@ -22,10 +22,13 @@ function ExtensionSettingsForm({ item, extensions }) {
   const importSettings = async (event) => {
     const file = event.target.files[0];
     event.target.value = '';
-    if (!file) {return;}
+    if (!file) {
+      return;
+    }
     try {
-      if (file.size > getRuntimeLimits().extensionStorageCharacters * 4 + 1000)
-        {throw new Error(t('Extension settings file is too large.'));}
+      if (file.size > getRuntimeLimits().extensionStorageCharacters * 4 + 1000) {
+        throw new Error(t('Extension settings file is too large.'));
+      }
       const data = JSON.parse(await file.text());
       if (
         !data ||
@@ -34,8 +37,9 @@ function ExtensionSettingsForm({ item, extensions }) {
         !data.values ||
         typeof data.values !== 'object' ||
         Array.isArray(data.values)
-      )
-        {throw new Error(t('Invalid extension settings file.'));}
+      ) {
+        throw new Error(t('Invalid extension settings file.'));
+      }
       extensions.setSettings(item, data.values);
       setError('');
     } catch (err) {
@@ -77,8 +81,9 @@ function ExtensionSettingsForm({ item, extensions }) {
   }, [item, extensions.settingsRevision, extensions.getSetting]);
   const apply = (reset = false) => {
     try {
-      if (reset) {extensions.resetSettings(item);}
-      else {
+      if (reset) {
+        extensions.resetSettings(item);
+      } else {
         const next = Object.fromEntries(
           item.contributes.settings.map((setting) => {
             const value = values[setting.id];
@@ -207,7 +212,9 @@ export default function ExtensionSettings({ extensions }) {
             {item.description && <p>{item.description}</p>}
             {item.reviewRequired && (
               <p role='alert'>
-                {t('Review changed permissions, network hosts, and settings before enabling this extension.')}
+                {t(
+                  'Review changed permissions, network hosts, and settings before enabling this extension.'
+                )}
               </p>
             )}
             {item.permissions?.length > 0 && (

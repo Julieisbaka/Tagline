@@ -16,7 +16,9 @@ test('platform: Pandoc import chooses an explicit reader, accepts DOCX changes, 
   };
   mock[promisify.custom] = async (exe, args, options) => {
     captured = { exe, args, options };
-    if (fail) {throw new Error('Bad document');}
+    if (fail) {
+      throw new Error('Bad document');
+    }
     return { stdout: '# Imported\n\n**Card**', stderr: 'Conversion warning' };
   };
   childProcess.execFile = mock;

@@ -18,11 +18,12 @@ if (!process.versions.electron) {
       const vault = path.join(root, 'vault');
       fs.mkdirSync(profile, { recursive: true });
       fs.mkdirSync(vault, { recursive: true });
-      for (let i = 0; i < 200; i++)
-        {fs.writeFileSync(
+      for (let i = 0; i < 200; i++) {
+        fs.writeFileSync(
           path.join(vault, `Note ${i}.md`),
           `# Note ${i}\n\n#### Evidence\n\n**Author 2026**\n\n==Useful evidence for this argument.==\n\n[[Note ${(i + 1) % 200}]]\n`
-        );}
+        );
+      }
       fs.writeFileSync(
         path.join(vault, 'Note 0.md'),
         'Imported pocket\n===============\n\nImported hat\n------------\n\nEvidence.\n'
@@ -48,9 +49,13 @@ if (!process.versions.electron) {
           encoding: 'utf8',
           timeout: 30000,
         });
-        if (result.error) {throw result.error;}
+        if (result.error) {
+          throw result.error;
+        }
         assert.equal(result.status, 0, result.stderr || result.stdout);
-        if (seed) {return;}
+        if (seed) {
+          return;
+        }
         const line = result.stdout.split(/\r?\n/).find((text) => text.startsWith('STARTUP '));
         assert.ok(line, result.stdout);
         return {
@@ -69,7 +74,9 @@ if (!process.versions.electron) {
         processExitMs: median('processExitMs'),
         initialJsBytes: median('initialJsBytes'),
       });
-      if (scenario === 'vault' && !process.env.TAGLINE_STARTUP_BASELINE) {run(false, true);}
+      if (scenario === 'vault' && !process.env.TAGLINE_STARTUP_BASELINE) {
+        run(false, true);
+      }
     }
     console.log(JSON.stringify(results, null, 2));
   } finally {
@@ -87,13 +94,17 @@ const requests = { 'fs:snapshot': 0, 'fs:list': 0, 'fs:readAll': 0 };
 const handle = ipcMain.handle.bind(ipcMain);
 ipcMain.handle = (channel, handler) =>
   handle(channel, (...args) => {
-    if (Object.hasOwn(requests, channel)) {requests[channel]++;}
+    if (Object.hasOwn(requests, channel)) {
+      requests[channel]++;
+    }
     return handler(...args);
   });
 app.on('browser-window-created', (_event, win) => {
   const scripts = new Set();
   win.webContents.session.webRequest.onCompleted(({ url }) => {
-    if (url.startsWith('file:') && url.endsWith('.js')) {scripts.add(url);}
+    if (url.startsWith('file:') && url.endsWith('.js')) {
+      scripts.add(url);
+    }
   });
   win.webContents.setBackgroundThrottling(false);
   win.webContents.once('did-finish-load', async () => {
@@ -185,7 +196,9 @@ app.on('browser-window-created', (_event, win) => {
           'Outline must not depend on rewriting the imported document'
         );
       }
-      if (process.env.TAGLINE_STARTUP_VERIFY) {await verifyDeferredDialog(win);}
+      if (process.env.TAGLINE_STARTUP_VERIFY) {
+        await verifyDeferredDialog(win);
+      }
       console.log('STARTUP ' + JSON.stringify(report));
       app.exit(0);
     } catch (error) {
@@ -200,15 +213,20 @@ async function verifyDeferredDialog(win) {
   const js = (code) => wc.executeJavaScript(code);
   const wait = async (condition) => {
     for (let i = 0; i < 200; i++) {
-      if (await condition()) {return;}
+      if (await condition()) {
+        return;
+      }
       await new Promise((resolve) => setTimeout(resolve, 10));
     }
     throw new Error('Deferred dialog did not reach the expected state');
   };
   let release;
   wc.session.webRequest.onBeforeRequest(({ url }, callback) => {
-    if (/\/Dialogs-[^/]+\.js$/.test(url)) {release = callback;}
-    else {callback({});}
+    if (/\/Dialogs-[^/]+\.js$/.test(url)) {
+      release = callback;
+    } else {
+      callback({});
+    }
   });
   const open = () =>
     js(

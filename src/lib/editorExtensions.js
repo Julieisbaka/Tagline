@@ -110,8 +110,9 @@ export function linkAt(state, pos) {
   const re = /\[\[([^\]|#]+)(#[^\]|]*)?(\|[^\]]*)?\]\]/g;
   for (const m of line.text.matchAll(re)) {
     const from = line.from + m.index;
-    if (pos >= from && pos <= from + m[0].length)
-      {return { target: m[1].trim(), heading: (m[2] || '').slice(1) };}
+    if (pos >= from && pos <= from + m[0].length) {
+      return { target: m[1].trim(), heading: (m[2] || '').slice(1) };
+    }
   }
   return null;
 }

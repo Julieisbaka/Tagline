@@ -10,7 +10,9 @@ if (!process.versions.electron) {
       stdio: 'inherit',
       timeout: 120000,
     });
-    if (result.error) {throw result.error;}
+    if (result.error) {
+      throw result.error;
+    }
     process.exitCode = result.status ?? 1;
   } finally {
     fs.rmSync(root, { recursive: true, force: true, maxRetries: 20, retryDelay: 100 });
@@ -46,12 +48,16 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
       const wc = win.webContents;
       const errors = [];
       wc.on('console-message', (e) => {
-        if (e.level === 'error') {errors.push(e.message);}
+        if (e.level === 'error') {
+          errors.push(e.message);
+        }
       });
       const js = (s) => wc.executeJavaScript(s);
       const wait = async (s) => {
         for (let i = 0; i < 100; i++) {
-          if (await js(s)) {return;}
+          if (await js(s)) {
+            return;
+          }
           await delay(100);
         }
         throw new Error('Timed out: ' + s);
@@ -59,7 +65,9 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
       const waitFile = async (test) => {
         for (let i = 0; i < 50; i++) {
           const c = await exists();
-          if (test(c)) {return c;}
+          if (test(c)) {
+            return c;
+          }
           await delay(100);
         }
         throw new Error('Speech doc not written as expected: ' + JSON.stringify(await exists()));
@@ -166,8 +174,9 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
         await wc.insertText(' Added text');
         await wait("document.querySelector('.visual-document').textContent.includes('Added text')");
         for (let i = 0; i < 100; i++) {
-          if ((await fs.readFile(path.join(vault, 'Cards.md'), 'utf8')).includes('Added text'))
-            {break;}
+          if ((await fs.readFile(path.join(vault, 'Cards.md'), 'utf8')).includes('Added text')) {
+            break;
+          }
           await delay(50);
         }
         const savedCards = await fs.readFile(path.join(vault, 'Cards.md'), 'utf8');
@@ -220,7 +229,9 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
         let imported;
         for (let i = 0; i < 100; i++) {
           imported = await fs.readFile(path.join(vault, 'Imported.md'), 'utf8');
-          if (imported.includes('Warrant text')) {break;}
+          if (imported.includes('Warrant text')) {
+            break;
+          }
           await delay(50);
         }
         assert.ok(imported.includes('Warrant text'), 'send-card uses the selected marked document');
@@ -285,7 +296,9 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
         let templated;
         for (let i = 0; i < 100; i++) {
           templated = await fs.readFile(path.join(vault, 'Legacy.md'), 'utf8');
-          if (templated.includes('PATH=Legacy.md')) {break;}
+          if (templated.includes('PATH=Legacy.md')) {
+            break;
+          }
           await delay(50);
         }
         assert.ok(templated.includes('PATH=Legacy.md'));

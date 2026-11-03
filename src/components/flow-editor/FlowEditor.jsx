@@ -59,7 +59,9 @@ export default function FlowEditor({
     return () => window.removeEventListener('workspace-action', action);
   }, []);
   useLayoutEffect(() => {
-    if (!focusTarget.current) {return;}
+    if (!focusTarget.current) {
+      return;
+    }
     const { row, column } = focusTarget.current;
     gridRef.current?.querySelector(`[data-row="${row}"][data-column="${column}"]`)?.focus();
     focusTarget.current = null;
@@ -77,16 +79,22 @@ export default function FlowEditor({
   const saveFlowContent = (next) => {
     const history = flowHistory.current;
     const previous = currentContent.current;
-    if (previous === next) {return;}
+    if (previous === next) {
+      return;
+    }
     history.undo.push({ content: previous, active });
-    if (history.undo.length > 100) {history.undo.shift();}
+    if (history.undo.length > 100) {
+      history.undo.shift();
+    }
     history.redo = [];
     applyFlowContent(next);
   };
   const focusFlowContentCell = (next, sheetIndex = active) => {
     const nextData = parseFlow(next);
     const sheet = nextData.sheets[Math.min(sheetIndex, nextData.sheets.length - 1)];
-    if (!sheet?.rows.length || !sheet.columns.length) {return;}
+    if (!sheet?.rows.length || !sheet.columns.length) {
+      return;
+    }
     const focused = document.activeElement?.matches('.flow-grid textarea')
       ? document.activeElement.dataset
       : null;
@@ -100,7 +108,9 @@ export default function FlowEditor({
   const undoFlow = () => {
     const history = flowHistory.current;
     const previous = history.undo.pop();
-    if (previous === undefined) {return;}
+    if (previous === undefined) {
+      return;
+    }
     history.redo.push({ content: currentContent.current, active });
     focusFlowContentCell(previous.content, previous.active);
     setActive(previous.active);
@@ -110,9 +120,13 @@ export default function FlowEditor({
   const redoFlow = () => {
     const history = flowHistory.current;
     const next = history.redo.pop();
-    if (next === undefined) {return;}
+    if (next === undefined) {
+      return;
+    }
     history.undo.push({ content: currentContent.current, active });
-    if (history.undo.length > 100) {history.undo.shift();}
+    if (history.undo.length > 100) {
+      history.undo.shift();
+    }
     focusFlowContentCell(next.content, next.active);
     setActive(next.active);
     setSelection(null);
@@ -123,14 +137,22 @@ export default function FlowEditor({
       event.preventDefault();
       event.stopPropagation();
       if (mode === 'edit') {
-        if (sourceEditor.current) {undoEditor(sourceEditor.current);}
-      } else {undoFlow();}
+        if (sourceEditor.current) {
+          undoEditor(sourceEditor.current);
+        }
+      } else {
+        undoFlow();
+      }
     } else if (matchesBinding(event, binding('flow-redo', keybindings))) {
       event.preventDefault();
       event.stopPropagation();
       if (mode === 'edit') {
-        if (sourceEditor.current) {redoEditor(sourceEditor.current);}
-      } else {redoFlow();}
+        if (sourceEditor.current) {
+          redoEditor(sourceEditor.current);
+        }
+      } else {
+        redoFlow();
+      }
     }
   };
 
@@ -144,8 +166,8 @@ export default function FlowEditor({
   }, [content]);
   liveActions.current = {};
 
-  if (mode === 'edit')
-    {return (
+  if (mode === 'edit') {
+    return (
       <div className='flow' onKeyDownCapture={handleHistoryShortcut}>
         {parsed.error && (
           <div className='editor-notice' role='alert'>
@@ -165,7 +187,8 @@ export default function FlowEditor({
           settings={settings}
         />
       </div>
-    );}
+    );
+  }
 
   if (parsed.error) {
     return (
@@ -174,7 +197,9 @@ export default function FlowEditor({
         <JsonRecovery path={path} content={content} onRestore={onRestore} />
         <button
           onClick={async () => {
-            if (await confirm(t('Reset to an empty flow?'))) {onChange(EMPTY_FLOW);}
+            if (await confirm(t('Reset to an empty flow?'))) {
+              onChange(EMPTY_FLOW);
+            }
           }}
         >
           {t('Reset to an empty flow')}
@@ -191,8 +216,15 @@ export default function FlowEditor({
     save(data.sheets.map((s, i) => (i === idx ? { ...s, ...patch } : s)));
 
   const reorderSheet = (from, to) => {
-    if (from === to || from < 0 || to < 0 || from >= data.sheets.length || to >= data.sheets.length)
-      {return;}
+    if (
+      from === to ||
+      from < 0 ||
+      to < 0 ||
+      from >= data.sheets.length ||
+      to >= data.sheets.length
+    ) {
+      return;
+    }
     const sheets = [...data.sheets];
     const [moved] = sheets.splice(from, 1);
     sheets.splice(to, 0, moved);
@@ -221,8 +253,12 @@ export default function FlowEditor({
   };
 
   const removeSheet = async (i) => {
-    if (data.sheets.length === 1) {return;}
-    if (!(await confirm(t('Delete sheet "{name}"?', { name: data.sheets[i].name })))) {return;}
+    if (data.sheets.length === 1) {
+      return;
+    }
+    if (!(await confirm(t('Delete sheet "{name}"?', { name: data.sheets[i].name })))) {
+      return;
+    }
     save(data.sheets.filter((_, j) => j !== i));
     setActive(Math.max(0, i - 1));
   };
@@ -236,7 +272,9 @@ export default function FlowEditor({
     setSelection(null);
     const rows = [...sheet.rows];
     rows.splice(after + 1, 0, Array(sheet.columns.length).fill(''));
-    if (column !== null && focusNewFlowRow) {focusTarget.current = { row: after + 1, column };}
+    if (column !== null && focusNewFlowRow) {
+      focusTarget.current = { row: after + 1, column };
+    }
     updateSheet({ rows });
   };
   const insertRowAbove = (row, column) => addRow(row - 1, column);
@@ -256,9 +294,14 @@ export default function FlowEditor({
     });
 
   const removeColumn = async (c) => {
-    if (sheet.columns.length === 1) {return;}
-    if (!(await confirm(t('Delete column "{name}" and its contents?', { name: sheet.columns[c] }))))
-      {return;}
+    if (sheet.columns.length === 1) {
+      return;
+    }
+    if (
+      !(await confirm(t('Delete column "{name}" and its contents?', { name: sheet.columns[c] })))
+    ) {
+      return;
+    }
     setSelection(null);
     updateSheet({
       columns: sheet.columns.filter((_, i) => i !== c),
@@ -286,7 +329,9 @@ export default function FlowEditor({
     setSelection({ sheet: idx, anchor, head: { row, column } });
   };
   const clear = (area = bounds) => {
-    if (!area) {return;}
+    if (!area) {
+      return;
+    }
     updateSheet({
       rows: sheet.rows.map((row, r) =>
         row.map((value, c) =>
@@ -298,9 +343,13 @@ export default function FlowEditor({
   const clipboardError = (error) =>
     window.dispatchEvent(new CustomEvent('app-error', { detail: error.message }));
   const copy = async (area = bounds, cut = false) => {
-    if (!area) {return;}
+    if (!area) {
+      return;
+    }
     await navigator.clipboard.writeText(copyFlowCells(sheet.rows, area));
-    if (cut) {clear(area);}
+    if (cut) {
+      clear(area);
+    }
   };
   const paste = (text, row, column) => {
     const cells = parseFlowCells(text);

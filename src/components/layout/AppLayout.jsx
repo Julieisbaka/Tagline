@@ -94,16 +94,21 @@ export default function AppLayout({ app }) {
   } = app;
   const openHistory = async (path) => {
     try {
-      if (await v.flush()) {setModal({ type: 'history', path });}
+      if (await v.flush()) {
+        setModal({ type: 'history', path });
+      }
     } catch (error) {
       notify(error.message);
     }
   };
   const restoreWorking = async (path, content) => {
-    if (!(await v.flush()))
-      {throw new Error(t('Could not save the current source before restoring.'));}
+    if (!(await v.flush())) {
+      throw new Error(t('Could not save the current source before restoring.'));
+    }
     v.updateContent(path, content);
-    if (!(await v.flush())) {throw new Error(t('Could not save the restored document.'));}
+    if (!(await v.flush())) {
+      throw new Error(t('Could not save the restored document.'));
+    }
     notify(t('Working save restored.'));
   };
   const settingsDialog = (
@@ -162,8 +167,8 @@ export default function AppLayout({ app }) {
     />
   );
 
-  if (!v.vault)
-    {return (
+  if (!v.vault) {
+    return (
       <>
         <TextContextMenu />
         {window.api.platform === 'darwin' && <div className='mac-titlebar'>Tagline</div>}
@@ -190,7 +195,8 @@ export default function AppLayout({ app }) {
         {onboarding}
         {toast && <div className='toast'>{toast}</div>}
       </>
-    );}
+    );
+  }
 
   const renderWorkspace = () => {
     const tab = tabs.activeTab;
@@ -216,17 +222,18 @@ export default function AppLayout({ app }) {
         </div>
       );
     }
-    if (tab.kind === 'graph')
-      {return (
+    if (tab.kind === 'graph') {
+      return (
         <GraphView
           index={v.index}
           activePath={lastFile}
           onOpen={open}
           showMarkdownExtension={settings.showMarkdownExtension}
         />
-      );}
-    if (activeContent === undefined)
-      {return (
+      );
+    }
+    if (activeContent === undefined) {
+      return (
         <div className='empty-workspace' role='status'>
           {v.ready ? (
             <>
@@ -238,18 +245,20 @@ export default function AppLayout({ app }) {
             t('Loading…')
           )}
         </div>
-      );}
-    if (isJson(activePath))
-      {return (
+      );
+    }
+    if (isJson(activePath)) {
+      return (
         <TabroomJsonView
           key={activePath}
           path={activePath}
           content={activeContent}
           onOpenHistory={() => openHistory(tab.path)}
         />
-      );}
-    if (isCanvas(activePath))
-      {return (
+      );
+    }
+    if (isCanvas(activePath)) {
+      return (
         <CanvasView
           settings={settings}
           key={activePath}
@@ -269,7 +278,8 @@ export default function AppLayout({ app }) {
             window.api.websiteAction('external', url).catch((error) => notify(error.message))
           }
         />
-      );}
+      );
+    }
     return (
       <NoteView
         key={tab.path}
@@ -378,8 +388,8 @@ export default function AppLayout({ app }) {
           value={settings.statusBarItems}
           onChange={(statusBarItems) => updateSettings({ statusBarItems })}
           renderItem={(id) => {
-            if (id === 'speechDoc')
-              {return (
+            if (id === 'speechDoc') {
+              return (
                 <button
                   className='link-btn'
                   title={t('Current speech document')}
@@ -387,10 +397,13 @@ export default function AppLayout({ app }) {
                 >
                   {t('Speech doc')}: {baseName(speechDoc)}
                 </button>
-              );}
-            if (!activePath) {return null;}
-            if (id === 'mode')
-              {return (
+              );
+            }
+            if (!activePath) {
+              return null;
+            }
+            if (id === 'mode') {
+              return (
                 <span>
                   {t(
                     mode === 'edit' || sourceFallback
@@ -402,7 +415,8 @@ export default function AppLayout({ app }) {
                           : 'Reading'
                   )}
                 </span>
-              );}
+              );
+            }
             return stats?.[id] ? <span>{stats[id]}</span> : null;
           }}
         >

@@ -73,7 +73,9 @@ export default function Ribbon({
     <nav className='ribbon' aria-label={t('Sidebar shortcuts')}>
       {items.map((id) => {
         const item = catalog.find(({ id: itemId }) => itemId === id);
-        if (!item) {return null;}
+        if (!item) {
+          return null;
+        }
         const label = item.keybinding ? title(item.title, item.keybinding) : t(item.title);
         const active = id === 'fileExplorer' && showLeft;
         return (

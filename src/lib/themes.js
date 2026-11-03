@@ -58,8 +58,9 @@ function validateVariables(value = {}, limits = getRuntimeLimits()) {
  * @returns {object} - A validated copy of the theme metadata.
  */
 function validateMetadata(metadata = {}) {
-  if (!metadata || typeof metadata !== 'object' || Array.isArray(metadata))
-    {throw new Error('Theme metadata must be an object.');}
+  if (!metadata || typeof metadata !== 'object' || Array.isArray(metadata)) {
+    throw new Error('Theme metadata must be an object.');
+  }
   const { author, description, license, tags = [], accessibility = {} } = metadata;
   if (
     Object.keys(metadata).some(
@@ -113,7 +114,9 @@ function validateThemeSettings(definitions = [], theme, limits) {
   const targets = new Set();
   const ids = new Set();
   return definitions.map((definition) => {
-    if (!definition || typeof definition !== 'object') {throw new Error('Invalid theme setting.');}
+    if (!definition || typeof definition !== 'object') {
+      throw new Error('Invalid theme setting.');
+    }
     const { variable, unit, ...setting } = definition;
     if (
       typeof variable !== 'string' ||
@@ -134,8 +137,9 @@ function validateThemeSettings(definitions = [], theme, limits) {
     ) {
       throw new Error('Theme color settings require a string with a hex color default.');
     }
-    if (!color && !['string', 'number'].includes(setting.type))
-      {throw new Error('Theme variables require string or number settings.');}
+    if (!color && !['string', 'number'].includes(setting.type)) {
+      throw new Error('Theme variables require string or number settings.');
+    }
     const [validated] = validateSettingDefinitions([setting], limits);
     return { ...validated, variable, ...(unit !== undefined ? { unit } : {}) };
   });
@@ -162,7 +166,9 @@ export function validateTheme(value, limits = getRuntimeLimits()) {
     throw new Error('Invalid theme. Expected version 1, name, mode, and colors.');
   }
   for (const [key, color] of Object.entries(value.colors)) {
-    if (!COLOR_TOKENS.includes(key)) {throw new Error(`Unknown theme color: ${key}`);}
+    if (!COLOR_TOKENS.includes(key)) {
+      throw new Error(`Unknown theme color: ${key}`);
+    }
     if (typeof color !== 'string' || !/^#(?:[0-9a-f]{6}|[0-9a-f]{8})$/i.test(color)) {
       throw new Error(`Invalid color for ${key}. Use #RRGGBB or #RRGGBBAA.`);
     }
@@ -190,8 +196,9 @@ export function validateTheme(value, limits = getRuntimeLimits()) {
  * @returns {object} - A new theme object with the applied settings.
  */
 export function resolveThemeSettings(theme, values = {}, limits = getRuntimeLimits()) {
-  if (!values || typeof values !== 'object' || Array.isArray(values))
-    {throw new Error('Theme setting values must be an object.');}
+  if (!values || typeof values !== 'object' || Array.isArray(values)) {
+    throw new Error('Theme setting values must be an object.');
+  }
   const definitions = theme.settings || [];
   if (Object.keys(values).some((id) => !definitions.some((setting) => setting.id === id))) {
     throw new Error('Unknown theme setting.');
@@ -203,11 +210,13 @@ export function resolveThemeSettings(theme, values = {}, limits = getRuntimeLimi
       Object.hasOwn(values, setting.id) ? values[setting.id] : setting.default
     );
     if (COLOR_TOKENS.includes(setting.variable)) {
-      if (typeof value !== 'string' || !/^#[\da-f]{6}(?:[\da-f]{2})?$/i.test(value))
-        {throw new Error('Theme settings require hex colors.');}
+      if (typeof value !== 'string' || !/^#[\da-f]{6}(?:[\da-f]{2})?$/i.test(value)) {
+        throw new Error('Theme settings require hex colors.');
+      }
       result.colors[setting.variable] = value;
-      if (Object.hasOwn(result.variables, setting.variable))
-        {result.variables[setting.variable] = value;}
+      if (Object.hasOwn(result.variables, setting.variable)) {
+        result.variables[setting.variable] = value;
+      }
     } else {
       const text = `${value}${setting.unit || ''}`;
       validateVariables({ [setting.variable]: text }, limits);
@@ -225,12 +234,18 @@ export function resolveThemeSettings(theme, values = {}, limits = getRuntimeLimi
  * @returns {object} - The resolved theme object with applied settings.
  */
 export function getTheme(id, customTheme, themeSettings = {}) {
-  if (id === 'custom') {return resolveThemeSettings(validateTheme(customTheme), themeSettings[id]);}
+  if (id === 'custom') {
+    return resolveThemeSettings(validateTheme(customTheme), themeSettings[id]);
+  }
   const theme =
     BUILTIN_THEMES.find((t) => t.id === id) || extensionThemeList.find((t) => t.id === id);
   // Extension themes load asynchronously (or may be disabled); keep the saved choice and show dark meanwhile.
-  if (!theme && id?.startsWith('ext:')) {return dark;}
-  if (!theme) {throw new Error(`Unknown theme: ${id}`);}
+  if (!theme && id?.startsWith('ext:')) {
+    return dark;
+  }
+  if (!theme) {
+    throw new Error(`Unknown theme: ${id}`);
+  }
   return resolveThemeSettings(theme, themeSettings[id]);
 }
 
@@ -280,10 +295,16 @@ export function applyTheme(theme, animate = true) {
     root.getBoundingClientRect();
     transitionTimer = setTimeout(() => root.classList.remove('theme-transition'), 220);
   }
-  for (const key of appliedVariables) {root.style.removeProperty(`--${key}`);}
-  for (const key of COLOR_TOKENS) {root.style.setProperty(`--${key}`, theme.colors[key]);}
+  for (const key of appliedVariables) {
+    root.style.removeProperty(`--${key}`);
+  }
+  for (const key of COLOR_TOKENS) {
+    root.style.setProperty(`--${key}`, theme.colors[key]);
+  }
   appliedVariables = Object.keys(theme.variables || {});
-  for (const key of appliedVariables) {root.style.setProperty(`--${key}`, theme.variables[key]);}
+  for (const key of appliedVariables) {
+    root.style.setProperty(`--${key}`, theme.variables[key]);
+  }
   root.dataset.theme = theme.id;
   root.style.colorScheme = theme.mode;
   appliedTheme = signature;

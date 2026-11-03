@@ -48,8 +48,11 @@ export function Palette({ items, placeholder, onSelect, onClose, onCreate, creat
 
   const choose = (i, e) => {
     onClose();
-    if (i < filtered.length) {onSelect(filtered[i], e);}
-    else if (canCreate) {onCreate(query.trim());}
+    if (i < filtered.length) {
+      onSelect(filtered[i], e);
+    } else if (canCreate) {
+      onCreate(query.trim());
+    }
   };
 
   return (
@@ -77,8 +80,12 @@ export function Palette({ items, placeholder, onSelect, onClose, onCreate, creat
               setSel((s) => Math.max(0, s - 1));
             } else if (e.key === 'Enter') {
               e.preventDefault();
-              if (total) {choose(sel, e);}
-            } else if (e.key === 'Escape') {onClose();}
+              if (total) {
+                choose(sel, e);
+              }
+            } else if (e.key === 'Escape') {
+              onClose();
+            }
           }}
         />
         <div className='palette-list' ref={listRef}>
@@ -116,7 +123,9 @@ export function PromptDialog({ title, initial = '', onSubmit, onClose }) {
   const { t } = useI18n();
   const [value, setValue] = useState(initial);
   const submit = () => {
-    if (value.trim()) {onSubmit(value.trim());}
+    if (value.trim()) {
+      onSubmit(value.trim());
+    }
     onClose();
   };
   return (
@@ -136,8 +145,12 @@ export function PromptDialog({ title, initial = '', onSubmit, onClose }) {
           onFocus={(e) => e.target.select()}
           onChange={(e) => setValue(e.target.value)}
           onKeyDown={(e) => {
-            if (e.key === 'Enter') {submit();}
-            if (e.key === 'Escape') {onClose();}
+            if (e.key === 'Enter') {
+              submit();
+            }
+            if (e.key === 'Escape') {
+              onClose();
+            }
           }}
         />
         <div className='dialog-buttons'>
@@ -239,7 +252,9 @@ export function SettingsDialog({
       const control = target?.matches('button')
         ? target
         : target?.control || target?.querySelector('input, select, textarea, button');
-      if (control && !control.disabled) {control.focus({ preventScroll: true });}
+      if (control && !control.disabled) {
+        control.focus({ preventScroll: true });
+      }
     });
   };
   const field = (label, key, type = 'text', extra = {}) => (
@@ -249,7 +264,9 @@ export function SettingsDialog({
         type={type}
         value={settings[key]}
         onChange={(e) => {
-          if (type === 'number' && (!e.target.validity.valid || e.target.value === '')) {return;}
+          if (type === 'number' && (!e.target.validity.valid || e.target.value === '')) {
+            return;
+          }
           update({ [key]: type === 'number' ? Number(e.target.value) : e.target.value });
         }}
         {...extra}

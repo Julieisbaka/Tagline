@@ -33,8 +33,11 @@ export default function ImportDialog({ onImport, onClose }) {
         name.replace(/[\\/:*?"<>|]/g, '-').replace(/\.md$/i, '') + '.md',
         result.markdown
       );
-      if (path) {onClose();}
-      else {setError(t('Could not save imported note. Please try again.'));}
+      if (path) {
+        onClose();
+      } else {
+        setError(t('Could not save imported note. Please try again.'));
+      }
     } catch (e) {
       setError(e.message);
     } finally {

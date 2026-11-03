@@ -6,7 +6,9 @@ let summarizer;
 let queue = Promise.resolve();
 
 async function getSummarizer(report) {
-  if (summarizer) {return summarizer;}
+  if (summarizer) {
+    return summarizer;
+  }
   const { env, pipeline } = await import('@huggingface/transformers');
   delete process.env.HF_TOKEN;
   delete process.env.HF_ACCESS_TOKEN;
@@ -46,8 +48,9 @@ async function summarize(content, report) {
   report('Summarizing document locally...');
   const result = await model(content, { max_new_tokens: 512 });
   const summary = Array.isArray(result) ? result[0]?.summary_text : result?.summary_text;
-  if (typeof summary !== 'string' || !summary.trim())
-    {throw new Error('The model returned an empty summary.');}
+  if (typeof summary !== 'string' || !summary.trim()) {
+    throw new Error('The model returned an empty summary.');
+  }
   return summary.trim();
 }
 

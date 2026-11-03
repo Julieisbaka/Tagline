@@ -32,17 +32,19 @@ function ThemeOptions({ theme, settings, update }) {
         : Object.fromEntries(
             theme.settings.map((setting) => {
               const value = values[setting.id];
-              if (setting.type === 'number' && String(value).trim() === '')
-                {throw new Error(t('Number settings cannot be empty.'));}
+              if (setting.type === 'number' && String(value).trim() === '') {
+                throw new Error(t('Number settings cannot be empty.'));
+              }
               return [setting.id, setting.type === 'number' ? Number(value) : value];
             })
           );
       resolveThemeSettings(theme, next);
       update({ themeSettings: { ...settings.themeSettings, [theme.id]: next } });
-      if (reset)
-        {setValues(
+      if (reset) {
+        setValues(
           Object.fromEntries(theme.settings.map((setting) => [setting.id, setting.default]))
-        );}
+        );
+      }
       setError('');
     } catch (err) {
       setError(err.message);
@@ -108,10 +110,13 @@ export default function ThemeSettings({ settings, update }) {
   const importTheme = async (e) => {
     const file = e.target.files[0];
     e.target.value = '';
-    if (!file) {return;}
+    if (!file) {
+      return;
+    }
     try {
-      if (file.size > getRuntimeLimits().themeFileBytes)
-        {throw new Error(t('Theme file exceeds the configured size limit.'));}
+      if (file.size > getRuntimeLimits().themeFileBytes) {
+        throw new Error(t('Theme file exceeds the configured size limit.'));
+      }
       const theme = validateTheme(JSON.parse(await file.text()));
       update({
         customTheme: theme,

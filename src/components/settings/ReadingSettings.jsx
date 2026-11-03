@@ -26,9 +26,12 @@ export default function ReadingSettings({ settings, update }) {
     setBusy(true);
     try {
       const imported = await window.api.importReadingSamples();
-      if (imported.canceled) {return;}
-      if (samples.length + drafts.length + imported.documents.length > 100)
-        {throw new Error(t('Use at most 100 timed reading samples.'));}
+      if (imported.canceled) {
+        return;
+      }
+      if (samples.length + drafts.length + imported.documents.length > 100) {
+        throw new Error(t('Use at most 100 timed reading samples.'));
+      }
       setDrafts((previous) => [
         ...previous,
         ...imported.documents.map((document) => ({

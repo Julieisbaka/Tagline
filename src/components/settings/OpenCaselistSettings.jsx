@@ -25,7 +25,9 @@ export default function OpenCaselistSettings() {
         }
       })
       .catch((error) => {
-        if (active) {setError(error.message);}
+        if (active) {
+          setError(error.message);
+        }
       });
     return () => {
       active = false;

@@ -12,7 +12,9 @@ export default function ModalBackdrop({ children, className = 'modal-backdrop', 
       tabIndex={-1}
       onMouseDown={onMouseDown}
       onKeyDown={(event) => {
-        if (event.target.closest('select')?.matches(':open')) {return;}
+        if (event.target.closest('select')?.matches(':open')) {
+          return;
+        }
         if (event.key === 'Escape' && !event.defaultPrevented && onMouseDown) {
           event.preventDefault();
           event.stopPropagation();

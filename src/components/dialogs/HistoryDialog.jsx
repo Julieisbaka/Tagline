@@ -21,13 +21,17 @@ export default function HistoryDialog({ path, onRestore, onClose, settings }) {
     window.api
       .listHistory(path)
       .then((items) => {
-        if (!active) {return;}
+        if (!active) {
+          return;
+        }
         setRevisions(items);
         setSelected(items[0]?.id || null);
         setBusy(false);
       })
       .catch((e) => {
-        if (!active) {return;}
+        if (!active) {
+          return;
+        }
         setError(e.message);
         setBusy(false);
       });

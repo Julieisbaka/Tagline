@@ -34,8 +34,11 @@ export default function CanvasView({
   const editorMode = mode === 'edit' ? 'source' : 'visual';
   const commitTitle = () => {
     const next = title.trim();
-    if (next && next !== baseName(path)) {onRename(path, next);}
-    else {setTitle(baseName(path));}
+    if (next && next !== baseName(path)) {
+      onRename(path, next);
+    } else {
+      setTitle(baseName(path));
+    }
   };
 
   return (

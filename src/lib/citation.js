@@ -22,13 +22,15 @@ export function createCitation({
   url = '',
   accessed = '',
 }) {
-  if (!author.trim() || !/^\d{4}$/.test(year))
-    {throw new Error('Enter an author and a four-digit year.');}
+  if (!author.trim() || !/^\d{4}$/.test(year)) {
+    throw new Error('Enter an author and a four-digit year.');
+  }
   let link = '';
   if (url.trim()) {
     const parsed = new URL(url.trim());
-    if (!['http:', 'https:'].includes(parsed.protocol))
-      {throw new Error('Use an HTTP or HTTPS citation URL.');}
+    if (!['http:', 'https:'].includes(parsed.protocol)) {
+      throw new Error('Use an HTTP or HTTPS citation URL.');
+    }
     link = parsed.href.replace(/[()]/g, (c) => encodeURIComponent(c));
   }
   const details = [

@@ -28,11 +28,14 @@ function registerTimerSound({ app, ipcMain, dialog, getWindow }) {
         throw new Error('Invalid saved timer sound.');
       }
       const data = Buffer.from(saved.data, 'base64');
-      if (data.length > MAX_SOUND_BYTES || !format.valid(data))
-        {throw new Error('Invalid saved timer sound.');}
+      if (data.length > MAX_SOUND_BYTES || !format.valid(data)) {
+        throw new Error('Invalid saved timer sound.');
+      }
       return { name: saved.name, data: `data:${saved.mime};base64,${saved.data}` };
     } catch (error) {
-      if (error.code === 'ENOENT') {return null;}
+      if (error.code === 'ENOENT') {
+        return null;
+      }
       throw error;
     }
   };
@@ -46,15 +49,22 @@ function registerTimerSound({ app, ipcMain, dialog, getWindow }) {
         { name: 'Audio', extensions: Object.keys(formats).map((extension) => extension.slice(1)) },
       ],
     });
-    if (result.canceled) {return null;}
+    if (result.canceled) {
+      return null;
+    }
     const source = result.filePaths[0];
     const format = formats[path.extname(source).toLowerCase()];
-    if (!format) {throw new Error('Unsupported timer sound format.');}
+    if (!format) {
+      throw new Error('Unsupported timer sound format.');
+    }
     const stat = await fs.stat(source);
-    if (stat.size > MAX_SOUND_BYTES) {throw new Error('Timer sound files must be 10 MB or smaller.');}
+    if (stat.size > MAX_SOUND_BYTES) {
+      throw new Error('Timer sound files must be 10 MB or smaller.');
+    }
     const data = await fs.readFile(source);
-    if (!format.valid(data))
-      {throw new Error('The selected file is not a valid audio file of that format.');}
+    if (!format.valid(data)) {
+      throw new Error('The selected file is not a valid audio file of that format.');
+    }
     const saved = { name: path.basename(source), mime: format.mime, data: data.toString('base64') };
     await fs.writeFile(file, JSON.stringify(saved));
     return { name: saved.name };
@@ -63,7 +73,9 @@ function registerTimerSound({ app, ipcMain, dialog, getWindow }) {
     try {
       await fs.unlink(file);
     } catch (error) {
-      if (error.code !== 'ENOENT') {throw error;}
+      if (error.code !== 'ENOENT') {
+        throw error;
+      }
     }
   });
 }

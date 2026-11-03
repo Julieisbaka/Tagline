@@ -64,7 +64,9 @@ test('all themes share tokens; high contrast text meets 7:1 on major surfaces', 
       contrast(theme.colors['text-strong'], theme.colors['bg-hover']) >= 4.5,
       `${theme.id}: selected widget text/background`
     );
-    if (!theme.id.startsWith('high-contrast')) {continue;}
+    if (!theme.id.startsWith('high-contrast')) {
+      continue;
+    }
     for (const color of [
       'text',
       'text-muted',

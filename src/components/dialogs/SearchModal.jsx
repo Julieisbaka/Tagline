@@ -43,19 +43,25 @@ export default function SearchModal({
   }, [query, mode, contents, index, maxResults]);
 
   useEffect(() => {
-    if (mode === 'text') {return undefined;}
+    if (mode === 'text') {
+      return undefined;
+    }
     const text = parseQuery(query).text.replace(/"/g, '').trim();
     if (!text) {
       setSemanticResults(null);
       setError('');
       return undefined;
     }
-    if (semanticTimerRef.current) {window.clearTimeout(semanticTimerRef.current);}
+    if (semanticTimerRef.current) {
+      window.clearTimeout(semanticTimerRef.current);
+    }
     semanticTimerRef.current = window.setTimeout(() => {
       runSemantic();
     }, 500);
     return () => {
-      if (semanticTimerRef.current) {window.clearTimeout(semanticTimerRef.current);}
+      if (semanticTimerRef.current) {
+        window.clearTimeout(semanticTimerRef.current);
+      }
     };
   }, [query, mode, contents, index, maxResults]);
 
@@ -81,10 +87,12 @@ export default function SearchModal({
         documents,
         maxResults: mode === 'hybrid' ? HYBRID_CANDIDATE_LIMIT : maxResults,
       });
-      if (id === requestId.current) {setSemanticResults(results);}
+      if (id === requestId.current) {
+        setSemanticResults(results);
+      }
     } catch (e) {
-      if (id === requestId.current)
-        {setError(
+      if (id === requestId.current) {
+        setError(
           [
             mode === 'hybrid' ? t('Hybrid search failed; showing keyword results only.') : '',
             e.message,
@@ -92,7 +100,8 @@ export default function SearchModal({
           ]
             .filter(Boolean)
             .join(' ')
-        );}
+        );
+      }
     } finally {
       setBusy(false);
     }
@@ -107,8 +116,12 @@ export default function SearchModal({
   );
 
   const displayed = useMemo(() => {
-    if (mode === 'text') {return results;}
-    if (mode === 'hybrid') {return mergeHybridResults(results, semanticResults || [], maxResults);}
+    if (mode === 'text') {
+      return results;
+    }
+    if (mode === 'hybrid') {
+      return mergeHybridResults(results, semanticResults || [], maxResults);
+    }
     return (semanticResults || []).map((r) => ({
       path: r.path,
       score: r.score,
@@ -122,9 +135,13 @@ export default function SearchModal({
     onClose();
   };
   const navigate = (event) => {
-    if (event.key !== 'ArrowDown' && event.key !== 'ArrowUp') {return;}
+    if (event.key !== 'ArrowDown' && event.key !== 'ArrowUp') {
+      return;
+    }
     const buttons = [...resultList.current.querySelectorAll('.search-file')];
-    if (!buttons.length) {return;}
+    if (!buttons.length) {
+      return;
+    }
     event.preventDefault();
     const current = buttons.indexOf(document.activeElement);
     const next =
@@ -155,8 +172,12 @@ export default function SearchModal({
           onChange={(e) => setQuery(e.target.value)}
           onKeyDown={(e) => {
             navigate(e);
-            if (e.key === 'Escape') {onClose();}
-            if (e.key === 'Enter' && mode !== 'text' && !busy) {runSemantic();}
+            if (e.key === 'Escape') {
+              onClose();
+            }
+            if (e.key === 'Enter' && mode !== 'text' && !busy) {
+              runSemantic();
+            }
             if (e.key === 'Enter' && mode === 'text' && displayed.length) {
               openResult(e, displayed[0].path, displayed[0].matches[0]?.line);
             }

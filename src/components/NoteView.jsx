@@ -52,8 +52,9 @@ export default function NoteView({
   const blocker = mode === 'visual' ? visualBlocker(content) : null;
   const sourceMode = mode === 'edit' || !!blocker;
   const sendCurrent = () => {
-    if (!sourceMode)
-      {return onSendCard(0, visualRef.current ? visualSelection(visualRef.current) : '');}
+    if (!sourceMode) {
+      return onSendCard(0, visualRef.current ? visualSelection(visualRef.current) : '');
+    }
     const view = viewRef.current;
     const selection = view?.state.selection.main;
     return onSendCard(
@@ -91,7 +92,9 @@ export default function NoteView({
   }, [settings.readingSamples]);
 
   const publishCursorStats = useCallback(() => {
-    if (!docStats) {return onCursorStats(null);}
+    if (!docStats) {
+      return onCursorStats(null);
+    }
     const wpm = settings.wpm || 250;
     const profile = calibration.profile;
     const assessment = readingAssessment(docStats, wpm, profile);
@@ -104,12 +107,15 @@ export default function NoteView({
       }),
       estimate: t(profile ? 'Personal speech estimate' : 'Default speech estimate'),
     };
-    if (assessment.readingEase !== null)
-      {parts.readability = t('Readability {score} / effort {effort}', {
+    if (assessment.readingEase !== null) {
+      parts.readability = t('Readability {score} / effort {effort}', {
         score: assessment.readingEase.toFixed(0),
         effort: assessment.effort.toFixed(0),
-      });}
-    if (calibration.error) {parts.error = calibration.error;}
+      });
+    }
+    if (calibration.error) {
+      parts.error = calibration.error;
+    }
     if (section && sectionStats) {
       parts.section = t('“{title}”: {count} hl / ~{time}', {
         title: section.title.slice(0, 30),
@@ -133,8 +139,11 @@ export default function NoteView({
 
   const commitTitle = () => {
     const t = title.trim();
-    if (t && t !== baseName(path)) {onRename(path, t);}
-    else {setTitle(baseName(path));}
+    if (t && t !== baseName(path)) {
+      onRename(path, t);
+    } else {
+      setTitle(baseName(path));
+    }
   };
 
   if (isFlow(path)) {

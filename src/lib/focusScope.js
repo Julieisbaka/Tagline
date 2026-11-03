@@ -28,7 +28,9 @@ function focusableElements(root) {
  * @returns {void}
  */
 export function trapTabKey(event, root) {
-  if (event.key !== 'Tab' || event.defaultPrevented) {return;}
+  if (event.key !== 'Tab' || event.defaultPrevented) {
+    return;
+  }
   const elements = focusableElements(root);
   const first = elements[0];
   const last = elements.at(-1);
@@ -41,7 +43,9 @@ export function trapTabKey(event, root) {
   ) {
     event.preventDefault();
     (event.shiftKey ? last : first)?.focus();
-    if (!first) {root.focus();}
+    if (!first) {
+      root.focus();
+    }
   }
 }
 
@@ -58,7 +62,9 @@ export function containFocus(root, previousFocus = root.ownerDocument.activeElem
   const siblings = [];
   for (let branch = root; modal && branch.parentElement; branch = branch.parentElement) {
     for (const sibling of branch.parentElement.children) {
-      if (sibling === branch || !(sibling instanceof HTMLElement)) {continue;}
+      if (sibling === branch || !(sibling instanceof HTMLElement)) {
+        continue;
+      }
       const state = inertElements.get(sibling) || { count: 0, original: sibling.inert };
       state.count++;
       inertElements.set(sibling, state);
@@ -78,7 +84,9 @@ export function containFocus(root, previousFocus = root.ownerDocument.activeElem
    * @returns {void}
    */
   const onFocus = (event) => {
-    if (scopes.at(-1) === scope && !root.contains(event.target)) {focusFirst();}
+    if (scopes.at(-1) === scope && !root.contains(event.target)) {
+      focusFirst();
+    }
   };
   /**
    * Keep Tab navigation within the active focus scope.
@@ -86,11 +94,15 @@ export function containFocus(root, previousFocus = root.ownerDocument.activeElem
    * @returns {void}
    */
   const onKey = (event) => {
-    if (scopes.at(-1) === scope) {trapTabKey(event, root);}
+    if (scopes.at(-1) === scope) {
+      trapTabKey(event, root);
+    }
   };
   document.addEventListener('focusin', onFocus);
   document.addEventListener('keydown', onKey);
-  if (!root.contains(document.activeElement)) {focusFirst();}
+  if (!root.contains(document.activeElement)) {
+    focusFirst();
+  }
   return () => {
     scopes.splice(scopes.indexOf(scope), 1);
     document.removeEventListener('focusin', onFocus);

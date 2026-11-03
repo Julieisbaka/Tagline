@@ -30,8 +30,9 @@ const delay = (ms) => new Promise((r) => setTimeout(r, ms));
   await fs.mkdir(profile, { recursive: true });
   await fs.mkdir(vault);
   let body = '# Long doc\n\n';
-  for (let i = 0; i < 60; i++)
-    {body += `#### Card ${i}\n\n**Smith ${i}**\n\n==Evidence paragraph ${i} with some highlighted text.== More.\n\n`;}
+  for (let i = 0; i < 60; i++) {
+    body += `#### Card ${i}\n\n**Smith ${i}**\n\n==Evidence paragraph ${i} with some highlighted text.== More.\n\n`;
+  }
   body +=
     '#### Source one\n**Smith 2020** — "Study", [source](https://example.com/a)\n\n' +
     '#### Source two\n**Smith 2020** — "Study", [source](https://example.com/a)\n\n' +
@@ -77,21 +78,30 @@ const delay = (ms) => new Promise((r) => setTimeout(r, ms));
         ipcMain.removeHandler('citation:sourceMetadata');
         ipcMain.handle('citation:sourceMetadata', (_event, url) => {
           sourceRequests.push(url);
-          if (url.endsWith('/b')) {throw new Error('Metadata unavailable');}
+          if (url.endsWith('/b')) {
+            throw new Error('Metadata unavailable');
+          }
           return { author: 'Jane Smith', year: '2022', title: 'Study', publication: '' };
         });
-        for (let i = 0; i < 100 && !(await js("!!document.querySelector('.onboarding-skip')")); i++)
-          {await delay(50);}
+        for (
+          let i = 0;
+          i < 100 && !(await js("!!document.querySelector('.onboarding-skip')"));
+          i++
+        ) {
+          await delay(50);
+        }
         await js("document.querySelector('.onboarding-skip').click()");
         for (
           let i = 0;
           i < 100 && !(await js("!!document.querySelector('.ribbon-settings-button')"));
           i++
-        )
-          {await delay(100);}
+        ) {
+          await delay(100);
+        }
         await js("document.querySelector('.ribbon-settings-button').click()");
-        for (let i = 0; i < 100 && !(await js("!!document.querySelector('.settings')")); i++)
-          {await delay(50);}
+        for (let i = 0; i < 100 && !(await js("!!document.querySelector('.settings')")); i++) {
+          await delay(50);
+        }
         await js('document.querySelector(\'[data-section="workspace"]\').click()');
         await delay(100);
         const defaultItems = await js(
@@ -158,8 +168,9 @@ const delay = (ms) => new Promise((r) => setTimeout(r, ms));
           let i = 0;
           i < 100 && !(await js("!!document.querySelector('.evidence-checkup-dialog')"));
           i++
-        )
-          {await delay(50);}
+        ) {
+          await delay(50);
+        }
         for (const [width, height] of [
           [1280, 800],
           [900, 700],
@@ -192,8 +203,9 @@ const delay = (ms) => new Promise((r) => setTimeout(r, ms));
             "document.querySelector('.evidence-checkup-dialog [role=status]')?.textContent.includes('cards scanned')"
           ));
           i++
-        )
-          {await delay(50);}
+        ) {
+          await delay(50);
+        }
         assert.equal(
           await js("!!document.querySelector('.evidence-results')"),
           true,
@@ -217,8 +229,9 @@ const delay = (ms) => new Promise((r) => setTimeout(r, ms));
             "document.querySelector('.evidence-checkup-dialog').textContent.includes('Source lookups completed')"
           ));
           i++
-        )
-          {await delay(50);}
+        ) {
+          await delay(50);
+        }
         assert.deepEqual(
           sourceRequests.sort(),
           ['https://example.com/a', 'https://example.com/b'],
@@ -268,13 +281,15 @@ const delay = (ms) => new Promise((r) => setTimeout(r, ms));
         );
         await js(`document.querySelector('.ribbon [data-ribbon-item="evidenceCheckup"]').dispatchEvent(
           new MouseEvent('contextmenu', { bubbles: true, clientX: 40, clientY: 100 }))`);
-        for (let i = 0; i < 100 && !(await js("!!document.querySelector('.context-menu')")); i++)
-          {await delay(50);}
+        for (let i = 0; i < 100 && !(await js("!!document.querySelector('.context-menu')")); i++) {
+          await delay(50);
+        }
         await js(
           "[...document.querySelectorAll('.context-menu button')].find(button => button.textContent === 'Settings').click()"
         );
-        for (let i = 0; i < 100 && !(await js("!!document.querySelector('.settings')")); i++)
-          {await delay(50);}
+        for (let i = 0; i < 100 && !(await js("!!document.querySelector('.settings')")); i++) {
+          await delay(50);
+        }
         assert.equal(
           await js(
             "document.querySelector('[data-section=\"workspace\"]').getAttribute('aria-current')"
@@ -292,8 +307,9 @@ const delay = (ms) => new Promise((r) => setTimeout(r, ms));
           let i = 0;
           i < 100 && !(await js("document.querySelectorAll('.tree-item').length"));
           i++
-        )
-          {await delay(100);}
+        ) {
+          await delay(100);
+        }
         await js(
           `(() => { const item = document.querySelector('.tree-item[title="Doc.md"]'); item.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, clientX: 140, clientY: 160 })); })()`
         );

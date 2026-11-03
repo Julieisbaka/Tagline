@@ -36,7 +36,9 @@ async function fixture(t) {
 
 test('platform: vault snapshots preserve document types, sorting, paths, timestamps and hidden-file rules', async (t) => {
   const dir = await fixture(t);
-  for (const folder of ['Z folder', 'Empty', '.hidden']) {await fs.mkdir(path.join(dir, folder));}
+  for (const folder of ['Z folder', 'Empty', '.hidden']) {
+    await fs.mkdir(path.join(dir, folder));
+  }
   const documents = {
     'b.md': '# Beta',
     'A.CANVAS': '{"nodes":[],"edges":[]}',
@@ -48,8 +50,9 @@ test('platform: vault snapshots preserve document types, sorting, paths, timesta
     '.secret.md': 'Hidden',
     '.hidden/Note.md': 'Hidden',
     'ignore.txt': 'Not a note',
-  }))
-    {await fs.writeFile(path.join(dir, name), text);}
+  })) {
+    await fs.writeFile(path.join(dir, name), text);
+  }
   const snapshot = await readVaultSnapshot(dir);
   assert.deepEqual(snapshot.contents, documents);
   assert.deepEqual(snapshot.tree, await listVault(dir));
@@ -74,7 +77,9 @@ test('platform: vault snapshots preserve document types, sorting, paths, timesta
 test('platform: snapshot scans once, reads each file once, and bounds parallel filesystem operations', async (t) => {
   const dir = await fixture(t);
   await fs.mkdir(path.join(dir, 'Folder'));
-  for (let i = 0; i < 65; i++) {await fs.writeFile(path.join(dir, 'Folder', `${i}.md`), `Note ${i}`);}
+  for (let i = 0; i < 65; i++) {
+    await fs.writeFile(path.join(dir, 'Folder', `${i}.md`), `Note ${i}`);
+  }
   let directories = 0,
     reads = 0,
     stats = 0,
@@ -83,9 +88,15 @@ test('platform: snapshot scans once, reads each file once, and bounds parallel f
   for (const name of ['readdir', 'readFile', 'stat']) {
     const original = fs[name];
     t.mock.method(fs, name, async (...args) => {
-      if (name === 'readdir') {directories++;}
-      if (name === 'readFile') {reads++;}
-      if (name === 'stat') {stats++;}
+      if (name === 'readdir') {
+        directories++;
+      }
+      if (name === 'readFile') {
+        reads++;
+      }
+      if (name === 'stat') {
+        stats++;
+      }
       peak = Math.max(peak, ++active);
       try {
         return await original(...args);
@@ -121,7 +132,9 @@ test('platform: snapshot propagates filesystem errors instead of returning a par
   await fs.writeFile(path.join(dir, 'Note.md'), 'Note');
   const readFile = fs.readFile;
   t.mock.method(fs, 'readFile', async (file, ...args) => {
-    if (file === path.join(dir, 'Note.md')) {throw new Error('Cannot read note');}
+    if (file === path.join(dir, 'Note.md')) {
+      throw new Error('Cannot read note');
+    }
     return readFile(file, ...args);
   });
   await assert.rejects(readVaultSnapshot(dir), /Cannot read note/);
@@ -137,8 +150,9 @@ test('visual fallback checks do not depend on loading the visual editor', async 
     '[^a]: Footnote',
     '![Image](image.png)',
     '$$\na+b',
-  ])
-    {assert.equal(typeof visualBlocker(content), 'string');}
+  ]) {
+    assert.equal(typeof visualBlocker(content), 'string');
+  }
   assert.equal(visualBlocker('```html\n<div>Example</div>\n```'), null);
 });
 
@@ -152,8 +166,9 @@ test('first-run language matches supported OS locales and respects saved choices
     [['ja-JP'], 'en'],
     [[], 'en'],
     [[null, 12], 'en'],
-  ])
-    {assert.equal(systemLanguage(locales), expected);}
+  ]) {
+    assert.equal(systemLanguage(locales), expected);
+  }
   assert.equal(initialLanguage('en', ['es-ES']), 'en', 'explicit English remains English');
   assert.equal(initialLanguage('fr', ['es-ES']), 'fr');
   assert.equal(initialLanguage(undefined, ['es-ES']), 'es');
@@ -183,8 +198,9 @@ test('YAML frontmatter supports mappings, preserves exact prefixes and reports i
     '---\n- list\n---',
     '---\na: 1',
     '---\nvalue: !unknown something\n---',
-  ])
-    {assert.ok(readFrontmatter(invalid).error, invalid);}
+  ]) {
+    assert.ok(readFrontmatter(invalid).error, invalid);
+  }
 });
 
 test('speech markers preserve other properties and discover only boolean-marked Markdown files', async () => {

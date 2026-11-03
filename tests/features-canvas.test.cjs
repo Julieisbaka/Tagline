@@ -76,7 +76,9 @@ test('vault indexing preserves link resolution precedence with indexed path look
   const index = buildIndex(contents);
   assert.deepEqual(index.links['Source.md'], expected);
   assert.deepEqual(index.unresolved.missing, ['Source.md']);
-  for (const resolved of expected) {assert.deepEqual(index.backlinks[resolved], ['Source.md']);}
+  for (const resolved of expected) {
+    assert.deepEqual(index.backlinks[resolved], ['Source.md']);
+  }
 });
 
 test('JSON Canvas validates spec fields and round-trips unknown properties', async () => {
@@ -128,8 +130,9 @@ test('JSON Canvas validates spec fields and round-trips unknown properties', asy
     '{"nodes":[{"id":"x","type":"text","x":0,"y":0,"width":0,"height":10,"text":""}]}',
     '{"nodes":[{"id":"x","type":"file","x":0,"y":0,"width":10,"height":10,"file":""}],"edges":[{"id":"e","fromNode":"x","toNode":"missing"}]}',
     '{"nodes":[{"id":"x","type":"other","x":0,"y":0,"width":10,"height":10}]}',
-  ])
-    {assert.throws(() => parseCanvas(invalid));}
+  ]) {
+    assert.throws(() => parseCanvas(invalid));
+  }
 });
 
 test('canvas extension helpers share resolution, suggestion and movement behavior without file access', async () => {
@@ -174,8 +177,9 @@ test('canvas extension helpers share resolution, suggestion and movement behavio
   assert.deepEqual(moved.nodes[1], data.nodes[1]);
   assert.deepEqual(moved.metadata, data.metadata);
   assert.equal(data.nodes[0].x, 5, 'pure helper never mutates its input');
-  for (const limit of [0, -1, 1.5, 1001])
-    {await assert.rejects(call('suggestFiles', paths, '', limit), /limit/);}
+  for (const limit of [0, -1, 1.5, 1001]) {
+    await assert.rejects(call('suggestFiles', paths, '', limit), /limit/);
+  }
   await assert.rejects(call('resolveLink', 'Round.flow', [null]), /Paths/);
   await assert.rejects(call('resolveLink', null, paths), /Link target/);
   await assert.rejects(call('moveNodes', data, [id], 1.5, 0), /safe integers/);

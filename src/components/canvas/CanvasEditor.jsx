@@ -54,8 +54,9 @@ export default function CanvasEditor({
         !event.target.closest('.canvas-editor') ||
         document.querySelector('[role="dialog"], .context-menu') ||
         event.target.closest('input, textarea, select, [contenteditable="true"]')
-      )
-        {return;}
+      ) {
+        return;
+      }
       if (event.key === 'Escape') {
         event.preventDefault();
         liveActions.current['canvas-cancel']();
@@ -85,11 +86,15 @@ export default function CanvasEditor({
   const edge = canvas.edges.find((item) => item.id === selectedEdge);
   const zoom = (factor, point) => {
     const viewport = viewportRef.current;
-    if (!viewport) {return;}
+    if (!viewport) {
+      return;
+    }
     const anchor = point || { x: viewport.clientWidth / 2, y: viewport.clientHeight / 2 };
     setCamera((current) => {
       const k = Math.min(4, Math.max(0.2, current.k * factor));
-      if (k === current.k) {return current;}
+      if (k === current.k) {
+        return current;
+      }
       return {
         k,
         x: anchor.x - ((anchor.x - current.x) * k) / current.k,
@@ -100,8 +105,12 @@ export default function CanvasEditor({
   useEffect(() => {
     const viewport = viewportRef.current;
     const wheel = (event) => {
-      if (gestureRef.current || document.querySelector('.context-menu')) {return;}
-      if (event.target.closest('textarea, input, .canvas-node-preview')) {return;}
+      if (gestureRef.current || document.querySelector('.context-menu')) {
+        return;
+      }
+      if (event.target.closest('textarea, input, .canvas-node-preview')) {
+        return;
+      }
       event.preventDefault();
       if (event.ctrlKey || event.metaKey) {
         const rect = viewport.getBoundingClientRect();
@@ -109,30 +118,37 @@ export default function CanvasEditor({
           x: event.clientX - rect.left,
           y: event.clientY - rect.top,
         });
-      } else
-        {setCamera((current) => ({
+      } else {
+        setCamera((current) => ({
           ...current,
           x: current.x - event.deltaX,
           y: current.y - event.deltaY,
-        }));}
+        }));
+      }
     };
     viewport.addEventListener('wheel', wheel, { passive: false });
     return () => viewport.removeEventListener('wheel', wheel);
   }, []);
   useEffect(() => () => cancelAnimationFrame(gestureFrame.current), []);
   const renderedNodes = useMemo(() => {
-    if (!gesture) {return canvas.nodes;}
+    if (!gesture) {
+      return canvas.nodes;
+    }
     const moving = new Set(gesture.ids);
     return canvas.nodes.map((item) => {
-      if (!moving.has(item.id)) {return item;}
-      if (gesture.type === 'move')
-        {return { ...item, x: item.x + gesture.dx, y: item.y + gesture.dy };}
-      if (gesture.type === 'resize' && item.id === gesture.id)
-        {return {
+      if (!moving.has(item.id)) {
+        return item;
+      }
+      if (gesture.type === 'move') {
+        return { ...item, x: item.x + gesture.dx, y: item.y + gesture.dy };
+      }
+      if (gesture.type === 'resize' && item.id === gesture.id) {
+        return {
           ...item,
           width: Math.max(180, Math.round(gesture.width + gesture.dx)),
           height: Math.max(100, Math.round(gesture.height + gesture.dy)),
-        };}
+        };
+      }
       return item;
     });
   }, [canvas.nodes, gesture]);
@@ -185,13 +201,14 @@ export default function CanvasEditor({
           y: Math.round((viewport.clientHeight / 2 - camera.y) / camera.k - nextNode.height / 2),
         }
       );
-      if (type === 'group' && wrapped)
-        {Object.assign(nextNode, {
+      if (type === 'group' && wrapped) {
+        Object.assign(nextNode, {
           x: wrapped.x - 24,
           y: wrapped.y - 40,
           width: wrapped.width + 48,
           height: wrapped.height + 64,
-        });}
+        });
+      }
       update({ ...canvas, nodes: [...canvas.nodes, nextNode] });
       setSelectedNode(nextNode.id);
       setSelectedEdge(null);
@@ -222,9 +239,11 @@ export default function CanvasEditor({
                     disabled: !resolveCanvasLink(targetNode.url, paths),
                     run: () => {
                       const link = resolveCanvasLink(targetNode.url, paths);
-                      if (link.type === 'file')
-                        {onOpenFile(link.path, link.heading ? `#${link.heading}` : undefined);}
-                      else {onOpenUrl(link.url);}
+                      if (link.type === 'file') {
+                        onOpenFile(link.path, link.heading ? `#${link.heading}` : undefined);
+                      } else {
+                        onOpenUrl(link.url);
+                      }
                     },
                   },
                 ]
@@ -374,21 +393,26 @@ export default function CanvasEditor({
   );
   const moveGesture = (event) => {
     const current = gestureRef.current;
-    if (!current) {return;}
+    if (!current) {
+      return;
+    }
     const dx = event.clientX - current.clientX,
       dy = event.clientY - current.clientY;
     if (current.type === 'pan') {
       setCamera({ ...current.camera, x: current.camera.x + dx, y: current.camera.y + dy });
       return;
     }
-    if (Math.abs(dx) + Math.abs(dy) < 3 && !current.moved) {return;}
+    if (Math.abs(dx) + Math.abs(dy) < 3 && !current.moved) {
+      return;
+    }
     const next = { ...current, moved: true, dx: dx / current.camera.k, dy: dy / current.camera.k };
     gestureRef.current = next;
-    if (!gestureFrame.current)
-      {gestureFrame.current = requestAnimationFrame(() => {
+    if (!gestureFrame.current) {
+      gestureFrame.current = requestAnimationFrame(() => {
         gestureFrame.current = 0;
         setGesture(gestureRef.current);
-      });}
+      });
+    }
   };
   const endGesture = () => {
     cancelAnimationFrame(gestureFrame.current);
@@ -396,15 +420,16 @@ export default function CanvasEditor({
     const current = gestureRef.current;
     if (current) {
       suppressClick.current = !!current.moved || current.type === 'resize';
-      if (current.type === 'move' && current.moved)
-        {update(
+      if (current.type === 'move' && current.moved) {
+        update(
           moveCanvasNodes(canvas, current.ids, Math.round(current.dx), Math.round(current.dy))
-        );}
-      else if (current.type === 'resize')
-        {updateNode(current.id, {
+        );
+      } else if (current.type === 'resize') {
+        updateNode(current.id, {
           width: Math.max(180, Math.round(current.width + current.dx)),
           height: Math.max(100, Math.round(current.height + current.dy)),
-        });}
+        });
+      }
     }
     gestureRef.current = null;
     setTimeout(() => {
@@ -425,8 +450,9 @@ export default function CanvasEditor({
   };
   const fit = () => {
     const viewport = viewportRef.current;
-    if (!canvas.nodes.length)
-      {return setCamera({ x: viewport.clientWidth / 2, y: viewport.clientHeight / 2, k: 1 });}
+    if (!canvas.nodes.length) {
+      return setCamera({ x: viewport.clientWidth / 2, y: viewport.clientHeight / 2, k: 1 });
+    }
     const left = Math.min(...canvas.nodes.map((item) => item.x));
     const top = Math.min(...canvas.nodes.map((item) => item.y));
     const right = Math.max(...canvas.nodes.map((item) => item.x + item.width));
@@ -455,8 +481,9 @@ export default function CanvasEditor({
     'canvas-zoom-in': () => zoom(1.2),
     'canvas-zoom-out': () => zoom(1 / 1.2),
     'canvas-delete': () => {
-      if (selectedNode) {removeNode(selectedNode);}
-      else if (selectedEdge) {
+      if (selectedNode) {
+        removeNode(selectedNode);
+      } else if (selectedEdge) {
         update({ ...canvas, edges: canvas.edges.filter((item) => item.id !== selectedEdge) });
         setSelectedEdge(null);
       }
@@ -615,8 +642,9 @@ export default function CanvasEditor({
         onContextMenu={(event) => {
           if (
             event.target.closest('input, textarea, button, .context-menu, [contenteditable="true"]')
-          )
-            {return;}
+          ) {
+            return;
+          }
           const rect = event.currentTarget.getBoundingClientRect();
           contextMenu(
             event,
@@ -642,8 +670,9 @@ export default function CanvasEditor({
             event.target.closest(
               '.canvas-node, [data-edge-id], .context-menu, input, textarea, button'
             )
-          )
-            {return;}
+          ) {
+            return;
+          }
           event.preventDefault();
           setSelectedNode(null);
           setSelectedEdge(null);
@@ -669,8 +698,9 @@ export default function CanvasEditor({
             if (
               event.target !== event.currentTarget ||
               !(event.key === 'ContextMenu' || (event.key === 'F10' && event.shiftKey))
-            )
-              {return;}
+            ) {
+              return;
+            }
             event.preventDefault();
             const rect = event.currentTarget.getBoundingClientRect();
             const wrap = event.currentTarget.parentElement.getBoundingClientRect();

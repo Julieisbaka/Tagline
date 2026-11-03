@@ -28,7 +28,9 @@ export const DEFAULT_RIBBON_ITEMS = RIBBON_ITEMS.filter(
  * @returns {string[]} - A normalized array of ribbon item IDs.
  */
 export function normalizeRibbonItems(value, contributions = [], hidden = []) {
-  if (!Array.isArray(value)) {value = DEFAULT_RIBBON_ITEMS;}
+  if (!Array.isArray(value)) {
+    value = DEFAULT_RIBBON_ITEMS;
+  }
   const validIds = new Set(RIBBON_ITEMS.map(({ id }) => id));
   const items = [
     ...new Set(
@@ -40,8 +42,11 @@ export function normalizeRibbonItems(value, contributions = [], hidden = []) {
       )
     ),
   ];
-  for (const item of contributions)
-    {if (!items.includes(item.id) && !hidden.includes(item.id)) {items.push(item.id);}}
+  for (const item of contributions) {
+    if (!items.includes(item.id) && !hidden.includes(item.id)) {
+      items.push(item.id);
+    }
+  }
   return items;
 }
 
@@ -57,7 +62,9 @@ export function moveRibbonItem(items, sourceId, targetId) {
   const next = [...items];
   const sourceIndex = next.indexOf(sourceId);
   const targetIndex = next.indexOf(targetId);
-  if (sourceIndex < 0 || targetIndex < 0 || sourceIndex === targetIndex) {return next;}
+  if (sourceIndex < 0 || targetIndex < 0 || sourceIndex === targetIndex) {
+    return next;
+  }
   next.splice(sourceIndex, 1);
   next.splice(targetIndex, 0, sourceId);
   return next;

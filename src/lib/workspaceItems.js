@@ -36,7 +36,9 @@ export function normalizeWorkspaceItems(value, catalog) {
  * @returns {string[]} - The new array of workspace item IDs with the item moved.
  */
 export function moveWorkspaceItem(items, id, target) {
-  if (id === target || !items.includes(id) || !items.includes(target)) {return items;}
+  if (id === target || !items.includes(id) || !items.includes(target)) {
+    return items;
+  }
   const next = [...items];
   next.splice(items.indexOf(id), 1);
   next.splice(items.indexOf(target), 0, id);

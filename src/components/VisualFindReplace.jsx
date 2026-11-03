@@ -20,7 +20,9 @@ export default function VisualFindReplace({ editor, onClose }) {
   useEffect(() => {
     input.current?.focus();
     return () => {
-      if (!editor.isDestroyed) {editor.commands.clearSearch();}
+      if (!editor.isDestroyed) {
+        editor.commands.clearSearch();
+      }
     };
   }, [editor]);
   const close = () => {

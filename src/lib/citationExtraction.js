@@ -36,10 +36,14 @@ const CONTINUATION =
 const unescape = (value) => value.replace(/\\(.)/g, '$1').trim();
 
 function dateValue(value) {
-  if (parseDate(value)) {return value;}
+  if (parseDate(value)) {
+    return value;
+  }
   const monthFirst = new RegExp(`^(${MONTH})\\s+(\\d{1,2}),?\\s+(\\d{4})$`, 'i').exec(value);
   const dayFirst = new RegExp(`^(\\d{1,2})\\s+(${MONTH})\\s+(\\d{4})$`, 'i').exec(value);
-  if (!monthFirst && !dayFirst) {return '';}
+  if (!monthFirst && !dayFirst) {
+    return '';
+  }
   const name = (monthFirst ? monthFirst[1] : dayFirst[2]).toLowerCase();
   const month = MONTHS.findIndex((item) => item.startsWith(name.slice(0, 3))) + 1;
   const day = monthFirst ? monthFirst[2] : dayFirst[1];
@@ -64,7 +68,9 @@ function resolveReferences(value, references) {
 function findYearLead(value) {
   const date = value.match(DATE_LEAD);
   const year = value.match(YEAR_LEAD);
-  if (date && (!year || date[1].length <= year[1].length)) {return { match: date, date: true };}
+  if (date && (!year || date[1].length <= year[1].length)) {
+    return { match: date, date: true };
+  }
   return year ? { match: year, date: false } : null;
 }
 
@@ -80,9 +86,12 @@ function findYearLead(value) {
 export function extractCardCitation(body, references = {}) {
   let firstContent = true;
   for (const token of markdown.lexer(body.replace(/\r\n?/g, '\n'))) {
-    if (token.type === 'space' || (token.type === 'html' && /^ {0,3}<!--/.test(token.raw)))
-      {continue;}
-    if (token.type === 'heading') {continue;}
+    if (token.type === 'space' || (token.type === 'html' && /^ {0,3}<!--/.test(token.raw))) {
+      continue;
+    }
+    if (token.type === 'heading') {
+      continue;
+    }
     if (token.type !== 'paragraph' && token.type !== 'text') {
       firstContent = false;
       continue;
@@ -90,7 +99,9 @@ export function extractCardCitation(body, references = {}) {
     const lines = token.raw.split('\n');
     for (let index = 0; index < lines.length; index++) {
       const line = lines[index];
-      if (!line.trim()) {continue;}
+      if (!line.trim()) {
+        continue;
+      }
       const bold = line.match(BOLD_LEAD);
       const plain = line.trim();
       const lead = bold ? bold[2] : plain;
@@ -105,7 +116,9 @@ export function extractCardCitation(body, references = {}) {
       const continuation = [];
       for (let next = index + 1; next < lines.length && continuation.length < 5; next++) {
         const value = lines[next].trim();
-        if (!value || !CONTINUATION.test(value)) {break;}
+        if (!value || !CONTINUATION.test(value)) {
+          break;
+        }
         continuation.push(value);
       }
       const unformatted =
@@ -133,41 +146,68 @@ function parseCitation(lead, suffix) {
   if (match) {
     citation.author = unescape(match[1]);
     const year = parsed.date ? dateValue(match[2]).slice(0, 4) : match[2] || match[3];
-    if (/^(?:19|20)\d{2}$/.test(year)) {citation.year = year;}
-    else {uncertain.add('year');}
+    if (/^(?:19|20)\d{2}$/.test(year)) {
+      citation.year = year;
+    } else {
+      uncertain.add('year');
+    }
     details = `${lead.slice(match[0].length)} ${suffix}`.trim();
   } else {
     citation.author = unescape(lead);
-    if (citation.author) {uncertain.add('author');}
-    if (/\b\d{2,4}\b/.test(lead)) {uncertain.add('year');}
+    if (citation.author) {
+      uncertain.add('author');
+    }
+    if (/\b\d{2,4}\b/.test(lead)) {
+      uncertain.add('year');
+    }
   }
 
   const labeledTitle = details.match(/\bTitle:\s*([^,\n]+)/i);
   const title = details.match(TITLE);
   const ambiguousTitle = title && details.replace(title[0], '').includes('"');
-  if (ambiguousTitle) {uncertain.add('title');}
-  else if (title || labeledTitle) {citation.title = unescape((title || labeledTitle)[1]);}
+  if (ambiguousTitle) {
+    uncertain.add('title');
+  } else if (title || labeledTitle) {
+    citation.title = unescape((title || labeledTitle)[1]);
+  }
   const link = details.match(MARKDOWN_LINK);
   const bareUrl = details.match(URL);
   const doi = details.match(DOI);
-  if (link || bareUrl) {citation.url = (link ? link[1] : bareUrl[0]).replace(/[.,;]+$/, '');}
-  else if (doi) {citation.url = `https://doi.org/${doi[1].replace(/[.,;]+$/, '')}`;}
-  else if (/\[[^\]]+\](?:\[[^\]]*\]|\([^)]+\))/.test(details)) {uncertain.add('url');}
+  if (link || bareUrl) {
+    citation.url = (link ? link[1] : bareUrl[0]).replace(/[.,;]+$/, '');
+  } else if (doi) {
+    citation.url = `https://doi.org/${doi[1].replace(/[.,;]+$/, '')}`;
+  } else if (/\[[^\]]+\](?:\[[^\]]*\]|\([^)]+\))/.test(details)) {
+    uncertain.add('url');
+  }
   const access = details.match(ACCESS);
   if (access) {
     const value = unescape(access[1]);
     const normalized = dateValue(value);
-    if (normalized) {citation.accessed = normalized;}
-    else {uncertain.add('accessed');}
+    if (normalized) {
+      citation.accessed = normalized;
+    } else {
+      uncertain.add('accessed');
+    }
   }
   let remaining = details;
   const labeledPublication = /\b(?:Publication|Source):\s*/i.test(details);
-  if (title) {remaining = remaining.replace(title[0], '');}
-  else if (labeledTitle) {remaining = remaining.replace(labeledTitle[0], '');}
-  if (link) {remaining = remaining.replace(link[0], '');}
-  else if (bareUrl) {remaining = remaining.replace(bareUrl[0], '');}
-  if (doi) {remaining = remaining.replace(doi[0], '');}
-  if (access) {remaining = remaining.replace(access[0], '');}
+  if (title) {
+    remaining = remaining.replace(title[0], '');
+  } else if (labeledTitle) {
+    remaining = remaining.replace(labeledTitle[0], '');
+  }
+  if (link) {
+    remaining = remaining.replace(link[0], '');
+  } else if (bareUrl) {
+    remaining = remaining.replace(bareUrl[0], '');
+  }
+  if (doi) {
+    remaining = remaining.replace(doi[0], '');
+  }
+  if (access) {
+    remaining = remaining.replace(access[0], '');
+  }
   remaining = remaining
     .replace(/^[\s,.;:–—-]+|[\s,.;:–—-]+$/g, '')
     .trim()
@@ -177,9 +217,11 @@ function parseCitation(lead, suffix) {
       (title || labeledTitle || labeledPublication) &&
       !ambiguousTitle &&
       !/\b(?:19|20)\d{2}\b/.test(remaining)
-    )
-      {citation.publication = unescape(remaining);}
-    else {uncertain.add('publication');}
+    ) {
+      citation.publication = unescape(remaining);
+    } else {
+      uncertain.add('publication');
+    }
   }
   return { citation, uncertainFields: [...uncertain] };
 }

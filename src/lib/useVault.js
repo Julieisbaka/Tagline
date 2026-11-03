@@ -64,7 +64,9 @@ export function useVault(
     (path, status) =>
       setSaveStatuses((previous) => {
         if (!status) {
-          if (!(path in previous)) {return previous;}
+          if (!(path in previous)) {
+            return previous;
+          }
           const next = { ...previous };
           delete next[path];
           return next;
@@ -95,7 +97,9 @@ export function useVault(
        * @returns {void}
        */
       const cleanup = (failed = false) => {
-        if (writes.current.get(path)?.task !== task) {return;}
+        if (writes.current.get(path)?.task !== task) {
+          return;
+        }
         writes.current.delete(path);
         if (failed) {
           if (pending.current[path] === undefined && contentsRef.current[path] === text) {
@@ -132,7 +136,9 @@ export function useVault(
               path,
             }));
     for (const event of events) {
-      for (const listener of watchers.current) {listener(event);}
+      for (const listener of watchers.current) {
+        listener(event);
+      }
     }
   }, [vault?.root, contents]);
 
@@ -160,7 +166,9 @@ export function useVault(
 
   const open = useCallback(
     async (info) => {
-      if (!info) {return;}
+      if (!info) {
+        return;
+      }
       setReady(false);
       setTree([]);
       setContents({});
@@ -192,8 +200,9 @@ export function useVault(
           await writeDisk(p, c);
           return true;
         } catch (error) {
-          if (pending.current[p] === undefined && contentsRef.current[p] === c)
-            {pending.current[p] = c;}
+          if (pending.current[p] === undefined && contentsRef.current[p] === c) {
+            pending.current[p] = c;
+          }
           report(error);
           return false;
         }
@@ -210,17 +219,20 @@ export function useVault(
      * @returns {void}
      */
     const onUnload = (event) => {
-      if (!Object.keys(pending.current).length && !writes.current.size) {return;}
+      if (!Object.keys(pending.current).length && !writes.current.size) {
+        return;
+      }
       event.preventDefault();
       event.returnValue = false;
       flush()
         .then((saved) => {
-          if (saved)
-            {window.dispatchEvent(
+          if (saved) {
+            window.dispatchEvent(
               new CustomEvent('app-error', {
                 detail: 'Pending edits have been saved. Retry closing or reloading.',
               })
-            );}
+            );
+          }
         })
         .catch(report);
     };
@@ -301,8 +313,12 @@ export function useVault(
   const rename = useCallback(
     async (from, to) => {
       to = normalize(to, directories.includes(from));
-      if (from === to) {return to;}
-      if (!(await flush())) {return null;}
+      if (from === to) {
+        return to;
+      }
+      if (!(await flush())) {
+        return null;
+      }
       try {
         const all = contentsRef.current;
         const paths = Object.keys(all);
@@ -326,14 +342,15 @@ export function useVault(
             updated = rewriteLinks(updated, oldPath, to + oldPath.slice(from.length), paths);
           }
           const destination = moved.includes(p) ? to + p.slice(from.length) : p;
-          if (updated !== all[p])
-            {await api.write(
+          if (updated !== all[p]) {
+            await api.write(
               destination,
               updated,
               historyRetentionRef.current,
               canvasHistoryModeRef.current,
               experimentalHistoryDeltasRef.current
-            );}
+            );
+          }
         }
         await reload();
         return to;
@@ -347,7 +364,9 @@ export function useVault(
 
   const remove = useCallback(
     async (path) => {
-      if (!(await flush())) {return false;}
+      if (!(await flush())) {
+        return false;
+      }
       try {
         await api.remove(path);
         await reload();
@@ -361,34 +380,46 @@ export function useVault(
   );
 
   const chooseVault = useCallback(async () => {
-    if (!(await flush())) {return false;}
+    if (!(await flush())) {
+      return false;
+    }
     const info = await api.chooseVault().catch((error) => {
       report(error);
       return null;
     });
-    if (!info) {return false;}
+    if (!info) {
+      return false;
+    }
     await open(info);
     return true;
   }, [flush, open]);
 
   const createSample = useCallback(async () => {
-    if (!(await flush())) {return false;}
+    if (!(await flush())) {
+      return false;
+    }
     const info = await api.createSampleVault().catch((error) => {
       report(error);
       return null;
     });
-    if (!info) {return false;}
+    if (!info) {
+      return false;
+    }
     await open(info);
     return true;
   }, [flush, open]);
   const openRecentVault = useCallback(
     async (root) => {
-      if (!(await flush())) {return false;}
+      if (!(await flush())) {
+        return false;
+      }
       const info = await api.openRecentVault(root).catch((error) => {
         report(error);
         return null;
       });
-      if (!info) {return false;}
+      if (!info) {
+        return false;
+      }
       await open(info);
       return true;
     },
@@ -396,8 +427,9 @@ export function useVault(
   );
   const openFlowFile = useCallback(
     async (file) => {
-      if (!(await flush()))
-        {throw new Error('Could not save current edits. The flow file was not opened.');}
+      if (!(await flush())) {
+        throw new Error('Could not save current edits. The flow file was not opened.');
+      }
       const result = await api.openFlowFile(file);
       await open(result.vault);
       return result;

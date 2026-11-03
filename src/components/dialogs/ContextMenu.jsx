@@ -22,9 +22,13 @@ function NativeContextMenu({ items, onClose }) {
     window.api
       .nativeContextMenu(items.map((item) => ({ label: t(item.label), disabled: !!item.disabled })))
       .then(async (index) => {
-        if (!active) {return;}
+        if (!active) {
+          return;
+        }
         onClose();
-        if (index !== null) {await items[index].run();}
+        if (index !== null) {
+          await items[index].run();
+        }
       })
       .catch((error) => {
         if (active) {
@@ -52,7 +56,9 @@ function AppContextMenu({ x, y, items, onClose }) {
   }, [x, y]);
   useEffect(() => {
     const outside = (e) => {
-      if (!ref.current?.contains(e.target)) {onClose();}
+      if (!ref.current?.contains(e.target)) {
+        onClose();
+      }
     };
     const escape = (e) => {
       if (e.key === 'Escape') {
@@ -96,7 +102,9 @@ function AppContextMenu({ x, y, items, onClose }) {
           trapTabKey(e, ref.current);
           return;
         }
-        if (!['ArrowDown', 'ArrowUp', 'Home', 'End'].includes(e.key)) {return;}
+        if (!['ArrowDown', 'ArrowUp', 'Home', 'End'].includes(e.key)) {
+          return;
+        }
         e.preventDefault();
         const buttons = [...ref.current.querySelectorAll('button:not(:disabled)')];
         const i = buttons.indexOf(document.activeElement);

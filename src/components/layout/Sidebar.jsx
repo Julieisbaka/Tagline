@@ -73,7 +73,9 @@ export default function Sidebar({
   const onDropMove = (from, toDir) => {
     const name = from.split('/').pop();
     const to = joinPath(toDir, name);
-    if (to === from || toDir === from || toDir.startsWith(from + '/')) {return;}
+    if (to === from || toDir === from || toDir.startsWith(from + '/')) {
+      return;
+    }
     actions.move(from, to);
   };
 
@@ -86,7 +88,9 @@ export default function Sidebar({
         value={settings.fileManagerItems}
         onChange={(fileManagerItems) => updateSettings({ fileManagerItems })}
         renderItem={(id) => {
-          if (id === 'refresh') {return <RefreshButton onRefresh={actions.reload} />;}
+          if (id === 'refresh') {
+            return <RefreshButton onRefresh={actions.reload} />;
+          }
           const item = FILE_ACTIONS.find((item) => item.id === id);
           return (
             <button

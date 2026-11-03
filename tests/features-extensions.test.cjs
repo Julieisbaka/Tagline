@@ -385,7 +385,9 @@ test('active-note events are path-only, separately permissioned, bounded and dis
   ]);
   assert.equal(await host.handle('editor.unwatchActiveNote', [id]), true);
   assert.equal(callbacks.size, 0);
-  for (let i = 0; i < 32; i++) {await host.handle('editor.watchActiveNote', []);}
+  for (let i = 0; i < 32; i++) {
+    await host.handle('editor.watchActiveNote', []);
+  }
   await assert.rejects(host.handle('editor.watchActiveNote', []), /32 active-note/);
   const original = global.window;
   global.window = { removeEventListener() {} };
@@ -516,7 +518,9 @@ test('extension vault mutation and watch APIs enforce permissions and clean up s
     ['vault.compareAndSwap', ['Card.md', 'old', 'new']],
     ['vault.watch', []],
   ];
-  for (const [method, args] of calls) {await assert.rejects(host.handle(method, args), /Permission/);}
+  for (const [method, args] of calls) {
+    await assert.rejects(host.handle(method, args), /Permission/);
+  }
   manifest.permissions = ['vault:write'];
   await assert.rejects(host.handle('vault.append', ['Card.md', 'text']), /vault:read/);
   await assert.rejects(
@@ -524,7 +528,9 @@ test('extension vault mutation and watch APIs enforce permissions and clean up s
     /vault:read/
   );
   manifest.permissions.push('vault:read');
-  for (const [method, args] of calls.slice(0, -1)) {await host.handle(method, args);}
+  for (const [method, args] of calls.slice(0, -1)) {
+    await host.handle(method, args);
+  }
   await assert.rejects(
     host.handle('vault.compareAndSwap', ['Card.md', null, 'new']),
     /Expected content/
@@ -533,7 +539,9 @@ test('extension vault mutation and watch APIs enforce permissions and clean up s
   assert.equal(subscriptions, 1);
   assert.equal(await host.handle('vault.unwatch', [id]), true);
   assert.equal(await host.handle('vault.unwatch', [id]), false);
-  for (let i = 0; i < 32; i++) {await host.handle('vault.watch', []);}
+  for (let i = 0; i < 32; i++) {
+    await host.handle('vault.watch', []);
+  }
   await assert.rejects(host.handle('vault.watch', []), /32 vault watches/);
   // Disposal's DOM listener removal is tested in the Electron suite; check its subscription cleanup here.
   const original = global.window;

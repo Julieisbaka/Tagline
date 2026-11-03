@@ -14,8 +14,14 @@ export function nodeColor(color) {
 }
 
 export function sidePoint(node, side) {
-  if (side === 'top') {return { x: node.x + node.width / 2, y: node.y };}
-  if (side === 'bottom') {return { x: node.x + node.width / 2, y: node.y + node.height };}
-  if (side === 'left') {return { x: node.x, y: node.y + node.height / 2 };}
+  if (side === 'top') {
+    return { x: node.x + node.width / 2, y: node.y };
+  }
+  if (side === 'bottom') {
+    return { x: node.x + node.width / 2, y: node.y + node.height };
+  }
+  if (side === 'left') {
+    return { x: node.x, y: node.y + node.height / 2 };
+  }
   return { x: node.x + node.width, y: node.y + node.height / 2 };
 }

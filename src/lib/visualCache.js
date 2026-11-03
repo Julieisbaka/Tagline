@@ -39,7 +39,9 @@ export function configureVisualCache(entries, limit) {
  */
 export function cachedDocument(markdown) {
   const entry = cache.get(markdown);
-  if (!entry) {return null;}
+  if (!entry) {
+    return null;
+  }
   cache.delete(markdown);
   cache.set(markdown, entry);
   return structuredClone(entry.json);
@@ -58,7 +60,9 @@ export function cacheDocument(markdown, json) {
     characters -= previous.size;
     cache.delete(markdown);
   }
-  if (!maxEntries || size > maxCharacters) {return;}
+  if (!maxEntries || size > maxCharacters) {
+    return;
+  }
   cache.set(markdown, { json: structuredClone(json), size });
   characters += size;
   trimCache();

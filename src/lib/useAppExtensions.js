@@ -44,7 +44,9 @@ export function useAppExtensions({
     applicationEvents.emit('editor.updated', { path: activeNotePath, mode });
   }, [activeNotePath, activeContent, mode]);
   useEffect(() => {
-    if (!visualEditor || visualEditor.isDestroyed || mode !== 'visual' || sourceFallback) {return;}
+    if (!visualEditor || visualEditor.isDestroyed || mode !== 'visual' || sourceFallback) {
+      return;
+    }
     /** Publish the visual editor's current selection as a path-only app event. @returns {void} */
     const selection = () =>
       applicationEvents.emit('editor.selectionChanged', {
@@ -66,8 +68,9 @@ export function useAppExtensions({
       sourceFallback ||
       !visualRef.current ||
       visualRef.current.isDestroyed
-    )
-      {throw new Error('Open a Markdown note in the visual editor first.');}
+    ) {
+      throw new Error('Open a Markdown note in the visual editor first.');
+    }
     return visualRef.current;
   };
 
@@ -75,8 +78,9 @@ export function useAppExtensions({
   const enqueueVault = (operation) => {
     const root = v.vault?.root;
     const task = operations.current.then(() => {
-      if (!root || bridgeRef.current.root !== root)
-        {throw new Error('The active vault changed. Retry the operation.');}
+      if (!root || bridgeRef.current.root !== root) {
+        throw new Error('The active vault changed. Retry the operation.');
+      }
       return operation();
     });
     operations.current = task.catch(() => {});
@@ -88,17 +92,22 @@ export function useAppExtensions({
    * @returns {string} - The content of the required document.
    */
   const requireNote = (path) => {
-    if (!/\.(md|flow|canvas)$/i.test(path))
-      {throw new Error('Extensions can only modify .md, .flow and .canvas files.');}
+    if (!/\.(md|flow|canvas)$/i.test(path)) {
+      throw new Error('Extensions can only modify .md, .flow and .canvas files.');
+    }
     const content = v.getContent(path);
-    if (content === undefined) {throw new Error(`Note not found: ${path}`);}
+    if (content === undefined) {
+      throw new Error(`Note not found: ${path}`);
+    }
     return content;
   };
 
   bridgeRef.current = {
     root: v.vault?.root,
     getActiveNote: () => {
-      if (!activePath || activeContent === undefined) {return null;}
+      if (!activePath || activeContent === undefined) {
+        return null;
+      }
       let selection = '';
       let selectionRange = null;
       let editorKind = null;
@@ -126,19 +135,25 @@ export function useAppExtensions({
     insertText: (text) => insertAtCursor(text),
     setSelection: (value) => {
       const { from, to } = requireSelection(value);
-      if (!activePath || !/\.md$/i.test(activePath) || mode === 'read')
-        {throw new Error('Open a Markdown note in an editing mode first.');}
+      if (!activePath || !/\.md$/i.test(activePath) || mode === 'read') {
+        throw new Error('Open a Markdown note in an editing mode first.');
+      }
       if (mode === 'visual' && !sourceFallback) {
         const editor = requireVisualEditor();
-        if (from < 1 || to > editor.state.doc.content.size)
-          {throw new Error('Selection is outside the Tiptap document.');}
-        if (!editor.chain().setTextSelection({ from, to }).focus().run())
-          {throw new Error('Could not set the editor selection.');}
+        if (from < 1 || to > editor.state.doc.content.size) {
+          throw new Error('Selection is outside the Tiptap document.');
+        }
+        if (!editor.chain().setTextSelection({ from, to }).focus().run()) {
+          throw new Error('Could not set the editor selection.');
+        }
       } else {
         const view = editorRef.current;
-        if (!view) {throw new Error('The editor is not ready.');}
-        if (to > view.state.doc.length)
-          {throw new Error('Selection is outside the source document.');}
+        if (!view) {
+          throw new Error('The editor is not ready.');
+        }
+        if (to > view.state.doc.length) {
+          throw new Error('Selection is outside the source document.');
+        }
         view.dispatch({ selection: EditorSelection.range(from, to), scrollIntoView: true });
         view.focus();
       }
@@ -160,60 +175,77 @@ export function useAppExtensions({
       const chain = editor.chain().focus();
       const success =
         options === undefined ? chain[command]().run() : chain[command](options).run();
-      if (!success) {throw new Error(`Tiptap command could not run: ${command}`);}
+      if (!success) {
+        throw new Error(`Tiptap command could not run: ${command}`);
+      }
       return true;
     },
     list: () => paths,
     read: (path) => {
       const content = v.getContent(path);
-      if (content === undefined) {throw new Error(`Note not found: ${path}`);}
+      if (content === undefined) {
+        throw new Error(`Note not found: ${path}`);
+      }
       return content;
     },
     write: (path, content) =>
       enqueueVault(async () => {
-        if (!/\.(md|flow|canvas)$/i.test(path))
-          {throw new Error('Extensions can only write .md, .flow and .canvas files.');}
+        if (!/\.(md|flow|canvas)$/i.test(path)) {
+          throw new Error('Extensions can only write .md, .flow and .canvas files.');
+        }
         if (v.getContent(path) !== undefined) {
           v.updateContent(path, content);
           return path;
         }
         const created = await v.createFile(path, content);
-        if (!created) {throw new Error(`Could not create ${path}.`);}
+        if (!created) {
+          throw new Error(`Could not create ${path}.`);
+        }
         return created;
       }),
     append: (path, text) =>
       enqueueVault(() => {
         const content = requireNote(path) + text;
-        if (content.length > 5_000_000)
-          {throw new Error('Content must be text up to 5000000 characters.');}
+        if (content.length > 5_000_000) {
+          throw new Error('Content must be text up to 5000000 characters.');
+        }
         v.updateContent(path, content);
         return path;
       }),
     compareAndSwap: (path, expected, content) =>
       enqueueVault(() => {
-        if (requireNote(path) !== expected) {return false;}
+        if (requireNote(path) !== expected) {
+          return false;
+        }
         v.updateContent(path, content);
         return true;
       }),
     delete: (path) =>
       enqueueVault(async () => {
         requireNote(path);
-        if (!(await v.remove(path))) {throw new Error(`Could not delete ${path}.`);}
+        if (!(await v.remove(path))) {
+          throw new Error(`Could not delete ${path}.`);
+        }
         tabs.removePath(path);
         return true;
       }),
     rename: (from, to) =>
       enqueueVault(async () => {
         requireNote(from);
-        if (!/\.(md|flow|canvas)$/i.test(to))
-          {throw new Error('Extensions can only rename to .md, .flow and .canvas paths.');}
+        if (!/\.(md|flow|canvas)$/i.test(to)) {
+          throw new Error('Extensions can only rename to .md, .flow and .canvas paths.');
+        }
         const result = await doRename(from, to);
-        if (!result) {throw new Error(`Could not rename ${from}.`);}
+        if (!result) {
+          throw new Error(`Could not rename ${from}.`);
+        }
         return result;
       }),
     flush: () =>
       enqueueVault(async () => {
-        if (!(await v.flush())) {throw new Error('Could not save pending vault edits.');}
+        if (!(await v.flush())) {
+          throw new Error('Could not save pending vault edits.');
+        }
         return true;
       }),
     watch: v.watch,

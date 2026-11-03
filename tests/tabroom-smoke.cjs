@@ -10,7 +10,9 @@ if (!process.versions.electron) {
       stdio: 'inherit',
       timeout: 90000,
     });
-    if (result.error) {throw result.error;}
+    if (result.error) {
+      throw result.error;
+    }
     assert.equal(result.status, 0);
   } finally {
     fs.rmSync(root, { recursive: true, force: true, maxRetries: 20, retryDelay: 100 });
@@ -84,23 +86,27 @@ let includePreviousSeason = true;
 const fromPartition = session.fromPartition.bind(session);
 session.fromPartition = (name, ...args) => {
   const isolated = fromPartition(name, ...args);
-  if (name === 'persist:tabroom')
-    {isolated.fetch = async (url, options) => {
+  if (name === 'persist:tabroom') {
+    isolated.fetch = async (url, options) => {
       requests++;
       assert.equal(url, 'https://www.tabroom.com/api/download_data.mhtml?tourn_id=123');
       assert.equal(options.credentials, 'include');
-      if (requests === 2) {return new Response('<html>Unavailable</html>');}
-      if (requests === 3)
-        {return new Response(
+      if (requests === 2) {
+        return new Response('<html>Unavailable</html>');
+      }
+      if (requests === 3) {
+        return new Response(
           JSON.stringify({
             id: 123,
             name: 'Restricted snapshot',
             schools: [],
             categories: [{ name: 'Policy' }],
           })
-        );}
+        );
+      }
       return new Response(raw);
-    };}
+    };
+  }
   if (name === 'persist:opencaselist') {
     isolated.cookies.get = async () => [
       { name: 'caselist_token', value: 'mock-cookie', expirationDate: Date.now() / 1000 + 1000 },
@@ -108,7 +114,9 @@ session.fromPartition = (name, ...args) => {
     isolated.fetch = async (url, options) => {
       wikiRequests++;
       assert.equal(options.method, 'GET');
-      if (wikiMode === 'error') {return new Response('{}', { status: 403 });}
+      if (wikiMode === 'error') {
+        return new Response('{}', { status: 403 });
+      }
       const value = url.endsWith('/teams')
         ? [
             {
@@ -151,8 +159,9 @@ session.fromPartition = (name, ...args) => {
 dialog.showSaveDialog = async () => ({ canceled: false, filePath: destination });
 const loadURL = BrowserWindow.prototype.loadURL;
 BrowserWindow.prototype.loadURL = async function (url, ...args) {
-  if (url !== 'https://www.tabroom.com/user/login/login.mhtml')
-    {return loadURL.call(this, url, ...args);}
+  if (url !== 'https://www.tabroom.com/user/login/login.mhtml') {
+    return loadURL.call(this, url, ...args);
+  }
   loginWindows++;
   const preferences = this.webContents.getLastWebPreferences();
   assert.equal(preferences.sandbox, true);
@@ -170,12 +179,16 @@ BrowserWindow.prototype.loadURL = async function (url, ...args) {
   this.close();
 };
 app.on('browser-window-created', (_event, win) => {
-  if (win.getTitle().startsWith('Sign in to Tabroom')) {return;}
+  if (win.getTitle().startsWith('Sign in to Tabroom')) {
+    return;
+  }
   win.webContents.once('did-finish-load', async () => {
     const js = (code) => win.webContents.executeJavaScript(code);
     const wait = async (code) => {
       for (let i = 0; i < 200; i++) {
-        if (await js(code)) {return;}
+        if (await js(code)) {
+          return;
+        }
         await new Promise((resolve) => setTimeout(resolve, 25));
       }
       throw new Error(`Timed out: ${code}`);
@@ -340,12 +353,15 @@ app.on('browser-window-created', (_event, win) => {
         await new Promise((resolve) => setTimeout(resolve, 200));
         for (const view of ['Overview', 'Teams', 'Raw JSON']) {
           await click(view, '.tabroom-views');
-          if (view === 'Teams') {await wait("!!document.querySelector('.tabroom-table')");}
-          if (view === 'Teams')
-            {assert.equal(
+          if (view === 'Teams') {
+            await wait("!!document.querySelector('.tabroom-table')");
+          }
+          if (view === 'Teams') {
+            assert.equal(
               await js("document.querySelector('.tabroom-caselist select').value"),
               'ndt2025'
-            );}
+            );
+          }
           const layout = await js(`(() => {
             const dialog = document.querySelector('.tabroom-dialog');
             const bounds = dialog.getBoundingClientRect();
@@ -385,8 +401,9 @@ app.on('browser-window-created', (_event, win) => {
           assert.equal(layout.controlsFit, true, `${view}: controls fit at ${width}px`);
           assert.equal(layout.closeOnRight, true, `close button aligned at ${width}px`);
           assert.ok(layout.headerHeight >= 28, `header does not shrink at ${width}px`);
-          if (view === 'Raw JSON')
-            {assert.ok(layout.previewHeight >= 120, `readable JSON at ${width}px`);}
+          if (view === 'Raw JSON') {
+            assert.ok(layout.previewHeight >= 120, `readable JSON at ${width}px`);
+          }
         }
       }
       win.setSize(...originalSize);

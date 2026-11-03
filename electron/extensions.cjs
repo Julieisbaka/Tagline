@@ -32,8 +32,9 @@ function relativeFile(root, value, ext) {
   }
   const full = path.resolve(root, value);
   const rel = path.relative(root, full);
-  if (rel.startsWith('..') || path.isAbsolute(rel))
-    {throw new Error(`File escapes the extension folder: ${value}`);}
+  if (rel.startsWith('..') || path.isAbsolute(rel)) {
+    throw new Error(`File escapes the extension folder: ${value}`);
+  }
   return full;
 }
 
@@ -41,8 +42,9 @@ function relativeFile(root, value, ext) {
 async function containedFile(root, value, ext) {
   const file = await fs.realpath(relativeFile(root, value, ext));
   const rel = path.relative(await fs.realpath(root), file);
-  if (rel.startsWith('..') || path.isAbsolute(rel))
-    {throw new Error(`File escapes the extension folder: ${value}`);}
+  if (rel.startsWith('..') || path.isAbsolute(rel)) {
+    throw new Error(`File escapes the extension folder: ${value}`);
+  }
   return file;
 }
 
@@ -50,17 +52,24 @@ function validateManifest(value, root, limits = DEFAULT_LIMITS) {
   const fail = (message) => {
     throw new Error(`Invalid manifest: ${message}`);
   };
-  if (!value || typeof value !== 'object' || Array.isArray(value)) {fail('expected a JSON object.');}
-  if (value.manifestVersion !== 1) {fail('manifestVersion must be 1.');}
-  if (typeof value.id !== 'string' || !ID.test(value.id))
-    {fail('id must be 2-64 lowercase letters, digits or dashes.');}
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    fail('expected a JSON object.');
+  }
+  if (value.manifestVersion !== 1) {
+    fail('manifestVersion must be 1.');
+  }
+  if (typeof value.id !== 'string' || !ID.test(value.id)) {
+    fail('id must be 2-64 lowercase letters, digits or dashes.');
+  }
   for (const key of ['name', 'version']) {
-    if (typeof value[key] !== 'string' || !value[key].trim() || value[key].length > 80)
-      {fail(`${key} is required.`);}
+    if (typeof value[key] !== 'string' || !value[key].trim() || value[key].length > 80) {
+      fail(`${key} is required.`);
+    }
   }
   for (const key of ['description', 'author']) {
-    if (value[key] !== undefined && (typeof value[key] !== 'string' || value[key].length > 500))
-      {fail(`${key} must be text.`);}
+    if (value[key] !== undefined && (typeof value[key] !== 'string' || value[key].length > 500)) {
+      fail(`${key} must be text.`);
+    }
   }
   const permissions = value.permissions ?? [];
   if (!Array.isArray(permissions) || permissions.some((p) => !PERMISSIONS.includes(p))) {
@@ -72,20 +81,22 @@ function validateManifest(value, root, limits = DEFAULT_LIMITS) {
   } catch (error) {
     fail(error.message);
   }
-  if (permissions.includes('network') !== (networkHosts.length > 0)) {
+  if (permissions.includes('network') !== networkHosts.length > 0) {
     fail('network requires at least one networkHosts entry, and networkHosts requires network.');
   }
   const contributes = value.contributes ?? {};
-  if (typeof contributes !== 'object' || Array.isArray(contributes))
-    {fail('contributes must be an object.');}
+  if (typeof contributes !== 'object' || Array.isArray(contributes)) {
+    fail('contributes must be an object.');
+  }
   const commands = contributes.commands ?? [];
   const themes = contributes.themes ?? [];
   const settings = validateSettingDefinitions(contributes.settings, limits);
   const surfaces = {};
   for (const kind of ['panels', 'webviews']) {
     const declarations = contributes[kind] ?? [];
-    if (!Array.isArray(declarations) || declarations.length > 10)
-      {fail(`contributes.${kind} must be a list of at most 10.`);}
+    if (!Array.isArray(declarations) || declarations.length > 10) {
+      fail(`contributes.${kind} must be a list of at most 10.`);
+    }
     const ids = new Set();
     surfaces[kind] = declarations.map((item) => {
       if (
@@ -102,15 +113,19 @@ function validateManifest(value, root, limits = DEFAULT_LIMITS) {
       ids.add(item.id);
       return { id: item.id, title: item.title.trim() };
     });
-    if (declarations.length && (!permissions.includes('ui') || !value.main))
-      {fail(`${kind} require ui permission and a main script.`);}
+    if (declarations.length && (!permissions.includes('ui') || !value.main)) {
+      fail(`${kind} require ui permission and a main script.`);
+    }
   }
-  if (settings.length && !permissions.includes('settings'))
-    {fail('contributes.settings requires the settings permission.');}
-  if (!Array.isArray(commands) || commands.length > limits.extensionCommands)
-    {fail(`contributes.commands must be a list of at most ${limits.extensionCommands}.`);}
-  if (!Array.isArray(themes) || themes.length > limits.extensionThemes)
-    {fail(`contributes.themes must be a list of at most ${limits.extensionThemes}.`);}
+  if (settings.length && !permissions.includes('settings')) {
+    fail('contributes.settings requires the settings permission.');
+  }
+  if (!Array.isArray(commands) || commands.length > limits.extensionCommands) {
+    fail(`contributes.commands must be a list of at most ${limits.extensionCommands}.`);
+  }
+  if (!Array.isArray(themes) || themes.length > limits.extensionThemes) {
+    fail(`contributes.themes must be a list of at most ${limits.extensionThemes}.`);
+  }
   const seen = new Set();
   for (const command of commands) {
     if (
@@ -122,15 +137,20 @@ function validateManifest(value, root, limits = DEFAULT_LIMITS) {
       fail('each command needs a unique lowercase id.');
     }
     seen.add(command.id);
-    if (typeof command.title !== 'string' || !command.title.trim() || command.title.length > 80)
-      {fail(`command ${command.id} needs a title.`);}
-    if (command.key !== undefined && typeof command.key !== 'string')
-      {fail(`command ${command.id} key must be text.`);}
+    if (typeof command.title !== 'string' || !command.title.trim() || command.title.length > 80) {
+      fail(`command ${command.id} needs a title.`);
+    }
+    if (command.key !== undefined && typeof command.key !== 'string') {
+      fail(`command ${command.id} key must be text.`);
+    }
   }
-  if (commands.length && !value.main) {fail('commands require a main script.');}
+  if (commands.length && !value.main) {
+    fail('commands require a main script.');
+  }
   const ribbonItems = contributes.ribbonItems ?? [];
-  if (!Array.isArray(ribbonItems) || ribbonItems.length > 10)
-    {fail('contributes.ribbonItems must be a list of at most 10.');}
+  if (!Array.isArray(ribbonItems) || ribbonItems.length > 10) {
+    fail('contributes.ribbonItems must be a list of at most 10.');
+  }
   const ribbonIds = new Set();
   for (const item of ribbonItems) {
     if (
@@ -149,9 +169,12 @@ function validateManifest(value, root, limits = DEFAULT_LIMITS) {
     }
     ribbonIds.add(item.id);
   }
-  if (ribbonItems.length && !permissions.includes('ui'))
-    {fail('ribbon items require ui permission.');}
-  if (value.main !== undefined) {relativeFile(root, value.main, '.js');}
+  if (ribbonItems.length && !permissions.includes('ui')) {
+    fail('ribbon items require ui permission.');
+  }
+  if (value.main !== undefined) {
+    relativeFile(root, value.main, '.js');
+  }
   themes.forEach((theme) => relativeFile(root, theme, '.json'));
   return {
     manifestVersion: 1,
@@ -194,7 +217,9 @@ function reviewSignature(manifest) {
 
 function needsReview(manifest, config) {
   const approved = config.extensionReviews?.[manifest.id];
-  if (approved !== undefined) {return approved !== reviewSignature(manifest);}
+  if (approved !== undefined) {
+    return approved !== reviewSignature(manifest);
+  }
   // Legacy extensions without a stored review may keep running only when they declare
   // no review-gated capability; settings, editor:active-note, events, ui and network
   // always require an explicit, matching review before they are enabled.
@@ -222,7 +247,9 @@ function registerExtensions({ app, ipcMain, shell, readConfig, writeConfig, dial
     try {
       entries = await fs.readdir(folder(), { withFileTypes: true });
     } catch (e) {
-      if (e.code !== 'ENOENT') {throw e;}
+      if (e.code !== 'ENOENT') {
+        throw e;
+      }
     }
     const enabled = enabledIds();
     const found = [];
@@ -237,7 +264,9 @@ function registerExtensions({ app, ipcMain, shell, readConfig, writeConfig, dial
           root,
           limits()
         );
-        if (ids.has(manifest.id)) {throw new Error(`Duplicate extension id: ${manifest.id}`);}
+        if (ids.has(manifest.id)) {
+          throw new Error(`Duplicate extension id: ${manifest.id}`);
+        }
         ids.add(manifest.id);
         const reviewRequired = enabled.includes(manifest.id) && needsReview(manifest, readConfig());
         const reviewToken = createHash('sha256').update(reviewSignature(manifest)).digest('hex');
@@ -259,22 +288,28 @@ function registerExtensions({ app, ipcMain, shell, readConfig, writeConfig, dial
   ipcMain.handle('extensions:list', async () => (await scan()).map(({ root, ...item }) => item));
   ipcMain.handle('extensions:exportSettings', async (_event, id, values) => {
     const item = (await scan()).find((extension) => extension.id === id && !extension.error);
-    if (!item || !values || typeof values !== 'object' || Array.isArray(values))
-      {throw new Error('Invalid extension settings export.');}
+    if (!item || !values || typeof values !== 'object' || Array.isArray(values)) {
+      throw new Error('Invalid extension settings export.');
+    }
     const clean = {};
     for (const [key, value] of Object.entries(values)) {
       const setting = item.contributes.settings.find((definition) => definition.id === key);
-      if (!setting) {throw new Error(`Undeclared extension setting: ${key}.`);}
+      if (!setting) {
+        throw new Error(`Undeclared extension setting: ${key}.`);
+      }
       clean[key] = validateSettingValue(setting, value);
     }
-    if (JSON.stringify(clean).length > limits().extensionStorageCharacters)
-      {throw new Error('Extension settings exceed the configured storage limit.');}
+    if (JSON.stringify(clean).length > limits().extensionStorageCharacters) {
+      throw new Error('Extension settings exceed the configured storage limit.');
+    }
     const result = await dialog.showSaveDialog(getWindow(), {
       title: 'Export extension settings',
       defaultPath: `${id}-settings.json`,
       filters: [{ name: 'JSON', extensions: ['json'] }],
     });
-    if (result.canceled) {return { canceled: true };}
+    if (result.canceled) {
+      return { canceled: true };
+    }
     await fs.writeFile(
       result.filePath,
       JSON.stringify({ version: 1, extensionId: id, values: clean }, null, 2),
@@ -286,14 +321,19 @@ function registerExtensions({ app, ipcMain, shell, readConfig, writeConfig, dial
   // Returns code and theme files only for enabled, valid extensions.
   ipcMain.handle('extensions:load', async (_e, id) => {
     const item = (await scan()).find((ext) => ext.id === id);
-    if (!item || item.error) {throw new Error('Extension not found.');}
-    if (!item.enabled) {throw new Error('Extension is disabled.');}
+    if (!item || item.error) {
+      throw new Error('Extension not found.');
+    }
+    if (!item.enabled) {
+      throw new Error('Extension is disabled.');
+    }
     const currentLimits = limits();
     let source = null;
     if (item.main) {
       const file = await containedFile(item.root, item.main, '.js');
-      if ((await fs.stat(file)).size > currentLimits.extensionSourceBytes)
-        {throw new Error(`Extension script exceeds ${currentLimits.extensionSourceBytes} bytes.`);}
+      if ((await fs.stat(file)).size > currentLimits.extensionSourceBytes) {
+        throw new Error(`Extension script exceeds ${currentLimits.extensionSourceBytes} bytes.`);
+      }
       source = await fs.readFile(file, 'utf8');
     }
     const themes = [];
@@ -301,27 +341,36 @@ function registerExtensions({ app, ipcMain, shell, readConfig, writeConfig, dial
     for (const theme of item.contributes.themes) {
       const file = await containedFile(item.root, theme, '.json');
       const size = (await fs.stat(file)).size;
-      if (size > currentLimits.themeFileBytes)
-        {throw new Error(`Theme file exceeds ${currentLimits.themeFileBytes} bytes.`);}
+      if (size > currentLimits.themeFileBytes) {
+        throw new Error(`Theme file exceeds ${currentLimits.themeFileBytes} bytes.`);
+      }
       themePreviewBytes += size;
-      if (themePreviewBytes > currentLimits.themePreviewBytes)
-        {throw new Error(`Extension theme previews exceed ${currentLimits.themePreviewBytes} bytes.`);}
+      if (themePreviewBytes > currentLimits.themePreviewBytes) {
+        throw new Error(
+          `Extension theme previews exceed ${currentLimits.themePreviewBytes} bytes.`
+        );
+      }
       themes.push(JSON.parse(await fs.readFile(file, 'utf8')));
     }
     const initialized = readConfig().initializedExtensions;
     const firstInstall = !!source && !(Array.isArray(initialized) && initialized.includes(item.id));
     const installToken = firstInstall ? randomUUID() : null;
-    if (installToken) {installTokens.set(item.id, installToken);}
+    if (installToken) {
+      installTokens.set(item.id, installToken);
+    }
     return { source, themes, limits: limits(), firstInstall, installToken };
   });
 
   ipcMain.handle('extensions:completeInstall', async (_event, id, token) => {
-    if (typeof token !== 'string' || installTokens.get(id) !== token)
-      {throw new Error('Stale extension installation.');}
+    if (typeof token !== 'string' || installTokens.get(id) !== token) {
+      throw new Error('Stale extension installation.');
+    }
     const item = (await scan()).find(
       (extension) => extension.id === id && extension.enabled && !extension.error
     );
-    if (!item) {throw new Error('Extension is no longer enabled.');}
+    if (!item) {
+      throw new Error('Extension is no longer enabled.');
+    }
     const initialized = readConfig().initializedExtensions;
     writeConfig({
       initializedExtensions: [...new Set([...(Array.isArray(initialized) ? initialized : []), id])],
@@ -331,10 +380,13 @@ function registerExtensions({ app, ipcMain, shell, readConfig, writeConfig, dial
   });
 
   ipcMain.handle('extensions:setEnabled', async (_e, id, enabled, reviewToken) => {
-    if (typeof id !== 'string' || !ID.test(id) || typeof enabled !== 'boolean')
-      {throw new Error('Invalid extension request.');}
+    if (typeof id !== 'string' || !ID.test(id) || typeof enabled !== 'boolean') {
+      throw new Error('Invalid extension request.');
+    }
     const item = (await scan()).find((extension) => extension.id === id && !extension.error);
-    if (enabled && !item) {throw new Error('Extension not found.');}
+    if (enabled && !item) {
+      throw new Error('Extension not found.');
+    }
     if (
       enabled &&
       ((reviewToken !== undefined && reviewToken !== item.reviewToken) ||
@@ -348,23 +400,39 @@ function registerExtensions({ app, ipcMain, shell, readConfig, writeConfig, dial
       );
     }
     const next = enabledIds().filter((item) => item !== id);
-    if (!enabled) {installTokens.delete(id);}
-    if (!enabled) {networkRequestTimes.delete(id);}
-    if (enabled) {next.push(id);}
+    if (!enabled) {
+      installTokens.delete(id);
+    }
+    if (!enabled) {
+      networkRequestTimes.delete(id);
+    }
+    if (enabled) {
+      next.push(id);
+    }
     const extensionReviews = { ...readConfig().extensionReviews };
-    if (enabled) {extensionReviews[id] = reviewSignature(item);}
+    if (enabled) {
+      extensionReviews[id] = reviewSignature(item);
+    }
     writeConfig({ enabledExtensions: next, extensionReviews });
     return next;
   });
 
   ipcMain.handle('extensions:networkFetch', async (_event, id, url, options) => {
-    if (typeof id !== 'string' || !ID.test(id)) {throw new Error('Invalid extension request.');}
+    if (typeof id !== 'string' || !ID.test(id)) {
+      throw new Error('Invalid extension request.');
+    }
     const item = (await scan()).find((extension) => extension.id === id && !extension.error);
-    if (!item || !item.enabled) {throw new Error('Extension is no longer enabled.');}
-    if (!item.permissions.includes('network')) {throw new Error('Network permission is required.');}
+    if (!item || !item.enabled) {
+      throw new Error('Extension is no longer enabled.');
+    }
+    if (!item.permissions.includes('network')) {
+      throw new Error('Network permission is required.');
+    }
     const now = Date.now();
     const recent = (networkRequestTimes.get(id) || []).filter((time) => now - time < 1000);
-    if (recent.length >= 10) {throw new Error('Extensions are limited to 10 network requests per second.');}
+    if (recent.length >= 10) {
+      throw new Error('Extensions are limited to 10 network requests per second.');
+    }
     recent.push(now);
     networkRequestTimes.set(id, recent);
     return requestExtensionNetwork(item.networkHosts, url, options);
@@ -373,7 +441,9 @@ function registerExtensions({ app, ipcMain, shell, readConfig, writeConfig, dial
   ipcMain.handle('extensions:openFolder', async () => {
     await fs.mkdir(folder(), { recursive: true });
     const error = await shell.openPath(folder());
-    if (error) {throw new Error(error);}
+    if (error) {
+      throw new Error(error);
+    }
   });
 }
 

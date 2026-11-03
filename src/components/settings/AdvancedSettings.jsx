@@ -16,8 +16,9 @@ export default function AdvancedSettings({ settings, update, section = 'all' }) 
         value={settings[key]}
         data-setting={key}
         onChange={(e) => {
-          if (e.target.validity.valid && e.target.value !== '')
-            {update({ [key]: Number(e.target.value) });}
+          if (e.target.validity.valid && e.target.value !== '') {
+            update({ [key]: Number(e.target.value) });
+          }
         }}
       />
     </SettingRow>
@@ -75,7 +76,9 @@ export default function AdvancedSettings({ settings, update, section = 'all' }) 
               onClick={() =>
                 run(async () => {
                   const font = await window.api.importFont();
-                  if (!font) {return;}
+                  if (!font) {
+                    return;
+                  }
                   const face = new FontFace('Tagline Font Validation', `url("${font.data}")`);
                   await face.load();
                   await window.api.activateFont();

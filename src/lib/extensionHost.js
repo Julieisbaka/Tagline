@@ -33,8 +33,9 @@ export const extensionCommandId = (extensionId, commandId) => `ext:${extensionId
  * @returns {string} The validated text.
  */
 function requireText(value, label, max = MAX_TEXT) {
-  if (typeof value !== 'string' || value.length > max)
-    {throw new Error(`${label} must be text up to ${max} characters.`);}
+  if (typeof value !== 'string' || value.length > max) {
+    throw new Error(`${label} must be text up to ${max} characters.`);
+  }
   return value;
 }
 
@@ -76,7 +77,9 @@ export class ExtensionHost {
         if (error) {
           this.dispose();
           reject(error);
-        } else {resolve();}
+        } else {
+          resolve();
+        }
       };
       window.addEventListener('message', this.onMessage);
       this.frame.addEventListener(
@@ -125,7 +128,9 @@ export class ExtensionHost {
         this.require('vault:read');
         const kind = method.split('.')[0];
         const path = requireText(args[0], 'Path', 1000);
-        if (!path.toLowerCase().endsWith(`.${kind}`)) {throw new Error(`Expected a .${kind} path.`);}
+        if (!path.toLowerCase().endsWith(`.${kind}`)) {
+          throw new Error(`Expected a .${kind} path.`);
+        }
         const content = await b.read(path);
         return kind === 'canvas' ? parseCanvas(content) : parseFlow(content);
       }
@@ -134,7 +139,9 @@ export class ExtensionHost {
         this.require('vault:write');
         const kind = method.split('.')[0];
         const path = requireText(args[0], 'Path', 1000);
-        if (!path.toLowerCase().endsWith(`.${kind}`)) {throw new Error(`Expected a .${kind} path.`);}
+        if (!path.toLowerCase().endsWith(`.${kind}`)) {
+          throw new Error(`Expected a .${kind} path.`);
+        }
         const content = kind === 'canvas' ? serializeCanvas(args[1]) : serializeFlow(args[1]);
         return b.write(path, requireText(content, 'Content'));
       }
@@ -151,7 +158,9 @@ export class ExtensionHost {
       case 'editor.runTiptapCommand': {
         this.require('editor');
         const [command, options] = args;
-        if (!EDITOR_COMMANDS.includes(command)) {throw new Error('Unsupported Tiptap command.');}
+        if (!EDITOR_COMMANDS.includes(command)) {
+          throw new Error('Unsupported Tiptap command.');
+        }
         if (command === 'toggleHeading') {
           if (
             !options ||
@@ -161,7 +170,9 @@ export class ExtensionHost {
           ) {
             throw new Error('Heading level must be an integer from 1 to 6.');
           }
-        } else if (options !== undefined) {throw new Error('This command does not accept options.');}
+        } else if (options !== undefined) {
+          throw new Error('This command does not accept options.');
+        }
         return b.runTiptapCommand(
           command,
           command === 'toggleHeading' ? { level: options.level } : undefined
@@ -170,14 +181,16 @@ export class ExtensionHost {
       case 'events.subscribe': {
         this.require('events');
         const name = requireEventName(args[0]);
-        if (APPLICATION_EVENTS[name]) {this.require(APPLICATION_EVENTS[name]);}
-        else if (!/^ext\.[a-z0-9][a-z0-9-]{1,63}\.[a-z][a-zA-Z0-9.-]*$/.test(name)) {
+        if (APPLICATION_EVENTS[name]) {
+          this.require(APPLICATION_EVENTS[name]);
+        } else if (!/^ext\.[a-z0-9][a-z0-9-]{1,63}\.[a-z][a-zA-Z0-9.-]*$/.test(name)) {
           throw new Error(
             'Unknown application event. Custom events must use ext.extension-id.name.'
           );
         }
-        if (this.eventWatches.size >= this.limits.extensionWatches)
-          {throw new Error('Too many event listeners.');}
+        if (this.eventWatches.size >= this.limits.extensionWatches) {
+          throw new Error('Too many event listeners.');
+        }
         const id = ++this.nextWatch;
         this.eventWatches.set(
           id,
@@ -289,18 +302,24 @@ export class ExtensionHost {
         if (
           !['panels', 'webviews'].includes(kind) ||
           !this.manifest.contributes[kind]?.some((item) => item.id === id)
-        )
-          {throw new Error('Undeclared UI contribution.');}
+        ) {
+          throw new Error('Undeclared UI contribution.');
+        }
         const key = `${kind}:${id}`;
         if (method === 'ui.setHtml') {
           const html = requireText(value, 'HTML', 200000);
           this.surfaces.set(key, html);
           b.updateSurface(this, kind, id, html, false);
         } else if (method === 'ui.show') {
-          if (!this.surfaces.has(key)) {throw new Error('Set contribution HTML before showing it.');}
+          if (!this.surfaces.has(key)) {
+            throw new Error('Set contribution HTML before showing it.');
+          }
           b.updateSurface(this, kind, id, this.surfaces.get(key), true);
-        } else if (method === 'ui.close') {b.closeSurface(this, kind, id);}
-        else {b.postSurfaceMessage(this, kind, id, requirePayload(value));}
+        } else if (method === 'ui.close') {
+          b.closeSurface(this, kind, id);
+        } else {
+          b.postSurfaceMessage(this, kind, id, requirePayload(value));
+        }
         return true;
       }
       case 'settings.get':
@@ -315,17 +334,19 @@ export class ExtensionHost {
         this.require('network');
         const now = Date.now();
         this.networkRequestTimes = this.networkRequestTimes.filter((time) => now - time < 1000);
-        if (this.networkRequestTimes.length >= 10)
-          {throw new Error('Extensions are limited to 10 network requests per second.');}
+        if (this.networkRequestTimes.length >= 10) {
+          throw new Error('Extensions are limited to 10 network requests per second.');
+        }
         this.networkRequestTimes.push(now);
         return b.networkFetch(this.manifest.id, args[0], args[1]);
       }
       case 'editor.watchActiveNote': {
         this.require('editor:active-note');
-        if (this.activeNoteWatches.size >= this.limits.extensionWatches)
-          {throw new Error(
+        if (this.activeNoteWatches.size >= this.limits.extensionWatches) {
+          throw new Error(
             `Extension is limited to ${this.limits.extensionWatches} active-note listeners.`
-          );}
+          );
+        }
         const id = ++this.nextWatch;
         this.activeNoteWatches.set(
           id,
@@ -378,8 +399,9 @@ export class ExtensionHost {
         );
       case 'vault.watch': {
         this.require('vault:read');
-        if (this.watches.size >= this.limits.extensionWatches)
-          {throw new Error(`Extension is limited to ${this.limits.extensionWatches} vault watches.`);}
+        if (this.watches.size >= this.limits.extensionWatches) {
+          throw new Error(`Extension is limited to ${this.limits.extensionWatches} vault watches.`);
+        }
         const id = ++this.nextWatch;
         this.watches.set(
           id,
@@ -404,10 +426,13 @@ export class ExtensionHost {
         return this.storage()[requireText(args[0], 'Key', 200)] ?? null;
       case 'storage.set': {
         const data = { ...this.storage(), [requireText(args[0], 'Key', 200)]: args[1] };
-        if (args[1] === undefined || args[1] === null) {delete data[args[0]];}
+        if (args[1] === undefined || args[1] === null) {
+          delete data[args[0]];
+        }
         const text = JSON.stringify(data);
-        if (text.length > this.limits.extensionStorageCharacters)
-          {throw new Error('Extension storage exceeds the configured limit.');}
+        if (text.length > this.limits.extensionStorageCharacters) {
+          throw new Error('Extension storage exceeds the configured limit.');
+        }
         localStorage.setItem(`tagline-extension:${this.manifest.id}`, text);
         return true;
       }
@@ -429,39 +454,47 @@ export class ExtensionHost {
   }
 
   acceptMessage(now) {
-    while (this.messageTimes.length && this.messageTimes[0] <= now - 1000)
-      {this.messageTimes.shift();}
-    if (this.messageTimes.length >= this.limits.extensionMessagesPerSecond) {return false;}
+    while (this.messageTimes.length && this.messageTimes[0] <= now - 1000) {
+      this.messageTimes.shift();
+    }
+    if (this.messageTimes.length >= this.limits.extensionMessagesPerSecond) {
+      return false;
+    }
     this.messageTimes.push(now);
     return true;
   }
 
   async onMessage(event) {
-    if (!this.frame || event.source !== this.frame.contentWindow || !event.data) {return;}
+    if (!this.frame || event.source !== this.frame.contentWindow || !event.data) {
+      return;
+    }
     const data = event.data;
     const now = performance.now();
     if (!this.acceptMessage(now)) {
       const error = new Error(
         `Extension exceeded ${this.limits.extensionMessagesPerSecond} messages per second and was stopped.`
       );
-      if (this.settle) {this.settle(error);}
-      else {
+      if (this.settle) {
+        this.settle(error);
+      } else {
         this.dispose();
         this.bridge.notify(`${this.manifest.name}: ${error.message}`);
       }
       return;
     }
-    if (data.type === 'ready') {this.settle?.();}
-    else if (data.type === 'failed') {
+    if (data.type === 'ready') {
+      this.settle?.();
+    } else if (data.type === 'failed') {
       const error = new Error(String(data.message));
-      if (this.settle) {this.settle(error);}
-      else {
+      if (this.settle) {
+        this.settle(error);
+      } else {
         this.dispose();
         this.bridge.notify(`${this.manifest.name}: ${error.message}`);
       }
-    } else if (data.type === 'error')
-      {this.bridge.notify(`${this.manifest.name}: ${String(data.message).slice(0, 500)}`);}
-    else if (data.type === 'call') {
+    } else if (data.type === 'error') {
+      this.bridge.notify(`${this.manifest.name}: ${String(data.message).slice(0, 500)}`);
+    } else if (data.type === 'call') {
       if (this.pendingCalls >= this.limits.extensionPendingCalls) {
         this.frame.contentWindow.postMessage(
           {
@@ -491,12 +524,14 @@ export class ExtensionHost {
   }
 
   run(commandId) {
-    if (!this.frame)
-      {throw new Error(
+    if (!this.frame) {
+      throw new Error(
         `${this.manifest.name} was stopped. Reload or disable it in Settings > Extensions.`
-      );}
-    if (!this.registered.has(commandId))
-      {throw new Error(`${this.manifest.name} has not registered "${commandId}".`);}
+      );
+    }
+    if (!this.registered.has(commandId)) {
+      throw new Error(`${this.manifest.name} has not registered "${commandId}".`);
+    }
     this.frame.contentWindow.postMessage({ type: 'command', command: commandId }, '*');
   }
 
@@ -526,7 +561,9 @@ export class ExtensionHost {
  * @returns {string}
  */
 export function usableDefaultKey(key, taken = []) {
-  if (!key || !validBinding(key) || reservedBinding(key)) {return '';}
+  if (!key || !validBinding(key) || reservedBinding(key)) {
+    return '';
+  }
   const used = [...KEYBINDINGS, ...taken].map((item) => item.key);
   return used.includes(key) ? '' : key;
 }

@@ -36,10 +36,14 @@ export default function HypothesisDialog({ sources, onClose }) {
       window.api
         .nliStatus()
         .then((s) => {
-          if (!disposed) {setStatus(s);}
+          if (!disposed) {
+            setStatus(s);
+          }
         })
         .catch((e) => {
-          if (!disposed) {setError(e.message);}
+          if (!disposed) {
+            setError(e.message);
+          }
         });
     refresh();
     const interval = setInterval(refresh, 750);
@@ -159,8 +163,9 @@ export default function HypothesisDialog({ sources, onClose }) {
                 )}
                 onChange={(e) => setLines(e.target.value)}
                 onKeyDown={(e) => {
-                  if (e.key === 'Enter' && (e.ctrlKey || e.metaKey))
-                    {document.getElementById('hypothesis-run')?.click();}
+                  if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+                    document.getElementById('hypothesis-run')?.click();
+                  }
                 }}
               />
             </label>

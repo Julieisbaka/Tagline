@@ -65,18 +65,24 @@ export default function ExportDialog({ title, content, resolve, onClose }) {
       .catch((e) => setError(e.message));
   }, []);
   useEffect(() => {
-    if (!googleDocs) {return;}
+    if (!googleDocs) {
+      return;
+    }
     let active = true;
     window.api.googleDocs
       .status()
       .then((value) => {
-        if (!active) {return;}
+        if (!active) {
+          return;
+        }
         const verified = value.connections.filter((connection) => connection.account);
         setConnections(verified);
         setConnectionId(verified.length === 1 ? verified[0].id : '');
       })
       .catch((failure) => {
-        if (active) {setError(failure.message);}
+        if (active) {
+          setError(failure.message);
+        }
       });
     return () => {
       active = false;
@@ -100,7 +106,9 @@ export default function ExportDialog({ title, content, resolve, onClose }) {
               html: standaloneHtml(title, content, resolve, locale),
             })
           : await window.api.exportDocument({ title, format, html: exportHtml(content, resolve) });
-      if (!result.canceled) {setResult(result);}
+      if (!result.canceled) {
+        setResult(result);
+      }
     } catch (e) {
       setError(e.message);
     } finally {

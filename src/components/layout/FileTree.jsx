@@ -35,7 +35,9 @@ function TreeNode({
           e.stopPropagation();
           setDragOver(false);
           const from = e.dataTransfer.getData('text/vault-path');
-          if (from) {onDropMove(from, node.path);}
+          if (from) {
+            onDropMove(from, node.path);
+          }
         },
       }
     : {};
@@ -136,7 +138,9 @@ export default function FileTree({
       onDragOver={(e) => e.preventDefault()}
       onDrop={(e) => {
         const from = e.dataTransfer.getData('text/vault-path');
-        if (from) {onDropMove(from, '');}
+        if (from) {
+          onDropMove(from, '');
+        }
       }}
     >
       {tree.map((n) => (

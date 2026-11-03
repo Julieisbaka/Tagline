@@ -31,7 +31,9 @@ export default function GoogleDocsSettings() {
         }
       })
       .catch((failure) => {
-        if (active) {setError(failure.message);}
+        if (active) {
+          setError(failure.message);
+        }
       });
     return () => {
       active = false;
@@ -53,7 +55,9 @@ export default function GoogleDocsSettings() {
   const saveScript = () =>
     run(async () => {
       const result = await window.api.googleDocs.saveScript();
-      if (!result.canceled) {setMessage(t('Script saved to {path}', { path: result.path }));}
+      if (!result.canceled) {
+        setMessage(t('Script saved to {path}', { path: result.path }));
+      }
     });
   const connection = status?.connections.find((item) => item.id === connectionId);
 
@@ -74,7 +78,9 @@ export default function GoogleDocsSettings() {
               try {
                 const next = await window.api.googleDocs.connect();
                 setStatus(next);
-                if (next.canceled) {return;}
+                if (next.canceled) {
+                  return;
+                }
                 setConnectionId(next.savedConnectionId);
                 setEndpoint('');
                 setSecret('');
@@ -245,7 +251,9 @@ export default function GoogleDocsSettings() {
                     connectionId || undefined
                   );
                   setStatus(next);
-                  if (next.canceled) {return;}
+                  if (next.canceled) {
+                    return;
+                  }
                   setConnectionId(next.savedConnectionId);
                   setEndpoint(
                     next.connections.find((item) => item.id === next.savedConnectionId).endpoint
@@ -290,7 +298,9 @@ export default function GoogleDocsSettings() {
             run(async () => {
               setCreatedDocument(null);
               const result = await window.api.googleDocs.uploadFile(connectionId);
-              if (!result.canceled) {setCreatedDocument(result.document);}
+              if (!result.canceled) {
+                setCreatedDocument(result.document);
+              }
             })
           }
         >

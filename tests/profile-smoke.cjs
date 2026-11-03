@@ -11,7 +11,9 @@ if (!process.versions.electron) {
       stdio: 'inherit',
       timeout: 60000,
     });
-    if (result.error) {throw result.error;}
+    if (result.error) {
+      throw result.error;
+    }
     process.exitCode = result.status ?? 1;
   } finally {
     fs.rmSync(root, { recursive: true, force: true, maxRetries: 20, retryDelay: 100 });
@@ -21,7 +23,9 @@ if (!process.versions.electron) {
 
 const { app, dialog } = require('electron');
 const root = process.env.TAGLINE_PROFILE_ROOT;
-if (!root) {throw new Error('Run this test through Node or npm run test:profile.');}
+if (!root) {
+  throw new Error('Run this test through Node or npm run test:profile.');
+}
 const legacy = path.join(root, 'debate-vault');
 const profile = path.join(root, 'Tagline');
 const vault = path.join(root, 'vault');
@@ -41,7 +45,9 @@ app.on('browser-window-created', (_event, win) => {
     const js = (code) => win.webContents.executeJavaScript(code);
     const wait = async (code) => {
       for (let i = 0; i < 100; i++) {
-        if (await js(code)) {return;}
+        if (await js(code)) {
+          return;
+        }
         await new Promise((resolve) => setTimeout(resolve, 100));
       }
       throw new Error('Timed out: ' + code);

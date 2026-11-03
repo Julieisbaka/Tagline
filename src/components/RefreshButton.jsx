@@ -11,7 +11,9 @@ export default function RefreshButton({ onRefresh }) {
   const [busy, setBusy] = useState(false);
   useEffect(() => () => animation.current?.cancel(), []);
   const refresh = async () => {
-    if (running.current) {return;}
+    if (running.current) {
+      return;
+    }
     running.current = true;
     setBusy(true);
     const icon = button.current.querySelector('svg');
@@ -26,7 +28,9 @@ export default function RefreshButton({ onRefresh }) {
         });
     animation.current = spin;
     const stopMotion = () => {
-      if (prefersReducedMotion()) {spin?.cancel();}
+      if (prefersReducedMotion()) {
+        spin?.cancel();
+      }
     };
     motion.addEventListener('change', stopMotion);
     window.addEventListener('accessibilitychange', stopMotion);
@@ -40,8 +44,9 @@ export default function RefreshButton({ onRefresh }) {
         try {
           await spin.finished;
         } catch (error) {
-          if (error.name !== 'AbortError')
-            {window.dispatchEvent(new CustomEvent('app-error', { detail: error.message }));}
+          if (error.name !== 'AbortError') {
+            window.dispatchEvent(new CustomEvent('app-error', { detail: error.message }));
+          }
         }
       }
       spin?.cancel();

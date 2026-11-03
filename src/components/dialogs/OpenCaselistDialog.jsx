@@ -51,16 +51,19 @@ export default function OpenCaselistDialog({ hasVault, onDownload, onClose }) {
         }
       }
     } finally {
-      if (active.current) {setBusy(false);}
+      if (active.current) {
+        setBusy(false);
+      }
     }
   };
   const write = (action) =>
     run(async () => {
       const status = await api.writePasswordStatus();
-      if (status.enabled && !status.passwordSet)
-        {throw new Error(
+      if (status.enabled && !status.passwordSet) {
+        throw new Error(
           t('Set an OpenCaselist write password in Settings > Integrations > OpenCaselist.')
-        );}
+        );
+      }
       if (!status.unlocked) {
         setWritePassword('');
         setPendingWrite(() => action);
@@ -72,11 +75,15 @@ export default function OpenCaselistDialog({ hasVault, onDownload, onClose }) {
     active.current = true;
     run(async () => {
       const status = await api.status();
-      if (!active.current) {return;}
+      if (!active.current) {
+        return;
+      }
       setSession(status);
       if (status.signedIn) {
         const items = await api.list('caselists');
-        if (active.current) {setCaselists(items);}
+        if (active.current) {
+          setCaselists(items);
+        }
       }
     });
     return () => {
@@ -110,17 +117,27 @@ export default function OpenCaselistDialog({ hasVault, onDownload, onClose }) {
         setTeams([]);
       }
       setSelection(current);
-      if (!value) {return;}
-      if (kind === 'caselist') {setSchools(await api.list('schools', current));}
-      if (kind === 'school') {setTeams(await api.list('teams', current));}
-      if (kind === 'team') {await refreshTeam(current);}
+      if (!value) {
+        return;
+      }
+      if (kind === 'caselist') {
+        setSchools(await api.list('schools', current));
+      }
+      if (kind === 'school') {
+        setTeams(await api.list('teams', current));
+      }
+      if (kind === 'team') {
+        await refreshTeam(current);
+      }
     });
   const selectedCase = caselists.find((item) => item.name === selection.caselist);
   const canWrite = selection.team && !selectedCase?.archived;
   const download = (path) =>
     run(async () => {
       const result = await api.download(path);
-      if (result.cancelled) {return;}
+      if (result.cancelled) {
+        return;
+      }
       await onDownload();
       setDownloaded(result.path);
       setMessage(t('Saved disclosure: {path}', { path: result.path }));
@@ -128,15 +145,20 @@ export default function OpenCaselistDialog({ hasVault, onDownload, onClose }) {
   const save = () =>
     write(async () => {
       let result;
-      if (form.kind === 'cite') {result = await api.write('create-cite', selection, form.data);}
-      else if (form.kind === 'upload') {result = await api.upload(selection, form.data);}
-      else
-        {result = await api.write(
+      if (form.kind === 'cite') {
+        result = await api.write('create-cite', selection, form.data);
+      } else if (form.kind === 'upload') {
+        result = await api.upload(selection, form.data);
+      } else {
+        result = await api.write(
           form.id ? 'update-round' : 'create-round',
           { ...selection, round: form.id },
           form.data
-        );}
-      if (result.cancelled) {return;}
+        );
+      }
+      if (result.cancelled) {
+        return;
+      }
       setForm(null);
       setMessage(t('Change published to OpenCaselist.'));
       await refreshTeam();
@@ -144,12 +166,16 @@ export default function OpenCaselistDialog({ hasVault, onDownload, onClose }) {
   const remove = (kind, itemId) =>
     write(async () => {
       const result = await api.write(`delete-${kind}`, { ...selection, [kind]: itemId });
-      if (result.cancelled) {return;}
+      if (result.cancelled) {
+        return;
+      }
       setMessage(t('Change published to OpenCaselist.'));
       await refreshTeam();
     });
   const close = () => {
-    if (!busy) {onClose();}
+    if (!busy) {
+      onClose();
+    }
   };
   const field = (key, label, multiline = false) => (
     <label className='opencaselist-field' key={key}>
@@ -213,8 +239,11 @@ export default function OpenCaselistDialog({ hasVault, onDownload, onClose }) {
               run(async () => {
                 const status = await api.login();
                 setSession(status);
-                if (status.signedIn) {setCaselists(await api.list('caselists'));}
-                else {setMessage(t('Sign-in cancelled.'));}
+                if (status.signedIn) {
+                  setCaselists(await api.list('caselists'));
+                } else {
+                  setMessage(t('Sign-in cancelled.'));
+                }
               })
             }
           >
@@ -385,8 +414,9 @@ export default function OpenCaselistDialog({ hasVault, onDownload, onClose }) {
                         onClick={() =>
                           run(async () => {
                             const parts = item.path.replace(/^\/+|\/+$/g, '').split('/');
-                            if (parts.length < 3 || parts[0] !== selection.caselist)
-                              {throw new Error(t('Select a team using the browse controls.'));}
+                            if (parts.length < 3 || parts[0] !== selection.caselist) {
+                              throw new Error(t('Select a team using the browse controls.'));
+                            }
                             const current = {
                               caselist: parts[0],
                               school: parts[1],
@@ -398,7 +428,9 @@ export default function OpenCaselistDialog({ hasVault, onDownload, onClose }) {
                               api.list('rounds', current),
                               api.list('cites', current),
                             ]);
-                            if (!active.current) {return;}
+                            if (!active.current) {
+                              return;
+                            }
                             setSelection(current);
                             setSchools(schools);
                             setTeams(teams);

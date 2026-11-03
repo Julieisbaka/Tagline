@@ -45,13 +45,18 @@ const INITIALISMS = new Set([
  * @returns {string} - The English word representation of the number.
  */
 function integerWords(number) {
-  if (number < 20) {return SMALL[number];}
-  if (number < 100)
-    {return `${TENS[Math.floor(number / 10)]} ${number % 10 ? SMALL[number % 10] : ''}`;}
-  if (number < 1000)
-    {return `${SMALL[Math.floor(number / 100)]} hundred ${number % 100 ? integerWords(number % 100) : ''}`;}
-  if (number < 1_000_000)
-    {return `${integerWords(Math.floor(number / 1000))} thousand ${number % 1000 ? integerWords(number % 1000) : ''}`;}
+  if (number < 20) {
+    return SMALL[number];
+  }
+  if (number < 100) {
+    return `${TENS[Math.floor(number / 10)]} ${number % 10 ? SMALL[number % 10] : ''}`;
+  }
+  if (number < 1000) {
+    return `${SMALL[Math.floor(number / 100)]} hundred ${number % 100 ? integerWords(number % 100) : ''}`;
+  }
+  if (number < 1_000_000) {
+    return `${integerWords(Math.floor(number / 1000))} thousand ${number % 1000 ? integerWords(number % 1000) : ''}`;
+  }
   return String(number)
     .split('')
     .map((digit) => SMALL[Number(digit)])
@@ -70,12 +75,15 @@ function spokenNumber(value) {
     const [whole, fraction] = value.split('.');
     return `${spokenNumber(whole)} point ${[...fraction].map((digit) => SMALL[Number(digit)]).join(' ')}`;
   }
-  if (value.length > 6) {return [...value].map((digit) => SMALL[Number(digit)]).join(' ');}
-  if (/^0\d/.test(value))
-    {return value
+  if (value.length > 6) {
+    return [...value].map((digit) => SMALL[Number(digit)]).join(' ');
+  }
+  if (/^0\d/.test(value)) {
+    return value
       .split('')
       .map((digit) => SMALL[Number(digit)])
-      .join(' ');}
+      .join(' ');
+  }
   const number = Number(value);
   // Citation years are normally read "nineteen ninety-nine" or "twenty twenty-four".
   if (number >= 1900 && number <= 2099 && number % 100) {
@@ -108,12 +116,16 @@ function stripNonspokenMarkup(value) {
     if (opening) {
       const name = opening[1].toLowerCase();
       const openingEnd = value.indexOf('>', index + opening[0].length);
-      if (openingEnd === -1) {break;}
+      if (openingEnd === -1) {
+        break;
+      }
       let closing = lowercase.indexOf(`</${name}`, openingEnd + 1);
       while (closing !== -1 && !/[\s>]/.test(lowercase[closing + name.length + 2] || '')) {
         closing = lowercase.indexOf(`</${name}`, closing + 2);
       }
-      if (closing === -1) {break;}
+      if (closing === -1) {
+        break;
+      }
       const end = value.indexOf('>', closing);
       index = end === -1 ? value.length : end + 1;
       continue;
@@ -175,7 +187,9 @@ export function speechStats(text) {
       : Math.max(1, syllable(spoken));
     syllables += count;
     spokenWords += initials ? token.length : (spoken.match(/[\p{L}]+/gu) || []).length;
-    if (count >= 3 && !initials && !/^\d/.test(token)) {complexWords++;}
+    if (count >= 3 && !initials && !/^\d/.test(token)) {
+      complexWords++;
+    }
     // A modest articulation surcharge, not a readability score: long words and
     // dense consonant clusters take longer even at an identical syllable count.
     const clusters = (spoken.toLowerCase().match(/[bcdfghjklmnpqrstvwxyz]{3,}/g) || []).length;
@@ -217,8 +231,9 @@ export function speechStats(text) {
  * @returns {number} - The estimated duration of the speech in seconds.
  */
 export function readingSeconds(stats, wpm = 250, profile = null) {
-  if (!Number.isFinite(wpm) || wpm <= 0)
-    {throw new Error('Speaking rate must be a positive number.');}
+  if (!Number.isFinite(wpm) || wpm <= 0) {
+    throw new Error('Speaking rate must be a positive number.');
+  }
   if (
     !Number.isFinite(stats.weightedSyllables) ||
     stats.weightedSyllables < 0 ||
@@ -266,8 +281,9 @@ export function validateReadingSample(sample) {
     sample.seconds > 86400 ||
     sample.version !== 1 ||
     !sample.stats
-  )
-    {throw new Error('Invalid timed reading sample.');}
+  ) {
+    throw new Error('Invalid timed reading sample.');
+  }
   const stats = sample.stats;
   for (const key of [
     'syllables',
@@ -277,8 +293,9 @@ export function validateReadingSample(sample) {
     'sentences',
     'pauseUnits',
   ]) {
-    if (!Number.isFinite(stats[key]) || stats[key] < 0 || stats[key] > 1e9)
-      {throw new Error('Invalid sample statistics.');}
+    if (!Number.isFinite(stats[key]) || stats[key] < 0 || stats[key] > 1e9) {
+      throw new Error('Invalid sample statistics.');
+    }
   }
   if (!stats.spokenWords || !stats.weightedSyllables || !stats.sentences) {
     throw new Error(
@@ -307,12 +324,16 @@ function median(values) {
  * @returns {object|null} - An object containing the calibrated articulation and pause parameters, along with summary statistics, or null if no samples are provided.
  */
 export function calibrateReading(samples = []) {
-  if (!Array.isArray(samples) || samples.length > 100)
-    {throw new Error('Use at most 100 timed reading samples.');}
-  if (!samples.length) {return null;}
+  if (!Array.isArray(samples) || samples.length > 100) {
+    throw new Error('Use at most 100 timed reading samples.');
+  }
+  if (!samples.length) {
+    return null;
+  }
   samples.forEach(validateReadingSample);
-  if (new Set(samples.map((sample) => sample.id)).size !== samples.length)
-    {throw new Error('Timed reading sample IDs must be unique.');}
+  if (new Set(samples.map((sample) => sample.id)).size !== samples.length) {
+    throw new Error('Timed reading sample IDs must be unique.');
+  }
   const rows = samples.map(({ stats, seconds }) => {
     const articulation = stats.weightedSyllables * 0.16;
     const base = articulation + stats.pauseUnits;
@@ -377,8 +398,9 @@ export function calibrateReading(samples = []) {
  */
 export function readingAssessment(stats, wpm = 250, profile = null) {
   for (const key of ['syllables', 'weightedSyllables', 'spokenWords', 'sentences']) {
-    if (!Number.isFinite(stats?.[key]) || stats[key] < 0)
-      {throw new Error('Invalid speech statistics.');}
+    if (!Number.isFinite(stats?.[key]) || stats[key] < 0) {
+      throw new Error('Invalid speech statistics.');
+    }
   }
   if (
     profile &&

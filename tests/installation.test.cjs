@@ -19,8 +19,9 @@ test('release comparison handles numeric versions, prereleases, prefixes and bui
     ['1.0.0-alpha', '1.0.0-alpha.1', -1],
     ['1.0.0-1', '1.0.0-alpha', -1],
     ['0.9.0', '1.0.0', -1],
-  ])
-    {assert.equal(compareVersions(left, right), order);}
+  ]) {
+    assert.equal(compareVersions(left, right), order);
+  }
   for (const invalid of ['latest', '1.0', '01.0.0', '1.0.0-beta.01', null]) {
     assert.throws(() => compareVersions(invalid, '1.0.0'), /semantic version/);
   }
@@ -103,15 +104,17 @@ test('release downloads select the exact platform and architecture without trust
       platform,
       arch
     );
-    if (!suffix) {assert.equal(result.download, undefined);}
-    else
-      {assert.deepEqual(result.download, {
+    if (!suffix) {
+      assert.equal(result.download, undefined);
+    } else {
+      assert.deepEqual(result.download, {
         name,
         size: 42,
         url: `https://github.com/Julieisbaka/Tagline/releases/download/v2.0.0/${name}`,
         checksumsUrl:
           'https://github.com/Julieisbaka/Tagline/releases/download/v2.0.0/SHA256SUMS.txt',
-      });}
+      });
+    }
   }
 });
 
@@ -136,14 +139,17 @@ async function updateHarness(t, { checksum, payload, size, packaged = true } = {
     },
     fetchImpl: async (url, options) => {
       requests.push({ url, options });
-      if (url.endsWith('/latest'))
-        {return new Response(
+      if (url.endsWith('/latest')) {
+        return new Response(
           JSON.stringify({
             tag_name: 'v2.0.0',
             assets: [{ name, size: size ?? data.length }, { name: 'SHA256SUMS.txt' }],
           })
-        );}
-      if (url.endsWith('SHA256SUMS.txt')) {return new Response(checksum ?? `${digest}  ${name}\n`);}
+        );
+      }
+      if (url.endsWith('SHA256SUMS.txt')) {
+        return new Response(checksum ?? `${digest}  ${name}\n`);
+      }
       return new Response(payload ?? data);
     },
   });

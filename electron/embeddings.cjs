@@ -27,7 +27,9 @@ function registerEmbeddings({ app, ipcMain, safeStorage, getVaultRoot, readConfi
       await Promise.all(MODEL_FILES.map((file) => fs.access(path.join(modelDir, file))));
       return true;
     } catch (e) {
-      if (e.code === 'ENOENT') {return false;}
+      if (e.code === 'ENOENT') {
+        return false;
+      }
       throw e;
     }
   }
@@ -44,8 +46,9 @@ function registerEmbeddings({ app, ipcMain, safeStorage, getVaultRoot, readConfi
       throw e;
     }
     tokenConfigured = true;
-    if (!(await safeStorage.isAsyncEncryptionAvailable()))
-      {throw new Error('OS credential encryption is unavailable.');}
+    if (!(await safeStorage.isAsyncEncryptionAvailable())) {
+      throw new Error('OS credential encryption is unavailable.');
+    }
     try {
       return (await safeStorage.decryptStringAsync(encrypted)).result;
     } catch (e) {
@@ -56,13 +59,19 @@ function registerEmbeddings({ app, ipcMain, safeStorage, getVaultRoot, readConfi
   }
 
   function ensureWorker() {
-    if (worker) {return;}
+    if (worker) {
+      return;
+    }
     worker = new Worker(path.join(__dirname, 'embeddingWorker.cjs'), { workerData: { storage } });
     const instance = worker;
     const fail = (e) => {
-      if (worker !== instance) {return;}
+      if (worker !== instance) {
+        return;
+      }
       state = { ...state, busy: false, ready: false, error: e.message };
-      for (const task of pending.values()) {task.reject(e);}
+      for (const task of pending.values()) {
+        task.reject(e);
+      }
       pending.clear();
       worker = null;
     };
@@ -72,11 +81,14 @@ function registerEmbeddings({ app, ipcMain, safeStorage, getVaultRoot, readConfi
         return;
       }
       const task = pending.get(message.id);
-      if (!task) {return;}
+      if (!task) {
+        return;
+      }
       pending.delete(message.id);
       state = { ...state, busy: pending.size > 0, error: message.error || '' };
-      if (message.error) {task.reject(new Error(message.error));}
-      else {
+      if (message.error) {
+        task.reject(new Error(message.error));
+      } else {
         state.ready = true;
         state.detail = 'Model ready. Embeddings run locally.';
         task.resolve(message.result);
@@ -84,15 +96,20 @@ function registerEmbeddings({ app, ipcMain, safeStorage, getVaultRoot, readConfi
     });
     worker.on('error', fail);
     worker.on('exit', (code) => {
-      if (worker !== instance) {return;}
-      if (pending.size) {fail(new Error(`Embedding worker exited (${code}).`));}
+      if (worker !== instance) {
+        return;
+      }
+      if (pending.size) {
+        fail(new Error(`Embedding worker exited (${code}).`));
+      }
       worker = null;
     });
   }
 
   function request(message) {
-    if (state.busy)
-      {throw new Error('An embedding task is already running. Please wait for it to finish.');}
+    if (state.busy) {
+      throw new Error('An embedding task is already running. Please wait for it to finish.');
+    }
     ensureWorker();
     state = { ...state, busy: true, error: '' };
     return new Promise((resolve, reject) => {
@@ -108,7 +125,9 @@ function registerEmbeddings({ app, ipcMain, safeStorage, getVaultRoot, readConfi
       await fs.access(tokenFile);
       tokenConfigured = true;
     } catch (e) {
-      if (e.code !== 'ENOENT') {throw e;}
+      if (e.code !== 'ENOENT') {
+        throw e;
+      }
       tokenConfigured = false;
     }
     return {
@@ -120,22 +139,30 @@ function registerEmbeddings({ app, ipcMain, safeStorage, getVaultRoot, readConfi
     };
   });
   ipcMain.handle('embeddings:autoload', async (_e, enabled) => {
-    if (typeof enabled !== 'boolean') {throw new Error('Invalid model autoload preference.');}
+    if (typeof enabled !== 'boolean') {
+      throw new Error('Invalid model autoload preference.');
+    }
     writeConfig({ modelAutoload: enabled });
-    if (enabled && !state.ready && !state.busy) {await loadDownloaded();}
+    if (enabled && !state.ready && !state.busy) {
+      await loadDownloaded();
+    }
     return { autoload: enabled };
   });
   ipcMain.handle('embeddings:token', async (_e, token) => {
-    if (typeof token !== 'string') {throw new Error('Invalid Hugging Face token.');}
+    if (typeof token !== 'string') {
+      throw new Error('Invalid Hugging Face token.');
+    }
     const clean = token.trim();
     if (!clean) {
       await fs.rm(tokenFile, { force: true });
       tokenConfigured = false;
     } else {
-      if (!/^hf_[A-Za-z0-9]+$/.test(clean))
-        {throw new Error('Expected a Hugging Face token beginning with hf_.');}
-      if (!(await safeStorage.isAsyncEncryptionAvailable()))
-        {throw new Error('OS credential encryption is unavailable; token was not saved.');}
+      if (!/^hf_[A-Za-z0-9]+$/.test(clean)) {
+        throw new Error('Expected a Hugging Face token beginning with hf_.');
+      }
+      if (!(await safeStorage.isAsyncEncryptionAvailable())) {
+        throw new Error('OS credential encryption is unavailable; token was not saved.');
+      }
       await fs.mkdir(storage, { recursive: true });
       await fs.writeFile(tokenFile, await safeStorage.encryptStringAsync(clean), { mode: 0o600 });
       tokenConfigured = true;
@@ -144,7 +171,9 @@ function registerEmbeddings({ app, ipcMain, safeStorage, getVaultRoot, readConfi
   });
   ipcMain.handle('embeddings:download', async () => {
     await autoload;
-    if (state.ready) {return { ready: true, model: MODEL };}
+    if (state.ready) {
+      return { ready: true, model: MODEL };
+    }
     return request({ type: 'download', token: await readToken() });
   });
   ipcMain.handle(
@@ -152,7 +181,9 @@ function registerEmbeddings({ app, ipcMain, safeStorage, getVaultRoot, readConfi
     async (_e, { query, documents, maxResults = defaults.searchMaxResults }) => {
       await autoload;
       const vault = getVaultRoot();
-      if (!vault) {throw new Error('Open a vault first.');}
+      if (!vault) {
+        throw new Error('Open a vault first.');
+      }
       if (
         typeof query !== 'string' ||
         !query.trim() ||
@@ -165,19 +196,24 @@ function registerEmbeddings({ app, ipcMain, safeStorage, getVaultRoot, readConfi
         throw new Error('Invalid semantic search request.');
       }
       for (const [file, content] of Object.entries(documents)) {
-        if (!file.endsWith('.md') || typeof content !== 'string')
-          {throw new Error('Invalid search document.');}
+        if (!file.endsWith('.md') || typeof content !== 'string') {
+          throw new Error('Invalid search document.');
+        }
       }
       return request({ type: 'search', query: query.trim(), documents, vault, maxResults });
     }
   );
   app.on('before-quit', () => {
-    if (worker) {worker.terminate();}
+    if (worker) {
+      worker.terminate();
+    }
   });
 
   // Load an already-downloaded model in the background so search is ready without visiting Settings.
   async function loadDownloaded() {
-    if (!(await modelDownloaded())) {return;}
+    if (!(await modelDownloaded())) {
+      return;
+    }
     state = { ...state, detail: 'Loading downloaded model...' };
     await request({ type: 'load' });
   }

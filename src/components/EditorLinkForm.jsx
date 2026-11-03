@@ -16,10 +16,13 @@ export default function EditorLinkForm({ noteNames, onInsert, onClose }) {
   const expanded = suggesting && suggestions.length > 0;
   useEffect(() => {
     const option = expanded && document.getElementById(`${id}-option-${active}`);
-    if (!option) {return;}
+    if (!option) {
+      return;
+    }
     const list = option.parentElement;
-    if (option.offsetTop < list.scrollTop) {list.scrollTop = option.offsetTop;}
-    else if (option.offsetTop + option.offsetHeight > list.scrollTop + list.clientHeight) {
+    if (option.offsetTop < list.scrollTop) {
+      list.scrollTop = option.offsetTop;
+    } else if (option.offsetTop + option.offsetHeight > list.scrollTop + list.clientHeight) {
       list.scrollTop = option.offsetTop + option.offsetHeight - list.clientHeight;
     }
   }, [active, expanded, id, query]);
@@ -70,7 +73,9 @@ export default function EditorLinkForm({ noteNames, onInsert, onClose }) {
             setError('');
           }}
           onKeyDown={(event) => {
-            if (!expanded) {return;}
+            if (!expanded) {
+              return;
+            }
             if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
               event.preventDefault();
               setActive(

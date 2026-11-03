@@ -15,7 +15,9 @@ export default function CustomCssSettings({ settings, update }) {
   useEffect(() => setDraft(settings.customCss), [settings.customCss]);
   const apply = useRef(null);
   apply.current = () => {
-    if (draft !== settings.customCss) {update({ customCss: draft });}
+    if (draft !== settings.customCss) {
+      update({ customCss: draft });
+    }
   };
   const label = t('CSS source');
   const extensions = useMemo(
@@ -56,7 +58,9 @@ export default function CustomCssSettings({ settings, update }) {
           checked={settings.customCssEnabled}
           onChange={async (event) => {
             const enabled = event.target.checked;
-            if (!enabled || (await confirm(t(warning)))) {update({ customCssEnabled: enabled });}
+            if (!enabled || (await confirm(t(warning)))) {
+              update({ customCssEnabled: enabled });
+            }
           }}
         />
       </label>
@@ -70,7 +74,9 @@ export default function CustomCssSettings({ settings, update }) {
           onChange={async (event) => {
             const file = event.target.files[0];
             event.target.value = '';
-            if (!file) {return;}
+            if (!file) {
+              return;
+            }
             try {
               setDraft(await file.text());
               setError('');

@@ -9,7 +9,9 @@ if (!process.versions.electron) {
       stdio: 'inherit',
       timeout: 120000,
     });
-    if (result.error) {throw result.error;}
+    if (result.error) {
+      throw result.error;
+    }
     process.exitCode = result.status ?? 1;
   } finally {
     fs.rmSync(root, { recursive: true, force: true, maxRetries: 20, retryDelay: 100 });
@@ -25,7 +27,9 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 (async () => {
   const root = process.env.TAGLINE_SEARCH_ROOT;
-  if (!root) {throw new Error('Run through npm run test:search.');}
+  if (!root) {
+    throw new Error('Run through npm run test:search.');
+  }
   const profile = path.join(root, 'profile');
   const vault = path.join(root, 'vault');
   await fs.mkdir(profile, { recursive: true });
@@ -55,7 +59,9 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
   app.on('browser-window-created', (_event, win) => {
     win.webContents.on('console-message', (event) => {
-      if (event.level === 'error') {console.error(event.message);}
+      if (event.level === 'error') {
+        console.error(event.message);
+      }
     });
     win.webContents.setBackgroundThrottling(false);
     win.webContents.once('did-finish-load', async () => {
@@ -63,7 +69,9 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
       const js = (code) => wc.executeJavaScript(code);
       const wait = async (code) => {
         for (let i = 0; i < 100; i++) {
-          if (await js(code)) {return;}
+          if (await js(code)) {
+            return;
+          }
           await delay(100);
         }
         throw new Error(`Timed out: ${code}`);
@@ -99,11 +107,14 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
         ipcMain.removeHandler('embeddings:search');
         ipcMain.handle('embeddings:search', async (_event, request) => {
           requests.push(request);
-          if (behavior === 'error') {throw new Error('Test semantic failure');}
-          if (behavior === 'hold')
-            {return new Promise((resolve) => {
+          if (behavior === 'error') {
+            throw new Error('Test semantic failure');
+          }
+          if (behavior === 'hold') {
+            return new Promise((resolve) => {
               resolveHeld = resolve;
-            });}
+            });
+          }
           const order = request.query.includes('political capital')
             ? ['Phrase.md']
             : ['Both.md', 'Meaning.md', 'Grid.md'];

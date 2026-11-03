@@ -18,7 +18,9 @@ if (!process.versions.electron) {
         stdio: 'inherit',
         timeout: 60000,
       });
-      if (result.error) {throw result.error;}
+      if (result.error) {
+        throw result.error;
+      }
       assert.equal(result.status, 0, `Installation launch ${version} failed`);
     }
     console.log(
@@ -52,7 +54,9 @@ let invalidChecksum = true;
 global.fetch = async (url) => {
   if (url.endsWith('/releases/latest')) {
     releaseCalls++;
-    if (releaseCalls === 2) {throw new Error('Simulated GitHub rate limit');}
+    if (releaseCalls === 2) {
+      throw new Error('Simulated GitHub rate limit');
+    }
     return new Response(
       JSON.stringify({
         tag_name: 'v9.0.0',
@@ -60,9 +64,12 @@ global.fetch = async (url) => {
       })
     );
   }
-  if (url.endsWith('/SHA256SUMS.txt'))
-    {return new Response(`${invalidChecksum ? 'a'.repeat(64) : installerHash}  ${installerName}\n`);}
-  if (url.endsWith('/' + installerName)) {return new Response(installerBytes);}
+  if (url.endsWith('/SHA256SUMS.txt')) {
+    return new Response(`${invalidChecksum ? 'a'.repeat(64) : installerHash}  ${installerName}\n`);
+  }
+  if (url.endsWith('/' + installerName)) {
+    return new Response(installerBytes);
+  }
   throw new Error('Unexpected test network request: ' + url);
 };
 const updateModule = require('../electron/appUpdates.cjs');
@@ -113,7 +120,9 @@ app.on('browser-window-created', (_event, win) => {
     const js = (code) => win.webContents.executeJavaScript(code);
     const wait = async (code) => {
       for (let i = 0; i < 150; i++) {
-        if (await js(code)) {return;}
+        if (await js(code)) {
+          return;
+        }
         await new Promise((resolve) => setTimeout(resolve, 50));
       }
       throw new Error(`Timed out: ${code}`);
@@ -151,7 +160,9 @@ app.on('browser-window-created', (_event, win) => {
           folders.length,
           'Concurrent folder creation must use distinct paths'
         );
-        for (const folder of folders) {fs.rmdirSync(path.join(vault, folder));}
+        for (const folder of folders) {
+          fs.rmdirSync(path.join(vault, folder));
+        }
         const disk = require('node:fs/promises');
         const writeFile = disk.writeFile;
         const card = path.join(vault, 'Card.md');
@@ -234,16 +245,18 @@ app.on('browser-window-created', (_event, win) => {
         const expected = JSON.parse(fs.readFileSync(path.join(root, 'expected.json'), 'utf8'));
         await wait("!!document.querySelector('.note-title')");
         const settings = await js("JSON.parse(localStorage.getItem('tagline-settings'))");
-        for (const [key, value] of Object.entries(expected.settings))
-          {assert.deepEqual(settings[key], value, key);}
+        for (const [key, value] of Object.entries(expected.settings)) {
+          assert.deepEqual(settings[key], value, key);
+        }
         assert.deepEqual(
           await js("JSON.parse(localStorage.getItem('tagline-extension:upgrade-test'))"),
           { saved: 'extension data' }
         );
         assert.equal(await js("document.querySelector('.note-title').value"), 'Card');
         assert.equal(await js('document.documentElement.dataset.theme'), 'high-contrast-dark');
-        for (const [file, text] of Object.entries(expected.retained))
-          {assert.equal(fs.readFileSync(path.join(profile, file), 'utf8'), text);}
+        for (const [file, text] of Object.entries(expected.retained)) {
+          assert.equal(fs.readFileSync(path.join(profile, file), 'utf8'), text);
+        }
         assert.equal(
           fs.readFileSync(path.join(profile, 'credential-preservation.bin')).toString('base64'),
           expected.credential

@@ -7,12 +7,22 @@ import { readFrontmatter } from './frontmatter.js';
  */
 export function visualBlocker(content) {
   const metadata = readFrontmatter(content);
-  if (metadata.error) {return 'invalid YAML frontmatter';}
+  if (metadata.error) {
+    return 'invalid YAML frontmatter';
+  }
   content = metadata.body;
-  if (/<!--|<\/?[a-z][^>]*>/i.test(content.replace(/```[\s\S]*?```/g, ''))) {return 'embedded HTML';}
-  if (/^\[\^[^\]]+\]:/m.test(content)) {return 'footnotes';}
-  if (/!\[[^\]]*\]\(/.test(content)) {return 'Markdown images';}
-  if (/^(?:\$\$|:::)/m.test(content)) {return 'math or custom fenced blocks';}
+  if (/<!--|<\/?[a-z][^>]*>/i.test(content.replace(/```[\s\S]*?```/g, ''))) {
+    return 'embedded HTML';
+  }
+  if (/^\[\^[^\]]+\]:/m.test(content)) {
+    return 'footnotes';
+  }
+  if (/!\[[^\]]*\]\(/.test(content)) {
+    return 'Markdown images';
+  }
+  if (/^(?:\$\$|:::)/m.test(content)) {
+    return 'math or custom fenced blocks';
+  }
   return null;
 }
 
@@ -49,10 +59,18 @@ export function visualSelection(editor, ignoreSelection = false) {
       level = node.attrs.level;
     }
   });
-  if (level === 7) {return '';}
+  if (level === 7) {
+    return '';
+  }
   editor.state.doc.forEach((node, offset) => {
-    if (offset > start && offset < end && node.type.name === 'heading' && node.attrs.level <= level)
-      {end = offset;}
+    if (
+      offset > start &&
+      offset < end &&
+      node.type.name === 'heading' &&
+      node.attrs.level <= level
+    ) {
+      end = offset;
+    }
   });
   return serializeSlice(editor, start, end);
 }

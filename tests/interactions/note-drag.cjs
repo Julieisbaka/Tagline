@@ -69,7 +69,9 @@ module.exports = async function runScenario({
   );
   for (let i = 0; i < 80; i++) {
     const text = await fs.readFile(path.join(vault, 'Alpha.md'), 'utf8');
-    if (text.includes('[[Nested/Beta.md]]') && text.includes('[[Beta.md]]')) {return;}
+    if (text.includes('[[Nested/Beta.md]]') && text.includes('[[Beta.md]]')) {
+      return;
+    }
     await delay(50);
   }
   assert.fail('dragged links were not saved in the note');

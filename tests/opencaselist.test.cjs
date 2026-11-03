@@ -373,7 +373,9 @@ test('backend matching escapes verified slugs and rejects results after a sessio
       }),
   });
   const pending = changing.service.resolveTabroomTeam('ndt2026', tabroomTeam);
-  while (!complete) {await new Promise((resolve) => setImmediate(resolve));}
+  while (!complete) {
+    await new Promise((resolve) => setImmediate(resolve));
+  }
   await changing.service.logout();
   complete(json([{ name: 'ndt2026' }]));
   await assert.rejects(pending, /session changed/);
@@ -827,7 +829,9 @@ test('cancelling or failing sign-in cleans up listeners without retaining a reje
         this.webContents.setWindowOpenHandler = () => {};
       }
       async loadURL() {
-        if (cancelled) {this.close();}
+        if (cancelled) {
+          this.close();
+        }
         throw new Error('Navigation aborted');
       }
       close() {
@@ -835,8 +839,11 @@ test('cancelling or failing sign-in cleans up listeners without retaining a reje
       }
     }
     const mock = setup({ BrowserWindow: LoginWindow });
-    if (cancelled) {assert.equal((await mock.service.login()).signedIn, false);}
-    else {await assert.rejects(mock.service.login(), /could not open/);}
+    if (cancelled) {
+      assert.equal((await mock.service.login()).signedIn, false);
+    } else {
+      await assert.rejects(mock.service.login(), /could not open/);
+    }
     assert.equal(mock.session.cookies.listenerCount('changed'), 0);
     assert.equal((await mock.service.status()).signedIn, false);
   }

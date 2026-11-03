@@ -12,14 +12,21 @@ function startWorker() {
     workerData: { storage },
   });
   worker.on('message', (m) => {
-    if (m.progress) {return;}
+    if (m.progress) {
+      return;
+    }
     const task = pending.get(m.id);
     pending.delete(m.id);
-    if (m.error) {task.reject(new Error(m.error));}
-    else {task.resolve(m.result);}
+    if (m.error) {
+      task.reject(new Error(m.error));
+    } else {
+      task.resolve(m.result);
+    }
   });
   worker.on('error', (e) => {
-    for (const task of pending.values()) {task.reject(e);}
+    for (const task of pending.values()) {
+      task.reject(e);
+    }
   });
 }
 startWorker();

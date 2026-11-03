@@ -50,12 +50,13 @@ export default function InstallationSettings() {
     setUpdateError('');
     try {
       const result = await window.api.installUpdate();
-      if (result.manual)
-        {setInstallMessage(
+      if (result.manual) {
+        setInstallMessage(
           t(
             'The disk image is open. Quit Tagline, drag the new app into Applications and choose Replace, then reopen Tagline. Your settings and vaults are kept.'
           )
-        );}
+        );
+      }
     } catch (failure) {
       setUpdateError(failure.message);
     }
@@ -63,16 +64,22 @@ export default function InstallationSettings() {
   useEffect(() => {
     let active = true;
     const apply = (state) => {
-      if (!active) {return;}
+      if (!active) {
+        return;
+      }
       setUpdateState(state);
-      if (state.release) {setRelease(state.release);}
+      if (state.release) {
+        setRelease(state.release);
+      }
     };
     const unsubscribe = window.api.onUpdateState(apply);
     window.api
       .getUpdateState()
       .then(apply)
       .catch((failure) => {
-        if (active) {setUpdateError(failure.message);}
+        if (active) {
+          setUpdateError(failure.message);
+        }
       });
     return () => {
       active = false;
@@ -84,10 +91,14 @@ export default function InstallationSettings() {
     window.api
       .getInstallationInfo()
       .then((value) => {
-        if (active) {setInfo(value);}
+        if (active) {
+          setInfo(value);
+        }
       })
       .catch((error) => {
-        if (active) {setError(error.message);}
+        if (active) {
+          setError(error.message);
+        }
       });
     return () => {
       active = false;

@@ -11,7 +11,9 @@ if (!process.versions.electron) {
         stdio: 'inherit',
         timeout: 90000,
       });
-      if (result.error) {throw result.error;}
+      if (result.error) {
+        throw result.error;
+      }
       assert.equal(result.status, 0, `${stage} failed`);
     }
     console.log(
@@ -32,11 +34,12 @@ const profile = path.join(root, 'profile'),
 fs.mkdirSync(profile, { recursive: true });
 fs.mkdirSync(vault, { recursive: true });
 fs.writeFileSync(path.join(vault, 'Keep.md'), '# Local evidence');
-if (first)
-  {fs.writeFileSync(
+if (first) {
+  fs.writeFileSync(
     path.join(profile, 'config.json'),
     JSON.stringify({ lastVault: vault, modelAutoload: false })
-  );}
+  );
+}
 const uploadFile = path.join(root, 'Upload.docx');
 fs.writeFileSync(uploadFile, Buffer.from([80, 75, 3, 4, 255]));
 app.setPath('userData', profile);
@@ -63,7 +66,9 @@ let cites = [{ cite_id: 1, round_id: 1, title: 'Evidence citation', cites: '**Au
 const binary = Buffer.from([0, 255, 42, 13]);
 const loadURL = BrowserWindow.prototype.loadURL;
 BrowserWindow.prototype.loadURL = async function (url, ...args) {
-  if (url !== 'https://opencaselist.com/login') {return loadURL.call(this, url, ...args);}
+  if (url !== 'https://opencaselist.com/login') {
+    return loadURL.call(this, url, ...args);
+  }
   loginWindows++;
   assert.equal(this.webContents.getLastWebPreferences().sandbox, true);
   assert.equal(this.webContents.getLastWebPreferences().nodeIntegration, false);
@@ -92,7 +97,9 @@ dialog.showOpenDialog = async () => ({ canceled: false, filePaths: [uploadFile] 
 const fromPartition = session.fromPartition.bind(session);
 session.fromPartition = (partition, ...args) => {
   const isolated = fromPartition(partition, ...args);
-  if (partition !== 'persist:opencaselist') {return isolated;}
+  if (partition !== 'persist:opencaselist') {
+    return isolated;
+  }
   isolated.fetch = async (url, options) => {
     const parsed = new URL(url);
     assert.equal(parsed.origin, 'https://api.opencaselist.com');
@@ -108,7 +115,9 @@ session.fromPartition = (partition, ...args) => {
       return reply({ message: 'Expired' }, 401);
     }
     if (route === '/v1/search') {
-      if (parsed.searchParams.get('q') === 'expire') {return reply({ message: 'Expired' }, 401);}
+      if (parsed.searchParams.get('q') === 'expire') {
+        return reply({ message: 'Expired' }, 401);
+      }
       return reply([
         {
           id: 1,
@@ -120,8 +129,8 @@ session.fromPartition = (partition, ...args) => {
         },
       ]);
     }
-    if (route === '/v1/caselists')
-      {return reply([
+    if (route === '/v1/caselists') {
+      return reply([
         {
           caselist_id: 1,
           name: 'ndt2026',
@@ -129,21 +138,34 @@ session.fromPartition = (partition, ...args) => {
           year: 2026,
           archived: false,
         },
-      ]);}
-    if (route.endsWith('/schools'))
-      {return reply([{ name: 'Example', display_name: 'Example University' }, { name: 'Other' }]);}
-    if (route.endsWith('/teams'))
-      {return reply(
+      ]);
+    }
+    if (route.endsWith('/schools')) {
+      return reply([{ name: 'Example', display_name: 'Example University' }, { name: 'Other' }]);
+    }
+    if (route.endsWith('/teams')) {
+      return reply(
         route.includes('/Other/') ? [{ name: 'CD' }] : [{ name: 'AB', display_name: 'Example AB' }]
-      );}
-    if (route === '/v1/download') {return new Response(binary);}
-    if (route.includes('/Other/') && route.endsWith('/rounds') && failTeamBrowse)
-      {return reply({ message: 'Unavailable' }, 503);}
-    if (route.includes('/Other/') && route.endsWith('/rounds'))
-      {return reply([{ round_id: 9, tournament: 'Other tournament', side: 'N', round: '4' }]);}
-    if (route.includes('/Other/') && route.endsWith('/cites')) {return reply([]);}
-    if (route.endsWith('/rounds') && method === 'GET') {return reply(rounds);}
-    if (route.endsWith('/cites') && method === 'GET') {return reply(cites);}
+      );
+    }
+    if (route === '/v1/download') {
+      return new Response(binary);
+    }
+    if (route.includes('/Other/') && route.endsWith('/rounds') && failTeamBrowse) {
+      return reply({ message: 'Unavailable' }, 503);
+    }
+    if (route.includes('/Other/') && route.endsWith('/rounds')) {
+      return reply([{ round_id: 9, tournament: 'Other tournament', side: 'N', round: '4' }]);
+    }
+    if (route.includes('/Other/') && route.endsWith('/cites')) {
+      return reply([]);
+    }
+    if (route.endsWith('/rounds') && method === 'GET') {
+      return reply(rounds);
+    }
+    if (route.endsWith('/cites') && method === 'GET') {
+      return reply(cites);
+    }
     if (route.endsWith('/rounds') && method === 'POST') {
       rounds.push({
         ...body,
@@ -152,8 +174,9 @@ session.fromPartition = (partition, ...args) => {
       });
       return reply({ message: 'Created' }, 201);
     }
-    if (/\/rounds\/\d+$/.test(route) && method === 'GET')
-      {return reply(rounds.find((round) => round.round_id === Number(route.split('/').at(-1))));}
+    if (/\/rounds\/\d+$/.test(route) && method === 'GET') {
+      return reply(rounds.find((round) => round.round_id === Number(route.split('/').at(-1))));
+    }
     if (/\/rounds\/\d+$/.test(route) && method === 'PUT') {
       const round = rounds.find((round) => round.round_id === Number(route.split('/').at(-1)));
       Object.assign(round, body);
@@ -176,13 +199,17 @@ session.fromPartition = (partition, ...args) => {
   return isolated;
 };
 app.on('browser-window-created', (_event, win) => {
-  if (win.getTitle() === 'Sign in to OpenCaselist') {return;}
+  if (win.getTitle() === 'Sign in to OpenCaselist') {
+    return;
+  }
   win.webContents.once('did-finish-load', async () => {
     const wc = win.webContents;
     const js = (code) => wc.executeJavaScript(code);
     const wait = async (code) => {
       for (let i = 0; i < 200; i++) {
-        if (await js(code)) {return;}
+        if (await js(code)) {
+          return;
+        }
         await new Promise((resolve) => setTimeout(resolve, 25));
       }
       throw new Error(`Timed out: ${code}`);

@@ -24,7 +24,9 @@ export default function SettingRow({ label, description, children }) {
           className='setting-help'
           onMouseEnter={() => setOpen(true)}
           onMouseLeave={(event) => {
-            if (!event.currentTarget.contains(document.activeElement)) {setOpen(false);}
+            if (!event.currentTarget.contains(document.activeElement)) {
+              setOpen(false);
+            }
           }}
         >
           <button

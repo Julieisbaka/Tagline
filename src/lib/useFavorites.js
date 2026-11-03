@@ -40,7 +40,9 @@ export function useFavorites(root) {
 
   const update = useCallback(
     (change) => {
-      if (!root) {return;}
+      if (!root) {
+        return;
+      }
       setVaults((previous) => ({ ...previous, [root]: change(previous[root] || []) }));
     },
     [root]

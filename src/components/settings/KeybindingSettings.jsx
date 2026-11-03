@@ -80,7 +80,9 @@ export default function KeybindingSettings({ settings, update, extra = [] }) {
                   setError('');
                 }}
                 onKeyDown={(event) => {
-                  if (recording !== item.id) {return;}
+                  if (recording !== item.id) {
+                    return;
+                  }
                   event.preventDefault();
                   event.stopPropagation();
                   if (event.key === 'Escape' && item.id !== 'flow-deselect') {
@@ -92,7 +94,9 @@ export default function KeybindingSettings({ settings, update, extra = [] }) {
                     return;
                   }
                   const key = eventBinding(event);
-                  if (!key) {return;}
+                  if (!key) {
+                    return;
+                  }
                   if (
                     !event.ctrlKey &&
                     !event.metaKey &&

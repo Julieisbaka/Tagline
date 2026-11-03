@@ -27,11 +27,14 @@ export default function CitationDialog({ onInsert, onClose }) {
     try {
       const fields = await window.api.extractCitation(original.url);
       setValues((current) => {
-        if (current.url !== original.url) {return current;}
+        if (current.url !== original.url) {
+          return current;
+        }
         const next = { ...current };
         for (const key of ['author', 'year', 'title', 'publication']) {
-          if (!current[key].trim() && current[key] === original[key] && fields[key])
-            {next[key] = fields[key];}
+          if (!current[key].trim() && current[key] === original[key] && fields[key]) {
+            next[key] = fields[key];
+          }
         }
         return next;
       });
@@ -55,8 +58,9 @@ export default function CitationDialog({ onInsert, onClose }) {
   const perform = async (copy) => {
     setError('');
     try {
-      if (values.accessed && !parseDate(values.accessed))
-        {throw new Error(t('Enter a valid date in YYYY-MM-DD format.'));}
+      if (values.accessed && !parseDate(values.accessed)) {
+        throw new Error(t('Enter a valid date in YYYY-MM-DD format.'));
+      }
       const text = createCitation(values);
       if (copy) {
         await navigator.clipboard.writeText(text);

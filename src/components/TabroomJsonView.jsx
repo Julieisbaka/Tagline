@@ -27,10 +27,14 @@ export default function TabroomJsonView({ path, content, onOpenHistory }) {
         }
       })
       .catch((failure) => {
-        if (active) {setError(failure.message);}
+        if (active) {
+          setError(failure.message);
+        }
       })
       .finally(() => {
-        if (active) {setLoading(false);}
+        if (active) {
+          setLoading(false);
+        }
       });
     return () => {
       active = false;
@@ -39,7 +43,9 @@ export default function TabroomJsonView({ path, content, onOpenHistory }) {
 
   const getRecords = useCallback(
     (kind, page, query) => {
-      if (!token.current) {return Promise.reject(new Error(t('Tournament JSON data is not ready.')));}
+      if (!token.current) {
+        return Promise.reject(new Error(t('Tournament JSON data is not ready.')));
+      }
       return window.api.tabroom.snapshotRecordsForJson(token.current, kind, page, query);
     },
     [t]

@@ -26,9 +26,13 @@ function runSuite(name) {
     let settled = false;
     let child;
     const finish = (result) => {
-      if (settled) {return;}
+      if (settled) {
+        return;
+      }
       settled = true;
-      if (currentChild === child) {currentChild = null;}
+      if (currentChild === child) {
+        currentChild = null;
+      }
       resolve({
         suite: name,
         durationMs: Date.now() - suiteStartedAt,
@@ -57,7 +61,9 @@ function runSuite(name) {
         if (output.length < MAX_CAPTURED_OUTPUT) {
           const remaining = MAX_CAPTURED_OUTPUT - output.length;
           output += chunk.toString('utf8', 0, remaining);
-          if (chunk.length > remaining) {outputTruncated = true;}
+          if (chunk.length > remaining) {
+            outputTruncated = true;
+          }
         } else {
           outputTruncated = true;
         }
@@ -98,7 +104,9 @@ function reporterCount(output, label) {
   ];
   for (const pattern of patterns) {
     const match = output.match(pattern);
-    if (match) {return Number(match[1]);}
+    if (match) {
+      return Number(match[1]);
+    }
   }
   return null;
 }
@@ -139,8 +147,9 @@ function formatDuration(durationMs) {
 function totals() {
   return results.reduce(
     (sum, result) => {
-      for (const key of ['tests', 'passed', 'failed', 'skipped', 'cancelled'])
-        {sum[key] += result.counts[key];}
+      for (const key of ['tests', 'passed', 'failed', 'skipped', 'cancelled']) {
+        sum[key] += result.counts[key];
+      }
       return sum;
     },
     { tests: 0, passed: 0, failed: 0, skipped: 0, cancelled: 0 }
@@ -167,8 +176,12 @@ function reportText(logWriteError = '') {
     'Auth and password rejection cases are expected negative-path checks. They count as passing when their assertions pass.',
   ];
 
-  if (runnerError) {lines.push(`Runner error: ${runnerError}`);}
-  if (logWriteError) {lines.push(`Could not write ${logPath}: ${logWriteError}`);}
+  if (runnerError) {
+    lines.push(`Runner error: ${runnerError}`);
+  }
+  if (logWriteError) {
+    lines.push(`Could not write ${logPath}: ${logWriteError}`);
+  }
   return lines.join('\n');
 }
 
@@ -176,7 +189,9 @@ function tapFailureOutput(output) {
   const lines = output.split(/\r?\n/);
   const blocks = [];
   for (let index = 0; index < lines.length; index++) {
-    if (!/^not ok \d+\b/.test(lines[index])) {continue;}
+    if (!/^not ok \d+\b/.test(lines[index])) {
+      continue;
+    }
     const block = [lines[index]];
     for (
       index++;
@@ -194,7 +209,9 @@ function tapFailureOutput(output) {
 function failureOutput(result) {
   if (result.suite === 'test') {
     const failures = tapFailureOutput(result.output);
-    if (failures) {return failures;}
+    if (failures) {
+      return failures;
+    }
   }
 
   const lines = result.output.split(/\r?\n/);
@@ -202,7 +219,9 @@ function failureOutput(result) {
     /(?:^FAIL\b|AssertionError|Timed out:|^Error:|TypeError:|ReferenceError:|SyntaxError:|error during build|Build failed|npm error)/i;
   let start = -1;
   for (let index = 0; index < lines.length; index++) {
-    if (failureLine.test(lines[index])) {start = index;}
+    if (failureLine.test(lines[index])) {
+      start = index;
+    }
   }
   const excerpt = (start < 0 ? lines.slice(-80) : lines.slice(start)).filter(
     (line) => !/^(?:✔|ok \d+\b|PASS\b)/.test(line.trim())
@@ -227,9 +246,13 @@ function writeLog() {
       '',
       `===== ${result.suite} failed test${result.outputTruncated ? ' (captured output truncated)' : ''} =====`
     );
-    if (result.detail) {lines.push(`Process result: ${result.detail}`);}
+    if (result.detail) {
+      lines.push(`Process result: ${result.detail}`);
+    }
     const excerpt = failureOutput(result);
-    if (excerpt) {lines.push(excerpt);}
+    if (excerpt) {
+      lines.push(excerpt);
+    }
   }
   fs.writeFileSync(logPath, `${lines.join('\n')}\n`, 'utf8');
 }
@@ -246,7 +269,9 @@ function printSummary(logWriteError = '') {
   console.log(`Failed: ${count.failed}`);
   console.log(`Skipped: ${count.skipped}`);
   console.log(`Canceled: ${count.cancelled + (interrupted && currentChild ? 1 : 0)}`);
-  if (notRun) {console.log(`Suites not run after interruption: ${notRun}`);}
+  if (notRun) {
+    console.log(`Suites not run after interruption: ${notRun}`);
+  }
   console.log(
     'Auth/password rejection scenarios are expected; they pass when the tests assert the errors.'
   );
@@ -255,12 +280,18 @@ function printSummary(logWriteError = '') {
   } else {
     console.log(`Run log: ${logPath}`);
   }
-  if (logWriteError) {console.log(`Could not write the log: ${logWriteError}`);}
-  if (runnerError) {console.log(`Runner error: ${runnerError}`);}
+  if (logWriteError) {
+    console.log(`Could not write the log: ${logWriteError}`);
+  }
+  if (runnerError) {
+    console.log(`Runner error: ${runnerError}`);
+  }
 }
 
 function requestInterrupt() {
-  if (interrupted) {return;}
+  if (interrupted) {
+    return;
+  }
   interrupted = true;
   currentChild?.kill('SIGINT');
 }
@@ -269,7 +300,9 @@ process.on('SIGINT', requestInterrupt);
 process.on('SIGTERM', requestInterrupt);
 
 async function main() {
-  if (!npmCli) {runnerError = 'npm_execpath is missing; start this script with npm run test:all.';}
+  if (!npmCli) {
+    runnerError = 'npm_execpath is missing; start this script with npm run test:all.';
+  }
   if (!runnerError) {
     const rendererBuild = await runSuite('build');
     if (rendererBuild.status === 'passed') {
@@ -281,7 +314,9 @@ async function main() {
   }
   if (!runnerError) {
     for (const suite of suites) {
-      if (interrupted) {break;}
+      if (interrupted) {
+        break;
+      }
       results.push(await runSuite(suite));
     }
   }
@@ -293,7 +328,9 @@ async function main() {
     logWriteError = error.message;
   }
   printSummary(logWriteError);
-  if (runnerError || logWriteError || interrupted || totals().failed > 0) {process.exitCode = 1;}
+  if (runnerError || logWriteError || interrupted || totals().failed > 0) {
+    process.exitCode = 1;
+  }
 }
 
 main().catch((error) => {

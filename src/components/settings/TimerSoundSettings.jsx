@@ -17,7 +17,9 @@ export default function TimerSoundSettings({ settings, update }) {
     window.api
       .readTimerSound()
       .then((sound) => {
-        if (!sound) {throw new Error(t('The saved timer sound is missing. Choose it again.'));}
+        if (!sound) {
+          throw new Error(t('The saved timer sound is missing. Choose it again.'));
+        }
         if (active) {
           const player = new Audio(sound.data);
           player.preload = 'auto';
@@ -25,7 +27,9 @@ export default function TimerSoundSettings({ settings, update }) {
         }
       })
       .catch((failure) => {
-        if (active) {setError(failure.message);}
+        if (active) {
+          setError(failure.message);
+        }
       });
     return () => {
       active = false;
@@ -39,7 +43,9 @@ export default function TimerSoundSettings({ settings, update }) {
     setError('');
     try {
       const sound = await window.api.importTimerSound();
-      if (sound) {update({ timerSoundName: sound.name, timerSoundEnabled: true });}
+      if (sound) {
+        update({ timerSoundName: sound.name, timerSoundEnabled: true });
+      }
     } catch (failure) {
       setError(failure.message);
     } finally {

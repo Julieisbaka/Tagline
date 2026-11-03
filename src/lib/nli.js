@@ -53,8 +53,14 @@ export function buildHypotheses(templateId, lines) {
  * @returns {string}
  */
 export function entailmentLabel(probability) {
-  if (probability >= 0.8) {return 'Strongly supported';}
-  if (probability >= 0.5) {return 'Supported';}
-  if (probability >= 0.2) {return 'Weak support';}
+  if (probability >= 0.8) {
+    return 'Strongly supported';
+  }
+  if (probability >= 0.5) {
+    return 'Supported';
+  }
+  if (probability >= 0.2) {
+    return 'Weak support';
+  }
   return 'Not supported';
 }

@@ -35,12 +35,15 @@ export default function TabBar({
             draggedId.current = t.id;
             event.dataTransfer.effectAllowed = 'copyMove';
             event.dataTransfer.setData('text/plain', t.id);
-            if (t.kind === 'file' && isMarkdown(t.path))
-              {event.dataTransfer.setData(NOTE_LINK_TYPE, t.path);}
+            if (t.kind === 'file' && isMarkdown(t.path)) {
+              event.dataTransfer.setData(NOTE_LINK_TYPE, t.path);
+            }
             event.currentTarget.classList.add('dragging');
           }}
           onDragOver={(event) => {
-            if (!draggedId.current || draggedId.current === t.id) {return;}
+            if (!draggedId.current || draggedId.current === t.id) {
+              return;
+            }
             event.preventDefault();
             event.dataTransfer.dropEffect = 'move';
             const rect = event.currentTarget.getBoundingClientRect();
@@ -73,7 +76,9 @@ export default function TabBar({
               e.preventDefault();
               const index = tabs.findIndex((tab) => tab.id === t.id);
               const destination = index + (e.key === 'ArrowLeft' ? -1 : 1);
-              if (destination >= 0 && destination < tabs.length) {onReorder(t.id, destination);}
+              if (destination >= 0 && destination < tabs.length) {
+                onReorder(t.id, destination);
+              }
             }
           }}
           onClick={() => onActivate(t.id)}

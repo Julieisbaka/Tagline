@@ -94,16 +94,22 @@ export function createEventBus() {
   const listeners = new Map();
   return {
     on(name, listener) {
-      if (!listeners.has(name)) {listeners.set(name, new Set());}
+      if (!listeners.has(name)) {
+        listeners.set(name, new Set());
+      }
       const group = listeners.get(name);
       group.add(listener);
       return () => {
         group.delete(listener);
-        if (!group.size) {listeners.delete(name);}
+        if (!group.size) {
+          listeners.delete(name);
+        }
       };
     },
     emit(name, payload) {
-      for (const listener of [...(listeners.get(name) || [])]) {listener(structuredClone(payload));}
+      for (const listener of [...(listeners.get(name) || [])]) {
+        listener(structuredClone(payload));
+      }
     },
   };
 }
@@ -122,8 +128,9 @@ export function requireSelection(value) {
     !Number.isSafeInteger(value.to) ||
     value.from < 0 ||
     value.to < value.from
-  )
-    {throw new Error('Selection requires integer positions with 0 <= from <= to.');}
+  ) {
+    throw new Error('Selection requires integer positions with 0 <= from <= to.');
+  }
   return { from: value.from, to: value.to };
 }
 
@@ -139,8 +146,9 @@ export function requirePayload(value) {
   } catch {
     throw new Error('Payload must be JSON-serializable.');
   }
-  if (serialized === undefined || serialized.length > 65536)
-    {throw new Error('Payload must be JSON up to 65,536 characters.');}
+  if (serialized === undefined || serialized.length > 65536) {
+    throw new Error('Payload must be JSON up to 65,536 characters.');
+  }
   return JSON.parse(serialized);
 }
 
@@ -150,8 +158,9 @@ export function requirePayload(value) {
  * @returns {string}
  */
 export function requireEventName(name) {
-  if (typeof name !== 'string' || !/^[a-z][a-zA-Z0-9.-]{0,127}$/.test(name))
-    {throw new Error('Invalid event name.');}
+  if (typeof name !== 'string' || !/^[a-z][a-zA-Z0-9.-]{0,127}$/.test(name)) {
+    throw new Error('Invalid event name.');
+  }
   return name;
 }
 
@@ -173,11 +182,17 @@ export function pathHelper(operation, args) {
     }
     const parts = [];
     for (const part of input.replace(/\\/g, '/').split('/')) {
-      if (!part || part === '.') {continue;}
+      if (!part || part === '.') {
+        continue;
+      }
       if (part === '..') {
-        if (!parts.length) {throw new Error('Path escapes the vault.');}
+        if (!parts.length) {
+          throw new Error('Path escapes the vault.');
+        }
         parts.pop();
-      } else {parts.push(part);}
+      } else {
+        parts.push(part);
+      }
     }
     return parts.join('/');
   };
@@ -191,16 +206,23 @@ export function pathHelper(operation, args) {
     return normalize(args.join('/'));
   }
   const path = normalize(args[0]);
-  if (operation === 'normalize') {return path;}
-  if (operation === 'basename') {return path.split('/').pop() || '';}
-  if (operation === 'dirname') {return path.split('/').slice(0, -1).join('/');}
-  if (operation === 'extname')
-    {return (
+  if (operation === 'normalize') {
+    return path;
+  }
+  if (operation === 'basename') {
+    return path.split('/').pop() || '';
+  }
+  if (operation === 'dirname') {
+    return path.split('/').slice(0, -1).join('/');
+  }
+  if (operation === 'extname') {
+    return (
       path
         .split('/')
         .pop()
         ?.match(/^.+(\.[^.]*)$/)?.[1] || ''
-    );}
+    );
+  }
   throw new Error('Unknown path helper.');
 }
 
@@ -218,14 +240,23 @@ export function markdownToText(markdown) {
   const collect = (tokens) =>
     tokens
       .map((token) => {
-        if (token.type === 'html') {return '';}
-        if (token.type === 'image') {return token.text || '';}
-        if (token.type === 'table')
-          {return [...token.header, ...token.rows.flat()]
+        if (token.type === 'html') {
+          return '';
+        }
+        if (token.type === 'image') {
+          return token.text || '';
+        }
+        if (token.type === 'table') {
+          return [...token.header, ...token.rows.flat()]
             .map((cell) => collect(cell.tokens))
-            .join(' ');}
-        if (token.items) {return collect(token.items);}
-        if (token.tokens) {return collect(token.tokens);}
+            .join(' ');
+        }
+        if (token.items) {
+          return collect(token.items);
+        }
+        if (token.tokens) {
+          return collect(token.tokens);
+        }
         return (
           token.text || (token.type === 'br' || token.type === 'space' ? '\n' : token.raw || '')
         );
@@ -332,19 +363,26 @@ function requireCoordinate(value, label) {
  * @returns {string[][]}
  */
 function requireFlowCells(value, label) {
-  if (!Array.isArray(value)) {throw new Error(`${label} must be an array of rows.`);}
+  if (!Array.isArray(value)) {
+    throw new Error(`${label} must be an array of rows.`);
+  }
   let count = 0,
     characters = 0;
   for (const row of value) {
-    if (!Array.isArray(row)) {throw new Error(`${label} must contain arrays of cells.`);}
+    if (!Array.isArray(row)) {
+      throw new Error(`${label} must contain arrays of cells.`);
+    }
     count += row.length;
     for (const cell of row) {
-      if (typeof cell !== 'string') {throw new Error(`${label} cells must be text.`);}
+      if (typeof cell !== 'string') {
+        throw new Error(`${label} cells must be text.`);
+      }
       characters += cell.length;
     }
   }
-  if (count > 100_000 || characters > MAX_HELPER_TEXT)
-    {throw new Error(`${label} exceeds the flow-cell limits.`);}
+  if (count > 100_000 || characters > MAX_HELPER_TEXT) {
+    throw new Error(`${label} exceeds the flow-cell limits.`);
+  }
   return value;
 }
 
@@ -354,7 +392,9 @@ function requireFlowCells(value, label) {
  * @returns {object[]}
  */
 function requireFolderTree(value) {
-  if (!Array.isArray(value)) {throw new Error('Folder tree must be an array.');}
+  if (!Array.isArray(value)) {
+    throw new Error('Folder tree must be an array.');
+  }
   const seen = new Set();
   let count = 0;
   /**
@@ -364,17 +404,21 @@ function requireFolderTree(value) {
    * @returns {void}
    */
   const visit = (nodes, depth) => {
-    if (depth > 100) {throw new Error('Folder tree exceeds 100 levels.');}
+    if (depth > 100) {
+      throw new Error('Folder tree exceeds 100 levels.');
+    }
     for (const node of nodes) {
-      if (!node || typeof node !== 'object' || seen.has(node))
-        {throw new Error('Folder tree must not contain invalid or circular nodes.');}
+      if (!node || typeof node !== 'object' || seen.has(node)) {
+        throw new Error('Folder tree must not contain invalid or circular nodes.');
+      }
       seen.add(node);
       if (++count > 10_000 || typeof node.path !== 'string' || node.path.length > 1000) {
         throw new Error('Folder tree must contain at most 10,000 nodes with valid paths.');
       }
       if (node.type === 'folder') {
-        if (!Array.isArray(node.children))
-          {throw new Error('Folder tree folders must have child arrays.');}
+        if (!Array.isArray(node.children)) {
+          throw new Error('Folder tree folders must have child arrays.');
+        }
         visit(node.children, depth + 1);
       }
     }
@@ -391,8 +435,9 @@ function requireFolderTree(value) {
  */
 function requireDate(value, label) {
   const date = typeof value === 'string' ? parseDate(value) : value;
-  if (!(date instanceof Date) || !Number.isFinite(date.getTime()))
-    {throw new Error(`${label} must be a valid date.`);}
+  if (!(date instanceof Date) || !Number.isFinite(date.getTime())) {
+    throw new Error(`${label} must be a valid date.`);
+  }
   return date;
 }
 
@@ -405,8 +450,9 @@ function requireDate(value, label) {
 export function extensionHelper(method, args) {
   switch (method) {
     case 'helpers.countdown.remainingAt':
-      if (!Number.isFinite(args[0]) || !Number.isFinite(args[1] ?? Date.now()))
-        {throw new Error('Deadline and current time must be finite timestamps.');}
+      if (!Number.isFinite(args[0]) || !Number.isFinite(args[1] ?? Date.now())) {
+        throw new Error('Deadline and current time must be finite timestamps.');
+      }
       return remainingAt(args[0], args[1] ?? Date.now());
     case 'helpers.language.system':
       if (
@@ -433,8 +479,9 @@ export function extensionHelper(method, args) {
     case 'helpers.keybindings.valid':
       return validBinding(requireHelperText(args[0], 'Shortcut'));
     case 'helpers.keybindings.display':
-      if (!['darwin', 'win32', 'linux'].includes(args[1]))
-        {throw new Error('Platform must be darwin, win32, or linux.');}
+      if (!['darwin', 'win32', 'linux'].includes(args[1])) {
+        throw new Error('Platform must be darwin, win32, or linux.');
+      }
       return displayBinding(requireHelperText(args[0], 'Shortcut'), args[1]);
     case 'helpers.layout.normalizeRibbon':
       if (
@@ -492,8 +539,9 @@ export function extensionHelper(method, args) {
     case 'helpers.calendar.parseDate':
       return parseDate(requireHelperText(args[0], 'Date'));
     case 'helpers.calendar.moveMonth':
-      if (!Number.isSafeInteger(args[1]) || Math.abs(args[1]) > 120_000)
-        {throw new Error('Month movement must be a safe integer between -120,000 and 120,000.');}
+      if (!Number.isSafeInteger(args[1]) || Math.abs(args[1]) > 120_000) {
+        throw new Error('Month movement must be a safe integer between -120,000 and 120,000.');
+      }
       return moveMonth(requireDate(args[0], 'Date'), args[1]);
     case 'helpers.calendar.monthDays':
       return monthDays(requireDate(args[0], 'Date'));
@@ -605,8 +653,9 @@ export function extensionHelper(method, args) {
       return spokenText(requireHelperText(args[0], 'Text'));
     case 'helpers.speech.readingSeconds': {
       const wpm = args[1] === undefined ? 250 : args[1];
-      if (!Number.isFinite(wpm) || wpm < 50 || wpm > 1000)
-        {throw new Error('Speaking rate must be a number from 50 to 1,000 words per minute.');}
+      if (!Number.isFinite(wpm) || wpm < 50 || wpm > 1000) {
+        throw new Error('Speaking rate must be a number from 50 to 1,000 words per minute.');
+      }
       return readingSeconds(args[0], wpm, args[2] ?? null);
     }
     case 'helpers.speech.validateSample':
@@ -626,16 +675,18 @@ export function extensionHelper(method, args) {
         requireHelperText(args[1], 'Hypothesis lines')
       );
     case 'helpers.nli.label':
-      if (!Number.isFinite(args[0]) || args[0] < 0 || args[0] > 1)
-        {throw new Error('Probability must be between 0 and 1.');}
+      if (!Number.isFinite(args[0]) || args[0] < 0 || args[0] > 1) {
+        throw new Error('Probability must be between 0 and 1.');
+      }
       return entailmentLabel(args[0]);
     case 'helpers.canvas.parse':
       return parseCanvas(requireHelperText(args[0], 'Canvas JSON'));
     case 'helpers.canvas.serialize':
       return requireHelperText(serializeCanvas(args[0]), 'Canvas JSON');
     case 'helpers.canvas.createNode':
-      if (!Number.isSafeInteger(args[1]) || args[1] < 0 || args[1] > 10000)
-        {throw new Error('Node index must be from 0 to 10,000.');}
+      if (!Number.isSafeInteger(args[1]) || args[1] < 0 || args[1] > 10000) {
+        throw new Error('Node index must be from 0 to 10,000.');
+      }
       return createCanvasNode(args[0], args[1]);
     case 'helpers.canvas.createArgumentEdge':
       return createArgumentEdge(
@@ -651,8 +702,9 @@ export function extensionHelper(method, args) {
     case 'helpers.canvas.resolveLink':
       return resolveCanvasLink(requireHelperText(args[0], 'Link target'), requirePaths(args[1]));
     case 'helpers.canvas.suggestFiles':
-      if (!Number.isSafeInteger(args[2]) || args[2] < 1 || args[2] > 1000)
-        {throw new Error('Suggestion limit must be from 1 to 1,000.');}
+      if (!Number.isSafeInteger(args[2]) || args[2] < 1 || args[2] > 1000) {
+        throw new Error('Suggestion limit must be from 1 to 1,000.');
+      }
       return suggestCanvasFiles(
         requirePaths(args[0]),
         requireHelperText(args[1], 'Query'),
@@ -689,7 +741,9 @@ export function extensionHelper(method, args) {
       return markdownToText(requireHelperText(args[0], 'Markdown'));
     case 'helpers.markdown.frontmatter': {
       const metadata = readFrontmatter(requireHelperText(args[0], 'Markdown'));
-      if (metadata.error) {throw new Error(`Invalid YAML frontmatter: ${metadata.error}`);}
+      if (metadata.error) {
+        throw new Error(`Invalid YAML frontmatter: ${metadata.error}`);
+      }
       return { data: metadata.data, body: metadata.body, prefix: metadata.prefix };
     }
     case 'helpers.markdown.slugify':
@@ -753,7 +807,9 @@ export function extensionHelper(method, args) {
         if (value !== undefined && (typeof value !== 'string' || value.length > 10_000)) {
           throw new Error(`Citation ${key} must be text up to 10,000 characters.`);
         }
-        if (value !== undefined) {details[key] = value;}
+        if (value !== undefined) {
+          details[key] = value;
+        }
       }
       if (typeof details.author !== 'string' || typeof details.year !== 'string') {
         throw new Error('Citation author and year are required text fields.');

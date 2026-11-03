@@ -148,12 +148,17 @@ function CaselistSeason({ value, onChange, disabled }) {
     setItems([]);
     setLoaded(false);
     try {
-      if (login) {await window.api.openCaselist.login();}
+      if (login) {
+        await window.api.openCaselist.login();
+      }
       const status = await window.api.openCaselist.status();
-      if (!active.current) {return;}
+      if (!active.current) {
+        return;
+      }
       setSignedIn(status.signedIn);
-      if (!status.signedIn)
-        {throw new Error(t('Sign in to OpenCaselist to load supported seasons.'));}
+      if (!status.signedIn) {
+        throw new Error(t('Sign in to OpenCaselist to load supported seasons.'));
+      }
       const seasons = await window.api.openCaselist.list('caselists');
       if (active.current) {
         const previous = readStoredJson(
@@ -166,9 +171,13 @@ function CaselistSeason({ value, onChange, disabled }) {
         onChange(seasons.some((item) => item.name === previous) ? previous : '');
       }
     } catch (error) {
-      if (active.current) {setError(error.message);}
+      if (active.current) {
+        setError(error.message);
+      }
     } finally {
-      if (active.current) {setLoading(false);}
+      if (active.current) {
+        setLoading(false);
+      }
     }
   };
   return (
@@ -262,11 +271,17 @@ function TeamMatch({ row, caselist, disabled, onError }) {
     onError('');
     try {
       const match = await window.api.openCaselist.resolveTabroomTeam(caselist, row);
-      if (active.current) {setResult(match);}
+      if (active.current) {
+        setResult(match);
+      }
     } catch (error) {
-      if (active.current) {onError(error.message);}
+      if (active.current) {
+        onError(error.message);
+      }
     } finally {
-      if (active.current) {setLoading(false);}
+      if (active.current) {
+        setLoading(false);
+      }
     }
   };
   const labels = {
@@ -318,13 +333,19 @@ function TournamentTable({ kind, disabled, caselist, getRecords, enableCaselist 
     setResult(null);
     getRecords(kind, page, query)
       .then((data) => {
-        if (active) {setResult(data);}
+        if (active) {
+          setResult(data);
+        }
       })
       .catch((error) => {
-        if (active) {setError(error.message);}
+        if (active) {
+          setError(error.message);
+        }
       })
       .finally(() => {
-        if (active) {setLoading(false);}
+        if (active) {
+          setLoading(false);
+        }
       });
     return () => {
       active = false;
