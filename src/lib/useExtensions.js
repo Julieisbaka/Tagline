@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { ExtensionHost, extensionCommandId, usableDefaultKey } from './extensionHost.js';
 import {
+  clearExtensionData,
   getExtensionSetting,
   resetExtensionSettings,
   setExtensionSettings,
@@ -135,7 +136,14 @@ export function useExtensions({ bridgeRef, notify }) {
             })
           );
           if (source) {
-            const host = new ExtensionHost(item, source, bridge, limits, firstInstall);
+            const host = new ExtensionHost(
+              item,
+              source,
+              bridge,
+              limits,
+              firstInstall,
+              item.allowedPermissions
+            );
             await host.start();
             if (current !== generation.current) {
               host.dispose();
@@ -216,6 +224,51 @@ export function useExtensions({ bridgeRef, notify }) {
     },
     [reload, extensions]
   );
+  const setPermission = useCallback(
+    async (id, permission, allowed) => {
+      const item = extensions.find((extension) => extension.id === id);
+      if (!item) {
+        throw new Error('Extension not found.');
+      }
+      const permissions = new Set(item.allowedPermissions);
+      if (allowed) {
+        permissions.add(permission);
+      } else {
+        permissions.delete(permission);
+      }
+      hosts.current.get(id)?.dispose();
+      hosts.current.delete(id);
+      try {
+        await window.api.setExtensionPermissions(id, [...permissions], item.reviewToken);
+      } catch (error) {
+        await reload();
+        throw error;
+      }
+      await reload();
+    },
+    [reload, extensions]
+  );
+  const uninstall = useCallback(
+    async (folder) => {
+      const item = extensions.find((extension) => extension.folder === folder);
+      if (!item) {
+        throw new Error('Extension not found.');
+      }
+      hosts.current.get(item.id)?.dispose();
+      hosts.current.delete(item.id);
+      try {
+        await window.api.uninstallExtension(folder);
+      } catch (error) {
+        await reload();
+        throw error;
+      }
+      if (item.id) {
+        clearExtensionData(item);
+      }
+      await reload();
+    },
+    [reload, extensions]
+  );
 
   /**
    * Close one extension-contributed panel or webview.
@@ -225,7 +278,7 @@ export function useExtensions({ bridgeRef, notify }) {
   const closeSurface = (surface) =>
     surface.host.bridge.closeSurface(surface.host, surface.kind, surface.id);
   const ribbonItems = extensions
-    .filter((item) => item.enabled && !item.error)
+    .filter((item) => item.enabled && !item.error && item.allowedPermissions.includes('ui'))
     .flatMap((item) =>
       (item.contributes.ribbonItems || []).map((declaration) => ({
         id: extensionCommandId(item.id, declaration.id),
@@ -243,6 +296,8 @@ export function useExtensions({ bridgeRef, notify }) {
     run,
     reload,
     setEnabled,
+    setPermission,
+    uninstall,
     settingsRevision,
     getSetting: getExtensionSetting,
     setSettings: setExtensionSettings,

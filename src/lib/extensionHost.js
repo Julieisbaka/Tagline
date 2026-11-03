@@ -40,8 +40,16 @@ function requireText(value, label, max = MAX_TEXT) {
 }
 
 export class ExtensionHost {
-  constructor(manifest, source, bridge, limits = getRuntimeLimits(), firstInstall = false) {
+  constructor(
+    manifest,
+    source,
+    bridge,
+    limits = getRuntimeLimits(),
+    firstInstall = false,
+    allowedPermissions
+  ) {
     this.manifest = manifest;
+    this.allowedPermissions = allowedPermissions;
     this.source = source;
     this.bridge = bridge;
     this.limits = Object.freeze(validateLimits(limits));
@@ -103,6 +111,9 @@ export class ExtensionHost {
   require(permission) {
     if (!this.manifest.permissions.includes(permission)) {
       throw new Error(`Permission "${permission}" is not declared in the manifest.`);
+    }
+    if (!(this.allowedPermissions || this.manifest.permissions).includes(permission)) {
+      throw new Error(`Permission "${permission}" is not allowed for this extension.`);
     }
   }
 

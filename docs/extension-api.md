@@ -27,12 +27,17 @@ For a complete working example of almost every API in this reference, see the
 5. Find its commands in the command palette (`Mod+P`), and its themes in
    **Settings > Appearance > Theme**.
 
+Each declared permission has its own **Allow** checkbox on the extension card.
+Permission choices are saved immediately and denied capabilities are blocked by
+the app's extension bridge. **Uninstall extension** removes the extension and its
+saved settings and private storage.
+
 Extensions are stored in the app profile, not in a vault. Use the settings
 button to open the installation folder.
 
 After changing an extension, reload it. Reloading tears down and recreates enabled
 script hosts. Disabling an extension removes its running host and contributions;
-its private stored data is not explicitly deleted.
+its private stored data is retained. Uninstalling removes that data.
 
 ## Minimal command extension
 

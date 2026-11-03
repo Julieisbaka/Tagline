@@ -122,6 +122,9 @@ contextBridge.exposeInMainWorld('api', {
     ipcRenderer.invoke('extensions:completeInstall', id, token),
   setExtensionEnabled: (id, enabled, reviewToken) =>
     ipcRenderer.invoke('extensions:setEnabled', id, enabled, reviewToken),
+  setExtensionPermissions: (id, permissions, reviewToken) =>
+    ipcRenderer.invoke('extensions:setPermissions', id, permissions, reviewToken),
+  uninstallExtension: (id) => ipcRenderer.invoke('extensions:uninstall', id),
   openExtensionsFolder: () => ipcRenderer.invoke('extensions:openFolder'),
   pathForFile: (file) => webUtils.getPathForFile(file),
   installExtensionFolder: (source) => ipcRenderer.invoke('extensions:installFolder', source),
