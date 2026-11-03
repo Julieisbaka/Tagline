@@ -34,6 +34,7 @@ the dashboard as a lightweight welcome. Reloading does not repeat setup.
 | Emit custom event | `events.emit` (`ext.tagline-api-demo.ping`) | `events` |
 | Run helper demos | `helpers.path.*`, `helpers.markdownToText`, `helpers.createDisposables`, `helpers.canvas.createNode/createId/resolveLink/suggestFiles/moveNodes` | None |
 | Show and validate settings | `settings.get`, rejected `settings.set` | `settings` |
+| Fetch public repository metadata | `network.fetch` with HTTPS and the reviewed `api.github.com` host | `network` |
 | Run storage demo | `storage.get`, `storage.set`, deleting with `null` | None |
 | Write vault index note | `vault.list`, `vault.read`, `vault.write` | `vault:read`, `vault:write` |
 | Run vault lifecycle demo | `vault.watch`, `write`, `append`, `read`, `compareAndSwap`, `flush`, `rename`, `delete` | `vault:read`, `vault:write` |
@@ -44,6 +45,7 @@ the dashboard as a lightweight welcome. Reloading does not repeat setup.
 
 The manifest also shows a shortcut and boolean, number, and string settings.
 Edit them on the extension card in **Settings > Extensions**.
+The network demo requires reviewing the declared `api.github.com` host.
 
 ## Vault changes
 

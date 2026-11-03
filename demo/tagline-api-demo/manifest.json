@@ -3,7 +3,7 @@
   "id": "tagline-api-demo",
   "name": "API Demo",
   "version": "1.0.0",
-  "description": "Demonstrates every Tagline extension API: commands, notifications, editor, Tiptap, active-note changes, events, panels, webviews, helpers, settings, vault, storage, and themes.",
+  "description": "Demonstrates every Tagline extension API, including reviewed host-mediated network requests.",
   "author": "Tagline",
   "main": "main.js",
   "permissions": [
@@ -13,8 +13,10 @@
     "vault:read",
     "vault:write",
     "events",
-    "ui"
+    "ui",
+    "network"
   ],
+  "networkHosts": ["api.github.com"],
   "contributes": {
     "commands": [
       {
@@ -89,6 +91,10 @@
       {
         "id": "vault-lifecycle",
         "title": "Run vault lifecycle demo"
+      },
+      {
+        "id": "network-fetch",
+        "title": "Fetch public repository metadata"
       }
     ],
     "settings": [
@@ -104,10 +110,7 @@
         "id": "insert-style",
         "title": "Inserted text style",
         "type": "string",
-        "enum": [
-          "quote",
-          "plain"
-        ],
+        "enum": ["quote", "plain"],
         "default": "quote"
       },
       {
@@ -146,9 +149,6 @@
         "title": "Active note inspector"
       }
     ],
-    "themes": [
-      "themes/demo-dusk.json",
-      "themes/demo-dawn.json"
-    ]
+    "themes": ["themes/demo-dusk.json", "themes/demo-dawn.json"]
   }
 }

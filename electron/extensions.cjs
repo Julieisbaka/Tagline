@@ -3,6 +3,7 @@ const path = require('node:path');
 const { validateSettingDefinitions, validateSettingValue } = require('./extensionSettings.mjs');
 const { createHash, randomUUID } = require('node:crypto');
 const { DEFAULT_LIMITS, validateLimits } = require('./customization.mjs');
+const { requestExtensionNetwork, validateNetworkHosts } = require('./extensionNetwork.cjs');
 
 // Extensions live in <userData>/extensions/<folder>/manifest.json. The main process only reads and
 // validates files; extension code runs in a supervised sandbox worker (see src/lib/extensions.js).
@@ -64,6 +65,15 @@ function validateManifest(value, root, limits = DEFAULT_LIMITS) {
   const permissions = value.permissions ?? [];
   if (!Array.isArray(permissions) || permissions.some((p) => !PERMISSIONS.includes(p))) {
     fail(`permissions may only contain ${PERMISSIONS.join(', ')}.`);
+  }
+  let networkHosts;
+  try {
+    networkHosts = validateNetworkHosts(value.networkHosts === undefined ? [] : value.networkHosts);
+  } catch (error) {
+    fail(error.message);
+  }
+  if (permissions.includes('network') !== (networkHosts.length > 0)) {
+    fail('network requires at least one networkHosts entry, and networkHosts requires network.');
   }
   const contributes = value.contributes ?? {};
   if (typeof contributes !== 'object' || Array.isArray(contributes))
@@ -152,6 +162,7 @@ function validateManifest(value, root, limits = DEFAULT_LIMITS) {
     author: value.author || '',
     main: value.main || null,
     permissions: [...new Set(permissions)],
+    networkHosts,
     contributes: {
       commands: commands.map(({ id, title, key }) => ({ id, title: title.trim(), key: key || '' })),
       themes,
@@ -177,6 +188,7 @@ function reviewSignature(manifest) {
     ...(manifest.contributes.panels.length || manifest.contributes.webviews.length
       ? { panels: manifest.contributes.panels, webviews: manifest.contributes.webviews }
       : {}),
+    ...(manifest.networkHosts?.length ? { networkHosts: [...manifest.networkHosts].sort() } : {}),
   });
 }
 
@@ -193,6 +205,7 @@ function needsReview(manifest, config) {
 
 function registerExtensions({ app, ipcMain, shell, readConfig, writeConfig, dialog, getWindow }) {
   const installTokens = new Map();
+  const networkRequestTimes = new Map();
   const limits = () => validateLimits(readConfig().customizationLimits);
   ipcMain.handle('customization:get', () => limits());
   ipcMain.handle('customization:set', (_event, value) => {
@@ -275,18 +288,24 @@ function registerExtensions({ app, ipcMain, shell, readConfig, writeConfig, dial
     const item = (await scan()).find((ext) => ext.id === id);
     if (!item || item.error) {throw new Error('Extension not found.');}
     if (!item.enabled) {throw new Error('Extension is disabled.');}
+    const currentLimits = limits();
     let source = null;
     if (item.main) {
       const file = await containedFile(item.root, item.main, '.js');
-      if ((await fs.stat(file)).size > limits().extensionSourceBytes)
-        {throw new Error(`Extension script exceeds ${limits().extensionSourceBytes} bytes.`);}
+      if ((await fs.stat(file)).size > currentLimits.extensionSourceBytes)
+        {throw new Error(`Extension script exceeds ${currentLimits.extensionSourceBytes} bytes.`);}
       source = await fs.readFile(file, 'utf8');
     }
     const themes = [];
+    let themePreviewBytes = 0;
     for (const theme of item.contributes.themes) {
       const file = await containedFile(item.root, theme, '.json');
-      if ((await fs.stat(file)).size > limits().themeFileBytes)
-        {throw new Error(`Theme file exceeds ${limits().themeFileBytes} bytes.`);}
+      const size = (await fs.stat(file)).size;
+      if (size > currentLimits.themeFileBytes)
+        {throw new Error(`Theme file exceeds ${currentLimits.themeFileBytes} bytes.`);}
+      themePreviewBytes += size;
+      if (themePreviewBytes > currentLimits.themePreviewBytes)
+        {throw new Error(`Extension theme previews exceed ${currentLimits.themePreviewBytes} bytes.`);}
       themes.push(JSON.parse(await fs.readFile(file, 'utf8')));
     }
     const initialized = readConfig().initializedExtensions;
@@ -330,11 +349,25 @@ function registerExtensions({ app, ipcMain, shell, readConfig, writeConfig, dial
     }
     const next = enabledIds().filter((item) => item !== id);
     if (!enabled) {installTokens.delete(id);}
+    if (!enabled) {networkRequestTimes.delete(id);}
     if (enabled) {next.push(id);}
     const extensionReviews = { ...readConfig().extensionReviews };
     if (enabled) {extensionReviews[id] = reviewSignature(item);}
     writeConfig({ enabledExtensions: next, extensionReviews });
     return next;
+  });
+
+  ipcMain.handle('extensions:networkFetch', async (_event, id, url, options) => {
+    if (typeof id !== 'string' || !ID.test(id)) {throw new Error('Invalid extension request.');}
+    const item = (await scan()).find((extension) => extension.id === id && !extension.error);
+    if (!item || !item.enabled) {throw new Error('Extension is no longer enabled.');}
+    if (!item.permissions.includes('network')) {throw new Error('Network permission is required.');}
+    const now = Date.now();
+    const recent = (networkRequestTimes.get(id) || []).filter((time) => now - time < 1000);
+    if (recent.length >= 10) {throw new Error('Extensions are limited to 10 network requests per second.');}
+    recent.push(now);
+    networkRequestTimes.set(id, recent);
+    return requestExtensionNetwork(item.networkHosts, url, options);
   });
 
   ipcMain.handle('extensions:openFolder', async () => {

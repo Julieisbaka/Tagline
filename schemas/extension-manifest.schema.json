@@ -3,12 +3,7 @@
   "title": "Tagline extension manifest",
   "description": "Authoring schema. Collection limits use the configurable maximums; actual profile limits, ID uniqueness, declared command references, and filesystem containment are checked by Tagline.",
   "type": "object",
-  "required": [
-    "manifestVersion",
-    "id",
-    "name",
-    "version"
-  ],
+  "required": ["manifestVersion", "id", "name", "version"],
   "properties": {
     "$schema": {
       "type": "string"
@@ -51,6 +46,16 @@
           "ui",
           "network"
         ]
+      }
+    },
+    "networkHosts": {
+      "type": "array",
+      "maxItems": 20,
+      "uniqueItems": true,
+      "description": "Exact lowercase public DNS hostnames allowed by the network permission. Runtime checks DNS results and blocks local or private addresses.",
+      "items": {
+        "type": "string",
+        "pattern": "^(?=.{1,253}$)(?=.*[a-z])(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\\.)+[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$"
       }
     },
     "contributes": {
@@ -101,10 +106,7 @@
                 "$ref": "#/definitions/surface"
               }
             ],
-            "required": [
-              "icon",
-              "command"
-            ],
+            "required": ["icon", "command"],
             "properties": {
               "icon": {
                 "type": "string",
@@ -123,14 +125,10 @@
   "allOf": [
     {
       "if": {
-        "required": [
-          "contributes"
-        ],
+        "required": ["contributes"],
         "properties": {
           "contributes": {
-            "required": [
-              "commands"
-            ],
+            "required": ["commands"],
             "properties": {
               "commands": {
                 "minItems": 1
@@ -140,23 +138,17 @@
         }
       },
       "then": {
-        "required": [
-          "main"
-        ]
+        "required": ["main"]
       }
     },
     {
       "if": {
-        "required": [
-          "contributes"
-        ],
+        "required": ["contributes"],
         "properties": {
           "contributes": {
             "anyOf": [
               {
-                "required": [
-                  "panels"
-                ],
+                "required": ["panels"],
                 "properties": {
                   "panels": {
                     "minItems": 1
@@ -164,9 +156,7 @@
                 }
               },
               {
-                "required": [
-                  "webviews"
-                ],
+                "required": ["webviews"],
                 "properties": {
                   "webviews": {
                     "minItems": 1
@@ -174,9 +164,7 @@
                 }
               },
               {
-                "required": [
-                  "ribbonItems"
-                ],
+                "required": ["ribbonItems"],
                 "properties": {
                   "ribbonItems": {
                     "minItems": 1
@@ -188,10 +176,7 @@
         }
       },
       "then": {
-        "required": [
-          "main",
-          "permissions"
-        ],
+        "required": ["main", "permissions"],
         "properties": {
           "permissions": {
             "contains": {
@@ -203,14 +188,10 @@
     },
     {
       "if": {
-        "required": [
-          "contributes"
-        ],
+        "required": ["contributes"],
         "properties": {
           "contributes": {
-            "required": [
-              "settings"
-            ],
+            "required": ["settings"],
             "properties": {
               "settings": {
                 "minItems": 1
@@ -220,13 +201,51 @@
         }
       },
       "then": {
-        "required": [
-          "permissions"
-        ],
+        "required": ["permissions"],
         "properties": {
           "permissions": {
             "contains": {
               "const": "settings"
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "required": ["permissions"],
+        "properties": {
+          "permissions": {
+            "contains": {
+              "const": "network"
+            }
+          }
+        }
+      },
+      "then": {
+        "required": ["networkHosts"],
+        "properties": {
+          "networkHosts": {
+            "minItems": 1
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "required": ["networkHosts"],
+        "properties": {
+          "networkHosts": {
+            "minItems": 1
+          }
+        }
+      },
+      "then": {
+        "required": ["permissions"],
+        "properties": {
+          "permissions": {
+            "contains": {
+              "const": "network"
             }
           }
         }
@@ -246,10 +265,7 @@
     },
     "surface": {
       "type": "object",
-      "required": [
-        "id",
-        "title"
-      ],
+      "required": ["id", "title"],
       "properties": {
         "id": {
           "$ref": "#/definitions/id"
@@ -274,12 +290,7 @@
     },
     "settingBase": {
       "type": "object",
-      "required": [
-        "id",
-        "title",
-        "type",
-        "default"
-      ],
+      "required": ["id", "title", "type", "default"],
       "properties": {
         "id": {
           "$ref": "#/definitions/id"
@@ -292,11 +303,7 @@
           "maxLength": 500
         },
         "type": {
-          "enum": [
-            "boolean",
-            "number",
-            "string"
-          ]
+          "enum": ["boolean", "number", "string"]
         }
       },
       "allOf": [
@@ -388,13 +395,7 @@
           },
           "then": {
             "propertyNames": {
-              "enum": [
-                "id",
-                "title",
-                "description",
-                "type",
-                "default"
-              ]
+              "enum": ["id", "title", "description", "type", "default"]
             }
           }
         },
@@ -408,15 +409,7 @@
           },
           "then": {
             "propertyNames": {
-              "enum": [
-                "id",
-                "title",
-                "description",
-                "type",
-                "default",
-                "min",
-                "max"
-              ]
+              "enum": ["id", "title", "description", "type", "default", "min", "max"]
             }
           }
         },
@@ -430,15 +423,7 @@
           },
           "then": {
             "propertyNames": {
-              "enum": [
-                "id",
-                "title",
-                "description",
-                "type",
-                "default",
-                "maxLength",
-                "enum"
-              ]
+              "enum": ["id", "title", "description", "type", "default", "maxLength", "enum"]
             }
           }
         }

@@ -91,6 +91,7 @@ export function useExtensions({ bridgeRef, notify }) {
       list: () => bridgeRef.current.list(),
       read: (path) => bridgeRef.current.read(path),
       write: (path, content) => bridgeRef.current.write(path, content),
+      networkFetch: (id, url, options) => window.api.extensionNetworkFetch(id, url, options),
       append: (path, content) => bridgeRef.current.append(path, content),
       delete: (path) => bridgeRef.current.delete(path),
       rename: (from, to) => bridgeRef.current.rename(from, to),

@@ -11,7 +11,7 @@ const PERMISSION_LABELS = {
   'editor:active-note': 'Watch active-note paths without reading note content',
   events: 'Subscribe to application events and exchange custom extension events',
   ui: 'Display sandboxed panels, webviews and ribbon shortcuts',
-  network: 'Reserved for a future host-mediated network API; currently grants no access',
+  network: 'Make host-mediated HTTPS requests to reviewed hosts',
 };
 
 function ExtensionSettingsForm({ item, extensions }) {
@@ -156,7 +156,7 @@ export default function ExtensionSettings({ extensions }) {
       <h3>{t('Installed extensions')}</h3>
       <p>
         {t(
-          'Extensions run in a sandbox without network, Node.js, or page access, and can only use the permissions listed below. Enable only extensions you trust.'
+          'Extensions run in a sandbox without direct network, Node.js, or page access. The network permission can contact only the HTTPS hosts listed on the extension card. Enable only extensions you trust.'
         )}
       </p>
       <div className='settings-actions'>
@@ -207,7 +207,7 @@ export default function ExtensionSettings({ extensions }) {
             {item.description && <p>{item.description}</p>}
             {item.reviewRequired && (
               <p role='alert'>
-                {t('Review changed permissions and settings before enabling this extension.')}
+                {t('Review changed permissions, network hosts, and settings before enabling this extension.')}
               </p>
             )}
             {item.permissions?.length > 0 && (
@@ -216,6 +216,9 @@ export default function ExtensionSettings({ extensions }) {
                   <li key={permission}>{t(PERMISSION_LABELS[permission] || permission)}</li>
                 ))}
               </ul>
+            )}
+            {item.networkHosts?.length > 0 && (
+              <p>{t('Requested HTTPS hosts: {hosts}', { hosts: item.networkHosts.join(', ') })}</p>
             )}
             {item.contributes?.settings?.length > 0 && (
               <ExtensionSettingsForm item={item} extensions={extensions} />

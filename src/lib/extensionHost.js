@@ -54,6 +54,7 @@ export class ExtensionHost {
     this.nextWatch = 0;
     this.pendingCalls = 0;
     this.messageTimes = [];
+    this.networkRequestTimes = [];
     this.onMessage = this.onMessage.bind(this);
   }
 
@@ -310,6 +311,15 @@ export class ExtensionHost {
         return setExtensionSettings(this.manifest, {
           [requireText(args[0], 'Setting id', 64)]: args[1],
         });
+      case 'network.fetch': {
+        this.require('network');
+        const now = Date.now();
+        this.networkRequestTimes = this.networkRequestTimes.filter((time) => now - time < 1000);
+        if (this.networkRequestTimes.length >= 10)
+          {throw new Error('Extensions are limited to 10 network requests per second.');}
+        this.networkRequestTimes.push(now);
+        return b.networkFetch(this.manifest.id, args[0], args[1]);
+      }
       case 'editor.watchActiveNote': {
         this.require('editor:active-note');
         if (this.activeNoteWatches.size >= this.limits.extensionWatches)
@@ -505,6 +515,7 @@ export class ExtensionHost {
     this.frame = null;
     this.registered.clear();
     this.messageTimes = [];
+    this.networkRequestTimes = [];
   }
 }
 

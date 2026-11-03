@@ -1,7 +1,7 @@
 <!doctype html>
 <!-- The opaque-origin iframe supervises a worker so extension loops cannot block the application thread. -->
 <meta http-equiv="Content-Security-Policy"
-  content="default-src 'none'; script-src 'unsafe-inline' 'unsafe-eval' blob:; worker-src blob:">
+  content="default-src 'none'; script-src 'unsafe-inline' 'unsafe-eval' blob:; connect-src 'none'; worker-src blob:">
 <script>
   (() => {
     let worker;
@@ -136,6 +136,14 @@
           get: (key) => call('settings.get', key),
           /** Validate and persist a declared setting. Requires settings. @returns {Promise<boolean>} */
           set: (key, value) => call('settings.set', key, value),
+        }),
+        network: Object.freeze({
+          /** Make a host-mediated HTTPS request to a manifest-declared networkHosts entry. Requires network.
+           * @param {string} url HTTPS URL on an exact approved host.
+           * @param {{method?:'GET'|'POST',headers?:Record<string,string>,body?:string}} [options]
+           * @returns {Promise<{status:number,statusText:string,ok:boolean,headers:Record<string,string|string[]>,body:string}>}
+           */
+          fetch: (url, options) => call('network.fetch', url, options),
         }),
         events: Object.freeze({
           /** Subscribe to permitted application or ext.ID.name events. Requires events and event data permissions.

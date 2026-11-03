@@ -116,6 +116,8 @@ contextBridge.exposeInMainWorld('api', {
   },
   listExtensions: () => ipcRenderer.invoke('extensions:list'),
   loadExtension: (id) => ipcRenderer.invoke('extensions:load', id),
+  extensionNetworkFetch: (id, url, options) =>
+    ipcRenderer.invoke('extensions:networkFetch', id, url, options),
   completeExtensionInstall: (id, token) =>
     ipcRenderer.invoke('extensions:completeInstall', id, token),
   setExtensionEnabled: (id, enabled, reviewToken) =>

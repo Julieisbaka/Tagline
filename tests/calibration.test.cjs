@@ -135,6 +135,7 @@ test('theme and extension limits validate ceilings and apply to manifest and the
   const { validateManifest } = require('../electron/extensions.cjs');
   assert.deepEqual(validateLimits(), DEFAULT_LIMITS);
   assert.equal(DEFAULT_LIMITS.themeVariables, 512);
+  assert.equal(DEFAULT_LIMITS.themePreviewBytes, 524288);
   const variables = Object.fromEntries(
     Array.from({ length: 512 }, (_, index) => [`override-${index}`, '1px'])
   );
@@ -151,6 +152,8 @@ test('theme and extension limits validate ceilings and apply to manifest and the
     { extensionWatches: 0 },
     { extensionWatches: 257 },
     { themeFileBytes: 1.2 },
+    { themePreviewBytes: 1023 },
+    { themePreviewBytes: 4194305 },
     { extensionStartupMs: Infinity },
   ])
     {assert.throws(() => validateLimits(value));}
@@ -202,10 +205,15 @@ test('platform: main process persists limit changes, enforces script size and ex
       permissions: ['settings'],
       contributes: {
         settings: [{ id: 'label', title: 'Label', type: 'string', default: 'hello' }],
+        themes: ['theme.json'],
       },
     })
   );
   await fs.writeFile(path.join(folder, 'main.js'), '//'.repeat(600));
+  await fs.writeFile(
+    path.join(folder, 'theme.json'),
+    JSON.stringify({ payload: 'x'.repeat(1100) })
+  );
   const handlers = {};
   const exported = path.join(root, 'settings.json');
   let config = { enabledExtensions: ['limited'] };
@@ -226,7 +234,15 @@ test('platform: main process persists limit changes, enforces script size and ex
   });
   const [item] = await handlers['extensions:list']();
   await handlers['extensions:setEnabled'](null, 'limited', true, item.reviewToken);
-  assert.equal((await handlers['extensions:load'](null, 'limited')).source.length, 1200);
+  handlers['customization:set'](null, { themePreviewBytes: 1024 });
+  await assert.rejects(
+    handlers['extensions:load'](null, 'limited'),
+    /theme previews exceed 1024 bytes/
+  );
+  handlers['customization:set'](null, { themePreviewBytes: 2048 });
+  const loaded = await handlers['extensions:load'](null, 'limited');
+  assert.equal(loaded.source.length, 1200);
+  assert.equal(loaded.themes.length, 1);
   handlers['customization:set'](null, { extensionSourceBytes: 1024 });
   await assert.rejects(handlers['extensions:load'](null, 'limited'), /exceeds 1024 bytes/);
   assert.equal(handlers['customization:get']().extensionSourceBytes, 1024);

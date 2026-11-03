@@ -301,6 +301,20 @@ async function demoSettings() {
 }
 
 // ---------------------------------------------------------------------------
+// Host-mediated network (requires `network` and the manifest host allowlist)
+// ---------------------------------------------------------------------------
+
+async function demoNetworkFetch() {
+  const response = await tagline.network.fetch(
+    'https://api.github.com/repos/Julieisbaka/Tagline',
+    { headers: { Accept: 'application/vnd.github+json' } },
+  );
+  if (!response.ok) {throw new Error(`GitHub returned HTTP ${response.status}.`);}
+  const repository = JSON.parse(response.body);
+  return `${repository.full_name}: ${repository.html_url}`;
+}
+
+// ---------------------------------------------------------------------------
 // Private storage (no permission)
 // ---------------------------------------------------------------------------
 
@@ -398,6 +412,7 @@ const DEMOS = [
   { id: 'emit-event', label: 'Emit custom event', group: 'Events', run: demoEmitEvent },
   { id: 'helpers', label: 'Helpers', group: 'Data', run: demoHelpers },
   { id: 'settings', label: 'Settings', group: 'Data', run: demoSettings },
+  { id: 'network-fetch', label: 'Public repository metadata', group: 'Network', run: demoNetworkFetch },
   { id: 'storage', label: 'Storage', group: 'Data', run: demoStorage },
   { id: 'vault-index', label: 'Write index', group: 'Vault', run: demoVaultIndex },
   { id: 'vault-lifecycle', label: 'Lifecycle', group: 'Vault', run: demoVaultLifecycle },
