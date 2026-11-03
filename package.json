@@ -67,6 +67,14 @@
     "asarUnpack": [
       "node_modules/onnxruntime-node/**/*"
     ],
+    "protocols": [
+      {
+        "name": "Tagline link",
+        "schemes": [
+          "tagline"
+        ]
+      }
+    ],
     "fileAssociations": [
       {
         "ext": "flow",

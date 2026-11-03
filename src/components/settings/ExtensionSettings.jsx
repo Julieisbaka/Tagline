@@ -12,6 +12,7 @@ const PERMISSION_LABELS = {
   events: 'Subscribe to application events and exchange custom extension events',
   ui: 'Display sandboxed panels, webviews and ribbon shortcuts',
   network: 'Make host-mediated HTTPS requests to reviewed hosts',
+  secrets: 'Store and read OS-encrypted secrets such as API keys',
 };
 
 function ExtensionSettingsForm({ item, extensions }) {
@@ -305,6 +306,16 @@ export default function ExtensionSettings({ extensions }) {
             )}
             {item.networkHosts?.length > 0 && (
               <p>{t('Requested HTTPS hosts: {hosts}', { hosts: item.networkHosts.join(', ') })}</p>
+            )}
+            {item.permissions?.includes('secrets') && (
+              <div className='settings-actions'>
+                <button
+                  disabled={busy}
+                  onClick={() => act(() => window.api.clearExtensionSecrets(item.id))}
+                >
+                  {t('Clear stored secrets')}
+                </button>
+              </div>
             )}
             {item.contributes?.settings?.length > 0 && (
               <ExtensionSettingsForm item={item} extensions={extensions} />

@@ -28,6 +28,7 @@ function ContextMenu({ menu, onClose, actions, favorites }) {
     : [
         ['Open in new tab', () => actions.open(node.path, true)],
         ['Copy note path', () => actions.copyNotePath(node.path)],
+        ['Copy Tagline link', () => actions.copyNoteLink(node.path)],
         ...(isMarkdown(node.path)
           ? [
               [

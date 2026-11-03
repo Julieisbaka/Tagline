@@ -325,7 +325,19 @@ async function demoStorage() {
   const stored = await tagline.storage.get('temporary');
   await tagline.storage.set('temporary', null);
   const removed = await tagline.storage.get('temporary');
-  return `storageRuns=${runs}; "temporary" was ${stored ? 'stored' : 'missing'} and is now ${removed === null ? 'deleted' : 'still present'}.`;
+}
+
+// ---------------------------------------------------------------------------
+// Secrets (requires `secrets`; values are encrypted with the OS credential service)
+// ---------------------------------------------------------------------------
+
+async function demoSecrets() {
+  await tagline.secrets.set('demo-token', 'not-a-real-token');
+  const present = await tagline.secrets.has('demo-token');
+  const value = await tagline.secrets.get('demo-token');
+  await tagline.secrets.delete('demo-token');
+  const removed = !(await tagline.secrets.has('demo-token'));
+  return `Secret round-trip ${present && value === 'not-a-real-token' ? 'succeeded' : 'failed'}; secret ${removed ? 'deleted' : 'still present'}.`;
 }
 
 // ---------------------------------------------------------------------------
@@ -414,6 +426,7 @@ const DEMOS = [
   { id: 'settings', label: 'Settings', group: 'Data', run: demoSettings },
   { id: 'network-fetch', label: 'Public repository metadata', group: 'Network', run: demoNetworkFetch },
   { id: 'storage', label: 'Storage', group: 'Data', run: demoStorage },
+  { id: 'secrets', label: 'Secrets', group: 'Data', run: demoSecrets },
   { id: 'vault-index', label: 'Write index', group: 'Vault', run: demoVaultIndex },
   { id: 'vault-lifecycle', label: 'Lifecycle', group: 'Vault', run: demoVaultLifecycle },
   { id: 'open-inspector', label: 'Open inspector', group: 'UI', run: openInspector },

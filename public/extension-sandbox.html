@@ -429,7 +429,16 @@
           /** Read this extension's private JSON value, or null. No permission required. @returns {Promise<*>} */
           get: (key) => call('storage.get', key),
           /** Persist private JSON; null/undefined deletes a key. Subject to storage limits. @returns {Promise<boolean>} */
-          set: (key, value) => call('storage.set', key, value),
+        }),
+        secrets: Object.freeze({
+          /** Read an OS-encrypted secret string, or null. Requires `secrets`. @returns {Promise<string|null>} */
+          get: (key) => call('secrets.get', key),
+          /** Store an OS-encrypted secret string (max 10,000 chars); null/undefined deletes it. Requires `secrets`. @returns {Promise<boolean>} */
+          set: (key, value) => call('secrets.set', key, value),
+          /** Whether a secret exists. Requires `secrets`. @returns {Promise<boolean>} */
+          has: (key) => call('secrets.has', key),
+          /** Delete a secret. Requires `secrets`. @returns {Promise<boolean>} */
+          delete: (key) => call('secrets.set', key, null),
         }),
         /** Display a themed in-app notification prefixed with the extension name (max 500 characters). @returns {Promise<boolean>} */
         notify: (message) => call('notify', message),

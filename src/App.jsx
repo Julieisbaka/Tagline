@@ -363,6 +363,15 @@ export default function App() {
         notify(t('Could not copy note path: {error}', { error: error.message }));
       }
     },
+    copyNoteLink: async (path) => {
+      const encoded = path.split('/').map(encodeURIComponent).join('/');
+      try {
+        await navigator.clipboard.writeText(`tagline://note/${encoded}`);
+        notify(t('Copied Tagline link'));
+      } catch (error) {
+        notify(t('Could not copy Tagline link: {error}', { error: error.message }));
+      }
+    },
     switchVault: () => setModal({ type: 'vaults' }),
     settings: () => setModal({ type: 'settings' }),
     newNote: (dir = activePath ? dirName(activePath) : '') =>
@@ -685,6 +694,53 @@ export default function App() {
   useEffect(() => {
     window.api.setKeybindings(settings.keybindings).catch((error) => notify(error.message));
   }, [settings.keybindings, notify]);
+  const uriRef = useRef({});
+  uriRef.current = { paths, contents: v.contents, open, notify };
+  useEffect(() => {
+    if (!v.initialized) {
+      return;
+    }
+    let draining = false;
+    let disposed = false;
+    const drain = async () => {
+      if (draining || disposed) {
+        return;
+      }
+      draining = true;
+      try {
+        let link;
+        while (!disposed && (link = await window.api.nextUri())) {
+          const { paths: known, contents, open: openNote, notify: say } = uriRef.current;
+          if (!known.includes(link.path)) {
+            say(t('Link target not found in this vault: {path}', { path: link.path }));
+            continue;
+          }
+          openNote(link.path);
+          if (link.heading) {
+            const h = outline(contents[link.path] || '').find(
+              (x) => slugify(x.text) === slugify(link.heading)
+            );
+            setJump({
+              path: link.path,
+              heading: link.heading,
+              line: h?.line ?? null,
+              n: Date.now(),
+            });
+          }
+        }
+      } catch (error) {
+        notify(error.message);
+      } finally {
+        draining = false;
+      }
+    };
+    const unsubscribe = window.api.onUriAvailable(drain);
+    drain();
+    return () => {
+      disposed = true;
+      unsubscribe();
+    };
+  }, [v.initialized, notify]);
   const mcpRef = useRef({});
   mcpRef.current = { reload: v.reload, open };
   useEffect(() => {
