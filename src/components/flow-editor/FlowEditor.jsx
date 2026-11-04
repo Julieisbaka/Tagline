@@ -346,7 +346,13 @@ export default function FlowEditor({
     if (!area) {
       return;
     }
-    await navigator.clipboard.writeText(copyFlowCells(sheet.rows, area));
+    const text = copyFlowCells(sheet.rows, area);
+    if (window.api?.clipboardWrite) {
+      await window.api.clipboardWrite(text);
+    } else {
+      window.focus();
+      await navigator.clipboard.writeText(text);
+    }
     if (cut) {
       clear(area);
     }

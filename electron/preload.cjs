@@ -6,6 +6,7 @@ contextBridge.exposeInMainWorld('api', {
   nativeContextMenu: (items) => ipcRenderer.invoke('app:nativeContextMenu', items),
   nativeConfirm: (options) => ipcRenderer.invoke('app:nativeConfirm', options),
   editText: (action) => ipcRenderer.invoke('app:editText', action),
+  clipboardWrite: (text) => ipcRenderer.invoke('app:clipboardWrite', text),
   systemLanguages: JSON.parse(
     decodeURIComponent(
       process.argv.find((arg) => arg.startsWith('--tagline-languages=')).split('=')[1]

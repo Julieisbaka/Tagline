@@ -429,6 +429,7 @@
           /** Read this extension's private JSON value, or null. No permission required. @returns {Promise<*>} */
           get: (key) => call('storage.get', key),
           /** Persist private JSON; null/undefined deletes a key. Subject to storage limits. @returns {Promise<boolean>} */
+          set: (key, value) => call('storage.set', key, value),
         }),
         secrets: Object.freeze({
           /** Read an OS-encrypted secret string, or null. Requires `secrets`. @returns {Promise<string|null>} */

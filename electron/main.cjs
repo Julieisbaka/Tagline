@@ -8,6 +8,7 @@ const {
   safeStorage,
   session,
   nativeTheme,
+  clipboard,
 } = require('electron');
 const path = require('path');
 const fs = require('fs/promises');
@@ -166,6 +167,10 @@ function registerIpc() {
       throw new Error('Invalid text editing action.');
     }
     return event.sender[action]();
+  });
+  ipcMain.handle('app:clipboardWrite', (_event, text) => {
+    clipboard.writeText(String(text ?? ''));
+    return true;
   });
   const updates = createUpdateManager({
     app,

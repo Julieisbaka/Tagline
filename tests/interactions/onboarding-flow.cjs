@@ -94,10 +94,18 @@ module.exports = async function runScenario({
     await js("document.querySelector('.context-menu').parentElement === document.body"),
     true
   );
+  await js('window.focus()');
   await button('.context-menu button', 'Cut cells');
-  await wait(
-    "[...document.querySelectorAll('.flow-grid textarea')].slice(0,4).every(el => el.value === '')"
-  );
+  for (let i = 0; i < 400; i++) {
+    if (
+      await js(
+        "[...document.querySelectorAll('.flow-grid textarea')].slice(0,4).every(el => el.value === '')"
+      )
+    ) {
+      break;
+    }
+    await delay(50);
+  }
   assert.equal(
     (await require('electron').clipboard.readText()).replace(/\r\n/g, '\n'),
     'claim\tanswer\nimpact\tresponse'

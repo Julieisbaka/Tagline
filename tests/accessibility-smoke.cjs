@@ -345,7 +345,7 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
         const selectedPaletteOption = await js(
           "document.activeElement.getAttribute('aria-activedescendant')"
         );
-        await key('ArrowDown');
+        await key('Down');
         assert.notEqual(
           await js("document.activeElement.getAttribute('aria-activedescendant')"),
           selectedPaletteOption,
@@ -380,6 +380,7 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
             'toolbar supports arrow keys'
           );
           await js(`document.querySelector('${editor}').focus()`);
+          await delay(500);
           assert.equal(
             await js('getComputedStyle(document.activeElement).outlineStyle'),
             'solid',

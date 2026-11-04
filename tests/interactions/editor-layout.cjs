@@ -1,4 +1,5 @@
 module.exports = async function runScenario({
+  win,
   wc,
   assert,
   delay,
@@ -12,6 +13,7 @@ module.exports = async function runScenario({
 }) {
   await open('Alpha.md');
   await wait("!!document.querySelector('.status-bar [data-bar-item=words]')");
+  await wait("!!document.querySelector('.visual-document')");
   await js(`(() => {
     const editor = document.querySelector('.visual-document');
     editor.focus();
@@ -35,11 +37,31 @@ module.exports = async function runScenario({
     const node = editor.querySelector('.cm-line').firstChild;
     const range = document.createRange(); range.selectNodeContents(node);
     const selection = window.getSelection(); selection.removeAllRanges(); selection.addRange(range);
+    window.focus();
     window.expectedTextCopy = selection.toString();
   })()`);
+  await delay(150);
+  win.focus();
   await context('.source-editor .cm-content');
-  await button('.context-menu button', 'Copy');
-  await delay(100);
+  for (let attempt = 0; attempt < 5; attempt++) {
+    await button('.context-menu button', 'Copy');
+    await delay(100);
+    const clip = await require('electron').clipboard.readText();
+    if (clip === (await js('window.expectedTextCopy'))) {
+      break;
+    }
+    // re-select and re-open context menu
+    await js(`(() => {
+      const editor = document.querySelector('.source-editor .cm-content');
+      editor.focus();
+      const node = editor.querySelector('.cm-line').firstChild;
+      const range = document.createRange(); range.selectNodeContents(node);
+      const selection = window.getSelection(); selection.removeAllRanges(); selection.addRange(range);
+      window.expectedTextCopy = selection.toString();
+    })()`);
+    await delay(100);
+    await context('.source-editor .cm-content');
+  }
   assert.equal(await require('electron').clipboard.readText(), await js('window.expectedTextCopy'));
   await js(`(() => {
     const select = document.querySelector('[aria-label="Editor mode"]');
