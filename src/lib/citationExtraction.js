@@ -78,6 +78,32 @@ export function expandTwoDigitYear(yearNum, currentYear = new Date().getFullYear
   return assumed > currentYear ? assumed - 100 : assumed;
 }
 
+/**
+ * Validate an ISBN-10 or ISBN-13 check digit so typo'd identifiers are not
+ * turned into links that will fail when fetched.
+ *
+ * @param {string} value ISBN digits, optionally with separators or a trailing X.
+ * @returns {boolean} Whether the value is a well-formed ISBN with a valid check digit.
+ */
+export function isValidIsbn(value) {
+  const digits = String(value).replace(/[-\s]/g, '').toUpperCase();
+  if (/^\d{9}[\dX]$/.test(digits)) {
+    const sum = [...digits].reduce(
+      (total, char, index) => total + (char === 'X' ? 10 : Number(char)) * (10 - index),
+      0
+    );
+    return sum % 11 === 0;
+  }
+  if (/^\d{13}$/.test(digits)) {
+    const sum = [...digits].reduce(
+      (total, char, index) => total + Number(char) * (index % 2 ? 3 : 1),
+      0
+    );
+    return sum % 10 === 0;
+  }
+  return false;
+}
+
 function expandYear(token, currentYear = new Date().getFullYear()) {
   if (/^(?:19|20)\d{2}$/.test(token)) {
     return token;
@@ -249,7 +275,11 @@ function parseCitation(lead, suffix) {
   } else if (arxiv) {
     citation.url = `https://arxiv.org/abs/${arxiv[1]}`;
   } else if (isbn) {
-    citation.url = `https://openlibrary.org/api/books?bibkeys=ISBN:${isbn}&jscmd=data`;
+    if (isValidIsbn(isbn)) {
+      citation.url = `https://openlibrary.org/api/books?bibkeys=ISBN:${isbn}&jscmd=data`;
+    } else {
+      uncertain.add('url');
+    }
   } else if (/\[[^\]]+\](?:\[[^\]]*\]|\([^)]+\))/.test(details)) {
     uncertain.add('url');
   }

@@ -14,6 +14,7 @@ import {
 } from './canvas.js';
 import { cardStats, formatDuration, getSectionAt, spokenEvidence } from './card.js';
 import { createCitation, spokenCitations } from './citation.js';
+import { expandTwoDigitYear, extractCardCitation, isValidIsbn } from './citationExtraction.js';
 import { remainingAt } from './countdown.js';
 import { cellBounds, copyFlowCells, parseFlowCells, pasteFlowCells } from './flowCells.js';
 import { folderPaths, normalizeFolders } from './folderPaths.js';
@@ -55,6 +56,7 @@ import {
   rewriteLinks,
 } from './vault.js';
 import { moveWorkspaceItem, normalizeWorkspaceItems } from './workspaceItems.js';
+import { extensionUtilityHelper } from './extensionUtilityHelpers.js';
 
 /**
  * Maximum input text accepted by extension pure-text helpers.
@@ -176,6 +178,37 @@ function requireHelperText(value, label) {
     throw new Error(`${label} must be text up to ${MAX_HELPER_TEXT} characters.`);
   }
   return value;
+}
+
+/**
+ * Validate optional Markdown reference definitions supplied to citation extraction.
+ * @param {*} value
+ * @returns {object}
+ */
+function requireReferences(value) {
+  if (value === undefined) {
+    return {};
+  }
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    throw new Error('References must be an object mapping labels to { href }.');
+  }
+  const entries = Object.entries(value);
+  if (entries.length > 10_000) {
+    throw new Error('References must contain at most 10,000 entries.');
+  }
+  const references = {};
+  for (const [key, entry] of entries) {
+    if (
+      !entry ||
+      typeof entry !== 'object' ||
+      typeof entry.href !== 'string' ||
+      entry.href.length > 10_000
+    ) {
+      throw new Error('Each reference must include an href string up to 10,000 characters.');
+    }
+    references[key] = { href: entry.href };
+  }
+  return references;
 }
 
 /**
@@ -713,6 +746,25 @@ export function extensionHelper(method, args) {
       }
       return createCitation(details);
     }
+    case 'helpers.citations.extract':
+      return extractCardCitation(
+        requireHelperText(args[0], 'Markdown'),
+        requireReferences(args[1])
+      );
+    case 'helpers.citations.isValidIsbn':
+      return isValidIsbn(requireHelperText(args[0], 'ISBN'));
+    case 'helpers.citations.expandTwoDigitYear': {
+      if (!Number.isSafeInteger(args[0]) || args[0] < 0 || args[0] > 99) {
+        throw new Error('Year must be an integer from 0 to 99.');
+      }
+      if (
+        args[1] !== undefined &&
+        (!Number.isSafeInteger(args[1]) || args[1] < 1 || args[1] > 9999)
+      ) {
+        throw new Error('Current year must be an integer from 1 to 9999.');
+      }
+      return expandTwoDigitYear(args[0], args[1]);
+    }
     case 'helpers.speech.analyze':
       return speechStats(requireHelperText(args[0], 'Text'));
     case 'helpers.speech.estimate': {
@@ -725,6 +777,6 @@ export function extensionHelper(method, args) {
       return { ...stats, seconds: readingSeconds(stats, wpm) };
     }
     default:
-      throw new Error(`Unknown extension helper: ${method}`);
+      return extensionUtilityHelper(method, args);
   }
 }

@@ -117,6 +117,44 @@ test('extension capabilities validate selection, command, helper, event and UI c
     ]),
     '**Smith 2024** — "A claim"'
   );
+  assert.deepEqual(extensionHelper('helpers.citations.extract', ['**Smith 2024** — "Study"']), {
+    citation: {
+      author: 'Smith',
+      year: '2024',
+      title: 'Study',
+      publication: '',
+      url: '',
+      accessed: '',
+    },
+    uncertainFields: [],
+  });
+  assert.equal(
+    extensionHelper('helpers.citations.extract', [
+      '**Smith 2024** — [article][source]',
+      { source: { href: 'https://example.com/a' } },
+    ]).citation.url,
+    'https://example.com/a'
+  );
+  assert.equal(extensionHelper('helpers.citations.isValidIsbn', ['978-0-201-89683-1']), true);
+  assert.equal(extensionHelper('helpers.citations.isValidIsbn', ['978-0-201-89683-2']), false);
+  assert.equal(extensionHelper('helpers.citations.expandTwoDigitYear', [24, 2026]), 2024);
+  assert.equal(extensionHelper('helpers.citations.expandTwoDigitYear', [27, 2026]), 1927);
+  assert.throws(
+    () => extensionHelper('helpers.citations.expandTwoDigitYear', [100]),
+    /Year must be/
+  );
+  assert.throws(
+    () => extensionHelper('helpers.citations.extract', ['**Smith 2024**', []]),
+    /References/
+  );
+  assert.throws(
+    () =>
+      extensionHelper('helpers.citations.extract', [
+        '**Smith 2024**',
+        { source: { href: 42 } },
+      ]),
+    /href/
+  );
   assert.equal(extensionHelper('helpers.search.fuzzyScore', ['deb', 'debate']), 999.4);
   assert.equal(extensionHelper('helpers.templates.fill', ['{{title}}', 'Case']), 'Case');
   assert.equal(
@@ -245,6 +283,136 @@ test('extension capabilities validate selection, command, helper, event and UI c
   assert.equal(host.surfaces.size, 0);
   applicationEvents.emit('ext.capabilities.disposal', {});
   assert.equal(sent.length, count);
+});
+
+test('utility helpers expose cards, checkup, search, themes and reject unbounded input', async () => {
+  const { extensionHelper } = await import('../src/lib/extensionCapabilities.js');
+  const cardMarkdown =
+    '#### Climate impact\n\n**Smith 2024** — "Study", https://example.com/a\n';
+  const detected = extensionHelper('helpers.cards.detect', [cardMarkdown]);
+  assert.equal(detected.length, 1);
+  assert.equal(detected[0].title, 'Climate impact');
+  assert.equal(
+    extensionHelper('helpers.cards.containsEvidence', [cardMarkdown, 'Climate impact']),
+    true
+  );
+
+  assert.deepEqual(extensionHelper('helpers.checkup.fields', []), [
+    'author',
+    'year',
+    'title',
+    'publication',
+    'url',
+    'accessed',
+  ]);
+  assert.equal(extensionHelper('helpers.checkup.normalize', [{}]).staleYears, 5);
+  const cards = extensionHelper('helpers.checkup.scan', [{ 'a.md': cardMarkdown }]);
+  assert.equal(cards.length, 1);
+  assert.deepEqual(extensionHelper('helpers.checkup.citedUrls', [cards]), [
+    'https://example.com/a',
+  ]);
+  const issues = extensionHelper('helpers.checkup.audit', [
+    cards,
+    { checks: { stale: false, links: false } },
+    '2026-01-01',
+  ]);
+  assert.ok(issues.some((issue) => issue.kind === 'missing_fields'));
+  assert.deepEqual(extensionHelper('helpers.checkup.linkIssues', [cards, {}]), []);
+  assert.deepEqual(extensionHelper('helpers.checkup.sourceIssues', [cards, {}]), []);
+
+  const metadata = extensionHelper('helpers.frontmatter.read', ['---\nname: Test\n---\nBody']);
+  assert.equal(metadata.data.name, 'Test');
+  assert.ok(metadata.body.includes('Body'));
+
+  const bindings = extensionHelper('helpers.keybindings.all', []);
+  assert.ok(Array.isArray(bindings) && bindings.length > 0);
+  assert.equal(
+    extensionHelper('helpers.keybindings.binding', [bindings[0].id]),
+    bindings[0].key
+  );
+  assert.equal(typeof extensionHelper('helpers.keybindings.reserved', ['Mod+S']), 'boolean');
+  const event = { key: 's', code: 'KeyS', ctrlKey: true };
+  const shortcut = extensionHelper('helpers.keybindings.event', [event, 'win32']);
+  assert.equal(shortcut, 'Mod+S');
+  assert.equal(extensionHelper('helpers.keybindings.matches', [event, shortcut, 'win32']), true);
+  assert.equal(extensionHelper('helpers.keybindings.editor', ['Mod+B']), 'Mod-b');
+  const originalWindow = global.window;
+  global.window = { api: { platform: 'win32' } };
+  let conflict;
+  try {
+    conflict = extensionHelper('helpers.keybindings.conflict', [bindings[0].id, 'Mod+Shift+Z']);
+  } finally {
+    global.window = originalWindow;
+  }
+  assert.ok(conflict === null || typeof conflict === 'object');
+
+  assert.equal(extensionHelper('helpers.language.languages', []).en, 'English');
+  assert.ok(Array.isArray(extensionHelper('helpers.nli.templates', [])));
+  assert.ok(Array.isArray(extensionHelper('helpers.layout.ribbonItems', [])));
+  assert.ok(Array.isArray(extensionHelper('helpers.layout.defaultRibbonItems', [])));
+  assert.ok(Array.isArray(extensionHelper('helpers.layout.fileActions', [])));
+  assert.ok(Array.isArray(extensionHelper('helpers.layout.statusItems', [])));
+
+  const parsed = extensionHelper('helpers.search.parse', ['tag:#climate "carbon tax"']);
+  assert.deepEqual(parsed.tags, ['climate']);
+  assert.deepEqual(parsed.phrases, ['carbon tax']);
+  assert.deepEqual(
+    Object.keys(
+      extensionHelper('helpers.search.filter', [
+        { 'a.md': 'carbon tax policy', 'b.md': 'other', 'c.txt': 'carbon tax' },
+        { tags: { climate: ['a.md'] } },
+        'tag:#climate "carbon tax"',
+      ])
+    ),
+    ['a.md']
+  );
+  assert.equal(
+    extensionHelper('helpers.search.vault', [
+      { 'a.md': 'carbon tax policy' },
+      { tags: {} },
+      'carbon',
+    ]).length,
+    1
+  );
+  assert.ok(
+    Array.isArray(extensionHelper('helpers.search.excerpt', ['carbon tax policy', ['carbon']]))
+  );
+  assert.ok(
+    Array.isArray(
+      extensionHelper('helpers.search.mergeHybrid', [
+        [{ path: 'a.md', matches: [] }],
+        [{ path: 'b.md', line: 0, text: 'x', score: 1 }],
+        10,
+      ])
+    )
+  );
+  assert.equal(extensionHelper('helpers.search.candidateLimit', []), 1000);
+
+  const builtin = extensionHelper('helpers.themes.builtin', []);
+  assert.ok(Array.isArray(builtin) && builtin.length > 0);
+  assert.ok(Array.isArray(extensionHelper('helpers.themes.colorTokens', [])));
+  assert.equal(extensionHelper('helpers.themes.validate', [builtin[0]]).name, builtin[0].name);
+  assert.equal(
+    extensionHelper('helpers.themes.resolveSettings', [builtin[0], {}]).name,
+    builtin[0].name
+  );
+  assert.equal(extensionHelper('helpers.themes.get', ['dark']).name, builtin[0].name);
+  assert.ok(Array.isArray(extensionHelper('helpers.themes.extensionThemes', [])));
+
+  assert.equal(extensionHelper('helpers.vault.isJson', ['a.json']), true);
+  assert.equal(extensionHelper('helpers.vault.isJson', ['a.md']), false);
+  const emptyCanvas = extensionHelper('helpers.canvas.empty', []);
+  assert.equal(typeof emptyCanvas, 'string');
+  assert.ok(Array.isArray(JSON.parse(emptyCanvas).nodes));
+
+  assert.throws(() => extensionHelper('helpers.cards.detect', ['x'.repeat(100_001)]), /100,?000/);
+  assert.throws(
+    () => extensionHelper('helpers.keybindings.event', [{ key: 's' }, 'plan9']),
+    /platform/i
+  );
+  assert.throws(() => extensionHelper('helpers.checkup.citedUrls', ['cards']), /array/i);
+  assert.throws(() => extensionHelper('helpers.search.filter', [{}, {}, 'x']), /index|tags/i);
+  assert.throws(() => extensionHelper('helpers.themes.validate', [{}]), /theme|version|name/i);
 });
 
 test('UI contributions require permission, declarations, a script and bounded unique identifiers', () => {

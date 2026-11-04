@@ -165,6 +165,52 @@ test('builds arXiv and ISBN links and keeps BCE and range years', async () => {
   assert.ok(Number(rolled.citation.year) <= currentYear - 99);
 });
 
+test('validates ISBN check digits before linking', async () => {
+  const { extractCardCitation, isValidIsbn } = await import('../src/lib/citationExtraction.js');
+  assert.equal(isValidIsbn('978-0-201-89683-1'), true);
+  assert.equal(isValidIsbn('0-306-40615-2'), true);
+  assert.equal(isValidIsbn('0-8044-2957-X'), true);
+  assert.equal(isValidIsbn('978-0-201-89683-2'), false);
+  assert.equal(isValidIsbn('0-306-40615-3'), false);
+  assert.equal(isValidIsbn('not-an-isbn'), false);
+
+  const valid = extractCardCitation('**Knuth 1997** — ISBN 978-0-201-89683-1');
+  assert.equal(
+    valid.citation.url,
+    'https://openlibrary.org/api/books?bibkeys=ISBN:9780201896831&jscmd=data'
+  );
+  assert.deepEqual(valid.uncertainFields, []);
+
+  const invalid = extractCardCitation('**Knuth 1997** — ISBN 978-0-201-89683-2');
+  assert.equal(invalid.citation.url, '');
+  assert.deepEqual(invalid.uncertainFields, ['url']);
+});
+
+test('creates citations with BCE years that the extractor can round-trip', async () => {
+  const { createCitation, spokenCitations } = await import('../src/lib/citation.js');
+  const { extractCardCitation } = await import('../src/lib/citationExtraction.js');
+  assert.equal(
+    createCitation({ author: 'Plato', year: '399 BCE', title: 'Apology' }),
+    '**Plato 399 BCE** — "Apology"'
+  );
+  assert.equal(createCitation({ author: 'Smith', year: '2024' }), '**Smith 2024**');
+
+  const { citation, uncertainFields } = extractCardCitation(
+    createCitation({ author: 'Plato', year: '399 BCE', title: 'Apology' })
+  );
+  assert.equal(citation.author, 'Plato');
+  assert.equal(citation.year, '399 BCE');
+  assert.equal(citation.title, 'Apology');
+  assert.deepEqual(uncertainFields, []);
+
+  assert.equal(spokenCitations('**Plato 399 BCE** — "Apology"'), 'Plato 399 BCE');
+  assert.equal(spokenCitations('**Smith 1990-2000** — "Study"'), 'Smith 1990-2000');
+  assert.equal(spokenCitations('**Smith 24 — Example Journal 2024**'), 'Smith 24');
+
+  assert.throws(() => createCitation({ author: 'Smith', year: '399 BCEX' }));
+  assert.throws(() => createCitation({ author: 'Smith', year: '20245' }));
+});
+
 test('marks invalid or ambiguous dates uncertain instead of inventing a year', async () => {
   const { extractCardCitation } = await import('../src/lib/citationExtraction.js');
   const invalid = extractCardCitation('**Smith, February 30, 2024** — "Study"');

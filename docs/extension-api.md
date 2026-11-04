@@ -502,6 +502,10 @@ const stats = await tagline.helpers.cards.stats(card.text);
 const formattedDuration = await tagline.helpers.cards.formatDuration(75); // "1:15"
 const timing = await tagline.helpers.speech.estimate(card.text, 250);
 const citation = await tagline.helpers.citations.create({ author: 'Smith', year: '2024' });
+const parsed = await tagline.helpers.citations.extract('**Smith 2024** — "Study"');
+// parsed.citation.year === "2024"; parsed.uncertainFields is []
+const isbnOk = await tagline.helpers.citations.isValidIsbn('978-0-201-89683-1'); // true
+const expanded = await tagline.helpers.citations.expandTwoDigitYear(24); // 2024
 const score = await tagline.helpers.search.fuzzyScore('deb', 'debate');
 const filled = await tagline.helpers.templates.fill('Case: {{title}}', 'Energy');
 const outline = await tagline.helpers.vault.outline('# Case');
@@ -509,6 +513,10 @@ const seconds = await tagline.helpers.countdown.remainingAt(Date.now() + 30_000)
 const language = await tagline.helpers.language.initial('invalid', ['es-MX']); // "es"
 const isShortcut = await tagline.helpers.keybindings.valid('Mod+Shift+K');
 const order = await tagline.helpers.layout.moveWorkspace(['cards', 'words'], 'words', 'cards');
+const cards = await tagline.helpers.cards.detect(markdown);
+const audit = await tagline.helpers.checkup.audit(cards, { checks: { links: false } });
+const themes = await tagline.helpers.themes.builtin();
+const bound = await tagline.helpers.keybindings.binding('save');
 
 const disposables = tagline.helpers.createDisposables();
 disposables.add(await tagline.events.on('ext.debate-tools.finished', () => {}));
@@ -533,7 +541,13 @@ Card helpers provide `getAt(markdown, offset)`, `stats(markdown)`, and
 heading section containing the character offset, or `null` if there is no
 preceding heading. Speech helpers provide `analyze(text)` and
 `estimate(text, wordsPerMinute = 250)`; estimates include the analysis fields
-and `seconds`. `citations.create(details)` formats citation Markdown;
+and `seconds`. `citations.create(details)` formats citation Markdown and accepts
+four-digit, two-digit, or BCE/BC years; `citations.spoken(markdown)` returns
+author/year leads for speaking; `citations.extract(markdown, references = {})`
+returns `{ citation, uncertainFields }`; `citations.isValidIsbn(value)` validates
+an ISBN-10 or ISBN-13 check digit; and
+`citations.expandTwoDigitYear(year, currentYear?)` expands a two-digit year,
+assuming 20xx unless that year is still in the future (then 19xx);
 `search.fuzzyScore(query, text)` returns a relevance score; and
 `templates.fill(template, title, context = {})` replaces `{{date}}`, `{{time}}`,
 `{{title}}`, `{{path}}`, `{{content}}`, and `{{properties}}`. Supply the target
@@ -551,16 +565,25 @@ Additional pure helpers are available under these namespaces:
 
 - `countdown.remainingAt(deadline, now = Date.now())` returns nonnegative seconds;
   both timestamps are milliseconds.
-- `language.system(locales = [])` selects the first supported locale, and
-  `language.initial(saved, locales = [])` prefers a supported saved language.
-  Supported language IDs are `en`, `es`, and `fr`.
+- `language.system(locales = [])` selects the first supported locale,
+  `language.initial(saved, locales = [])` prefers a supported saved language, and
+  `language.languages()` returns the supported language map. Supported language
+  IDs are `en`, `es`, and `fr`.
 - `keybindings.valid(shortcut)` checks supported shortcut syntax.
   `keybindings.display(shortcut, platform)` formats `Mod` as `Cmd` or `Ctrl`;
-  `platform` must be `darwin`, `win32`, or `linux`.
+  `platform` must be `darwin`, `win32`, or `linux`. `keybindings.all()` returns
+  the command definitions; `binding(id, overrides = {}, extra = [])` resolves a
+  shortcut; `reserved(shortcut, id = '')` reports reserved bindings;
+  `event(event, platform)` converts a keyboard event to a shortcut;
+  `matches(event, shortcut, platform)` tests a binding;
+  `conflict(id, shortcut, overrides, extra = [])` returns the conflicting
+  command or `null`; and `editor(shortcut)` returns the editor key name.
 - `layout.normalizeRibbon(items, contributions, hidden)` and
   `layout.normalizeWorkspace(items, catalog)` filter and normalize item order.
   `layout.moveRibbon(items, sourceId, targetId)` and
   `layout.moveWorkspace(items, id, targetId)` return reordered copies.
+  `layout.ribbonItems()`, `defaultRibbonItems()`, `fileActions()`, and
+  `statusItems()` return the built-in layout catalogs.
 - `vault.extractLinks(markdown)`, `extractTags(markdown)`, `outline(markdown)`,
   and `resolveLink(target, paths)` offer vault-oriented Markdown parsing and
   resolution. They do not read files; `paths` is caller-supplied.
@@ -573,10 +596,12 @@ Additional pure helpers are available under these namespaces:
 - `folders.paths(tree)` returns folder paths in tree order;
   `folders.normalize(path, isFolder, existing = [])` normalizes a path against
   existing entries without accessing the filesystem.
-- `frontmatter.split(markdown)`, `markSpeech(markdown)`, and
-  `speechPaths(documents)` split frontmatter, set `speech: true`, and list
-  speech documents from caller-supplied path-to-text data.
-- `vault.isFlow(path)`, `isMarkdown(path)`, `isCanvas(path)`, `baseName(path)`,
+- `frontmatter.split(markdown)`, `read(markdown)`, `markSpeech(markdown)`, and
+  `speechPaths(documents)` split frontmatter, read parsed properties (including
+  an `error` field for invalid YAML), set `speech: true`, and list speech
+  documents from caller-supplied path-to-text data.
+- `vault.isFlow(path)`, `isMarkdown(path)`, `isCanvas(path)`, `isJson(path)`,
+  `baseName(path)`,
   `displayName(path, hideFlowExtension = true, showMarkdownExtension = false)`,
   `dirName(path)`, `joinPath(directory, name)`, `index(documents)`,
   `flattenTree(tree)`, `rewriteLinks(markdown, oldPath, newPath, paths)`, and
@@ -585,16 +610,41 @@ Additional pure helpers are available under these namespaces:
   `validateSample(sample)`, `calibrate(samples = [])`, and
   `assess(stats, wordsPerMinute = 250, profile)` expose speech analysis and
   timing. Calibration accepts at most 100 validated samples.
-- `nli.premise(markdown)`, `hypotheses(templateId, lines)`, and
-  `label(probability)` prepare text and map probabilities to Tagline's
-  entailment labels.
+- `nli.premise(markdown)`, `hypotheses(templateId, lines)`, `templates()`, and
+  `label(probability)` prepare text, list hypothesis templates, and map
+  probabilities to Tagline's entailment labels.
+- `cards.detect(markdown)` returns detected card headings and line ranges, and
+  `cards.containsEvidence(document, text)` checks whether text occurs in the
+  document body.
+- `checkup.fields()` and `checkup.defaults()` return the citation field list and
+  default settings; `checkup.normalize(options)` validates settings;
+  `checkup.scan(documents)` detects cards in path-to-text data;
+  `checkup.citedUrls(cards)` returns unique URLs; `checkup.audit(cards,
+  options = {}, now)` reports issues (`now` accepts a `Date`, timestamp, or date
+  string); `checkup.linkIssues(cards, results)` and
+  `checkup.sourceIssues(cards, results)` compare link and source results.
+- `search.parse(query)` returns parsed tags, terms, phrases, and text;
+  `search.filter(documents, index, query)` filters caller-supplied documents;
+  `search.vault(documents, index, query, maxResults, options)` runs a bounded
+  search (`maxResults` 1–1,000, `options = { matchAll: true }`);
+  `search.excerpt(text, terms, maxLength = 200)` returns matched segments;
+  `search.mergeHybrid(keywordResults, semanticResults, maxResults)` merges
+  keyword and semantic hits; and `search.candidateLimit()` returns the hybrid
+  candidate limit.
+- `themes.builtin()` and `themes.colorTokens()` return built-in themes and color
+  tokens; `themes.validate(theme)` validates and normalizes a theme;
+  `themes.resolveSettings(theme, values = {})` applies settings;
+  `themes.get(id, customTheme, settings = {})` resolves a theme by ID; and
+  `themes.extensionThemes()` lists contributed themes.
+- `canvas.empty()` returns an empty Canvas document.
 
 Helper bridge inputs are bounded: Markdown/text inputs to 100,000 characters,
 document maps to 10,000 paths and 1,000,000 total text characters, locale lists
-to 100 entries, and layout catalogs/ID arrays to 1,000 entries. Folder trees
-are limited to 10,000 nodes and 100 levels; flow-cell grids are limited to
-100,000 cells. Invalid or oversized inputs reject with an error rather than
-being silently truncated.
+to 100 entries, layout catalogs/ID arrays to 1,000 entries, card and result lists
+to 10,000 entries, search indexes to bounded tag/path maps, and search limits to
+1–1,000. Folder trees are limited to 10,000 nodes and 100 levels; flow-cell grids
+are limited to 100,000 cells. Invalid or oversized inputs reject with an error
+rather than being silently truncated.
 
 `createDisposables` is synchronous; `add` returns the supplied function, and
 `dispose` invokes all registered disposers, clears the group, and surfaces any
