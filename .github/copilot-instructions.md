@@ -20,7 +20,6 @@ Extensions run in a sandboxed worker and use the `tagline` API, not the applicat
 ## Project conventions
 
 - Add renderer-to-main capabilities through the preload API and the corresponding Electron handler or module; do not bypass the bridge from renderer code.
-- Keep extension API behavior consistent across its implementation, schema, documentation, and demo.
 - When suggesting features, inspect the current README, docs, and implementation first; do not suggest capabilities Tagline already has.
 - Follow the user's latest stated direction and constraints when brainstorming. If the user narrows or changes the request, use the new scope.
 - Offer several balanced, implementable ideas rather than only tiny conveniences, oversized workflows, or a single idea.
