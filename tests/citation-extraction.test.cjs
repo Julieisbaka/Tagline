@@ -40,8 +40,8 @@ test('extracts an unbolded author-year citation with a quoted title and bare URL
   assert.deepEqual(uncertainFields, []);
 });
 
-test('reports uncertain two-digit years, unstructured publication and invalid access dates without guessing', async () => {
-  const { extractCardCitation } = await import('../src/lib/citationExtraction.js');
+test('expands two-digit years to 20xx unless that year is still in the future', async () => {
+  const { extractCardCitation, expandTwoDigitYear } = await import('../src/lib/citationExtraction.js');
   const { scanCards, auditCards, citedUrls } = await import('../src/lib/evidenceCheckup.js');
   const files = {
     'notes.md':
@@ -49,16 +49,16 @@ test('reports uncertain two-digit years, unstructured publication and invalid ac
   };
   const cards = scanCards(files);
   assert.equal(cards[0].citation.author, 'Smith');
-  assert.equal(cards[0].citation.year, '');
+  assert.equal(cards[0].citation.year, String(expandTwoDigitYear(24)));
   assert.equal(cards[0].citation.publication, '');
   assert.equal(cards[0].citation.accessed, '');
-  assert.deepEqual(cards[0].citationUncertainFields, ['year', 'accessed', 'publication']);
+  assert.deepEqual(cards[0].citationUncertainFields, ['accessed', 'publication']);
   const issues = auditCards(cards, { checks: { stale: true } }, new Date('2026-01-01'));
   assert.deepEqual(
     issues.map(({ kind, fields }) => ({ kind, fields })),
     [
       { kind: 'missing_fields', fields: ['title'] },
-      { kind: 'uncertain_fields', fields: ['year', 'publication', 'accessed'] },
+      { kind: 'uncertain_fields', fields: ['publication', 'accessed'] },
     ]
   );
   assert.deepEqual(citedUrls(cards), ['https://example.com']);
@@ -124,6 +124,45 @@ test('extracts multiline citations, note-wide reference links and written dates'
   assert.equal(cards[1].citation.year, '2023');
   assert.equal(cards[1].citation.url, 'https://doi.org/10.5555/example.2023');
   assert.equal(cards[2].citation.url, 'https://example.com/archive_(2022)');
+});
+
+test('builds arXiv and ISBN links and keeps BCE and range years', async () => {
+  const { extractCardCitation, expandTwoDigitYear } = await import('../src/lib/citationExtraction.js');
+  const currentYear = new Date().getFullYear();
+  const futureTwoDigit = String((currentYear + 1) % 100).padStart(2, '0');
+  const arxiv = extractCardCitation('**Vaswani 2017** — "Attention", arXiv:1706.03762');
+  assert.equal(arxiv.citation.author, 'Vaswani');
+  assert.equal(arxiv.citation.year, '2017');
+  assert.equal(arxiv.citation.title, 'Attention');
+  assert.equal(arxiv.citation.url, 'https://arxiv.org/abs/1706.03762');
+  assert.deepEqual(arxiv.uncertainFields, []);
+
+  const legacy = extractCardCitation('**Witten 1999** — arXiv:hep-th/9901001');
+  assert.equal(legacy.citation.url, 'https://arxiv.org/abs/hep-th/9901001');
+
+  const isbn = extractCardCitation(
+    '**Knuth 1997** — "The Art of Computer Programming", ISBN 978-0-201-89683-1'
+  );
+  assert.equal(isbn.citation.title, 'The Art of Computer Programming');
+  assert.equal(isbn.citation.publication, '');
+  assert.equal(
+    isbn.citation.url,
+    'https://openlibrary.org/api/books?bibkeys=ISBN:9780201896831&jscmd=data'
+  );
+
+  const bce = extractCardCitation('**Plato, 399 BCE** — "Apology"');
+  assert.equal(bce.citation.author, 'Plato');
+  assert.equal(bce.citation.year, '399 BCE');
+  assert.equal(bce.citation.title, 'Apology');
+
+  const range = extractCardCitation('**Smith 1990-2000** — "Study"');
+  assert.equal(range.citation.author, 'Smith');
+  assert.equal(range.citation.year, '2000');
+  assert.equal(range.citation.title, 'Study');
+
+  const rolled = extractCardCitation(`**Older ${futureTwoDigit}** — "Study"`);
+  assert.equal(rolled.citation.year, String(expandTwoDigitYear(futureTwoDigit)));
+  assert.ok(Number(rolled.citation.year) <= currentYear - 99);
 });
 
 test('marks invalid or ambiguous dates uncertain instead of inventing a year', async () => {

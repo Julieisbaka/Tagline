@@ -113,7 +113,7 @@ test('source comparison flags only comparable differences and reports unavailabl
   const cards = scanCards({
     'a.md':
       '#### One\n**Smith 2020** — "Study", Journal, [x](https://example.com/a)\n' +
-      '#### Two\n**Jones 24** — [x](https://example.com/b)\n' +
+      '#### Two\n**Jones 1899** — [x](https://example.com/b)\n' +
       '#### Three\n**Lee 2021** — [x](https://example.com/c)\n',
   });
   const issues = sourceIssues(cards, {
