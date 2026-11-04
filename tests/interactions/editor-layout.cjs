@@ -41,7 +41,6 @@ module.exports = async function runScenario({
     window.expectedTextCopy = selection.toString();
   })()`);
   await delay(150);
-  win.focus();
   await context('.source-editor .cm-content');
   for (let attempt = 0; attempt < 5; attempt++) {
     await button('.context-menu button', 'Copy');

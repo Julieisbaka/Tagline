@@ -393,8 +393,7 @@ tagline.commands.register('save-checks', async () => {
         throw new Error('Command never appeared: ' + label);
       };
       try {
-        win.show();
-        win.focus();
+        win.show({ focus: false });
         await wait("!!document.querySelector('.onboarding-skip')");
         await js("document.querySelector('.onboarding-skip').click()");
         await wait(

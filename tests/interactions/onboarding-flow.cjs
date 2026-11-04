@@ -12,8 +12,7 @@ module.exports = async function runScenario({
   context,
   saved,
 }) {
-  win.show();
-  win.focus();
+  win.show({ focus: false });
   await wait("!!document.querySelector('.onboarding-dialog')");
   assert.equal(
     await js("document.querySelector('.onboarding-dialog').getAttribute('aria-modal')"),

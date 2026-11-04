@@ -106,8 +106,7 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
         await wait("!!document.querySelector('.settings')");
       };
       const drag = async (id, dx, dy) => {
-        win.show();
-        win.focus();
+        win.show({ focus: false });
         const point =
           await js(`(() => { const rect = document.querySelector('[data-node-id="${id}"] header').getBoundingClientRect();
           return { x: Math.round(rect.left + 30), y: Math.round(rect.top + 10) }; })()`);
@@ -126,8 +125,7 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
         await delay(100);
       };
       try {
-        win.show();
-        win.focus();
+        win.show({ focus: false });
         await wait("!!document.querySelector('.onboarding-skip')");
         await js("document.querySelector('.onboarding-skip').click()");
         await wait("document.querySelectorAll('.tree-item').length === 2");

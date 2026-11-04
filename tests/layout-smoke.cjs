@@ -410,8 +410,7 @@ const delay = (ms) => new Promise((r) => setTimeout(r, ms));
           assert.ok(actions.x + actions.w <= main.x + main.w + 1, `note actions overflow at ${w}`);
         }
         win.setContentSize(1280, 800);
-        win.show();
-        win.focus();
+        win.show({ focus: false });
         await delay(800);
         // Real mouse drag of the left splitter by +120px.
         const before = (await rect('.sidebar')).w;
