@@ -34,8 +34,8 @@ export default function VisualEditor({
     onChange: (body) =>
       onChange(
         metadata.prefix +
-          (metadata.prefix && !metadata.prefix.endsWith('\n') && body ? '\n' : '') +
-          body
+        (metadata.prefix && !metadata.prefix.endsWith('\n') && body ? '\n' : '') +
+        body
       ),
     onOpenLink,
     onSendCard,
@@ -205,11 +205,11 @@ function VisualDocument({
     selector: ({ editor: ed }) =>
       ed
         ? [
-            ...[1, 2, 3, 4].map((level) => ed.isActive('heading', { level })),
-            ed.isActive('bold'),
-            ed.isActive('underline'),
-            ed.isActive('highlight'),
-          ]
+          ...[1, 2, 3, 4].map((level) => ed.isActive('heading', { level })),
+          ed.isActive('bold'),
+          ed.isActive('underline'),
+          ed.isActive('highlight'),
+        ]
         : [],
   });
 
@@ -251,7 +251,7 @@ function VisualDocument({
       lastMarkdown.current = value;
       live.current.onSection(visualSelection(editor, true));
     }
-  }, [value, editor]);
+  }, [value, editor, live]);
 
   useEffect(() => {
     if (!editor || !jump) {
