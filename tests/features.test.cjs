@@ -97,6 +97,14 @@ test('palette exposes configured workspace actions only in the matching editor',
     for (const command of all) {
       assert.ok(appIds.has(command.id), `${command.id} must be configurable`);
     }
+    const triggered = [];
+    const analysis = buildCommands({
+      quoteVerification: () => triggered.push('quote'),
+      deliveryAnalytics: () => triggered.push('delivery'),
+    });
+    analysis.find((item) => item.id === 'quote-verification').run();
+    analysis.find((item) => item.id === 'delivery-analytics').run();
+    assert.deepEqual(triggered, ['quote', 'delivery']);
   } finally {
     delete global.window;
     await server.close();

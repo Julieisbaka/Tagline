@@ -187,7 +187,13 @@ function download(url, redirects = 0, responseType = 'html') {
       url,
       {
         headers: {
-          Accept: responseType === 'json' ? 'application/json' : 'text/html,application/xhtml+xml',
+          Accept:
+            responseType === 'json'
+              ? 'application/json'
+              : responseType === 'article'
+                ? 'text/html,application/xhtml+xml,text/plain'
+                : 'text/html,application/xhtml+xml',
+          'Accept-Encoding': 'identity',
           'User-Agent': 'Tagline/0.0.1 CitationMetadata',
         },
         lookup: publicLookup,
@@ -214,21 +220,38 @@ function download(url, redirects = 0, responseType = 'html') {
         if (response.statusCode !== 200) {
           response.resume();
           const restricted = [401, 402, 403, 429].includes(response.statusCode);
-          const message = restricted
-            ? `Automated metadata access is restricted (HTTP ${response.statusCode}). Use a DOI URL or enter citation details manually.`
-            : `The website returned HTTP ${response.statusCode}. Enter citation details manually.`;
+          const message =
+            responseType === 'article'
+              ? `The source website returned HTTP ${response.statusCode}. Open the original source to review it manually.`
+              : restricted
+                ? `Automated metadata access is restricted (HTTP ${response.statusCode}). Use a DOI URL or enter citation details manually.`
+                : `The website returned HTTP ${response.statusCode}. Enter citation details manually.`;
           return reject(new Error(message));
         }
         const contentType = response.headers['content-type'] || '';
+        if (
+          responseType === 'article' &&
+          response.headers['content-encoding'] &&
+          response.headers['content-encoding'] !== 'identity'
+        ) {
+          response.resume();
+          return reject(new Error('Compressed source responses are not supported.'));
+        }
+        const charset = contentType.match(/charset\s*=\s*["']?([^\s;"']+)/i)?.[1];
+        if (responseType === 'article' && charset && !/^utf-?8$/i.test(charset)) {
+          response.resume();
+          return reject(new Error('Only UTF-8 source pages are supported.'));
+        }
         const acceptedType =
           responseType === 'json'
             ? /^application\/(?:json|[\w.+-]+\+json)\b/i.test(contentType)
-            : /^(text\/html|application\/xhtml\+xml)\b/i.test(contentType);
+            : /^(text\/html|application\/xhtml\+xml)\b/i.test(contentType) ||
+              (responseType === 'article' && /^text\/plain\b/i.test(contentType));
         if (!acceptedType) {
           response.resume();
           return reject(
             new Error(
-              `The URL did not return ${responseType === 'json' ? 'JSON metadata' : 'an HTML article'}.`
+              `The URL did not return ${responseType === 'json' ? 'JSON metadata' : responseType === 'article' ? 'HTML or plain text' : 'an HTML article'}.`
             )
           );
         }
@@ -237,7 +260,13 @@ function download(url, redirects = 0, responseType = 'html') {
         response.on('data', (chunk) => {
           size += chunk.length;
           if (size > 2_000_000) {
-            request.destroy(new Error('The article is too large to extract metadata.'));
+            request.destroy(
+              new Error(
+                responseType === 'article'
+                  ? 'The source is too large to compare.'
+                  : 'The article is too large to extract metadata.'
+              )
+            );
           } else {
             chunks.push(chunk);
           }
@@ -246,7 +275,9 @@ function download(url, redirects = 0, responseType = 'html') {
         response.on('end', () => {
           const body = Buffer.concat(chunks).toString('utf8');
           resolve(
-            responseType === 'json' ? { json: body, url: url.href } : { html: body, url: url.href }
+            responseType === 'json'
+              ? { json: body, url: url.href }
+              : { html: body, url: url.href, contentType }
           );
         });
       }
@@ -599,4 +630,5 @@ module.exports = {
   publicAddress,
   publicLookup,
   validateUrl,
+  download,
 };

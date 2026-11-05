@@ -499,6 +499,8 @@ export default function App() {
   const ctx = {
     createCitation: () => setModal({ type: 'citation' }),
     evidenceCheckup: () => setModal({ type: 'evidence' }),
+    quoteVerification: () => setModal({ type: 'quote-verification' }),
+    deliveryAnalytics: () => setModal({ type: 'delivery-analytics' }),
     hasNote: !!activePath && activeContent !== undefined,
     isMarkdown: !!activePath && isMarkdown(activePath),
     canCanvas: !!activePath && isCanvas(activePath) && mode !== 'edit',

@@ -25,6 +25,7 @@ const { registerTimerSound } = require('./timerSound.cjs');
 const { registerExtensions } = require('./extensions.cjs');
 const { extractCitation } = require('./citationMetadata.cjs');
 const { checkLinks } = require('./evidenceLinks.cjs');
+const { fetchQuoteSource } = require('./quoteSource.cjs');
 const { registerFlowFiles } = require('./flowFiles.cjs');
 const { registerUriHandler } = require('./uri.cjs');
 const { registerBrowser } = require('./browser.cjs');
@@ -215,6 +216,12 @@ function registerIpc() {
     extractCitation(url, { sourceOnly: true })
   );
   ipcMain.handle('evidence:checkLinks', (_event, urls, options) => checkLinks(urls, options));
+  ipcMain.handle('evidence:quoteSource', (event, url) => {
+    if (event.sender !== win?.webContents || event.senderFrame !== event.sender.mainFrame) {
+      throw new Error('Quote verification is only available to the application main frame.');
+    }
+    return fetchQuoteSource(url);
+  });
   ipcMain.handle('keybindings:set', (_event, overrides) => {
     if (
       !overrides ||

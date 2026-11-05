@@ -129,6 +129,59 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
         assert.equal(await js("document.querySelector('[name=publication]').value"), 'Reuters');
         console.log('PASS: citation autofill preserves manually entered fields.');
         await click('.citation-dialog button', 'Cancel');
+        ipcMain.removeHandler('evidence:quoteSource');
+        ipcMain.handle('evidence:quoteSource', (_event, url) => {
+          assert.equal(url, 'https://example.com/article');
+          return { text: 'Before. Some evidence words. <script>not executable</script>', url };
+        });
+        await key('P', [primary]);
+        await click('.palette-item span', 'Quote verification: compare a card with its source');
+        await wait("!!document.querySelector('.analysis-dialog select')");
+        await js(`(() => {
+          const el = document.querySelector('.analysis-dialog select');
+          el.value = '0'; el.dispatchEvent(new Event('change', { bubbles: true }));
+        })()`);
+        assert.equal(
+          await js("document.querySelector('.analysis-dialog textarea').value"),
+          'Some evidence words.'
+        );
+        await js(`(() => {
+          const el = document.querySelector('.analysis-dialog input[type=url]');
+          Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set.call(el, 'https://example.com/article');
+          el.dispatchEvent(new Event('input', { bubbles: true }));
+        })()`);
+        await click('.analysis-dialog button', 'Fetch and compare');
+        await wait("!!document.querySelector('.quote-source mark')");
+        assert.equal(
+          await js("document.querySelector('.quote-source mark').textContent"),
+          'Some evidence words'
+        );
+        assert.equal(await js("!!document.querySelector('.quote-source script')"), false);
+        await click('.analysis-dialog button', 'Close');
+        await key('P', [primary]);
+        await click('.palette-item span', 'Delivery analytics: analyze a transcript');
+        await wait("!!document.querySelector('.analysis-dialog textarea')");
+        await js(`(() => {
+          for (const [selector, value, prototype] of [
+            ['.analysis-dialog textarea', 'Um we uh agree', HTMLTextAreaElement.prototype],
+            ['.analysis-dialog input[type=number]', '2', HTMLInputElement.prototype]
+          ]) {
+            const el = document.querySelector(selector);
+            Object.getOwnPropertyDescriptor(prototype, 'value').set.call(el, value);
+            el.dispatchEvent(new Event('input', { bubbles: true }));
+          }
+        })()`);
+        await wait(
+          "document.querySelector('.analysis-dialog').textContent.includes('Pace: 120 words per minute.')"
+        );
+        assert.match(
+          await js("document.querySelector('.analysis-dialog').textContent"),
+          /Filler words: 2/
+        );
+        await click('.analysis-dialog button', 'Close');
+        console.log(
+          'PASS: quote comparison and transcript analytics work from the command palette.'
+        );
         await js("document.querySelector('.ribbon button:last-child').click()");
         await click('.settings-sidebar button', 'Appearance');
         const layout =

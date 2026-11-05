@@ -200,7 +200,16 @@ test('citation transport pins public DNS results and handles redirects, errors a
           const response = new EventEmitter();
           response.statusCode = route === 'redirect' ? 302 : route === 'denied' ? 403 : 200;
           response.headers = {
-            'content-type': crossref ? 'application/json; charset=utf-8' : 'text/html',
+            'content-type': crossref
+              ? 'application/json; charset=utf-8'
+              : route === 'plain'
+                ? 'text/plain; charset=UTF-8'
+                : route === 'pdf'
+                  ? 'application/pdf'
+                  : route === 'charset'
+                    ? 'text/html; charset=iso-8859-1'
+                    : 'text/html',
+            ...(route === 'compressed' ? { 'content-encoding': 'gzip' } : {}),
             location: 'http://127.0.0.1/private',
           };
           response.resume = () => request.emit('close');
@@ -290,6 +299,20 @@ test('citation transport pins public DNS results and handles redirects, errors a
   assert.equal(requests.at(-1).hostname, 'api.crossref.org');
   route = 'large';
   await assert.rejects(extract(), /too large/);
+  const article = () =>
+    module.exports.download(new URL('https://example.com/article'), 0, 'article');
+  route = 'plain';
+  assert.match((await article()).contentType, /^text\/plain/);
+  route = 'redirect';
+  await assert.rejects(article(), /private network/);
+  route = 'pdf';
+  await assert.rejects(article(), /did not return/);
+  route = 'compressed';
+  await assert.rejects(article(), /Compressed/);
+  route = 'charset';
+  await assert.rejects(article(), /UTF-8/);
+  route = 'large';
+  await assert.rejects(article(), /too large/);
 });
 
 test('configurable shortcuts support platform modifiers, conflicts, clearing and editor syntax', async () => {

@@ -102,6 +102,7 @@ contextBridge.exposeInMainWorld('api', {
   extractCitation: (url) => ipcRenderer.invoke('citation:extract', url),
   sourceCitationMetadata: (url) => ipcRenderer.invoke('citation:sourceMetadata', url),
   checkEvidenceLinks: (urls, options) => ipcRenderer.invoke('evidence:checkLinks', urls, options),
+  fetchQuoteSource: (url) => ipcRenderer.invoke('evidence:quoteSource', url),
   setKeybindings: (overrides) => ipcRenderer.invoke('keybindings:set', overrides),
   nextFlowFile: () => ipcRenderer.invoke('flow:pending'),
   openFlowFile: (file) => ipcRenderer.invoke('flow:open', file),

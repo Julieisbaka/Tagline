@@ -395,6 +395,47 @@
   padding: 16px;
 }
 
+.analysis-dialog {
+  box-sizing: border-box;
+  width: min(760px, 94vw);
+  max-height: calc(100vh - 32px);
+  overflow-y: auto;
+}
+
+.analysis-fields {
+  display: grid;
+  gap: 12px;
+  padding: 0;
+  border: 0;
+}
+
+.analysis-fields label {
+  display: grid;
+  gap: 4px;
+}
+
+.analysis-fields textarea,
+.analysis-fields input,
+.analysis-fields select {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.quote-source {
+  max-height: 45vh;
+  overflow: auto;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  padding: 12px;
+  border: 1px solid var(--border);
+  line-height: 1.5;
+}
+
+.quote-source mark {
+  background: var(--highlight-bg);
+  color: var(--highlight-text);
+}
+
 .evidence-checkup-dialog {
   box-sizing: border-box;
   width: min(760px, 94vw);
