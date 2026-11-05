@@ -20,6 +20,9 @@ npm run package  # package for this operating system
 
 Open a folder as a vault or create the sample vault on first launch.
 
+Optional [MCP agent access and tournament website links](docs/mcp-tournaments.md)
+are available under **Settings > Integrations**.
+
 ## Tests
 
 Run the complete unit and smoke-test suite sequentially with:

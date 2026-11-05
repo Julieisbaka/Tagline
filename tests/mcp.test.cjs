@@ -172,6 +172,97 @@ test('MCP tools refuse paths outside the vault and writes in read-only mode', as
   );
 });
 
+test('MCP evidence tools share the app parsers and work in read-only mode', async () => {
+  await withMcp(
+    async ({ vault, call, post }) => {
+      await fs.writeFile(
+        path.join(vault, 'Case', 'Cards.md'),
+        '#### Impact\n**Smith 2001** — "Example"\nEvidence.\n\n#### No citation\nEvidence.\n'
+      );
+      const listed = await (await post({ jsonrpc: '2.0', id: 8, method: 'tools/list' })).json();
+      for (const name of ['list_cards', 'extract_citation', 'validate_isbn', 'audit_evidence']) {
+        assert.equal(
+          listed.result.tools.find((tool) => tool.name === name).annotations.readOnlyHint,
+          true
+        );
+      }
+      const cards = JSON.parse((await call('list_cards', {})).content[0].text);
+      assert.equal(cards.count, 2);
+      assert.equal(cards.cards[0].path, 'Case/Cards.md');
+      assert.equal(cards.cards[0].citation.author, 'Smith');
+      const audit = JSON.parse(
+        (await call('audit_evidence', { path: 'Case/Cards', staleYears: 5 })).content[0].text
+      );
+      assert.equal(audit.cardsScanned, 2);
+      assert.ok(audit.issues.some((issue) => issue.kind === 'stale_date'));
+      assert.ok(audit.issues.some((issue) => issue.kind === 'missing_citation'));
+      assert.ok(!audit.issues.some((issue) => issue.kind === 'dead_link'));
+      const citation = JSON.parse(
+        (await call('extract_citation', { text: '**Smith 2024** — "Example"' })).content[0].text
+      );
+      assert.equal(citation.citation.author, 'Smith');
+      assert.equal(
+        JSON.parse((await call('validate_isbn', { isbn: '978-0-201-89683-1' })).content[0].text)
+          .valid,
+        true
+      );
+      assert.equal(
+        JSON.parse((await call('validate_isbn', { isbn: '978-0-201-89683-2' })).content[0].text)
+          .valid,
+        false
+      );
+      assert.equal((await call('list_cards', { path: '../secret.md' })).isError, true);
+      assert.equal((await call('audit_evidence', { staleYears: 0 })).isError, true);
+      assert.equal((await call('extract_citation', { text: 'a'.repeat(100001) })).isError, true);
+      assert.equal((await call('list_cards', { offset: -1 })).isError, true);
+      assert.equal((await call('list_cards', { path: 'example.flow' })).isError, true);
+      const page = JSON.parse((await call('list_cards', { limit: 1, offset: 1 })).content[0].text);
+      assert.equal(page.count, 2);
+      assert.equal(page.cards[0].title, 'No citation');
+      assert.equal(page.truncated, false);
+      const first = JSON.parse((await call('list_cards', { limit: 1 })).content[0].text);
+      assert.equal(first.truncated, true);
+    },
+    { allowWrites: false }
+  );
+});
+
+test('MCP evidence scans reject oversized notes, excessive headings and links outside the vault', async () => {
+  await withMcp(
+    async ({ vault, call }) => {
+      const big = path.join(vault, 'Huge.md');
+      await fs.writeFile(big, '');
+      await fs.truncate(big, 10 * 1024 * 1024 + 1);
+      assert.equal((await call('list_cards', { path: 'Huge.md' })).isError, true);
+      assert.equal((await call('audit_evidence', {})).isError, true);
+      await fs.unlink(big);
+      await fs.writeFile(path.join(vault, 'Many.md'), '#### card\n'.repeat(5001));
+      assert.equal((await call('list_cards', { path: 'Many.md' })).isError, true);
+      await fs.writeFile(path.join(vault, 'Many.md'), '#### card\r'.repeat(5001));
+      assert.equal((await call('list_cards', { path: 'Many.md' })).isError, true);
+      await fs.unlink(path.join(vault, 'Many.md'));
+      // Windows may require developer mode or elevated privileges to create symlinks.
+      const outside = path.join(path.dirname(vault), `${path.basename(vault)}-outside.md`);
+      await fs.writeFile(outside, '#### Private\n');
+      try {
+        try {
+          await fs.symlink(outside, path.join(vault, 'Outside.md'));
+        } catch (error) {
+          if (error.code !== 'EPERM' && error.code !== 'EACCES') {
+            throw error;
+          }
+          return;
+        }
+        assert.equal((await call('list_cards', { path: 'Outside.md' })).isError, true);
+        assert.equal((await call('audit_evidence', {})).isError, true);
+      } finally {
+        await fs.unlink(outside);
+      }
+    },
+    { allowWrites: false }
+  );
+});
+
 test('MCP configuration is normalized', () => {
   assert.deepEqual(normalizeConfig({ port: 80, allowWrites: false }), {
     enabled: false,
