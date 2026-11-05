@@ -47,6 +47,7 @@ app.setName('Tagline');
 const configPath = () => path.join(app.getPath('userData'), 'config.json');
 
 let win;
+let mcp;
 let vaultRoot = null;
 let keybindings = {};
 let closeWebsiteView = () => {};
@@ -444,7 +445,7 @@ function registerIpc() {
   }
   ipcMain.handle('fs:rename', (_e, from, to) => renameVaultPath(from, to));
 
-  registerMcp({
+  mcp = registerMcp({
     app,
     ipcMain,
     getWindow: () => win,
@@ -848,7 +849,7 @@ app.on('before-quit', () => {
   quitRequested = true;
 });
 app.on('window-all-closed', () => {
-  if (process.platform !== 'darwin') {
+  if (process.platform !== 'darwin' && !mcp?.shouldKeepRunning()) {
     app.quit();
   }
 });

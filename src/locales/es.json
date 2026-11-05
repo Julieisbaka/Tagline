@@ -1,4 +1,11 @@
 {
+  "Choose the initial editing mode for flow files.": "Elige el modo de edición inicial para archivos de flow.",
+  "Choose the initial editing mode for canvas files.": "Elige el modo de edición inicial para archivos de lienzo.",
+  "Canvas editor": "Editor de lienzo",
+  "Keep MCP running after closing the window": "Mantener MCP activo después de cerrar la ventana",
+  "The server retains access to the open vault and its configured permissions while Tagline runs in the background. Reopen Tagline to manage or stop it. Quitting the app or restarting the computer stops it; it does not start automatically.": "El servidor conserva el acceso a la bóveda abierta y sus permisos configurados mientras Tagline se ejecuta en segundo plano. Abre Tagline de nuevo para gestionarlo o detenerlo. Al salir de la aplicación o reiniciar el equipo, se detiene; no se inicia automáticamente.",
+  "Background vault: {path}": "Bóveda en segundo plano: {path}",
+  "Close window and keep server running": "Cerrar la ventana y mantener activo el servidor",
   "Open the official website in your browser. Sign in there if needed; Tagline does not import or sync this data.": "Abre el sitio oficial en tu navegador. Inicia sesión allí si es necesario; Tagline no importa ni sincroniza estos datos.",
   "Tournament calendar": "Calendario de torneos",
   "Tournament results": "Resultados de torneos",

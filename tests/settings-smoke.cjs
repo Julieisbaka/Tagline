@@ -788,6 +788,15 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
           'previous deltas stay readable when disabled'
         );
         await settings('editors');
+        assert.deepEqual(
+          await js(`Array.from(document.querySelectorAll('.editor-settings > h3:not(:first-child)'),
+            el => getComputedStyle(el).borderTopWidth)`),
+          ['0px', '0px', '0px', '0px'],
+          'editor sections do not add a second divider'
+        );
+        for (const key of ['editorMode', 'flowEditorMode', 'canvasEditorMode']) {
+          assert.equal(await js(`document.querySelector('[data-setting="${key}"]').value`), 'visual');
+        }
         const editorDefaults = {
           visualSpellcheck: true,
           sourceSpellcheck: true,

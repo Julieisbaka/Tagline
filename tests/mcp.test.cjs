@@ -266,6 +266,7 @@ test('MCP evidence scans reject oversized notes, excessive headings and links ou
 test('MCP configuration is normalized', () => {
   assert.deepEqual(normalizeConfig({ port: 80, allowWrites: false }), {
     enabled: false,
+    keepRunning: false,
     allowWrites: false,
     port: 38419,
     token: '',

@@ -89,6 +89,25 @@ export default function McpSettings() {
         />
       </label>
       <label className='setting-row'>
+        <span>{t('Keep MCP running after closing the window')}</span>
+        <input
+          type='checkbox'
+          data-mcp='keepRunning'
+          checked={!!status?.keepRunning}
+          disabled={!status || busy}
+          onChange={(e) => run(() => window.api.mcp.configure({ keepRunning: e.target.checked }))}
+        />
+      </label>
+      <p>{t('The server retains access to the open vault and its configured permissions while Tagline runs in the background. Reopen Tagline to manage or stop it. Quitting the app or restarting the computer stops it; it does not start automatically.')}</p>
+      {status?.vaultRoot && <p>{t('Background vault: {path}', { path: status.vaultRoot })}</p>}
+      <button
+        data-mcp='background'
+        disabled={!status?.running || !status?.keepRunning || !status?.vaultRoot || busy}
+        onClick={() => run(async () => { await window.api.mcp.background(); })}
+      >
+        {t('Close window and keep server running')}
+      </button>
+      <label className='setting-row'>
         <span>{t('Allow agents to change notes')}</span>
         <input
           type='checkbox'

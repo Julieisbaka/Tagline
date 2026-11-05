@@ -816,6 +816,7 @@ function normalizeConfig(value) {
   const config = value && typeof value === 'object' ? value : {};
   return {
     enabled: config.enabled === true,
+    keepRunning: config.keepRunning === true,
     allowWrites: config.allowWrites !== false,
     port:
       Number.isInteger(config.port) && config.port >= 1024 && config.port <= 65535
@@ -855,7 +856,13 @@ function registerMcp({
     getAllowWrites: () => config().allowWrites,
     version: app.getVersion(),
     notifyChanged: () => send('mcp:vaultChanged'),
-    openNote: (rel) => send('mcp:open', rel),
+    openNote: (rel) => {
+      const win = getWindow();
+      if (!win || win.isDestroyed()) {
+        throw new ToolError('Cannot open a note while the Tagline window is closed. Reopen the app first.');
+      }
+      send('mcp:open', rel);
+    },
     ...operations,
   });
   const server = createMcpHttpServer({ service, getToken: () => config().token });
@@ -880,17 +887,19 @@ function registerMcp({
     const current = config();
     return {
       enabled: current.enabled,
+      keepRunning: current.keepRunning,
       running: server.port > 0,
       port: current.port,
       url: `http://127.0.0.1:${current.port}/mcp`,
       token: current.token,
       allowWrites: current.allowWrites,
+      vaultRoot: getVaultRoot(),
       error,
     };
   };
   const authorize = (event) => {
     const win = getWindow();
-    if (!win || event.sender !== win.webContents) {
+    if (!win || event.sender !== win.webContents || event.senderFrame !== event.sender.mainFrame) {
       throw new Error('MCP settings are only available to the application.');
     }
   };
@@ -915,15 +924,38 @@ function registerMcp({
       }
       patch.allowWrites = options.allowWrites;
     }
+    if (options?.keepRunning !== undefined) {
+      if (typeof options.keepRunning !== 'boolean') {
+        throw new Error('Invalid MCP setting.');
+      }
+      patch.keepRunning = options.keepRunning;
+    }
     if (options?.port !== undefined) {
       if (!Number.isInteger(options.port) || options.port < 1024 || options.port > 65535) {
         throw new Error('Choose a port between 1024 and 65535.');
       }
       patch.port = options.port;
     }
+    const previous = config();
     save(patch);
-    await apply();
+    if (patch.enabled !== undefined && patch.enabled !== previous.enabled ||
+        patch.port !== undefined && patch.port !== previous.port) {
+      await apply();
+    }
     return status();
+  });
+  ipcMain.handle('mcp:background', (event) => {
+    authorize(event);
+    if (!config().enabled || !config().keepRunning || !server.port || !getVaultRoot()) {
+      throw new Error('Open a vault and enable the running MCP server and background option first.');
+    }
+    const win = getWindow();
+    setImmediate(() => {
+      if (!win.isDestroyed()) {
+        win.close();
+      }
+    });
+    return true;
   });
   ipcMain.handle('mcp:regenerateToken', (event) => {
     authorize(event);
@@ -932,7 +964,10 @@ function registerMcp({
   });
 
   apply();
-  return { close: () => server.close() };
+  return {
+    close: () => server.close(),
+    shouldKeepRunning: () => config().enabled && config().keepRunning && server.port > 0 && !!getVaultRoot(),
+  };
 }
 
 module.exports = {

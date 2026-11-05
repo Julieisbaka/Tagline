@@ -7,6 +7,7 @@ import { clampPanel, PANEL_LIMITS } from './components/layout/Splitter.jsx';
 import { EMPTY_CANVAS } from './lib/canvas.js';
 import { containsEvidence, getSectionAt } from './lib/card.js';
 import { buildCommands, fillTemplate } from './lib/commands.js';
+import { defaultEditorMode } from './lib/editorModes.js';
 import { markSpeechDocument, speechDocumentPaths } from './lib/frontmatter.js';
 import { useI18n } from './lib/i18n.js';
 import { binding, displayBinding, KEYBINDINGS, matchesBinding } from './lib/keybindings.js';
@@ -112,7 +113,7 @@ export default function App() {
   const speechDoc = speechDocuments.includes(settings.speechDoc)
     ? settings.speechDoc
     : speechDocuments[0] || settings.speechDoc;
-  const mode = (activePath && modes[activePath]) || settings.editorMode;
+  const mode = (activePath && modes[activePath]) || defaultEditorMode(settings, activePath);
   const sourceFallback =
     mode === 'visual' &&
     !(activePath && isCanvas(activePath)) &&
@@ -346,7 +347,7 @@ export default function App() {
     const p = await v.createFile(path, content);
     if (p) {
       tabs.openPath(p, false);
-      setModes((s) => ({ ...s, [p]: settings.editorMode }));
+      setModes((s) => ({ ...s, [p]: defaultEditorMode(settings, p) }));
     }
     return p;
   };
@@ -605,13 +606,13 @@ export default function App() {
     reload: v.reload,
     toggleMode: () =>
       setMode(
-        isCanvas(activePath)
+        activePath && (isCanvas(activePath) || isFlow(activePath))
           ? mode === 'edit'
             ? 'visual'
             : 'edit'
           : mode !== 'read'
             ? 'read'
-            : settings.editorMode
+            : defaultEditorMode(settings, activePath)
       ),
     sourceMode: () => setMode('edit'),
     visualMode: () => setMode('visual'),

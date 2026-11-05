@@ -140,6 +140,7 @@ contextBridge.exposeInMainWorld('api', {
   mcp: {
     status: () => ipcRenderer.invoke('mcp:status'),
     configure: (options) => ipcRenderer.invoke('mcp:configure', options),
+    background: () => ipcRenderer.invoke('mcp:background'),
     regenerateToken: () => ipcRenderer.invoke('mcp:regenerateToken'),
   },
   onVaultChanged: (callback) => {
