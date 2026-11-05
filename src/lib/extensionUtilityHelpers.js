@@ -257,9 +257,7 @@ function shortcutOverrides(value) {
   const entries = Object.entries(overrides);
   if (
     entries.length > 1000 ||
-    entries.some(
-      ([id, key]) => id.length > 200 || typeof key !== 'string' || key.length > 200
-    )
+    entries.some(([id, key]) => id.length > 200 || typeof key !== 'string' || key.length > 200)
   ) {
     throw new Error('Shortcut overrides must map at most 1,000 IDs to short strings.');
   }
@@ -313,10 +311,7 @@ function platform(value) {
 function shortcutEvent(value) {
   const event = object(value, 'Keyboard event');
   for (const key of ['key', 'code']) {
-    if (
-      event[key] !== undefined &&
-      (typeof event[key] !== 'string' || event[key].length > 100)
-    ) {
+    if (event[key] !== undefined && (typeof event[key] !== 'string' || event[key].length > 100)) {
       throw new Error('Keyboard event key and code must be text up to 100 characters.');
     }
   }
@@ -378,11 +373,7 @@ export function extensionUtilityHelper(method, args) {
     case 'helpers.keybindings.event':
       return eventBinding(shortcutEvent(args[0]), platform(args[1]));
     case 'helpers.keybindings.matches':
-      return matchesBinding(
-        shortcutEvent(args[0]),
-        text(args[1], 'Shortcut'),
-        platform(args[2])
-      );
+      return matchesBinding(shortcutEvent(args[0]), text(args[1], 'Shortcut'), platform(args[2]));
     case 'helpers.keybindings.conflict':
       return bindingConflict(
         text(args[0], 'Command ID'),

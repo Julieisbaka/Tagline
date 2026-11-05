@@ -41,7 +41,8 @@ test('extracts an unbolded author-year citation with a quoted title and bare URL
 });
 
 test('expands two-digit years to 20xx unless that year is still in the future', async () => {
-  const { extractCardCitation, expandTwoDigitYear } = await import('../src/lib/citationExtraction.js');
+  const { extractCardCitation, expandTwoDigitYear } =
+    await import('../src/lib/citationExtraction.js');
   const { scanCards, auditCards, citedUrls } = await import('../src/lib/evidenceCheckup.js');
   const files = {
     'notes.md':
@@ -127,7 +128,8 @@ test('extracts multiline citations, note-wide reference links and written dates'
 });
 
 test('builds arXiv and ISBN links and keeps BCE and range years', async () => {
-  const { extractCardCitation, expandTwoDigitYear } = await import('../src/lib/citationExtraction.js');
+  const { extractCardCitation, expandTwoDigitYear } =
+    await import('../src/lib/citationExtraction.js');
   const currentYear = new Date().getFullYear();
   const futureTwoDigit = String((currentYear + 1) % 100).padStart(2, '0');
   const arxiv = extractCardCitation('**Vaswani 2017** — "Attention", arXiv:1706.03762');

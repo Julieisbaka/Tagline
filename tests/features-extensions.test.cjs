@@ -149,10 +149,7 @@ test('extension capabilities validate selection, command, helper, event and UI c
   );
   assert.throws(
     () =>
-      extensionHelper('helpers.citations.extract', [
-        '**Smith 2024**',
-        { source: { href: 42 } },
-      ]),
+      extensionHelper('helpers.citations.extract', ['**Smith 2024**', { source: { href: 42 } }]),
     /href/
   );
   assert.equal(extensionHelper('helpers.search.fuzzyScore', ['deb', 'debate']), 999.4);
@@ -287,8 +284,7 @@ test('extension capabilities validate selection, command, helper, event and UI c
 
 test('utility helpers expose cards, checkup, search, themes and reject unbounded input', async () => {
   const { extensionHelper } = await import('../src/lib/extensionCapabilities.js');
-  const cardMarkdown =
-    '#### Climate impact\n\n**Smith 2024** — "Study", https://example.com/a\n';
+  const cardMarkdown = '#### Climate impact\n\n**Smith 2024** — "Study", https://example.com/a\n';
   const detected = extensionHelper('helpers.cards.detect', [cardMarkdown]);
   assert.equal(detected.length, 1);
   assert.equal(detected[0].title, 'Climate impact');
@@ -326,10 +322,7 @@ test('utility helpers expose cards, checkup, search, themes and reject unbounded
 
   const bindings = extensionHelper('helpers.keybindings.all', []);
   assert.ok(Array.isArray(bindings) && bindings.length > 0);
-  assert.equal(
-    extensionHelper('helpers.keybindings.binding', [bindings[0].id]),
-    bindings[0].key
-  );
+  assert.equal(extensionHelper('helpers.keybindings.binding', [bindings[0].id]), bindings[0].key);
   assert.equal(typeof extensionHelper('helpers.keybindings.reserved', ['Mod+S']), 'boolean');
   const event = { key: 's', code: 'KeyS', ctrlKey: true };
   const shortcut = extensionHelper('helpers.keybindings.event', [event, 'win32']);
