@@ -24,7 +24,10 @@ function snippetsFor(content, name) {
 function Backlinks({ activePath, index, contents, onOpen, settings }) {
   const { t } = useI18n();
   const name = activePath ? baseName(activePath) : '';
-  const linked = (activePath && index.backlinks[activePath]) || [];
+  const linked = useMemo(
+    () => (activePath ? index.backlinks[activePath] || [] : []),
+    [activePath, index.backlinks]
+  );
   const unlinked = useMemo(() => {
     if (!name || name.length < 3) {
       return [];

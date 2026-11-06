@@ -13,7 +13,7 @@ export default function ReadingSettings({ settings, update }) {
   const [drafts, setDrafts] = useState([]);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
-  const samples = settings.readingSamples || [];
+  const samples = useMemo(() => settings.readingSamples || [], [settings.readingSamples]);
   const result = useMemo(() => {
     try {
       return { profile: calibrateReading(samples), error: '' };

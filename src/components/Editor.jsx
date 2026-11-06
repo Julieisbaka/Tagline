@@ -58,7 +58,7 @@ export default function Editor({
   settings,
   jump,
 }) {
-  const { t, locale } = useI18n();
+  const { t } = useI18n();
   const ownViewRef = useRef(null);
   const [view, setView] = useState(null);
   const [linkOpen, setLinkOpen] = useState(false);
@@ -201,7 +201,7 @@ export default function Editor({
     settings.sourceIndentWithTabs,
     settings.sourceCodeFolding,
     settings.sourceSpellcheck,
-    locale,
+    t,
   ]);
 
   const run = (command) => () => {

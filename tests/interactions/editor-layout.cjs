@@ -1,5 +1,5 @@
 module.exports = async function runScenario({
-  win,
+  _win,
   wc,
   assert,
   delay,

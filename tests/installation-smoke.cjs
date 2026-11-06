@@ -14,6 +14,9 @@ if (!process.versions.electron) {
           ...process.env,
           TAGLINE_INSTALLATION_ROOT: root,
           TAGLINE_INSTALLATION_VERSION: version,
+          // Keep the manual check/download/install counts deterministic here;
+          // the background startup check is covered by registration in main.cjs.
+          TAGLINE_DISABLE_AUTO_UPDATE: '1',
         },
         stdio: 'inherit',
         timeout: 60000,

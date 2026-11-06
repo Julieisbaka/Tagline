@@ -45,7 +45,7 @@ export default function NoteView({
   settings,
   onDismissVisualNotice,
 }) {
-  const { t, locale } = useI18n();
+  const { t } = useI18n();
   const previousMode = useRef({ path, mode });
   const [modeAnnouncement, setModeAnnouncement] = useState('');
   useEffect(() => {
@@ -147,7 +147,7 @@ export default function NoteView({
       });
     }
     onCursorStats(parts);
-  }, [docStats, sectionStats, section, settings.wpm, calibration, onCursorStats, locale, t]);
+  }, [docStats, sectionStats, section, settings.wpm, calibration, onCursorStats, t]);
   const skipFirstStatsEffect = useRef(true);
   useLayoutEffect(() => {
     publishCursorStats();

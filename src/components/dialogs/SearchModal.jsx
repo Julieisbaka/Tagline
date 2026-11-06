@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import defaults from '../../lib/defaultSettings.json' with { type: 'json' };
 import { useI18n } from '../../lib/i18n.js';
 import {
@@ -38,35 +38,9 @@ export default function SearchModal({
     setSemanticResults(null);
     setError('');
     setBusy(false);
-    return () => {
-      ++requestId.current;
-    };
   }, [query, mode, contents, index, maxResults]);
 
-  useEffect(() => {
-    if (mode === 'text') {
-      return undefined;
-    }
-    const text = parseQuery(query).text.replace(/"/g, '').trim();
-    if (!text) {
-      setSemanticResults(null);
-      setError('');
-      return undefined;
-    }
-    if (semanticTimerRef.current) {
-      window.clearTimeout(semanticTimerRef.current);
-    }
-    semanticTimerRef.current = window.setTimeout(() => {
-      runSemantic();
-    }, 500);
-    return () => {
-      if (semanticTimerRef.current) {
-        window.clearTimeout(semanticTimerRef.current);
-      }
-    };
-  }, [query, mode, contents, index, maxResults]);
-
-  const runSemantic = async () => {
+  const runSemantic = useCallback(async () => {
     const text = parseQuery(query).text.replace(/"/g, '').trim();
     if (!text) {
       setError(t('Enter a description to search by meaning.'));
@@ -108,7 +82,30 @@ export default function SearchModal({
         setBusy(false);
       }
     }
-  };
+  }, [query, contents, index, maxResults, mode, t]);
+
+  useEffect(() => {
+    if (mode === 'text') {
+      return undefined;
+    }
+    const text = parseQuery(query).text.replace(/"/g, '').trim();
+    if (!text) {
+      setSemanticResults(null);
+      setError('');
+      return undefined;
+    }
+    if (semanticTimerRef.current) {
+      window.clearTimeout(semanticTimerRef.current);
+    }
+    semanticTimerRef.current = window.setTimeout(() => {
+      runSemantic();
+    }, 500);
+    return () => {
+      if (semanticTimerRef.current) {
+        window.clearTimeout(semanticTimerRef.current);
+      }
+    };
+  }, [query, mode, contents, index, maxResults, runSemantic]);
 
   const results = useMemo(
     () =>

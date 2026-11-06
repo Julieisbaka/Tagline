@@ -87,7 +87,7 @@ export default function ThemeSettings({ settings, update }) {
     } catch (err) {
       return { error: err.message };
     }
-  }, [settings.theme, settings.customTheme, contributed]);
+  }, [settings.theme, settings.customTheme]);
   const variablesLabel = t('CSS variables (JSON object)');
   const variablesExtensions = useMemo(
     () => [

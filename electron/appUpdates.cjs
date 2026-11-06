@@ -39,7 +39,8 @@ async function launchInstaller({
   const script = [
     '$ErrorActionPreference = "Stop"',
     'while (Get-Process -Id ([int]$env:TAGLINE_PARENT_PID) -ErrorAction SilentlyContinue) { Start-Sleep -Milliseconds 250 }',
-    'Start-Process -FilePath $env:TAGLINE_UPDATE_INSTALLER -Wait',
+    '$install = Start-Process -FilePath $env:TAGLINE_UPDATE_INSTALLER -Wait -PassThru',
+    'if ($install.ExitCode -ne 0) { throw "The installer failed with exit code $($install.ExitCode)." }',
     'if ($env:TAGLINE_UPDATE_APP -and (Test-Path -LiteralPath $env:TAGLINE_UPDATE_APP)) { Start-Process -FilePath $env:TAGLINE_UPDATE_APP -WorkingDirectory $env:TAGLINE_UPDATE_CWD }',
   ].join('; ');
   await new Promise((resolve, reject) => {
@@ -218,7 +219,13 @@ function createUpdateManager({
         downloaded = null;
         throw new Error('Downloaded installer changed. Download the update again.');
       }
-      const result = await install({ file: downloaded.file, platform, shell });
+      const result = await install({
+        file: downloaded.file,
+        platform,
+        shell,
+        executable: typeof app.getPath === 'function' ? app.getPath('exe') : process.execPath,
+        workingDirectory: process.cwd(),
+      });
       setState({ status: result.manual ? 'ready' : 'installing' });
       return result;
     } catch (error) {
@@ -256,12 +263,4 @@ async function autoUpdate(optionsOrApp, currentVersion, beforeInstall) {
   return manager.autoUpdate(options.currentVersion, options.beforeInstall || (async () => {}));
 }
 
-module.exports = {
-  createUpdateManager,
-  launchInstaller,
-  autoUpdate,
-  runAutoUpdate: autoUpdate,
-  createAutoUpdater: (options) => ({
-    update: (version, beforeInstall) => autoUpdate(options, version, beforeInstall),
-  }),
-};
+module.exports = { createUpdateManager, launchInstaller, autoUpdate };

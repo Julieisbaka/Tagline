@@ -40,7 +40,7 @@ export default function JsonEditor({ label, settings, ...props }) {
         spellcheck: 'false',
       }),
     ],
-    [label, settings?.sourceTabSize, settings?.sourceIndentWithTabs, settings?.sourceCodeFolding]
+    [label, settings]
   );
   return (
     <CodeMirror

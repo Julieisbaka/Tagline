@@ -17,6 +17,9 @@ contextBridge.exposeInMainWorld('api', {
   getUpdateState: () => ipcRenderer.invoke('app:getUpdateState'),
   downloadUpdate: () => ipcRenderer.invoke('app:downloadUpdate'),
   installUpdate: () => ipcRenderer.invoke('app:installUpdate'),
+  autoUpdate: () => ipcRenderer.invoke('app:autoUpdate'),
+  getAutoUpdateEnabled: () => ipcRenderer.invoke('app:getAutoUpdate'),
+  setAutoUpdateEnabled: (enabled) => ipcRenderer.invoke('app:setAutoUpdate', enabled),
   onUpdateState: (callback) => {
     const listener = (_event, state) => callback(state);
     ipcRenderer.on('app:updateState', listener);

@@ -42,7 +42,7 @@ export function useVault(
   canvasHistoryModeRef.current = canvasHistoryMode;
   const experimentalHistoryDeltasRef = useRef(experimentalHistoryDeltas);
   experimentalHistoryDeltasRef.current = experimentalHistoryDeltas;
-  const directories = folderPaths(tree);
+  const directories = useMemo(() => folderPaths(tree), [tree]);
 
   /**
    * Normalize a new vault path according to the folder underscore preference.
@@ -50,8 +50,11 @@ export function useVault(
    * @param {boolean} [folder=false] - Indicates whether the path represents a folder.
    * @returns {string} - The normalized vault path.
    */
-  const normalize = (path, folder = false) =>
-    underscoreFolders ? normalizeFolders(path, folder, directories) : path;
+  const normalize = useCallback(
+    (path, folder = false) =>
+      underscoreFolders ? normalizeFolders(path, folder, directories) : path,
+    [underscoreFolders, directories]
+  );
 
   /**
    * Store a vault operation error in hook state.
@@ -292,7 +295,7 @@ export function useVault(
         return null;
       }
     },
-    [reload, underscoreFolders, tree]
+    [reload, normalize]
   );
 
   const createFolder = useCallback(
@@ -306,7 +309,7 @@ export function useVault(
         return null;
       }
     },
-    [reload, underscoreFolders, tree]
+    [reload, underscoreFolders, normalize]
   );
 
   // Renames a file or folder and rewrites [[links]] to renamed markdown files.
@@ -359,7 +362,7 @@ export function useVault(
         return null;
       }
     },
-    [flush, reload, underscoreFolders, tree, autoRelink]
+    [flush, reload, autoRelink, directories, normalize]
   );
 
   const remove = useCallback(

@@ -28,6 +28,7 @@ export function useAppExtensions({
   const bridgeRef = useRef(null);
   const activeNoteListeners = useRef(new Set());
   const activeNotePath = activeContent === undefined ? null : activePath;
+  const watchVault = v.watch;
 
   useEffect(() => {
     activeNoteListeners.current.forEach((listener) => listener({ path: activeNotePath }));
@@ -35,10 +36,10 @@ export function useAppExtensions({
   }, [activeNotePath, v.vault?.root]);
   useEffect(() => {
     applicationEvents.emit('vault.changed', { open: !!v.vault });
-  }, [v.vault?.root]);
+  }, [v.vault]);
   useEffect(
-    () => v.watch((event) => applicationEvents.emit('vault.fileChanged', event)),
-    [v.watch]
+    () => watchVault((event) => applicationEvents.emit('vault.fileChanged', event)),
+    [watchVault]
   );
   useEffect(() => {
     applicationEvents.emit('editor.updated', { path: activeNotePath, mode });

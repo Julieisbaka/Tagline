@@ -16,6 +16,8 @@ export default function InstallationSettings() {
   const [updateError, setUpdateError] = useState('');
   const [updateState, setUpdateState] = useState({ status: 'idle', received: 0, total: 0 });
   const [installMessage, setInstallMessage] = useState('');
+  const [autoUpdateEnabled, setAutoUpdateEnabled] = useState(null);
+  const [autoUpdateError, setAutoUpdateError] = useState('');
   const updating = ['checking', 'downloading', 'installing'].includes(updateState.status);
   const openPage = async (page) => {
     setUpdateError('');
@@ -61,8 +63,49 @@ export default function InstallationSettings() {
       setUpdateError(failure.message);
     }
   };
+  const runAutoUpdate = async () => {
+    setUpdateError('');
+    setInstallMessage('');
+    try {
+      const outcome = await window.api.autoUpdate();
+      if (!outcome.updated) {
+        setInstallMessage(
+          outcome.release?.updateAvailable
+            ? t('No compatible installer is available for your system. Use View releases.')
+            : t('You are up to date.')
+        );
+      } else if (outcome.result?.manual) {
+        setInstallMessage(
+          t(
+            'The disk image is open. Quit Tagline, drag the new app into Applications and choose Replace, then reopen Tagline. Your settings and vaults are kept.'
+          )
+        );
+      }
+    } catch (failure) {
+      setUpdateError(failure.message);
+    }
+  };
+  const toggleAutoUpdate = async (event) => {
+    const enabled = event.target.checked;
+    setAutoUpdateEnabled(enabled);
+    setAutoUpdateError('');
+    try {
+      await window.api.setAutoUpdateEnabled(enabled);
+    } catch (failure) {
+      setAutoUpdateEnabled(!enabled);
+      setAutoUpdateError(failure.message);
+    }
+  };
   useEffect(() => {
     let active = true;
+    window.api
+      .getAutoUpdateEnabled()
+      .then((enabled) => {
+        if (active) {
+          setAutoUpdateEnabled(enabled);
+        }
+      })
+      .catch(() => {});
     const apply = (state) => {
       if (!active) {
         return;
@@ -202,10 +245,27 @@ export default function InstallationSettings() {
       <h3>{t('Updates')}</h3>
       <p>
         {t(
-          'Tagline can check for, download, and install updates from GitHub Releases for your operating system.'
+          'Tagline checks GitHub Releases shortly after startup and downloads the installer matching your operating system. Choose Update now or Install update and restart to install it; on Windows the updated app reopens automatically in the same folder.'
         )}
       </p>
+      <label>
+        <input
+          type='checkbox'
+          checked={autoUpdateEnabled === true}
+          disabled={autoUpdateEnabled === null || updating}
+          onChange={toggleAutoUpdate}
+        />
+        <span>{t('Automatically check for and download updates on startup')}</span>
+      </label>
+      {autoUpdateError && (
+        <p className='error-text' role='alert'>
+          {autoUpdateError}
+        </p>
+      )}
       <div className='settings-actions'>
+        <button className='primary' disabled={updating || !info?.packaged} onClick={runAutoUpdate}>
+          {t(updating ? 'Updating…' : 'Update now')}
+        </button>
         <button
           disabled={checking || updating}
           aria-busy={checking || updateState.status === 'checking'}
@@ -258,7 +318,11 @@ export default function InstallationSettings() {
         </div>
       )}
       {updateState.status === 'installing' && (
-        <p role='status'>{t('Saving pending edits and starting the installer…')}</p>
+        <p role='status'>
+          {t(
+            'Saving pending edits and starting the installer. Tagline will close, update, and reopen in the same folder.'
+          )}
+        </p>
       )}
       {release?.updateAvailable && !release.download && (
         <p>

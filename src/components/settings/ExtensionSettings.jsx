@@ -18,6 +18,7 @@ const PERMISSION_LABELS = {
 
 function ExtensionSettingsForm({ item, extensions }) {
   const { t } = useI18n();
+  const { settingsRevision, getSetting } = extensions;
   const [values, setValues] = useState({});
   const [error, setError] = useState('');
   const [loaded, setLoaded] = useState(false);
@@ -70,7 +71,7 @@ function ExtensionSettingsForm({ item, extensions }) {
         Object.fromEntries(
           item.contributes.settings.map((setting) => [
             setting.id,
-            extensions.getSetting(item, setting.id),
+            getSetting(item, setting.id),
           ])
         )
       );
@@ -80,7 +81,7 @@ function ExtensionSettingsForm({ item, extensions }) {
       setError(err.message);
       setLoaded(false);
     }
-  }, [item, extensions.settingsRevision, extensions.getSetting]);
+  }, [item, settingsRevision, getSetting]);
   const apply = (reset = false) => {
     try {
       if (reset) {

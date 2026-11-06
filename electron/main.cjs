@@ -54,6 +54,9 @@ let closeWebsiteView = () => {};
 let saveBeforeUpdate = async () => {
   throw new Error('The application is not ready to install an update.');
 };
+// Replaced by registerIpc(); checks for and downloads an update in the
+// background (never installs silently at startup). No-op until then.
+let prepareUpdateInBackground = async () => null;
 
 function accelerator(id) {
   const value = keybindings[id] ?? keyDefinitions.find((item) => item.id === id)?.key;
@@ -183,6 +186,19 @@ function registerIpc() {
       }
     },
   });
+  prepareUpdateInBackground = async () => {
+    if (!app.isPackaged || process.env.TAGLINE_DISABLE_AUTO_UPDATE === '1') {
+      return null;
+    }
+    if (readConfig().autoUpdate === false) {
+      return null;
+    }
+    const release = await updates.check(installationInfo(app).version);
+    if (release.updateAvailable && release.download) {
+      await updates.download();
+    }
+    return release;
+  };
   ipcMain.handle('app:installation', () => installationInfo(app));
   ipcMain.handle('app:checkUpdates', () => updates.check(installationInfo(app).version));
   ipcMain.handle('app:getUpdateState', () => updates.getState());
@@ -193,6 +209,24 @@ function registerIpc() {
       app.quit();
     }
     return result;
+  });
+  ipcMain.handle('app:autoUpdate', async () => {
+    const outcome = await updates.autoUpdate(installationInfo(app).version, saveBeforeUpdate);
+    if (outcome.updated && outcome.result && !outcome.result.manual) {
+      app.quit();
+    }
+    return outcome;
+  });
+  ipcMain.handle('app:getAutoUpdate', () => readConfig().autoUpdate !== false);
+  ipcMain.handle('app:setAutoUpdate', (_event, enabled) => {
+    if (typeof enabled !== 'boolean') {
+      throw new Error('Invalid auto-update choice.');
+    }
+    writeConfig({ autoUpdate: enabled });
+    if (enabled) {
+      prepareUpdateInBackground().catch(() => {});
+    }
+    return enabled;
   });
   ipcMain.handle('app:openProjectPage', (_event, page) => {
     if (!['repository', 'releases'].includes(page)) {
@@ -836,6 +870,11 @@ if (primary) {
     registerNli({ app, ipcMain, dialog, getWindow: () => win, readConfig, writeConfig, readToken });
     registerSummarization({ app, ipcMain });
     createWindow();
+    // Quietly check for and download an update shortly after startup. Never
+    // fails startup and never installs without the user choosing Install.
+    setTimeout(() => {
+      prepareUpdateInBackground().catch(() => {});
+    }, 8000).unref?.();
     app.on('activate', () => {
       if (BrowserWindow.getAllWindows().length === 0) {
         createWindow();

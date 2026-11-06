@@ -185,7 +185,33 @@ test('platform: in-app updates are explicit, verified, progress-reporting, and s
   );
   assert.equal(saved, true);
   assert.equal(h.installs[0].file, file);
+  assert.equal(h.installs[0].executable, h.root);
+  assert.equal(h.installs[0].workingDirectory, process.cwd());
   assert.ok(h.requests.every(({ options }) => options.credentials === 'omit'));
+});
+
+test('autoUpdate checks, downloads, and installs the OS-matching release in one call', async (t) => {
+  const h = await updateHarness(t);
+  assert.equal(h.requests.length, 0);
+  let saved = false;
+  const outcome = await h.manager.autoUpdate('1.0.0', async () => {
+    saved = true;
+  });
+  assert.equal(outcome.updated, true);
+  assert.equal(outcome.release.latestVersion, 'v2.0.0');
+  assert.deepEqual(outcome.result, { manual: false });
+  assert.equal(saved, true);
+  assert.equal(h.installs.length, 1);
+  assert.equal(h.installs[0].file.endsWith(h.name), true);
+  assert.deepEqual(await fs.readFile(h.installs[0].file), h.data);
+  assert.equal(h.manager.getState().status, 'installing');
+  assert.equal(h.requests.length, 3, 'one release check, one checksums fetch, one installer fetch');
+
+  const upToDate = await updateHarness(t);
+  const noUpdate = await upToDate.manager.autoUpdate('2.0.0');
+  assert.equal(noUpdate.updated, false);
+  assert.equal(noUpdate.result, null);
+  assert.equal(upToDate.installs.length, 0, 'no installer runs when already up to date');
 });
 
 test('platform: invalid, oversized, truncated and tampered update downloads never install', async (t) => {
@@ -268,8 +294,13 @@ test('update launch waits for Windows app exit and macOS reports open failures',
   assert.deepEqual(result, { manual: false });
   assert.equal(launched.options.env.TAGLINE_UPDATE_INSTALLER, 'C:\\Temp\\Tagline update.exe');
   assert.equal(launched.options.env.TAGLINE_PARENT_PID, '42');
+  assert.ok(launched.options.env.TAGLINE_UPDATE_APP, 'relaunch target is the current executable');
+  assert.ok(launched.options.env.TAGLINE_UPDATE_CWD, 'relaunch keeps the current working directory');
   assert.match(launched.args.at(-1), /while \(Get-Process/);
   assert.match(launched.args.at(-1), /Start-Process -FilePath \$env:TAGLINE_UPDATE_INSTALLER/);
+  assert.match(launched.args.at(-1), /\$install = Start-Process/);
+  assert.match(launched.args.at(-1), /\$install\.ExitCode -ne 0/);
+  assert.match(launched.args.at(-1), /Start-Process -FilePath \$env:TAGLINE_UPDATE_APP/);
   let opened;
   assert.deepEqual(
     await launchInstaller({

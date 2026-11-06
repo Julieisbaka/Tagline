@@ -147,7 +147,7 @@ export default function App() {
     }
     notify(tabs.error);
     tabs.clearError();
-  }, [tabs.error, tabs.clearError, notify]);
+  }, [tabs, notify]);
   useEffect(
     () =>
       window.api.onWebsiteLink((url) => {
@@ -262,7 +262,7 @@ export default function App() {
         setJump({ path, heading, line: h?.line ?? null, n: Date.now() });
       }
     },
-    [paths, v, tabs, notify]
+    [paths, v, tabs, notify, t]
   );
 
   const prompt = (title, initial, onSubmit) =>
@@ -291,7 +291,7 @@ export default function App() {
       updateSettings({ speechDoc: result });
       return result;
     },
-    [v, updateSettings]
+    [v, updateSettings, t]
   );
 
   const doRename = async (from, to) => {
@@ -481,6 +481,7 @@ export default function App() {
       updateSettings,
       settings.warnDuplicateSend,
       confirm,
+      t,
     ]
   );
 
@@ -743,7 +744,7 @@ export default function App() {
       disposed = true;
       unsubscribe();
     };
-  }, [v.initialized, notify]);
+  }, [v.initialized, notify, t]);
   const mcpRef = useRef({});
   mcpRef.current = { reload: v.reload, open };
   useEffect(() => {
