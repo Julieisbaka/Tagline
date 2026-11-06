@@ -355,7 +355,7 @@ tagline.commands.register('save-checks', async () => {
       const wc = win.webContents;
       const js = (code) => wc.executeJavaScript(code);
       const escapeUnsafeJsString = (str) =>
-        str.replace(/[<>\u2028\u2029/\\\b\f\n\r\t\0]/g, (ch) => {
+        str.replace(/[<>/\u2028\u2029]/g, (ch) => {
           switch (ch) {
             case '<':
               return '\\u003C';
@@ -363,20 +363,6 @@ tagline.commands.register('save-checks', async () => {
               return '\\u003E';
             case '/':
               return '\\u002F';
-            case '\\':
-              return '\\\\';
-            case '\b':
-              return '\\b';
-            case '\f':
-              return '\\f';
-            case '\n':
-              return '\\n';
-            case '\r':
-              return '\\r';
-            case '\t':
-              return '\\t';
-            case '\0':
-              return '\\0';
             case '\u2028':
               return '\\u2028';
             case '\u2029':
@@ -416,10 +402,10 @@ tagline.commands.register('save-checks', async () => {
           await wait(`!!document.querySelector('.palette input')`, 'palette');
           await js(`(() => { const input = document.querySelector('.palette input');
             const set = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set;
-            set.call(input, ${JSON.stringify(label)}); input.dispatchEvent(new Event('input', { bubbles: true })); })()`);
+            set.call(input, ${escapeUnsafeJsString(JSON.stringify(label))}); input.dispatchEvent(new Event('input', { bubbles: true })); })()`);
           await delay(100);
           const found = await js(
-            `[...document.querySelectorAll('.palette-list > *')].some((el) => el.textContent.includes(${JSON.stringify(label)}))`
+            `[...document.querySelectorAll('.palette-list > *')].some((el) => el.textContent.includes(${escapeUnsafeJsString(JSON.stringify(label))}))`
           );
           await js(
             `document.querySelector('.palette input')?.dispatchEvent(new KeyboardEvent('keydown', { key: '${found ? 'Enter' : 'Escape'}', bubbles: true }))`

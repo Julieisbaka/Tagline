@@ -69,9 +69,26 @@ const delay = (ms) => new Promise((r) => setTimeout(r, ms));
     win.setIgnoreMouseEvents(true);
     win.webContents.once('did-finish-load', async () => {
       const js = (c) => win.webContents.executeJavaScript(c);
+      const escapeUnsafeJsString = (value) =>
+        JSON.stringify(value).replace(/[<>/\u2028\u2029]/g, (ch) => {
+          switch (ch) {
+            case '<':
+              return '\\u003C';
+            case '>':
+              return '\\u003E';
+            case '/':
+              return '\\u002F';
+            case '\u2028':
+              return '\\u2028';
+            case '\u2029':
+              return '\\u2029';
+            default:
+              return ch;
+          }
+        });
       const rect = (s) =>
         js(
-          `(() => { const b = document.querySelector(${JSON.stringify(s)}).getBoundingClientRect(); return { x: b.x, y: b.y, w: b.width, h: b.height }; })()`
+          `(() => { const b = document.querySelector(${escapeUnsafeJsString(s)}).getBoundingClientRect(); return { x: b.x, y: b.y, w: b.width, h: b.height }; })()`
         );
       try {
         const sourceRequests = [];
