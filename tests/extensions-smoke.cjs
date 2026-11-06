@@ -354,28 +354,24 @@ tagline.commands.register('save-checks', async () => {
     win.webContents.once('did-finish-load', async () => {
       const wc = win.webContents;
       const js = (code) => wc.executeJavaScript(code);
-      const escapeUnsafeJsString = (str) =>
-        str.replace(/[<>\u2028\u2029/\\\b\f\n\r\t\0]/g, (ch) => {
-          switch (ch) {
-            case '<': return '\\u003C';
-            case '>': return '\\u003E';
-            case '/': return '\\u002F';
-            case '\\': return '\\\\';
-            case '\b': return '\\b';
-            case '\f': return '\\f';
-            case '\n': return '\\n';
-            case '\r': return '\\r';
-            case '\t': return '\\t';
-            case '\0': return '\\0';
-            case '\u2028': return '\\u2028';
-            case '\u2029': return '\\u2029';
-            default: return ch;
+      const extensionStorage = (id) => {
+        if (id === 'demo') {
+          return js("window.api.extensionStorage('demo', 'get')");
+        }
+        if (id === 'nosy') {
+          return js("window.api.extensionStorage('nosy', 'get')");
+        }
+        throw new Error('Unexpected extension ID.');
+      };
+      const waitForStorage = async (id, predicate, label = `extension storage ${id}`) => {
+        for (let attempt = 0; attempt < 100; attempt++) {
+          if (predicate(await extensionStorage(id))) {
+            return;
           }
-        });
-      const extensionStorage = (id) =>
-        js(`window.api.extensionStorage(${escapeUnsafeJsString(JSON.stringify(id))}, 'get')`);
-      const extensionStorageWait = (id, predicate) =>
-        `(async () => { const data = await window.api.extensionStorage(${escapeUnsafeJsString(JSON.stringify(id))}, 'get'); return ${predicate}; })()`;
+          await delay(100);
+        }
+        throw new Error('Timed out: ' + label);
+      };
       wc.on('console-message', (event) => {
         if (event.level === 'error' || event.level === 'warning') {
           console.error('Renderer:', event.message);
@@ -426,7 +422,7 @@ tagline.commands.register('save-checks', async () => {
           "document.querySelector('.extension-webview-dialog')?.textContent.includes('Details')"
         );
         await js("document.querySelector('.extension-webview-dialog button').click()");
-        await wait(extensionStorageWait('nosy', 'data?.installAttempts === 1'));
+        await waitForStorage('nosy', (data) => data?.installAttempts === 1);
         await js("document.querySelector('.ribbon-settings-button').click()");
         await wait("!!document.querySelector('.settings')");
         await js("document.querySelector('[data-section=extensions]').click()");
@@ -442,7 +438,7 @@ tagline.commands.register('save-checks', async () => {
         await js(
           "[...document.querySelectorAll('.settings button')].find(el => el.textContent === 'Reload extensions').click()"
         );
-        await wait(extensionStorageWait('nosy', 'data?.installAttempts === 2'));
+        await waitForStorage('nosy', (data) => data?.installAttempts === 2);
         await wait(
           "document.querySelector('[data-extension=nosy]') && !document.querySelector('[data-extension=nosy]').textContent.includes('Retry first install setup')"
         );
@@ -527,7 +523,7 @@ tagline.commands.register('save-checks', async () => {
         );
         failSave = slowSave = true;
         await palette('Demo: Exercise save failures and in-flight flush');
-        await wait(extensionStorageWait('demo', 'data.saveChecks === true'));
+        await waitForStorage('demo', (data) => data.saveChecks === true);
         assert.equal(
           await fs.readFile(path.join(vault, 'Renamed Operations.md'), 'utf8'),
           'inflight-saved'
@@ -554,16 +550,15 @@ tagline.commands.register('save-checks', async () => {
           'stamped text'
         );
         await palette('Demo: Exercise editor events and UI');
-        await wait(
-          extensionStorageWait('demo', 'data.panelCheck?.reply === true'),
-          'panel round-trip'
-        );
-        await wait(
-          extensionStorageWait('demo', 'data.webviewCheck?.ready === true'),
+        await waitForStorage('demo', (data) => data.panelCheck?.reply === true, 'panel round-trip');
+        await waitForStorage(
+          'demo',
+          (data) => data.webviewCheck?.ready === true,
           'webview messaging'
         );
-        await wait(
-          extensionStorageWait('demo', "data.uiReport?.theme.id === 'dark'"),
+        await waitForStorage(
+          'demo',
+          (data) => data.uiReport?.theme.id === 'dark',
           'UI kit initializes before extension scripts'
         );
         const uiReport = (await extensionStorage('demo')).uiReport;
@@ -642,10 +637,7 @@ tagline.commands.register('save-checks', async () => {
           select.value = 'edit'; select.dispatchEvent(new Event('change', { bubbles: true })); })()`);
         await wait("!!document.querySelector('.cm-content')", 'source editor');
         await palette('Demo: Set source selection');
-        await wait(
-          extensionStorageWait('demo', 'data.sourceSelection?.to === 4'),
-          'source selection'
-        );
+        await waitForStorage('demo', (data) => data.sourceSelection?.to === 4, 'source selection');
         assert.deepEqual((await extensionStorage('demo')).sourceSelection, { from: 0, to: 4 });
         await js(
           `[...document.querySelectorAll('.tree-item')].find(el => el.textContent.trim() === 'Round').click()`
@@ -655,7 +647,7 @@ tagline.commands.register('save-checks', async () => {
         await js(
           'document.querySelector(\'.ribbon [data-ribbon-item="ext:demo.documents"]\').click()'
         );
-        await wait(extensionStorageWait('demo', "data.documentCheck === 'Extension canvas'"));
+        await waitForStorage('demo', (data) => data.documentCheck === 'Extension canvas');
         assert.deepEqual((await extensionStorage('demo')).documentKind, {
           kind: 'flow',
           editorKind: null,
@@ -717,16 +709,18 @@ tagline.commands.register('save-checks', async () => {
           await js(`getComputedStyle(document.documentElement).getPropertyValue('--font-ui')`),
           'monospace'
         );
-        await wait(
-          extensionStorageWait('demo', "data.uiReport?.theme.id === 'ext:demo:0'"),
+        await waitForStorage(
+          'demo',
+          (data) => data.uiReport?.theme.id === 'ext:demo:0',
           'panel theme updates live'
         );
         await delay(250);
         await js(
           "void document.querySelector('.extension-panel iframe').contentWindow.postMessage({type:'extension-ui-message',payload:{inspect:true}},'*')"
         );
-        await wait(
-          extensionStorageWait('demo', "data.uiReport.button === 'rgb(18, 164, 217)'"),
+        await waitForStorage(
+          'demo',
+          (data) => data.uiReport.button === 'rgb(18, 164, 217)',
           'shared primary button follows theme accent'
         );
         assert.equal(
@@ -738,9 +732,9 @@ tagline.commands.register('save-checks', async () => {
           features: [{ name: 'prefers-reduced-motion', value: 'reduce' }],
         });
         assert.equal(await js("matchMedia('(prefers-reduced-motion: reduce)').matches"), true);
-        await wait(extensionStorageWait('demo', 'data.uiReport?.theme.reducedMotion === true'));
+        await waitForStorage('demo', (data) => data.uiReport?.theme.reducedMotion === true);
         await wc.debugger.sendCommand('Emulation.setEmulatedMedia', { features: [] });
-        await wait(extensionStorageWait('demo', 'data.uiReport?.theme.reducedMotion === false'));
+        await waitForStorage('demo', (data) => data.uiReport?.theme.reducedMotion === false);
         wc.debugger.detach();
         assert.match(
           await js("document.querySelector('.theme-metadata').textContent"),
@@ -763,9 +757,7 @@ tagline.commands.register('save-checks', async () => {
         await wait(
           "getComputedStyle(document.documentElement).getPropertyValue('--selection') === '#abcdef'"
         );
-        await wait(
-          extensionStorageWait('demo', "data.uiReport?.selection === 'rgb(171, 205, 239)'")
-        );
+        await waitForStorage('demo', (data) => data.uiReport?.selection === 'rgb(171, 205, 239)');
         assert.equal(
           await js(
             "getComputedStyle(document.documentElement).getPropertyValue('--editor-font-size')"
