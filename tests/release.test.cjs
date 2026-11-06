@@ -128,6 +128,12 @@ test('release workflow runs only manually, packages all architectures and publis
   );
   assert.ok(workflow.jobs.build.steps.some((step) => step.run?.includes('--publish never')));
   assert.ok(workflow.jobs.build.steps.some((step) => step.run === 'npm run test:installation'));
+  const packagedPandocTest = workflow.jobs.build.steps.find(
+    (step) => step.name === 'Test packaged Pandoc filter'
+  );
+  assert.equal(packagedPandocTest.if, "matrix.platform == 'mac'");
+  assert.match(packagedPandocTest.run, /brew install pandoc/);
+  assert.match(packagedPandocTest.run, /tests\/packaged-pandoc-smoke\.cjs/);
 });
 
 test('release tests shared logic once and gates every platform build on it', () => {
@@ -187,6 +193,11 @@ test('release tests shared logic once and gates every platform build on it', () 
     builds.indexOf('npm run test:installation') <
       builds.findIndex((run) => run.includes('electron-builder'))
   );
+  const packageIndex = builds.findIndex((run) => run.includes('electron-builder'));
+  const pandocTestIndex = workflow.jobs.build.steps.findIndex(
+    (step) => step.name === 'Test packaged Pandoc filter'
+  );
+  assert.ok(pandocTestIndex > packageIndex);
 });
 
 test('full test runner builds the renderer once and standalone smoke scripts prepare it', () => {
