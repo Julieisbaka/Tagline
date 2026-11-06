@@ -6,7 +6,7 @@ Tagline is a local-first debate research workspace built with React, Vite, and E
 
 Vaults are ordinary folders containing Markdown notes and structured files such as `.flow` and canvas documents. Keep file-format behavior and validation consistent with the relevant modules in `src/lib/`, `electron/`, and `schemas/`.
 
-Extensions run in a sandboxed worker and use the `tagline` API, not the application DOM or Node.js. When changing the extension surface, keep its implementation, JSON schemas, `docs/extension-api.md`, and the example under `demo/` in sync.
+Extensions run in a sandboxed worker and use the `tagline` API, not the application DOM or Node.js. When changing the extension surface, keep its implementation, JSON schemas, the Tagline documentation site, and the example under `demo/` in sync.
 
 ## Build and test
 

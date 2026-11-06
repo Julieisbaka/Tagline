@@ -446,7 +446,8 @@ test('extension settings have validated types, bounds, defaults and scoped stora
   const { validateSettingDefinitions, validateSettingValue } =
     await import('../electron/extensionSettings.mjs');
   const { ExtensionHost } = await import('../src/lib/extensions.js');
-  const { resetExtensionSettings } = await import('../src/lib/extensionSettings.js');
+  const { clearExtensionData, resetExtensionSettings } =
+    await import('../src/lib/extensionSettings.js');
   const settings = [
     { id: 'enabled', title: 'Enabled', type: 'boolean', default: true },
     { id: 'limit', title: 'Limit', type: 'number', min: 1, max: 5, default: 3 },
@@ -494,6 +495,8 @@ test('extension settings have validated types, bounds, defaults and scoped stora
   await assert.rejects(host.handle('settings.set', ['enabled', false]), /Permission/);
   manifest.permissions.push('settings');
   assert.equal(await host.handle('settings.get', ['enabled']), true);
+  const denied = new ExtensionHost(manifest, '', {}, undefined, false, []);
+  await assert.rejects(denied.handle('settings.get', ['enabled']), /not allowed/);
   await host.handle('settings.set', ['enabled', false]);
   assert.equal(await host.handle('settings.get', ['enabled']), false);
   await assert.rejects(host.handle('settings.set', ['limit', '4']), /Invalid value/);
@@ -513,6 +516,11 @@ test('extension settings have validated types, bounds, defaults and scoped stora
   );
   resetExtensionSettings(manifest);
   assert.equal(await host.handle('settings.get', ['enabled']), true);
+  storage.set('tagline-extension-settings:typed', '{"enabled":false}');
+  storage.set('tagline-extension:typed', '{"private":"value"}');
+  clearExtensionData(manifest);
+  assert.equal(storage.has('tagline-extension-settings:typed'), false);
+  assert.equal(storage.has('tagline-extension:typed'), false);
 });
 
 test('extension secret values use the encrypted storage bridge and legacy local storage is migrated', async (t) => {
@@ -651,6 +659,20 @@ test('platform: settings and event permission changes require a fresh manifest r
     const [item] = await handlers['extensions:list']();
     assert.equal(item.enabled, false);
     assert.equal(item.reviewRequired, true);
+    assert.deepEqual(item.allowedPermissions, manifest.permissions);
+    await assert.rejects(
+      handlers['extensions:setPermissions'](null, 'review', ['vault:write'], item.reviewToken),
+      /permissions changed/
+    );
+    await handlers['extensions:setPermissions'](
+      null,
+      'review',
+      ['editor:active-note'],
+      item.reviewToken
+    );
+    assert.deepEqual((await handlers['extensions:list']())[0].allowedPermissions, [
+      'editor:active-note',
+    ]);
     await assert.rejects(handlers['extensions:load'](null, 'review'), /disabled/);
     await assert.rejects(
       handlers['extensions:setEnabled'](null, 'review', true),
@@ -698,7 +720,62 @@ test('platform: settings and event permission changes require a fresh manifest r
     );
     manifest.permissions.push('vault:write');
     await fsAsync.writeFile(file, JSON.stringify(manifest));
-    assert.equal((await handlers['extensions:list']())[0].enabled, false);
+    const updated = (await handlers['extensions:list']())[0];
+    assert.equal(updated.enabled, false);
+    assert.deepEqual(updated.allowedPermissions, ['editor:active-note']);
+  } finally {
+    await fsAsync.rm(root, { recursive: true, force: true });
+  }
+});
+
+test('platform: extensions can be uninstalled and their saved grants are cleared', async () => {
+  const fsAsync = require('node:fs/promises');
+  const { registerExtensions } = require('../electron/extensions.cjs');
+  const root = await fsAsync.mkdtemp(path.join(require('node:os').tmpdir(), 'tagline-uninstall-'));
+  try {
+    const folder = path.join(root, 'extensions', 'remove-me');
+    await fsAsync.mkdir(folder, { recursive: true });
+    await fsAsync.writeFile(
+      path.join(folder, 'manifest.json'),
+      JSON.stringify({
+        manifestVersion: 1,
+        id: 'remove-me',
+        name: 'Remove Me',
+        version: '1',
+        permissions: ['editor'],
+      })
+    );
+    let config = {
+      enabledExtensions: ['remove-me'],
+      extensionReviews: { 'remove-me': 'review' },
+      extensionPermissions: { 'remove-me': ['editor'] },
+      initializedExtensions: ['remove-me'],
+    };
+    const handlers = {};
+    registerExtensions({
+      app: { getPath: () => root },
+      shell: {},
+      ipcMain: {
+        handle: (name, fn) => {
+          handlers[name] = fn;
+        },
+      },
+      readConfig: () => config,
+      writeConfig: (patch) => {
+        config = { ...config, ...patch };
+      },
+    });
+    const secretFile = path.join(root, 'extension-secrets', 'remove-me.bin');
+    await fsAsync.mkdir(path.dirname(secretFile), { recursive: true });
+    await fsAsync.writeFile(secretFile, 'encrypted extension secret');
+    await handlers['extensions:uninstall'](null, 'remove-me');
+    await assert.rejects(fsAsync.stat(folder), { code: 'ENOENT' });
+    await assert.rejects(fsAsync.stat(secretFile), { code: 'ENOENT' });
+    assert.deepEqual(config.enabledExtensions, []);
+    assert.deepEqual(config.extensionReviews, {});
+    assert.deepEqual(config.extensionPermissions, {});
+    assert.deepEqual(config.initializedExtensions, []);
+    await assert.rejects(handlers['extensions:uninstall'](null, '../remove-me'), /Invalid/);
   } finally {
     await fsAsync.rm(root, { recursive: true, force: true });
   }

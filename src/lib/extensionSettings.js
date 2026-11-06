@@ -75,3 +75,14 @@ export function resetExtensionSettings(manifest) {
   localStorage.removeItem(`tagline-extension-settings:${manifest.id}`);
   window.dispatchEvent(new CustomEvent('extension-settings-changed'));
 }
+
+/**
+ * Remove all persisted settings and private storage for an uninstalled extension.
+ * @param {object} manifest - The extension object used to identify its storage keys.
+ * @returns {void}
+ */
+export function clearExtensionData(manifest) {
+  localStorage.removeItem(`tagline-extension-settings:${manifest.id}`);
+  localStorage.removeItem(`tagline-extension:${manifest.id}`);
+  window.dispatchEvent(new CustomEvent('extension-settings-changed'));
+}

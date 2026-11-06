@@ -213,6 +213,17 @@ test('main process requires an enabled reviewed extension and enforces host chan
     /no longer enabled/
   );
   await handlers['extensions:setEnabled'](null, manifest.id, true, unreviewed.reviewToken);
+  await handlers['extensions:setPermissions'](null, manifest.id, [], unreviewed.reviewToken);
+  await assert.rejects(
+    handlers['extensions:networkFetch'](null, manifest.id, 'https://api.example.com/', {}),
+    /Network permission is required/
+  );
+  await handlers['extensions:setPermissions'](
+    null,
+    manifest.id,
+    ['network'],
+    unreviewed.reviewToken
+  );
   await assert.rejects(
     handlers['extensions:networkFetch'](null, manifest.id, 'https://other.example.com/', {}),
     /exact host declared/

@@ -357,19 +357,32 @@ tagline.commands.register('save-checks', async () => {
       const escapeUnsafeJsString = (str) =>
         str.replace(/[<>\u2028\u2029/\\\b\f\n\r\t\0]/g, (ch) => {
           switch (ch) {
-            case '<': return '\\u003C';
-            case '>': return '\\u003E';
-            case '/': return '\\u002F';
-            case '\\': return '\\\\';
-            case '\b': return '\\b';
-            case '\f': return '\\f';
-            case '\n': return '\\n';
-            case '\r': return '\\r';
-            case '\t': return '\\t';
-            case '\0': return '\\0';
-            case '\u2028': return '\\u2028';
-            case '\u2029': return '\\u2029';
-            default: return ch;
+            case '<':
+              return '\\u003C';
+            case '>':
+              return '\\u003E';
+            case '/':
+              return '\\u002F';
+            case '\\':
+              return '\\\\';
+            case '\b':
+              return '\\b';
+            case '\f':
+              return '\\f';
+            case '\n':
+              return '\\n';
+            case '\r':
+              return '\\r';
+            case '\t':
+              return '\\t';
+            case '\0':
+              return '\\0';
+            case '\u2028':
+              return '\\u2028';
+            case '\u2029':
+              return '\\u2029';
+            default:
+              return ch;
           }
         });
       const extensionStorage = (id) =>
