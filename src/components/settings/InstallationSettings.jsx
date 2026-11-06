@@ -200,7 +200,11 @@ export default function InstallationSettings() {
         </>
       )}
       <h3>{t('Updates')}</h3>
-      <p>{t('Tagline does not check for or install updates automatically.')}</p>
+      <p>
+        {t(
+          'Tagline can check for, download, and install updates from GitHub Releases for your operating system.'
+        )}
+      </p>
       <div className='settings-actions'>
         <button
           disabled={checking || updating}
