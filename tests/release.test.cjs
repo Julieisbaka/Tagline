@@ -33,6 +33,11 @@ function containsUrl(text, expectedUrl) {
   });
 }
 
+test('packaging unpacks the Pandoc Lua filter for external document conversion', () => {
+  const { build } = require('../package.json');
+  assert.ok(build.asarUnpack.includes('electron/highlightRoundTrip.lua'));
+});
+
 test('packaging retains only target ONNX binaries and preserves runtime dependencies', () => {
   const { getNodeModuleFileMatcher } = require('app-builder-lib/out/fileMatcher');
   const { build } = require('../package.json');

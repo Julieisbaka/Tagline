@@ -2,7 +2,7 @@ const fs = require('node:fs/promises');
 const path = require('node:path');
 const { execFile } = require('node:child_process');
 const { promisify } = require('node:util');
-const { detectPandoc } = require('./pandoc.cjs');
+const { detectPandoc, highlightFilterPath } = require('./pandoc.cjs');
 
 const run = promisify(execFile);
 const IMPORT_READERS = {
@@ -35,7 +35,7 @@ async function importDocument(executable, file, { cleanup = false } = {}) {
   const args = [
     `--from=${reader}`,
     '--to=markdown+mark+raw_html-bracketed_spans',
-    `--lua-filter=${path.join(__dirname, 'highlightRoundTrip.lua').replace('app.asar' + path.sep, 'app.asar.unpacked' + path.sep)}`,
+    `--lua-filter=${highlightFilterPath(__dirname)}`,
   ];
   if (extension === 'docx') {
     args.push('--track-changes=accept');

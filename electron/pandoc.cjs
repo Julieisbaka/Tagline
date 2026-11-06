@@ -74,6 +74,15 @@ async function detectPandoc(customPath = '') {
   };
 }
 
+function highlightFilterPath(moduleDirectory) {
+  const appDirectory = path.dirname(moduleDirectory);
+  const filterDirectory =
+    path.basename(appDirectory) === 'app.asar'
+      ? path.join(path.dirname(appDirectory), 'app.asar.unpacked', path.basename(moduleDirectory))
+      : moduleDirectory;
+  return path.join(filterDirectory, 'highlightRoundTrip.lua');
+}
+
 function convert({ executable, html, format, outputPath, title }) {
   if (!FORMATS[format]) {
     return Promise.reject(new Error('Unsupported export format.'));
@@ -82,7 +91,7 @@ function convert({ executable, html, format, outputPath, title }) {
     const args = [
       '--from=html',
       `--to=${FORMATS[format].writer}`,
-      `--lua-filter=${path.join(__dirname, 'highlightRoundTrip.lua').replace('app.asar' + path.sep, 'app.asar.unpacked' + path.sep)}`,
+      `--lua-filter=${highlightFilterPath(__dirname)}`,
       '--standalone',
       '--sandbox',
       '--wrap=none',
@@ -191,4 +200,11 @@ function registerPandoc({ ipcMain, dialog, getWindow, readConfig, writeConfig })
   });
 }
 
-module.exports = { FORMATS, addRtfHighlightColor, detectPandoc, convert, registerPandoc };
+module.exports = {
+  FORMATS,
+  addRtfHighlightColor,
+  detectPandoc,
+  highlightFilterPath,
+  convert,
+  registerPandoc,
+};
