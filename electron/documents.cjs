@@ -35,7 +35,7 @@ async function importDocument(executable, file, { cleanup = false } = {}) {
   const args = [
     `--from=${reader}`,
     '--to=markdown+mark+raw_html-bracketed_spans',
-    `--lua-filter=${path.join(__dirname, 'highlightRoundTrip.lua')}`,
+    `--lua-filter=${path.join(__dirname, 'highlightRoundTrip.lua').replace('app.asar' + path.sep, 'app.asar.unpacked' + path.sep)}`,
   ];
   if (extension === 'docx') {
     args.push('--track-changes=accept');

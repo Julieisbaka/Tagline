@@ -82,7 +82,7 @@ function convert({ executable, html, format, outputPath, title }) {
     const args = [
       '--from=html',
       `--to=${FORMATS[format].writer}`,
-      `--lua-filter=${path.join(__dirname, 'highlightRoundTrip.lua')}`,
+      `--lua-filter=${path.join(__dirname, 'highlightRoundTrip.lua').replace('app.asar' + path.sep, 'app.asar.unpacked' + path.sep)}`,
       '--standalone',
       '--sandbox',
       '--wrap=none',
