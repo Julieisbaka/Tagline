@@ -294,7 +294,7 @@ app.on('browser-window-created', (_event, win) => {
         const displayed = await js("document.querySelector('.installation-settings').textContent");
         assert.ok(displayed.includes(version));
         assert.ok(displayed.includes(profile));
-        assert.ok(displayed.includes('does not check for or install updates automatically'));
+        assert.ok(displayed.includes('Tagline can check for, download, and install updates from GitHub Releases for your operating system.'));
         assert.equal(releaseCalls, 0, 'opening settings never contacts GitHub automatically');
         await js(
           "[...document.querySelectorAll('.installation-settings button')].find(el => el.textContent === 'Check for updates').click()"
