@@ -126,6 +126,15 @@ test('release workflow runs only manually, packages all architectures and publis
     workflow.jobs.build.strategy.matrix.include.map(({ platform, arch }) => `${platform}-${arch}`),
     ['win-x64', 'mac-x64', 'mac-arm64']
   );
+  assert.deepEqual(
+    workflow.jobs.build.strategy.matrix.include
+      .filter(({ platform }) => platform === 'mac')
+      .map(({ arch, app_path }) => [arch, app_path]),
+    [
+      ['x64', 'release/mac'],
+      ['arm64', 'release/mac-arm64'],
+    ]
+  );
   assert.ok(workflow.jobs.build.steps.some((step) => step.run?.includes('--publish never')));
   assert.ok(workflow.jobs.build.steps.some((step) => step.run === 'npm run test:installation'));
   const packagedPandocTest = workflow.jobs.build.steps.find(
@@ -134,6 +143,7 @@ test('release workflow runs only manually, packages all architectures and publis
   assert.equal(packagedPandocTest.if, "matrix.platform == 'mac'");
   assert.match(packagedPandocTest.run, /brew install pandoc/);
   assert.match(packagedPandocTest.run, /tests\/packaged-pandoc-smoke\.cjs/);
+  assert.match(packagedPandocTest.run, /"\$\{\{ matrix\.app_path \}\}\/Tagline\.app"/);
 });
 
 test('release tests shared logic once and gates every platform build on it', () => {
