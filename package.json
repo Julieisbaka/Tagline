@@ -55,6 +55,7 @@
     "directories": {
       "output": "release"
     },
+    "afterPack": "scripts/adhoc-sign.cjs",
     "files": [
       "dist/**/*",
       "electron/**/*",
