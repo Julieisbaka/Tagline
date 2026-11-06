@@ -295,7 +295,10 @@ test('update launch waits for Windows app exit and macOS reports open failures',
   assert.equal(launched.options.env.TAGLINE_UPDATE_INSTALLER, 'C:\\Temp\\Tagline update.exe');
   assert.equal(launched.options.env.TAGLINE_PARENT_PID, '42');
   assert.ok(launched.options.env.TAGLINE_UPDATE_APP, 'relaunch target is the current executable');
-  assert.ok(launched.options.env.TAGLINE_UPDATE_CWD, 'relaunch keeps the current working directory');
+  assert.ok(
+    launched.options.env.TAGLINE_UPDATE_CWD,
+    'relaunch keeps the current working directory'
+  );
   assert.match(launched.args.at(-1), /while \(Get-Process/);
   assert.match(launched.args.at(-1), /Start-Process -FilePath \$env:TAGLINE_UPDATE_INSTALLER/);
   assert.match(launched.args.at(-1), /\$install = Start-Process/);

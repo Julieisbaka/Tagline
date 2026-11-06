@@ -69,10 +69,7 @@ function ExtensionSettingsForm({ item, extensions }) {
     try {
       setValues(
         Object.fromEntries(
-          item.contributes.settings.map((setting) => [
-            setting.id,
-            getSetting(item, setting.id),
-          ])
+          item.contributes.settings.map((setting) => [setting.id, getSetting(item, setting.id)])
         )
       );
       setLoaded(true);
