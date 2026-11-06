@@ -354,10 +354,28 @@ tagline.commands.register('save-checks', async () => {
     win.webContents.once('did-finish-load', async () => {
       const wc = win.webContents;
       const js = (code) => wc.executeJavaScript(code);
+      const escapeUnsafeJsString = (str) =>
+        str.replace(/[<>\u2028\u2029/\\\b\f\n\r\t\0]/g, (ch) => {
+          switch (ch) {
+            case '<': return '\\u003C';
+            case '>': return '\\u003E';
+            case '/': return '\\u002F';
+            case '\\': return '\\\\';
+            case '\b': return '\\b';
+            case '\f': return '\\f';
+            case '\n': return '\\n';
+            case '\r': return '\\r';
+            case '\t': return '\\t';
+            case '\0': return '\\0';
+            case '\u2028': return '\\u2028';
+            case '\u2029': return '\\u2029';
+            default: return ch;
+          }
+        });
       const extensionStorage = (id) =>
-        js(`window.api.extensionStorage(${JSON.stringify(id)}, 'get')`);
+        js(`window.api.extensionStorage(${escapeUnsafeJsString(JSON.stringify(id))}, 'get')`);
       const extensionStorageWait = (id, predicate) =>
-        `(async () => { const data = await window.api.extensionStorage(${JSON.stringify(id)}, 'get'); return ${predicate}; })()`;
+        `(async () => { const data = await window.api.extensionStorage(${escapeUnsafeJsString(JSON.stringify(id))}, 'get'); return ${predicate}; })()`;
       wc.on('console-message', (event) => {
         if (event.level === 'error' || event.level === 'warning') {
           console.error('Renderer:', event.message);
