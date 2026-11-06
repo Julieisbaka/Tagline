@@ -5,6 +5,7 @@
 <script>
   (() => {
     let worker;
+    let hostPort;
     let watchdog;
     let started = false;
     let lastHeartbeat = 0;
@@ -14,7 +15,7 @@
       worker?.terminate();
       worker = null;
       clearInterval(watchdog);
-      parent.postMessage({ type: 'failed', message }, '*');
+      hostPort?.postMessage({ type: 'failed', message });
     };
     const workerMain = () => {
       for (const name of ['Worker', 'SharedWorker']) {
@@ -579,10 +580,11 @@
       });
     };
     addEventListener('message', (event) => {
-      if (event.source !== parent || !event.data) return;
+      if (event.source !== parent || !event.data || !event.ports[0]) return;
       const data = event.data;
       if (data.type === 'start' && !started) {
         started = true;
+        hostPort = event.ports[0];
         limits = Object.freeze(data.limits);
         const url = URL.createObjectURL(new Blob([`(${workerMain.toString()})();`], { type: 'text/javascript' }));
         try { worker = new Worker(url); }
@@ -595,14 +597,18 @@
           while (messageTimes.length && messageTimes[0] <= now - 1000) messageTimes.shift();
           if (messageTimes.length >= limits.extensionMessagesPerSecond) { fail(`Extension exceeded ${limits.extensionMessagesPerSecond} messages per second and was stopped.`); return; }
           messageTimes.push(now);
-          parent.postMessage(message, '*');
+          hostPort.postMessage(message);
         };
+        hostPort.onmessage = ({ data: message }) => {
+          if (worker && ['result', 'command', 'vault-event', 'active-note-event', 'application-event', 'surface-event'].includes(message.type)) {
+            worker.postMessage(message);
+          }
+        };
+        hostPort.start();
         worker.onerror = (event) => { event.preventDefault(); fail(event.message || 'Extension worker failed.'); };
         watchdog = setInterval(() => {
           if (performance.now() - lastHeartbeat > limits.extensionHeartbeatMs) fail(`Extension stopped responding for ${limits.extensionHeartbeatMs / 1000} seconds and was stopped.`);
         }, 500);
-        worker.postMessage(data);
-      } else if (worker && ['result', 'command', 'vault-event', 'active-note-event', 'application-event', 'surface-event'].includes(data.type)) {
         worker.postMessage(data);
       }
     });

@@ -497,6 +497,82 @@ function registerExtensions({
 
   const secretsDir = () => path.join(app.getPath('userData'), 'extension-secrets');
   const secretQueues = new Map();
+  const storageDir = () => path.join(app.getPath('userData'), 'extension-storage');
+  const storageQueues = new Map();
+  const readExtensionStorage = async (id) => {
+    const file = path.join(storageDir(), `${id}.bin`);
+    let encrypted;
+    try {
+      encrypted = await fs.readFile(file);
+    } catch (error) {
+      if (error.code === 'ENOENT') {
+        return null;
+      }
+      throw error;
+    }
+    try {
+      const parsed = JSON.parse((await safeStorage.decryptStringAsync(encrypted)).result);
+      return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : {};
+    } catch {
+      throw new Error('Cannot decrypt this extension’s storage.');
+    }
+  };
+  const writeExtensionStorage = async (id, data) => {
+    const file = path.join(storageDir(), `${id}.bin`);
+    if (!Object.keys(data).length) {
+      await fs.rm(file, { force: true });
+      return;
+    }
+    await fs.mkdir(storageDir(), { recursive: true });
+    const tmp = `${file}.${randomUUID()}.tmp`;
+    await fs.writeFile(tmp, await safeStorage.encryptStringAsync(JSON.stringify(data)), {
+      mode: 0o600,
+    });
+    await fs.rename(tmp, file);
+  };
+  const serializeStorage = (id, task) => {
+    const run = (storageQueues.get(id) || Promise.resolve()).catch(() => {}).then(task);
+    storageQueues.set(id, run);
+    return run;
+  };
+  ipcMain.handle('extensions:storage', async (_event, id, action, key, value) => {
+    if (typeof id !== 'string' || !ID.test(id) || !['get', 'set', 'replace'].includes(action)) {
+      throw new Error('Invalid extension request.');
+    }
+    const item = (await scan()).find((extension) => extension.id === id && !extension.error);
+    if (!item || !item.enabled) {
+      throw new Error('Extension is no longer enabled.');
+    }
+    if (!safeStorage || !(await safeStorage.isAsyncEncryptionAvailable())) {
+      throw new Error('Secure storage is not available on this system.');
+    }
+    return serializeStorage(id, async () => {
+      const data = await readExtensionStorage(id);
+      if (action === 'get') {
+        return data;
+      }
+      let next;
+      if (action === 'set') {
+        if (typeof key !== 'string' || !key || key.length > MAX_SECRET_KEY) {
+          throw new Error(`Key must be 1-${MAX_SECRET_KEY} characters.`);
+        }
+        next = { ...(data || {}), [key]: value };
+        if (value === undefined || value === null) {
+          delete next[key];
+        }
+      } else {
+        if (!value || typeof value !== 'object' || Array.isArray(value)) {
+          throw new Error('Invalid extension storage.');
+        }
+        next = value;
+      }
+      if (JSON.stringify(next).length > limits().extensionStorageCharacters) {
+        throw new Error('Extension storage exceeds the configured limit.');
+      }
+      await writeExtensionStorage(id, next);
+      return true;
+    });
+  });
   const readSecrets = async (id) => {
     const file = path.join(secretsDir(), `${id}.bin`);
     let encrypted;

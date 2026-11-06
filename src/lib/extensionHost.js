@@ -56,6 +56,7 @@ export class ExtensionHost {
     this.pendingCalls = 0;
     this.messageTimes = [];
     this.networkRequestTimes = [];
+    this.storageWrites = Promise.resolve();
     this.onMessage = this.onMessage.bind(this);
   }
 
@@ -66,6 +67,10 @@ export class ExtensionHost {
     this.frame.dataset.extension = this.manifest.id;
     this.frame.style.display = 'none';
     this.frame.src = new URL(SANDBOX_URL, document.baseURI).href;
+    const channel = new MessageChannel();
+    this.port = channel.port1;
+    this.port.onmessage = this.onMessage;
+    this.port.start();
     return new Promise((resolve, reject) => {
       const timer = setTimeout(() => {
         this.dispose();
@@ -81,7 +86,6 @@ export class ExtensionHost {
           resolve();
         }
       };
-      window.addEventListener('message', this.onMessage);
       this.frame.addEventListener(
         'load',
         () =>
@@ -92,7 +96,8 @@ export class ExtensionHost {
               limits: this.limits,
               firstInstall: this.firstInstall,
             },
-            '*'
+            '*',
+            [channel.port2]
           ),
         { once: true }
       );
@@ -392,14 +397,11 @@ export class ExtensionHost {
         this.activeNoteWatches.set(
           id,
           b.watchActiveNote((event) =>
-            this.frame?.contentWindow?.postMessage(
-              {
-                type: 'active-note-event',
-                id,
-                event: { path: event.path },
-              },
-              '*'
-            )
+            this.port?.postMessage({
+              type: 'active-note-event',
+              id,
+              event: { path: event.path },
+            })
           )
         );
         return id;
@@ -447,14 +449,11 @@ export class ExtensionHost {
         this.watches.set(
           id,
           b.watch((event) =>
-            this.frame?.contentWindow?.postMessage(
-              {
-                type: 'vault-event',
-                id,
-                event,
-              },
-              '*'
-            )
+            this.port?.postMessage({
+              type: 'vault-event',
+              id,
+              event,
+            })
           )
         );
         return id;
@@ -472,34 +471,76 @@ export class ExtensionHost {
         this.require('secrets');
         return b.secret(this.manifest.id, 'set', requireText(args[0], 'Key', 200), args[1]);
       case 'storage.get':
-        return this.storage()[requireText(args[0], 'Key', 200)] ?? null;
-      case 'storage.set': {
-        const data = { ...this.storage(), [requireText(args[0], 'Key', 200)]: args[1] };
-        if (args[1] === undefined || args[1] === null) {
-          delete data[args[0]];
+        await this.storageWrites.catch(() => {});
+        {
+          const data = await this.storage();
+          const key = requireText(args[0], 'Key', 200);
+          return Object.hasOwn(data, key) ? data[key] : null;
         }
-        const text = JSON.stringify(data);
-        if (text.length > this.limits.extensionStorageCharacters) {
+      case 'storage.set': {
+        const key = requireText(args[0], 'Key', 200);
+        const valueText = JSON.stringify(args[1]);
+        if (valueText !== undefined && valueText.length > this.limits.extensionStorageCharacters) {
           throw new Error('Extension storage exceeds the configured limit.');
         }
-        localStorage.setItem(`tagline-extension:${this.manifest.id}`, text);
-        return true;
+        return (this.storageWrites = this.storageWrites
+          .catch(() => {})
+          .then(async () => {
+            const data = await this.storage();
+            const next = { ...data, [key]: args[1] };
+            if (args[1] === undefined || args[1] === null) {
+              delete next[key];
+            }
+            const text = JSON.stringify(next);
+            if (text.length > this.limits.extensionStorageCharacters) {
+              throw new Error('Extension storage exceeds the configured limit.');
+            }
+            await this.bridge.extensionStorage(this.manifest.id, 'set', key, args[1]);
+            if (args[1] === undefined || args[1] === null) {
+              delete data[key];
+            } else {
+              data[key] = args[1];
+            }
+            return true;
+          }));
       }
       default:
         throw new Error(`Unknown API method: ${method}`);
     }
   }
 
-  storage() {
-    try {
-      return JSON.parse(localStorage.getItem(`tagline-extension:${this.manifest.id}`) || '{}');
-    } catch {
-      return {};
+  async storage() {
+    if (!this.storagePromise) {
+      this.storagePromise = (async () => {
+        const key = `tagline-extension:${this.manifest.id}`;
+        const legacy = localStorage.getItem(key);
+        let data = await this.bridge.extensionStorage(this.manifest.id, 'get');
+        if (data === null && legacy) {
+          try {
+            const parsed = JSON.parse(legacy);
+            if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+              const text = JSON.stringify(parsed);
+              if (text.length <= this.limits.extensionStorageCharacters) {
+                await this.bridge.extensionStorage(this.manifest.id, 'replace', null, parsed);
+                data = parsed;
+              }
+            }
+          } catch {
+            data = null;
+          }
+        }
+        if (legacy !== null) {
+          localStorage.removeItem(key);
+        }
+        this.storageCache = data && typeof data === 'object' && !Array.isArray(data) ? data : {};
+        return this.storageCache;
+      })();
     }
+    return this.storagePromise;
   }
 
   sendEvent(type, id, event) {
-    this.frame?.contentWindow?.postMessage({ type, id, event }, '*');
+    this.port?.postMessage({ type, id, event });
   }
 
   acceptMessage(now) {
@@ -514,7 +555,7 @@ export class ExtensionHost {
   }
 
   async onMessage(event) {
-    if (!this.frame || event.source !== this.frame.contentWindow || !event.data) {
+    if (!this.frame || !event.data) {
       return;
     }
     const data = event.data;
@@ -545,14 +586,11 @@ export class ExtensionHost {
       this.bridge.notify(`${this.manifest.name}: ${String(data.message).slice(0, 500)}`);
     } else if (data.type === 'call') {
       if (this.pendingCalls >= this.limits.extensionPendingCalls) {
-        this.frame.contentWindow.postMessage(
-          {
-            type: 'result',
-            id: data.id,
-            error: `Extension is limited to ${this.limits.extensionPendingCalls} pending API calls.`,
-          },
-          '*'
-        );
+        this.port.postMessage({
+          type: 'result',
+          id: data.id,
+          error: `Extension is limited to ${this.limits.extensionPendingCalls} pending API calls.`,
+        });
         return;
       }
       this.pendingCalls++;
@@ -568,7 +606,7 @@ export class ExtensionHost {
       } finally {
         this.pendingCalls--;
       }
-      this.frame?.contentWindow?.postMessage(reply, '*');
+      this.port?.postMessage(reply);
     }
   }
 
@@ -581,7 +619,7 @@ export class ExtensionHost {
     if (!this.registered.has(commandId)) {
       throw new Error(`${this.manifest.name} has not registered "${commandId}".`);
     }
-    this.frame.contentWindow.postMessage({ type: 'command', command: commandId }, '*');
+    this.port.postMessage({ type: 'command', command: commandId });
   }
 
   dispose() {
@@ -594,7 +632,8 @@ export class ExtensionHost {
     this.surfaces.clear();
     this.surfaceTransports.clear();
     this.bridge.removeSurfaces?.(this);
-    window.removeEventListener('message', this.onMessage);
+    this.port?.close();
+    this.port = null;
     this.frame?.remove();
     this.frame = null;
     this.registered.clear();

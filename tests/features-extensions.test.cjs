@@ -209,7 +209,8 @@ test('extension capabilities validate selection, command, helper, event and UI c
     },
     updateSurface: (...args) => calls.push(args.slice(1)),
   });
-  host.frame = { contentWindow: { postMessage: (message) => sent.push(message) } };
+  host.frame = { contentWindow: {} };
+  host.port = { postMessage: (message) => sent.push(message), close() {} };
   assert.equal(await host.handle('editor.setSelection', [{ from: 0, to: 3 }]), true);
   for (const range of [{ from: -1, to: 2 }, { from: 3, to: 2 }, { from: 1.5, to: 2 }, null]) {
     await assert.rejects(host.handle('editor.setSelection', [range]), /Selection/);
@@ -514,6 +515,60 @@ test('extension settings have validated types, bounds, defaults and scoped stora
   assert.equal(await host.handle('settings.get', ['enabled']), true);
 });
 
+test('extension secret values use the encrypted storage bridge and legacy local storage is migrated', async (t) => {
+  const { ExtensionHost } = await import('../src/lib/extensions.js');
+  const original = global.localStorage;
+  const legacyStorage = new Map([
+    ['tagline-extension:secure', JSON.stringify({ existing: 'legacy' })],
+  ]);
+  global.localStorage = {
+    getItem: (key) => legacyStorage.get(key) ?? null,
+    removeItem: (key) => legacyStorage.delete(key),
+    setItem: () => assert.fail('Extension storage must not write to localStorage.'),
+  };
+  t.after(() => {
+    global.localStorage = original;
+  });
+  let persisted = null;
+  const calls = [];
+  const messages = [];
+  const host = new ExtensionHost({ id: 'secure', permissions: ['secrets'], contributes: {} }, '', {
+    secret: async () => 'private token',
+    extensionStorage: async (_id, action, key, value) => {
+      calls.push([action, key, value]);
+      if (action === 'get') {
+        return persisted;
+      }
+      if (action === 'replace') {
+        persisted = value;
+      }
+      if (action === 'set') {
+        if (value === null || value === undefined) {
+          delete persisted[key];
+        } else {
+          persisted[key] = value;
+        }
+      }
+      return true;
+    },
+  });
+  host.frame = { contentWindow: { postMessage: () => assert.fail('Replies must use the port.') } };
+  host.port = { postMessage: (message) => messages.push(message) };
+  assert.equal(await host.handle('storage.get', ['existing']), 'legacy');
+  assert.equal(legacyStorage.has('tagline-extension:secure'), false);
+  const secret = await host.handle('secrets.get', ['token']);
+  await host.handle('storage.set', ['token', secret]);
+  assert.deepEqual(persisted, { existing: 'legacy', token: 'private token' });
+  assert.deepEqual(
+    calls.map(([action]) => action),
+    ['get', 'replace', 'set']
+  );
+  await host.onMessage({
+    data: { type: 'call', id: 1, method: 'secrets.get', args: ['token'] },
+  });
+  assert.deepEqual(messages, [{ type: 'result', id: 1, value: 'private token' }]);
+});
+
 test('active-note events are path-only, separately permissioned, bounded and disposable', async (t) => {
   const { ExtensionHost } = await import('../src/lib/extensions.js');
   const manifest = { id: 'events', permissions: ['editor'], contributes: { commands: [] } };
@@ -526,7 +581,8 @@ test('active-note events are path-only, separately permissioned, bounded and dis
   };
   const host = new ExtensionHost(manifest, '', bridge);
   const messages = [];
-  host.frame = { contentWindow: { postMessage: (message) => messages.push(message) }, remove() {} };
+  host.frame = { contentWindow: {}, remove() {} };
+  host.port = { postMessage: (message) => messages.push(message), close() {} };
   await assert.rejects(host.handle('editor.watchActiveNote', []), /editor:active-note/);
   manifest.permissions = ['editor:active-note'];
   await assert.rejects(host.handle('editor.getActiveNote', []), /Permission "editor"/);
