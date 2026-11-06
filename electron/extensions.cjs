@@ -559,6 +559,11 @@ function registerExtensions({
         await fs.rm(path.join(secretsDir(), `${item.id}.bin`), { force: true });
       });
     }
+    if (item.id) {
+      await serializeStorage(item.id, async () => {
+        await fs.rm(path.join(storageDir(), `${item.id}.bin`), { force: true });
+      });
+    }
     return true;
   });
 
