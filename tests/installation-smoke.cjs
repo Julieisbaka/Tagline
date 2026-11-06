@@ -299,7 +299,7 @@ app.on('browser-window-created', (_event, win) => {
         assert.ok(displayed.includes(profile));
         assert.ok(
           displayed.includes(
-            'Tagline can check for, download, and install updates from GitHub Releases for your operating system.'
+            'Tagline checks GitHub Releases shortly after startup and downloads the installer matching your operating system.'
           )
         );
         assert.equal(releaseCalls, 0, 'opening settings never contacts GitHub automatically');
