@@ -354,6 +354,28 @@ tagline.commands.register('save-checks', async () => {
     win.webContents.once('did-finish-load', async () => {
       const wc = win.webContents;
       const js = (code) => wc.executeJavaScript(code);
+      const escapeUnsafeJsString = (str) =>
+        str.replace(/[<>\u2028\u2029/\\\b\f\n\r\t\0]/g, (ch) => {
+          switch (ch) {
+            case '<': return '\\u003C';
+            case '>': return '\\u003E';
+            case '/': return '\\u002F';
+            case '\\': return '\\\\';
+            case '\b': return '\\b';
+            case '\f': return '\\f';
+            case '\n': return '\\n';
+            case '\r': return '\\r';
+            case '\t': return '\\t';
+            case '\0': return '\\0';
+            case '\u2028': return '\\u2028';
+            case '\u2029': return '\\u2029';
+            default: return ch;
+          }
+        });
+      const extensionStorage = (id) =>
+        js(`window.api.extensionStorage(${escapeUnsafeJsString(JSON.stringify(id))}, 'get')`);
+      const extensionStorageWait = (id, predicate) =>
+        `(async () => { const data = await window.api.extensionStorage(${escapeUnsafeJsString(JSON.stringify(id))}, 'get'); return ${predicate}; })()`;
       wc.on('console-message', (event) => {
         if (event.level === 'error' || event.level === 'warning') {
           console.error('Renderer:', event.message);
@@ -404,9 +426,7 @@ tagline.commands.register('save-checks', async () => {
           "document.querySelector('.extension-webview-dialog')?.textContent.includes('Details')"
         );
         await js("document.querySelector('.extension-webview-dialog button').click()");
-        await wait(
-          "JSON.parse(localStorage.getItem('tagline-extension:nosy'))?.installAttempts === 1"
-        );
+        await wait(extensionStorageWait('nosy', 'data?.installAttempts === 1'));
         await js("document.querySelector('.ribbon-settings-button').click()");
         await wait("!!document.querySelector('.settings')");
         await js("document.querySelector('[data-section=extensions]').click()");
@@ -422,9 +442,7 @@ tagline.commands.register('save-checks', async () => {
         await js(
           "[...document.querySelectorAll('.settings button')].find(el => el.textContent === 'Reload extensions').click()"
         );
-        await wait(
-          "JSON.parse(localStorage.getItem('tagline-extension:nosy'))?.installAttempts === 2"
-        );
+        await wait(extensionStorageWait('nosy', 'data?.installAttempts === 2'));
         await wait(
           "document.querySelector('[data-extension=nosy]') && !document.querySelector('[data-extension=nosy]').textContent.includes('Retry first install setup')"
         );
@@ -435,16 +453,8 @@ tagline.commands.register('save-checks', async () => {
           `document.querySelectorAll('iframe[data-extension]').length === 2`,
           'extension frames'
         );
-        assert.equal(
-          await js("JSON.parse(localStorage.getItem('tagline-extension:demo')).installRuns"),
-          1
-        );
-        assert.equal(
-          await js(
-            "JSON.parse(localStorage.getItem('tagline-extension:nosy')).installPermissionDenied"
-          ),
-          true
-        );
+        assert.equal((await extensionStorage('demo')).installRuns, 1);
+        assert.equal((await extensionStorage('nosy')).installPermissionDenied, true);
         assert.equal(
           await js(
             `document.querySelector('iframe[data-extension="demo"]').getAttribute('sandbox')`
@@ -493,7 +503,7 @@ tagline.commands.register('save-checks', async () => {
         );
         await assert.rejects(fs.access(path.join(vault, 'Operations.md')));
         await assert.rejects(fs.access(path.join(vault, 'Delete Me.md')));
-        const data = await js("JSON.parse(localStorage.getItem('tagline-extension:demo'))");
+        const data = await extensionStorage('demo');
         assert.equal(data.watchStopped, true);
         assert.ok(
           data.watchEvents.some(
@@ -517,9 +527,7 @@ tagline.commands.register('save-checks', async () => {
         );
         failSave = slowSave = true;
         await palette('Demo: Exercise save failures and in-flight flush');
-        await wait(
-          "JSON.parse(localStorage.getItem('tagline-extension:demo')).saveChecks === true"
-        );
+        await wait(extensionStorageWait('demo', 'data.saveChecks === true'));
         assert.equal(
           await fs.readFile(path.join(vault, 'Renamed Operations.md'), 'utf8'),
           'inflight-saved'
@@ -547,20 +555,18 @@ tagline.commands.register('save-checks', async () => {
         );
         await palette('Demo: Exercise editor events and UI');
         await wait(
-          "JSON.parse(localStorage.getItem('tagline-extension:demo')).panelCheck?.reply === true",
+          extensionStorageWait('demo', 'data.panelCheck?.reply === true'),
           'panel round-trip'
         );
         await wait(
-          "JSON.parse(localStorage.getItem('tagline-extension:demo')).webviewCheck?.ready === true",
+          extensionStorageWait('demo', 'data.webviewCheck?.ready === true'),
           'webview messaging'
         );
         await wait(
-          "JSON.parse(localStorage.getItem('tagline-extension:demo')).uiReport?.theme.id === 'dark'",
+          extensionStorageWait('demo', "data.uiReport?.theme.id === 'dark'"),
           'UI kit initializes before extension scripts'
         );
-        const uiReport = await js(
-          "JSON.parse(localStorage.getItem('tagline-extension:demo')).uiReport"
-        );
+        const uiReport = (await extensionStorage('demo')).uiReport;
         assert.equal(uiReport.labels.length, 3);
         assert.ok(
           uiReport.labels.every((label) => label.associated),
@@ -568,7 +574,7 @@ tagline.commands.register('save-checks', async () => {
         );
         assert.equal(uiReport.notice, 'status');
         assert.equal(uiReport.selectionText, 'rgb(255, 255, 255)');
-        const capabilities = await js("JSON.parse(localStorage.getItem('tagline-extension:demo'))");
+        const capabilities = await extensionStorage('demo');
         assert.deepEqual(capabilities.installRegistration, {
           invalidInstallRejected: true,
           duplicateInstallRejected: true,
@@ -637,13 +643,10 @@ tagline.commands.register('save-checks', async () => {
         await wait("!!document.querySelector('.cm-content')", 'source editor');
         await palette('Demo: Set source selection');
         await wait(
-          "JSON.parse(localStorage.getItem('tagline-extension:demo')).sourceSelection?.to === 4",
+          extensionStorageWait('demo', 'data.sourceSelection?.to === 4'),
           'source selection'
         );
-        assert.deepEqual(
-          (await js("JSON.parse(localStorage.getItem('tagline-extension:demo'))")).sourceSelection,
-          { from: 0, to: 4 }
-        );
+        assert.deepEqual((await extensionStorage('demo')).sourceSelection, { from: 0, to: 4 });
         await js(
           `[...document.querySelectorAll('.tree-item')].find(el => el.textContent.trim() === 'Round').click()`
         );
@@ -652,13 +655,12 @@ tagline.commands.register('save-checks', async () => {
         await js(
           'document.querySelector(\'.ribbon [data-ribbon-item="ext:demo.documents"]\').click()'
         );
-        await wait(
-          "JSON.parse(localStorage.getItem('tagline-extension:demo')).documentCheck === 'Extension canvas'"
-        );
-        assert.deepEqual(
-          await js("JSON.parse(localStorage.getItem('tagline-extension:demo')).documentKind"),
-          { kind: 'flow', editorKind: null, selection: null }
-        );
+        await wait(extensionStorageWait('demo', "data.documentCheck === 'Extension canvas'"));
+        assert.deepEqual((await extensionStorage('demo')).documentKind, {
+          kind: 'flow',
+          editorKind: null,
+          selection: null,
+        });
         assert.equal(
           JSON.parse(await fs.readFile(path.join(vault, 'Round.flow'), 'utf8')).sheets[0]
             .rows[0][0],
@@ -716,7 +718,7 @@ tagline.commands.register('save-checks', async () => {
           'monospace'
         );
         await wait(
-          "JSON.parse(localStorage.getItem('tagline-extension:demo')).uiReport?.theme.id === 'ext:demo:0'",
+          extensionStorageWait('demo', "data.uiReport?.theme.id === 'ext:demo:0'"),
           'panel theme updates live'
         );
         await delay(250);
@@ -724,13 +726,11 @@ tagline.commands.register('save-checks', async () => {
           "void document.querySelector('.extension-panel iframe').contentWindow.postMessage({type:'extension-ui-message',payload:{inspect:true}},'*')"
         );
         await wait(
-          "JSON.parse(localStorage.getItem('tagline-extension:demo')).uiReport.button === 'rgb(18, 164, 217)'",
+          extensionStorageWait('demo', "data.uiReport.button === 'rgb(18, 164, 217)'"),
           'shared primary button follows theme accent'
         );
         assert.equal(
-          await js(
-            "JSON.parse(localStorage.getItem('tagline-extension:demo')).uiReport.theme.metadata.accessibility.contrast"
-          ),
+          (await extensionStorage('demo')).uiReport.theme.metadata.accessibility.contrast,
           'high'
         );
         wc.debugger.attach('1.3');
@@ -738,13 +738,9 @@ tagline.commands.register('save-checks', async () => {
           features: [{ name: 'prefers-reduced-motion', value: 'reduce' }],
         });
         assert.equal(await js("matchMedia('(prefers-reduced-motion: reduce)').matches"), true);
-        await wait(
-          "JSON.parse(localStorage.getItem('tagline-extension:demo')).uiReport?.theme.reducedMotion === true"
-        );
+        await wait(extensionStorageWait('demo', 'data.uiReport?.theme.reducedMotion === true'));
         await wc.debugger.sendCommand('Emulation.setEmulatedMedia', { features: [] });
-        await wait(
-          "JSON.parse(localStorage.getItem('tagline-extension:demo')).uiReport?.theme.reducedMotion === false"
-        );
+        await wait(extensionStorageWait('demo', 'data.uiReport?.theme.reducedMotion === false'));
         wc.debugger.detach();
         assert.match(
           await js("document.querySelector('.theme-metadata').textContent"),
@@ -768,7 +764,7 @@ tagline.commands.register('save-checks', async () => {
           "getComputedStyle(document.documentElement).getPropertyValue('--selection') === '#abcdef'"
         );
         await wait(
-          "JSON.parse(localStorage.getItem('tagline-extension:demo')).uiReport?.selection === 'rgb(171, 205, 239)'"
+          extensionStorageWait('demo', "data.uiReport?.selection === 'rgb(171, 205, 239)'")
         );
         assert.equal(
           await js(
@@ -856,13 +852,15 @@ tagline.commands.register('save-checks', async () => {
         );
         await wait(`!!document.querySelector('iframe[data-extension="demo"]')`, 'worker reloaded');
         assert.equal(
-          await js("JSON.parse(localStorage.getItem('tagline-extension:demo')).installRuns"),
+          (await extensionStorage('demo')).installRuns,
           1,
           'install setup never repeats on reload'
         );
-        assert.equal(
-          await js("JSON.parse(localStorage.getItem('tagline-extension:nosy')).installAttempts"),
-          2,
+        const completedConfig = JSON.parse(
+          await fs.readFile(path.join(profile, 'config.json'), 'utf8')
+        );
+        assert.ok(
+          completedConfig.initializedExtensions.includes('nosy'),
           'successful install remains complete when disabled'
         );
         assert.equal(
@@ -885,8 +883,9 @@ tagline.commands.register('save-checks', async () => {
         console.error(
           error,
           await js(
-            `JSON.stringify({ toast: document.querySelector('.toast')?.textContent, palette: !!document.querySelector('.palette'), ui: JSON.parse(localStorage.getItem('tagline-extension:demo') || '{}').uiReport, items: [...document.querySelectorAll('.palette-list > *')].map((el) => el.textContent).slice(0, 5) })`
-          )
+            `JSON.stringify({ toast: document.querySelector('.toast')?.textContent, palette: !!document.querySelector('.palette'), items: [...document.querySelectorAll('.palette-list > *')].map((el) => el.textContent).slice(0, 5) })`
+          ),
+          await extensionStorage('demo').catch(() => null)
         );
         app.exit(1);
       }
