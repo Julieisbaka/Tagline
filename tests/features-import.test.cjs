@@ -31,7 +31,11 @@ test('platform: Pandoc import chooses an explicit reader, accepts DOCX changes, 
   assert.ok(captured.args.includes('--from=docx'));
   assert.ok(captured.args.includes('--track-changes=accept'));
   assert.ok(captured.args.includes('--to=markdown+mark+raw_html-bracketed_spans'));
-  assert.ok(captured.args.some((arg) => arg.endsWith('highlightRoundTrip.lua')));
+  assert.ok(
+    captured.args.includes(
+      `--lua-filter=${require('node:path').join(__dirname, '..', 'electron', 'highlightRoundTrip.lua')}`
+    )
+  );
   assert.ok(captured.args.includes('--sandbox'));
   assert.equal(captured.args.at(-1), file);
   assert.equal(captured.options.timeout, 120000);
@@ -44,6 +48,20 @@ test('platform: Pandoc import chooses an explicit reader, accepts DOCX changes, 
   await assert.rejects(
     importDocument('pandoc', 'C:\\notes\\script.exe'),
     /Unsupported import format/
+  );
+});
+
+test('document import filter helper resolves packaged and development paths', () => {
+  const path = require('node:path');
+  const { highlightFilterPath } = require('../electron/pandoc.cjs');
+  const developmentDirectory = path.resolve('Tagline', 'electron');
+  assert.equal(
+    highlightFilterPath(developmentDirectory),
+    path.join(developmentDirectory, 'highlightRoundTrip.lua')
+  );
+  assert.equal(
+    highlightFilterPath(path.resolve('app.asar', 'resources', 'app.asar', 'electron')),
+    path.resolve('app.asar', 'resources', 'app.asar.unpacked', 'electron', 'highlightRoundTrip.lua')
   );
 });
 

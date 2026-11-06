@@ -75,6 +75,25 @@ test('platform: Pandoc rejects an explicitly configured missing executable', asy
   );
 });
 
+test('Pandoc filter paths unpack only the enclosing app archive', () => {
+  const path = require('node:path');
+  const { highlightFilterPath } = require('../electron/pandoc.cjs');
+  for (const [directory, expected] of [
+    ['Tagline/electron', 'Tagline/electron'],
+    ['resources/app.asar/electron', 'resources/app.asar.unpacked/electron'],
+    ['app.asar/resources/app.asar/electron', 'app.asar/resources/app.asar.unpacked/electron'],
+    ['app.asar/Tagline/electron', 'app.asar/Tagline/electron'],
+    ['resources/app.asar.unpacked/electron', 'resources/app.asar.unpacked/electron'],
+    ['resources/not-app.asar/electron', 'resources/not-app.asar/electron'],
+  ]) {
+    assert.equal(
+      highlightFilterPath(path.resolve(directory)),
+      path.resolve(expected, 'highlightRoundTrip.lua'),
+      directory
+    );
+  }
+});
+
 test('RTF highlight export adds a yellow color entry and selects its index', () => {
   const { addRtfHighlightColor } = require('../electron/pandoc.cjs');
   const rtf =
