@@ -48,6 +48,12 @@ export function buildCommands(ctx, overrides = {}) {
       'Evidence checkup: scan cards for citation and link problems',
       ctx.evidenceCheckup
     ),
+    c(
+      'quote-verification',
+      'Quote verification: compare a card with its source',
+      ctx.quoteVerification
+    ),
+    c('delivery-analytics', 'Delivery analytics: analyze a transcript', ctx.deliveryAnalytics),
   ];
   if (ctx.hasNote) {
     list.push(

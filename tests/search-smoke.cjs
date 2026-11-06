@@ -95,9 +95,14 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
         }))`);
         await wait("!!document.querySelector('.search .palette-input')");
       };
-      const runSearch = async () => {
-        await js("document.querySelector('.search-options button').click()");
-        await wait("!document.querySelector('.search-options button').disabled");
+      const waitForRequests = async (count) => {
+        for (let i = 0; i < 100; i++) {
+          if (requests.length >= count) {
+            return;
+          }
+          await delay(100);
+        }
+        throw new Error(`Timed out waiting for ${count} semantic requests`);
       };
       try {
         await wait("!!document.querySelector('.onboarding-skip')");
@@ -175,11 +180,10 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
         await openSearch();
         await input('tag:neg grid transmission');
         await mode('hybrid');
+        await waitForRequests(1);
         await wait(
-          "document.querySelector('[role=status]')?.textContent.includes('Keyword results shown')"
+          "document.querySelector('.search [role=status]')?.textContent.includes('Combines keyword and semantic rankings')"
         );
-        assert.equal(requests.length, 0, 'Selecting hybrid must not start inference or download');
-        await runSearch();
         assert.equal(requests[0].maxResults, 1000);
         assert.equal(Object.hasOwn(requests[0].documents, 'Excluded.md'), false);
         await wait("document.querySelectorAll('.search-result').length === 3");
@@ -204,22 +208,28 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
         await wait("!document.querySelector('.tab.active')");
 
         await openSearch();
+        const beforePhrase = requests.length;
         await mode('hybrid');
         await input('tag:neg "political capital" influence');
-        await runSearch();
+        await waitForRequests(beforePhrase + 1);
+        await wait("document.querySelectorAll('.search-result').length === 1");
         assert.deepEqual(Object.keys(requests.at(-1).documents), ['Phrase.md']);
         assert.equal(await js("document.querySelectorAll('.search-result').length"), 1);
         await input('tag:missing anything');
         const beforeEmpty = requests.length;
-        await runSearch();
+        await wait(
+          "document.querySelector('.search [role=status]')?.textContent.includes('Keyword results shown')"
+        );
+        await wait(
+          "document.querySelector('.search [role=status]')?.textContent.includes('Combines keyword and semantic rankings')"
+        );
         assert.equal(requests.length, beforeEmpty, 'Empty filters should not load the model');
         assert.equal(await js("document.querySelectorAll('.search-result').length"), 0);
         await input('tag:neg');
         await wait("document.querySelector('.search-options button').disabled");
 
-        await input('grid transmission');
         behavior = 'error';
-        await runSearch();
+        await input('grid transmission');
         await wait(
           "document.querySelector('.search-error')?.textContent.includes('showing keyword results only')"
         );
@@ -244,14 +254,48 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
         );
         assert.ok(
           await js(
-            "document.querySelector('[role=status]').textContent.includes('Keyword results shown')"
+            "document.querySelector('.search [role=status]').textContent.includes('Keyword results shown')"
           )
         );
 
+        const beforeOverlap = requests.length;
+        await input('grid');
+        await waitForRequests(beforeOverlap + 1);
+        const resolveOld = resolveHeld;
+        await input('capital');
+        await waitForRequests(beforeOverlap + 2);
+        const resolveNew = resolveHeld;
+        await wait("document.querySelector('.search-options button').disabled");
+        resolveOld([]);
+        await delay(200);
+        assert.equal(
+          await js("document.querySelector('.search-options button').disabled"),
+          true,
+          'An older request must not clear a newer request’s busy state'
+        );
+        resolveNew([]);
+        await wait("!document.querySelector('.search-options button').disabled");
+
+        const beforeInvalidation = requests.length;
+        await input('grid');
+        await waitForRequests(beforeInvalidation + 1);
+        const resolveInvalidated = resolveHeld;
+        await input('tag:missing anything');
+        await wait("!document.querySelector('.search-options button').disabled");
+        resolveInvalidated([]);
+        await wait(
+          "document.querySelector('.search [role=status]')?.textContent.includes('Combines keyword and semantic rankings')"
+        );
+        assert.equal(requests.length, beforeInvalidation + 1);
+
         behavior = 'success';
+        const beforeSemantic = requests.length;
         await mode('semantic');
         await input('tag:neg "political capital"');
-        await runSearch();
+        await waitForRequests(beforeSemantic + 1);
+        await wait(
+          "document.querySelector('.search-file .palette-detail')?.textContent === 'Phrase.md'"
+        );
         assert.deepEqual(Object.keys(requests.at(-1).documents), ['Phrase.md']);
         assert.equal(
           await js("document.querySelector('.search-file .palette-detail').textContent"),
@@ -269,9 +313,13 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
         });
         await wait("document.querySelectorAll('.tree-item').length === 6");
         await openSearch();
+        const beforeLimited = requests.length;
         await mode('hybrid');
         await input('tag:neg grid transmission');
-        await runSearch();
+        await waitForRequests(beforeLimited + 1);
+        await wait(
+          "document.querySelector('.search-file .palette-detail')?.textContent === 'Both.md'"
+        );
         assert.equal(await js("document.querySelectorAll('.search-result').length"), 1);
         assert.equal(
           await js("document.querySelector('.search-file .palette-detail').textContent"),

@@ -1,11 +1,5 @@
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
-const fs = require('node:fs');
-const path = require('node:path');
-const childProcess = require('node:child_process');
-const fsAsync = require('node:fs/promises');
-const os = require('node:os');
-const { promisify } = require('node:util');
 
 test('new flow block separation preserves existing files and preset constants', async () => {
   const { createFlow, flowColumns, EMPTY_FLOW, FLOW_PRESETS, parseFlow } =
@@ -103,6 +97,14 @@ test('palette exposes configured workspace actions only in the matching editor',
     for (const command of all) {
       assert.ok(appIds.has(command.id), `${command.id} must be configurable`);
     }
+    const triggered = [];
+    const analysis = buildCommands({
+      quoteVerification: () => triggered.push('quote'),
+      deliveryAnalytics: () => triggered.push('delivery'),
+    });
+    analysis.find((item) => item.id === 'quote-verification').run();
+    analysis.find((item) => item.id === 'delivery-analytics').run();
+    assert.deepEqual(triggered, ['quote', 'delivery']);
   } finally {
     delete global.window;
     await server.close();

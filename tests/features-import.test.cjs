@@ -1,10 +1,6 @@
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
-const fs = require('node:fs');
-const path = require('node:path');
 const childProcess = require('node:child_process');
-const fsAsync = require('node:fs/promises');
-const os = require('node:os');
 const { promisify } = require('node:util');
 
 test('platform: Pandoc import chooses an explicit reader, accepts DOCX changes, and surfaces errors', async (t) => {

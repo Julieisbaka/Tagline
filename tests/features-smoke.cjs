@@ -558,8 +558,7 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
         await js("document.querySelector('[data-section=appearance]').click()");
         if (process.env.TAGLINE_FEATURE_SCREENSHOT) {
           await select('[data-setting="theme"]', 'high-contrast-light');
-          win.show();
-          win.focus();
+          win.show({ focus: false });
           await js(
             'new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))'
           );

@@ -9,6 +9,8 @@ const escape = (value) =>
     .replace(/[\\`*_[\]<>]/g, '\\$&')
     .replace(/\r?\n/g, ' ');
 
+const YEAR = /^\d{1,4}(?:\s*(?:BCE|BC))?$/i;
+
 /**
  * Format validated author/year and optional source details as citation Markdown.
  * @param {object} details - The citation details including author, year, title, publication, url, and accessed date.
@@ -22,8 +24,8 @@ export function createCitation({
   url = '',
   accessed = '',
 }) {
-  if (!author.trim() || !/^\d{4}$/.test(year)) {
-    throw new Error('Enter an author and a four-digit year.');
+  if (!author.trim() || !YEAR.test(year)) {
+    throw new Error('Enter an author and a year, such as 2024 or 399 BCE.');
   }
   let link = '';
   if (url.trim()) {
@@ -51,7 +53,7 @@ export function spokenCitations(content) {
   return [...content.matchAll(/^\*\*([^*\n]+)\*\*[^\n]*$/gm)]
     .map((m) => {
       const lead = m[1].split(/\s+[–—]\s+/)[0];
-      const year = lead.match(/\b(?:\d{4}|\d{2})\b/);
+      const year = lead.match(/\b(?:\d{1,4}\s*(?:BCE|BC)|\d{2,4}\s*[–-]\s*\d{2,4}|\d{4}|\d{2})\b/i);
       return year ? lead.slice(0, year.index + year[0].length) : '';
     })
     .filter(Boolean)

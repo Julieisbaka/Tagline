@@ -185,12 +185,30 @@
             system: (systemLanguages = []) => call('helpers.language.system', systemLanguages),
             /** Use a supported saved language, or fall back to the supplied system locales. @returns {Promise<string>} */
             initial: (saved, systemLanguages = []) => call('helpers.language.initial', saved, systemLanguages),
+            /** Return the supported language catalog. @returns {Promise<object>} */
+            languages: () => call('helpers.language.languages'),
           }),
           keybindings: Object.freeze({
             /** Test whether a shortcut uses supported Tagline key syntax. @returns {Promise<boolean>} */
             valid: (shortcut) => call('helpers.keybindings.valid', shortcut),
             /** Format Mod as Cmd or Ctrl for a specified platform. @returns {Promise<string>} */
             display: (shortcut, platform) => call('helpers.keybindings.display', shortcut, platform),
+            /** List default command keybinding definitions. @returns {Promise<object[]>} */
+            all: () => call('helpers.keybindings.all'),
+            /** Resolve a command ID to its shortcut, applying overrides and extra definitions. @returns {Promise<string>} */
+            binding: (id, overrides, extra) => call('helpers.keybindings.binding', id, overrides, extra),
+            /** Check whether a shortcut is reserved by Tagline. @returns {Promise<boolean>} */
+            reserved: (shortcut, id) => call('helpers.keybindings.reserved', shortcut, id),
+            /** Convert a keyboard event to a shortcut string for a platform. @returns {Promise<string>} */
+            event: (event, platform) => call('helpers.keybindings.event', event, platform),
+            /** Test whether a keyboard event matches a shortcut on a platform. @returns {Promise<boolean>} */
+            matches: (event, shortcut, platform) =>
+              call('helpers.keybindings.matches', event, shortcut, platform),
+            /** Find the command that already uses a shortcut. @returns {Promise<object|null>} */
+            conflict: (id, shortcut, overrides, extra) =>
+              call('helpers.keybindings.conflict', id, shortcut, overrides, extra),
+            /** Convert a shortcut to an editor key name. @returns {Promise<string>} */
+            editor: (shortcut) => call('helpers.keybindings.editor', shortcut),
           }),
           layout: Object.freeze({
             /** Normalize ribbon IDs against contributions and hidden items. @returns {Promise<string[]>} */
@@ -203,6 +221,14 @@
             normalizeWorkspace: (items, catalog) => call('helpers.layout.normalizeWorkspace', items, catalog),
             /** Move a workspace ID to another item's position without mutating the input. @returns {Promise<string[]>} */
             moveWorkspace: (items, id, target) => call('helpers.layout.moveWorkspace', items, id, target),
+            /** List ribbon item definitions. @returns {Promise<object[]>} */
+            ribbonItems: () => call('helpers.layout.ribbonItems'),
+            /** List ribbon IDs shown by default. @returns {Promise<string[]>} */
+            defaultRibbonItems: () => call('helpers.layout.defaultRibbonItems'),
+            /** List file action definitions. @returns {Promise<object[]>} */
+            fileActions: () => call('helpers.layout.fileActions'),
+            /** List status bar item definitions. @returns {Promise<object[]>} */
+            statusItems: () => call('helpers.layout.statusItems'),
           }),
           calendar: Object.freeze({
             /** Format a Date or YYYY-MM-DD string as a local calendar date. @returns {Promise<string>} */
@@ -235,6 +261,8 @@
             createId: () => call('helpers.canvas.createId'),
             /** Copy Canvas data with listed nodes moved by integer dx/dy; no disk write. @returns {Promise<object>} */
             moveNodes: (data, ids, dx, dy) => call('helpers.canvas.moveNodes', data, ids, dx, dy),
+            /** Return an empty, valid Canvas document. @returns {Promise<object>} */
+            empty: () => call('helpers.canvas.empty'),
           }),
           flow: Object.freeze({
             /** Parse and validate flow JSON text. @returns {Promise<object>} */
@@ -269,6 +297,8 @@
             markSpeech: (markdown) => call('helpers.frontmatter.markSpeech', markdown),
             /** List Markdown paths marked speech: true, sorted by path. @returns {Promise<string[]>} */
             speechPaths: (documents) => call('helpers.frontmatter.speechPaths', documents),
+            /** Read YAML frontmatter, returning data, body, prefix, and any parse error. @returns {Promise<object>} */
+            read: (markdown) => call('helpers.frontmatter.read', markdown),
           }),
           vault: Object.freeze({
             /** Test whether a path has the .flow extension, case-insensitively. @returns {Promise<boolean>} */
@@ -277,6 +307,8 @@
             isMarkdown: (path) => call('helpers.vault.isMarkdown', path),
             /** Test whether a path has the .canvas extension, case-insensitively. @returns {Promise<boolean>} */
             isCanvas: (path) => call('helpers.vault.isCanvas', path),
+            /** Test whether a path uses a JSON extension. @returns {Promise<boolean>} */
+            isJson: (path) => call('helpers.vault.isJson', path),
             /** Return a filename without a supported document extension. @returns {Promise<string>} */
             baseName: (path) => call('helpers.vault.baseName', path),
             /** Format a filename using Markdown/flow extension visibility options. @returns {Promise<string>} */
@@ -332,16 +364,79 @@
             spokenEvidence: (markdown) => call('helpers.cards.spokenEvidence', markdown),
             /** Format a nonnegative duration in seconds as minutes:seconds. @returns {Promise<string>} */
             formatDuration: (seconds) => call('helpers.cards.formatDuration', seconds),
+            /** Detect card headings and boundaries in Markdown. @returns {Promise<object[]>} */
+            detect: (markdown) => call('helpers.cards.detect', markdown),
+            /** Test whether a document contains the supplied evidence text. @returns {Promise<boolean>} */
+            containsEvidence: (document, text) =>
+              call('helpers.cards.containsEvidence', document, text),
           }),
           citations: Object.freeze({
             /** Format citation details into Markdown. @returns {Promise<string>} */
             create: (details) => call('helpers.citations.create', details),
             /** Extract author/year citation leads for spoken evidence. @returns {Promise<string>} */
             spoken: (markdown) => call('helpers.citations.spoken', markdown),
+            /** Extract a card citation, returning { citation, uncertainFields }. @returns {Promise<object>} */
+            extract: (markdown, references) => call('helpers.citations.extract', markdown, references),
+            /** Validate an ISBN-10 or ISBN-13 check digit. @returns {Promise<boolean>} */
+            isValidIsbn: (value) => call('helpers.citations.isValidIsbn', value),
+            /** Expand a two-digit year to 20xx, rolling back to 19xx when still in the future. @returns {Promise<number>} */
+            expandTwoDigitYear: (year, currentYear) =>
+              call('helpers.citations.expandTwoDigitYear', year, currentYear),
           }),
           search: Object.freeze({
             /** Score a query against text using Tagline's fuzzy matcher. @returns {Promise<number>} */
             fuzzyScore: (query, text) => call('helpers.search.fuzzyScore', query, text),
+            /** Parse tags, terms, and quoted phrases from a query. @returns {Promise<object>} */
+            parse: (query) => call('helpers.search.parse', query),
+            /** Filter documents that satisfy a query's tag and phrase constraints. @returns {Promise<object>} */
+            filter: (documents, index, query) =>
+              call('helpers.search.filter', documents, index, query),
+            /** Search documents and return ranked results. @returns {Promise<object[]>} */
+            vault: (documents, index, query, maxResults, options) =>
+              call('helpers.search.vault', documents, index, query, maxResults, options),
+            /** Split text into excerpt segments around matching terms. @returns {Promise<object[]>} */
+            excerpt: (text, terms, maxLength) =>
+              call('helpers.search.excerpt', text, terms, maxLength),
+            /** Merge keyword and semantic results into one ranked list. @returns {Promise<object[]>} */
+            mergeHybrid: (keywordResults, semanticResults, maxResults) =>
+              call('helpers.search.mergeHybrid', keywordResults, semanticResults, maxResults),
+            /** Return the maximum candidate count for hybrid search. @returns {Promise<number>} */
+            candidateLimit: () => call('helpers.search.candidateLimit'),
+          }),
+          checkup: Object.freeze({
+            /** List citation fields checked by the evidence checkup. @returns {Promise<string[]>} */
+            fields: () => call('helpers.checkup.fields'),
+            /** Return the default checkup options. @returns {Promise<object>} */
+            defaults: () => call('helpers.checkup.defaults'),
+            /** Normalize partial checkup options with defaults and bounds. @returns {Promise<object>} */
+            normalize: (options) => call('helpers.checkup.normalize', options),
+            /** Scan Markdown documents for cards and citations. @returns {Promise<object[]>} */
+            scan: (documents) => call('helpers.checkup.scan', documents),
+            /** Collect unique cited URLs from scanned cards. @returns {Promise<string[]>} */
+            citedUrls: (cards) => call('helpers.checkup.citedUrls', cards),
+            /** Audit cards for citation, stale-year, and link issues. @returns {Promise<object[]>} */
+            audit: (cards, options, now) => call('helpers.checkup.audit', cards, options, now),
+            /** Compare link check results with cited URLs. @returns {Promise<object[]>} */
+            linkIssues: (cards, results) => call('helpers.checkup.linkIssues', cards, results),
+            /** Compare card citations with fetched source metadata. @returns {Promise<object[]>} */
+            sourceIssues: (cards, results) =>
+              call('helpers.checkup.sourceIssues', cards, results),
+          }),
+          themes: Object.freeze({
+            /** List built-in themes. @returns {Promise<object[]>} */
+            builtin: () => call('helpers.themes.builtin'),
+            /** List supported theme color tokens. @returns {Promise<string[]>} */
+            colorTokens: () => call('helpers.themes.colorTokens'),
+            /** Validate and normalize a theme definition. @returns {Promise<object>} */
+            validate: (theme) => call('helpers.themes.validate', theme),
+            /** Apply stored values to a theme's settings. @returns {Promise<object>} */
+            resolveSettings: (theme, values) =>
+              call('helpers.themes.resolveSettings', theme, values),
+            /** Resolve a theme by ID, optionally with a custom definition and settings. @returns {Promise<object>} */
+            get: (id, customTheme, settings) =>
+              call('helpers.themes.get', id, customTheme, settings),
+            /** List themes contributed by extensions. @returns {Promise<object[]>} */
+            extensionThemes: () => call('helpers.themes.extensionThemes'),
           }),
           templates: Object.freeze({
             /** Expand date/time/title and target path/body/YAML properties; context is optional {path,content} with full Markdown content. @returns {Promise<string>} */
@@ -369,6 +464,8 @@
             premise: (markdown) => call('helpers.nli.premise', markdown),
             /** Build hypotheses from a built-in template and newline-separated statements. @returns {Promise<string[]>} */
             hypotheses: (templateId, lines) => call('helpers.nli.hypotheses', templateId, lines),
+            /** List hypothesis templates. @returns {Promise<object[]>} */
+            templates: () => call('helpers.nli.templates'),
             /** Map a 0..1 probability to Tagline's entailment label. @returns {Promise<string>} */
             label: (probability) => call('helpers.nli.label', probability),
           }),
@@ -429,6 +526,7 @@
           /** Read this extension's private JSON value, or null. No permission required. @returns {Promise<*>} */
           get: (key) => call('storage.get', key),
           /** Persist private JSON; null/undefined deletes a key. Subject to storage limits. @returns {Promise<boolean>} */
+          set: (key, value) => call('storage.set', key, value),
         }),
         secrets: Object.freeze({
           /** Read an OS-encrypted secret string, or null. Requires `secrets`. @returns {Promise<string|null>} */

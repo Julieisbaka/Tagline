@@ -298,7 +298,7 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
         );
         await input(search, 'focus outline');
         await wait(
-          "document.querySelector('.settings-search-results')?.textContent.includes('Show note editor focus outline')"
+          "document.querySelector('.settings-search-results')?.textContent.includes('Emphasize editor focus outline')"
         );
         await click('[aria-label="Clear settings search"]');
         assert.equal(
@@ -371,6 +371,26 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
         await settings('integrations');
         await button('.integration-settings button', 'Install Pandoc');
         assert.equal(externalUrls.pop(), 'https://pandoc.org/installing.html');
+        for (const [provider, label, url] of [
+          ['NSDA', 'Tournament calendar', 'https://www.speechanddebate.org/tournament-calendar/'],
+          ['NSDA', 'Tournament results', 'https://www.tabroom.com/index/results/'],
+          ['NSDA', 'Membership login', 'https://www.speechanddebate.org/login/'],
+          ['SpeechWire', 'Tournament calendar', 'https://postings.speechwire.com/p-calendar.php'],
+          [
+            'SpeechWire',
+            'Tournament results',
+            'https://postings.speechwire.com/r-tournamentlist.php',
+          ],
+          ['SpeechWire', 'Account login', 'https://www.speechwire.com/c-login.php'],
+          ['SpeechWire', 'SpeechWire LIVE! (students and judges)', 'https://live.speechwire.com/'],
+        ]) {
+          await button(`[data-tournament-provider="${provider}"] button`, label);
+          for (let i = 0; i < 50 && !externalUrls.length; i++) {
+            await delay(20);
+          }
+          assert.equal(externalUrls.pop(), url);
+        }
+        assert.equal(await js("!!document.querySelector('.website-view')"), false);
         await done();
 
         await js(
@@ -768,6 +788,18 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
           'previous deltas stay readable when disabled'
         );
         await settings('editors');
+        assert.deepEqual(
+          await js(`Array.from(document.querySelectorAll('.editor-settings > h3:not(:first-child)'),
+            el => getComputedStyle(el).borderTopWidth)`),
+          ['0px', '0px', '0px', '0px'],
+          'editor sections do not add a second divider'
+        );
+        for (const key of ['editorMode', 'flowEditorMode', 'canvasEditorMode']) {
+          assert.equal(
+            await js(`document.querySelector('[data-setting="${key}"]').value`),
+            'visual'
+          );
+        }
         const editorDefaults = {
           visualSpellcheck: true,
           sourceSpellcheck: true,

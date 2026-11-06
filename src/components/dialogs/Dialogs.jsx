@@ -10,6 +10,7 @@ import InstallationSettings from '../settings/InstallationSettings.jsx';
 import IntegrationSettings from '../settings/IntegrationSettings.jsx';
 import KeybindingSettings from '../settings/KeybindingSettings.jsx';
 import OpenCaselistSettings from '../settings/OpenCaselistSettings.jsx';
+import TournamentLinks from '../settings/TournamentLinks.jsx';
 import ReadingSettings from '../settings/ReadingSettings.jsx';
 import RibbonSettings from '../settings/RibbonSettings.jsx';
 import SettingRow from '../settings/SettingRow.jsx';
@@ -558,6 +559,7 @@ export function SettingsDialog({
                   <button onClick={onOpenCaselist}>{t('Open OpenCaselist')}</button>
                 </div>
               </div>
+              <TournamentLinks />
               <OpenCaselistSettings />
               <label className='setting-row'>
                 <span>{t('Open websites inside Tagline')}</span>

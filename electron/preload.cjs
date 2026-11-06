@@ -6,6 +6,7 @@ contextBridge.exposeInMainWorld('api', {
   nativeContextMenu: (items) => ipcRenderer.invoke('app:nativeContextMenu', items),
   nativeConfirm: (options) => ipcRenderer.invoke('app:nativeConfirm', options),
   editText: (action) => ipcRenderer.invoke('app:editText', action),
+  clipboardWrite: (text) => ipcRenderer.invoke('app:clipboardWrite', text),
   systemLanguages: JSON.parse(
     decodeURIComponent(
       process.argv.find((arg) => arg.startsWith('--tagline-languages=')).split('=')[1]
@@ -101,6 +102,7 @@ contextBridge.exposeInMainWorld('api', {
   extractCitation: (url) => ipcRenderer.invoke('citation:extract', url),
   sourceCitationMetadata: (url) => ipcRenderer.invoke('citation:sourceMetadata', url),
   checkEvidenceLinks: (urls, options) => ipcRenderer.invoke('evidence:checkLinks', urls, options),
+  fetchQuoteSource: (url) => ipcRenderer.invoke('evidence:quoteSource', url),
   setKeybindings: (overrides) => ipcRenderer.invoke('keybindings:set', overrides),
   nextFlowFile: () => ipcRenderer.invoke('flow:pending'),
   openFlowFile: (file) => ipcRenderer.invoke('flow:open', file),
@@ -141,6 +143,7 @@ contextBridge.exposeInMainWorld('api', {
   mcp: {
     status: () => ipcRenderer.invoke('mcp:status'),
     configure: (options) => ipcRenderer.invoke('mcp:configure', options),
+    background: () => ipcRenderer.invoke('mcp:background'),
     regenerateToken: () => ipcRenderer.invoke('mcp:regenerateToken'),
   },
   onVaultChanged: (callback) => {

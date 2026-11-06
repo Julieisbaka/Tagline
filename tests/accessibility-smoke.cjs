@@ -123,7 +123,11 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
           [],
           `interactive controls lack accessible names: ${unnamed.controls.join('\\n')}`
         );
-        assert.deepEqual(unnamed.dialogs, [], `dialogs lack accessible names: ${unnamed.dialogs.join('\\n')}`);
+        assert.deepEqual(
+          unnamed.dialogs,
+          [],
+          `dialogs lack accessible names: ${unnamed.dialogs.join('\\n')}`
+        );
       };
       const change = async (selector, value) => {
         await js(`(() => {
@@ -341,7 +345,7 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
         const selectedPaletteOption = await js(
           "document.activeElement.getAttribute('aria-activedescendant')"
         );
-        await key('ArrowDown');
+        await key('Down');
         assert.notEqual(
           await js("document.activeElement.getAttribute('aria-activedescendant')"),
           selectedPaletteOption,
@@ -376,13 +380,14 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
             'toolbar supports arrow keys'
           );
           await js(`document.querySelector('${editor}').focus()`);
+          await delay(500);
           assert.equal(
             await js('getComputedStyle(document.activeElement).outlineStyle'),
             'solid',
             'editor focus indicator is visible in both modes'
           );
           assert.equal(
-            await js("parseFloat(getComputedStyle(document.activeElement).outlineWidth) >= 2"),
+            await js('parseFloat(getComputedStyle(document.activeElement).outlineWidth) >= 2'),
             true,
             'the editor focus preference emphasizes the focus indicator'
           );
@@ -457,7 +462,7 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
           'disabling emphasis preserves the basic keyboard focus indicator'
         );
         assert.ok(
-          await js("parseFloat(getComputedStyle(document.activeElement).outlineWidth) < 2.4"),
+          await js('parseFloat(getComputedStyle(document.activeElement).outlineWidth) < 2.4'),
           'basic focus indicator is thinner when emphasis is disabled'
         );
         assert.equal(

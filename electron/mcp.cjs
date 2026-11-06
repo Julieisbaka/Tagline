@@ -11,6 +11,10 @@ const PROTOCOLS = ['2025-06-18', '2025-03-26', '2024-11-05'];
 const MAX_BODY_BYTES = 4 * 1024 * 1024;
 const MAX_NOTE_CHARACTERS = 2_000_000;
 const MAX_RESOURCES = 500;
+const MAX_EVIDENCE_BYTES = 10 * 1024 * 1024;
+const MAX_EVIDENCE_FILES = 1000;
+const MAX_EVIDENCE_HEADINGS = 5000;
+const MAX_CITATION_CHARACTERS = 100_000;
 const URI_PREFIX = 'tagline://note/';
 
 class ToolError extends Error {}
@@ -127,6 +131,98 @@ function createMcpService({
   };
 
   const pathProperty = (description) => ({ type: 'string', description });
+  // Use the same parsers as the UI, including in packaged builds.
+  const evidence = () => import('../src/lib/evidenceCheckup.js');
+  const citations = () => import('../src/lib/citationExtraction.js');
+  async function readEvidenceNote(full, base, remaining) {
+    const realBase = await fs.realpath(base);
+    const realFile = await fs.realpath(full);
+    const relative = path.relative(realBase, realFile);
+    if (relative === '..' || relative.startsWith(`..${path.sep}`) || path.isAbsolute(relative)) {
+      throw new ToolError('Evidence note resolves outside the vault.');
+    }
+    const handle = await fs.open(realFile, 'r');
+    try {
+      const stat = await handle.stat();
+      if (!stat.isFile()) {
+        throw new ToolError('Evidence scanning requires a regular Markdown file.');
+      }
+      if (stat.size > remaining) {
+        throw new ToolError('Evidence scan exceeds the size limit. Specify a smaller note.');
+      }
+      // Check the limit while reading too, in case the file grows after stat().
+      const parts = [];
+      let total = 0;
+      for (;;) {
+        const chunk = Buffer.allocUnsafe(Math.min(64 * 1024, remaining - total + 1));
+        const { bytesRead } = await handle.read(chunk, 0, chunk.length, null);
+        if (!bytesRead) {
+          break;
+        }
+        total += bytesRead;
+        if (total > remaining) {
+          throw new ToolError('Evidence scan exceeds the size limit. Specify a smaller note.');
+        }
+        parts.push(chunk.subarray(0, bytesRead));
+      }
+      return { text: Buffer.concat(parts, total).toString('utf8'), bytes: total };
+    } finally {
+      await handle.close();
+    }
+  }
+  async function evidenceCards(rel) {
+    let files;
+    if (rel !== undefined) {
+      const note = resolve(rel, { note: true });
+      if (!note.rel.toLowerCase().endsWith('.md')) {
+        throw new ToolError('Evidence scanning requires a Markdown note.');
+      }
+      const content = await readEvidenceNote(note.full, root(), MAX_EVIDENCE_BYTES);
+      files = { [note.rel]: content.text };
+    } else {
+      const base = root();
+      const notes = flatten(await listVault(base)).filter((file) =>
+        file.path.toLowerCase().endsWith('.md')
+      );
+      if (notes.length > MAX_EVIDENCE_FILES) {
+        throw new ToolError('Too many notes to scan at once. Specify a note path.');
+      }
+      files = {};
+      let bytes = 0;
+      for (const note of notes) {
+        const content = await readEvidenceNote(
+          path.join(base, note.path),
+          base,
+          MAX_EVIDENCE_BYTES - bytes
+        );
+        bytes += content.bytes;
+        files[note.path] = content.text;
+      }
+    }
+    let apparentHeadings = 0;
+    for (const content of Object.values(files)) {
+      // Conservative preflight also counts headings inside fences; avoid parsing huge card sets.
+      const headings = /(?:^|[\r\n]) {0,3}####(?=[ \t\r\n]|$)/g;
+      while (headings.test(content)) {
+        apparentHeadings++;
+        if (apparentHeadings > MAX_EVIDENCE_HEADINGS) {
+          throw new ToolError('Too many apparent card headings to scan. Specify a smaller note.');
+        }
+      }
+    }
+    return (await evidence()).scanCards(files);
+  }
+  function pageArgs(offset, limit, max) {
+    if (
+      !Number.isSafeInteger(offset) ||
+      offset < 0 ||
+      !Number.isInteger(limit) ||
+      limit < 1 ||
+      limit > max
+    ) {
+      throw new ToolError(`offset must be nonnegative and limit must be from 1 to ${max}.`);
+    }
+  }
   const tools = [
     {
       name: 'get_status',
@@ -239,6 +335,102 @@ function createMcpService({
           }
         }
         return { query, count: matches.length, matches: matches.slice(0, max) };
+      },
+    },
+    {
+      name: 'list_cards',
+      title: 'List evidence cards',
+      description:
+        'Find Markdown evidence cards and their extracted citations in one note or the open vault.',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          path: pathProperty('Optional vault-relative Markdown note path.'),
+          offset: { type: 'integer', minimum: 0 },
+          limit: { type: 'integer', minimum: 1, maximum: 1000 },
+        },
+      },
+      annotations: { readOnlyHint: true },
+      run: async ({ path: rel, offset = 0, limit = 100 } = {}) => {
+        pageArgs(offset, limit, 1000);
+        const cards = await evidenceCards(rel);
+        return {
+          count: cards.length,
+          offset,
+          cards: cards.slice(offset, offset + limit),
+          truncated: offset + limit < cards.length,
+        };
+      },
+    },
+    {
+      name: 'extract_citation',
+      title: 'Extract citation',
+      description:
+        'Extract a citation candidate and uncertain fields from Markdown card text. Does not verify the source.',
+      inputSchema: {
+        type: 'object',
+        properties: { text: { type: 'string', maxLength: MAX_CITATION_CHARACTERS } },
+        required: ['text'],
+      },
+      annotations: { readOnlyHint: true },
+      run: async ({ text } = {}) => {
+        if (typeof text !== 'string' || text.length > MAX_CITATION_CHARACTERS) {
+          throw new ToolError(
+            `text must be a string of at most ${MAX_CITATION_CHARACTERS} characters.`
+          );
+        }
+        return (await citations()).extractCardCitation(text);
+      },
+    },
+    {
+      name: 'validate_isbn',
+      title: 'Validate ISBN',
+      description: 'Validate an ISBN-10 or ISBN-13 checksum. This does not look up the book.',
+      inputSchema: {
+        type: 'object',
+        properties: { isbn: { type: 'string', maxLength: 100 } },
+        required: ['isbn'],
+      },
+      annotations: { readOnlyHint: true },
+      run: async ({ isbn } = {}) => {
+        if (typeof isbn !== 'string' || isbn.length > 100) {
+          throw new ToolError('isbn must be a string of at most 100 characters.');
+        }
+        return { isbn, valid: (await citations()).isValidIsbn(isbn) };
+      },
+    },
+    {
+      name: 'audit_evidence',
+      title: 'Audit evidence',
+      description:
+        'Check cards for missing or uncertain citation fields and stale years. Offline only; does not check links or source accuracy.',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          path: pathProperty('Optional vault-relative Markdown note path.'),
+          staleYears: { type: 'integer', minimum: 1, maximum: 100 },
+          offset: { type: 'integer', minimum: 0 },
+          limit: { type: 'integer', minimum: 1, maximum: 2000 },
+        },
+      },
+      annotations: { readOnlyHint: true },
+      run: async ({ path: rel, staleYears = 5, offset = 0, limit = 100 } = {}) => {
+        if (!Number.isInteger(staleYears) || staleYears < 1 || staleYears > 100) {
+          throw new ToolError('staleYears must be an integer from 1 to 100.');
+        }
+        pageArgs(offset, limit, 2000);
+        const cards = await evidenceCards(rel);
+        const issues = (await evidence()).auditCards(cards, {
+          staleYears,
+          checks: { links: false },
+        });
+        return {
+          cardsScanned: cards.length,
+          count: issues.length,
+          offset,
+          issues: issues.slice(offset, offset + limit),
+          truncated: offset + limit < issues.length,
+        };
       },
     },
     {
@@ -624,6 +816,7 @@ function normalizeConfig(value) {
   const config = value && typeof value === 'object' ? value : {};
   return {
     enabled: config.enabled === true,
+    keepRunning: config.keepRunning === true,
     allowWrites: config.allowWrites !== false,
     port:
       Number.isInteger(config.port) && config.port >= 1024 && config.port <= 65535
@@ -663,7 +856,15 @@ function registerMcp({
     getAllowWrites: () => config().allowWrites,
     version: app.getVersion(),
     notifyChanged: () => send('mcp:vaultChanged'),
-    openNote: (rel) => send('mcp:open', rel),
+    openNote: (rel) => {
+      const win = getWindow();
+      if (!win || win.isDestroyed()) {
+        throw new ToolError(
+          'Cannot open a note while the Tagline window is closed. Reopen the app first.'
+        );
+      }
+      send('mcp:open', rel);
+    },
     ...operations,
   });
   const server = createMcpHttpServer({ service, getToken: () => config().token });
@@ -688,17 +889,19 @@ function registerMcp({
     const current = config();
     return {
       enabled: current.enabled,
+      keepRunning: current.keepRunning,
       running: server.port > 0,
       port: current.port,
       url: `http://127.0.0.1:${current.port}/mcp`,
       token: current.token,
       allowWrites: current.allowWrites,
+      vaultRoot: getVaultRoot(),
       error,
     };
   };
   const authorize = (event) => {
     const win = getWindow();
-    if (!win || event.sender !== win.webContents) {
+    if (!win || event.sender !== win.webContents || event.senderFrame !== event.sender.mainFrame) {
       throw new Error('MCP settings are only available to the application.');
     }
   };
@@ -723,15 +926,42 @@ function registerMcp({
       }
       patch.allowWrites = options.allowWrites;
     }
+    if (options?.keepRunning !== undefined) {
+      if (typeof options.keepRunning !== 'boolean') {
+        throw new Error('Invalid MCP setting.');
+      }
+      patch.keepRunning = options.keepRunning;
+    }
     if (options?.port !== undefined) {
       if (!Number.isInteger(options.port) || options.port < 1024 || options.port > 65535) {
         throw new Error('Choose a port between 1024 and 65535.');
       }
       patch.port = options.port;
     }
+    const previous = config();
     save(patch);
-    await apply();
+    if (
+      (patch.enabled !== undefined && patch.enabled !== previous.enabled) ||
+      (patch.port !== undefined && patch.port !== previous.port)
+    ) {
+      await apply();
+    }
     return status();
+  });
+  ipcMain.handle('mcp:background', (event) => {
+    authorize(event);
+    if (!config().enabled || !config().keepRunning || !server.port || !getVaultRoot()) {
+      throw new Error(
+        'Open a vault and enable the running MCP server and background option first.'
+      );
+    }
+    const win = getWindow();
+    setImmediate(() => {
+      if (!win.isDestroyed()) {
+        win.close();
+      }
+    });
+    return true;
   });
   ipcMain.handle('mcp:regenerateToken', (event) => {
     authorize(event);
@@ -740,7 +970,11 @@ function registerMcp({
   });
 
   apply();
-  return { close: () => server.close() };
+  return {
+    close: () => server.close(),
+    shouldKeepRunning: () =>
+      config().enabled && config().keepRunning && server.port > 0 && !!getVaultRoot(),
+  };
 }
 
 module.exports = {

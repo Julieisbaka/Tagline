@@ -1,4 +1,5 @@
 const scopes = [];
+const popped = [];
 const inertElements = new WeakMap();
 
 /**
@@ -58,7 +59,9 @@ export function trapTabKey(event, root) {
  */
 export function containFocus(root, previousFocus = root.ownerDocument.activeElement, modal = true) {
   const document = root.ownerDocument;
-  const parent = [...scopes].reverse().find((candidate) => candidate.root.contains(previousFocus));
+  const parent =
+    [...scopes].reverse().find((candidate) => candidate.root.contains(previousFocus)) ||
+    [...popped].reverse().find((candidate) => candidate.root.contains(previousFocus));
   const scope = { root, previousFocus, parent };
   const siblings = [];
   for (let branch = root; modal && branch.parentElement; branch = branch.parentElement) {
@@ -108,6 +111,12 @@ export function containFocus(root, previousFocus = root.ownerDocument.activeElem
     scopes.splice(scopes.indexOf(scope), 1);
     document.removeEventListener('focusin', onFocus);
     document.removeEventListener('keydown', onKey);
+    // Keep the scope reachable until its restore microtask runs, so a scope
+    // mounted in the same commit can inherit this restore chain.
+    popped.push(scope);
+    if (popped.length > 16) {
+      popped.shift();
+    }
     for (const sibling of siblings) {
       const state = inertElements.get(sibling);
       if (--state.count === 0) {
@@ -116,6 +125,7 @@ export function containFocus(root, previousFocus = root.ownerDocument.activeElem
       }
     }
     queueMicrotask(() => {
+      popped.splice(popped.indexOf(scope), 1);
       const activeScope = scopes.at(-1);
       if (
         document.activeElement !== document.body &&

@@ -32,7 +32,7 @@ if (!process.versions.electron) {
   return;
 }
 
-const { app, BrowserWindow, safeStorage, ipcMain, shell } = require('electron');
+const { app, BrowserWindow, safeStorage, shell } = require('electron');
 const root = process.env.TAGLINE_INSTALLATION_ROOT;
 assert.ok(root, 'Run through npm run test:installation after building.');
 const version = process.env.TAGLINE_INSTALLATION_VERSION;

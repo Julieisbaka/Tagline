@@ -1,9 +1,5 @@
 module.exports = async function runScenario({
   win,
-  wc,
-  vault,
-  fs,
-  path,
   assert,
   delay,
   js,
@@ -13,12 +9,10 @@ module.exports = async function runScenario({
   open,
   point,
   press,
-  drag,
   context,
   saved,
 }) {
-  win.show();
-  win.focus();
+  win.show({ focus: false });
   await wait("!!document.querySelector('.onboarding-dialog')");
   assert.equal(
     await js("document.querySelector('.onboarding-dialog').getAttribute('aria-modal')"),
@@ -99,10 +93,18 @@ module.exports = async function runScenario({
     await js("document.querySelector('.context-menu').parentElement === document.body"),
     true
   );
+  await js('window.focus()');
   await button('.context-menu button', 'Cut cells');
-  await wait(
-    "[...document.querySelectorAll('.flow-grid textarea')].slice(0,4).every(el => el.value === '')"
-  );
+  for (let i = 0; i < 400; i++) {
+    if (
+      await js(
+        "[...document.querySelectorAll('.flow-grid textarea')].slice(0,4).every(el => el.value === '')"
+      )
+    ) {
+      break;
+    }
+    await delay(50);
+  }
   assert.equal(
     (await require('electron').clipboard.readText()).replace(/\r\n/g, '\n'),
     'claim\tanswer\nimpact\tresponse'

@@ -265,6 +265,9 @@ export class ExtensionHost {
       case 'helpers.vault.rewriteLinks':
       case 'helpers.vault.fuzzyScore':
       case 'helpers.citations.spoken':
+      case 'helpers.citations.extract':
+      case 'helpers.citations.isValidIsbn':
+      case 'helpers.citations.expandTwoDigitYear':
       case 'helpers.speech.text':
       case 'helpers.speech.readingSeconds':
       case 'helpers.speech.validateSample':
@@ -299,6 +302,44 @@ export class ExtensionHost {
       case 'helpers.canvas.suggestFiles':
       case 'helpers.canvas.createId':
       case 'helpers.canvas.moveNodes':
+      case 'helpers.cards.detect':
+      case 'helpers.cards.containsEvidence':
+      case 'helpers.checkup.fields':
+      case 'helpers.checkup.defaults':
+      case 'helpers.checkup.normalize':
+      case 'helpers.checkup.scan':
+      case 'helpers.checkup.citedUrls':
+      case 'helpers.checkup.audit':
+      case 'helpers.checkup.linkIssues':
+      case 'helpers.checkup.sourceIssues':
+      case 'helpers.frontmatter.read':
+      case 'helpers.keybindings.all':
+      case 'helpers.keybindings.binding':
+      case 'helpers.keybindings.reserved':
+      case 'helpers.keybindings.event':
+      case 'helpers.keybindings.matches':
+      case 'helpers.keybindings.conflict':
+      case 'helpers.keybindings.editor':
+      case 'helpers.language.languages':
+      case 'helpers.nli.templates':
+      case 'helpers.layout.ribbonItems':
+      case 'helpers.layout.defaultRibbonItems':
+      case 'helpers.layout.fileActions':
+      case 'helpers.layout.statusItems':
+      case 'helpers.search.parse':
+      case 'helpers.search.filter':
+      case 'helpers.search.vault':
+      case 'helpers.search.excerpt':
+      case 'helpers.search.mergeHybrid':
+      case 'helpers.search.candidateLimit':
+      case 'helpers.themes.builtin':
+      case 'helpers.themes.colorTokens':
+      case 'helpers.themes.validate':
+      case 'helpers.themes.resolveSettings':
+      case 'helpers.themes.get':
+      case 'helpers.themes.extensionThemes':
+      case 'helpers.vault.isJson':
+      case 'helpers.canvas.empty':
       case 'helpers.flow.parse':
       case 'helpers.flow.serialize':
       case 'helpers.flow.create':

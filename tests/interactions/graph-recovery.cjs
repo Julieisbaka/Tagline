@@ -1,5 +1,4 @@
 module.exports = async function runScenario({
-  win,
   wc,
   vault,
   fs,
@@ -11,11 +10,7 @@ module.exports = async function runScenario({
   click,
   button,
   open,
-  point,
-  press,
   drag,
-  context,
-  saved,
 }) {
   await click('.ribbon [data-ribbon-item=graph]');
   await wait("!!document.querySelector('.graph canvas')");

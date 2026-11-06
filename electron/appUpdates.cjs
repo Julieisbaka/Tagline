@@ -23,6 +23,8 @@ async function launchInstaller({
   shell,
   spawnProcess = spawn,
   processId = process.pid,
+  executable = process.execPath,
+  workingDirectory = process.cwd(),
 }) {
   if (platform === 'darwin') {
     const error = await shell.openPath(file);
@@ -37,7 +39,8 @@ async function launchInstaller({
   const script = [
     '$ErrorActionPreference = "Stop"',
     'while (Get-Process -Id ([int]$env:TAGLINE_PARENT_PID) -ErrorAction SilentlyContinue) { Start-Sleep -Milliseconds 250 }',
-    'Start-Process -FilePath $env:TAGLINE_UPDATE_INSTALLER',
+    'Start-Process -FilePath $env:TAGLINE_UPDATE_INSTALLER -Wait',
+    'if ($env:TAGLINE_UPDATE_APP -and (Test-Path -LiteralPath $env:TAGLINE_UPDATE_APP)) { Start-Process -FilePath $env:TAGLINE_UPDATE_APP -WorkingDirectory $env:TAGLINE_UPDATE_CWD }',
   ].join('; ');
   await new Promise((resolve, reject) => {
     const child = spawnProcess(
@@ -52,6 +55,8 @@ async function launchInstaller({
           ...process.env,
           TAGLINE_PARENT_PID: String(processId),
           TAGLINE_UPDATE_INSTALLER: file,
+          TAGLINE_UPDATE_APP: executable,
+          TAGLINE_UPDATE_CWD: workingDirectory,
         },
       }
     );
@@ -221,7 +226,42 @@ function createUpdateManager({
       throw error;
     }
   }
-  return { check, download, installUpdate, getState };
+  async function autoUpdate(currentVersion, beforeInstall = async () => {}) {
+    const release = await check(currentVersion);
+    if (!release.updateAvailable || !release.download) {
+      return { updated: false, release, result: null };
+    }
+    await download();
+    const result = await installUpdate(beforeInstall);
+    return { updated: true, release, result };
+  }
+  return { check, download, installUpdate, autoUpdate, getState };
 }
 
-module.exports = { createUpdateManager, launchInstaller };
+async function autoUpdate(optionsOrApp, currentVersion, beforeInstall) {
+  const options =
+    optionsOrApp && typeof optionsOrApp === 'object' && !Array.isArray(optionsOrApp)
+      ? { ...optionsOrApp }
+      : { app: optionsOrApp, currentVersion, beforeInstall };
+  if (options.currentVersion === undefined && typeof currentVersion === 'string') {
+    options.currentVersion = currentVersion;
+  }
+  if (options.beforeInstall === undefined && typeof beforeInstall === 'function') {
+    options.beforeInstall = beforeInstall;
+  }
+  if (options.currentVersion === undefined && typeof options.app?.getVersion === 'function') {
+    options.currentVersion = options.app.getVersion();
+  }
+  const manager = createUpdateManager(options);
+  return manager.autoUpdate(options.currentVersion, options.beforeInstall || (async () => {}));
+}
+
+module.exports = {
+  createUpdateManager,
+  launchInstaller,
+  autoUpdate,
+  runAutoUpdate: autoUpdate,
+  createAutoUpdater: (options) => ({
+    update: (version, beforeInstall) => autoUpdate(options, version, beforeInstall),
+  }),
+};

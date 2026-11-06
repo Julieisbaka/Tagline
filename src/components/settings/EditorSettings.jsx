@@ -32,6 +32,7 @@ export default function EditorSettings({ settings, update }) {
         description={t('Choose the initial editing mode for Markdown notes.')}
       >
         <select
+          data-setting='editorMode'
           value={settings.editorMode}
           onChange={(event) => update({ editorMode: event.target.value })}
         >
@@ -136,11 +137,38 @@ export default function EditorSettings({ settings, update }) {
         />
       </SettingRow>
       <h3>{t('Flow editor')}</h3>
+      <SettingRow
+        label={t('Default editor')}
+        description={t('Choose the initial editing mode for flow files.')}
+      >
+        <select
+          data-setting='flowEditorMode'
+          value={settings.flowEditorMode}
+          onChange={(event) => update({ flowEditorMode: event.target.value })}
+        >
+          <option value='visual'>{t('Visual')}</option>
+          <option value='edit'>{t('JSON source')}</option>
+        </select>
+      </SettingRow>
       {checkbox(
         'Flow editor spellcheck',
         'flowSpellcheck',
         'Underline possible spelling mistakes in flow cells, sheet names, and column headings.'
       )}
+      <h3>{t('Canvas editor')}</h3>
+      <SettingRow
+        label={t('Default editor')}
+        description={t('Choose the initial editing mode for canvas files.')}
+      >
+        <select
+          data-setting='canvasEditorMode'
+          value={settings.canvasEditorMode}
+          onChange={(event) => update({ canvasEditorMode: event.target.value })}
+        >
+          <option value='visual'>{t('Visual')}</option>
+          <option value='edit'>{t('JSON source')}</option>
+        </select>
+      </SettingRow>
       <h3>{t('Source editor (CodeMirror)')}</h3>
       {checkbox(
         'Source editor spellcheck',

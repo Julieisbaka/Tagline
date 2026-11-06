@@ -8,6 +8,7 @@ const {
   safeStorage,
   session,
   nativeTheme,
+  clipboard,
 } = require('electron');
 const path = require('path');
 const fs = require('fs/promises');
@@ -24,6 +25,7 @@ const { registerTimerSound } = require('./timerSound.cjs');
 const { registerExtensions } = require('./extensions.cjs');
 const { extractCitation } = require('./citationMetadata.cjs');
 const { checkLinks } = require('./evidenceLinks.cjs');
+const { fetchQuoteSource } = require('./quoteSource.cjs');
 const { registerFlowFiles } = require('./flowFiles.cjs');
 const { registerUriHandler } = require('./uri.cjs');
 const { registerBrowser } = require('./browser.cjs');
@@ -45,6 +47,7 @@ app.setName('Tagline');
 const configPath = () => path.join(app.getPath('userData'), 'config.json');
 
 let win;
+let mcp;
 let vaultRoot = null;
 let keybindings = {};
 let closeWebsiteView = () => {};
@@ -167,6 +170,10 @@ function registerIpc() {
     }
     return event.sender[action]();
   });
+  ipcMain.handle('app:clipboardWrite', (_event, text) => {
+    clipboard.writeText(String(text ?? ''));
+    return true;
+  });
   const updates = createUpdateManager({
     app,
     shell,
@@ -210,6 +217,12 @@ function registerIpc() {
     extractCitation(url, { sourceOnly: true })
   );
   ipcMain.handle('evidence:checkLinks', (_event, urls, options) => checkLinks(urls, options));
+  ipcMain.handle('evidence:quoteSource', (event, url) => {
+    if (event.sender !== win?.webContents || event.senderFrame !== event.sender.mainFrame) {
+      throw new Error('Quote verification is only available to the application main frame.');
+    }
+    return fetchQuoteSource(url);
+  });
   ipcMain.handle('keybindings:set', (_event, overrides) => {
     if (
       !overrides ||
@@ -432,7 +445,7 @@ function registerIpc() {
   }
   ipcMain.handle('fs:rename', (_e, from, to) => renameVaultPath(from, to));
 
-  registerMcp({
+  mcp = registerMcp({
     app,
     ipcMain,
     getWindow: () => win,
@@ -836,7 +849,7 @@ app.on('before-quit', () => {
   quitRequested = true;
 });
 app.on('window-all-closed', () => {
-  if (process.platform !== 'darwin') {
+  if (process.platform !== 'darwin' && !mcp?.shouldKeepRunning()) {
     app.quit();
   }
 });

@@ -58,6 +58,10 @@ tagline.commands.register('capabilities', async () => {
     speech: (await tagline.helpers.speech.estimate('Evidence matters.')).spokenWords,
     duration: await tagline.helpers.cards.formatDuration(90),
     citation: await tagline.helpers.citations.create({ author: 'Smith', year: '2024', title: 'A claim' }),
+    citationExtract: (await tagline.helpers.citations.extract('**Smith 2024** — "Study"')).citation.year,
+    isbnValid: await tagline.helpers.citations.isValidIsbn('978-0-201-89683-1'),
+    isbnInvalid: await tagline.helpers.citations.isValidIsbn('978-0-201-89683-2'),
+    expandedYear: await tagline.helpers.citations.expandTwoDigitYear(24, 2026),
     score: await tagline.helpers.search.fuzzyScore('deb', 'debate'),
     template: await tagline.helpers.templates.fill('{{title}}', 'Case'),
     html: await tagline.helpers.markdown.toHtml('**Safe**'),
@@ -393,8 +397,7 @@ tagline.commands.register('save-checks', async () => {
         throw new Error('Command never appeared: ' + label);
       };
       try {
-        win.show();
-        win.focus();
+        win.show({ focus: false });
         await wait("!!document.querySelector('.onboarding-skip')");
         await js("document.querySelector('.onboarding-skip').click()");
         await wait(
@@ -597,6 +600,10 @@ tagline.commands.register('save-checks', async () => {
           speech: 2,
           duration: '1:30',
           citation: '**Smith 2024** — "A claim"',
+          citationExtract: '2024',
+          isbnValid: true,
+          isbnInvalid: false,
+          expandedYear: 2024,
           score: 999.4,
           template: 'Case',
           html: '<p><strong>Safe</strong></p>\n',

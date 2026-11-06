@@ -251,7 +251,7 @@ function VisualDocument({
       lastMarkdown.current = value;
       live.current.onSection(visualSelection(editor, true));
     }
-  }, [value, editor]);
+  }, [value, editor, live]);
 
   useEffect(() => {
     if (!editor || !jump) {

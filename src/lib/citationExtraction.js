@@ -4,10 +4,16 @@ import { parseDate } from './calendar.js';
 const markdown = new Marked({ gfm: true, breaks: true });
 const BOLD_LEAD = /^ {0,3}(\*\*|__)(?=\S)(.+?)\1(.*)$/;
 const YEAR_LEAD = /^(.+?)[,\s]+(?:\((\d{2}|\d{4})\)|(\d{2}|\d{4}))(?=$|[ \t]*[,.;:–—"(-])/u;
+const BCE_LEAD = /^(.+?)[,\s]+(\d{1,4})\s*(?:BCE|BC)\b/iu;
+const RANGE_LEAD = /^(.+?)[,\s]+(\d{2}|\d{4})[–-](\d{2}|\d{4})(?=$|[ \t]*[,.;:–—"(-])/u;
 const FULL_YEAR = /\b(?:19|20)\d{2}\b/;
 const URL = /https?:\/\/[^\s<>()]+(?:\([^\s()]*\)[^\s<>()]*)*/i;
 const MARKDOWN_LINK = /\[[^\]]*\]\((https?:\/\/(?:[^()\s]|\([^()\s]*\))+)\)/i;
 const DOI = /\bdoi:\s*(10\.\d{4,9}\/[-._;()/:+a-z0-9]+)/i;
+const ARXIV = /\barxiv:?\s*(\d{4}\.\d{4,5}(?:v\d+)?|[a-z][a-z.-]*\/\d{7}(?:v\d+)?)/i;
+const ISBN = /\b(?:ISBN(?:-1[03])?:?\s*[0-9][0-9Xx\-\s]{8,22}[0-9Xx]|97[89](?:[-\s]?\d){10})\b/i;
+const ISBN_LABELED = /\bISBN(?:-1[03])?:?\s*([0-9][0-9Xx\-\s]{8,22}[0-9Xx])\b/i;
+const ISBN_13 = /\b(97[89](?:[-\s]?\d){10})\b/;
 const TITLE = /"((?:[^"\\]|\\.)+)"/;
 const ACCESS =
   /\bAccessed\s+(\d{4}-\d{2}-\d{2}|[A-Za-z]+\s+\d{1,2},?\s+\d{4}|\d{1,2}\s+[A-Za-z]+\s+\d{4}|[^,\n]+)/i;
@@ -32,7 +38,7 @@ const DATE_LEAD = new RegExp(
   'i'
 );
 const CONTINUATION =
-  /^(?:["“]|(?:title|publication|source)\s*:|accessed\b|doi:|https?:\/\/|\[[^\]]+\](?:\[[^\]]*\]|\())/i;
+  /^(?:["“]|(?:title|publication|source)\s*:|accessed\b|doi:|arxiv:|isbn(?:-1[03])?:|https?:\/\/|\[[^\]]+\](?:\[[^\]]*\]|\())/i;
 const unescape = (value) => value.replace(/\\(.)/g, '$1').trim();
 
 function dateValue(value) {
@@ -65,13 +71,70 @@ function resolveReferences(value, references) {
   });
 }
 
+/** Assume 20xx unless that year is still in the future, then assume 19xx. */
+export function expandTwoDigitYear(yearNum, currentYear = new Date().getFullYear()) {
+  const assumed = Math.floor(currentYear / 100) * 100 + Number(yearNum);
+  return assumed > currentYear ? assumed - 100 : assumed;
+}
+
+/**
+ * Validate an ISBN-10 or ISBN-13 check digit so typo'd identifiers are not
+ * turned into links that will fail when fetched.
+ *
+ * @param {string} value ISBN digits, optionally with separators or a trailing X.
+ * @returns {boolean} Whether the value is a well-formed ISBN with a valid check digit.
+ */
+export function isValidIsbn(value) {
+  const digits = String(value).replace(/[-\s]/g, '').toUpperCase();
+  if (/^\d{9}[\dX]$/.test(digits)) {
+    const sum = [...digits].reduce(
+      (total, char, index) => total + (char === 'X' ? 10 : Number(char)) * (10 - index),
+      0
+    );
+    return sum % 11 === 0;
+  }
+  if (/^\d{13}$/.test(digits)) {
+    const sum = [...digits].reduce(
+      (total, char, index) => total + Number(char) * (index % 2 ? 3 : 1),
+      0
+    );
+    return sum % 10 === 0;
+  }
+  return false;
+}
+
+function expandYear(token, currentYear = new Date().getFullYear()) {
+  if (/^(?:19|20)\d{2}$/.test(token)) {
+    return token;
+  }
+  if (/^\d{2}$/.test(token)) {
+    return String(expandTwoDigitYear(token, currentYear));
+  }
+  return '';
+}
+
 function findYearLead(value) {
   const date = value.match(DATE_LEAD);
   const year = value.match(YEAR_LEAD);
-  if (date && (!year || date[1].length <= year[1].length)) {
-    return { match: date, date: true };
+  const bce = value.match(BCE_LEAD);
+  const range = value.match(RANGE_LEAD);
+  const candidates = [
+    date && { match: date, date: true, authorLength: date[1].length },
+    bce && { match: bce, bce: true, authorLength: bce[1].length },
+    range && { match: range, range: true, authorLength: range[1].length },
+    year && { match: year, date: false, authorLength: year[1].length },
+  ].filter(Boolean);
+  if (!candidates.length) {
+    return null;
   }
-  return year ? { match: year, date: false } : null;
+  const bestLength = Math.min(...candidates.map((item) => item.authorLength));
+  const best = candidates.filter((item) => item.authorLength === bestLength);
+  return (
+    best.find((item) => item.date) ||
+    best.find((item) => item.bce) ||
+    best.find((item) => item.range) ||
+    best[0]
+  );
 }
 
 /**
@@ -112,6 +175,8 @@ export function extractCardCitation(body, references = {}) {
         FULL_YEAR.test(lead + ' ' + remainder) ||
         URL.test(lead + ' ' + remainder) ||
         DOI.test(lead + ' ' + remainder) ||
+        ARXIV.test(lead + ' ' + remainder) ||
+        ISBN.test(lead + ' ' + remainder) ||
         /\bAccessed\b/i.test(remainder);
       const continuation = [];
       for (let next = index + 1; next < lines.length && continuation.length < 5; next++) {
@@ -124,7 +189,12 @@ export function extractCardCitation(body, references = {}) {
       const unformatted =
         !bold &&
         !!year &&
-        (TITLE.test(plain) || URL.test(plain) || DOI.test(plain) || continuation.length > 0);
+        (TITLE.test(plain) ||
+          URL.test(plain) ||
+          DOI.test(plain) ||
+          ARXIV.test(plain) ||
+          ISBN.test(plain) ||
+          continuation.length > 0);
       if ((bold && (signal || (firstContent && !remainder))) || unformatted) {
         return parseCitation(
           resolveReferences(lead, references),
@@ -145,11 +215,31 @@ function parseCitation(lead, suffix) {
   let details = suffix;
   if (match) {
     citation.author = unescape(match[1]);
-    const year = parsed.date ? dateValue(match[2]).slice(0, 4) : match[2] || match[3];
-    if (/^(?:19|20)\d{2}$/.test(year)) {
-      citation.year = year;
+    if (parsed.date) {
+      const year = dateValue(match[2]).slice(0, 4);
+      if (/^(?:19|20)\d{2}$/.test(year)) {
+        citation.year = year;
+      } else {
+        uncertain.add('year');
+      }
+    } else if (parsed.bce) {
+      const era = /BCE/i.test(match[0]) ? 'BCE' : 'BC';
+      citation.year = `${Number(match[2])} ${era}`;
+    } else if (parsed.range) {
+      const start = expandYear(match[2]);
+      const end = expandYear(match[3]);
+      if (start && end) {
+        citation.year = String(Math.max(Number(start), Number(end)));
+      } else {
+        uncertain.add('year');
+      }
     } else {
-      uncertain.add('year');
+      const year = expandYear(match[2] || match[3] || '');
+      if (year) {
+        citation.year = year;
+      } else {
+        uncertain.add('year');
+      }
     }
     details = `${lead.slice(match[0].length)} ${suffix}`.trim();
   } else {
@@ -173,10 +263,22 @@ function parseCitation(lead, suffix) {
   const link = details.match(MARKDOWN_LINK);
   const bareUrl = details.match(URL);
   const doi = details.match(DOI);
+  const arxiv = details.match(ARXIV);
+  const labeledIsbn = details.match(ISBN_LABELED);
+  const bareIsbn = labeledIsbn ? null : details.match(ISBN_13);
+  const isbn = (labeledIsbn?.[1] || bareIsbn?.[1] || '').replace(/[^0-9Xx]/gi, '');
   if (link || bareUrl) {
     citation.url = (link ? link[1] : bareUrl[0]).replace(/[.,;]+$/, '');
   } else if (doi) {
     citation.url = `https://doi.org/${doi[1].replace(/[.,;]+$/, '')}`;
+  } else if (arxiv) {
+    citation.url = `https://arxiv.org/abs/${arxiv[1]}`;
+  } else if (isbn) {
+    if (isValidIsbn(isbn)) {
+      citation.url = `https://openlibrary.org/api/books?bibkeys=ISBN:${isbn}&jscmd=data`;
+    } else {
+      uncertain.add('url');
+    }
   } else if (/\[[^\]]+\](?:\[[^\]]*\]|\([^)]+\))/.test(details)) {
     uncertain.add('url');
   }
@@ -204,6 +306,14 @@ function parseCitation(lead, suffix) {
   }
   if (doi) {
     remaining = remaining.replace(doi[0], '');
+  }
+  if (arxiv) {
+    remaining = remaining.replace(arxiv[0], '');
+  }
+  if (labeledIsbn) {
+    remaining = remaining.replace(labeledIsbn[0], '');
+  } else if (bareIsbn) {
+    remaining = remaining.replace(bareIsbn[0], '');
   }
   if (access) {
     remaining = remaining.replace(access[0], '');

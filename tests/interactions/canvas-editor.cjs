@@ -1,5 +1,4 @@
 module.exports = async function runScenario({
-  win,
   wc,
   vault,
   fs,
@@ -14,8 +13,6 @@ module.exports = async function runScenario({
   point,
   press,
   drag,
-  context,
-  saved,
 }) {
   await open('Map.canvas');
   await wait("!!document.querySelector('.canvas-board-wrap')");

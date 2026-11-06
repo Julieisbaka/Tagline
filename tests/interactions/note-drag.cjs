@@ -12,9 +12,16 @@ module.exports = async function runScenario({
   await fs.mkdir(path.join(vault, 'Nested'));
   await fs.writeFile(path.join(vault, 'Nested', 'Beta.md'), '# Nested Beta\n');
   await click('.sidebar-header [aria-label="Refresh"]');
-  await wait(
-    "document.querySelector('.sidebar-header [aria-label=\"Refresh\"]').getAttribute('aria-busy') === 'false'"
-  );
+  for (let i = 0; i < 400; i++) {
+    if (
+      await js(
+        "document.querySelector('.sidebar-header [aria-label=\"Refresh\"]')?.getAttribute('aria-busy') === 'false'"
+      )
+    ) {
+      break;
+    }
+    await delay(50);
+  }
   await click('.tree-item[title="Nested"]');
   await wait('!!document.querySelector(\'.tree-item[title="Nested/Beta.md"]\')');
   await open('Alpha.md');

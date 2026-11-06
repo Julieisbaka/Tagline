@@ -36,6 +36,7 @@
     "test:productivity": "node scripts/run-smoke.cjs node tests/productivity-smoke.cjs",
     "test:extensions": "node scripts/run-smoke.cjs node tests/extensions-smoke.cjs",
     "test:settings": "node scripts/run-smoke.cjs node tests/settings-smoke.cjs",
+    "test:mcp": "node tests/mcp-archive-smoke.cjs",
     "test:nli": "node tests/nli-smoke.cjs",
     "test:nli-ui": "node scripts/run-smoke.cjs node tests/nli-ui-smoke.cjs",
     "test:layout": "node scripts/run-smoke.cjs node tests/layout-smoke.cjs",
@@ -60,6 +61,12 @@
       "schemas/**/*",
       "src/lib/keybindings.json",
       "src/lib/defaultSettings.json",
+      "src/lib/cardDetection.js",
+      "src/lib/citationExtraction.js",
+      "src/lib/evidenceCheckup.js",
+      "src/lib/calendar.js",
+      "src/lib/frontmatter.js",
+      "src/lib/vault.js",
       "build/icon.*",
       "package.json",
       "!node_modules/onnxruntime-node/bin/napi-v*/*/!(${arch})/**/*"
@@ -137,6 +144,7 @@
     "@tiptap/starter-kit": "^3.32.0",
     "@uiw/react-codemirror": "^4.25.12",
     "dompurify": "^3.4.17",
+    "htmlparser2": "^12.0.0",
     "marked": "^18.1.2",
     "react": "^19.3.1",
     "react-dom": "^19.3.1",
@@ -144,6 +152,7 @@
     "yaml": "^2.9.1"
   },
   "devDependencies": {
+    "@electron/asar": "^3.4.1",
     "@vitejs/plugin-react": "^6.1.2",
     "ajv": "^8.20.0",
     "concurrently": "^10.0.6",
@@ -151,6 +160,7 @@
     "electron-builder": "^26.18.0",
     "eslint": "^9.39.5",
     "eslint-plugin-react": "^7.37.5",
+    "eslint-plugin-react-hooks": "^7.1.1",
     "prettier": "^3.9.10",
     "vite": "^8.3.5",
     "wait-on": "^9.5.1"
