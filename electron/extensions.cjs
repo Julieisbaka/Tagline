@@ -609,7 +609,7 @@ function registerExtensions({
     if (!item || !item.enabled) {
       throw new Error('Extension is no longer enabled.');
     }
-    if (!item.permissions.includes('secrets')) {
+    if (!item.allowedPermissions.includes('secrets')) {
       throw new Error('Secrets permission is required.');
     }
     if (typeof key !== 'string' || !key || key.length > MAX_SECRET_KEY) {
