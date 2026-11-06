@@ -156,11 +156,7 @@
     "@vitejs/plugin-react": "^6.2.1",
     "ajv": "^8.20.0",
     "concurrently": "^10.0.6",
-<<<<<<< HEAD
-    "electron": "^45.2.3",
-=======
     "electron": "^45.2.1",
->>>>>>> 4cd6ff6d580494a030807a87793ddf08624207a3
     "electron-builder": "^26.18.0",
     "eslint": "^9.39.5",
     "eslint-plugin-react": "^7.37.5",
