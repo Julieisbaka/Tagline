@@ -19,7 +19,6 @@ export function cardQuote(card, hasCitation = true) {
   return lines
     .join('\n')
     .replace(/!?\[([^\]]*)\]\([^)]*\)/g, '$1')
-    .replace(/<[^>]*>/g, '')
     .replace(/&#(x[\da-f]+|\d+);/gi, (original, code) => {
       const point = code[0].toLowerCase() === 'x' ? parseInt(code.slice(1), 16) : Number(code);
       return point > 0 && point <= 0x10ffff ? String.fromCodePoint(point) : original;
@@ -29,6 +28,7 @@ export function cardQuote(card, hasCitation = true) {
       (_, name) =>
         ({ amp: '&', lt: '<', gt: '>', quot: '"', apos: "'", nbsp: ' ' })[name.toLowerCase()]
     )
+    .replace(/<[^>]*>/g, '')
     .replace(/(?:==|\+\+|\*\*|__)/g, '')
     .trim();
 }
