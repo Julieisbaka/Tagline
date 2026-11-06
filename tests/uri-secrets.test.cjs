@@ -102,6 +102,12 @@ test('platform: extension secrets are encrypted, permission-gated and per extens
       enabledItem.reviewToken
     );
 
+    await handlers['extensions:storage'](null, 'vault-key', 'set', 'token', 'private token');
+    const storedStorage = await fs.readFile(path.join(root, 'extension-storage', 'vault-key.bin'));
+    assert.ok(!storedStorage.toString().includes('private token'));
+    assert.deepEqual(await handlers['extensions:storage'](null, 'vault-key', 'get'), {
+      token: 'private token',
+    });
     await write([]);
     await assert.rejects(call('get', 'token'), /no longer enabled|Secrets permission/);
   } finally {
