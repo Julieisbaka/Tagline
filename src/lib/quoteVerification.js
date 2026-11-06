@@ -16,7 +16,7 @@ export function cardQuote(card, hasCitation = true) {
   if (hasCitation && first >= 0 && /^\s*(?:\*\*[^*\n]+\*\*|__[^_\n]+__)/.test(lines[first])) {
     lines.splice(first, 1);
   }
-  return lines
+  let text = lines
     .join('\n')
     .replace(/!?\[([^\]]*)\]\([^)]*\)/g, '$1')
     .replace(/&#(x[\da-f]+|\d+);/gi, (original, code) => {
@@ -27,11 +27,13 @@ export function cardQuote(card, hasCitation = true) {
       /&(amp|lt|gt|quot|apos|nbsp);/gi,
       (_, name) =>
         ({ amp: '&', lt: '<', gt: '>', quot: '"', apos: "'", nbsp: ' ' })[name.toLowerCase()]
-    )
-    .replace(/<[^>]*>/g, '')
-    .replace(/[<>]/g, '')
-    .replace(/(?:==|\+\+|\*\*|__)/g, '')
-    .trim();
+    );
+  let previous;
+  do {
+    previous = text;
+    text = text.replace(/<[^>]*>/g, '');
+  } while (text !== previous);
+  return text.replace(/(?:==|\+\+|\*\*|__)/g, '').trim();
 }
 
 /** Compare word sequences, returning source character ranges. This does not establish meaning or context. */
