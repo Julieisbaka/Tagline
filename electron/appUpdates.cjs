@@ -261,5 +261,7 @@ module.exports = {
   launchInstaller,
   autoUpdate,
   runAutoUpdate: autoUpdate,
-  createAutoUpdater: (options) => ({ update: (version, beforeInstall) => autoUpdate(options, version, beforeInstall) }),
+  createAutoUpdater: (options) => ({
+    update: (version, beforeInstall) => autoUpdate(options, version, beforeInstall),
+  }),
 };

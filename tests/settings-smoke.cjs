@@ -795,7 +795,10 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
           'editor sections do not add a second divider'
         );
         for (const key of ['editorMode', 'flowEditorMode', 'canvasEditorMode']) {
-          assert.equal(await js(`document.querySelector('[data-setting="${key}"]').value`), 'visual');
+          assert.equal(
+            await js(`document.querySelector('[data-setting="${key}"]').value`),
+            'visual'
+          );
         }
         const editorDefaults = {
           visualSpellcheck: true,

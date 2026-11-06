@@ -12,10 +12,11 @@ export function migrateEditorModes(saved = {}) {
 }
 
 export function defaultEditorMode(settings, path) {
-  const key = typeof path === 'string' && isFlow(path)
-    ? 'flowEditorMode'
-    : typeof path === 'string' && isCanvas(path)
-      ? 'canvasEditorMode'
-      : 'editorMode';
+  const key =
+    typeof path === 'string' && isFlow(path)
+      ? 'flowEditorMode'
+      : typeof path === 'string' && isCanvas(path)
+        ? 'canvasEditorMode'
+        : 'editorMode';
   return valid(settings[key]) ? settings[key] : 'visual';
 }

@@ -859,7 +859,9 @@ function registerMcp({
     openNote: (rel) => {
       const win = getWindow();
       if (!win || win.isDestroyed()) {
-        throw new ToolError('Cannot open a note while the Tagline window is closed. Reopen the app first.');
+        throw new ToolError(
+          'Cannot open a note while the Tagline window is closed. Reopen the app first.'
+        );
       }
       send('mcp:open', rel);
     },
@@ -938,8 +940,10 @@ function registerMcp({
     }
     const previous = config();
     save(patch);
-    if (patch.enabled !== undefined && patch.enabled !== previous.enabled ||
-        patch.port !== undefined && patch.port !== previous.port) {
+    if (
+      (patch.enabled !== undefined && patch.enabled !== previous.enabled) ||
+      (patch.port !== undefined && patch.port !== previous.port)
+    ) {
       await apply();
     }
     return status();
@@ -947,7 +951,9 @@ function registerMcp({
   ipcMain.handle('mcp:background', (event) => {
     authorize(event);
     if (!config().enabled || !config().keepRunning || !server.port || !getVaultRoot()) {
-      throw new Error('Open a vault and enable the running MCP server and background option first.');
+      throw new Error(
+        'Open a vault and enable the running MCP server and background option first.'
+      );
     }
     const win = getWindow();
     setImmediate(() => {
@@ -966,7 +972,8 @@ function registerMcp({
   apply();
   return {
     close: () => server.close(),
-    shouldKeepRunning: () => config().enabled && config().keepRunning && server.port > 0 && !!getVaultRoot(),
+    shouldKeepRunning: () =>
+      config().enabled && config().keepRunning && server.port > 0 && !!getVaultRoot(),
   };
 }
 
