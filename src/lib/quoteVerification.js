@@ -28,7 +28,15 @@ export function cardQuote(card, hasCitation = true) {
       (_, name) =>
         ({ amp: '&', lt: '<', gt: '>', quot: '"', apos: "'", nbsp: ' ' })[name.toLowerCase()]
     )
-    .replace(/<[^>]*>/g, '')
+    .replace(/<[^>]*>/g, (match, _offset, input) => {
+      let previous = input;
+      let current = input.replace(/<[^>]*>/g, '');
+      while (current !== previous) {
+        previous = current;
+        current = current.replace(/<[^>]*>/g, '');
+      }
+      return current;
+    })
     .replace(/(?:==|\+\+|\*\*|__)/g, '')
     .trim();
 }
