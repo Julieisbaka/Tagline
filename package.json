@@ -1,9 +1,9 @@
 {
   "name": "tagline",
   "productName": "Tagline",
-  "version": "0.0.6-dev",
+  "version": "0.0.6",
   "type": "module",
-  "description": "Obsidian-style knowledge vault for policy debaters",
+  "description": "A knowledge vault for policy debaters",
   "main": "electron/main.cjs",
   "author": {
     "name": "JulieISBaka"
