@@ -128,11 +128,16 @@ contextBridge.exposeInMainWorld('api', {
     ipcRenderer.invoke('extensions:networkFetch', id, url, options),
   extensionSecret: (id, action, key, value) =>
     ipcRenderer.invoke('extensions:secret', id, action, key, value),
+  extensionStorage: (id, action, key, value) =>
+    ipcRenderer.invoke('extensions:storage', id, action, key, value),
   clearExtensionSecrets: (id) => ipcRenderer.invoke('extensions:clearSecrets', id),
   completeExtensionInstall: (id, token) =>
     ipcRenderer.invoke('extensions:completeInstall', id, token),
   setExtensionEnabled: (id, enabled, reviewToken) =>
     ipcRenderer.invoke('extensions:setEnabled', id, enabled, reviewToken),
+  setExtensionPermissions: (id, permissions, reviewToken) =>
+    ipcRenderer.invoke('extensions:setPermissions', id, permissions, reviewToken),
+  uninstallExtension: (id) => ipcRenderer.invoke('extensions:uninstall', id),
   openExtensionsFolder: () => ipcRenderer.invoke('extensions:openFolder'),
   pathForFile: (file) => webUtils.getPathForFile(file),
   installExtensionFolder: (source) => ipcRenderer.invoke('extensions:installFolder', source),

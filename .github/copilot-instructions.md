@@ -6,7 +6,7 @@ Tagline is a local-first debate research workspace built with React, Vite, and E
 
 Vaults are ordinary folders containing Markdown notes and structured files such as `.flow` and canvas documents. Keep file-format behavior and validation consistent with the relevant modules in `src/lib/`, `electron/`, and `schemas/`.
 
-Extensions run in a sandboxed worker and use the `tagline` API, not the application DOM or Node.js. When changing the extension surface, keep its implementation, JSON schemas, `docs/extension-api.md`, and the example under `demo/` in sync.
+Extensions run in a sandboxed worker and use the `tagline` API, not the application DOM or Node.js. When changing the extension surface, keep its implementation, JSON schemas, the Tagline documentation site, and the example under `demo/` in sync.
 
 ## Build and test
 
@@ -20,7 +20,6 @@ Extensions run in a sandboxed worker and use the `tagline` API, not the applicat
 ## Project conventions
 
 - Add renderer-to-main capabilities through the preload API and the corresponding Electron handler or module; do not bypass the bridge from renderer code.
-- Keep extension API behavior consistent across its implementation, schema, documentation, and demo.
 - When suggesting features, inspect the current README, docs, and implementation first; do not suggest capabilities Tagline already has.
 - Follow the user's latest stated direction and constraints when brainstorming. If the user narrows or changes the request, use the new scope.
 - Offer several balanced, implementable ideas rather than only tiny conveniences, oversized workflows, or a single idea.

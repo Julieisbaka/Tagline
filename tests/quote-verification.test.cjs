@@ -38,5 +38,7 @@ test('card quote preparation removes headings and citation lines', async () => {
     cardQuote('#### Tag\n**Smith 2024** — Citation\n**Water &amp; air** are vital.'),
     'Water & air are vital.'
   );
+  assert.equal(cardQuote('&lt;script&gt;alert(1)&lt;/script&gt; Safe'), 'alert(1) Safe');
+  assert.equal(cardQuote('&#60;script&#62;alert(1)&#60;/script&#62; Safe'), 'alert(1) Safe');
   assert.equal(cardQuote('#### Tag\n**This is evidence**', false), 'This is evidence');
 });

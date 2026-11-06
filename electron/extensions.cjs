@@ -323,6 +323,7 @@ function registerExtensions({
     Array.isArray(readConfig().enabledExtensions) ? readConfig().enabledExtensions : [];
 
   async function scan() {
+    const config = readConfig();
     let entries = [];
     try {
       entries = await fs.readdir(folder(), { withFileTypes: true });
@@ -331,7 +332,7 @@ function registerExtensions({
         throw e;
       }
     }
-    const enabled = enabledIds();
+    const enabled = Array.isArray(config.enabledExtensions) ? config.enabledExtensions : [];
     const found = [];
     const ids = new Set();
     for (const entry of entries
@@ -348,12 +349,17 @@ function registerExtensions({
           throw new Error(`Duplicate extension id: ${manifest.id}`);
         }
         ids.add(manifest.id);
-        const reviewRequired = enabled.includes(manifest.id) && needsReview(manifest, readConfig());
+        const reviewRequired = enabled.includes(manifest.id) && needsReview(manifest, config);
         const reviewToken = createHash('sha256').update(reviewSignature(manifest)).digest('hex');
         found.push({
           ...manifest,
           folder: entry.name,
           root,
+          allowedPermissions: Array.isArray(config.extensionPermissions?.[manifest.id])
+            ? manifest.permissions.filter((permission) =>
+                config.extensionPermissions[manifest.id].includes(permission)
+              )
+            : [...manifest.permissions],
           reviewRequired,
           reviewToken,
           enabled: enabled.includes(manifest.id) && !reviewRequired,
@@ -495,8 +501,150 @@ function registerExtensions({
     return next;
   });
 
+  ipcMain.handle('extensions:setPermissions', async (_event, id, permissions, reviewToken) => {
+    if (
+      typeof id !== 'string' ||
+      !ID.test(id) ||
+      !Array.isArray(permissions) ||
+      permissions.some((permission) => typeof permission !== 'string') ||
+      new Set(permissions).size !== permissions.length
+    ) {
+      throw new Error('Invalid extension permission request.');
+    }
+    const item = (await scan()).find((extension) => extension.id === id && !extension.error);
+    if (!item) {
+      throw new Error('Extension not found.');
+    }
+    if (
+      reviewToken !== item.reviewToken ||
+      permissions.some((permission) => !item.permissions.includes(permission))
+    ) {
+      throw new Error('Extension permissions changed. Reload and review before changing access.');
+    }
+    const extensionPermissions = { ...readConfig().extensionPermissions };
+    extensionPermissions[id] = [...permissions];
+    writeConfig({ extensionPermissions });
+    return true;
+  });
+
+  ipcMain.handle('extensions:uninstall', async (_event, id) => {
+    if (typeof id !== 'string' || !id || path.basename(id) !== id || id === '.' || id === '..') {
+      throw new Error('Invalid extension request.');
+    }
+    const item = (await scan()).find((extension) => extension.folder === id);
+    if (!item) {
+      throw new Error('Extension not found.');
+    }
+    await fs.rm(item.root, { recursive: true });
+    const config = readConfig();
+    const extensionReviews = { ...config.extensionReviews };
+    const extensionPermissions = { ...config.extensionPermissions };
+    if (item.id) {
+      installTokens.delete(item.id);
+      networkRequestTimes.delete(item.id);
+      delete extensionReviews[item.id];
+      delete extensionPermissions[item.id];
+    }
+    writeConfig({
+      enabledExtensions: enabledIds().filter((enabledId) => enabledId !== item.id),
+      extensionReviews,
+      extensionPermissions,
+      initializedExtensions: (Array.isArray(config.initializedExtensions)
+        ? config.initializedExtensions
+        : []
+      ).filter((initializedId) => initializedId !== item.id),
+    });
+    if (item.id) {
+      await serialize(item.id, async () => {
+        await fs.rm(path.join(secretsDir(), `${item.id}.bin`), { force: true });
+      });
+    }
+    if (item.id) {
+      await serializeStorage(item.id, async () => {
+        await fs.rm(path.join(storageDir(), `${item.id}.bin`), { force: true });
+      });
+    }
+    return true;
+  });
+
   const secretsDir = () => path.join(app.getPath('userData'), 'extension-secrets');
   const secretQueues = new Map();
+  const storageDir = () => path.join(app.getPath('userData'), 'extension-storage');
+  const storageQueues = new Map();
+  const readExtensionStorage = async (id) => {
+    const file = path.join(storageDir(), `${id}.bin`);
+    let encrypted;
+    try {
+      encrypted = await fs.readFile(file);
+    } catch (error) {
+      if (error.code === 'ENOENT') {
+        return null;
+      }
+      throw error;
+    }
+    try {
+      const parsed = JSON.parse((await safeStorage.decryptStringAsync(encrypted)).result);
+      return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : {};
+    } catch {
+      throw new Error('Cannot decrypt this extension’s storage.');
+    }
+  };
+  const writeExtensionStorage = async (id, data) => {
+    const file = path.join(storageDir(), `${id}.bin`);
+    if (!Object.keys(data).length) {
+      await fs.rm(file, { force: true });
+      return;
+    }
+    await fs.mkdir(storageDir(), { recursive: true });
+    const tmp = `${file}.${randomUUID()}.tmp`;
+    await fs.writeFile(tmp, await safeStorage.encryptStringAsync(JSON.stringify(data)), {
+      mode: 0o600,
+    });
+    await fs.rename(tmp, file);
+  };
+  const serializeStorage = (id, task) => {
+    const run = (storageQueues.get(id) || Promise.resolve()).catch(() => {}).then(task);
+    storageQueues.set(id, run);
+    return run;
+  };
+  ipcMain.handle('extensions:storage', async (_event, id, action, key, value) => {
+    if (typeof id !== 'string' || !ID.test(id) || !['get', 'set', 'replace'].includes(action)) {
+      throw new Error('Invalid extension request.');
+    }
+    const item = (await scan()).find((extension) => extension.id === id && !extension.error);
+    if (!item || !item.enabled) {
+      throw new Error('Extension is no longer enabled.');
+    }
+    if (!safeStorage || !(await safeStorage.isAsyncEncryptionAvailable())) {
+      throw new Error('Secure storage is not available on this system.');
+    }
+    return serializeStorage(id, async () => {
+      const data = await readExtensionStorage(id);
+      if (action === 'get') {
+        return data;
+      }
+      let next;
+      if (action === 'set') {
+        if (typeof key !== 'string' || !key || key.length > MAX_SECRET_KEY) {
+          throw new Error(`Key must be 1-${MAX_SECRET_KEY} characters.`);
+        }
+        next = { ...(data || {}), [key]: value };
+        if (value === undefined || value === null) {
+          delete next[key];
+        }
+      } else {
+        if (!value || typeof value !== 'object' || Array.isArray(value)) {
+          throw new Error('Invalid extension storage.');
+        }
+        next = value;
+      }
+      if (JSON.stringify(next).length > limits().extensionStorageCharacters) {
+        throw new Error('Extension storage exceeds the configured limit.');
+      }
+      await writeExtensionStorage(id, next);
+      return true;
+    });
+  });
   const readSecrets = async (id) => {
     const file = path.join(secretsDir(), `${id}.bin`);
     let encrypted;
@@ -542,7 +690,7 @@ function registerExtensions({
     if (!item || !item.enabled) {
       throw new Error('Extension is no longer enabled.');
     }
-    if (!item.permissions.includes('secrets')) {
+    if (!item.allowedPermissions.includes('secrets')) {
       throw new Error('Secrets permission is required.');
     }
     if (typeof key !== 'string' || !key || key.length > MAX_SECRET_KEY) {
@@ -594,7 +742,7 @@ function registerExtensions({
     if (!item || !item.enabled) {
       throw new Error('Extension is no longer enabled.');
     }
-    if (!item.permissions.includes('network')) {
+    if (!item.allowedPermissions.includes('network')) {
       throw new Error('Network permission is required.');
     }
     const now = Date.now();

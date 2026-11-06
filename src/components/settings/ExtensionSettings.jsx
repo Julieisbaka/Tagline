@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { getRuntimeLimits } from '../../../electron/customization.mjs';
+import { useConfirm } from '../dialogs/ConfirmProvider.jsx';
 import { useI18n } from '../../lib/i18n.js';
 import SettingControl from './SettingControl.jsx';
 
@@ -144,6 +145,7 @@ function ExtensionSettingsForm({ item, extensions }) {
 
 export default function ExtensionSettings({ extensions }) {
   const { t } = useI18n();
+  const confirm = useConfirm();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
@@ -298,11 +300,30 @@ export default function ExtensionSettings({ extensions }) {
               </p>
             )}
             {item.permissions?.length > 0 && (
-              <ul className='extension-permissions' aria-label={t('Permissions')}>
+              <fieldset className='extension-permissions'>
+                <legend>{t('Permissions')}</legend>
                 {item.permissions.map((permission) => (
-                  <li key={permission}>{t(PERMISSION_LABELS[permission] || permission)}</li>
+                  <label className='extension-permission' key={permission}>
+                    <span>{t(PERMISSION_LABELS[permission] || permission)}</span>
+                    <span className='extension-permission-control'>
+                      {t('Allow')}
+                      <input
+                        type='checkbox'
+                        aria-label={t('Allow {permission}', {
+                          permission: t(PERMISSION_LABELS[permission] || permission),
+                        })}
+                        checked={item.allowedPermissions.includes(permission)}
+                        disabled={busy || item.error}
+                        onChange={(event) =>
+                          act(() =>
+                            extensions.setPermission(item.id, permission, event.target.checked)
+                          )
+                        }
+                      />
+                    </span>
+                  </label>
                 ))}
-              </ul>
+              </fieldset>
             )}
             {item.networkHosts?.length > 0 && (
               <p>{t('Requested HTTPS hosts: {hosts}', { hosts: item.networkHosts.join(', ') })}</p>
@@ -324,6 +345,28 @@ export default function ExtensionSettings({ extensions }) {
               <p role='alert' className='error-text'>
                 {item.error}
               </p>
+            )}
+            {item.folder && (
+              <div className='settings-actions'>
+                <button
+                  disabled={busy}
+                  onClick={() =>
+                    act(async () => {
+                      if (
+                        await confirm(
+                          t('Uninstall "{name}" and delete its saved settings?', {
+                            name: item.name || item.folder,
+                          })
+                        )
+                      ) {
+                        await extensions.uninstall(item.folder);
+                      }
+                    })
+                  }
+                >
+                  {t('Uninstall extension')}
+                </button>
+              </div>
             )}
           </li>
         ))}
