@@ -2,6 +2,21 @@
   appearance: none;
 }
 
+:root.native-ui button:not(
+  .icon-btn,
+  .link-btn,
+  .mini,
+  .context-item,
+  .palette-item,
+  .flow-add-row,
+  .visual-toolbar button,
+  .editor-toolbar button,
+  .website-toolbar button,
+  .note-actions button
+) {
+  appearance: auto;
+}
+
 :root.native-ui
   :is(input, select, textarea):not(
     .flow-grid input,
