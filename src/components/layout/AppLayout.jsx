@@ -271,7 +271,7 @@ export default function AppLayout({ app }) {
           key={activePath}
           path={activePath}
           content={activeContent}
-          onOpenHistory={() => openHistory(tab.path)}
+          settings={settings}
         />
       );
     }

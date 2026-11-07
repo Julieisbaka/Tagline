@@ -119,6 +119,10 @@ test('citation URLs reject local networks, credentials and non-web schemes', asy
     assert.throws(() => validateUrl(url));
   }
   await assert.rejects(extractCitation('http://127.0.0.1'), /private network/);
+  for (const value of ['', 'not a url', 'https://', 'https://[bad]']) {
+    await assert.rejects(extractCitation(value), /Enter a valid article URL/);
+  }
+  await assert.rejects(extractCitation('localhost.local/article'), /private network/);
 });
 
 test('citation URL rules extract fields for common sites without fetching', () => {
@@ -256,6 +260,10 @@ test('citation transport pins public DNS results and handles redirects, errors a
   );
   const extract = () => module.exports.extractCitation('https://example.com/article');
   assert.equal((await extract()).author, 'A Writer');
+  assert.equal(
+    (await module.exports.extractCitation('  example.com/article  ')).url,
+    'https://example.com/article'
+  );
   address = '127.0.0.1';
   await assert.rejects(extract(), /private network/);
   address = '93.184.215.14';
@@ -286,6 +294,17 @@ test('citation transport pins public DNS results and handles redirects, errors a
   );
   route = 'crossref';
   const doiCitation = await module.exports.extractCitation('https://doi.org/10.5555/example.2024');
+  for (const input of [
+    '10.5555/example.2024',
+    'doi:10.5555/example.2024',
+    'doi.org/10.5555/example.2024',
+  ]) {
+    assert.deepEqual(
+      { ...(await module.exports.extractCitation(input)) },
+      { ...doiCitation },
+      'DOI input is normalized before lookup'
+    );
+  }
   assert.deepEqual(
     { ...doiCitation },
     {

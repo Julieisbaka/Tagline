@@ -14,6 +14,14 @@
   color: var(--accent);
 }
 
+.cm-link {
+  color: var(--accent);
+}
+
+.cm-url {
+  color: var(--text-muted);
+}
+
 .cm-hashtag {
   color: var(--accent);
   background: var(--accent-dim);

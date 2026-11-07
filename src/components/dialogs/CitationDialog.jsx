@@ -31,6 +31,9 @@ export default function CitationDialog({ onInsert, onClose }) {
           return current;
         }
         const next = { ...current };
+        if (fields.url) {
+          next.url = fields.url;
+        }
         for (const key of ['author', 'year', 'title', 'publication']) {
           if (!current[key].trim() && current[key] === original[key] && fields[key]) {
             next[key] = fields[key];

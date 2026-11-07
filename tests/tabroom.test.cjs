@@ -293,6 +293,13 @@ test('Tabroom sign-in is sandboxed, same-origin only, and never claims cookies p
     webSecurity: true,
   });
   assert.deepEqual(win.popup({ url: 'https://evil.test' }), { action: 'deny' });
+  let allowClose = false;
+  win.webContents.emit('will-prevent-unload', {
+    preventDefault: () => {
+      allowClose = true;
+    },
+  });
+  assert.equal(allowClose, true, 'The sign-in page cannot block closing its window');
   for (const type of ['will-navigate', 'will-redirect']) {
     for (const url of [
       'https://evil.test',

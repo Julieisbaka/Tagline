@@ -83,11 +83,15 @@ let loginWindows = 0;
 let wikiRequests = 0;
 let wikiMode = 'verified';
 let includePreviousSeason = true;
+let pendingLoad;
 const fromPartition = session.fromPartition.bind(session);
 session.fromPartition = (name, ...args) => {
   const isolated = fromPartition(name, ...args);
   if (name === 'persist:tabroom') {
     isolated.fetch = async (url, options) => {
+      if (pendingLoad) {
+        await pendingLoad;
+      }
       requests++;
       assert.equal(url, 'https://www.tabroom.com/api/download_data.mhtml?tourn_id=123');
       assert.equal(options.credentials, 'include');
@@ -481,6 +485,13 @@ app.on('browser-window-created', (_event, win) => {
       );
       await wait("!!document.querySelector('.tabroom-file-view .tabroom-summary')");
       assert.equal(
+        await js(
+          "[...document.querySelectorAll('.tabroom-file-view button')].some(button => button.textContent.trim() === 'History')"
+        ),
+        false,
+        'Tournament files do not offer unsupported revision history'
+      );
+      assert.equal(
         await js("document.querySelector('.tabroom-file-view h2').textContent"),
         'tournament.json'
       );
@@ -501,6 +512,39 @@ app.on('browser-window-created', (_event, win) => {
         await js("!!window.attacked || !!document.querySelector('.tabroom-file-view img')"),
         false
       );
+      await click('Raw JSON', '.tabroom-file-view .tabroom-views');
+      await wait("!!document.querySelector('.tabroom-file-view .cm-editor')");
+      const rawLayout = await js(`(() => {
+        const source = document.querySelector('.tabroom-json-source');
+        const editor = source.querySelector('.cm-editor');
+        const file = document.querySelector('.tabroom-file-view');
+        return {
+          fillsSource: Math.abs(editor.getBoundingClientRect().height - source.getBoundingClientRect().height) <= 1,
+          fillsFile: Math.abs(source.getBoundingClientRect().bottom - file.getBoundingClientRect().bottom + 20) <= 1,
+          readOnly: editor.querySelector('.cm-content').getAttribute('contenteditable') === 'false',
+          noPaging: !file.querySelector('.tabroom-pagination'),
+        };
+      })()`);
+      assert.deepEqual(rawLayout, {
+        fillsSource: true,
+        fillsFile: true,
+        readOnly: true,
+        noPaging: true,
+      });
+      let finishLoad;
+      pendingLoad = new Promise((resolve) => {
+        finishLoad = resolve;
+      });
+      await js("document.querySelector('.ribbon-settings-button').click()");
+      await click('Integrations', '.settings');
+      await click('Open Tabroom', '.settings');
+      await input('123');
+      await click('Load tournament');
+      await wait("!!document.querySelector('.tabroom-dialog button[type=submit]:disabled')");
+      await click('Close');
+      await wait("!document.querySelector('.tabroom-dialog')");
+      finishLoad();
+      pendingLoad = null;
       console.log(
         'PASS Tabroom UI: dialog and direct JSON tables, nested records, filtering, paging, responsive views, safe JSON, export, errors and isolated login.'
       );

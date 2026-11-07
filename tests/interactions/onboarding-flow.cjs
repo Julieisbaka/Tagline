@@ -45,13 +45,78 @@ module.exports = async function runScenario({
     await js("getComputedStyle(document.querySelector('.flow-grid textarea')).borderRadius"),
     '0px'
   );
+  const rowHeights = () =>
+    js(
+      "[...document.querySelectorAll('.flow-grid tbody tr:first-child textarea')].map(el => el.offsetHeight)"
+    );
+  const columnWidths = await js(
+    "[...document.querySelectorAll('.flow-grid thead th')].map(el => el.offsetWidth)"
+  );
+  const shortHeights = await rowHeights();
+  const setFirstCell = (value) =>
+    js(`(() => {
+      const cell = document.querySelector('.flow-grid textarea');
+      Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, 'value').set.call(cell, ${JSON.stringify(value)});
+      cell.dispatchEvent(new Event('input', { bubbles: true }));
+    })()`);
+  await setFirstCell(Array(12).fill('A long argument').join('\n'));
+  await wait("document.querySelector('.flow-grid textarea').offsetHeight > 200");
+  const tallHeights = await rowHeights();
+  assert.equal(new Set(tallHeights).size, 1, 'empty cells fill the tallest cell in their row');
+  assert.deepEqual(
+    await js("[...document.querySelectorAll('.flow-grid thead th')].map(el => el.offsetWidth)"),
+    columnWidths,
+    'row growth preserves fixed column widths'
+  );
+  await setFirstCell('');
+  assert.deepEqual(await rowHeights(), shortHeights, 'all cells shrink after removing long text');
+  await setFirstCell('wrapped argument '.repeat(80));
+  const wideHeight = (await rowHeights())[0];
+  await js("document.querySelector('.flow-grid-wrap').style.width = '360px'");
+  await wait(`document.querySelector('.flow-grid textarea').offsetHeight > ${wideHeight}`);
+  assert.equal(
+    new Set(await rowHeights()).size,
+    1,
+    'resizing remeasures wrapping for the whole row'
+  );
+  await js("document.querySelector('.flow-grid-wrap').style.width = ''");
+  await wait(`document.querySelector('.flow-grid textarea').offsetHeight === ${wideHeight}`);
+  await setFirstCell('');
+  const flowStyles = () =>
+    js(`['.flow-grid textarea', '.flow-grid th input', '.flow-add-row', '.flow-grid .mini']
+      .map(selector => {
+        const style = getComputedStyle(document.querySelector(selector));
+        return [style.backgroundColor, style.color, style.borderWidth, style.borderRadius];
+      })`);
+  const themedFlowStyles = await flowStyles();
+  await js("document.documentElement.classList.add('native-ui')");
+  assert.deepEqual(
+    await flowStyles(),
+    themedFlowStyles,
+    'native form styles leave flow controls intact'
+  );
+  assert.equal(
+    await js("getComputedStyle(document.querySelector('.flow-grid textarea')).appearance"),
+    'none'
+  );
+  await js("document.documentElement.classList.remove('native-ui')");
+  await delay(200);
   for (const [fx, fy] of [
     [0.5, 0.001],
     [0.001, 0.5],
     [0.999, 0.5],
   ]) {
     const count = await js("document.querySelectorAll('.flow-grid tbody tr').length");
-    await press(await point('.flow-add-row', fx, fy));
+    const hit = await point('.flow-add-row', fx, fy);
+    // Electron takes integer coordinates; rounding can put an edge click outside.
+    const pixel = await js(`(() => {
+      const box = document.querySelector('.flow-add-row').getBoundingClientRect();
+      return {
+        x: Math.min(Math.ceil(box.right) - 1, Math.max(Math.ceil(box.left), ${hit.x})),
+        y: Math.min(Math.ceil(box.bottom) - 1, Math.max(Math.ceil(box.top), ${hit.y}))
+      };
+    })()`);
+    await press(pixel);
     assert.equal(
       await js("document.querySelectorAll('.flow-grid tbody tr').length"),
       count + 1,
@@ -157,6 +222,14 @@ module.exports = async function runScenario({
   await button('.history-dialog button', 'Close');
   await click('.ribbon-settings-button');
   await wait("!!document.querySelector('.settings')");
+  await js("document.documentElement.classList.add('native-ui')");
+  assert.deepEqual(
+    await js(`['.settings-search input', '.settings-footer button', '.settings input[type="checkbox"]']
+      .map(selector => getComputedStyle(document.querySelector(selector)).appearance)`),
+    ['auto', 'auto', 'auto'],
+    'ordinary form fields, actions and checkboxes use native appearance'
+  );
+  await js("document.documentElement.classList.remove('native-ui')");
   await js(`document.querySelector('.settings-search input').focus()`);
   await context('.settings-search input');
   await wait("document.querySelector('.context-menu').contains(document.activeElement)");

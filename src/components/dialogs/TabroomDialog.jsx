@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useI18n } from '../../lib/i18n.js';
 import TabroomTournamentView from '../TabroomTournamentView.jsx';
+import JsonEditor from '../JsonEditor.jsx';
 import ModalBackdrop from './ModalBackdrop.jsx';
 
 const api = window.api.tabroom;
@@ -49,11 +50,7 @@ export default function TabroomDialog({ onClose }) {
     setPreview('');
     setPage(0);
   };
-  const close = () => {
-    if (!busy) {
-      onClose();
-    }
-  };
+  const close = () => onClose();
   const changePage = (index) =>
     run(async () => {
       const text = await api.page(tournament.id, index);
@@ -77,9 +74,7 @@ export default function TabroomDialog({ onClose }) {
       >
         <header className='tabroom-header'>
           <h3 id='tabroom-title'>Tabroom</h3>
-          <button disabled={busy} onClick={close}>
-            {t('Close')}
-          </button>
+          <button onClick={close}>{t('Close')}</button>
         </header>
         <div className='tabroom-body'>
           <p>
@@ -218,9 +213,14 @@ export default function TabroomDialog({ onClose }) {
                         {t('Next')}
                       </button>
                     </div>
-                    <pre className='tabroom-json' tabIndex={0} aria-label={t('Tournament JSON')}>
-                      {preview}
-                    </pre>
+                    <JsonEditor
+                      className='tabroom-json'
+                      value={preview}
+                      readOnly
+                      editable={false}
+                      label={t('Tournament JSON')}
+                      height='45vh'
+                    />
                   </>
                 }
               />

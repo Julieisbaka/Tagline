@@ -152,7 +152,12 @@ function publicAddress(address) {
 }
 
 function validateUrl(value) {
-  const url = new URL(value);
+  let url;
+  try {
+    url = new URL(value);
+  } catch {
+    throw new Error('Enter a valid article URL.');
+  }
   if (
     !['http:', 'https:'].includes(url.protocol) ||
     url.username ||
@@ -571,6 +576,13 @@ async function crossrefCitation(address) {
 async function extractCitation(value, { sourceOnly = false } = {}) {
   if (typeof value !== 'string' || value.length > 8000) {
     throw new Error('Enter a valid article URL.');
+  }
+  value = value.trim();
+  const doiInput = value.match(/^(?:doi:\s*)?(10\.\d{4,9}\/\S+)$/i);
+  if (doiInput) {
+    value = `https://doi.org/${doiInput[1]}`;
+  } else if (/^(?:[a-z\d-]+\.)+[a-z]{2,}(?:[/?#]|$)/i.test(value)) {
+    value = `https://${value}`;
   }
   const fromUrl = parseUrl(value);
   const doi = doiFromUrl(value);

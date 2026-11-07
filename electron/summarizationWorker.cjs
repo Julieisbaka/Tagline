@@ -2,6 +2,7 @@ const { parentPort, workerData } = require('node:worker_threads');
 const path = require('node:path');
 
 const MODEL = 'Xenova/long-t5-tglobal-base-16384-book-summary';
+const MAX_INPUT_TOKENS = 16384;
 let summarizer;
 let queue = Promise.resolve();
 
@@ -44,10 +45,28 @@ async function getSummarizer(report) {
 }
 
 async function summarize(content, report) {
-  const model = await getSummarizer(report);
+  const { model, tokenizer } = await getSummarizer(report);
   report('Summarizing document locally...');
-  const result = await model(content, { max_new_tokens: 512 });
-  const summary = Array.isArray(result) ? result[0]?.summary_text : result?.summary_text;
+  const taskPrefix = model.config.task_specific_params?.summarization?.prefix || '';
+  const text = taskPrefix + (model.config.prefix || '') + content;
+  // Pipeline generation options do not reach the tokenizer. Bound encoder inputs explicitly.
+  let inputs = tokenizer(text, {
+    padding: true,
+    truncation: true,
+    max_length: MAX_INPUT_TOKENS,
+  });
+  const globalBlockSize = model.config.global_block_size ?? 16;
+  // Transient-global attention creates floor(sequence_length / block_size) global tokens.
+  // Its ONNX reshape cannot handle zero global tokens, so pad only short inputs.
+  if (inputs.input_ids.dims[1] < globalBlockSize) {
+    inputs = tokenizer(text, {
+      padding: 'max_length',
+      truncation: true,
+      max_length: globalBlockSize,
+    });
+  }
+  const result = await model.generate({ ...inputs, max_new_tokens: 512 });
+  const summary = tokenizer.batch_decode(result, { skip_special_tokens: true })[0];
   if (typeof summary !== 'string' || !summary.trim()) {
     throw new Error('The model returned an empty summary.');
   }

@@ -162,6 +162,8 @@
 }
 
 .tabroom-file-view {
+  display: flex;
+  flex-direction: column;
   height: 100%;
   min-width: 0;
   overflow: auto;
@@ -174,6 +176,7 @@
   justify-content: space-between;
   gap: 12px;
   margin-bottom: 16px;
+  flex-shrink: 0;
 }
 
 .tabroom-file-header h2 {
@@ -183,12 +186,24 @@
 }
 
 .tabroom-json-source {
-  height: min(75vh, 760px);
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
   min-height: 180px;
+}
+
+.tabroom-json-source > .cm-theme-none {
+  flex: 1;
+  min-height: 0;
 }
 
 .tabroom-json-source .cm-editor {
   height: 100%;
+}
+
+.tabroom-json-source .cm-scroller {
+  overflow: auto;
 }
 
 .tabroom-views {

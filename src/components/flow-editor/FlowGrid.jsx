@@ -1,3 +1,4 @@
+import { useLayoutEffect } from 'react';
 import { binding, displayBinding, matchesBinding } from '../../lib/keybindings.js';
 import { cellBounds, copyFlowCells } from '../../lib/flowCells.js';
 import Icon from '../Icon.jsx';
@@ -32,6 +33,56 @@ export default function FlowGrid({
     clipboardError,
     selectAll,
   } = actions;
+
+  useLayoutEffect(() => {
+    const table = gridRef.current?.querySelector('table');
+    if (!table) {
+      return;
+    }
+    const sizeRows = () => {
+      const rows = [...table.querySelectorAll('tbody tr')].map((row) => [
+        ...row.querySelectorAll('textarea'),
+      ]);
+      // Reset every cell before measuring so formerly tall rows can shrink.
+      rows.flat().forEach((cell) => {
+        cell.style.height = '0px';
+      });
+      const heights = rows.map((cells) =>
+        Math.max(
+          0,
+          ...cells.map((cell) => {
+            const style = getComputedStyle(cell);
+            return (
+              cell.scrollHeight +
+              parseFloat(style.borderTopWidth) +
+              parseFloat(style.borderBottomWidth)
+            );
+          })
+        )
+      );
+      rows.forEach((cells, index) => {
+        cells.forEach((cell) => {
+          cell.style.height = `${heights[index]}px`;
+        });
+      });
+    };
+    sizeRows();
+    let width = table.getBoundingClientRect().width;
+    let frame;
+    const observer = new ResizeObserver(() => {
+      const nextWidth = table.getBoundingClientRect().width;
+      if (nextWidth !== width) {
+        width = nextWidth;
+        cancelAnimationFrame(frame);
+        frame = requestAnimationFrame(sizeRows);
+      }
+    });
+    observer.observe(table);
+    return () => {
+      observer.disconnect();
+      cancelAnimationFrame(frame);
+    };
+  }, [gridRef, sheet.rows, sheet.columns, settings]);
 
   return (
     <div className='flow-grid-wrap' ref={gridRef}>

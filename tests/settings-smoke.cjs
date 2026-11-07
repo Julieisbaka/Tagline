@@ -483,9 +483,22 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
         );
         await wait("document.querySelector('.website-status')?.textContent.includes('Only HTTP')");
         assert.equal(remote.getURL(), website.replace('/one', '/two'));
+        const sizeBeforeClose = win.getSize();
+        win.setMinimumSize(400, 400);
+        win.setSize(400, 600);
+        await delay(200);
+        const closeVisible = await js(`(() => {
+          const button = document.querySelector('[aria-label="Close website"]');
+          const rect = button.getBoundingClientRect();
+          return rect.left >= 0 && rect.right <= innerWidth &&
+            document.elementFromPoint(rect.left + rect.width / 2, rect.top + rect.height / 2) === button;
+        })()`);
+        assert.equal(closeVisible, true, 'Website close control stays reachable on narrow layouts');
+        await remote.executeJavaScript('void (window.onbeforeunload = () => false)');
         await click('[aria-label="Close website"]');
         await wait("!document.querySelector('.website-view')");
         assert.equal(remote.isDestroyed(), true);
+        win.setSize(...sizeBeforeClose);
         await js(`window.open(${JSON.stringify(website)})`);
         await wait(
           `document.querySelector('.website-status')?.textContent === ${JSON.stringify(website)}`

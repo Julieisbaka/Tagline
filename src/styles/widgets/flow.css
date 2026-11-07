@@ -149,7 +149,7 @@
 .flow-grid textarea {
   width: 100%;
   min-height: 60px;
-  field-sizing: content;
+  field-sizing: fixed;
   resize: none;
   border: none;
   background: transparent;

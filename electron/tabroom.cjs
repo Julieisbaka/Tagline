@@ -96,6 +96,7 @@ function createTabroom({ session, BrowserWindow, dialog, getWindow }) {
     };
     win.webContents.on('will-navigate', guard);
     win.webContents.on('will-redirect', guard);
+    win.webContents.on('will-prevent-unload', (event) => event.preventDefault());
     win.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
     const closed = new Promise((resolve) =>
       win.once('closed', () => {
