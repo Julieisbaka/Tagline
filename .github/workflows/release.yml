@@ -79,9 +79,11 @@ jobs:
           - os: macos-15-intel
             platform: mac
             arch: x64
+            app_path: release/mac
           - os: macos-15
             platform: mac
             arch: arm64
+            app_path: release/mac-arm64
     runs-on: ${{ matrix.os }}
     timeout-minutes: 45
     env:
@@ -102,6 +104,11 @@ jobs:
       - run: npm run test:installation
       - name: Package without publishing or signing
         run: npx --no-install electron-builder --${{ matrix.platform }} --${{ matrix.arch }} --publish never
+      - name: Test packaged Pandoc filter
+        if: matrix.platform == 'mac'
+        run: |
+          brew install pandoc
+          node tests/packaged-pandoc-smoke.cjs "${{ matrix.app_path }}/Tagline.app"
       - uses: actions/upload-artifact@v4
         with:
           name: release-${{ matrix.platform }}-${{ matrix.arch }}

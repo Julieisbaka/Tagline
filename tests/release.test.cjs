@@ -33,6 +33,11 @@ function containsUrl(text, expectedUrl) {
   });
 }
 
+test('packaging unpacks the Pandoc Lua filter for external document conversion', () => {
+  const { build } = require('../package.json');
+  assert.ok(build.asarUnpack.includes('electron/highlightRoundTrip.lua'));
+});
+
 test('packaging retains only target ONNX binaries and preserves runtime dependencies', () => {
   const { getNodeModuleFileMatcher } = require('app-builder-lib/out/fileMatcher');
   const { build } = require('../package.json');
@@ -121,8 +126,24 @@ test('release workflow runs only manually, packages all architectures and publis
     workflow.jobs.build.strategy.matrix.include.map(({ platform, arch }) => `${platform}-${arch}`),
     ['win-x64', 'mac-x64', 'mac-arm64']
   );
+  assert.deepEqual(
+    workflow.jobs.build.strategy.matrix.include
+      .filter(({ platform }) => platform === 'mac')
+      .map(({ arch, app_path }) => [arch, app_path]),
+    [
+      ['x64', 'release/mac'],
+      ['arm64', 'release/mac-arm64'],
+    ]
+  );
   assert.ok(workflow.jobs.build.steps.some((step) => step.run?.includes('--publish never')));
   assert.ok(workflow.jobs.build.steps.some((step) => step.run === 'npm run test:installation'));
+  const packagedPandocTest = workflow.jobs.build.steps.find(
+    (step) => step.name === 'Test packaged Pandoc filter'
+  );
+  assert.equal(packagedPandocTest.if, "matrix.platform == 'mac'");
+  assert.match(packagedPandocTest.run, /brew install pandoc/);
+  assert.match(packagedPandocTest.run, /tests\/packaged-pandoc-smoke\.cjs/);
+  assert.match(packagedPandocTest.run, /"\$\{\{ matrix\.app_path \}\}\/Tagline\.app"/);
 });
 
 test('release tests shared logic once and gates every platform build on it', () => {
@@ -182,6 +203,11 @@ test('release tests shared logic once and gates every platform build on it', () 
     builds.indexOf('npm run test:installation') <
       builds.findIndex((run) => run.includes('electron-builder'))
   );
+  const packageIndex = builds.findIndex((run) => run.includes('electron-builder'));
+  const pandocTestIndex = workflow.jobs.build.steps.findIndex(
+    (step) => step.name === 'Test packaged Pandoc filter'
+  );
+  assert.ok(pandocTestIndex > packageIndex);
 });
 
 test('full test runner builds the renderer once and standalone smoke scripts prepare it', () => {

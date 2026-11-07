@@ -73,7 +73,8 @@
       "!node_modules/onnxruntime-node/bin/napi-v*/*/!(${arch})/**/*"
     ],
     "asarUnpack": [
-      "node_modules/onnxruntime-node/**/*"
+      "node_modules/onnxruntime-node/**/*",
+      "electron/highlightRoundTrip.lua"
     ],
     "protocols": [
       {
