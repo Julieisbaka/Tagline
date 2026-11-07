@@ -113,6 +113,7 @@ function registerBrowser({ ipcMain, shell, getWindow }) {
       },
     });
     const wc = view.webContents;
+    wc.on('will-prevent-unload', (event) => event.preventDefault());
     wc.session.setUserAgent(browserUserAgent(wc.session.getUserAgent()));
     wc.setUserAgent(browserUserAgent(wc.getUserAgent()));
     wc.session.setPermissionRequestHandler((_contents, _permission, callback) => callback(false));

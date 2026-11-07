@@ -15,6 +15,118 @@ module.exports = async function runScenario({
   await wait("!!document.querySelector('.status-bar [data-bar-item=words]')");
   await wait("!!document.querySelector('.visual-document')");
   await js(`(() => {
+    const editor = document.querySelector('.visual-document').editor;
+    window.originalLinkTestMarkdown = editor.getMarkdown();
+    editor.commands.setContent({
+      type: 'doc', content: [
+        { type: 'paragraph', content: [
+          { type: 'text', text: 'underlined link', marks: [
+            { type: 'underline' }, { type: 'link', attrs: { href: 'https://example.com' } }
+          ] }
+        ] },
+        { type: 'paragraph', content: [
+          { type: 'wikiLink', attrs: { target: 'Beta' }, marks: [{ type: 'underline' }] }
+        ] }
+      ]
+    }, { emitUpdate: false });
+    document.documentElement.classList.add('underline-links');
+  })()`);
+  const underlineLayers = (selector) =>
+    js(`(() => {
+      const root = document.querySelector(${JSON.stringify(selector)});
+      const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+      const counts = [];
+      while (walker.nextNode()) {
+        const node = walker.currentNode;
+        if (!node.textContent.trim() || !node.parentElement.closest('a, [data-wiki-link], .cm-link, .cm-url, .cm-wikilink')) continue;
+        let count = 0;
+        for (let el = node.parentElement; el && el !== root; el = el.parentElement) {
+          if (getComputedStyle(el).textDecorationLine.includes('underline')) count++;
+        }
+        counts.push(count);
+      }
+      return counts;
+    })()`);
+  await wait("!!document.querySelector('.visual-document u')");
+  await js(`(() => {
+    const link = document.querySelector('.visual-document a');
+    const range = document.createRange(); range.selectNodeContents(link);
+    const selection = window.getSelection(); selection.removeAllRanges(); selection.addRange(range);
+  })()`);
+  const visualUnderlines = await underlineLayers('.visual-document');
+  assert.ok(visualUnderlines.length > 0);
+  assert.ok(
+    visualUnderlines.every((count) => count === 1),
+    'selected visual links have one underline layer'
+  );
+  await js(`(() => {
+    const select = document.querySelector('[aria-label="Editor mode"]');
+    select.value = 'edit'; select.dispatchEvent(new Event('change', { bubbles: true }));
+  })()`);
+  await wait("!!document.querySelector('.source-editor .cm-wikilink')");
+  await js("document.querySelector('.source-editor .cm-content').focus()");
+  const modifiers = [process.platform === 'darwin' ? 'meta' : 'control'];
+  wc.sendInputEvent({ type: 'keyDown', keyCode: 'A', modifiers });
+  wc.sendInputEvent({ type: 'keyUp', keyCode: 'A', modifiers });
+  await wc.insertText('++[[Beta]]++\n\n[external link](https://example.com)');
+  await wait("!!document.querySelector('.source-editor .cm-debate-underline')");
+  assert.equal(
+    await js(
+      "!!document.querySelector('.cm-debate-underline .cm-wikilink, .cm-wikilink .cm-debate-underline')"
+    ),
+    true,
+    'fixture uses actual overlapping CodeMirror decorations'
+  );
+  await js(`(() => {
+    const link = document.querySelector('.source-editor .cm-wikilink');
+    const range = document.createRange(); range.selectNodeContents(link);
+    const selection = window.getSelection(); selection.removeAllRanges(); selection.addRange(range);
+  })()`);
+  const sourceUnderlines = await underlineLayers('.source-editor .cm-content');
+  assert.ok(sourceUnderlines.length > 0);
+  assert.ok(
+    sourceUnderlines.every((count) => count === 1),
+    'nested CodeMirror link marks draw one underline layer'
+  );
+  await js(`(() => {
+    document.documentElement.classList.remove('underline-links');
+    const select = document.querySelector('[aria-label="Editor mode"]');
+    select.value = 'visual'; select.dispatchEvent(new Event('change', { bubbles: true }));
+  })()`);
+  await wait("!!document.querySelector('.visual-document')");
+  await js(
+    "document.querySelector('.visual-document').editor.commands.setContent(window.originalLinkTestMarkdown, { contentType: 'markdown' })"
+  );
+  await wait("!!document.querySelector('.visual-document mark')");
+  const chromeStyles = () =>
+    js(`['.visual-toolbar button', '.ribbon button', '.note-title'].map(selector => {
+      const style = getComputedStyle(document.querySelector(selector));
+      return [style.backgroundColor, style.color, style.borderWidth, style.borderRadius];
+    })`);
+  const themedChrome = await chromeStyles();
+  await js("document.documentElement.classList.add('native-ui')");
+  assert.deepEqual(
+    await chromeStyles(),
+    themedChrome,
+    'native forms preserve toolbar and title styling'
+  );
+  assert.equal(
+    await js("getComputedStyle(document.querySelector('.visual-toolbar button')).appearance"),
+    'none'
+  );
+  assert.equal(
+    await js('getComputedStyle(document.querySelector(\'[aria-label="Editor mode"]\')).appearance'),
+    'auto'
+  );
+  assert.equal(
+    await js(
+      "getComputedStyle(document.querySelector('[aria-label=\"Editor mode\"]'), '::picker-icon').display"
+    ),
+    'none',
+    'native selects do not retain the custom picker arrow'
+  );
+  await js("document.documentElement.classList.remove('native-ui')");
+  await js(`(() => {
     const editor = document.querySelector('.visual-document');
     editor.focus();
     const range = document.createRange();

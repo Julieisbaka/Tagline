@@ -157,12 +157,26 @@
   top: 38px;
 }
 
+.website-controls {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  min-width: 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.website-controls > button {
+  flex-shrink: 0;
+  margin-right: 10px;
+}
+
 .website-toolbar {
   display: flex;
+  flex: 1;
+  min-width: 0;
   flex-wrap: nowrap;
   gap: 6px;
   padding: 10px;
-  border-bottom: 1px solid var(--border);
   /* Wrapping would move the native browser surface without resizing it. */
   overflow-x: auto;
   scrollbar-width: none;

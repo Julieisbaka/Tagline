@@ -248,6 +248,16 @@ html.large-click-targets :is(.sidebar-header, .note-header, .editor-toolbar, .st
 html.underline-links
   :is(a, [data-wiki-link], .wiki-link, .link-btn, .cm-link, .cm-url, .cm-wikilink) {
   text-decoration: underline !important;
+}
+
+/* CodeMirror marks and visual-editor underline marks can nest inside links. */
+html.underline-links
+  :is(a, [data-wiki-link], .wiki-link, .link-btn, .cm-link, .cm-url, .cm-wikilink)
+  :is(a, [data-wiki-link], .wiki-link, .cm-link, .cm-url, .cm-wikilink, u, .cm-debate-underline),
+html.underline-links
+  :is(u, .cm-debate-underline)
+  :is(a, [data-wiki-link], .wiki-link, .cm-link, .cm-url, .cm-wikilink) {
+  text-decoration: none !important;
   text-underline-offset: 0.15em;
 }
 
