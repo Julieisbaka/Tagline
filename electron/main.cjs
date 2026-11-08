@@ -192,21 +192,24 @@ async function listRecentVaults() {
   );
 }
 
+// Sensitive IPC handlers only accept calls from the app's own main frame.
+function assertModelSender(event, action = 'Model management') {
+  if (!win || event.sender !== win.webContents || event.senderFrame !== event.sender.mainFrame) {
+    throw new Error(`${action} is only available to the application main frame.`);
+  }
+}
+
 function registerIpc() {
   registerNativeUi({ ipcMain, nativeTheme, Menu, dialog, getWindow: () => win });
   ipcMain.handle('app:editText', (event, action) => {
-    if (
-      event.sender !== win?.webContents ||
-      !['undo', 'redo', 'cut', 'copy', 'paste', 'selectAll'].includes(action)
-    ) {
+    assertModelSender(event, 'Text editing');
+    if (!['undo', 'redo', 'cut', 'copy', 'paste', 'selectAll'].includes(action)) {
       throw new Error('Invalid text editing action.');
     }
     return event.sender[action]();
   });
   ipcMain.handle('app:clipboardWrite', (event, text) => {
-    if (event.sender !== win?.webContents || event.senderFrame !== event.sender.mainFrame) {
-      throw new Error('Clipboard access is only available to the application main frame.');
-    }
+    assertModelSender(event, 'Clipboard access');
     if (typeof text !== 'string' || text.length > 1_000_000) {
       throw new Error('Invalid clipboard text.');
     }
@@ -235,12 +238,11 @@ function registerIpc() {
     }
     return release;
   };
-  function requireMainFrame(event) {
-    if (event.sender !== win?.webContents || event.senderFrame !== event.sender.mainFrame) {
-      throw new Error('Update actions are only available to the application main frame.');
-    }
-  }
-  ipcMain.handle('app:installation', () => installationInfo(app));
+  const requireMainFrame = (event) => assertModelSender(event, 'Update actions');
+  ipcMain.handle('app:installation', (event) => {
+    assertModelSender(event, 'Installation details');
+    return installationInfo(app);
+  });
   ipcMain.handle('app:checkUpdates', (event) => {
     requireMainFrame(event);
     return updates.check(installationInfo(app).version);
@@ -286,13 +288,15 @@ function registerIpc() {
     }
     return enabled;
   });
-  ipcMain.handle('app:openProjectPage', (_event, page) => {
+  ipcMain.handle('app:openProjectPage', (event, page) => {
+    assertModelSender(event, 'Opening project pages');
     if (!['repository', 'releases'].includes(page)) {
       throw new Error('Unknown project page.');
     }
     return shell.openExternal(page === 'repository' ? REPOSITORY_URL : RELEASES_URL);
   });
-  ipcMain.handle('app:uninstall', async (_event, removeProfile) => {
+  ipcMain.handle('app:uninstall', async (event, removeProfile) => {
+    assertModelSender(event, 'Uninstalling');
     const result = await uninstallApplication({ app, shell, removeProfile });
     if (!result.manual) {
       app.quit();
@@ -303,19 +307,28 @@ function registerIpc() {
     getVaultRoot: () => vaultRoot,
     resolveInVault,
   });
-  ipcMain.handle('pandoc:install', () => shell.openExternal('https://pandoc.org/installing.html'));
-  ipcMain.handle('citation:extract', (_event, url) => extractCitation(url));
-  ipcMain.handle('citation:sourceMetadata', (_event, url) =>
-    extractCitation(url, { sourceOnly: true })
-  );
-  ipcMain.handle('evidence:checkLinks', (_event, urls, options) => checkLinks(urls, options));
+  ipcMain.handle('pandoc:install', (event) => {
+    assertModelSender(event, 'Installing Pandoc');
+    return shell.openExternal('https://pandoc.org/installing.html');
+  });
+  ipcMain.handle('citation:extract', (event, url) => {
+    assertModelSender(event, 'Citation lookup');
+    return extractCitation(url);
+  });
+  ipcMain.handle('citation:sourceMetadata', (event, url) => {
+    assertModelSender(event, 'Citation lookup');
+    return extractCitation(url, { sourceOnly: true });
+  });
+  ipcMain.handle('evidence:checkLinks', (event, urls, options) => {
+    assertModelSender(event, 'Link checking');
+    return checkLinks(urls, options);
+  });
   ipcMain.handle('evidence:quoteSource', (event, url) => {
-    if (event.sender !== win?.webContents || event.senderFrame !== event.sender.mainFrame) {
-      throw new Error('Quote verification is only available to the application main frame.');
-    }
+    assertModelSender(event, 'Quote verification');
     return fetchQuoteSource(url);
   });
-  ipcMain.handle('keybindings:set', (_event, overrides) => {
+  ipcMain.handle('keybindings:set', (event, overrides) => {
+    assertModelSender(event, 'Keyboard shortcut settings');
     if (
       !overrides ||
       typeof overrides !== 'object' ||
@@ -338,7 +351,8 @@ function registerIpc() {
     keybindings = { ...overrides };
     buildMenu();
   });
-  ipcMain.handle('vault:getLast', async () => {
+  ipcMain.handle('vault:getLast', async (event) => {
+    assertModelSender(event, 'Vault access');
     const { lastVault } = readConfig();
     if (lastVault && fssync.existsSync(lastVault)) {
       return openVault(lastVault);
@@ -346,8 +360,12 @@ function registerIpc() {
     return null;
   });
 
-  ipcMain.handle('vault:listRecent', listRecentVaults);
-  ipcMain.handle('vault:openRecent', async (_event, root) => {
+  ipcMain.handle('vault:listRecent', (event) => {
+    assertModelSender(event, 'Vault access');
+    return listRecentVaults();
+  });
+  ipcMain.handle('vault:openRecent', async (event, root) => {
+    assertModelSender(event, 'Vault access');
     if (typeof root !== 'string' || !path.isAbsolute(root)) {
       throw new Error('Invalid saved vault path.');
     }
@@ -358,7 +376,8 @@ function registerIpc() {
     }
     return openVault(root);
   });
-  ipcMain.handle('vault:forgetRecent', (_event, root) => {
+  ipcMain.handle('vault:forgetRecent', (event, root) => {
+    assertModelSender(event, 'Vault access');
     if (typeof root !== 'string' || !path.isAbsolute(root)) {
       throw new Error('Invalid saved vault path.');
     }
@@ -376,7 +395,8 @@ function registerIpc() {
     writeConfig({ recentVaults, lastVault });
     return true;
   });
-  ipcMain.handle('vault:revealRecent', async (_event, root) => {
+  ipcMain.handle('vault:revealRecent', async (event, root) => {
+    assertModelSender(event, 'Vault access');
     if (typeof root !== 'string' || !path.isAbsolute(root)) {
       throw new Error('Invalid saved vault path.');
     }
@@ -391,7 +411,8 @@ function registerIpc() {
     }
   });
 
-  ipcMain.handle('vault:choose', async () => {
+  ipcMain.handle('vault:choose', async (event) => {
+    assertModelSender(event, 'Vault access');
     const res = await dialog.showOpenDialog(win, {
       title: 'Open or create a vault folder',
       properties: ['openDirectory', 'createDirectory'],
@@ -402,7 +423,8 @@ function registerIpc() {
     return openVault(res.filePaths[0]);
   });
 
-  ipcMain.handle('vault:createSample', async () => {
+  ipcMain.handle('vault:createSample', async (event) => {
+    assertModelSender(event, 'Vault access');
     const res = await dialog.showOpenDialog(win, {
       title: 'Choose a folder for the sample vault',
       properties: ['openDirectory', 'createDirectory'],
@@ -421,11 +443,23 @@ function registerIpc() {
     return info;
   });
 
-  ipcMain.handle('fs:list', async () => walk(resolveInVault('')));
-  ipcMain.handle('fs:snapshot', async () => readVaultSnapshot(resolveInVault('')));
-  ipcMain.handle('fs:readAll', async () => (await readVaultSnapshot(resolveInVault(''))).contents);
+  ipcMain.handle('fs:list', async (event) => {
+    assertModelSender(event, 'Vault file access');
+    return walk(resolveInVault(''));
+  });
+  ipcMain.handle('fs:snapshot', async (event) => {
+    assertModelSender(event, 'Vault file access');
+    return readVaultSnapshot(resolveInVault(''));
+  });
+  ipcMain.handle('fs:readAll', async (event) => {
+    assertModelSender(event, 'Vault file access');
+    return (await readVaultSnapshot(resolveInVault(''))).contents;
+  });
 
-  ipcMain.handle('fs:read', async (_e, rel) => fs.readFile(resolveInVault(rel), 'utf8'));
+  ipcMain.handle('fs:read', async (event, rel) => {
+    assertModelSender(event, 'Vault file access');
+    return fs.readFile(resolveInVault(rel), 'utf8');
+  });
 
   async function writeVaultFile(
     rel,
@@ -459,7 +493,8 @@ function registerIpc() {
   }
   ipcMain.handle(
     'fs:write',
-    (_e, rel, content, retention, canvasMode, experimentalHistoryDeltas) => {
+    (event, rel, content, retention, canvasMode, experimentalHistoryDeltas) => {
+      assertModelSender(event, 'Vault file access');
       if (typeof content !== 'string') {
         throw new Error('Invalid file content.');
       }
@@ -467,7 +502,8 @@ function registerIpc() {
     }
   );
 
-  ipcMain.handle('fs:create', async (_e, rel, content = '') => {
+  ipcMain.handle('fs:create', async (event, rel, content = '') => {
+    assertModelSender(event, 'Vault file access');
     if (typeof content !== 'string') {
       throw new Error('Invalid file content.');
     }
@@ -485,7 +521,8 @@ function registerIpc() {
     }
   });
 
-  ipcMain.handle('fs:mkdir', async (_e, rel, underscoreFolders) => {
+  ipcMain.handle('fs:mkdir', async (event, rel, underscoreFolders) => {
+    assertModelSender(event, 'Vault file access');
     if (typeof underscoreFolders !== 'boolean') {
       throw new Error('Invalid folder path preference.');
     }
@@ -600,7 +637,10 @@ function registerIpc() {
     }
     return { ok: true, path: toPosix(to) };
   }
-  ipcMain.handle('fs:rename', (_e, from, to) => renameVaultPath(from, to));
+  ipcMain.handle('fs:rename', (event, from, to) => {
+    assertModelSender(event, 'Vault file access');
+    return renameVaultPath(from, to);
+  });
 
   mcp = registerMcp({
     app,
@@ -615,7 +655,8 @@ function registerIpc() {
     trashItem: (full) => shell.trashItem(full),
   });
 
-  ipcMain.handle('fs:delete', async (_e, rel) => {
+  ipcMain.handle('fs:delete', async (event, rel) => {
+    assertModelSender(event, 'Vault file access');
     const full = resolveInVault(rel);
     if (full === vaultRoot) {
       throw new Error('Refusing to delete vault root');
@@ -633,22 +674,26 @@ function registerIpc() {
     return true;
   });
 
-  ipcMain.handle('shell:reveal', async (_e, rel) => {
+  ipcMain.handle('shell:reveal', async (event, rel) => {
+    assertModelSender(event, 'Revealing vault files');
     shell.showItemInFolder(resolveInVault(rel));
   });
-  ipcMain.handle('history:list', (_e, rel) => {
+  ipcMain.handle('history:list', (event, rel) => {
+    assertModelSender(event, 'Revision history');
     if (typeof rel !== 'string') {
       throw new Error('Invalid file path.');
     }
     return history.list(rel);
   });
-  ipcMain.handle('history:read', (_e, rel, id) => {
+  ipcMain.handle('history:read', (event, rel, id) => {
+    assertModelSender(event, 'Revision history');
     if (typeof rel !== 'string' || typeof id !== 'string') {
       throw new Error('Invalid file path.');
     }
     return history.read(rel, id);
   });
-  ipcMain.handle('history:latest-working', (_e, rel) => {
+  ipcMain.handle('history:latest-working', (event, rel) => {
+    assertModelSender(event, 'Revision history');
     if (typeof rel !== 'string') {
       throw new Error('Invalid file path.');
     }
@@ -1008,11 +1053,6 @@ if (primary) {
       getWindow: () => win,
       safeStorage,
     });
-    const assertModelSender = (event) => {
-      if (event.sender !== win?.webContents || event.senderFrame !== event.sender.mainFrame) {
-        throw new Error('Model management is only available to the main application.');
-      }
-    };
     const embeddings = registerEmbeddings({
       app,
       ipcMain,
