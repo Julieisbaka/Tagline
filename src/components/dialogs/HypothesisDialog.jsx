@@ -8,10 +8,12 @@ import {
 } from '../../lib/nli.js';
 
 import ModalBackdrop from './ModalBackdrop.jsx';
+import { useConfirm } from './ConfirmProvider.jsx';
 
 // Explicit, on-demand stance/topic analysis with the Political DEBATE NLI model.
 export default function HypothesisDialog({ sources, onClose }) {
   const { t } = useI18n();
+  const confirm = useConfirm();
   const scopes = useMemo(
     () =>
       Object.entries(sources)
@@ -96,8 +98,30 @@ export default function HypothesisDialog({ sources, onClose }) {
               : t('Checking model...')}
           </span>
           {status && !status.ready && (
-            <button disabled={working} onClick={() => run(() => window.api.loadNliModel())}>
-              {t(status.downloaded ? 'Load model' : 'Download and load (about 650 MB)')}
+            <button
+              disabled={working}
+              onClick={() =>
+                run(async () => {
+                  if (
+                    !status.source.folder &&
+                    !status.downloaded &&
+                    !(await confirm(
+                      t(
+                        'Download this model from Hugging Face? The default model requires about 650 MB; other repositories may differ.'
+                      )
+                    ))
+                  ) {
+                    return;
+                  }
+                  await window.api.loadNliModel();
+                })
+              }
+            >
+              {t(
+                status.downloaded || status.source.folder
+                  ? 'Load model'
+                  : 'Download and load (about 650 MB for default)'
+              )}
             </button>
           )}
           {status?.ready && (

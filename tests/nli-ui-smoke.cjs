@@ -123,7 +123,24 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
           assert.ok(scores[0] > 0.5 && scores[1] < 0.5, `Stance scores ${scores}`);
           await button('.hypothesis-model button', 'Unload model');
           await wait('window.api.nliStatus().then(s => !s.ready)');
+        } else {
+          await button('.hypothesis-model button', 'Download and load');
+          await wait("document.querySelector('.confirm-dialog')?.textContent.includes('650 MB')");
+          await button('.confirm-dialog button', 'Cancel');
+          await wait("!document.querySelector('.confirm-dialog')");
+          assert.equal((await js('window.api.nliStatus()')).busy, false);
+          assert.equal((await js('window.api.nliStatus()')).ready, false);
         }
+        await button('.hypothesis-dialog button', 'Close');
+        await button('.note-actions button', 'Summarize');
+        await wait("!!document.querySelector('.summary-dialog')");
+        await wait(
+          "[...document.querySelectorAll('.summary-dialog button')].some(el => el.textContent.startsWith('Download and load') && !el.disabled)"
+        );
+        await button('.summary-dialog button', 'Download and load');
+        await wait("document.querySelector('.confirm-dialog')?.textContent.includes('334 MB')");
+        await button('.confirm-dialog button', 'Cancel');
+        assert.equal((await js('window.api.summaryStatus()')).ready, false);
         console.log(
           `PASS: on-demand hypothesis dialog${model ? ' with real model analysis' : ' (set TAGLINE_NLI_MODEL for inference)'}.`
         );

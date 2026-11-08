@@ -1,6 +1,7 @@
 const { Worker } = require('node:worker_threads');
 const path = require('node:path');
 const fs = require('node:fs/promises');
+const { modelCache, withModelPathsLock } = require('./modelCache.cjs');
 
 const DEFAULT_REPO = 'Appleinteligence/Political_DEBATE_large_v1.0-onnx';
 const MODEL_FILES = [
@@ -53,8 +54,18 @@ function validateAnalysis(request) {
 
 // The Political DEBATE classifier is heavy, so nothing here runs until the user
 // explicitly loads it and submits a hypothesis.
-function registerNli({ app, ipcMain, dialog, getWindow, readConfig, writeConfig, readToken }) {
+function registerNli({
+  app,
+  ipcMain,
+  dialog,
+  getWindow,
+  readConfig,
+  writeConfig,
+  readToken,
+  assertModelSender,
+}) {
   const storage = path.join(app.getPath('userData'), 'political-debate');
+  const cache = modelCache(app.getPath('userData'), 'political-debate');
   let worker = null;
   let sequence = 0;
   let state = { busy: false, ready: false, detail: 'Model not loaded.', error: '' };
@@ -76,16 +87,16 @@ function registerNli({ app, ipcMain, dialog, getWindow, readConfig, writeConfig,
     return hasModelFiles(current.folder || cacheDir(current.repo));
   };
 
-  function stop(detail = 'Model not loaded.') {
+  function stop(detail = 'Model not loaded.', busy = false) {
     const instance = worker;
     worker = null;
     for (const task of pending.values()) {
       task.reject(new Error('The model was unloaded.'));
     }
     pending.clear();
-    state = { busy: false, ready: false, detail, error: '' };
+    state = { busy, ready: false, detail, error: '' };
     if (instance) {
-      instance.terminate();
+      return instance.terminate();
     }
   }
 
@@ -160,51 +171,105 @@ function registerNli({ app, ipcMain, dialog, getWindow, readConfig, writeConfig,
     if (state.busy) {
       throw new Error('Wait for the current model task to finish.');
     }
-    writeConfig({ nliModel: { repo: clean } });
-    stop();
+    state = { ...state, busy: true };
+    try {
+      await withModelPathsLock(async () => {
+        writeConfig({ nliModel: { repo: clean } });
+        await stop('Model not loaded.', true);
+      });
+    } finally {
+      state = { ...state, busy: false };
+    }
     return source();
   });
   ipcMain.handle('nli:chooseFolder', async () => {
     if (state.busy) {
       throw new Error('Wait for the current model task to finish.');
     }
-    const result = await dialog.showOpenDialog(getWindow(), {
-      title: 'Choose a converted Political DEBATE ONNX folder',
-      properties: ['openDirectory'],
-    });
-    if (result.canceled || !result.filePaths[0]) {
-      return null;
+    state = { ...state, busy: true };
+    try {
+      return await withModelPathsLock(async () => {
+        const result = await dialog.showOpenDialog(getWindow(), {
+          title: 'Choose a converted Political DEBATE ONNX folder',
+          properties: ['openDirectory'],
+        });
+        if (result.canceled || !result.filePaths[0]) {
+          return null;
+        }
+        const folder = result.filePaths[0];
+        if (!(await hasModelFiles(folder))) {
+          throw new Error(
+            `That folder must contain ${MODEL_FILES.join(', ')}. Run scripts/convert-political-debate.py to create it.`
+          );
+        }
+        writeConfig({ nliModel: { folder } });
+        await stop('Model not loaded.', true);
+        return source();
+      });
+    } finally {
+      state = { ...state, busy: false };
     }
-    const folder = result.filePaths[0];
-    if (!(await hasModelFiles(folder))) {
-      throw new Error(
-        `That folder must contain ${MODEL_FILES.join(', ')}. Run scripts/convert-political-debate.py to create it.`
-      );
-    }
-    writeConfig({ nliModel: { folder } });
-    stop();
-    return source();
   });
   ipcMain.handle('nli:load', async () => {
+    if (state.busy) {
+      throw new Error('The Political DEBATE model is busy. Please wait for it to finish.');
+    }
     if (state.ready) {
       return { ready: true };
     }
-    const current = source();
-    const online = !current.folder && !(await downloaded());
-    state = { ...state, detail: online ? 'Starting download...' : 'Loading model...' };
-    const result = await request({
-      type: 'load',
-      source: current,
-      storage,
-      online,
-      token: online ? await readToken() : '',
-    });
+    state = { ...state, busy: true };
+    let message;
+    try {
+      const current = source();
+      const online = !current.folder && !(await downloaded());
+      state = { ...state, detail: online ? 'Starting download...' : 'Loading model...' };
+      message = {
+        type: 'load',
+        source: current,
+        storage,
+        online,
+        token: online ? await readToken() : '',
+      };
+    } finally {
+      state = { ...state, busy: false };
+    }
+    const result = await request(message);
     state = { ...state, ready: true, detail: 'Model ready. Analysis runs locally.' };
     return result;
   });
   ipcMain.handle('nli:unload', async () => {
-    stop();
+    if (state.busy) {
+      throw new Error('Wait for the current model task to finish.');
+    }
+    state = { ...state, busy: true };
+    try {
+      await stop('Model not loaded.', true);
+    } finally {
+      state = { ...state, busy: false };
+    }
     return { ready: false };
+  });
+  ipcMain.handle('nli:cacheSize', (event) => {
+    assertModelSender(event);
+    return cache.size();
+  });
+  ipcMain.handle('nli:removeCache', async (event) => {
+    assertModelSender(event);
+    if (state.busy) {
+      throw new Error('Wait for the current model task to finish.');
+    }
+    state = { ...state, busy: true };
+    try {
+      const instance = worker;
+      worker = null;
+      state = { busy: true, ready: false, detail: 'Model not loaded.', error: '' };
+      if (instance) {
+        await instance.terminate();
+      }
+      await cache.remove(source().folder);
+    } finally {
+      state = { ...state, busy: false };
+    }
   });
   ipcMain.handle('nli:analyze', async (_e, payload) => {
     const valid = validateAnalysis(payload);

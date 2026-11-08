@@ -1,4 +1,5 @@
 import { binding, displayBinding } from '../../lib/keybindings.js';
+import { resourceLimits } from '../../lib/resourceLimits.js';
 import { baseName, dirName, displayName, isCanvas, isJson, isMarkdown } from '../../lib/vault.js';
 import { STATUS_ITEMS } from '../../lib/workspaceItems.js';
 import { deferred } from '../Deferred.jsx';
@@ -497,7 +498,7 @@ export default function AppLayout({ app }) {
           contents={v.contents}
           index={v.index}
           initialQuery={modal.query}
-          maxResults={settings.searchMaxResults}
+          maxResults={resourceLimits(settings).searchMaxResults}
           showMarkdownExtension={settings.showMarkdownExtension}
           onOpen={open}
           onClose={() => setModal(null)}

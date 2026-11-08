@@ -33,6 +33,8 @@
   "sourceSpellcheck": true,
   "editorFocusOutline": false,
   "reduceMotion": false,
+  "disableAnimations": false,
+  "lowResourceMode": false,
   "strongFocusIndicators": false,
   "largerInterfaceText": false,
   "largerClickTargets": false,

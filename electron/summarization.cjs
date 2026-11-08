@@ -1,10 +1,13 @@
 const { Worker } = require('node:worker_threads');
 const path = require('node:path');
+const fs = require('node:fs/promises');
+const { modelCache } = require('./modelCache.cjs');
 
 const MODEL = 'Xenova/long-t5-tglobal-base-16384-book-summary';
 
-function registerSummarization({ app, ipcMain }) {
+function registerSummarization({ app, ipcMain, readConfig, assertModelSender }) {
   const storage = path.join(app.getPath('userData'), 'summarization');
+  const cache = modelCache(app.getPath('userData'), 'summarization');
   let worker = null;
   let sequence = 0;
   let state = { busy: false, ready: false, detail: 'Model not downloaded yet.', error: '' };
@@ -12,12 +15,6 @@ function registerSummarization({ app, ipcMain }) {
 
   function ensureWorker() {
     if (worker) {
-      return;
-    }
-    const config = readConfig();
-    if (config.modelAutoload === false) {
-      // Worker lazily loaded only when first summarization request comes in,
-      // even if autoload was previously enabled.
       return;
     }
     worker = new Worker(path.join(__dirname, 'summarizationWorker.cjs'), {
@@ -77,8 +74,57 @@ function registerSummarization({ app, ipcMain }) {
     });
   }
 
-  ipcMain.handle('summary:status', () => ({ ...state, model: MODEL }));
+  ipcMain.handle('summary:status', async () => {
+    const dir = path.join(storage, 'models', ...MODEL.split('/'));
+    const files = [
+      'config.json',
+      'tokenizer.json',
+      'tokenizer_config.json',
+      'onnx/encoder_model_quantized.onnx',
+      'onnx/decoder_model_merged_quantized.onnx',
+    ];
+    let downloaded = true;
+    try {
+      await Promise.all(files.map((file) => fs.access(path.join(dir, file))));
+    } catch (error) {
+      if (error.code !== 'ENOENT') {
+        throw error;
+      }
+      downloaded = false;
+    }
+    return { ...state, downloaded: state.ready || downloaded, model: MODEL };
+  });
+  ipcMain.handle('summary:cacheSize', (event) => {
+    assertModelSender(event);
+    return cache.size();
+  });
+  ipcMain.handle('summary:manage', async (_e, remove) => {
+    assertModelSender(_e);
+    if (typeof remove !== 'boolean') {
+      throw new Error('Invalid model operation.');
+    }
+    if (state.busy) {
+      throw new Error('Wait for the summary task to finish.');
+    }
+    state = { ...state, busy: true };
+    try {
+      const instance = worker;
+      worker = null;
+      state = { busy: true, ready: false, detail: 'Model not loaded.', error: '' };
+      if (instance) {
+        await instance.terminate();
+      }
+      if (remove) {
+        await cache.remove(readConfig().nliModel?.folder);
+      }
+    } finally {
+      state = { ...state, busy: false };
+    }
+  });
   ipcMain.handle('summary:load', async () => {
+    if (state.busy) {
+      throw new Error('A summary model task is already running. Please wait.');
+    }
     if (state.ready) {
       return { ready: true, model: MODEL };
     }

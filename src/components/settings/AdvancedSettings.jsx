@@ -39,6 +39,33 @@ export default function AdvancedSettings({ settings, update, section = 'all' }) 
       {(section === 'all' || section === 'performance') && (
         <>
           <h4>{t('Performance and search')}</h4>
+          <SettingRow
+            label={t('Low-resource mode')}
+            description={t(
+              'Disable model autoload and cap the visual cache at 8 entries and 2,000,000 characters, and search results at 20. Existing preferences are restored when disabled.'
+            )}
+          >
+            <input
+              type='checkbox'
+              data-setting='lowResourceMode'
+              checked={settings.lowResourceMode}
+              disabled={busy}
+              onChange={(e) => {
+                const enabled = e.target.checked;
+                run(async () => {
+                  await window.api.setLowResourceMode(enabled);
+                  update({ lowResourceMode: enabled });
+                });
+              }}
+            />
+          </SettingRow>
+          {settings.lowResourceMode && (
+            <p>
+              {t(
+                'Low-resource caps are active. The values below are saved preferences and may exceed the active limits.'
+              )}
+            </p>
+          )}
           {number(
             'Visual cache maximum entries (0 disables)',
             'visualCacheEntries',

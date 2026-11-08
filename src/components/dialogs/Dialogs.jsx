@@ -444,6 +444,11 @@ export function SettingsDialog({
               {[
                 ['Reduce motion', 'reduceMotion', 'Minimize interface animations and transitions.'],
                 [
+                  'Disable animations',
+                  'disableAnimations',
+                  'Disable interface animations and transitions.',
+                ],
+                [
                   'Stronger keyboard focus indicators',
                   'strongFocusIndicators',
                   'Make the keyboard-focused control easier to see.',
@@ -575,7 +580,7 @@ export function SettingsDialog({
                   'Websites use a separate signed-in session and identify as standard Chrome. Disable this to use your default browser.'
                 )}
               </p>
-              <IntegrationSettings />
+              <IntegrationSettings settings={settings} />
             </section>
             <section
               data-settings-panel='shortcuts'

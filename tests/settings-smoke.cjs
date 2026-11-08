@@ -35,6 +35,12 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
   const vault = path.join(root, 'vault');
   const otherVault = path.join(root, 'other-vault');
   await fs.mkdir(profile, { recursive: true });
+  await fs.mkdir(path.join(profile, 'summarization', 'models', 'fixture'), { recursive: true });
+  await fs.writeFile(
+    path.join(profile, 'summarization', 'models', 'fixture', 'model'),
+    Buffer.alloc(100000)
+  );
+  await fs.writeFile(path.join(profile, 'summarization', 'keep'), 'safe');
   await fs.mkdir(vault);
   await fs.mkdir(otherVault);
   await fs.writeFile(path.join(otherVault, 'Other.md'), '# Other\n');
@@ -975,7 +981,77 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
           '600px'
         );
         const visualText = await js("document.querySelector('.ProseMirror').textContent");
+        await settings('performance');
+        await toggle('lowResourceMode', true);
+        assert.equal(
+          JSON.parse(await fs.readFile(path.join(profile, 'config.json'), 'utf8')).lowResourceMode,
+          true
+        );
+        assert.equal(
+          await js("document.querySelector('[data-setting=searchMaxResults]').value"),
+          '200'
+        );
+        await done();
+        await reload();
+        await settings('performance');
+        await wait("document.querySelector('[data-setting=lowResourceMode]').checked");
+        await click('[data-section="integrations"]');
+        await wait(
+          "document.querySelector('.integration-settings')?.textContent.includes('Autoload is disabled by low-resource mode')"
+        );
+        await wait(
+          "[...document.querySelectorAll('.integration-settings button')].some(el => el.textContent.trim() === 'Download model' && !el.disabled)"
+        );
+        await button('.integration-settings button', 'Download model');
+        await wait("document.querySelector('.confirm-dialog')?.textContent.includes('23 MB')");
+        await button('.confirm-dialog button', 'Cancel');
+        assert.equal((await js('window.api.embeddingStatus()')).ready, false);
+        const summaryRemove = `(() => {
+          const row = [...document.querySelectorAll('.integration-settings div')].find(el =>
+            el.querySelector(':scope > p')?.textContent.startsWith('Document summaries —'));
+          return [...row.querySelectorAll('button')].find(el => el.textContent === 'Remove cached files');
+        })()`;
+        await wait(`${summaryRemove} && !${summaryRemove}.disabled`);
+        await js(`${summaryRemove}.click()`);
+        await wait(
+          "document.querySelector('.confirm-dialog')?.textContent.includes('Document summaries')"
+        );
+        await button('.confirm-dialog button', 'Cancel');
+        assert.equal(
+          (await fs.stat(path.join(profile, 'summarization', 'models', 'fixture', 'model'))).size,
+          100000
+        );
+        await wait(`${summaryRemove} && !${summaryRemove}.disabled`);
+        await js(`${summaryRemove}.click()`);
+        await button('.confirm-dialog button', 'Confirm');
+        await wait(
+          `${summaryRemove}.disabled && ${summaryRemove}.parentElement.parentElement.textContent.includes('0.0 MB')`
+        );
+        await assert.rejects(fs.stat(path.join(profile, 'summarization', 'models')), {
+          code: 'ENOENT',
+        });
+        assert.equal(
+          await fs.readFile(path.join(profile, 'summarization', 'keep'), 'utf8'),
+          'safe'
+        );
+        await click('[data-section="performance"]');
+        await toggle('lowResourceMode', false);
+        assert.equal(
+          JSON.parse(await fs.readFile(path.join(profile, 'config.json'), 'utf8')).lowResourceMode,
+          false
+        );
+        await done();
         await settings('accessibility');
+        await toggle('disableAnimations', true);
+        assert.equal(
+          await js("document.documentElement.classList.contains('reduce-motion')"),
+          true
+        );
+        await toggle('disableAnimations', false);
+        assert.equal(
+          await js("document.documentElement.classList.contains('reduce-motion')"),
+          false
+        );
         const accessibilityKeys = [
           'reduceMotion',
           'strongFocusIndicators',

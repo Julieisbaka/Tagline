@@ -162,7 +162,10 @@ test('platform: credentials await async availability, encrypt/decrypt asynchrono
       module,
       __dirname: dirname,
       console,
-      require: (name) => (name === 'node:worker_threads' ? { Worker } : require(name)),
+      require: (name) =>
+        name === 'node:worker_threads'
+          ? { Worker }
+          : require('node:module').createRequire(path.join(dirname, 'embeddings.cjs'))(name),
     }
   );
   const app = new EventEmitter();
@@ -392,7 +395,10 @@ test('platform: model autoload preference persists and semantic search forwards 
       module,
       __dirname: dirname,
       console,
-      require: (name) => (name === 'node:worker_threads' ? { Worker } : require(name)),
+      require: (name) =>
+        name === 'node:worker_threads'
+          ? { Worker }
+          : require('node:module').createRequire(path.join(dirname, 'embeddings.cjs'))(name),
     }
   );
   const { registerEmbeddings } = module.exports;
@@ -471,6 +477,7 @@ test('platform: macOS desktop wiring provides native window controls, menus and 
       super();
       this.options = options;
       this.webContents = new EventEmitter();
+      this.webContents.mainFrame = {};
       this.webContents.setWindowOpenHandler = () => {};
       this.webContents.send = (channel, command) => {
         this.sent = { channel, command };
@@ -518,6 +525,7 @@ test('platform: macOS desktop wiring provides native window controls, menus and 
     platform: 'darwin',
     argv: [],
     env: { PATH: '/usr/bin:/bin:/usr/local/bin' },
+    on() {},
   };
   vm.runInNewContext(fs.readFileSync(path.join(dirname, 'main.cjs'), 'utf8'), {
     __dirname: dirname,
@@ -609,12 +617,13 @@ test('platform: macOS desktop wiring provides native window controls, menus and 
   file.find((item) => item.label === 'New Note').click();
   assert.equal(windows[0].sent.command, 'newNote');
   ipcMain.emit('app:saveHandlerReady', { sender: windows[0].webContents }, true);
-  const rejectedUpdate = handlers.get('app:installUpdate')();
+  const event = { sender: windows[0].webContents, senderFrame: windows[0].webContents.mainFrame };
+  const rejectedUpdate = handlers.get('app:installUpdate')(event);
   assert.equal(windows[0].sent.channel, 'app:prepareClose');
   ipcMain.emit('app:closeReady', { sender: windows[0].webContents }, false);
   await assert.rejects(rejectedUpdate, /Pending edits could not be saved/);
   assert.equal(windows[0].destroyed, undefined);
-  const installedUpdate = handlers.get('app:installUpdate')();
+  const installedUpdate = handlers.get('app:installUpdate')(event);
   ipcMain.emit('app:closeReady', { sender: windows[0].webContents }, true);
   await installedUpdate;
   assert.equal(

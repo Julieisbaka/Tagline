@@ -437,15 +437,6 @@ function registerIpc() {
         await fs.rm(temporary, { force: true });
       }
       throw error;
-    } finally {
-      // Ensure tmp file is cleaned up even on successful rename,
-      // in case of partial state from previous crashed sessions.
-      try {
-        await fs.access(temporary);
-        await fs.rm(temporary, { force: true });
-      } catch {
-        // File already renamed away or doesn't exist — no action needed.
-      }
     }
     return true;
   }
@@ -952,6 +943,11 @@ if (primary) {
       getWindow: () => win,
       safeStorage,
     });
+    const assertModelSender = (event) => {
+      if (event.sender !== win?.webContents || event.senderFrame !== event.sender.mainFrame) {
+        throw new Error('Model management is only available to the main application.');
+      }
+    };
     const { readToken } = registerEmbeddings({
       app,
       ipcMain,
@@ -959,9 +955,19 @@ if (primary) {
       getVaultRoot: () => vaultRoot,
       readConfig,
       writeConfig,
+      assertModelSender,
     });
-    registerNli({ app, ipcMain, dialog, getWindow: () => win, readConfig, writeConfig, readToken });
-    registerSummarization({ app, ipcMain });
+    registerNli({
+      app,
+      ipcMain,
+      dialog,
+      getWindow: () => win,
+      readConfig,
+      writeConfig,
+      readToken,
+      assertModelSender,
+    });
+    registerSummarization({ app, ipcMain, readConfig, assertModelSender });
     createWindow();
     // Quietly check for and download an update shortly after startup. Never
     // fails startup and never installs without the user choosing Install.
