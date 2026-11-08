@@ -8,6 +8,7 @@ import { baseName, isFlow } from '../lib/vault.js';
 import { visualBlocker, visualSelection } from '../lib/visualHelpers.js';
 import { deferred } from './Deferred.jsx';
 import Icon from './Icon.jsx';
+import NoteProperties from './NoteProperties.jsx';
 
 const Editor = deferred(() => import('./Editor.jsx'));
 const FlowEditor = deferred(() => import('./flow-editor/FlowEditor.jsx'));
@@ -293,12 +294,14 @@ export default function NoteView({
           {t('Invalid YAML frontmatter: {error}', { error: metadata.error })}
         </div>
       )}
-      {!sourceMode && metadata?.raw !== null && metadata?.prefix && (
-        <details className='note-properties'>
-          <summary>{t('Properties')}</summary>
-          <pre>{metadata.raw}</pre>
-          <button onClick={() => setMode('edit')}>{t('Edit properties in Source')}</button>
-        </details>
+      {!sourceMode && (mode === 'visual' || metadata?.prefix) && (
+        <NoteProperties
+          content={content}
+          onChange={onChange}
+          editable={mode === 'visual'}
+          notify={notify}
+          onEditSource={() => setMode('edit')}
+        />
       )}
       <div
         className={`note-body${settings.readableWidth ? ' readable' : ''}${settings.editorFocusOutline ? ' editor-focus-outline' : ''}`}

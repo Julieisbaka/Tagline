@@ -68,6 +68,44 @@ export function readFrontmatter(content) {
 }
 
 /**
+ * Update one property in a note's YAML frontmatter, creating frontmatter when needed.
+ * @param {string} content
+ * @param {string} key
+ * @param {*} value
+ * @returns {string}
+ */
+export function setFrontmatterProperty(content, key, value) {
+  return updateFrontmatter(content, (document) => document.set(key, value));
+}
+
+/**
+ * Remove one property from a note's YAML frontmatter.
+ * @param {string} content
+ * @param {string} key
+ * @returns {string}
+ */
+export function deleteFrontmatterProperty(content, key) {
+  return updateFrontmatter(content, (document) => document.delete(key));
+}
+
+function updateFrontmatter(content, update) {
+  const parts = splitFrontmatter(content);
+  if (parts.error) {
+    throw new Error(parts.error);
+  }
+  const document = metadataDocument(parts.raw || '');
+  update(document);
+  const newline = content.includes('\r\n') ? '\r\n' : '\n';
+  const yaml = document.toString().replace(/\n/g, newline);
+  if (parts.raw === null) {
+    return `---${newline}${yaml}---${newline}${parts.body ? newline : ''}${parts.body}`;
+  }
+  const opening = /^(?:\uFEFF)?---[ \t]*\r?\n/.exec(content)[0];
+  const closing = parts.prefix.slice(opening.length + parts.raw.length);
+  return `${opening}${yaml}${closing}${parts.body}`;
+}
+
+/**
  * Return Markdown with speech: true set in YAML frontmatter.
  * @param {string} content
  * @returns {string}

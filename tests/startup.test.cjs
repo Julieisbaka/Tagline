@@ -203,6 +203,25 @@ test('YAML frontmatter supports mappings, preserves exact prefixes and reports i
   }
 });
 
+test('visual property edits preserve note body and support adding, updating, and removing YAML values', async () => {
+  const { deleteFrontmatterProperty, readFrontmatter, setFrontmatterProperty } =
+    await import('../src/lib/frontmatter.js');
+  const body = '\r\n# Note\r\nText\r\n';
+  const source = '---\r\ntitle: Example\r\n---\r\n' + body;
+  const updated = setFrontmatterProperty(source, 'title', 'Updated');
+  assert.equal(readFrontmatter(updated).data.title, 'Updated');
+  assert.equal(readFrontmatter(updated).body, body);
+  assert.ok(updated.includes('\r\ntitle: Updated\r\n'));
+
+  const added = setFrontmatterProperty('# Note\n', 'tags', ['policy', 'debate']);
+  assert.deepEqual(readFrontmatter(added).data, { tags: ['policy', 'debate'] });
+  assert.equal(readFrontmatter(added).body, '\n# Note\n');
+
+  const removed = deleteFrontmatterProperty(updated, 'title');
+  assert.deepEqual(readFrontmatter(removed).data, {});
+  assert.equal(readFrontmatter(removed).body, body);
+});
+
 test('speech markers preserve other properties and discover only boolean-marked Markdown files', async () => {
   const { markSpeechDocument, readFrontmatter, speechDocumentPaths } =
     await import('../src/lib/frontmatter.js');
