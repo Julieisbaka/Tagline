@@ -3,10 +3,14 @@ const fs = require('node:fs');
 const path = require('node:path');
 
 function nativeBinaries(dir) {
-  if (!fs.existsSync(dir)) return [];
+  if (!fs.existsSync(dir)) {
+    return [];
+  }
   return fs.readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
     const full = path.join(dir, entry.name);
-    if (entry.isDirectory()) return nativeBinaries(full);
+    if (entry.isDirectory()) {
+      return nativeBinaries(full);
+    }
     return /\.(node|dylib|so)$/.test(entry.name) ? [full] : [];
   });
 }
@@ -14,8 +18,12 @@ function nativeBinaries(dir) {
 // Unsigned arm64 apps are reported as damaged and mismatched signatures can hang launch,
 // so builds without a Developer ID certificate get a consistent ad-hoc signature.
 exports.default = async function adhocSign(context) {
-  if (context.electronPlatformName !== 'darwin') return;
-  if (process.env.CSC_LINK || process.env.CSC_NAME) return;
+  if (context.electronPlatformName !== 'darwin') {
+    return;
+  }
+  if (process.env.CSC_LINK || process.env.CSC_NAME) {
+    return;
+  }
   const app = path.join(context.appOutDir, `${context.packager.appInfo.productFilename}.app`);
   const codesign = (...args) =>
     execFileSync('codesign', ['--force', '--sign', '-', ...args], { stdio: 'inherit' });

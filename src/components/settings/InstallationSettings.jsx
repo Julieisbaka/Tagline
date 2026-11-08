@@ -97,6 +97,10 @@ export default function InstallationSettings() {
     }
   };
   useEffect(() => {
+    if (!window.api?.onUpdateState || !window.api?.getUpdateState) {
+      setUpdateError('Update API unavailable.');
+      return undefined;
+    }
     let active = true;
     window.api
       .getAutoUpdateEnabled()

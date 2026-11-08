@@ -179,6 +179,79 @@
   outline-offset: -2px;
 }
 
+/* Rendered Markdown preview for cells not being edited. The subset is the
+   same inline formatting as notes: **bold**, *italic*, ~~strike~~,
+   ==highlight==, ++underline++, `code`, links, and lists/breaks. */
+.flow-cell-preview {
+  width: 100%;
+  min-height: 60px;
+  padding: 6px 8px;
+  font-size: 13px;
+  line-height: 1.4;
+  overflow: hidden;
+  overflow-wrap: break-word;
+  user-select: text;
+  outline: none;
+  cursor: text;
+}
+
+.flow-grid td.side-aff .flow-cell-preview {
+  color: var(--aff);
+}
+
+.flow-grid td.side-neg .flow-cell-preview {
+  color: var(--neg);
+}
+
+.flow-grid td.cell-selected .flow-cell-preview {
+  background: var(--accent-dim);
+}
+
+.flow-cell-preview:focus {
+  background: var(--accent-dim);
+  box-shadow: inset 0 0 0 1px var(--accent);
+}
+
+.flow-cell-preview p {
+  margin: 0;
+}
+
+.flow-cell-preview ul,
+.flow-cell-preview ol {
+  margin: 0;
+  padding-left: 1.2em;
+}
+
+.flow-cell-preview h1,
+.flow-cell-preview h2,
+.flow-cell-preview h3,
+.flow-cell-preview h4,
+.flow-cell-preview h5,
+.flow-cell-preview h6 {
+  margin: 0;
+  font-size: 1em;
+  line-height: 1.4;
+}
+
+.flow-cell-preview blockquote {
+  margin: 0;
+  padding: 0 0.6em;
+}
+
+.flow-cell-preview pre {
+  margin: 0;
+  padding: 4px 6px;
+  white-space: pre-wrap;
+}
+
+.flow-cell-preview table {
+  margin: 0;
+}
+
+.flow-cell-preview img {
+  max-height: 80px;
+}
+
 .flow-grid td.cell-selected {
   box-shadow: inset 0 0 0 2px var(--accent);
 }

@@ -194,9 +194,9 @@ export function useExtensions({ bridgeRef, notify }) {
   useEffect(() => {
     reload();
     const active = hosts;
-    const generationAtStart = generation.current;
+    const gen = generation;
     return () => {
-      generation.current = generationAtStart + 1;
+      gen.current += 1;
       active.current.forEach((host) => host.dispose());
     };
   }, [reload]);

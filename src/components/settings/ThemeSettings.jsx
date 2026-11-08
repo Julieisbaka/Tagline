@@ -81,13 +81,15 @@ export default function ThemeSettings({ settings, update }) {
   const [contributed, setContributed] = useState(extensionThemes);
   const [draft, setDraft] = useState(null);
   const [variables, setVariables] = useState('{}');
-  const active = useMemo(() => {
-    try {
-      return { theme: getTheme(settings.theme, settings.customTheme) };
-    } catch (err) {
-      return { error: err.message };
-    }
-  }, [settings.theme, settings.customTheme]);
+  // Extension themes register asynchronously; resolve on every render so the
+  // metadata and options pick up newly registered themes.
+  let active;
+  try {
+    active = { theme: getTheme(settings.theme, settings.customTheme) };
+  } catch (err) {
+    active = { error: err.message };
+  }
+  void contributed;
   const variablesLabel = t('CSS variables (JSON object)');
   const variablesExtensions = useMemo(
     () => [

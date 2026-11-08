@@ -96,7 +96,7 @@ function createUpdateManager({
     try {
       const release = await checkForUpdates(currentVersion, fetchImpl, platform, arch);
       if (downloaded && downloaded.version !== release.latestVersion) {
-        await fs.rm(downloaded.file, { force: true });
+        await fs.rm(path.dirname(downloaded.file), { recursive: true, force: true });
         downloaded = null;
       }
       setState({ status: downloaded ? 'ready' : 'idle', release, received: 0, total: 0 });
@@ -122,7 +122,17 @@ function createUpdateManager({
       throw new Error('The update installer exceeds the download size limit.');
     }
     if (downloaded?.version === release.latestVersion) {
-      return setState({ status: 'ready', error: '' });
+      try {
+        if ((await fileHash(downloaded.file)) === downloaded.expectedHash) {
+          return setState({ status: 'ready', error: '' });
+        }
+      } catch {
+        // Deleted or unreadable installer: fall through and download again.
+      }
+      await fs
+        .rm(path.dirname(downloaded.file), { recursive: true, force: true })
+        .catch(() => {});
+      downloaded = null;
     }
     setState({ status: 'downloading', received: 0, total: asset.size, error: '' });
     let directory;
@@ -198,7 +208,15 @@ function createUpdateManager({
     }
   }
   async function installUpdate(beforeInstall) {
-    if (!app.isPackaged || busy() || !downloaded) {
+    const release = state.release;
+    if (
+      !app.isPackaged ||
+      busy() ||
+      !downloaded ||
+      !release?.updateAvailable ||
+      !release?.download ||
+      downloaded.version !== release.latestVersion
+    ) {
       throw new Error('Download and verify an update before installing.');
     }
     setState({ status: 'installing', error: '' });
@@ -215,7 +233,7 @@ function createUpdateManager({
         throw new Error('Downloaded installer is missing. Download the update again.');
       }
       if (checksum !== downloaded.expectedHash) {
-        await fs.rm(downloaded.file, { force: true });
+        await fs.rm(path.dirname(downloaded.file), { recursive: true, force: true });
         downloaded = null;
         throw new Error('Downloaded installer changed. Download the update again.');
       }

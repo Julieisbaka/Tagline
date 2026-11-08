@@ -42,6 +42,13 @@ const { registerNativeUi } = require('./nativeUi.cjs');
 const { registerMcp } = require('./mcp.cjs');
 
 const isDev = process.argv.includes('--dev');
+// Surface stray rejections/exceptions in logs instead of failing silently.
+process.on('unhandledRejection', (reason) => {
+  console.error('[main] unhandledRejection', reason);
+});
+process.on('uncaughtException', (error) => {
+  console.error('[main] uncaughtException', error);
+});
 // Keep profile and OS credential identity stable across versions and install locations.
 app.setName('Tagline');
 const configPath = () => path.join(app.getPath('userData'), 'config.json');
@@ -57,6 +64,9 @@ let saveBeforeUpdate = async () => {
 // Replaced by registerIpc(); checks for and downloads an update in the
 // background (never installs silently at startup). No-op until then.
 let prepareUpdateInBackground = async () => null;
+// Set once the installer is launched; the save-before-quit gate is already
+// satisfied (saveBeforeUpdate ran), so quitting must not re-enter it.
+let updateQuit = false;
 
 function accelerator(id) {
   const value = keybindings[id] ?? keyDefinitions.find((item) => item.id === id)?.key;
@@ -92,6 +102,9 @@ function writeConfig(patch) {
 
 // Resolve a vault-relative path and refuse anything that escapes the vault.
 function resolveInVault(rel = '') {
+  if (typeof rel !== 'string') {
+    throw new Error('Invalid file path.');
+  }
   if (!vaultRoot) {
     throw new Error('No vault open');
   }
@@ -173,8 +186,17 @@ function registerIpc() {
     }
     return event.sender[action]();
   });
-  ipcMain.handle('app:clipboardWrite', (_event, text) => {
-    clipboard.writeText(String(text ?? ''));
+  ipcMain.handle('app:clipboardWrite', (event, text) => {
+    if (
+      event.sender !== win?.webContents ||
+      event.senderFrame !== event.sender.mainFrame
+    ) {
+      throw new Error('Clipboard access is only available to the application main frame.');
+    }
+    if (typeof text !== 'string' || text.length > 1_000_000) {
+      throw new Error('Invalid clipboard text.');
+    }
+    clipboard.writeText(text);
     return true;
   });
   const updates = createUpdateManager({
@@ -199,26 +221,48 @@ function registerIpc() {
     }
     return release;
   };
+  function requireMainFrame(event) {
+    if (event.sender !== win?.webContents || event.senderFrame !== event.sender.mainFrame) {
+      throw new Error('Update actions are only available to the application main frame.');
+    }
+  }
   ipcMain.handle('app:installation', () => installationInfo(app));
-  ipcMain.handle('app:checkUpdates', () => updates.check(installationInfo(app).version));
-  ipcMain.handle('app:getUpdateState', () => updates.getState());
-  ipcMain.handle('app:downloadUpdate', () => updates.download());
-  ipcMain.handle('app:installUpdate', async () => {
+  ipcMain.handle('app:checkUpdates', (event) => {
+    requireMainFrame(event);
+    return updates.check(installationInfo(app).version);
+  });
+  ipcMain.handle('app:getUpdateState', (event) => {
+    requireMainFrame(event);
+    return updates.getState();
+  });
+  ipcMain.handle('app:downloadUpdate', (event) => {
+    requireMainFrame(event);
+    return updates.download();
+  });
+  ipcMain.handle('app:installUpdate', async (event) => {
+    requireMainFrame(event);
     const result = await updates.installUpdate(saveBeforeUpdate);
     if (!result.manual) {
+      updateQuit = true;
       app.quit();
     }
     return result;
   });
-  ipcMain.handle('app:autoUpdate', async () => {
+  ipcMain.handle('app:autoUpdate', async (event) => {
+    requireMainFrame(event);
     const outcome = await updates.autoUpdate(installationInfo(app).version, saveBeforeUpdate);
     if (outcome.updated && outcome.result && !outcome.result.manual) {
+      updateQuit = true;
       app.quit();
     }
     return outcome;
   });
-  ipcMain.handle('app:getAutoUpdate', () => readConfig().autoUpdate !== false);
-  ipcMain.handle('app:setAutoUpdate', (_event, enabled) => {
+  ipcMain.handle('app:getAutoUpdate', (event) => {
+    requireMainFrame(event);
+    return readConfig().autoUpdate !== false;
+  });
+  ipcMain.handle('app:setAutoUpdate', (event, enabled) => {
+    requireMainFrame(event);
     if (typeof enabled !== 'boolean') {
       throw new Error('Invalid auto-update choice.');
     }
@@ -399,9 +443,17 @@ function registerIpc() {
     }
     return true;
   }
-  ipcMain.handle('fs:write', (_e, ...args) => writeVaultFile(...args));
+  ipcMain.handle('fs:write', (_e, rel, content, retention, canvasMode, experimentalHistoryDeltas) => {
+    if (typeof content !== 'string') {
+      throw new Error('Invalid file content.');
+    }
+    return writeVaultFile(rel, content, retention, canvasMode, experimentalHistoryDeltas);
+  });
 
   ipcMain.handle('fs:create', async (_e, rel, content = '') => {
+    if (typeof content !== 'string') {
+      throw new Error('Invalid file content.');
+    }
     await fs.mkdir(path.dirname(resolveInVault(rel)), { recursive: true });
     while (true) {
       const finalRel = uniquePath(rel);
@@ -503,9 +555,24 @@ function registerIpc() {
   ipcMain.handle('shell:reveal', async (_e, rel) => {
     shell.showItemInFolder(resolveInVault(rel));
   });
-  ipcMain.handle('history:list', (_e, rel) => history.list(rel));
-  ipcMain.handle('history:read', (_e, rel, id) => history.read(rel, id));
-  ipcMain.handle('history:latest-working', (_e, rel) => history.latestWorking(rel));
+  ipcMain.handle('history:list', (_e, rel) => {
+    if (typeof rel !== 'string') {
+      throw new Error('Invalid file path.');
+    }
+    return history.list(rel);
+  });
+  ipcMain.handle('history:read', (_e, rel, id) => {
+    if (typeof rel !== 'string' || typeof id !== 'string') {
+      throw new Error('Invalid file path.');
+    }
+    return history.read(rel, id);
+  });
+  ipcMain.handle('history:latest-working', (_e, rel) => {
+    if (typeof rel !== 'string') {
+      throw new Error('Invalid file path.');
+    }
+    return history.latestWorking(rel);
+  });
 }
 
 function createWindow() {
@@ -615,6 +682,7 @@ function createWindow() {
   });
   win.on('close', (event) => {
     if (
+      !updateQuit &&
       !readyToClose &&
       hasSaveHandler &&
       !win.webContents.isDestroyed() &&
