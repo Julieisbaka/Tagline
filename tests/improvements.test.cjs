@@ -588,6 +588,7 @@ test('platform: macOS desktop wiring provides native window controls, menus and 
             'registerGoogleDocs',
             'registerTabroom',
             'registerNativeUi',
+            'registerMcp',
           ].map((key) => [key, () => true])
         );
       }
