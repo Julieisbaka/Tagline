@@ -42,7 +42,7 @@ export default function AdvancedSettings({ settings, update, section = 'all' }) 
           <SettingRow
             label={t('Low-resource mode')}
             description={t(
-              'Disable model autoload and cap the visual cache at 8 entries and 2,000,000 characters, and search results at 20. Existing preferences are restored when disabled.'
+              'Disable model autoload and cap the cache at 8 entries and 2,000,000 characters, and search at 20 results. Previous preferences return when disabled.'
             )}
           >
             <input
@@ -60,29 +60,25 @@ export default function AdvancedSettings({ settings, update, section = 'all' }) 
             />
           </SettingRow>
           {settings.lowResourceMode && (
-            <p>
-              {t(
-                'Low-resource caps are active. The values below are saved preferences and may exceed the active limits.'
-              )}
-            </p>
+            <p>{t('Low-resource caps are active. Saved values below may exceed these limits.')}</p>
           )}
           {number(
-            'Visual cache maximum entries (0 disables)',
+            'Maximum visual cache entries (0 disables)',
             'visualCacheEntries',
             256,
-            'Limit the number of rendered documents kept in memory for faster reopening.'
+            'Rendered documents kept in memory for faster reopening.'
           )}
           {number(
-            'Visual cache maximum characters',
+            'Maximum visual cache characters',
             'visualCacheCharacters',
             100_000_000,
-            'Limit the total text size kept in the visual editor cache.'
+            'Maximum text size in the visual editor cache.'
           )}
           {number(
             'Maximum search results',
             'searchMaxResults',
             1000,
-            'Limit how many matches a vault search returns.'
+            'Maximum matches returned by vault search.'
           )}
         </>
       )}
@@ -119,11 +115,7 @@ export default function AdvancedSettings({ settings, update, section = 'all' }) 
               {t('Reset font')}
             </button>
           </div>
-          <p>
-            {t(
-              'Custom fonts apply to note text. Import only fonts you trust and are licensed to use.'
-            )}
-          </p>
+          <p>{t('Fonts apply to note text. Import only trusted, licensed fonts.')}</p>
         </>
       )}
       {(section === 'all' || section === 'files') && (
@@ -141,7 +133,7 @@ export default function AdvancedSettings({ settings, update, section = 'all' }) 
           <h4>{t('File names')}</h4>
           <SettingRow
             label={t('Hide .flow file extension')}
-            description={t('Hide the .flow suffix in displayed file names without renaming files.')}
+            description={t('Hide the suffix without renaming files.')}
           >
             <input
               type='checkbox'
@@ -152,7 +144,7 @@ export default function AdvancedSettings({ settings, update, section = 'all' }) 
           </SettingRow>
           <SettingRow
             label={t('Show .md file extension')}
-            description={t('Show the .md suffix in displayed Markdown file names.')}
+            description={t('Show the suffix in displayed Markdown file names.')}
           >
             <input
               type='checkbox'
@@ -163,8 +155,8 @@ export default function AdvancedSettings({ settings, update, section = 'all' }) 
           </SettingRow>
           <h4>{t('Links')}</h4>
           <SettingRow
-            label={t('Automatically update wiki links when renaming')}
-            description={t('Update links in other notes when a linked file or folder is renamed.')}
+            label={t('Update wiki links on rename')}
+            description={t('Update links in other notes when a file or folder is renamed.')}
           >
             <input
               type='checkbox'
@@ -189,11 +181,11 @@ export default function AdvancedSettings({ settings, update, section = 'all' }) 
           </label>
           <p>
             {t(
-              'Deleting files inside Tagline always closes their tabs. Kept missing-file tabs show a notice until the file returns.'
+              'Deleting files in Tagline always closes their tabs. Kept tabs show a notice until the file returns.'
             )}
           </p>
           <label className='setting-row'>
-            <span>{t('Persist workspace tabs')}</span>
+            <span>{t('Save workspace tabs')}</span>
             <input
               type='checkbox'
               data-setting='persistWorkspaceTabs'
@@ -202,9 +194,7 @@ export default function AdvancedSettings({ settings, update, section = 'all' }) 
             />
           </label>
           <p>
-            {t(
-              'When disabled, current tabs stay open but are not saved. Saved workspaces remain dormant and are restored when this is enabled again.'
-            )}
+            {t('When disabled, open tabs are not saved. Saved workspaces return when re-enabled.')}
           </p>
         </>
       )}
@@ -215,7 +205,7 @@ export default function AdvancedSettings({ settings, update, section = 'all' }) 
             'Maximum saved revisions per document',
             'historyRetention',
             5000,
-            'Keep up to this many revisions for each document before pruning older history.'
+            'Older revisions are pruned above this limit.'
           )}
           <label className='setting-row'>
             <span>{t('Delta revision history (experimental)')}</span>

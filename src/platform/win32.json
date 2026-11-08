@@ -1,0 +1,38 @@
+{
+  "en": {
+    "flowAssociation": "Installed builds register Tagline for .flow files. Use Open With in File Explorer to make it the default.",
+    "updates": "When enabled, Tagline checks GitHub Releases and downloads updates at startup. Install updates to restart in the same folder.",
+    "installInstructions": "Downloads are verified against release checksums. Pending edits are saved before installation.",
+    "installButton": "Install update and restart",
+    "installing": "Saving pending edits and starting the installer. Tagline will close, update, and reopen in the same folder.",
+    "manualUpdate": "The installer is open. Complete installation to update Tagline.",
+    "applyCssShortcut": "Ctrl+Enter applies",
+    "manualUninstall": "",
+    "manualUninstallRemove": "",
+    "manualUninstallKeep": ""
+  },
+  "es": {
+    "flowAssociation": "La versión instalada registra Tagline para archivos .flow. Usa Abrir con en el Explorador de archivos para establecerla como predeterminada.",
+    "updates": "Si está activado, Tagline busca en GitHub Releases y descarga actualizaciones al iniciar. Instálalas para reiniciar en la misma carpeta.",
+    "installInstructions": "Las descargas se verifican con las sumas de comprobación. Los cambios pendientes se guardan antes de instalar.",
+    "installButton": "Instalar actualización y reiniciar",
+    "installing": "Guardando cambios e iniciando el instalador. Tagline se cerrará, actualizará y volverá a abrir en la misma carpeta.",
+    "manualUpdate": "El instalador está abierto. Completa la instalación para actualizar Tagline.",
+    "applyCssShortcut": "Ctrl+Intro aplica",
+    "manualUninstall": "",
+    "manualUninstallRemove": "",
+    "manualUninstallKeep": ""
+  },
+  "fr": {
+    "flowAssociation": "La version installée enregistre Tagline pour les fichiers .flow. Utilisez Ouvrir avec dans l’Explorateur de fichiers pour en faire l’application par défaut.",
+    "updates": "Si l’option est activée, Tagline recherche et télécharge les mises à jour GitHub Releases au démarrage. Installez-les pour redémarrer dans le même dossier.",
+    "installInstructions": "Les téléchargements sont vérifiés par somme de contrôle. Les modifications en attente sont enregistrées avant l’installation.",
+    "installButton": "Installer la mise à jour et redémarrer",
+    "installing": "Enregistrement des modifications et lancement de l’installateur. Tagline va se fermer, se mettre à jour et se rouvrir dans le même dossier.",
+    "manualUpdate": "L’installateur est ouvert. Terminez l’installation pour mettre Tagline à jour.",
+    "applyCssShortcut": "Ctrl+Entrée applique",
+    "manualUninstall": "",
+    "manualUninstallRemove": "",
+    "manualUninstallKeep": ""
+  }
+}

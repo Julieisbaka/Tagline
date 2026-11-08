@@ -179,7 +179,61 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
         await wait("!!document.querySelector('.onboarding-skip')");
         await click('.onboarding-skip');
         await wait("document.querySelectorAll('.tree-item').length === 3");
-        await settings('general');
+        await click('.ribbon button:last-child');
+        await wait("!!document.querySelector('.settings')");
+        assert.equal(
+          await js(
+            "document.querySelector('[data-section=workspace]').getAttribute('aria-current')"
+          ),
+          'page'
+        );
+        wc.enableDeviceEmulation({
+          screenPosition: 'desktop',
+          viewSize: { width: 640, height: 760 },
+          deviceScaleFactor: 1,
+        });
+        await wait('window.innerWidth === 640');
+        assert.equal(
+          await js(`(() => {
+            const dialog = document.querySelector('.dialog.settings').getBoundingClientRect();
+            const sidebar = document.querySelector('.settings-sidebar').getBoundingClientRect();
+            const main = document.querySelector('.settings-main').getBoundingClientRect();
+            return dialog.left >= 0 && dialog.right <= innerWidth && sidebar.right <= main.left && main.width > 0;
+          })()`),
+          true,
+          'settings remains within the narrow viewport'
+        );
+        wc.disableDeviceEmulation();
+        await click('[data-section="general"]');
+        assert.deepEqual(
+          await js(
+            "[...document.querySelectorAll('.settings-sidebar [data-section]')].map(el => el.dataset.section)"
+          ),
+          [
+            'workspace',
+            'appearance',
+            'editors',
+            'general',
+            'files',
+            'history',
+            'shortcuts',
+            'accessibility',
+            'performance',
+            'integrations',
+            'extensions',
+            'advanced',
+            'installation',
+          ]
+        );
+        const platformCopy = require(`../src/platform/${process.platform}.json`);
+        assert.equal(
+          await js("document.querySelector('[data-settings-panel=files] > p').textContent"),
+          platformCopy.en.flowAssociation
+        );
+        assert.equal(
+          await js("document.querySelector('.custom-css-editor small').textContent"),
+          platformCopy.en.applyCssShortcut
+        );
         const timerSoundFile = path.join(root, 'timer.wav');
         const wav = Buffer.alloc(46);
         wav.write('RIFF', 0);
@@ -316,6 +370,10 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
           select.value = 'es'; select.dispatchEvent(new Event('change', {bubbles: true})); })()`);
         await wait(
           "document.querySelector('.settings-search input').getAttribute('aria-label') === 'Buscar ajustes'"
+        );
+        assert.equal(
+          await js("document.querySelector('[data-settings-panel=files] > p').textContent"),
+          platformCopy.es.flowAssociation
         );
         await click('[data-section=editors]');
         assert.equal(

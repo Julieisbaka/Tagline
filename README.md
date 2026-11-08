@@ -18,6 +18,10 @@ npm start        # build and launch
 npm run package  # package for this operating system
 ```
 
+Renderer builds target the host OS by default. For cross-platform packaging, set
+`TAGLINE_TARGET_PLATFORM` to `win32`, `darwin`, or `linux` before building the
+renderer, and package that renderer for the same target. Rebuild for each target.
+
 Open a folder as a vault or create the sample vault on first launch.
 
 ## Releases and updates

@@ -1,4 +1,5 @@
 import { useEffect, useId, useMemo, useRef, useState } from 'react';
+import platformCopy from '@platform-settings';
 import { useI18n } from '../../lib/i18n.js';
 import { fuzzyScore } from '../../lib/vault.js';
 import AdvancedSettings from '../settings/AdvancedSettings.jsx';
@@ -198,9 +199,10 @@ export function SettingsDialog({
   speechDoc,
   speechDocuments = [],
   onSelectSpeechDoc,
-  initialSection = 'general',
+  initialSection = 'workspace',
 }) {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
+  const platform = platformCopy[locale] || platformCopy.en;
   const [section, setSection] = useState(initialSection);
   const [query, setQuery] = useState('');
   const [searchIndex, setSearchIndex] = useState([]);
@@ -240,19 +242,19 @@ export function SettingsDialog({
     return () => observer.disconnect();
   }, []);
   const sections = [
-    ['general', 'Speech and reading', 'Manage speech documents, reading calibration, and timers'],
-    ['editors', 'Editors', 'Configure visual, source, and flow editors'],
-    ['appearance', 'Appearance', 'Make Tagline feel like yours'],
-    ['accessibility', 'Accessibility', 'Focus indicators and editor accessibility'],
-    ['performance', 'Performance and search', 'Control resource usage and results'],
-    ['files', 'Files and folders', 'Portable paths and file associations'],
-    ['workspace', 'Workspace', 'Organize your workspace and navigation'],
-    ['history', 'Revision history', 'Set revision retention and Canvas history behavior'],
-    ['integrations', 'Integrations', 'Document conversion and local models'],
-    ['shortcuts', 'Keyboard shortcuts', 'Your commands, your keys'],
-    ['extensions', 'Extensions', 'Sandboxed commands and themes from your extensions folder'],
-    ['advanced', 'Advanced settings', 'Inspect and reset internal application flags'],
-    ['installation', 'Installation', 'Version, runtime, and local data'],
+    ['workspace', 'Workspace', 'Tabs and sidebar shortcuts'],
+    ['appearance', 'Appearance', 'Themes, fonts, and styles'],
+    ['editors', 'Editors', 'Note, flow, canvas, and source editors'],
+    ['general', 'Speech and reading', 'Speech documents, calibration, and timers'],
+    ['files', 'Files and folders', 'Paths, links, and file associations'],
+    ['history', 'Revision history', 'Retention and canvas history'],
+    ['shortcuts', 'Keyboard shortcuts', 'Command keybindings'],
+    ['accessibility', 'Accessibility', 'Motion, focus, and display'],
+    ['performance', 'Performance and search', 'Resource and search limits'],
+    ['integrations', 'Integrations', 'Services, document tools, and local models'],
+    ['extensions', 'Extensions', 'Extension commands and themes'],
+    ['advanced', 'Advanced', 'Customization limits and internal flags'],
+    ['installation', 'Installation', 'Version, updates, and uninstall'],
   ];
   const terms = query.trim().toLocaleLowerCase().split(/\s+/).filter(Boolean);
   const results = terms.length
@@ -411,7 +413,7 @@ export function SettingsDialog({
               </label>
               <p className='settings-help'>
                 {t(
-                  'Speech documents use speech: true in YAML frontmatter. Right-click a Markdown file and choose Set as speech doc to mark it and make it the active destination.'
+                  'Speech documents use speech: true in YAML frontmatter. Right-click a Markdown file and choose Set as speech doc to make it active.'
                 )}
               </p>
             </section>
@@ -438,7 +440,7 @@ export function SettingsDialog({
               </label>
               <p className='settings-help'>
                 {t(
-                  'Use a thicker accent outline for the focused visual or source note editor. A basic keyboard focus indicator always remains visible.'
+                  'Use a thicker outline for the focused note editor. Basic keyboard focus remains visible.'
                 )}
               </p>
               {[
@@ -480,7 +482,7 @@ export function SettingsDialog({
               ))}
               <p className='settings-help'>
                 {t(
-                  'Reduce motion also respects your operating system preference. Larger targets use a minimum of 48 pixels. Stronger focus includes note editors during keyboard navigation.'
+                  'Reduce motion also follows your system preference. Larger targets are at least 48 pixels. Stronger focus includes note editors.'
                 )}
               </p>
             </section>
@@ -508,11 +510,7 @@ export function SettingsDialog({
             >
               <AdvancedSettings settings={settings} update={update} section='files' />
               <h4>{t('Flow file association')}</h4>
-              <p>
-                {t(
-                  'Installed builds register Tagline as an app for .flow files. To make it the default, use Open With in your file manager and select Tagline. On macOS choose Change All in Get Info.'
-                )}
-              </p>
+              <p>{platform.flowAssociation}</p>
             </section>
             <section
               data-settings-panel='workspace'
@@ -577,7 +575,7 @@ export function SettingsDialog({
               </label>
               <p>
                 {t(
-                  'Websites use a separate signed-in session and identify as standard Chrome. Disable this to use your default browser.'
+                  'Websites use a separate session and identify as Chrome. Disable to use your default browser.'
                 )}
               </p>
               <IntegrationSettings settings={settings} />

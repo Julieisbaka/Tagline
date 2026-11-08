@@ -36,6 +36,7 @@
     "test:productivity": "node scripts/run-smoke.cjs node tests/productivity-smoke.cjs",
     "test:extensions": "node scripts/run-smoke.cjs node tests/extensions-smoke.cjs",
     "test:settings": "node scripts/run-smoke.cjs node tests/settings-smoke.cjs",
+    "test:platform-build": "node tests/platform-build-smoke.cjs",
     "test:mcp": "node tests/mcp-archive-smoke.cjs",
     "test:nli": "node tests/nli-smoke.cjs",
     "test:nli-ui": "node scripts/run-smoke.cjs node tests/nli-ui-smoke.cjs",

@@ -297,11 +297,9 @@ app.on('browser-window-created', (_event, win) => {
         const displayed = await js("document.querySelector('.installation-settings').textContent");
         assert.ok(displayed.includes(version));
         assert.ok(displayed.includes(profile));
-        assert.ok(
-          displayed.includes(
-            'Tagline checks GitHub Releases shortly after startup and downloads the installer matching your operating system.'
-          )
-        );
+        const platformCopy = require(`../src/platform/${process.platform}.json`).en;
+        assert.ok(displayed.includes(platformCopy.updates));
+        assert.ok(displayed.includes(platformCopy.installInstructions));
         assert.equal(releaseCalls, 0, 'opening settings never contacts GitHub automatically');
         await js(
           "[...document.querySelectorAll('.installation-settings button')].find(el => el.textContent === 'Check for updates').click()"

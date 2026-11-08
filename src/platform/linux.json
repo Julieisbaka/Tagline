@@ -1,0 +1,38 @@
+{
+  "en": {
+    "flowAssociation": "Installed builds register Tagline for .flow files. Use Open With in your file manager to make it the default.",
+    "updates": "In-app installation is unavailable on Linux. Check GitHub Releases for updates.",
+    "installInstructions": "Install updates manually from the releases page. Back up your profile and vaults first.",
+    "installButton": "Open installer",
+    "installing": "Opening the installer…",
+    "manualUpdate": "Install the update manually from the releases page.",
+    "applyCssShortcut": "Ctrl+Enter applies",
+    "manualUninstall": "Remove Tagline manually after its location opens.",
+    "manualUninstallRemove": "The app location is open. Remove Tagline there; profile data will be removed after you quit.",
+    "manualUninstallKeep": "The app location is open. Remove Tagline there. Your profile data will be kept."
+  },
+  "es": {
+    "flowAssociation": "La versión instalada registra Tagline para archivos .flow. Usa Abrir con en tu gestor de archivos para establecerla como predeterminada.",
+    "updates": "La instalación desde la aplicación no está disponible en Linux. Consulta GitHub Releases para buscar actualizaciones.",
+    "installInstructions": "Instala las actualizaciones manualmente desde la página de versiones. Haz primero una copia de seguridad del perfil y las bóvedas.",
+    "installButton": "Abrir instalador",
+    "installing": "Abriendo el instalador…",
+    "manualUpdate": "Instala la actualización manualmente desde la página de versiones.",
+    "applyCssShortcut": "Ctrl+Intro aplica",
+    "manualUninstall": "Elimina Tagline manualmente cuando se abra su ubicación.",
+    "manualUninstallRemove": "Se abrió la ubicación de la aplicación. Elimina Tagline allí; los datos del perfil se eliminarán cuando cierres la aplicación.",
+    "manualUninstallKeep": "Se abrió la ubicación de la aplicación. Elimina Tagline allí. Se conservarán los datos del perfil."
+  },
+  "fr": {
+    "flowAssociation": "La version installée enregistre Tagline pour les fichiers .flow. Utilisez Ouvrir avec dans votre gestionnaire de fichiers pour en faire l’application par défaut.",
+    "updates": "L’installation intégrée n’est pas disponible sur Linux. Consultez GitHub Releases pour les mises à jour.",
+    "installInstructions": "Installez les mises à jour manuellement depuis la page des versions. Sauvegardez d’abord votre profil et vos coffres.",
+    "installButton": "Ouvrir l’installateur",
+    "installing": "Ouverture de l’installateur…",
+    "manualUpdate": "Installez la mise à jour manuellement depuis la page des versions.",
+    "applyCssShortcut": "Ctrl+Entrée applique",
+    "manualUninstall": "Supprimez Tagline manuellement après l’ouverture de son emplacement.",
+    "manualUninstallRemove": "L’emplacement de l’application est ouvert. Supprimez Tagline à cet endroit ; les données du profil seront supprimées après avoir quitté l’application.",
+    "manualUninstallKeep": "L’emplacement de l’application est ouvert. Supprimez Tagline à cet endroit. Les données du profil seront conservées."
+  }
+}
