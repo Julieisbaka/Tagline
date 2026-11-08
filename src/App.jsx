@@ -123,7 +123,8 @@ export default function App() {
     if (v.ready && settings.closeMissingTabs) {
       tabs.prune(new Set(paths));
     }
-  }, [v.ready, paths, settings.closeMissingTabs, tabs.tabs]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- tabs.prune is stable
+  }, [v.ready, paths, settings.closeMissingTabs, tabs.prune]);
 
   useEffect(() => {
     if (activeContent === undefined || (activePath && isCanvas(activePath))) {
@@ -181,7 +182,8 @@ export default function App() {
       notify(t('Error: {error}', { error: v.error }));
       v.clearError();
     }
-  }, [v.error]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- v.clearError stable; avoid v object identity churn
+  }, [v.error, v.clearError, notify, t]);
   const flowVaultRef = useRef(v);
   flowVaultRef.current = v;
   const [externalFlow, setExternalFlow] = useState(null);

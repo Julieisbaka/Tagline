@@ -148,15 +148,7 @@ export default function NoteView({
     }
     onCursorStats(parts);
   }, [docStats, sectionStats, section, settings.syllablesPerMinute, calibration, onCursorStats, t]);
-  const skipFirstStatsEffect = useRef(true);
   useLayoutEffect(() => {
-    publishCursorStats();
-  }, []);
-  useEffect(() => {
-    if (skipFirstStatsEffect.current) {
-      skipFirstStatsEffect.current = false;
-      return;
-    }
     publishCursorStats();
   }, [publishCursorStats]);
 

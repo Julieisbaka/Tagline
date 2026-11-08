@@ -483,13 +483,6 @@ function parseMetadata(html, address, { allowUrlFallback = true } = {}) {
   const fromUrl = parseUrl(url.href);
   const confidence = {};
   const spans = {};
-  const setField = (field, value, source, conf) => {
-    if (value) {
-      confidence[field] = { score: conf, source };
-      spans[field] = { source, value };
-    }
-    return value;
-  };
   const date =
     text(article.datePublished || article.dateCreated) ||
     get(
@@ -666,7 +659,6 @@ async function extractCitation(value, { sourceOnly = false } = {}) {
     throw new Error('Enter a valid article URL.');
   }
   value = value.trim();
-  const rawInput = value;
   const doiInput = value.match(/^(?:doi:\s*)?(10\.\d{4,9}\/\S+)$/i);
   if (doiInput) {
     value = `https://doi.org/${doiInput[1]}`;
