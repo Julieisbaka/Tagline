@@ -33,33 +33,28 @@ export default function DictionarySettings() {
   return (
     <section className='dictionary-settings'>
       <h3>{t('Custom dictionary')}</h3>
-      <SettingRow
-        label={t('Add word')}
-        description={t('Words in your dictionary are not marked as misspelled.')}
+      <form
+        onSubmit={(event) => {
+          event.preventDefault();
+          const value = word.trim();
+          if (value) {
+            change(async () => {
+              await spellcheck.addWord(value);
+              setWord('');
+            });
+          }
+        }}
       >
-        <form
-          onSubmit={(event) => {
-            event.preventDefault();
-            const value = word.trim();
-            if (value) {
-change(async () => {
-                await spellcheck.addWord(value);
-                setWord('');
-              });
-            }
-          }}
+        <SettingRow
+          label={t('Add word')}
+          description={t('Words in your dictionary are not marked as misspelled.')}
         >
-          <input
-            type='text'
-            value={word}
-            aria-label={t('Add word')}
-            onChange={(event) => setWord(event.target.value)}
-          />{' '}
-          <button type='submit' disabled={!word.trim()}>
-            {t('Add')}
-          </button>
-        </form>
-      </SettingRow>
+          <input type='text' value={word} onChange={(event) => setWord(event.target.value)} />
+        </SettingRow>
+        <button type='submit' disabled={!word.trim()}>
+          {t('Add')}
+        </button>
+      </form>
       {error && <p role='alert'>{error}</p>}
       {words.length ? (
         <ul className='dictionary-words'>

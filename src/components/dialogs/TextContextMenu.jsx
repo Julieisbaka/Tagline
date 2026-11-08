@@ -59,6 +59,7 @@ export default function TextContextMenu() {
               ...(spell.suggestions.length
                 ? spell.suggestions.map((suggestion) => ({
                     label: suggestion,
+                    translate: false,
                     run: run(null, () => window.api.spellcheck.replace(suggestion)),
                   }))
                 : [{ label: 'No spelling suggestions', disabled: true, run: () => {} }]),
