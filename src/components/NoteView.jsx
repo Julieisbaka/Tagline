@@ -151,7 +151,7 @@ export default function NoteView({
   const skipFirstStatsEffect = useRef(true);
   useLayoutEffect(() => {
     publishCursorStats();
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, []);
   useEffect(() => {
     if (skipFirstStatsEffect.current) {
       skipFirstStatsEffect.current = false;

@@ -65,11 +65,17 @@ test('MCP server requires the bearer token and rejects browser origins', async (
     assert.equal((await post(body, { Origin: 'https://example.com' })).status, 403);
     const hostStatus = await new Promise((resolve, reject) => {
       const req = require('node:http').request(
-        { host: '127.0.0.1', port, path: '/mcp', method: 'POST', headers: { Host: 'evil.example' } },
+        {
+          host: '127.0.0.1',
+          port,
+          path: '/mcp',
+          method: 'POST',
+          headers: { Host: 'evil.example' },
+        },
         (res) => {
           res.resume();
           resolve(res.statusCode);
-        },
+        }
       );
       req.on('error', reject);
       req.end('{}');
