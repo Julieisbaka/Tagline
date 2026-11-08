@@ -187,7 +187,7 @@ function registerIpc() {
     return event.sender[action]();
   });
   const fromMain = (event) => {
-    if (event.sender !== win?.webContents) {
+    if (event.sender !== win?.webContents || event.senderFrame !== event.sender.mainFrame) {
       throw new Error('Invalid spellcheck request.');
     }
     return event.sender.session;
