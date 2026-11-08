@@ -631,8 +631,8 @@ function createWindow() {
   });
 
   // Chromium only emits this when the page did not cancel the DOM contextmenu event.
-  win.webContents.on('context-menu', (_event, params) => {
-    win.webContents.send('spellcheck:context', {
+  win.webContents.on('context-menu', (event, params) => {
+    event.preventDefault();
       word: params.misspelledWord || '',
       suggestions: (params.dictionarySuggestions || []).slice(0, 8),
     });
