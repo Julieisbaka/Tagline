@@ -347,6 +347,134 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
           await js("JSON.parse(localStorage.getItem('tagline-settings')).format"),
           'college'
         );
+        assert.equal(
+          await js("document.querySelector('.timer-controls button:nth-child(2)').disabled"),
+          true
+        );
+        assert.equal(
+          await js(
+            "[...document.querySelectorAll('.prep-box .link-btn')].every(button => button.disabled)"
+          ),
+          true
+        );
+        await click('.timer-controls button:first-child');
+        await wait("document.querySelector('.timer-display').textContent !== '9:00'");
+        assert.equal(
+          await js("document.querySelector('.timer-controls button:nth-child(2)').disabled"),
+          false
+        );
+        await click('.timer-controls button:first-child');
+        await click('.timer-controls button:nth-child(2)');
+        assert.equal(
+          await js("document.querySelector('.timer-controls button:nth-child(2)').disabled"),
+          true
+        );
+        await click('.prep-box:first-child button:first-of-type');
+        await wait(
+          "document.querySelector('.prep-box:first-child .prep-time').textContent !== '10:00'"
+        );
+        assert.equal(
+          await js("document.querySelector('.prep-box:first-child .link-btn').disabled"),
+          false
+        );
+        assert.equal(
+          await js("document.querySelector('.prep-box:last-child .link-btn').disabled"),
+          true
+        );
+        await click('.prep-box:first-child .link-btn');
+        assert.equal(
+          await js("document.querySelector('.prep-box:first-child .link-btn').disabled"),
+          true
+        );
+
+        const chooseTimerPreset = (value) =>
+          js(`(() => { const select = document.querySelector('.timer select');
+          select.value = ${JSON.stringify(value)}; select.dispatchEvent(new Event('change', { bubbles: true })); })()`);
+        assert.equal(
+          await js("document.querySelector('.timer select option:last-child').textContent"),
+          'Add preset…'
+        );
+        await chooseTimerPreset('__add_preset__');
+        await wait("!!document.querySelector('.timer-preset-dialog')");
+        assert.equal(
+          await js(
+            "document.activeElement === document.querySelector('.timer-preset-dialog input')"
+          ),
+          true
+        );
+        assert.equal(await js("document.querySelector('.timer select').value"), 'college');
+        assert.equal(
+          await js("document.querySelector('.timer-preset-dialog button[type=submit]').disabled"),
+          true
+        );
+        const originalSize = win.getSize();
+        win.setSize(900, 600);
+        await wait('window.innerWidth <= 900 && window.innerHeight <= 600');
+        assert.equal(
+          await js(`(() => {
+            const dialog = document.querySelector('.timer-preset-dialog').getBoundingClientRect();
+            const save = document.querySelector('.timer-preset-dialog button[type=submit]').getBoundingClientRect();
+            return dialog.top >= 0 && dialog.bottom <= innerHeight && dialog.left >= 0 &&
+              dialog.right <= innerWidth && save.bottom <= dialog.bottom;
+          })()`),
+          true
+        );
+        win.setSize(...originalSize);
+        wc.sendInputEvent({ type: 'keyDown', keyCode: 'Escape' });
+        wc.sendInputEvent({ type: 'keyUp', keyCode: 'Escape' });
+        await wait("!document.querySelector('.timer-preset-dialog')");
+        assert.equal(await js("document.querySelector('.timer select').value"), 'college');
+        await chooseTimerPreset('__add_preset__');
+        await wait("!!document.querySelector('.timer-preset-dialog')");
+        await input('.timer-preset-dialog input', 'Test preset');
+        await input('.timer-preset-field:nth-of-type(2) input', '1:60');
+        assert.equal(
+          await js("document.querySelector('.timer-preset-dialog button[type=submit]').disabled"),
+          true
+        );
+        await input('.timer-preset-field:nth-of-type(2) input', '2:15');
+        while (
+          (await js(
+            "document.querySelectorAll('.timer-preset-speech input[aria-label$=name]').length"
+          )) > 1
+        ) {
+          await click('.timer-preset-speech button');
+        }
+        await input('[aria-label="Speech 1 name"]', 'Opening');
+        await input('[aria-label="Speech 1 time (mm:ss)"]', '1:15');
+        await button('.timer-preset-dialog button', 'Add speech');
+        assert.equal(await js("document.activeElement.getAttribute('aria-label')"), 'Speech 2 name');
+        await input('[aria-label="Speech 2 name"]', 'Closing');
+        await input('[aria-label="Speech 2 time (mm:ss)"]', '0:30');
+        await button('.timer-preset-dialog button', 'Save preset');
+        await wait(
+          "!document.querySelector('.timer-preset-dialog') && document.querySelector('.timer-display').textContent === '1:15'"
+        );
+        const customPreset = await js(
+          "JSON.parse(localStorage.getItem('tagline-settings')).timerPresets[0]"
+        );
+        assert.equal(customPreset.label, 'Test preset');
+        assert.equal(await js("document.querySelector('.timer select').value"), customPreset.id);
+        assert.equal(await js("document.querySelector('.prep-time').textContent"), '2:15');
+        assert.equal(
+          await js("document.querySelector('.timer-controls button:nth-child(2)').disabled"),
+          true
+        );
+        await click('.timer-speeches button:nth-child(2)');
+        assert.equal(await js("document.querySelector('.timer-display').textContent"), '0:30');
+        assert.equal(
+          await js("document.querySelector('.timer-controls button:nth-child(2)').disabled"),
+          true
+        );
+        await chooseTimerPreset('college');
+        await chooseTimerPreset(customPreset.id);
+        assert.equal(await js("document.querySelector('.timer-display').textContent"), '1:15');
+        await reload();
+        await click('.right-panel [title="Timer"]');
+        await wait("document.querySelector('.timer-display')?.textContent === '1:15'");
+        assert.equal(await js("document.querySelector('.timer select').value"), customPreset.id);
+        assert.equal(await js("document.querySelector('.prep-time').textContent"), '2:15');
+        await chooseTimerPreset('college');
         await open('Alpha.md');
         await wait('!!document.querySelector(\'[aria-label="Dismiss visual editor notice"]\')');
         await click('[aria-label="Dismiss visual editor notice"]');

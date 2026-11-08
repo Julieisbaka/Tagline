@@ -5,6 +5,7 @@
   "warnDuplicateSend": true,
   "fontSize": 16,
   "format": "highschool",
+  "timerPresets": [],
   "timerSoundName": "",
   "timerSoundEnabled": false,
   "readableWidth": true,

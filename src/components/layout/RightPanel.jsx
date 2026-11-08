@@ -173,6 +173,18 @@ export default function RightPanel(props) {
           <Timer
             format={props.settings.format}
             onFormatChange={(format) => props.updateSettings({ format })}
+            presets={props.settings.timerPresets}
+            onAddPreset={(preset) =>
+              props.updateSettings({
+                timerPresets: [
+                  ...(Array.isArray(props.settings.timerPresets)
+                    ? props.settings.timerPresets
+                    : []),
+                  preset,
+                ],
+                format: preset.id,
+              })
+            }
             timerSoundEnabled={props.settings.timerSoundEnabled}
             timerSoundName={props.settings.timerSoundName}
           />
