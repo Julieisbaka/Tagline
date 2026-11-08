@@ -80,6 +80,23 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
     win.webContents.once('did-finish-load', async () => {
       const wc = win.webContents;
       const js = (code) => wc.executeJavaScript(code);
+      const escapeUnsafeJsString = (value) =>
+        JSON.stringify(value).replace(/[<>/\u2028\u2029]/g, (ch) => {
+          switch (ch) {
+            case '<':
+              return '\\u003C';
+            case '>':
+              return '\\u003E';
+            case '/':
+              return '\\u002F';
+            case '\u2028':
+              return '\\u2028';
+            case '\u2029':
+              return '\\u2029';
+            default:
+              return ch;
+          }
+        });
       const wait = async (code) => {
         for (let i = 0; i < 100; i++) {
           if (await js(code)) {
@@ -90,16 +107,16 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
         throw new Error('Timed out: ' + code);
       };
       const click = (selector, text) =>
-        js(`[...document.querySelectorAll(${JSON.stringify(selector)})]
-        .find(el => el.textContent.trim() === ${JSON.stringify(text)}).click()`);
+        js(`[...document.querySelectorAll(${escapeUnsafeJsString(selector)})]
+        .find(el => el.textContent.trim() === ${escapeUnsafeJsString(text)}).click()`);
       const select = async (selector, value) => {
-        await js(`(() => { const el = document.querySelector(${JSON.stringify(selector)});
-          el.value = ${JSON.stringify(value)}; el.dispatchEvent(new Event('change', { bubbles: true })); })()`);
+        await js(`(() => { const el = document.querySelector(${escapeUnsafeJsString(selector)});
+          el.value = ${escapeUnsafeJsString(value)}; el.dispatchEvent(new Event('change', { bubbles: true })); })()`);
         await delay(100);
       };
       const input = (selector, text) =>
-        js(`(() => { const el = document.querySelector(${JSON.stringify(selector)});
-        Object.getOwnPropertyDescriptor(Object.getPrototypeOf(el), 'value').set.call(el, ${JSON.stringify(text)});
+        js(`(() => { const el = document.querySelector(${escapeUnsafeJsString(selector)});
+        Object.getOwnPropertyDescriptor(Object.getPrototypeOf(el), 'value').set.call(el, ${escapeUnsafeJsString(text)});
         el.dispatchEvent(new Event('input', { bubbles: true })); })()`);
       const settings = async () => {
         await js("document.querySelector('.ribbon-settings-button').click()");
