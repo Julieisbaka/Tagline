@@ -369,6 +369,21 @@ test('configurable shortcuts support platform modifiers, conflicts, clearing and
   assert.equal(reservedBinding('Mod+Shift+Z', 'flow-redo'), false);
   assert.equal(reservedBinding('Mod+Y', 'flow-redo'), false);
   assert.equal(reservedBinding('Mod+Q', 'flow-undo'), true);
+  // Flow cells move down/up by row; plain arrows stay caret moves, Shift+arrows extend selection.
+  assert.equal(binding('flow-cell-down'), 'Alt+ArrowDown');
+  assert.equal(binding('flow-cell-up'), 'Alt+ArrowUp');
+  assert.equal(validBinding(binding('flow-cell-down')), true);
+  assert.equal(validBinding(binding('flow-cell-up')), true);
+  assert.equal(reservedBinding('Alt+ArrowDown', 'flow-cell-down'), false);
+  assert.equal(reservedBinding('Alt+ArrowUp', 'flow-cell-up'), false);
+  assert.equal(
+    matchesBinding(
+      { key: 'ArrowDown', ctrlKey: false, metaKey: false, altKey: true, shiftKey: false, code: 'ArrowDown' },
+      'Alt+ArrowDown',
+      'win32'
+    ),
+    true
+  );
 });
 
 test('intermediate empty highlight delimiters do not crash read-time statistics', async () => {

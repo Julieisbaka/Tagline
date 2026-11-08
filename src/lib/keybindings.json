@@ -419,6 +419,18 @@
     "key": "Shift+Tab"
   },
   {
+    "id": "flow-cell-down",
+    "label": "Move to flow cell below",
+    "scope": "flow",
+    "key": "Alt+ArrowDown"
+  },
+  {
+    "id": "flow-cell-up",
+    "label": "Move to flow cell above",
+    "scope": "flow",
+    "key": "Alt+ArrowUp"
+  },
+  {
     "id": "flow-deselect",
     "label": "Clear flow cell selection",
     "scope": "flow",

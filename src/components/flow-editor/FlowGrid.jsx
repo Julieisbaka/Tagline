@@ -1,6 +1,7 @@
-import { useLayoutEffect } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { binding, displayBinding, matchesBinding } from '../../lib/keybindings.js';
 import { cellBounds, copyFlowCells } from '../../lib/flowCells.js';
+import { renderMarkdown } from '../../lib/markdown.js';
 import Icon from '../Icon.jsx';
 
 const AFF = new Set(['1AC', '2AC', '1AR', '2AR', 'AC', 'AR']);
@@ -18,6 +19,34 @@ export default function FlowGrid({
   shortcutFor,
   shortcutHints,
 }) {
+  const [editing, setEditing] = useState(null);
+  const markdownCache = useRef(new Map());
+  const previewHtml = (text) => {
+    if (!text) {
+      return '';
+    }
+    if (markdownCache.current.has(text)) {
+      return markdownCache.current.get(text);
+    }
+    const html = renderMarkdown(text);
+    if (markdownCache.current.size > 500) {
+      markdownCache.current.clear();
+    }
+    markdownCache.current.set(text, html);
+    return html;
+  };
+  useEffect(() => {
+    if (!editing) {
+      return;
+    }
+    const target = gridRef.current?.querySelector(
+      `textarea[data-row="${editing.row}"][data-column="${editing.column}"]`
+    );
+    if (target && target !== document.activeElement) {
+      target.focus({ preventScroll: true });
+      target.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+    }
+  }, [editing, gridRef]);
   const { selected, bounds, multi, inside, choose, keepSelection, setSelection } = selection;
   const {
     addColumn,
@@ -41,7 +70,7 @@ export default function FlowGrid({
     }
     const sizeRows = () => {
       const rows = [...table.querySelectorAll('tbody tr')].map((row) => [
-        ...row.querySelectorAll('textarea'),
+        ...row.querySelectorAll('textarea, .flow-cell-preview'),
       ]);
       // Reset every cell before measuring so formerly tall rows can shrink.
       rows.flat().forEach((cell) => {
@@ -155,7 +184,7 @@ export default function FlowGrid({
                     if (!inside(r, c)) {
                       choose(r, c);
                     }
-                    e.currentTarget.querySelector('textarea')?.focus({ preventScroll: true });
+                    setEditing({ row: r, column: c });
                     context(e, [
                       { label: 'Copy cells', run: () => copy(area) },
                       { label: 'Cut cells', run: () => copy(area, true) },
@@ -181,12 +210,18 @@ export default function FlowGrid({
                     ]);
                   }}
                 >
+                  {editing?.row === r && editing?.column === c ? (
                   <textarea
                     data-row={r}
                     data-column={c}
                     aria-label={t('Row {row}, {column}', { row: r + 1, column: sheet.columns[c] })}
                     spellCheck={settings.flowSpellcheck !== false}
                     value={cell}
+                    onBlur={(event) => {
+                      if (!event.relatedTarget?.closest?.('.flow-grid-wrap')) {
+                        setEditing(null);
+                      }
+                    }}
                     onPointerDown={(event) => {
                       if (event.button !== 0) {
                         return;
@@ -309,6 +344,28 @@ export default function FlowGrid({
                         addColumn();
                         return;
                       }
+                      const cellDown = matchesBinding(
+                        e,
+                        binding('flow-cell-down', keybindings)
+                      );
+                      const cellUp = matchesBinding(e, binding('flow-cell-up', keybindings));
+                      if (cellDown || cellUp) {
+                        const nextRow = r + (cellDown ? 1 : -1);
+                        if (nextRow < 0 || nextRow >= sheet.rows.length) {
+                          return;
+                        }
+                        const target = gridRef.current?.querySelector(
+                          `[data-row="${nextRow}"][data-column="${c}"]`
+                        );
+                        if (!target) {
+                          return;
+                        }
+                        e.preventDefault();
+                        choose(nextRow, c);
+                        target.focus();
+                        target.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+                        return;
+                      }
                       const nextCell = matchesBinding(e, binding('flow-next-cell', keybindings));
                       const previousCell = matchesBinding(
                         e,
@@ -347,6 +404,38 @@ export default function FlowGrid({
                       }
                     }}
                   />
+                  ) : (
+                  <div
+                    className='flow-cell-preview markdown-body'
+                    data-row={r}
+                    data-column={c}
+                    tabIndex={-1}
+                    aria-label={t('Row {row}, {column}', { row: r + 1, column: sheet.columns[c] })}
+                    onFocus={() => {
+                      if (keepSelection.current) {
+                        keepSelection.current = false;
+                      } else if (!inside(r, c)) {
+                        choose(r, c);
+                      }
+                      setEditing({ row: r, column: c });
+                    }}
+                    onPointerDown={(event) => {
+                      if (event.button !== 0) {
+                        return;
+                      }
+                      if (event.shiftKey) {
+                        event.preventDefault();
+                        choose(r, c, true);
+                      } else {
+                        choose(r, c);
+                      }
+                      setEditing({ row: r, column: c });
+                    }}
+                    dangerouslySetInnerHTML={{
+                      __html: cell ? previewHtml(cell) : '…',
+                    }}
+                  />
+                  )}
                 </td>
               ))}
               <td className='flow-actions'>

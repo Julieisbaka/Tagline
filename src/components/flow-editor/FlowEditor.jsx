@@ -391,6 +391,8 @@ export default function FlowEditor({
     ['flow-redo', 'Redo'],
     ['flow-next-cell', 'Next cell'],
     ['flow-previous-cell', 'Previous cell'],
+    ['flow-cell-down', 'Cell below'],
+    ['flow-cell-up', 'Cell above'],
     ['flow-extend-up', 'Extend selection up'],
     ['flow-extend-down', 'Extend selection down'],
     ['flow-extend-left', 'Extend selection left'],

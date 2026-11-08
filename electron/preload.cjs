@@ -18,11 +18,14 @@ contextBridge.exposeInMainWorld('api', {
     },
   },
   clipboardWrite: (text) => ipcRenderer.invoke('app:clipboardWrite', text),
-  systemLanguages: JSON.parse(
-    decodeURIComponent(
-      process.argv.find((arg) => arg.startsWith('--tagline-languages=')).split('=')[1]
-    )
-  ),
+  systemLanguages: (() => {
+    try {
+      const arg = process.argv.find((a) => a.startsWith('--tagline-languages='));
+      return arg ? JSON.parse(decodeURIComponent(arg.split('=')[1])) : [];
+    } catch {
+      return [];
+    }
+  })(),
   getInstallationInfo: () => ipcRenderer.invoke('app:installation'),
   checkForUpdates: () => ipcRenderer.invoke('app:checkUpdates'),
   getUpdateState: () => ipcRenderer.invoke('app:getUpdateState'),

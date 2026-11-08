@@ -48,7 +48,7 @@ function registerFlowFiles({
   });
   app.on('second-instance', (_event, commandLine) => {
     enqueue(flowArguments(commandLine));
-    if (!getWindow() || getWindow().isDestroyed()) {
+    if (app.isReady() && (!getWindow() || getWindow().isDestroyed())) {
       createWindow();
     }
   });
