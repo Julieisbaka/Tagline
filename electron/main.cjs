@@ -55,6 +55,7 @@ const configPath = () => path.join(app.getPath('userData'), 'config.json');
 
 let win;
 let mcp;
+let localModels;
 let vaultRoot = null;
 let keybindings = {};
 let closeWebsiteView = () => {};
@@ -552,6 +553,7 @@ function registerIpc() {
     ipcMain,
     getWindow: () => win,
     getVaultRoot: () => vaultRoot,
+    getLocalModels: () => localModels,
     readConfig,
     writeConfig,
     writeNote: (rel, content) => writeVaultFile(rel, content),
@@ -948,7 +950,7 @@ if (primary) {
         throw new Error('Model management is only available to the main application.');
       }
     };
-    const { readToken } = registerEmbeddings({
+    const embeddings = registerEmbeddings({
       app,
       ipcMain,
       safeStorage,
@@ -957,17 +959,18 @@ if (primary) {
       writeConfig,
       assertModelSender,
     });
-    registerNli({
+    const nli = registerNli({
       app,
       ipcMain,
       dialog,
       getWindow: () => win,
       readConfig,
       writeConfig,
-      readToken,
+      readToken: embeddings.readToken,
       assertModelSender,
     });
-    registerSummarization({ app, ipcMain, readConfig, assertModelSender });
+    const summary = registerSummarization({ app, ipcMain, readConfig, assertModelSender });
+    localModels = { embeddings, nli, summary };
     createWindow();
     // Quietly check for and download an update shortly after startup. Never
     // fails startup and never installs without the user choosing Install.

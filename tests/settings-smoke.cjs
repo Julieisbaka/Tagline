@@ -1058,6 +1058,56 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
         await wait("document.querySelector('[data-setting=lowResourceMode]').checked");
         await click('[data-section="integrations"]');
         await wait(
+          "document.querySelector('[data-mcp=allowModels]') && !document.querySelector('[data-mcp=allowModels]').disabled"
+        );
+        assert.equal(await js("document.querySelector('[data-mcp=allowModels]').checked"), false);
+        await click('[data-mcp="allowModels"]');
+        await wait(
+          "document.querySelector('[data-mcp=allowModels]').checked && !document.querySelector('[data-mcp=allowModels]').disabled"
+        );
+        assert.equal(
+          JSON.parse(await fs.readFile(path.join(profile, 'config.json'), 'utf8')).mcp.allowModels,
+          true
+        );
+        const probe = http.createServer();
+        await new Promise((resolve) => probe.listen(0, '127.0.0.1', resolve));
+        const mcpPort = probe.address().port;
+        await new Promise((resolve) => probe.close(resolve));
+        const mcpStatus = await js(`window.api.mcp.configure({ enabled: true, port: ${mcpPort} })`);
+        assert.equal(mcpStatus.running, true);
+        const mcpCall = async (name, args) => {
+          const response = await fetch(mcpStatus.url, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${mcpStatus.token}`,
+            },
+            body: JSON.stringify({
+              jsonrpc: '2.0',
+              id: 1,
+              method: 'tools/call',
+              params: { name, arguments: args },
+            }),
+          });
+          return (await response.json()).result;
+        };
+        const modelStatus = JSON.parse((await mcpCall('local_model_status', {})).content[0].text);
+        assert.equal(modelStatus.allowed, true);
+        assert.deepEqual(Object.keys(modelStatus.models).sort(), ['embeddings', 'nli', 'summary']);
+        assert.equal(modelStatus.models.summary.ready, false);
+        assert.equal((await mcpCall('summarize_text', { text: 'sample' })).isError, true);
+        await js('window.api.mcp.configure({ enabled: false })');
+        await done();
+        await reload();
+        await settings('integrations');
+        await wait(
+          "document.querySelector('[data-mcp=allowModels]').checked && !document.querySelector('[data-mcp=allowModels]').disabled"
+        );
+        await click('[data-mcp="allowModels"]');
+        await wait(
+          "!document.querySelector('[data-mcp=allowModels]').checked && !document.querySelector('[data-mcp=allowModels]').disabled"
+        );
+        await wait(
           "document.querySelector('.integration-settings')?.textContent.includes('Autoload is disabled by low-resource mode')"
         );
         await wait(

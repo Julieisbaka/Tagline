@@ -130,7 +130,7 @@ function registerSummarization({ app, ipcMain, readConfig, assertModelSender }) 
     }
     return request({ type: 'load' });
   });
-  ipcMain.handle('summary:run', async (_event, content) => {
+  async function summarize(content) {
     if (typeof content !== 'string' || !content.trim()) {
       throw new Error('There is no document text to summarize.');
     }
@@ -141,12 +141,14 @@ function registerSummarization({ app, ipcMain, readConfig, assertModelSender }) 
       throw new Error('Download and load the summary model first.');
     }
     return request({ type: 'summarize', content });
-  });
+  }
+  ipcMain.handle('summary:run', (_event, content) => summarize(content));
   app.on('before-quit', () => {
     if (worker) {
       worker.terminate();
     }
   });
+  return { status: () => ({ ready: state.ready, busy: state.busy }), summarize };
 }
 
 module.exports = { registerSummarization, MODEL };

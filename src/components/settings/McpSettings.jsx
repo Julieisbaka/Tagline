@@ -126,6 +126,21 @@ export default function McpSettings() {
         />
       </label>
       <label className='setting-row'>
+        <span>{t('Allow agents to use local models')}</span>
+        <input
+          type='checkbox'
+          data-mcp='allowModels'
+          checked={!!status?.allowModels}
+          disabled={!status || busy}
+          onChange={(e) => run(() => window.api.mcp.configure({ allowModels: e.target.checked }))}
+        />
+      </label>
+      <p>
+        {t(
+          'Token holders can run already-loaded models, including in the background. Load models in Tagline first; agent requests never download them. Inference uses CPU and memory.'
+        )}
+      </p>
+      <label className='setting-row'>
         <span>{t('Port')}</span>
         <input
           type='number'

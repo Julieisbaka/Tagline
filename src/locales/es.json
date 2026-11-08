@@ -1,4 +1,6 @@
 {
+  "Allow agents to use local models": "Permitir que los agentes usen modelos locales",
+  "Token holders can run already-loaded models, including in the background. Load models in Tagline first; agent requests never download them. Inference uses CPU and memory.": "Quienes tengan el token pueden usar modelos ya cargados, incluso en segundo plano. Primero carga los modelos en Tagline; las solicitudes de agentes no los descargan. La inferencia usa CPU y memoria.",
   "Advanced": "Avanzado",
   "Tabs and sidebar shortcuts": "Pestañas y accesos de la barra lateral",
   "Themes, fonts, and styles": "Temas, fuentes y estilos",

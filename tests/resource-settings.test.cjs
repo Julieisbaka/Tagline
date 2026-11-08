@@ -140,3 +140,159 @@ test('low-resource mode suppresses startup autoload but permits manual models an
   assert.equal(handlers['embeddings:lowResource:set']('trusted', false), false);
   assert.equal(config.modelAutoload, true);
 });
+
+test('MCP inference uses loaded app workers and respects shared busy and input checks', async (t) => {
+  const { createMcpService } = require('../electron/mcp.cjs');
+  const root = await fs.mkdtemp(path.join(os.tmpdir(), 'tagline-mcp-models-'));
+  t.after(() => fs.rm(root, { recursive: true, force: true }));
+  const instances = [];
+  class Worker extends EventEmitter {
+    constructor(file) {
+      super();
+      this.file = file;
+      instances.push(this);
+    }
+    postMessage(message) {
+      this.message = message;
+      if (message.type !== 'load' && message.type !== 'download') {
+        return;
+      }
+      setImmediate(() => this.emit('message', { id: message.id, result: { ready: true } }));
+    }
+    finish(result) {
+      this.emit('message', { id: this.message.id, result });
+    }
+    terminate() {
+      return Promise.resolve();
+    }
+  }
+  const load = async (file) => {
+    const filename = path.join(__dirname, '..', 'electron', file);
+    const module = { exports: {} };
+    vm.runInNewContext(await fs.readFile(filename, 'utf8'), {
+      module,
+      __dirname: path.dirname(filename),
+      console,
+      require: (name) =>
+        name === 'node:worker_threads' ? { Worker } : createRequire(filename)(name),
+    });
+    return module.exports;
+  };
+  const handlers = {};
+  const app = new EventEmitter();
+  app.getPath = () => root;
+  const opts = {
+    app,
+    ipcMain: { handle: (name, handler) => (handlers[name] = handler) },
+    getVaultRoot: () => root,
+    readConfig: () => ({ lowResourceMode: true, modelAutoload: true }),
+    writeConfig: () => {},
+    safeStorage: { isAsyncEncryptionAvailable: async () => true },
+    readToken: async () => '',
+    assertModelSender: () => {},
+  };
+  const models = {
+    embeddings: (await load('embeddings.cjs')).registerEmbeddings(opts),
+    summary: (await load('summarization.cjs')).registerSummarization(opts),
+    nli: (await load('nli.cjs')).registerNli(opts),
+  };
+  const service = createMcpService({
+    getVaultRoot: () => root,
+    getAllowModels: () => true,
+    getLocalModels: () => models,
+  });
+  const call = async (name, args) =>
+    (
+      await service.handle({
+        jsonrpc: '2.0',
+        id: 1,
+        method: 'tools/call',
+        params: { name, arguments: args },
+      })
+    ).result;
+  for (const [name, args] of [
+    ['embed_text', { text: 'query' }],
+    ['summarize_text', { text: 'text' }],
+    ['analyze_hypotheses', { premise: 'text', hypotheses: ['claim'] }],
+  ]) {
+    assert.equal((await call(name, args)).isError, true);
+  }
+  assert.equal(instances.length, 0);
+  await handlers['embeddings:download']();
+  await handlers['summary:load']();
+  await handlers['nli:load']();
+  assert.equal(instances.length, 3);
+  assert.equal((await call('embed_text', { text: 'x'.repeat(10001) })).isError, true);
+  assert.equal((await call('summarize_text', { text: 'x'.repeat(500001) })).isError, true);
+  const cases = [
+    ['embed_text', { text: 'query' }, 'embeddings:download', [1, 2]],
+    ['summarize_text', { text: 'document' }, 'summary:load', 'short'],
+    [
+      'analyze_hypotheses',
+      { premise: 'text', hypotheses: ['claim'] },
+      'nli:unload',
+      [{ score: 0.7 }],
+    ],
+  ];
+  for (const [index, [name, args, handler, result]] of cases.entries()) {
+    const task = call(name, args);
+    assert.equal((await call('local_model_status', {})).isError, undefined);
+    await assert.rejects(handlers[handler](), /already running|busy|finish/);
+    assert.equal((await call(name, args)).isError, true);
+    instances[index].finish(result);
+    assert.equal((await task).isError, undefined);
+  }
+});
+
+test('embedding worker returns normalized vectors without loading on embed', async () => {
+  const filename = path.join(__dirname, '..', 'electron', 'embeddingWorker.cjs');
+  const port = new EventEmitter();
+  const replies = [];
+  port.postMessage = (reply) => replies.push(reply);
+  let pipelineCalls = 0;
+  let options;
+  const transformers = {
+    env: {},
+    pipeline: async () => {
+      pipelineCalls++;
+      return async (text, opts) => {
+        assert.equal(text, 'hello');
+        options = opts;
+        return { data: new Float32Array([0.6, 0.8]) };
+      };
+    },
+  };
+  const source = (await fs.readFile(filename, 'utf8')).replace(
+    "await import('@huggingface/transformers')",
+    'transformersStub'
+  );
+  vm.runInNewContext(source, {
+    require: (name) =>
+      name === 'node:worker_threads'
+        ? { parentPort: port, workerData: { storage: 'test' } }
+        : createRequire(filename)(name),
+    transformersStub: transformers,
+    process: { env: {} },
+    globalThis: { fetch: () => {} },
+    Headers,
+    AbortSignal,
+    URL,
+  });
+  const send = async (message) => {
+    port.emit('message', message);
+    await new Promise((resolve) => setImmediate(resolve));
+    return replies.find((reply) => reply.id === message.id && !reply.progress);
+  };
+  assert.match(
+    (await send({ id: 1, type: 'embed', text: 'hello' })).error,
+    /Load the embedding model first/
+  );
+  assert.equal(pipelineCalls, 0);
+  await send({ id: 2, type: 'load' });
+  const result = await send({ id: 3, type: 'embed', text: 'hello' });
+  assert.ok(Math.abs(result.result[0] - 0.6) < 0.00001);
+  assert.ok(Math.abs(result.result[1] - 0.8) < 0.00001);
+  assert.equal(options.pooling, 'mean');
+  assert.equal(options.normalize, true);
+  assert.equal(pipelineCalls, 1);
+});

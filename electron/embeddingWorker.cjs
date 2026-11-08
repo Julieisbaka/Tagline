@@ -148,13 +148,18 @@ parentPort.on('message', (message) => {
   queue = queue.then(async () => {
     const report = (detail) => parentPort.postMessage({ id: message.id, progress: detail });
     try {
-      const result =
-        message.type === 'search'
-          ? await search(message, report)
-          : await loadModel(message.token || '', message.type === 'download', report).then(() => ({
-              ready: true,
-              model: MODEL,
-            }));
+      let result;
+      if (message.type === 'search') {
+        result = await search(message, report);
+      } else if (message.type === 'embed') {
+        if (!extractor) {
+          throw new Error('Load the embedding model first.');
+        }
+        result = await embed(extractor, message.text);
+      } else {
+        await loadModel(message.token || '', message.type === 'download', report);
+        result = { ready: true, model: MODEL };
+      }
       parentPort.postMessage({ id: message.id, result });
     } catch (e) {
       parentPort.postMessage({ id: message.id, error: `Local embeddings failed: ${e.message}` });

@@ -114,6 +114,8 @@ function registerEmbeddings({
       }
       if (pending.size) {
         fail(new Error(`Embedding worker exited (${code}).`));
+      } else {
+        state = { ...state, ready: false };
       }
       worker = null;
     });
@@ -300,7 +302,19 @@ function registerEmbeddings({
     .finally(() => {
       autoload = null;
     });
-  return { readToken };
+  return {
+    readToken,
+    status: () => ({ ready: state.ready, busy: state.busy }),
+    embed: async (text) => {
+      if (typeof text !== 'string' || !text.trim() || text.length > 10000) {
+        throw new Error('Provide text of 1 to 10,000 characters to embed.');
+      }
+      if (!state.ready) {
+        throw new Error('Load the embedding model in Settings first.');
+      }
+      return request({ type: 'embed', text });
+    },
+  };
 }
 
 module.exports = { registerEmbeddings };

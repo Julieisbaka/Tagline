@@ -3,10 +3,15 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs/promises');
 const os = require('node:os');
 const path = require('node:path');
-const { createMcpHttpServer, createMcpService, normalizeConfig } = require('../electron/mcp.cjs');
+const {
+  createMcpHttpServer,
+  createMcpService,
+  normalizeConfig,
+  registerMcp,
+} = require('../electron/mcp.cjs');
 const { registerExtensions } = require('../electron/extensions.cjs');
 
-async function withMcp(run, { allowWrites = true } = {}) {
+async function withMcp(run, { allowWrites = true, getAllowModels, getLocalModels } = {}) {
   const vault = await fs.mkdtemp(path.join(os.tmpdir(), 'tagline-mcp-'));
   await fs.mkdir(path.join(vault, 'Case'), { recursive: true });
   await fs.writeFile(
@@ -17,6 +22,8 @@ async function withMcp(run, { allowWrites = true } = {}) {
   const service = createMcpService({
     getVaultRoot: () => vault,
     getAllowWrites: () => allowWrites,
+    getAllowModels,
+    getLocalModels,
     writeNote: (rel, content) => fs.writeFile(path.join(vault, rel), content),
     renamePath: async (from, to) => {
       await fs.rename(path.join(vault, from), path.join(vault, to));
@@ -268,9 +275,103 @@ test('MCP configuration is normalized', () => {
     enabled: false,
     keepRunning: false,
     allowWrites: false,
+    allowModels: false,
     port: 38419,
     token: '',
   });
+});
+
+test('MCP model tools require independent permission and return local results', async () => {
+  let allowed = false;
+  const calls = [];
+  const models = {
+    embeddings: {
+      status: () => ({ ready: true, busy: false }),
+      embed: async (text) => (calls.push(text), [0.6, 0.8]),
+    },
+    summary: {
+      status: () => ({ ready: true, busy: false }),
+      summarize: async (text) => (calls.push(text), 'short'),
+    },
+    nli: {
+      status: () => ({ ready: false, busy: false }),
+      analyze: async (input) => (calls.push(input), { scores: [0.7] }),
+    },
+  };
+  await withMcp(
+    async ({ call, post }) => {
+      const listed = (await (await post({ jsonrpc: '2.0', id: 8, method: 'tools/list' })).json())
+        .result.tools;
+      for (const name of [
+        'local_model_status',
+        'embed_text',
+        'summarize_text',
+        'analyze_hypotheses',
+      ]) {
+        assert.ok(listed.some((tool) => tool.name === name));
+      }
+      const args = [
+        ['embed_text', { text: 'query' }],
+        ['summarize_text', { text: 'document' }],
+        ['analyze_hypotheses', { premise: 'evidence', hypotheses: ['claim'] }],
+      ];
+      for (const [name, input] of args) {
+        assert.equal((await call(name, input)).isError, true);
+      }
+      assert.equal(calls.length, 0);
+      assert.equal(
+        JSON.parse((await call('local_model_status', {})).content[0].text).allowed,
+        false
+      );
+      allowed = true;
+      assert.deepEqual(JSON.parse((await call(...args[0])).content[0].text).vector, [0.6, 0.8]);
+      assert.equal(JSON.parse((await call(...args[1])).content[0].text).summary, 'short');
+      assert.deepEqual(JSON.parse((await call(...args[2])).content[0].text).scores, [0.7]);
+      for (const hypotheses of [[], [''], Array(11).fill('x'), ['x'.repeat(401)], [42]]) {
+        assert.equal(
+          (await call('analyze_hypotheses', { premise: 'text', hypotheses })).isError,
+          true
+        );
+      }
+      assert.equal(calls.length, 3);
+      allowed = false;
+      assert.equal((await call(...args[0])).isError, true);
+    },
+    { allowWrites: false, getAllowModels: () => allowed, getLocalModels: () => models }
+  );
+});
+
+test('MCP model permission is opt-in, validated, persisted and restricted to the main frame', async () => {
+  const handlers = {};
+  const webContents = { mainFrame: {} };
+  const event = { sender: webContents, senderFrame: webContents.mainFrame };
+  let config = {};
+  const service = registerMcp({
+    app: { getVersion: () => 'test' },
+    ipcMain: { handle: (name, handler) => (handlers[name] = handler) },
+    getWindow: () => ({ webContents, isDestroyed: () => false }),
+    getVaultRoot: () => null,
+    getLocalModels: () => null,
+    readConfig: () => config,
+    writeConfig: (patch) => (config = { ...config, ...patch }),
+  });
+  try {
+    assert.equal(handlers['mcp:status'](event).allowModels, false);
+    await assert.rejects(handlers['mcp:configure'](event, { allowModels: 'true' }), /Invalid/);
+    await assert.rejects(
+      handlers['mcp:configure']({ ...event, senderFrame: {} }, { allowModels: true }),
+      /only available/
+    );
+    assert.equal((await handlers['mcp:configure'](event, { allowModels: true })).allowModels, true);
+    assert.equal(config.mcp.allowModels, true);
+    assert.equal(handlers['mcp:status'](event).allowModels, true);
+    assert.equal(
+      (await handlers['mcp:configure'](event, { allowModels: false })).allowModels,
+      false
+    );
+  } finally {
+    await service.close();
+  }
 });
 
 test('platform: dropping an extension folder installs and enables it, gating reviewed permissions', async () => {

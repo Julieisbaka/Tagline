@@ -271,7 +271,7 @@ function registerNli({
       state = { ...state, busy: false };
     }
   });
-  ipcMain.handle('nli:analyze', async (_e, payload) => {
+  async function analyze(payload) {
     const valid = validateAnalysis(payload);
     if (!state.ready) {
       throw new Error('Load the Political DEBATE model first.');
@@ -279,8 +279,10 @@ function registerNli({
     const result = await request({ type: 'analyze', ...valid });
     state = { ...state, detail: 'Model ready. Analysis runs locally.' };
     return result;
-  });
+  }
+  ipcMain.handle('nli:analyze', (_e, payload) => analyze(payload));
   app.on('before-quit', () => stop());
+  return { status: () => ({ ready: state.ready, busy: state.busy }), analyze };
 }
 
 module.exports = { registerNli, validateAnalysis, DEFAULT_REPO, REPO_PATTERN };

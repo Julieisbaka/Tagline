@@ -48,6 +48,8 @@ function outline(text) {
 function createMcpService({
   getVaultRoot,
   getAllowWrites = () => true,
+  getAllowModels = () => false,
+  getLocalModels = () => null,
   writeNote,
   renamePath,
   trashItem,
@@ -99,6 +101,16 @@ function createMcpService({
         'Tagline is in read-only mode for agents. Enable "Allow agents to change notes" in Settings > Integrations.'
       );
     }
+  };
+  const requireModels = () => {
+    if (!getAllowModels()) {
+      throw new ToolError('Enable "Allow agents to use local models" in Settings > Integrations.');
+    }
+    const models = getLocalModels();
+    if (!models) {
+      throw new ToolError('Local models are not available yet.');
+    }
+    return models;
   };
   const exists = (full) =>
     fs.stat(full).then(
@@ -239,8 +251,91 @@ function createMcpService({
           vaultOpen: !!base,
           vaultName: base ? path.basename(base) : null,
           allowWrites: !!getAllowWrites(),
+          allowModels: !!getAllowModels(),
           noteExtensions: NOTE_EXTS,
         };
+      },
+    },
+    {
+      name: 'local_model_status',
+      title: 'Local model status',
+      description:
+        'Report whether agent model access is enabled and each local model is loaded or busy.',
+      inputSchema: { type: 'object', properties: {} },
+      annotations: { readOnlyHint: true },
+      run: async () => {
+        const models = getLocalModels();
+        return {
+          allowed: !!getAllowModels(),
+          models: models
+            ? Object.fromEntries(
+                Object.entries(models).map(([name, model]) => [name, model.status()])
+              )
+            : {},
+        };
+      },
+    },
+    {
+      name: 'embed_text',
+      title: 'Embed text locally',
+      description:
+        'Generate a normalized embedding with the loaded local semantic search model. Long text may be truncated by the model.',
+      inputSchema: {
+        type: 'object',
+        properties: { text: { type: 'string', minLength: 1, maxLength: 10000 } },
+        required: ['text'],
+      },
+      annotations: { readOnlyHint: true },
+      run: async ({ text } = {}) => ({
+        model: 'Xenova/all-MiniLM-L6-v2',
+        vector: await requireModels().embeddings.embed(text),
+      }),
+    },
+    {
+      name: 'summarize_text',
+      title: 'Summarize text locally',
+      description:
+        'Summarize text with the loaded local summary model. Long inputs may be truncated.',
+      inputSchema: {
+        type: 'object',
+        properties: { text: { type: 'string', minLength: 1, maxLength: 500000 } },
+        required: ['text'],
+      },
+      annotations: { readOnlyHint: true },
+      run: async ({ text } = {}) => ({ summary: await requireModels().summary.summarize(text) }),
+    },
+    {
+      name: 'analyze_hypotheses',
+      title: 'Analyze hypotheses locally',
+      description:
+        'Score whether passages support hypotheses using the loaded Political DEBATE model. Scores are estimates, not verified facts.',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          premise: { type: 'string', minLength: 1, maxLength: 200000 },
+          hypotheses: {
+            type: 'array',
+            minItems: 1,
+            maxItems: 10,
+            items: { type: 'string', maxLength: 400 },
+          },
+        },
+        required: ['premise', 'hypotheses'],
+      },
+      annotations: { readOnlyHint: true },
+      run: async ({ premise, hypotheses } = {}) => {
+        const models = requireModels();
+        if (
+          typeof premise !== 'string' ||
+          premise.length > 200000 ||
+          !Array.isArray(hypotheses) ||
+          hypotheses.length < 1 ||
+          hypotheses.length > 10 ||
+          hypotheses.some((item) => typeof item !== 'string' || !item.trim() || item.length > 400)
+        ) {
+          throw new ToolError('Provide text and 1 to 10 hypotheses of up to 400 characters each.');
+        }
+        return models.nli.analyze({ premise, hypotheses });
       },
     },
     {
@@ -818,6 +913,7 @@ function normalizeConfig(value) {
     enabled: config.enabled === true,
     keepRunning: config.keepRunning === true,
     allowWrites: config.allowWrites !== false,
+    allowModels: config.allowModels === true,
     port:
       Number.isInteger(config.port) && config.port >= 1024 && config.port <= 65535
         ? config.port
@@ -854,6 +950,7 @@ function registerMcp({
   const service = createMcpService({
     getVaultRoot,
     getAllowWrites: () => config().allowWrites,
+    getAllowModels: () => config().allowModels,
     version: app.getVersion(),
     notifyChanged: () => send('mcp:vaultChanged'),
     openNote: (rel) => {
@@ -895,6 +992,7 @@ function registerMcp({
       url: `http://127.0.0.1:${current.port}/mcp`,
       token: current.token,
       allowWrites: current.allowWrites,
+      allowModels: current.allowModels,
       vaultRoot: getVaultRoot(),
       error,
     };
@@ -925,6 +1023,12 @@ function registerMcp({
         throw new Error('Invalid MCP setting.');
       }
       patch.allowWrites = options.allowWrites;
+    }
+    if (options?.allowModels !== undefined) {
+      if (typeof options.allowModels !== 'boolean') {
+        throw new Error('Invalid MCP setting.');
+      }
+      patch.allowModels = options.allowModels;
     }
     if (options?.keepRunning !== undefined) {
       if (typeof options.keepRunning !== 'boolean') {
