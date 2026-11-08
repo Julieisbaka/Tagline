@@ -4,8 +4,8 @@ import ContextMenu from './ContextMenu.jsx';
 export default function TextContextMenu() {
   const [menu, setMenu] = useState(null);
   useEffect(() => {
-    let pendingSpell = null;
-    const offSpell = window.api.spellcheck?.onContext((info) => pendingSpell?.(info));
+    const pendingSpell = [];
+    const offSpell = window.api.spellcheck?.onContext((info) => pendingSpell.shift()?.(info));
     const open = (event) => {
       if (event.defaultPrevented || event.target.closest('.context-menu')) {
         return;
@@ -92,11 +92,10 @@ export default function TextContextMenu() {
         const finish = (info) => {
           if (!done) {
             done = true;
-            pendingSpell = null;
             show(info);
           }
         };
-        pendingSpell = finish;
+        pendingSpell.push(finish);
         setTimeout(() => finish(null), 250);
       } else {
         show(null);
