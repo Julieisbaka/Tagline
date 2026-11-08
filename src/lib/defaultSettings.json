@@ -1,5 +1,5 @@
 {
-  "wpm": 250,
+  "syllablesPerMinute": 375,
   "readingSamples": [],
   "speechDoc": "Speech Docs/Speech.md",
   "warnDuplicateSend": true,

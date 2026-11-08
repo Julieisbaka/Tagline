@@ -319,14 +319,14 @@ export function speechStats(text, options = {}) {
 }
 /**
  * Estimate speech duration from statistics, rate, and optional personal profile.
- * This function calculates the expected duration of spoken content based on the provided speech statistics, speaking rate (words per minute), and an optional personal profile that adjusts for individual articulation and pause patterns.
+ * This function calculates the expected duration from weighted syllables, syllables per minute, and an optional personal profile.
  * @param {object} stats - The speech statistics object, typically obtained from analyzeSpeech.
- * @param {number} [wpm=250] - The speaking rate in words per minute. Defaults to 250 if not specified.
+ * @param {number} [spm=375] - The speaking rate in weighted syllables per minute.
  * @param {object|null} [profile=null] - An optional personal profile containing articulation and pause adjustments.
  * @returns {number} - The estimated duration of the speech in seconds.
  */
-export function readingSeconds(stats, wpm = 250, profile = null) {
-  if (!Number.isFinite(wpm) || wpm <= 0) {
+export function readingSeconds(stats, spm = 375, profile = null) {
+  if (!Number.isFinite(spm) || spm <= 0) {
     throw new Error('Speaking rate must be a positive number.');
   }
   if (
@@ -368,9 +368,7 @@ export function readingSeconds(stats, wpm = 250, profile = null) {
       pauseSeconds * profile.pauses
     );
   }
-  return (
-    (stats.weightedSyllables / (wpm * 1.5)) * 60 + (stats.pauseUnits || 0) * Math.sqrt(250 / wpm)
-  );
+  return (stats.weightedSyllables / spm) * 60 + (stats.pauseUnits || 0) * Math.sqrt(375 / spm);
 }
 
 /**
@@ -648,11 +646,11 @@ export function calibrateReading(samples = []) {
  * Assess duration and effort metrics using a default or calibrated speech profile.
  * This function evaluates the expected duration, reading ease, and effort required for a given set of speech statistics, optionally using a calibrated profile to adjust for individual articulation and pause patterns.
  * @param {object} stats - The speech statistics object, typically obtained from analyzeSpeech.
- * @param {number} [wpm=250] - The speaking rate in words per minute. Defaults to 250 if not specified.
+ * @param {number} [spm=375] - The speaking rate in weighted syllables per minute.
  * @param {object|null} [profile=null] - An optional calibrated profile containing baseline density and baseline seconds per word.
  * @returns {object} - An object containing the assessed metrics: seconds, readingEase, effort, and a flag indicating whether a calibrated profile was used.
  */
-export function readingAssessment(stats, wpm = 250, profile = null) {
+export function readingAssessment(stats, spm = 375, profile = null) {
   for (const key of ['syllables', 'weightedSyllables', 'spokenWords', 'sentences']) {
     if (!Number.isFinite(stats?.[key]) || stats[key] < 0) {
       throw new Error('Invalid speech statistics.');
@@ -673,7 +671,7 @@ export function readingAssessment(stats, wpm = 250, profile = null) {
     ? 206.835 - (1.015 * words) / Math.max(1, stats.sentences) - (84.6 * stats.syllables) / words
     : null;
   const baseline = profile?.baselineDensity || 1.6;
-  const seconds = readingSeconds(stats, wpm, profile);
+  const seconds = readingSeconds(stats, spm, profile);
   const effort = words
     ? profile
       ? (100 * seconds) / words / profile.baselineSecondsPerWord

@@ -328,6 +328,48 @@ function VisualDocument({
             underline: () => editor.chain().focus().toggleUnderline().run(),
             emphasis: () => editor.chain().focus().toggleBold().toggleUnderline().run(),
             highlight: () => editor.chain().focus().toggleHighlight().run(),
+            'mark-card': () => {
+              const { from, to, empty } = editor.state.selection;
+              if (empty) {
+                live.current.notify(t('Select content outside existing card markers.'));
+                return;
+              }
+              const start = editor.state.doc.resolve(from);
+              const end = editor.state.doc.resolve(to - 1);
+              if (!start.depth || !end.depth) {
+                return;
+              }
+              const fromBlock = start.before(1);
+              const toBlock = end.after(1);
+              let open = null;
+              let overlaps = false;
+              editor.state.doc.forEach((item, offset) => {
+                if (item.type.name !== 'cardMarker') {
+                  return;
+                }
+                if (offset >= fromBlock && offset < toBlock) {
+                  overlaps = true;
+                }
+                if (item.attrs.kind === 'start') {
+                  open = offset;
+                } else if (item.attrs.kind === 'end' && open !== null) {
+                  if (fromBlock < offset + item.nodeSize && toBlock > open) {
+                    overlaps = true;
+                  }
+                  open = null;
+                }
+              });
+              if (overlaps) {
+                live.current.notify(t('Select content outside existing card markers.'));
+                return;
+              }
+              const node = editor.state.schema.nodes.cardMarker;
+              const transaction = editor.state.tr
+                .insert(toBlock, node.create({ kind: 'end' }))
+                .insert(fromBlock, node.create({ kind: 'start' }));
+              editor.view.dispatch(transaction);
+              editor.view.focus();
+            },
             'clear-format': () => editor.chain().focus().unsetAllMarks().run(),
             link: () => setLinkOpen((open) => !open),
             find: () => setFindOpen((open) => !open),

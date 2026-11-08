@@ -7,6 +7,7 @@ const ACTIONS = [
   ['hat', 'Hat'],
   ['block', 'Block'],
   ['tag', 'Tag'],
+  ['mark-card', 'Mark as card'],
   ['cite', 'Cite / Bold'],
   ['underline', 'Underline'],
   ['emphasis', 'Emphasis'],

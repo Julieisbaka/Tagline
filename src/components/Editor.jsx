@@ -14,6 +14,7 @@ import {
 import CodeMirror from '@uiw/react-codemirror';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { createCodeMirrorFindReplacePanel } from '../lib/codeMirrorFindReplace.js';
+import { detectCards } from '../lib/cardDetection.js';
 import {
   clearFormatting,
   debateDecorations,
@@ -34,6 +35,30 @@ const SOURCE_ACTIONS = {
   hat: setHeading(2),
   block: setHeading(3),
   tag: setHeading(4),
+  'mark-card': (view) => {
+    const { from, to } = view.state.selection.main;
+    if (from === to) {
+      return false;
+    }
+    const start = view.state.doc.lineAt(from).from;
+    const end = view.state.doc.lineAt(to > from ? to - 1 : to).to;
+    const text = view.state.doc.toString();
+    if (
+      /<!-- card:(?:start|end) -->/.test(text.slice(start, end)) ||
+      detectCards(text).some(
+        (card) => card.explicit && start < card.endOffset && end > card.startOffset
+      )
+    ) {
+      return false;
+    }
+    view.dispatch({
+      changes: [
+        { from: start, insert: '<!-- card:start -->\n' },
+        { from: end, insert: '\n<!-- card:end -->' },
+      ],
+    });
+    return true;
+  },
   cite: toggleWrap('**'),
   bold: toggleWrap('**'),
   italic: toggleWrap('*'),
@@ -209,7 +234,9 @@ export default function Editor({
     if (!view || view.destroyed) {
       return;
     }
-    command(view);
+    if (command(view) === false && command === SOURCE_ACTIONS['mark-card']) {
+      notify(t('Select content outside existing card markers.'));
+    }
     view.focus();
   };
   return (

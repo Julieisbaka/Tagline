@@ -114,9 +114,7 @@ export default function ReadingSettings({ settings, update, contents = {} }) {
     if (recording.started) {
       clearInterval(timerRef.current);
       timerRef.current = null;
-      setRecording((previous) =>
-        previous ? { ...previous, started: null } : previous
-      );
+      setRecording((previous) => (previous ? { ...previous, started: null } : previous));
     } else {
       const offset = performance.now() - recording.elapsed * 1000;
       setRecording((previous) => (previous ? { ...previous, started: offset } : previous));
@@ -178,11 +176,7 @@ export default function ReadingSettings({ settings, update, contents = {} }) {
         {t('Import timed reading documents')}
       </button>
       {documents.length > 0 && !recording && (
-        <Recorder
-          documents={documents}
-          onStart={startRecording}
-          t={t}
-        />
+        <Recorder documents={documents} onStart={startRecording} t={t} />
       )}
       {recording && (
         <fieldset className='reading-recording'>
@@ -195,9 +189,7 @@ export default function ReadingSettings({ settings, update, contents = {} }) {
                 : 'Highlighted evidence and spoken citations'
             )}
           </p>
-          <button onClick={toggleRecording}>
-            {t(recording.started ? 'Pause' : 'Resume')}
-          </button>
+          <button onClick={toggleRecording}>{t(recording.started ? 'Pause' : 'Resume')}</button>
           <button onClick={() => stopRecording(true)}>{t('Stop and save sample')}</button>
           <button onClick={() => stopRecording(false)}>{t('Discard')}</button>
         </fieldset>
@@ -288,7 +280,8 @@ export default function ReadingSettings({ settings, update, contents = {} }) {
             <small>
               {t('Estimated: {time}', {
                 time: formatDuration(
-                  readingAssessment(sample.stats, settings.wpm, result.profile).seconds
+                  readingAssessment(sample.stats, settings.syllablesPerMinute, result.profile)
+                    .seconds
                 ),
               })}
             </small>

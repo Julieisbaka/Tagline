@@ -248,7 +248,7 @@ test('read time uses syllables and articulation complexity, not word count', asy
   const easy = speechStats('cat cat cat cat');
   assert.equal(clusters.syllables, easy.syllables);
   assert.ok(clusters.weightedSyllables > easy.weightedSyllables);
-  assert.equal(readingSeconds({ weightedSyllables: 375 }, 250), 60);
+  assert.equal(readingSeconds({ weightedSyllables: 375 }, 375), 60);
   assert.equal(readingSeconds(complex, 500), readingSeconds(complex, 250) / 2);
   assert.equal(readingSeconds(speechStats('')), 0);
   assert.throws(() => readingSeconds(simple, 0), /positive/);

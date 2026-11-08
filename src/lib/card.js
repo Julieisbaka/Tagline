@@ -12,6 +12,16 @@ const HEADING_RE = /^(#{1,6})\s/;
  * @returns {object|null} - An object containing the section text, heading level, and title, or null if no section is found.
  */
 export function getSectionAt(content, offset) {
+  const explicit = detectCards(content).find(
+    (card) => card.explicit && offset >= card.startOffset && offset < card.endOffset
+  );
+  if (explicit) {
+    return {
+      text: content.slice(explicit.startOffset, explicit.endOffset).trimEnd(),
+      level: 4,
+      title: explicit.title,
+    };
+  }
   const metadata = splitFrontmatter(content);
   if (offset < metadata.offset) {
     return null;

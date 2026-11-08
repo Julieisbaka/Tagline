@@ -396,7 +396,12 @@ export function SettingsDialog({
               className='settings-panel'
             >
               <h3>{t('Speech and reading')}</h3>
-              {field('Speaking rate (words per minute)', 'wpm', 'number', { min: 50, max: 1000 })}
+              {field(
+                'Speaking rate (weighted syllables per minute)',
+                'syllablesPerMinute',
+                'number',
+                { min: 75, max: 1500 }
+              )}
               <ReadingSettings settings={settings} update={update} contents={contents} />
               <TimerSoundSettings settings={settings} update={update} />
               <label className='setting-row'>

@@ -582,21 +582,25 @@ export function extensionHelper(method, args) {
     case 'helpers.speech.text':
       return spokenText(requireHelperText(args[0], 'Text'));
     case 'helpers.speech.readingSeconds': {
-      const wpm = args[1] === undefined ? 250 : args[1];
-      if (!Number.isFinite(wpm) || wpm < 50 || wpm > 1000) {
-        throw new Error('Speaking rate must be a number from 50 to 1,000 words per minute.');
+      const spm = args[1] === undefined ? 375 : args[1];
+      if (!Number.isFinite(spm) || spm < 75 || spm > 1500) {
+        throw new Error(
+          'Speaking rate must be a number from 75 to 1,500 weighted syllables per minute.'
+        );
       }
-      return readingSeconds(args[0], wpm, args[2] ?? null);
+      return readingSeconds(args[0], spm, args[2] ?? null);
     }
     case 'helpers.speech.validateSample':
       return validateReadingSample(args[0]);
     case 'helpers.speech.calibrate':
       return calibrateReading(args[0]);
     case 'helpers.speech.assess':
-      if (args[1] !== undefined && (!Number.isFinite(args[1]) || args[1] < 50 || args[1] > 1000)) {
-        throw new Error('Speaking rate must be a number from 50 to 1,000 words per minute.');
+      if (args[1] !== undefined && (!Number.isFinite(args[1]) || args[1] < 75 || args[1] > 1500)) {
+        throw new Error(
+          'Speaking rate must be a number from 75 to 1,500 weighted syllables per minute.'
+        );
       }
-      return readingAssessment(args[0], args[1] === undefined ? 250 : args[1], args[2] ?? null);
+      return readingAssessment(args[0], args[1] === undefined ? 375 : args[1], args[2] ?? null);
     case 'helpers.nli.premise':
       return premiseText(requireHelperText(args[0], 'Markdown'));
     case 'helpers.nli.hypotheses':
@@ -769,12 +773,14 @@ export function extensionHelper(method, args) {
       return speechStats(requireHelperText(args[0], 'Text'));
     case 'helpers.speech.estimate': {
       const text = requireHelperText(args[0], 'Text');
-      const wpm = args[1] === undefined ? 250 : args[1];
-      if (!Number.isFinite(wpm) || wpm < 50 || wpm > 1000) {
-        throw new Error('Speaking rate must be a number from 50 to 1,000 words per minute.');
+      const spm = args[1] === undefined ? 375 : args[1];
+      if (!Number.isFinite(spm) || spm < 75 || spm > 1500) {
+        throw new Error(
+          'Speaking rate must be a number from 75 to 1,500 weighted syllables per minute.'
+        );
       }
       const stats = speechStats(text);
-      return { ...stats, seconds: readingSeconds(stats, wpm) };
+      return { ...stats, seconds: readingSeconds(stats, spm) };
     }
     default:
       return extensionUtilityHelper(method, args);

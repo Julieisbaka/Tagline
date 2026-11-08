@@ -257,17 +257,19 @@ test('checkup comments survive visual editing and can be refreshed afterward', a
     extensions: visualExtensions(),
     contentType: 'markdown',
     content:
-      '#### Card\n<!-- Evidence checkup (citation): No citation. -->\n<!-- Evidence checkup (source): Mismatch. -->\nText',
+      '#### Card\n<!-- Evidence checkup (citation): No citation. -->\n<!-- Evidence checkup (source): Mismatch. -->\n<!-- Evidence checkup (recut): Review fragment. -->\nText',
   });
   try {
     const markdown = editor.getMarkdown();
     assert.match(markdown, /<!-- Evidence checkup \(citation\): No citation\. -->/);
     assert.match(markdown, /<!-- Evidence checkup \(source\): Mismatch\. -->/);
+    assert.match(markdown, /<!-- Evidence checkup \(recut\): Review fragment\. -->/);
     const files = { 'a.md': markdown };
     const cards = scanCards(files);
     const result = annotateEvidence(files, cards, [], ['citation'], () => '');
     assert.doesNotMatch(result['a.md'], /Evidence checkup \(citation\)/);
     assert.match(result['a.md'], /Evidence checkup \(source\)/);
+    assert.match(result['a.md'], /Evidence checkup \(recut\)/);
     assert.match(result['a.md'], /Text/);
   } finally {
     editor.destroy();

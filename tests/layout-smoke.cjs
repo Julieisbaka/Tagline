@@ -34,7 +34,7 @@ const delay = (ms) => new Promise((r) => setTimeout(r, ms));
     body += `#### Card ${i}\n\n**Smith ${i}**\n\n==Evidence paragraph ${i} with some highlighted text.== More.\n\n`;
   }
   body +=
-    '#### Source one\n**Smith 2020** — "Study", [source](https://example.com/a)\n\n' +
+    '#### Source one\n**Smith 2020** — "Study", [source](https://example.com/a)\n==They is effective.==\n\n' +
     '#### Source two\n**Smith 2020** — "Study", [source](https://example.com/a)\n\n' +
     '#### Source unavailable\n**Jones 2021** — [source](https://example.com/b)\n';
   await fs.writeFile(path.join(vault, 'Doc.md'), body);
@@ -210,6 +210,9 @@ const delay = (ms) => new Promise((r) => setTimeout(r, ms));
             'checkbox label is aligned with its control'
           );
         }
+        await js(`Array.from(document.querySelectorAll('.evidence-checkup-dialog label')).find(
+          label => label.textContent.includes('Flag possible recuts in highlighted English text')
+        ).querySelector('input').click()`);
         await js(
           "[...document.querySelectorAll('.evidence-checkup-dialog button')].find(button => button.textContent === 'Scan vault').click()"
         );
@@ -236,6 +239,13 @@ const delay = (ms) => new Promise((r) => setTimeout(r, ms));
           'ambiguous citation fields are visible in scan results'
         );
         assert.deepEqual(sourceRequests, [], 'source metadata is not requested by a scan');
+        assert.equal(
+          await js(
+            "document.querySelector('.evidence-results').textContent.includes('They is effective.')"
+          ),
+          true,
+          'recut suggestions show the highlighted excerpt'
+        );
         await js(
           "[...document.querySelectorAll('.evidence-checkup-dialog button')].find(button => button.textContent === 'Compare sources').click()"
         );

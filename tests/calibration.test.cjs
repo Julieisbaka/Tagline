@@ -4,6 +4,34 @@ const fs = require('node:fs/promises');
 const path = require('node:path');
 const os = require('node:os');
 
+test('syllable rate is direct and old settings preserve their effective timing', async () => {
+  const { readingSeconds } = await import('../src/lib/readTime.js');
+  const { speechRateFromSettings } = await import('../src/lib/speechRate.js');
+  assert.equal(readingSeconds({ weightedSyllables: 300 }, 300), 60);
+  assert.equal(speechRateFromSettings({ wpm: 250 }), 375);
+  assert.equal(speechRateFromSettings({ wpm: 250, syllablesPerMinute: 600 }), 600);
+  assert.equal(speechRateFromSettings({}), 375);
+  assert.equal(
+    readingSeconds({ weightedSyllables: 375, pauseUnits: 1 }, speechRateFromSettings({ wpm: 250 })),
+    61
+  );
+});
+
+test('speech trigger filters quiet, out-of-band and narrow tonal sounds', async () => {
+  const { speechLike } = await import('../src/lib/voiceActivity.js');
+  const waveform = new Float32Array(2048).fill(0.1);
+  const spectrum = new Float32Array(1024).fill(-100);
+  spectrum.fill(-20, 10, 20);
+  assert.equal(speechLike(waveform, spectrum, 48000, 0.04), true);
+  assert.equal(speechLike(waveform, spectrum, 48000, 0.2), false);
+  spectrum.fill(-100);
+  spectrum[15] = -20;
+  assert.equal(speechLike(waveform, spectrum, 48000, 0.04), false);
+  spectrum.fill(-100);
+  spectrum.fill(-20, 300, 310);
+  assert.equal(speechLike(waveform, spectrum, 48000, 0.04), false);
+});
+
 test('speech timing includes punctuation without mistaking decimal separators for pauses', async () => {
   const { speechStats, readingSeconds, spokenText } = await import('../src/lib/readTime.js');
   const plain = speechStats('cat dog fish cat dog fish');

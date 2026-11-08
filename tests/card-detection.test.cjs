@@ -176,7 +176,11 @@ test('parser ignores headings in lists, tables, blockquotes and HTML and retains
     '#### Last',
   ].join('\r\n');
   assert.deepEqual(
-    detectCards(text).map(({ title, lineIndex, endLineIndex }) => ({ title, lineIndex, endLineIndex })),
+    detectCards(text).map(({ title, lineIndex, endLineIndex }) => ({
+      title,
+      lineIndex,
+      endLineIndex,
+    })),
     [
       { title: 'Real', lineIndex: 16, endLineIndex: 18 },
       { title: 'Last', lineIndex: 21, endLineIndex: 22 },
@@ -193,13 +197,22 @@ test('cleans inline markdown in titles, handles trailing hashes and duplicate ti
     'cite',
   ].join('\n');
   const cards = detectCards(text);
-  assert.deepEqual(cards.map((c) => c.title), ['Heg — AT: Economy', 'Heg — AT: Economy']);
+  assert.deepEqual(
+    cards.map((c) => c.title),
+    ['Heg — AT: Economy', 'Heg — AT: Economy']
+  );
 });
 
 test('##### subheads stay inside a card by default', async () => {
   const { detectCards } = await import('../src/lib/cardDetection.js');
   const cards = detectCards('#### Card\ntext\n##### Sub\nmore\n#### Next\n');
-  assert.deepEqual(cards.map((c) => [c.title, c.endLineIndex]), [['Card', 4], ['Next', 6]]);
+  assert.deepEqual(
+    cards.map((c) => [c.title, c.endLineIndex]),
+    [
+      ['Card', 4],
+      ['Next', 6],
+    ]
+  );
 });
 
 test('offsets are stable for selection/folding', async () => {
@@ -213,8 +226,91 @@ test('offsets are stable for selection/folding', async () => {
 test('configurable depth and weak candidates with confidence', async () => {
   const { detectCards } = await import('../src/lib/cardDetection.js');
   const text = '### Top\n#### Card\n##### Sub\n';
-  assert.deepEqual(detectCards(text, { depth: 3 }).map((c) => [c.title, c.depth, c.confidence]), [['Top', 3, 1]]);
+  assert.deepEqual(
+    detectCards(text, { depth: 3 }).map((c) => [c.title, c.depth, c.confidence]),
+    [['Top', 3, 1]]
+  );
   const weak = detectCards(text, { weak: true });
   assert.ok(weak.some((c) => c.title === 'Sub' && c.weak && c.confidence < 1));
   assert.ok(weak.some((c) => c.title === 'Card' && !c.weak));
+});
+
+test('explicit marker pairs take priority over headings and preserve citation offsets', async () => {
+  const { detectCards } = await import('../src/lib/cardDetection.js');
+  const { scanCards } = await import('../src/lib/evidenceCheckup.js');
+  const { getSectionAt } = await import('../src/lib/card.js');
+  const text = [
+    '---',
+    'name: Test',
+    '---',
+    '#### Before',
+    '**Old 2020**',
+    '<!-- card:start -->',
+    '## Explicit title',
+    '**Smith 2024** — Journal',
+    '#### Nested heading',
+    'Evidence',
+    '<!-- card:end -->',
+    '#### After',
+    '**Jones 2023**',
+  ].join('\r\n');
+  const cards = detectCards(text);
+  assert.deepEqual(
+    cards.map((card) => card.title),
+    ['Before', 'Explicit title', 'After']
+  );
+  assert.equal(cards[1].explicit, true);
+  assert.equal(
+    text.slice(cards[1].startOffset, cards[1].endOffset),
+    '<!-- card:start -->\r\n## Explicit title\r\n**Smith 2024** — Journal\r\n#### Nested heading\r\nEvidence\r\n<!-- card:end -->\r\n'
+  );
+  assert.equal(
+    text.slice(cards[0].startOffset, cards[0].endOffset),
+    '#### Before\r\n**Old 2020**\r\n'
+  );
+  const [explicit] = scanCards({ 'x.md': text }).filter((card) => card.title === 'Explicit title');
+  assert.equal(explicit.citation.author, 'Smith');
+  assert.equal(
+    text.slice(explicit.citationFieldSpans.author.start, explicit.citationFieldSpans.author.end),
+    'Smith'
+  );
+  assert.equal(getSectionAt(text, text.indexOf('Evidence')).title, 'Explicit title');
+});
+
+test('marker-like text in code and unpaired or nested comments does not create explicit cards', async () => {
+  const { detectCards } = await import('../src/lib/cardDetection.js');
+  const text =
+    '```\n<!-- card:start -->\n<!-- card:end -->\n```\n<!-- card:start -->\n#### Visible\n';
+  assert.deepEqual(
+    detectCards(text).map((card) => card.title),
+    ['Visible']
+  );
+  const nested =
+    '<!-- card:start -->\n<!-- card:start -->\n#### Visible\n<!-- card:end -->\n<!-- card:end -->\n';
+  assert.deepEqual(
+    detectCards(nested).map((card) => card.title),
+    ['Visible']
+  );
+});
+
+test('explicit markers survive visual Markdown round trips', async () => {
+  const { Editor } = await import('@tiptap/core');
+  const { visualExtensions } = await import('../src/lib/visualExtensions.js');
+  const { visualBlocker } = await import('../src/lib/visualHelpers.js');
+  const editor = new Editor({
+    element: null,
+    extensions: visualExtensions(),
+    contentType: 'markdown',
+    content: '<!-- card:start -->\n## Title\n**Smith 2024**\n<!-- card:end -->',
+  });
+  try {
+    const result = editor.getMarkdown();
+    assert.match(result, /<!-- card:start -->/);
+    assert.match(result, /<!-- card:end -->/);
+    const { detectCards } = await import('../src/lib/cardDetection.js');
+    assert.equal(detectCards(result)[0].title, 'Title');
+    assert.equal(visualBlocker(result), null);
+  } finally {
+    editor.destroy();
+  }
 });

@@ -11,7 +11,11 @@ export function visualBlocker(content) {
     return 'invalid YAML frontmatter';
   }
   content = metadata.body;
-  if (/<!--|<\/?[a-z][^>]*>/i.test(content.replace(/```[\s\S]*?```/g, ''))) {
+  if (
+    /<!--|<\/?[a-z][^>]*>/i.test(
+      content.replace(/```[\s\S]*?```/g, '').replace(/^ {0,3}<!-- card:(?:start|end) -->\s*$/gm, '')
+    )
+  ) {
     return 'embedded HTML';
   }
   if (/^\[\^[^\]]+\]:/m.test(content)) {
@@ -49,6 +53,24 @@ export function visualSelection(editor, ignoreSelection = false) {
   const { from, to, $from } = editor.state.selection;
   if (!ignoreSelection && from !== to) {
     return serializeSlice(editor, from, to);
+  }
+  let markerStart = null;
+  let marked = null;
+  editor.state.doc.forEach((node, offset) => {
+    if (node.type.name !== 'cardMarker') {
+      return;
+    }
+    if (node.attrs.kind === 'start') {
+      markerStart = offset;
+    } else if (node.attrs.kind === 'end' && markerStart !== null) {
+      if (from >= markerStart && from < offset + node.nodeSize) {
+        marked = [markerStart, offset + node.nodeSize];
+      }
+      markerStart = null;
+    }
+  });
+  if (marked) {
+    return serializeSlice(editor, ...marked);
   }
   let start = 0;
   let end = editor.state.doc.content.size;

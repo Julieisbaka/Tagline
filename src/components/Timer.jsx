@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { formatDuration } from '../lib/card.js';
 import { remainingAt } from '../lib/countdown.js';
 import { useI18n } from '../lib/i18n.js';
+import { speechLike } from '../lib/voiceActivity.js';
 import TimerPresetDialog from './dialogs/TimerPresetDialog.jsx';
 
 export const FORMATS = {
@@ -90,6 +91,12 @@ function useCountdown(initial, onComplete) {
   return {
     remaining,
     running,
+    start: () => {
+      if (deadline.current === null && remaining > 0) {
+        deadline.current = Date.now() + remaining * 1000;
+        setRunning(true);
+      }
+    },
     toggle: () => {
       if (deadline.current !== null) {
         setRemaining(remainingAt(deadline.current));
@@ -170,6 +177,86 @@ export default function Timer({
   const main = useCountdown(fmt ? Math.round(fmt.speeches[0][1] * 60) : 0, playEndSound);
   const aff = useCountdown(fmt ? Math.round(fmt.prep * 60) : 0, playEndSound);
   const neg = useCountdown(fmt ? Math.round(fmt.prep * 60) : 0, playEndSound);
+  const [armed, setArmed] = useState(false);
+  const [threshold, setThreshold] = useState(4);
+  const [micError, setMicError] = useState('');
+  const microphone = useRef(null);
+  const latest = useRef(null);
+  latest.current = { main, aff, neg };
+
+  const releaseMicrophone = () => {
+    const session = microphone.current;
+    microphone.current = null;
+    if (!session) {
+      return;
+    }
+    clearInterval(session.interval);
+    session.stream?.getTracks().forEach((track) => track.stop());
+    session.context?.close().catch(() => {});
+  };
+  const disarm = () => {
+    releaseMicrophone();
+    setArmed(false);
+  };
+  useEffect(() => () => releaseMicrophone(), []);
+
+  const arm = async () => {
+    setMicError('');
+    const session = {};
+    microphone.current = session;
+    setArmed(true);
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+      if (microphone.current !== session) {
+        stream.getTracks().forEach((track) => track.stop());
+        return;
+      }
+      session.stream = stream;
+      session.context = new AudioContext();
+      const analyser = session.context.createAnalyser();
+      analyser.fftSize = 2048;
+      session.context.createMediaStreamSource(stream).connect(analyser);
+      await session.context.resume();
+      if (microphone.current !== session) {
+        return;
+      }
+      const waveform = new Float32Array(analyser.fftSize);
+      const spectrum = new Float32Array(analyser.frequencyBinCount);
+      let voicedSince = 0;
+      const sample = () => {
+        if (microphone.current !== session) {
+          return;
+        }
+        const now = performance.now();
+        analyser.getFloatTimeDomainData(waveform);
+        analyser.getFloatFrequencyData(spectrum);
+        if (speechLike(waveform, spectrum, session.context.sampleRate, threshold / 100)) {
+          voicedSince ||= now;
+          if (now - voicedSince >= 300) {
+            disarm();
+            latest.current.aff.stop();
+            latest.current.neg.stop();
+            latest.current.main.start();
+            return;
+          }
+        } else {
+          voicedSince = 0;
+        }
+      };
+      stream.getAudioTracks()[0]?.addEventListener('ended', () => {
+        if (microphone.current === session) {
+          disarm();
+          setMicError(t('Microphone disconnected.'));
+        }
+      });
+      session.interval = setInterval(sample, 50);
+    } catch (error) {
+      if (microphone.current === session) {
+        disarm();
+        setMicError(t('Microphone unavailable: {error}', { error: error.message }));
+      }
+    }
+  };
 
   useEffect(() => {
     let active = true;
@@ -198,11 +285,13 @@ export default function Timer({
   }, [timerSoundEnabled, timerSoundName, t]);
 
   const selectSpeech = (i) => {
+    disarm();
     setSpeech(i);
     main.reset(Math.round(fmt.speeches[i][1] * 60));
   };
 
   const resetForFormat = (next) => {
+    disarm();
     setSpeech(0);
     main.reset(Math.round(next.speeches[0][1] * 60));
     aff.reset(Math.round(next.prep * 60));
@@ -225,6 +314,7 @@ export default function Timer({
   };
 
   const startPrep = (which) => {
+    disarm();
     main.stop();
     (which === 'aff' ? neg : aff).stop();
     (which === 'aff' ? aff : neg).toggle();
@@ -301,6 +391,7 @@ export default function Timer({
         <button
           className='primary'
           onClick={() => {
+            disarm();
             aff.stop();
             neg.stop();
             main.toggle();
@@ -310,13 +401,48 @@ export default function Timer({
         </button>
         <button
           disabled={!main.running && main.remaining === Math.round(fmt.speeches[speech][1] * 60)}
-          onClick={() => main.reset(Math.round(fmt.speeches[speech][1] * 60))}
+          onClick={() => {
+            disarm();
+            main.reset(Math.round(fmt.speeches[speech][1] * 60));
+          }}
         >
           {t('Reset')}
         </button>
         <button onClick={() => speech < fmt.speeches.length - 1 && selectSpeech(speech + 1)}>
           {t('Next')}
         </button>
+      </div>
+
+      <div className='timer-auto-start'>
+        <button
+          type='button'
+          disabled={!armed && (main.running || main.remaining <= 0)}
+          onClick={armed ? disarm : arm}
+          aria-pressed={armed}
+        >
+          {t(armed ? 'Cancel automatic start' : 'Arm automatic start')}
+        </button>
+        <label>
+          {t('Microphone volume threshold (%)')}
+          <input
+            type='number'
+            min='1'
+            max='30'
+            value={threshold}
+            disabled={armed}
+            onChange={(event) =>
+              setThreshold(Math.min(30, Math.max(1, Number(event.target.value) || 1)))
+            }
+          />
+        </label>
+        <p role='status'>
+          {t(
+            armed
+              ? 'Listening once for speech-like sound; background voices may trigger the timer.'
+              : 'Automatic start listens only when armed and turns off after starting.'
+          )}
+        </p>
+        {micError && <p role='alert'>{micError}</p>}
       </div>
 
       <h4>{t('Prep time')}</h4>

@@ -94,7 +94,7 @@ function readConfig() {
     console.warn('[config] failed to read/parse', configPathFn, err.message);
     const corruptPath = configPathFn + '.corrupt.' + Date.now();
     try {
-      fssync.rename(configPathFn, corruptPath);
+      fssync.renameSync(configPathFn, corruptPath);
     } catch {}
     return {};
   }
@@ -107,10 +107,10 @@ function writeConfig(patch) {
   const temporary = path.join(path.dirname(configPathFn), `.tagline-config-${randomUUID()}.tmp`);
   try {
     fssync.writeFileSync(temporary, JSON.stringify(next, null, 2));
-    fssync.rename(temporary, configPathFn);
+    fssync.renameSync(temporary, configPathFn);
   } catch (error) {
     try {
-      fssync.rm(temporary, { force: true });
+      fssync.rmSync(temporary, { force: true });
     } catch {}
     throw error;
   }

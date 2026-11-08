@@ -137,7 +137,9 @@ export const EvidenceCheckupComment = Node.create({
     start: (src) => src.indexOf('<!-- Evidence checkup ('),
     tokenize(src) {
       const match =
-        /^<!-- Evidence checkup \((citation|link|source)\): ([^\r\n]*?) -->(?:\r?\n|$)/.exec(src);
+        /^<!-- Evidence checkup \((citation|link|source|recut)\): ([^\r\n]*?) -->(?:\r?\n|$)/.exec(
+          src
+        );
       if (!match) {
         return undefined;
       }
@@ -150,6 +152,45 @@ export const EvidenceCheckupComment = Node.create({
   }),
   renderMarkdown: (node) =>
     `<!-- Evidence checkup (${node.attrs.category}): ${node.attrs.text} -->`,
+});
+
+export const CardMarker = Node.create({
+  name: 'cardMarker',
+  group: 'block',
+  atom: true,
+  addAttributes() {
+    return { kind: { default: 'start' } };
+  },
+  parseHTML() {
+    return [
+      {
+        tag: 'div[data-card-marker]',
+        getAttrs: (element) => ({ kind: element.dataset.cardMarker }),
+      },
+    ];
+  },
+  renderHTML({ node }) {
+    return [
+      'div',
+      {
+        'data-card-marker': node.attrs.kind,
+        class: 'evidence-editor-comment',
+        contenteditable: 'false',
+      },
+      `Card ${node.attrs.kind}`,
+    ];
+  },
+  markdownTokenizer: {
+    name: 'cardMarker',
+    level: 'block',
+    start: (src) => src.indexOf('<!-- card:'),
+    tokenize(src) {
+      const match = /^<!-- card:(start|end) -->(?:\r?\n|$)/.exec(src);
+      return match ? { type: 'cardMarker', raw: match[0], kind: match[1] } : undefined;
+    },
+  },
+  parseMarkdown: (token) => ({ type: 'cardMarker', attrs: { kind: token.kind } }),
+  renderMarkdown: (node) => `<!-- card:${node.attrs.kind} -->`,
 });
 
 /**
@@ -165,6 +206,7 @@ export function visualExtensions() {
     TaskItem.configure({ nested: true }),
     WikiLink,
     EvidenceCheckupComment,
+    CardMarker,
     FindAndReplace.configure({ injectCSS: false, searchDebounceMs: 0 }),
     Markdown.configure({ markedOptions: { gfm: true, breaks: true } }),
   ];

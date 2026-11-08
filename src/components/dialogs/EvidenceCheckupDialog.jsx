@@ -7,6 +7,7 @@ import {
   citedUrls,
   linkIssues,
   normalizeCheckup,
+  recutIssues,
   scanCards,
   sourceIssues,
 } from '../../lib/evidenceCheckup.js';
@@ -33,6 +34,13 @@ const KIND_LABELS = {
   source_mismatch: 'Possible source mismatch',
   source_unavailable: 'Source lookup unavailable',
   source_not_comparable: 'No comparable source fields',
+  possible_recut: 'Possible recut',
+  recut_unchecked: 'Reading not checked',
+};
+const RECUT_REASONS = {
+  ending: 'The highlighted reading ends with an incomplete connector or phrase.',
+  agreement: 'The highlighted reading may have a subject–verb agreement problem.',
+  repetition: 'The highlighted reading repeats a short word.',
 };
 const isSettings = (value) => !!value && typeof value === 'object';
 
@@ -108,15 +116,26 @@ export default function EvidenceCheckupDialog({
     return updated;
   };
 
+  const collectIssues = async (files, cards) => [
+    ...auditCards(cards, settings),
+    ...(settings.checks.recut ? await recutIssues(files, cards) : []),
+  ];
+
   const scanVault = () =>
     run('scan', async () => {
       let files = contents;
-      const cards = scanCards(files);
-      const findings = auditCards(cards, settings);
-      if (addComments && (settings.checks.citations || settings.checks.stale)) {
-        files = await saveComments(files, cards, findings, ['citation']);
+      let cards = scanCards(files);
+      let findings = await collectIssues(files, cards);
+      const categories = [
+        ...(settings.checks.citations || settings.checks.stale ? ['citation'] : []),
+        ...(settings.checks.recut ? ['recut'] : []),
+      ];
+      if (addComments && categories.length) {
+        files = await saveComments(files, cards, findings, categories);
+        cards = scanCards(files);
+        findings = await collectIssues(files, cards);
       }
-      setScan({ files, cards: scanCards(files), issues: auditCards(scanCards(files), settings) });
+      setScan({ files, cards, issues: findings });
       setLinks(null);
       setSources(null);
     });
@@ -132,7 +151,7 @@ export default function EvidenceCheckupDialog({
           'link',
         ]);
         const cards = scanCards(files);
-        setScan({ files, cards, issues: auditCards(cards, settings) });
+        setScan({ files, cards, issues: await collectIssues(files, cards) });
       }
       setLinks(results);
     });
@@ -177,7 +196,7 @@ export default function EvidenceCheckupDialog({
         });
         const files = await saveComments(scan.files, eligible, findings, ['source']);
         const cards = scanCards(files);
-        setScan({ files, cards, issues: auditCards(cards, settings) });
+        setScan({ files, cards, issues: await collectIssues(files, cards) });
       }
       setSources(results);
     });
@@ -239,6 +258,13 @@ export default function EvidenceCheckupDialog({
     if (issue.kind === 'source_not_comparable') {
       return t('No certain citation fields were available in the source metadata for comparison.');
     }
+    if (issue.kind === 'possible_recut' || issue.kind === 'recut_unchecked') {
+      const reason =
+        issue.kind === 'recut_unchecked'
+          ? t('Text is too long to check; review it manually.')
+          : t(RECUT_REASONS[issue.reason]);
+      return issue.excerpt ? `${reason} “${issue.excerpt}”` : reason;
+    }
     return t('No citation line.');
   };
 
@@ -266,6 +292,21 @@ export default function EvidenceCheckupDialog({
 
         <fieldset className='evidence-settings' disabled={!!busy}>
           <legend>{t('Checks')}</legend>
+          <div className='evidence-check'>
+            <label className='evidence-toggle'>
+              <input
+                type='checkbox'
+                checked={settings.checks.recut}
+                onChange={(e) => updateChecks({ recut: e.target.checked })}
+              />
+              <span>{t('Flag possible recuts in highlighted English text')}</span>
+            </label>
+            <p className='hint'>
+              {t(
+                'Runs locally on the combined highlighted reading. Fragments are OK; warnings suggest wording that may interrupt delivery and need review.'
+              )}
+            </p>
+          </div>
           <div className='evidence-check'>
             <label className='evidence-toggle'>
               <input

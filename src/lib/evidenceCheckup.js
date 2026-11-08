@@ -9,7 +9,7 @@ const markdown = new Marked({ gfm: true, breaks: true });
 export const CITATION_FIELDS = ['author', 'year', 'title', 'publication', 'url', 'accessed'];
 
 export const DEFAULT_CHECKUP = {
-  checks: { citations: true, stale: true, links: true },
+  checks: { citations: true, stale: true, links: true, recut: false },
   requiredFields: CITATION_FIELDS,
   staleYears: 5,
   linkTimeoutSeconds: 10,
@@ -63,9 +63,9 @@ export function scanCards(files) {
     let previous = null;
     let previousSpans = {};
     for (const card of detectCards(text)) {
-      const start = offsets[card.lineIndex + 1] ?? text.length;
+      const start = card.bodyStart ?? offsets[card.lineIndex + 1] ?? text.length;
       const extraction = extractCardCitation(
-        text.slice(start, card.endOffset),
+        text.slice(start, card.bodyEnd ?? card.endOffset),
         references,
         previous
       );
@@ -103,6 +103,8 @@ export function scanCards(files) {
         path,
         title: card.title,
         lineIndex: card.lineIndex,
+        bodyStart: start,
+        bodyEnd: card.bodyEnd ?? card.endOffset,
         citation,
         citationUncertainFields: uncertainFields,
         citationFieldConfidence: fieldConfidence,
@@ -172,6 +174,30 @@ export function auditCards(cards, options = {}, now = new Date()) {
         });
       }
     }
+  }
+  return issues;
+}
+
+/** Analyze highlighted readings locally. Results are suggestions for human review. */
+export async function recutIssues(files, cards) {
+  const { checkRecut } = await import('./recutCheck.js');
+  const issues = [];
+  for (const [index, card] of cards.entries()) {
+    if (index % 10 === 0) {
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    }
+    const body = files[card.path].slice(card.bodyStart, card.bodyEnd);
+    const findings =
+      body.length > 100000 ? [{ reason: 'too_long', excerpt: '' }] : checkRecut(body);
+    issues.push(
+      ...findings.map((finding) => ({
+        path: card.path,
+        card: card.title,
+        lineIndex: card.lineIndex,
+        kind: finding.reason === 'too_long' ? 'recut_unchecked' : 'possible_recut',
+        ...finding,
+      }))
+    );
   }
   return issues;
 }
@@ -281,7 +307,7 @@ export function annotateEvidence(files, cards, issues, categories, describe) {
           next++;
         }
         const match = lines[next]?.match(
-          /^<!-- Evidence checkup \((citation|link|source)\): (.*) -->$/
+          /^<!-- Evidence checkup \((citation|link|source|recut)\): (.*) -->$/
         );
         if (!match) {
           break;
@@ -298,11 +324,13 @@ export function annotateEvidence(files, cards, issues, categories, describe) {
               issue.lineIndex === card.lineIndex &&
               (issue.kind === 'dead_link'
                 ? 'link'
-                : issue.kind === 'source_mismatch'
-                  ? 'source'
-                  : issue.kind.startsWith('source_')
-                    ? null
-                    : 'citation') === category
+                : issue.kind === 'possible_recut' || issue.kind === 'recut_unchecked'
+                  ? 'recut'
+                  : issue.kind === 'source_mismatch'
+                    ? 'source'
+                    : issue.kind.startsWith('source_')
+                      ? null
+                      : 'citation') === category
           )
           .map((issue) =>
             describe(issue)

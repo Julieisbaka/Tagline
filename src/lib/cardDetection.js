@@ -12,16 +12,24 @@ const WEAK_HEADINGS = new Set([3, 5]);
  * @returns {string}
  */
 function cleanTitle(value) {
-  if (!value) return '';
+  if (!value) {
+    return '';
+  }
   try {
     const tokens = markdown.lexer(String(value))[0]?.tokens;
     if (tokens) {
       const walk = (items) =>
         items
           .map((token) => {
-            if (token.type === 'codespan') return token.text;
-            if (token.tokens) return walk(token.tokens);
-            if (token.type === 'html') return '';
+            if (token.type === 'codespan') {
+              return token.text;
+            }
+            if (token.tokens) {
+              return walk(token.tokens);
+            }
+            if (token.type === 'html') {
+              return '';
+            }
             return token.raw ?? token.text ?? '';
           })
           .join('');
@@ -68,13 +76,44 @@ export function detectCards(content, options = {}) {
       const ch = text.charCodeAt(i);
       if (ch === 13) {
         offsets.push(text.charCodeAt(i + 1) === 10 ? i + 2 : i + 1);
-        if (text.charCodeAt(i + 1) === 10) i++;
-      } else if (ch === 10) offsets.push(i + 1);
+        if (text.charCodeAt(i + 1) === 10) {
+          i++;
+        }
+      } else if (ch === 10) {
+        offsets.push(i + 1);
+      }
     }
     return offsets;
   };
   const offsets = lineOffsets(original);
   const at = (line) => offsets[line] ?? original.length;
+
+  // Only standalone, top-level Markdown comments are markers. Ignore unmatched
+  // or nested pairs rather than swallowing the remainder of a document.
+  const pairs = new Map();
+  let markerStart = null;
+  let markerDepth = 0;
+  let nested = false;
+  let markerLine = lineIndex;
+  for (const token of tokens) {
+    const marker = token.type === 'html' && /^ {0,3}<!-- card:(start|end) -->\s*$/.exec(token.raw);
+    if (marker?.[1] === 'start') {
+      if (markerDepth++) {
+        nested = true;
+      } else {
+        markerStart = markerLine;
+      }
+    } else if (marker?.[1] === 'end' && markerDepth) {
+      if (--markerDepth === 0) {
+        if (!nested) {
+          pairs.set(markerStart, markerLine);
+        }
+        markerStart = null;
+        nested = false;
+      }
+    }
+    markerLine += (token.raw.match(/\n/g) || []).length;
+  }
 
   const closeCard = () => {
     if (card) {
@@ -98,8 +137,37 @@ export function detectCards(content, options = {}) {
     cards.push(card);
   };
 
+  let skipThrough = -1;
   for (const token of tokens) {
     const tokenLines = (token.raw.match(/\n/g) || []).length;
+    const endMarker = pairs.get(lineIndex);
+    if (endMarker !== undefined) {
+      skipThrough = endMarker;
+      closeCard();
+      const bodyStart = at(lineIndex + 1);
+      const bodyEnd = at(endMarker);
+      const inside = original.slice(bodyStart, bodyEnd);
+      const first = markdown
+        .lexer(inside.replace(/\r\n?/g, '\n'))
+        .find((item) => item.type === 'heading' || item.type === 'paragraph');
+      cards.push({
+        title: cleanTitle(first?.text?.split('\n')[0] || 'Card'),
+        lineIndex,
+        endLineIndex: endMarker + 1,
+        startOffset: at(lineIndex),
+        endOffset: at(endMarker + 1),
+        bodyStart,
+        bodyEnd,
+        depth: 0,
+        confidence: 1,
+        weak: false,
+        explicit: true,
+      });
+    }
+    if (lineIndex <= skipThrough) {
+      lineIndex += tokenLines;
+      continue;
+    }
     if (token.type === 'heading') {
       const strong = token.depth === depth;
       const soft = includeWeak && WEAK_HEADINGS.has(token.depth);
@@ -135,19 +203,37 @@ export function detectCards(content, options = {}) {
     card.endLineIndex = original.split(/\r\n?|\n/).length;
     card.endOffset = original.length;
   }
-  const filtered = !includeWeak && depth === 4 ? cards.filter((c) => c.depth === 4 && !c.weak) : cards;
+  const filtered =
+    !includeWeak && depth === 4
+      ? cards.filter((c) => (c.depth === 4 || c.explicit) && !c.weak)
+      : cards;
   // Legacy shape for default calls: preserve exact {title,lineIndex,endLineIndex} contract.
   if (!options || (options.depth === undefined && options.weak === undefined)) {
-    return filtered.map(({ title, lineIndex, endLineIndex, startOffset, endOffset, depth: d, confidence, weak: w }) => ({
-      title,
-      lineIndex,
-      endLineIndex,
-      startOffset,
-      endOffset,
-      depth: d,
-      confidence,
-      weak: w,
-    }));
+    return filtered.map(
+      ({
+        title,
+        lineIndex,
+        endLineIndex,
+        startOffset,
+        endOffset,
+        depth: d,
+        confidence,
+        weak: w,
+        explicit,
+        bodyStart,
+        bodyEnd,
+      }) => ({
+        title,
+        lineIndex,
+        endLineIndex,
+        startOffset,
+        endOffset,
+        depth: d,
+        confidence,
+        weak: w,
+        ...(explicit ? { explicit, bodyStart, bodyEnd } : {}),
+      })
+    );
   }
   return filtered;
 }

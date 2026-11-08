@@ -59,6 +59,28 @@
   justify-content: center;
 }
 
+.timer-auto-start {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+}
+
+.timer-auto-start label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.timer-auto-start input {
+  width: 64px;
+}
+
+.timer-auto-start p {
+  margin: 0;
+  font-size: 12px;
+}
+
 .prep-row {
   display: grid;
   grid-template-columns: 1fr 1fr;

@@ -118,9 +118,9 @@ export default function NoteView({
     if (!docStats) {
       return onCursorStats(null);
     }
-    const wpm = settings.wpm || 250;
+    const spm = settings.syllablesPerMinute || 375;
     const profile = calibration.profile;
-    const assessment = readingAssessment(docStats, wpm, profile);
+    const assessment = readingAssessment(docStats, spm, profile);
     const parts = {
       cards: t('{count} cards', { count: docStats.cards }),
       words: t('{count} words', { count: docStats.words }),
@@ -143,11 +143,11 @@ export default function NoteView({
       parts.section = t('“{title}”: {count} hl / ~{time}', {
         title: section.title.slice(0, 30),
         count: sectionStats.highlighted,
-        time: formatDuration(readingSeconds(sectionStats, wpm, profile)),
+        time: formatDuration(readingSeconds(sectionStats, spm, profile)),
       });
     }
     onCursorStats(parts);
-  }, [docStats, sectionStats, section, settings.wpm, calibration, onCursorStats, t]);
+  }, [docStats, sectionStats, section, settings.syllablesPerMinute, calibration, onCursorStats, t]);
   const skipFirstStatsEffect = useRef(true);
   useLayoutEffect(() => {
     publishCursorStats();

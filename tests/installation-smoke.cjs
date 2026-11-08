@@ -196,7 +196,7 @@ app.on('browser-window-created', (_event, win) => {
         const settings = {
           ...defaults,
           internalFlags: { ...defaults.internalFlags, hasSeenOnboarding: true },
-          wpm: 333,
+          syllablesPerMinute: 500,
           theme: 'high-contrast-dark',
           modelAutoload: false,
           customCss: '.note-title { font-weight: 600; }',

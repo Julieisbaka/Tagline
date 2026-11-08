@@ -6,6 +6,7 @@ import { setLanguage } from './i18n.js';
 import { initialLanguage } from './localization.js';
 import { setNativeUi } from './nativeUi.js';
 import { resourceLimits } from './resourceLimits.js';
+import { speechRateFromSettings } from './speechRate.js';
 import { applyTheme, getTheme } from './themes.js';
 import { configureVisualCache } from './visualCache.js';
 
@@ -20,9 +21,12 @@ function load() {
   try {
     const saved = localStorage.getItem(KEY);
     const parsed = JSON.parse(saved || '{}');
+    const current = { ...parsed };
+    delete current.wpm;
     return {
       ...DEFAULTS,
-      ...parsed,
+      ...current,
+      syllablesPerMinute: speechRateFromSettings(parsed),
       ...migrateEditorModes(parsed),
       language: initialLanguage(parsed?.language, window.api.systemLanguages),
       internalFlags: { ...DEFAULTS.internalFlags, ...parsed?.internalFlags },

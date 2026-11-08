@@ -148,6 +148,9 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
           false
         );
         await fs.rm(speech);
+        await wait(
+          "![...document.querySelectorAll('.tree-item')].some(e => e.textContent.trim() === 'Speech')"
+        );
 
         await js(
           "[...document.querySelectorAll('.tree-item')].find(e => e.textContent.trim() === 'Cards').click()"
@@ -161,6 +164,10 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
           const s = getSelection(); s.removeAllRanges(); s.addRange(r); h.closest('[contenteditable]').focus(); })()`);
         await delay(200);
         await js('document.querySelector(\'.note-actions [title^="Send card"]\').click()');
+        await delay(200);
+        await js(
+          "[...document.querySelectorAll('.dialog button')].find(b => b.textContent === 'Confirm')?.click()"
+        );
         const sent = await waitFile((c) => c && c.includes('Warrant text'));
         assert.match(sent, /#### Evidence tag\n+\*\*Author 24\*\*/);
         await js("document.querySelector('.visual-document').focus()");
@@ -332,6 +339,135 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
         assert.ok(
           newNote.includes('BODY=\nPROPERTIES=\nEND'),
           'new-note body and properties start empty'
+        );
+        await js(`(() => {
+          window.micStopped = 0;
+          window.voiced = false;
+          const track = { stop() { window.micStopped++; }, addEventListener() {} };
+          window.stream = { getTracks: () => [track], getAudioTracks: () => [track] };
+          Object.defineProperty(navigator, 'mediaDevices', { configurable: true, value: {
+            getUserMedia: () => new Promise(resolve => { window.resolveMic = resolve; })
+          }});
+          window.AudioContext = class {
+            sampleRate = 48000;
+            createMediaStreamSource() { return { connect() {} }; }
+            createAnalyser() { return { fftSize: 2048, frequencyBinCount: 1024,
+              getFloatTimeDomainData(a) { a.fill(window.voiced ? 0.1 : 0); },
+              getFloatFrequencyData(a) { a.fill(-120); a.fill(-10, 5, 10); }
+            }; }
+            resume() { return Promise.resolve(); }
+            close() { return Promise.resolve(); }
+          };
+          document.querySelector('.panel-tabs [title="Timer"]').click();
+        })()`);
+        const auto = '.timer-auto-start button';
+        await js(`document.querySelector('${auto}').click()`);
+        await wait(
+          "window.resolveMic && document.querySelector('.timer-auto-start button').getAttribute('aria-pressed') === 'true'"
+        );
+        await js(`document.querySelector('${auto}').click(); window.resolveMic(window.stream);`);
+        await wait('window.micStopped === 1');
+        assert.equal(
+          await js("document.querySelector('.timer-controls .primary').textContent"),
+          'Start'
+        );
+        await js(`document.querySelector('${auto}').click(); window.resolveMic(window.stream);`);
+        await delay(400);
+        assert.equal(
+          await js("document.querySelector('.timer-controls .primary').textContent"),
+          'Start',
+          'silence does not trigger'
+        );
+        await js('window.voiced = true');
+        await wait("document.querySelector('.timer-controls .primary').textContent === 'Pause'");
+        assert.equal(await js('window.micStopped'), 2);
+        assert.equal(
+          await js(`document.querySelector('${auto}').getAttribute('aria-pressed')`),
+          'false'
+        );
+        await js(
+          "[...document.querySelectorAll('.timer-controls button')].find(b => b.textContent === 'Next').click()"
+        );
+        await delay(500);
+        assert.equal(
+          await js("document.querySelector('.timer-controls .primary').textContent"),
+          'Start',
+          'next speech does not start automatically'
+        );
+        assert.equal(await js('window.micStopped'), 2);
+        await wait("!!document.querySelector('.visual-document p')");
+        await js(`(() => {
+          const p = [...document.querySelectorAll('.visual-document p')].find(e => e.textContent.includes('Created Target'));
+          p.closest('[contenteditable]').focus();
+          const range = document.createRange(); range.selectNodeContents(p);
+          const selection = getSelection(); selection.removeAllRanges(); selection.addRange(range);
+        })()`);
+        await delay(100);
+        await js("document.querySelector('[data-editor-action=mark-card]').click()");
+        await wait("!!document.querySelector('.visual-document [data-card-marker]')");
+        await js(`(() => {
+          const p = [...document.querySelectorAll('.visual-document p')].find(e => e.textContent.includes('Created Target'));
+          p.closest('[contenteditable]').focus();
+          const range = document.createRange(); range.selectNodeContents(p);
+          const selection = getSelection(); selection.removeAllRanges(); selection.addRange(range);
+        })()`);
+        await delay(100);
+        await js("document.querySelector('[data-editor-action=mark-card]').click()");
+        assert.equal(
+          await js("document.querySelectorAll('.visual-document [data-card-marker]').length"),
+          2,
+          'visual toolbar refuses nested markers'
+        );
+        await change('.note-actions select', 'edit');
+        await wait("!!document.querySelector('.cm-content')");
+        const marked = await js(
+          "[...document.querySelectorAll('.cm-line')].map(e => e.textContent).join('\\n')"
+        );
+        assert.match(
+          marked,
+          /<!-- card:start -->[\s\S]*<!-- card:end -->/,
+          'visual toolbar writes marker pair'
+        );
+        await js("document.querySelector('.cm-content').focus()");
+        wc.sendInputEvent({
+          type: 'keyDown',
+          keyCode: 'End',
+          modifiers: [process.platform === 'darwin' ? 'meta' : 'control'],
+        });
+        wc.sendInputEvent({
+          type: 'keyUp',
+          keyCode: 'End',
+          modifiers: [process.platform === 'darwin' ? 'meta' : 'control'],
+        });
+        await wc.insertText('\n\nOther evidence');
+        await wait(
+          "[...document.querySelectorAll('.cm-line')].some(e => e.textContent === 'Other evidence')"
+        );
+        await js(`(() => {
+          const line = [...document.querySelectorAll('.cm-line')].find(e => e.textContent === 'Other evidence');
+          const range = document.createRange(); range.selectNodeContents(line);
+          const selection = getSelection(); selection.removeAllRanges(); selection.addRange(range);
+          document.querySelector('.cm-content').focus();
+        })()`);
+        await delay(100);
+        await js("document.querySelector('[data-editor-action=mark-card]').click()");
+        await wait(
+          "[...document.querySelectorAll('.cm-line')].filter(e => e.textContent.includes('<!-- card:start -->')).length === 2"
+        );
+        await js(`(() => {
+          const line = [...document.querySelectorAll('.cm-line')].find(e => e.textContent === 'Other evidence');
+          const range = document.createRange(); range.selectNodeContents(line);
+          const selection = getSelection(); selection.removeAllRanges(); selection.addRange(range);
+          document.querySelector('.cm-content').focus();
+        })()`);
+        await delay(100);
+        await js("document.querySelector('[data-editor-action=mark-card]').click()");
+        assert.equal(
+          await js(
+            "[...document.querySelectorAll('.cm-line')].filter(e => e.textContent.includes('<!-- card:start -->')).length"
+          ),
+          2,
+          'source toolbar refuses nested markers'
         );
         assert.deepEqual(errors, []);
         console.log(

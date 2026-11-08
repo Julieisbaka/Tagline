@@ -70,7 +70,7 @@ app.on('browser-window-created', (_event, win) => {
       });
       await wait("!!localStorage.getItem('tagline-settings')");
       const settings = await js("JSON.parse(localStorage.getItem('tagline-settings'))");
-      assert.equal(settings.wpm, 250);
+      assert.equal(settings.syllablesPerMinute, 375);
       assert.equal(settings.fontFamily, '');
       assert.equal(await js("JSON.parse(localStorage.getItem('debate-vault-settings')).wpm"), 499);
       await wait(
