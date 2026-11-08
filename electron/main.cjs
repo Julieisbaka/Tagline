@@ -173,6 +173,35 @@ function registerIpc() {
     }
     return event.sender[action]();
   });
+  const fromMain = (event) => {
+    if (event.sender !== win?.webContents) {
+      throw new Error('Invalid spellcheck request.');
+    }
+    return event.sender.session;
+  };
+  const checkedWord = (word) => {
+    if (typeof word !== 'string' || !word.trim() || word.length > 100 || /\s/.test(word)) {
+      throw new Error('Invalid dictionary word.');
+    }
+    return word.trim();
+  };
+  ipcMain.handle('spellcheck:replace', (event, suggestion) => {
+    fromMain(event);
+    if (typeof suggestion !== 'string' || suggestion.length > 200) {
+      throw new Error('Invalid spelling suggestion.');
+    }
+    event.sender.replaceMisspelling(suggestion);
+    return true;
+  });
+  ipcMain.handle('spellcheck:listWords', (event) =>
+    fromMain(event).listWordsInSpellCheckerDictionary()
+  );
+  ipcMain.handle('spellcheck:addWord', (event, word) =>
+    fromMain(event).addWordToSpellCheckerDictionary(checkedWord(word))
+  );
+  ipcMain.handle('spellcheck:removeWord', (event, word) =>
+    fromMain(event).removeWordFromSpellCheckerDictionary(checkedWord(word))
+  );
   ipcMain.handle('app:clipboardWrite', (_event, text) => {
     clipboard.writeText(String(text ?? ''));
     return true;
@@ -535,6 +564,14 @@ function createWindow() {
         `--tagline-languages=${encodeURIComponent(JSON.stringify(app.getPreferredSystemLanguages()))}`,
       ],
     },
+  });
+
+  // Chromium only emits this when the page did not cancel the DOM contextmenu event.
+  win.webContents.on('context-menu', (_event, params) => {
+    win.webContents.send('spellcheck:context', {
+      word: params.misspelledWord || '',
+      suggestions: (params.dictionarySuggestions || []).slice(0, 8),
+    });
   });
 
   let readyToClose = false;
