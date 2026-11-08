@@ -530,6 +530,42 @@ function registerIpc() {
       documents = [from];
     }
     await fs.mkdir(path.dirname(dest), { recursive: true });
+    // Vaults normally live on one mount, but a vault can contain mount points
+    // (external drives, network shares). fs.rename fails with EXDEV across
+    // devices, so fall back to copy+delete to keep the move working.
+    const movePath = async (src, dst) => {
+      try {
+        await fs.rename(src, dst);
+        return;
+      } catch (error) {
+        if (error.code !== 'EXDEV') {
+          throw error;
+        }
+      }
+      try {
+        await fs.cp(src, dst, {
+          recursive: true,
+          errorOnExist: true,
+          force: false,
+          preserveTimestamps: true,
+          verbatimSymlinks: true,
+        });
+      } catch (error) {
+        if (error.code !== 'EEXIST') {
+          await fs.rm(dst, { recursive: true, force: true }).catch(() => {});
+        }
+        throw error;
+      }
+      try {
+        await fs.rm(src, { recursive: true, force: true });
+      } catch (error) {
+        // Copy is complete; keep it rather than risk losing data, and skip the
+        // history rollback so revision history stays aligned with the copy.
+        error.revisionHistoryKept = true;
+        error.message = `Copied to "${dst}" but could not remove "${src}": ${error.message}`;
+        throw error;
+      }
+    };
     const migrated = [];
     const rollbackHistory = async () => {
       for (const [oldPath, newPath] of [...migrated].reverse()) {
@@ -546,7 +582,7 @@ function registerIpc() {
         const temp = path.join(path.dirname(source), `.tagline-rename-${randomUUID()}`);
         await fs.rename(source, temp);
         try {
-          await fs.rename(temp, dest);
+          await movePath(temp, dest);
         } catch (error) {
           try {
             await fs.rename(temp, source);
@@ -554,10 +590,12 @@ function registerIpc() {
           throw error;
         }
       } else {
-        await fs.rename(source, dest);
+        await movePath(source, dest);
       }
     } catch (error) {
-      await rollbackHistory();
+      if (!error.revisionHistoryKept) {
+        await rollbackHistory();
+      }
       throw error;
     }
     return { ok: true, path: toPosix(to) };
@@ -582,7 +620,16 @@ function registerIpc() {
     if (full === vaultRoot) {
       throw new Error('Refusing to delete vault root');
     }
-    await shell.trashItem(full);
+    try {
+      await shell.trashItem(full);
+    } catch (error) {
+      if (error.code === 'ENOENT' || /ENOENT|not found/i.test(error.message || '')) {
+        throw new Error(
+          `Can't move "${rel}" to the trash because it no longer exists. Refresh the vault and try again.`
+        );
+      }
+      throw error;
+    }
     return true;
   });
 

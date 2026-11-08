@@ -61,7 +61,13 @@ export function useVault(
    * @param {*} error - The error object or message to report.
    * @returns {void}
    */
-  const report = (e) => setError(e?.message || String(e));
+  const report = (e) =>
+    setError(
+      String(e?.message || e).replace(
+        /^Error invoking remote method '[^']*': (?:\w*Error: )?/,
+        ''
+      )
+    );
 
   const setSaveStatus = useCallback(
     (path, status) =>
