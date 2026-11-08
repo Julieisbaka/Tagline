@@ -75,6 +75,39 @@ test('platform: Pandoc uses literal arguments and reports failed conversion', as
   await assert.rejects(convert({ ...input, format: 'exe' }), /Unsupported export format/);
 });
 
+test('Pandoc export replacement is atomic and survives cross-device moves', async (t) => {
+  const fs = require('node:fs/promises');
+  const os = require('node:os');
+  const path = require('node:path');
+  const { replaceFile } = require('../electron/pandoc.cjs');
+  const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'tagline-replace-'));
+  try {
+    const source = path.join(dir, 'converted.tmp');
+    const destination = path.join(dir, 'note.docx');
+    await fs.writeFile(source, 'new export');
+    await fs.writeFile(destination, 'old export');
+    await replaceFile(source, destination);
+    assert.equal(await fs.readFile(destination, 'utf8'), 'new export');
+    await assert.rejects(fs.access(source));
+
+    await fs.writeFile(source, 'fallback export');
+    const rename = fs.rename;
+    t.mock.method(fs, 'rename', async (from, to) => {
+      if (from === source) {
+        const error = new Error('cross-device link');
+        error.code = 'EXDEV';
+        throw error;
+      }
+      return rename(from, to);
+    });
+    await replaceFile(source, destination);
+    assert.equal(await fs.readFile(destination, 'utf8'), 'fallback export');
+    await assert.rejects(fs.access(source));
+  } finally {
+    await fs.rm(dir, { recursive: true, force: true });
+  }
+});
+
 test('platform: Pandoc rejects an explicitly configured missing executable', async () => {
   const { detectPandoc } = require('../electron/pandoc.cjs');
   await assert.rejects(

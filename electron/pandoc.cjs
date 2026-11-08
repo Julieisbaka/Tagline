@@ -1,4 +1,5 @@
 const { execFile, spawn } = require('node:child_process');
+const { randomUUID } = require('node:crypto');
 const fs = require('node:fs/promises');
 const path = require('node:path');
 const os = require('node:os');
@@ -83,6 +84,30 @@ function highlightFilterPath(moduleDirectory) {
       ? path.join(path.dirname(appDirectory), 'app.asar.unpacked', path.basename(moduleDirectory))
       : moduleDirectory;
   return path.join(filterDirectory, 'highlightRoundTrip.lua');
+}
+
+// Replace an export atomically so a failed conversion or copy never truncates
+// an existing file at the destination.
+async function replaceFile(source, destination) {
+  try {
+    await fs.rename(source, destination);
+    return;
+  } catch (error) {
+    if (error.code !== 'EXDEV') {
+      throw error;
+    }
+  }
+  // The destination can live on another device. Stage the copy beside it so
+  // the final rename still swaps it in atomically, then delete the source.
+  const staged = `${destination}.${randomUUID()}.tmp`;
+  try {
+    await fs.copyFile(source, staged);
+    await fs.rename(staged, destination);
+  } catch (error) {
+    await fs.rm(staged, { force: true }).catch(() => {});
+    throw error;
+  }
+  await fs.rm(source, { force: true });
 }
 
 function convert({ executable, html, format, outputPath, title, author, date, toc, referenceDoc }) {
@@ -231,7 +256,7 @@ function registerPandoc({ ipcMain, dialog, getWindow, readConfig, writeConfig })
           toc,
           referenceDoc,
         });
-        await fs.copyFile(tempOutput, result.filePath);
+        await replaceFile(tempOutput, result.filePath);
         return { canceled: false, path: result.filePath, warnings: converted.warnings };
       } finally {
         await fs.rm(tempDir, { recursive: true, force: true });
@@ -246,5 +271,6 @@ module.exports = {
   detectPandoc,
   highlightFilterPath,
   convert,
+  replaceFile,
   registerPandoc,
 };
