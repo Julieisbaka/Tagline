@@ -132,6 +132,7 @@ export default function AppLayout({ app }) {
       onOpenCaselist={ctx.openCaselist}
       onOpenTabroom={ctx.openTabroom}
       onClose={() => setModal(null)}
+      contents={v.contents}
     />
   );
   const caselistDialog = modal?.type === 'opencaselist' && (

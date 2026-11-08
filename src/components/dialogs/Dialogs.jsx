@@ -201,6 +201,7 @@ export function SettingsDialog({
   speechDocuments = [],
   onSelectSpeechDoc,
   initialSection = 'workspace',
+  contents = {},
 }) {
   const { t, locale } = useI18n();
   const platform = platformCopy[locale] || platformCopy.en;
@@ -396,7 +397,7 @@ export function SettingsDialog({
             >
               <h3>{t('Speech and reading')}</h3>
               {field('Speaking rate (words per minute)', 'wpm', 'number', { min: 50, max: 1000 })}
-              <ReadingSettings settings={settings} update={update} />
+              <ReadingSettings settings={settings} update={update} contents={contents} />
               <TimerSoundSettings settings={settings} update={update} />
               <label className='setting-row'>
                 <span>{t('Active speech document')}</span>

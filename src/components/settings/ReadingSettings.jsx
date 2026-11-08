@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { formatDuration, spokenEvidence } from '../../lib/card.js';
 import { useI18n } from '../../lib/i18n.js';
 import {
@@ -7,13 +7,23 @@ import {
   speechStats,
   validateReadingSample,
 } from '../../lib/readTime.js';
+import { displayName, isMarkdown } from '../../lib/vault.js';
 
-export default function ReadingSettings({ settings, update }) {
+export default function ReadingSettings({ settings, update, contents = {} }) {
   const { t } = useI18n();
   const [drafts, setDrafts] = useState([]);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
+  const [recording, setRecording] = useState(null);
+  const timerRef = useRef(null);
   const samples = useMemo(() => settings.readingSamples || [], [settings.readingSamples]);
+  const documents = useMemo(
+    () =>
+      Object.keys(contents)
+        .filter(isMarkdown)
+        .sort((a, b) => a.localeCompare(b)),
+    [contents]
+  );
   const result = useMemo(() => {
     try {
       return { profile: calibrateReading(samples), error: '' };
@@ -71,6 +81,76 @@ export default function ReadingSettings({ settings, update }) {
     setDrafts((previous) =>
       previous.map((item) => (item.id === id ? { ...item, ...patch } : item))
     );
+  useEffect(() => () => clearInterval(timerRef.current), []);
+  const tick = () => {
+    if (timerRef.current) {
+      clearInterval(timerRef.current);
+      timerRef.current = null;
+    }
+    timerRef.current = setInterval(
+      () =>
+        setRecording((previous) =>
+          previous?.started
+            ? { ...previous, elapsed: (performance.now() - previous.started) / 1000 }
+            : previous
+        ),
+      200
+    );
+  };
+  const startRecording = (path, scope) => {
+    const text = contents[path];
+    if (typeof text !== 'string' || !text.trim()) {
+      setError(t('Choose a document with readable content.'));
+      return;
+    }
+    setError('');
+    setRecording({ path, scope, started: performance.now(), elapsed: 0 });
+    tick();
+  };
+  const toggleRecording = () => {
+    if (!recording) {
+      return;
+    }
+    if (recording.started) {
+      clearInterval(timerRef.current);
+      timerRef.current = null;
+      setRecording((previous) =>
+        previous ? { ...previous, started: null } : previous
+      );
+    } else {
+      const offset = performance.now() - recording.elapsed * 1000;
+      setRecording((previous) => (previous ? { ...previous, started: offset } : previous));
+      tick();
+    }
+  };
+  const stopRecording = (save) => {
+    clearInterval(timerRef.current);
+    timerRef.current = null;
+    const finished = recording;
+    setRecording(null);
+    if (!finished || !save) {
+      return;
+    }
+    try {
+      if (samples.length >= 100) {
+        throw new Error(t('Use at most 100 timed reading samples.'));
+      }
+      const source = contents[finished.path];
+      const text = finished.scope === 'evidence' ? spokenEvidence(source) : source;
+      const sample = validateReadingSample({
+        id: crypto.randomUUID(),
+        name: displayName(finished.path).slice(0, 200),
+        scope: finished.scope,
+        seconds: Number(finished.elapsed.toFixed(1)),
+        version: 1,
+        stats: speechStats(text),
+      });
+      update({ readingSamples: [...samples, sample] });
+      setError('');
+    } catch (err) {
+      setError(err.message);
+    }
+  };
   return (
     <section className='reading-settings'>
       <h4>{t('Sending evidence')}</h4>
@@ -91,12 +171,37 @@ export default function ReadingSettings({ settings, update }) {
       </p>
       <p>
         {t(
-          'Import documents and enter your reading time. Choose the full document or highlighted evidence and spoken citations. Only statistics and timing are saved locally.'
+          'Record a timed reading of a document, or import documents and enter your reading time. Choose the full document or highlighted evidence and spoken citations. Only statistics and timing are saved locally.'
         )}
       </p>
       <button disabled={busy} onClick={importSamples}>
         {t('Import timed reading documents')}
       </button>
+      {documents.length > 0 && !recording && (
+        <Recorder
+          documents={documents}
+          onStart={startRecording}
+          t={t}
+        />
+      )}
+      {recording && (
+        <fieldset className='reading-recording'>
+          <legend>{displayName(recording.path)}</legend>
+          <p role='timer' aria-live='off'>
+            {formatDuration(recording.elapsed)} —{' '}
+            {t(
+              recording.scope === 'full'
+                ? 'Full document'
+                : 'Highlighted evidence and spoken citations'
+            )}
+          </p>
+          <button onClick={toggleRecording}>
+            {t(recording.started ? 'Pause' : 'Resume')}
+          </button>
+          <button onClick={() => stopRecording(true)}>{t('Stop and save sample')}</button>
+          <button onClick={() => stopRecording(false)}>{t('Discard')}</button>
+        </fieldset>
+      )}
       {drafts.map((draft) => (
         <fieldset key={draft.id} data-reading-draft={draft.id}>
           <legend>{draft.name}</legend>
@@ -201,5 +306,44 @@ export default function ReadingSettings({ settings, update }) {
         </p>
       )}
     </section>
+  );
+}
+
+function Recorder({ documents, onStart, t }) {
+  const [path, setPath] = useState('');
+  const [scope, setScope] = useState('full');
+  return (
+    <fieldset className='reading-recorder'>
+      <legend>{t('Record a timed reading')}</legend>
+      <label className='setting-row'>
+        <span>{t('Document')}</span>
+        <select
+          aria-label={t('Document')}
+          value={path}
+          onChange={(event) => setPath(event.target.value)}
+        >
+          <option value=''>{t('Select a document')}</option>
+          {documents.map((document) => (
+            <option key={document} value={document}>
+              {displayName(document)}
+            </option>
+          ))}
+        </select>
+      </label>
+      <label className='setting-row'>
+        <span>{t('Reading scope')}</span>
+        <select
+          aria-label={t('Reading scope')}
+          value={scope}
+          onChange={(event) => setScope(event.target.value)}
+        >
+          <option value='full'>{t('Full document')}</option>
+          <option value='evidence'>{t('Highlighted evidence and spoken citations')}</option>
+        </select>
+      </label>
+      <button disabled={!path} onClick={() => onStart(path, scope)}>
+        {t('Start timer')}
+      </button>
+    </fieldset>
   );
 }
