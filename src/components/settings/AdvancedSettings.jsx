@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useI18n } from '../../lib/i18n.js';
 import SettingRow from './SettingRow.jsx';
+import SettingsGroup from './SettingsGroup.jsx';
 
 export default function AdvancedSettings({ settings, update, section = 'all' }) {
   const { t } = useI18n();
@@ -37,8 +38,7 @@ export default function AdvancedSettings({ settings, update, section = 'all' }) 
   return (
     <section className='advanced-settings'>
       {(section === 'all' || section === 'performance') && (
-        <>
-          <h4>{t('Performance and search')}</h4>
+        <SettingsGroup title={t('Performance and search')}>
           <SettingRow
             label={t('Low-resource mode')}
             description={t(
@@ -80,11 +80,10 @@ export default function AdvancedSettings({ settings, update, section = 'all' }) 
             1000,
             'Maximum matches returned by vault search.'
           )}
-        </>
+        </SettingsGroup>
       )}
       {(section === 'all' || section === 'fonts') && (
-        <>
-          <h4>{t('Custom fonts')}</h4>
+        <SettingsGroup title={t('Custom fonts')}>
           <label className='setting-row'>
             <span>{t('Installed font family')}</span>
             <input
@@ -116,11 +115,10 @@ export default function AdvancedSettings({ settings, update, section = 'all' }) 
             </button>
           </div>
           <p>{t('Fonts apply to note text. Import only trusted, licensed fonts.')}</p>
-        </>
+        </SettingsGroup>
       )}
       {(section === 'all' || section === 'files') && (
-        <>
-          <h4>{t('Folder paths')}</h4>
+        <SettingsGroup title={t('Folder paths')}>
           <label className='setting-row'>
             <span>{t('Use underscores for spaces in folder paths')}</span>
             <input
@@ -130,7 +128,10 @@ export default function AdvancedSettings({ settings, update, section = 'all' }) 
               onChange={(e) => update({ underscoreFolders: e.target.checked })}
             />
           </label>
-          <h4>{t('File names')}</h4>
+        </SettingsGroup>
+      )}
+      {(section === 'all' || section === 'files') && (
+        <SettingsGroup title={t('File names')}>
           <SettingRow
             label={t('Hide .flow file extension')}
             description={t('Hide the suffix without renaming files.')}
@@ -153,7 +154,10 @@ export default function AdvancedSettings({ settings, update, section = 'all' }) 
               onChange={(e) => update({ showMarkdownExtension: e.target.checked })}
             />
           </SettingRow>
-          <h4>{t('Links')}</h4>
+        </SettingsGroup>
+      )}
+      {(section === 'all' || section === 'files') && (
+        <SettingsGroup title={t('Links')}>
           <SettingRow
             label={t('Update wiki links on rename')}
             description={t('Update links in other notes when a file or folder is renamed.')}
@@ -165,11 +169,10 @@ export default function AdvancedSettings({ settings, update, section = 'all' }) 
               onChange={(e) => update({ autoRelink: e.target.checked })}
             />
           </SettingRow>
-        </>
+        </SettingsGroup>
       )}
       {(section === 'all' || section === 'workspace') && (
-        <>
-          <h4>{t('Workspace tabs')}</h4>
+        <SettingsGroup title={t('Workspace tabs')}>
           <label className='setting-row'>
             <span>{t('Close tabs when files disappear externally')}</span>
             <input
@@ -196,11 +199,10 @@ export default function AdvancedSettings({ settings, update, section = 'all' }) 
           <p>
             {t('When disabled, open tabs are not saved. Saved workspaces return when re-enabled.')}
           </p>
-        </>
+        </SettingsGroup>
       )}
       {(section === 'all' || section === 'history') && (
-        <>
-          <h4>{t('Revision history')}</h4>
+        <SettingsGroup title={t('Revision history')}>
           {number(
             'Maximum saved revisions per document',
             'historyRetention',
@@ -242,7 +244,7 @@ export default function AdvancedSettings({ settings, update, section = 'all' }) 
               'Older revisions are removed after the next document change. History is stored in each vault under .tagline/history.'
             )}
           </p>
-        </>
+        </SettingsGroup>
       )}
       {error && (
         <p role='alert' className='error-text'>

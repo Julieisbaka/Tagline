@@ -60,8 +60,9 @@ function AppContextMenu({ x, y, items, onClose }) {
   useLayoutEffect(() => containFocus(ref.current, previousFocus.current, false), []);
   useLayoutEffect(() => {
     const el = ref.current;
-    el.style.left = `${Math.max(4, Math.min(x, innerWidth - el.offsetWidth - 4))}px`;
-    el.style.top = `${Math.max(4, Math.min(y, innerHeight - el.offsetHeight - 4))}px`;
+    const rect = el.getBoundingClientRect();
+    el.style.left = `${Math.floor(Math.max(8, Math.min(x, innerWidth - rect.width - 8)))}px`;
+    el.style.top = `${Math.floor(Math.max(8, Math.min(y, innerHeight - rect.height - 8)))}px`;
     el.querySelector('button:not(:disabled)')?.focus({ preventScroll: true });
   }, [x, y]);
   useEffect(() => {

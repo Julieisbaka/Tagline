@@ -1,3 +1,4 @@
+import { useLayoutEffect, useRef } from 'react';
 import { FLOW_PRESETS as PRESETS } from '../../../electron/flow.mjs';
 import Icon from '../Icon.jsx';
 
@@ -20,6 +21,15 @@ export default function FlowSheetTabs({
   t,
   context,
 }) {
+  const pendingFocus = useRef(null);
+  useLayoutEffect(() => {
+    const target = pendingFocus.current;
+    if (target && data.sheets[target.index]?.name === target.name) {
+      sheetTabsRef.current?.querySelectorAll('.flow-sheet-select')[target.index]?.focus();
+      pendingFocus.current = null;
+    }
+  }, [data.sheets, sheetTabsRef]);
+
   return (
     <div className='flow-sheets' ref={sheetTabsRef} role='group' aria-label={t('Flow sheets')}>
       {data.sheets.map((s, i) =>
@@ -108,12 +118,8 @@ export default function FlowSheetTabs({
                   if (destination < 0 || destination >= data.sheets.length) {
                     return;
                   }
+                  pendingFocus.current = { index: destination, name: s.name };
                   reorderSheet(i, destination);
-                  requestAnimationFrame(() =>
-                    sheetTabsRef.current
-                      ?.querySelectorAll('.flow-sheet-select')
-                      [destination]?.focus()
-                  );
                 }
               }}
               onDoubleClick={() => setRenaming(i)}

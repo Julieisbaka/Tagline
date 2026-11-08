@@ -1,5 +1,6 @@
 import { useI18n } from '../../lib/i18n.js';
 import { DEFAULT_RIBBON_ITEMS, normalizeRibbonItems, RIBBON_ITEMS } from '../../lib/ribbonItems.js';
+import SettingsGroup from './SettingsGroup.jsx';
 
 export default function RibbonSettings({ settings, update, contributions = [] }) {
   const { t } = useI18n();
@@ -37,53 +38,54 @@ export default function RibbonSettings({ settings, update, contributions = [] })
 
   return (
     <div className='ribbon-settings'>
-      <h3>{t('Sidebar shortcuts')}</h3>
-      <p>
-        {t(
-          'Choose and reorder shortcuts here or drag them in the sidebar. Settings stays available.'
-        )}
-      </p>
-      <ol>
-        {orderedItems.map(({ id, title }) => {
-          const index = availableItems.indexOf(id);
-          const checked = index >= 0;
-          return (
-            <li key={id} className={checked ? '' : 'hidden'}>
-              <label>
-                <input
-                  type='checkbox'
-                  data-ribbon-item={id}
-                  checked={checked}
-                  onChange={(event) => toggle(id, event.target.checked)}
-                />
-                <span>{t(title)}</span>
-              </label>
-              {checked && (
-                <span className='ribbon-order'>
-                  <button
-                    type='button'
-                    aria-label={t('Move {name} up', { name: t(title) })}
-                    data-direction='up'
-                    disabled={index === 0}
-                    onClick={() => move(id, -1)}
-                  >
-                    ↑
-                  </button>
-                  <button
-                    type='button'
-                    aria-label={t('Move {name} down', { name: t(title) })}
-                    data-direction='down'
-                    disabled={index === availableItems.length - 1}
-                    onClick={() => move(id, 1)}
-                  >
-                    ↓
-                  </button>
-                </span>
-              )}
-            </li>
-          );
-        })}
-      </ol>
+      <SettingsGroup title={t('Sidebar shortcuts')}>
+        <p>
+          {t(
+            'Choose and reorder shortcuts here or drag them in the sidebar. Settings stays available.'
+          )}
+        </p>
+        <ol>
+          {orderedItems.map(({ id, title }) => {
+            const index = availableItems.indexOf(id);
+            const checked = index >= 0;
+            return (
+              <li key={id} className={checked ? '' : 'hidden'}>
+                <label>
+                  <input
+                    type='checkbox'
+                    data-ribbon-item={id}
+                    checked={checked}
+                    onChange={(event) => toggle(id, event.target.checked)}
+                  />
+                  <span>{t(title)}</span>
+                </label>
+                {checked && (
+                  <span className='ribbon-order'>
+                    <button
+                      type='button'
+                      aria-label={t('Move {name} up', { name: t(title) })}
+                      data-direction='up'
+                      disabled={index === 0}
+                      onClick={() => move(id, -1)}
+                    >
+                      ↑
+                    </button>
+                    <button
+                      type='button'
+                      aria-label={t('Move {name} down', { name: t(title) })}
+                      data-direction='down'
+                      disabled={index === availableItems.length - 1}
+                      onClick={() => move(id, 1)}
+                    >
+                      ↓
+                    </button>
+                  </span>
+                )}
+              </li>
+            );
+          })}
+        </ol>
+      </SettingsGroup>
       <button
         type='button'
         data-ribbon-reset

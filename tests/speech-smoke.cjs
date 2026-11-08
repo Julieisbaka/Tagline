@@ -52,7 +52,13 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
           errors.push(e.message);
         }
       });
-      const js = (s) => wc.executeJavaScript(s);
+      const js = async (s) => {
+        try {
+          return await wc.executeJavaScript(s);
+        } catch (error) {
+          throw new Error(`Renderer script failed: ${s}`, { cause: error });
+        }
+      };
       const wait = async (s) => {
         for (let i = 0; i < 100; i++) {
           if (await js(s)) {
@@ -117,7 +123,7 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
         );
         assert.equal(
           await js(
-            "document.querySelector('.note-properties pre').textContent.includes('choices')"
+            "document.querySelector('.note-properties [aria-label=\"YAML value for custom\"]').value.includes('choices')"
           ),
           true
         );

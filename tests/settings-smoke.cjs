@@ -223,7 +223,9 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
         );
         const platformCopy = require(`../src/platform/${process.platform}.json`);
         assert.equal(
-          await js("document.querySelector('[data-settings-panel=files] > p').textContent"),
+          await js(
+            "document.querySelector('[data-settings-panel=files] .settings-group-content > p').textContent"
+          ),
           platformCopy.en.flowAssociation
         );
         assert.equal(
@@ -368,7 +370,9 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
           "document.querySelector('.settings-search input').getAttribute('aria-label') === 'Buscar ajustes'"
         );
         assert.equal(
-          await js("document.querySelector('[data-settings-panel=files] > p').textContent"),
+          await js(
+            "document.querySelector('[data-settings-panel=files] .settings-group-content > p').textContent"
+          ),
           platformCopy.es.flowAssociation
         );
         await click('[data-section=editors]');
@@ -1000,9 +1004,9 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
         );
         await settings('editors');
         assert.deepEqual(
-          await js(`Array.from(document.querySelectorAll('.editor-settings > h3:not(:first-child)'),
+          await js(`Array.from(document.querySelectorAll('.editor-settings > details > summary'),
             el => getComputedStyle(el).borderTopWidth)`),
-          ['0px', '0px', '0px', '0px'],
+          ['0px', '0px', '0px', '0px', '0px'],
           'editor sections do not add a second divider'
         );
         for (const key of ['editorMode', 'flowEditorMode', 'canvasEditorMode']) {

@@ -60,10 +60,13 @@
 }
 
 .timer-auto-start {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 6px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) max-content;
+  align-items: center;
+  gap: 8px 12px;
+  padding: 8px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
 }
 
 .timer-auto-start label {
@@ -72,11 +75,16 @@
   gap: 6px;
 }
 
+.timer-auto-start > button {
+  justify-self: start;
+}
+
 .timer-auto-start input {
   width: 64px;
 }
 
 .timer-auto-start p {
+  grid-column: 1 / -1;
   margin: 0;
   font-size: 12px;
 }
@@ -139,6 +147,9 @@
   flex-direction: column;
   gap: 4px;
   min-height: 0;
+  max-height: min(32vh, 260px);
+  padding: 4px;
+  margin: -4px;
   overflow-y: auto;
 }
 
@@ -163,4 +174,14 @@
 
 .timer .link-btn:disabled:hover {
   text-decoration: none;
+}
+
+@media (max-width: 480px) {
+  .timer-auto-start {
+    grid-template-columns: 1fr;
+  }
+
+  .timer-auto-start p {
+    grid-column: auto;
+  }
 }

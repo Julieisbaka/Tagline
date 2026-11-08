@@ -3,6 +3,7 @@ import { getRuntimeLimits } from '../../../electron/customization.mjs';
 import { useConfirm } from '../dialogs/ConfirmProvider.jsx';
 import { useI18n } from '../../lib/i18n.js';
 import SettingControl from './SettingControl.jsx';
+import SettingsGroup from './SettingsGroup.jsx';
 
 const PERMISSION_LABELS = {
   editor: 'Read and edit the active note, selection, and visual editor',
@@ -225,150 +226,153 @@ export default function ExtensionSettings({ extensions }) {
         install(async () => files.map((file) => window.api.pathForFile(file)).filter(Boolean));
       }}
     >
-      <h3>{t('Installed extensions')}</h3>
-      <p>
-        {t(
-          'Extensions run in a sandbox without direct network, Node.js, or page access. The network permission can contact only the HTTPS hosts listed on the extension card. Enable only extensions you trust.'
+      <SettingsGroup title={t('Installed extensions')}>
+        <p>
+          {t(
+            'Extensions run in a sandbox without direct network, Node.js, or page access. The network permission can contact only the HTTPS hosts listed on the extension card. Enable only extensions you trust.'
+          )}
+        </p>
+        <p className='extension-drop-hint'>
+          {t('Drag an extension folder here to install it. The folder must contain manifest.json.')}
+        </p>
+        <div className='settings-actions'>
+          <button
+            disabled={busy}
+            onClick={() =>
+              install(async () => {
+                const result = await window.api.chooseExtensionFolder();
+                return result ? [result] : [];
+              })
+            }
+          >
+            {t('Install from folder…')}
+          </button>
+          <button onClick={() => act(() => window.api.openExtensionsFolder())}>
+            {t('Open extensions folder')}
+          </button>
+          <button disabled={busy} onClick={() => act(extensions.reload)}>
+            {t('Reload extensions')}
+          </button>
+        </div>
+        {notice && <p role='status'>{notice}</p>}
+        {error && (
+          <p role='alert' className='error-text'>
+            {error}
+          </p>
         )}
-      </p>
-      <p className='extension-drop-hint'>
-        {t('Drag an extension folder here to install it. The folder must contain manifest.json.')}
-      </p>
-      <div className='settings-actions'>
-        <button
-          disabled={busy}
-          onClick={() =>
-            install(async () => {
-              const result = await window.api.chooseExtensionFolder();
-              return result ? [result] : [];
-            })
-          }
-        >
-          {t('Install from folder…')}
-        </button>
-        <button onClick={() => act(() => window.api.openExtensionsFolder())}>
-          {t('Open extensions folder')}
-        </button>
-        <button disabled={busy} onClick={() => act(extensions.reload)}>
-          {t('Reload extensions')}
-        </button>
-      </div>
-      {notice && <p role='status'>{notice}</p>}
-      {error && (
-        <p role='alert' className='error-text'>
-          {error}
-        </p>
-      )}
-      {!extensions.extensions.length && (
-        <p className='settings-empty'>
-          {t('No extensions installed. Drag a folder containing manifest.json onto this page.')}
-        </p>
-      )}
-      <ul className='extension-list'>
-        {extensions.extensions.map((item) => (
-          <li key={item.folder || item.id} className='extension-card' data-extension={item.id}>
-            <div className='extension-head'>
-              <div>
-                <strong>{item.name || item.folder}</strong>
-                {item.version && <span className='extension-version'>v{item.version}</span>}
-                {item.author && (
-                  <span className='extension-author'>
-                    {t('by {author}', { author: item.author })}
-                  </span>
-                )}
-              </div>
-              {item.id && (
-                <label className='extension-toggle'>
-                  <span>{t('Enabled')}</span>
-                  <input
-                    type='checkbox'
-                    checked={!!item.enabled}
-                    disabled={busy}
-                    onChange={(e) => act(() => extensions.setEnabled(item.id, e.target.checked))}
-                  />
-                </label>
-              )}
-            </div>
-            {item.description && <p>{item.description}</p>}
-            {item.reviewRequired && (
-              <p role='alert'>
-                {t(
-                  'Review changed permissions, network hosts, and settings before enabling this extension.'
-                )}
-              </p>
-            )}
-            {item.permissions?.length > 0 && (
-              <fieldset className='extension-permissions'>
-                <legend>{t('Permissions')}</legend>
-                {item.permissions.map((permission) => (
-                  <label className='extension-permission' key={permission}>
-                    <span>{t(PERMISSION_LABELS[permission] || permission)}</span>
-                    <span className='extension-permission-control'>
-                      {t('Allow')}
-                      <input
-                        type='checkbox'
-                        aria-label={t('Allow {permission}', {
-                          permission: t(PERMISSION_LABELS[permission] || permission),
-                        })}
-                        checked={item.allowedPermissions.includes(permission)}
-                        disabled={busy || item.error}
-                        onChange={(event) =>
-                          act(() =>
-                            extensions.setPermission(item.id, permission, event.target.checked)
-                          )
-                        }
-                      />
+        {!extensions.extensions.length && (
+          <p className='settings-empty'>
+            {t('No extensions installed. Drag a folder containing manifest.json onto this page.')}
+          </p>
+        )}
+        <ul className='extension-list'>
+          {extensions.extensions.map((item) => (
+            <li key={item.folder || item.id} className='extension-card' data-extension={item.id}>
+              <div className='extension-head'>
+                <div>
+                  <strong>{item.name || item.folder}</strong>
+                  {item.version && <span className='extension-version'>v{item.version}</span>}
+                  {item.author && (
+                    <span className='extension-author'>
+                      {t('by {author}', { author: item.author })}
                     </span>
+                  )}
+                </div>
+                {item.id && (
+                  <label className='extension-toggle'>
+                    <span>{t('Enabled')}</span>
+                    <input
+                      type='checkbox'
+                      checked={!!item.enabled}
+                      disabled={busy}
+                      onChange={(e) => act(() => extensions.setEnabled(item.id, e.target.checked))}
+                    />
                   </label>
-                ))}
-              </fieldset>
-            )}
-            {item.networkHosts?.length > 0 && (
-              <p>{t('Requested HTTPS hosts: {hosts}', { hosts: item.networkHosts.join(', ') })}</p>
-            )}
-            {item.permissions?.includes('secrets') && (
-              <div className='settings-actions'>
-                <button
-                  disabled={busy}
-                  onClick={() => act(() => window.api.clearExtensionSecrets(item.id))}
-                >
-                  {t('Clear stored secrets')}
-                </button>
+                )}
               </div>
-            )}
-            {item.contributes?.settings?.length > 0 && (
-              <ExtensionSettingsForm item={item} extensions={extensions} />
-            )}
-            {item.error && (
-              <p role='alert' className='error-text'>
-                {item.error}
-              </p>
-            )}
-            {item.folder && (
-              <div className='settings-actions'>
-                <button
-                  disabled={busy}
-                  onClick={() =>
-                    act(async () => {
-                      if (
-                        await confirm(
-                          t('Uninstall "{name}" and delete its saved settings?', {
-                            name: item.name || item.folder,
-                          })
-                        )
-                      ) {
-                        await extensions.uninstall(item.folder);
-                      }
-                    })
-                  }
-                >
-                  {t('Uninstall extension')}
-                </button>
-              </div>
-            )}
-          </li>
-        ))}
-      </ul>
+              {item.description && <p>{item.description}</p>}
+              {item.reviewRequired && (
+                <p role='alert'>
+                  {t(
+                    'Review changed permissions, network hosts, and settings before enabling this extension.'
+                  )}
+                </p>
+              )}
+              {item.permissions?.length > 0 && (
+                <fieldset className='extension-permissions'>
+                  <legend>{t('Permissions')}</legend>
+                  {item.permissions.map((permission) => (
+                    <label className='extension-permission' key={permission}>
+                      <span>{t(PERMISSION_LABELS[permission] || permission)}</span>
+                      <span className='extension-permission-control'>
+                        {t('Allow')}
+                        <input
+                          type='checkbox'
+                          aria-label={t('Allow {permission}', {
+                            permission: t(PERMISSION_LABELS[permission] || permission),
+                          })}
+                          checked={item.allowedPermissions.includes(permission)}
+                          disabled={busy || item.error}
+                          onChange={(event) =>
+                            act(() =>
+                              extensions.setPermission(item.id, permission, event.target.checked)
+                            )
+                          }
+                        />
+                      </span>
+                    </label>
+                  ))}
+                </fieldset>
+              )}
+              {item.networkHosts?.length > 0 && (
+                <p>
+                  {t('Requested HTTPS hosts: {hosts}', { hosts: item.networkHosts.join(', ') })}
+                </p>
+              )}
+              {item.permissions?.includes('secrets') && (
+                <div className='settings-actions'>
+                  <button
+                    disabled={busy}
+                    onClick={() => act(() => window.api.clearExtensionSecrets(item.id))}
+                  >
+                    {t('Clear stored secrets')}
+                  </button>
+                </div>
+              )}
+              {item.contributes?.settings?.length > 0 && (
+                <ExtensionSettingsForm item={item} extensions={extensions} />
+              )}
+              {item.error && (
+                <p role='alert' className='error-text'>
+                  {item.error}
+                </p>
+              )}
+              {item.folder && (
+                <div className='settings-actions'>
+                  <button
+                    disabled={busy}
+                    onClick={() =>
+                      act(async () => {
+                        if (
+                          await confirm(
+                            t('Uninstall "{name}" and delete its saved settings?', {
+                              name: item.name || item.folder,
+                            })
+                          )
+                        ) {
+                          await extensions.uninstall(item.folder);
+                        }
+                      })
+                    }
+                  >
+                    {t('Uninstall extension')}
+                  </button>
+                </div>
+              )}
+            </li>
+          ))}
+        </ul>
+      </SettingsGroup>
     </div>
   );
 }

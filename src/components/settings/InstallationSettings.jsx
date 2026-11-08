@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import platformCopy from '@platform-settings';
 import { useI18n } from '../../lib/i18n.js';
 import ModalBackdrop from '../dialogs/ModalBackdrop.jsx';
+import SettingsGroup from './SettingsGroup.jsx';
 
 export default function InstallationSettings() {
   const { t, locale } = useI18n();
@@ -214,8 +215,7 @@ export default function InstallationSettings() {
         </dl>
       )}
       {info && (
-        <>
-          <h3>{t('Bug report details')}</h3>
+        <SettingsGroup title={t('Bug report details')}>
           <p>
             {t(
               'Copy these details into a bug report. They contain no file paths or personal information.'
@@ -234,132 +234,140 @@ export default function InstallationSettings() {
               {t(copied ? 'Copied' : 'Copy bug report details')}
             </button>
           </div>
-        </>
+        </SettingsGroup>
       )}
-      <h3>{t('Updates')}</h3>
-      <p>{platform.updates}</p>
-      <label>
-        <input
-          type='checkbox'
-          checked={autoUpdateEnabled === true}
-          disabled={autoUpdateEnabled === null || updating}
-          onChange={toggleAutoUpdate}
-        />
-        <span>{t('Automatically check for and download updates on startup')}</span>
-      </label>
-      {autoUpdateError && (
-        <p className='error-text' role='alert'>
-          {autoUpdateError}
-        </p>
-      )}
-      <div className='settings-actions'>
-        <button className='primary' disabled={updating || !info?.packaged} onClick={runAutoUpdate}>
-          {t(updating ? 'Updating…' : 'Update now')}
-        </button>
-        <button
-          disabled={checking || updating}
-          aria-busy={checking || updateState.status === 'checking'}
-          onClick={checkUpdates}
-        >
-          {t(checking ? 'Checking for updates…' : 'Check for updates')}
-        </button>
-        <button className='link-btn' onClick={() => openPage('repository')}>
-          {t('GitHub repository')}
-        </button>
-        <button className='link-btn' onClick={() => openPage('releases')}>
-          {t('View releases')}
-        </button>
-      </div>
-      {release && (
-        <p role='status'>
-          {t(
-            release.updateAvailable
-              ? 'Version {version} is available.'
-              : 'You are up to date (latest release: {version}).',
-            { version: release.latestVersion }
-          )}
-        </p>
-      )}
-      {release?.updateAvailable && release.download && info?.packaged && (
+      <SettingsGroup title={t('Updates')}>
+        <p>{platform.updates}</p>
+        <label>
+          <input
+            type='checkbox'
+            checked={autoUpdateEnabled === true}
+            disabled={autoUpdateEnabled === null || updating}
+            onChange={toggleAutoUpdate}
+          />
+          <span>{t('Automatically check for and download updates on startup')}</span>
+        </label>
+        {autoUpdateError && (
+          <p className='error-text' role='alert'>
+            {autoUpdateError}
+          </p>
+        )}
         <div className='settings-actions'>
-          {updateState.status !== 'ready' && (
-            <button disabled={updating} onClick={downloadUpdate}>
-              {t(updateState.status === 'downloading' ? 'Downloading update…' : 'Download update')}
-            </button>
-          )}
-          {updateState.status === 'ready' && (
-            <button className='primary' disabled={updating} onClick={installUpdate}>
-              {platform.installButton}
-            </button>
-          )}
+          <button
+            className='primary'
+            disabled={updating || !info?.packaged}
+            onClick={runAutoUpdate}
+          >
+            {t(updating ? 'Updating…' : 'Update now')}
+          </button>
+          <button
+            disabled={checking || updating}
+            aria-busy={checking || updateState.status === 'checking'}
+            onClick={checkUpdates}
+          >
+            {t(checking ? 'Checking for updates…' : 'Check for updates')}
+          </button>
+          <button className='link-btn' onClick={() => openPage('repository')}>
+            {t('GitHub repository')}
+          </button>
+          <button className='link-btn' onClick={() => openPage('releases')}>
+            {t('View releases')}
+          </button>
         </div>
-      )}
-      {updateState.status === 'downloading' && (
-        <div role='status' aria-live='polite'>
-          <label>
-            {t('Downloading update…')}
-            <progress
-              aria-label={t('Update download progress')}
-              max={updateState.total || 1}
-              value={updateState.received}
-            />
-          </label>
-          <span>{Math.round((updateState.received / (updateState.total || 1)) * 100)}%</span>
-        </div>
-      )}
-      {updateState.status === 'installing' && <p role='status'>{platform.installing}</p>}
-      {release?.updateAvailable && !release.download && (
+        {release && (
+          <p role='status'>
+            {t(
+              release.updateAvailable
+                ? 'Version {version} is available.'
+                : 'You are up to date (latest release: {version}).',
+              { version: release.latestVersion }
+            )}
+          </p>
+        )}
+        {release?.updateAvailable && release.download && info?.packaged && (
+          <div className='settings-actions'>
+            {updateState.status !== 'ready' && (
+              <button disabled={updating} onClick={downloadUpdate}>
+                {t(
+                  updateState.status === 'downloading' ? 'Downloading update…' : 'Download update'
+                )}
+              </button>
+            )}
+            {updateState.status === 'ready' && (
+              <button className='primary' disabled={updating} onClick={installUpdate}>
+                {platform.installButton}
+              </button>
+            )}
+          </div>
+        )}
+        {updateState.status === 'downloading' && (
+          <div role='status' aria-live='polite'>
+            <label>
+              {t('Downloading update…')}
+              <progress
+                aria-label={t('Update download progress')}
+                max={updateState.total || 1}
+                value={updateState.received}
+              />
+            </label>
+            <span>{Math.round((updateState.received / (updateState.total || 1)) * 100)}%</span>
+          </div>
+        )}
+        {updateState.status === 'installing' && <p role='status'>{platform.installing}</p>}
+        {release?.updateAvailable && !release.download && (
+          <p>
+            {t(
+              'No compatible in-app download is available for this release. Use View releases to install it manually.'
+            )}
+          </p>
+        )}
+        {info && !info.packaged && (
+          <p>
+            {t(
+              'In-app downloads are available only in a packaged installation. Use View releases to get an installer.'
+            )}
+          </p>
+        )}
+        {installMessage && <p role='status'>{installMessage}</p>}
+        {(updateError || updateState.error) && (
+          <p className='error-text' role='alert'>
+            {updateError || updateState.error}
+          </p>
+        )}
+        <p>{platform.installInstructions}</p>
         <p>
           {t(
-            'No compatible in-app download is available for this release. Use View releases to install it manually.'
+            'Keep your profile folder to preserve settings, themes, extensions, and downloaded models. Vaults and revision history remain in their own folders. Back up your profile and vaults before updating.'
           )}
         </p>
-      )}
-      {info && !info.packaged && (
+      </SettingsGroup>
+      <SettingsGroup title={t('Uninstall Tagline')}>
         <p>
           {t(
-            'In-app downloads are available only in a packaged installation. Use View releases to get an installer.'
+            'Choose whether to keep or remove your profile. Vaults and their revision history are always kept.'
           )}
         </p>
-      )}
-      {installMessage && <p role='status'>{installMessage}</p>}
-      {(updateError || updateState.error) && (
-        <p className='error-text' role='alert'>
-          {updateError || updateState.error}
-        </p>
-      )}
-      <p>{platform.installInstructions}</p>
-      <p>
-        {t(
-          'Keep your profile folder to preserve settings, themes, extensions, and downloaded models. Vaults and revision history remain in their own folders. Back up your profile and vaults before updating.'
+        {uninstallMessage && <p role='status'>{uninstallMessage}</p>}
+        {uninstallError && (
+          <p className='error-text' role='alert'>
+            {uninstallError}
+          </p>
         )}
-      </p>
-      <h3>{t('Uninstall Tagline')}</h3>
-      <p>
-        {t(
-          'Choose whether to keep or remove your profile. Vaults and their revision history are always kept.'
+        <button
+          className='danger'
+          disabled={!info?.packaged || updating}
+          onClick={() => {
+            setUninstallError('');
+            setRemoveProfile(false);
+            setShowUninstall(true);
+          }}
+        >
+          {t('Uninstall Tagline…')}
+        </button>
+        {!info?.packaged && info && (
+          <p>{t('Uninstall is available only in a packaged installation.')}</p>
         )}
-      </p>
-      {uninstallMessage && <p role='status'>{uninstallMessage}</p>}
-      {uninstallError && (
-        <p className='error-text' role='alert'>
-          {uninstallError}
-        </p>
-      )}
-      <button
-        className='danger'
-        disabled={!info?.packaged || updating}
-        onClick={() => {
-          setUninstallError('');
-          setRemoveProfile(false);
-          setShowUninstall(true);
-        }}
-      >
-        {t('Uninstall Tagline…')}
-      </button>
-      {!info?.packaged && info && (
-        <p>{t('Uninstall is available only in a packaged installation.')}</p>
-      )}
+      </SettingsGroup>
       {showUninstall && (
         <ModalBackdrop className='modal-backdrop' onMouseDown={() => setShowUninstall(false)}>
           <div

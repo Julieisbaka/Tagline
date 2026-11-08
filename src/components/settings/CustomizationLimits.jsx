@@ -7,6 +7,7 @@ import {
 } from '../../../electron/customization.mjs';
 import { useI18n } from '../../lib/i18n.js';
 import { validateTheme } from '../../lib/themes.js';
+import SettingsGroup from './SettingsGroup.jsx';
 
 export default function CustomizationLimits({ settings }) {
   const { t } = useI18n();
@@ -66,46 +67,47 @@ export default function CustomizationLimits({ settings }) {
   };
   return (
     <section className='customization-limits'>
-      <h4>{t('Theme and extension limits')}</h4>
-      <p>
-        {t(
-          'Limits apply across theme import, extension loading, and sandbox execution. Applying them reloads extensions. Fixed safety ceilings and permission checks cannot be disabled.'
-        )}
-      </p>
-      {values &&
-        Object.entries(LIMIT_DEFINITIONS).map(([key, definition]) => (
-          <label className='setting-row' key={key}>
-            <span>
-              {t(definition.label)}{' '}
-              <small>
-                {definition.min}–{definition.max}
-              </small>
-            </span>
-            <input
-              aria-label={t(definition.label)}
-              data-limit={key}
-              type='number'
-              step='1'
-              min={definition.min}
-              max={definition.max}
-              value={values[key]}
-              onChange={(event) => setValues({ ...values, [key]: event.target.value })}
-            />
-          </label>
-        ))}
-      <div className='settings-actions'>
-        <button disabled={!values || busy} onClick={() => save()}>
-          {t('Apply customization limits')}
-        </button>
-        <button disabled={!values || busy} onClick={() => save(true)}>
-          {t('Reset customization limits')}
-        </button>
-      </div>
-      {error && (
-        <p role='alert' className='error-text'>
-          {error}
+      <SettingsGroup title={t('Theme and extension limits')}>
+        <p>
+          {t(
+            'Limits apply across theme import, extension loading, and sandbox execution. Applying them reloads extensions. Fixed safety ceilings and permission checks cannot be disabled.'
+          )}
         </p>
-      )}
+        {values &&
+          Object.entries(LIMIT_DEFINITIONS).map(([key, definition]) => (
+            <label className='setting-row' key={key}>
+              <span>
+                {t(definition.label)}{' '}
+                <small>
+                  {definition.min}–{definition.max}
+                </small>
+              </span>
+              <input
+                aria-label={t(definition.label)}
+                data-limit={key}
+                type='number'
+                step='1'
+                min={definition.min}
+                max={definition.max}
+                value={values[key]}
+                onChange={(event) => setValues({ ...values, [key]: event.target.value })}
+              />
+            </label>
+          ))}
+        <div className='settings-actions'>
+          <button disabled={!values || busy} onClick={() => save()}>
+            {t('Apply customization limits')}
+          </button>
+          <button disabled={!values || busy} onClick={() => save(true)}>
+            {t('Reset customization limits')}
+          </button>
+        </div>
+        {error && (
+          <p role='alert' className='error-text'>
+            {error}
+          </p>
+        )}
+      </SettingsGroup>
     </section>
   );
 }

@@ -3,6 +3,7 @@ import { useI18n } from '../../lib/i18n.js';
 import { useConfirm } from '../dialogs/ConfirmProvider.jsx';
 import GoogleDocsSettings from './GoogleDocsSettings.jsx';
 import McpSettings from './McpSettings.jsx';
+import SettingsGroup from './SettingsGroup.jsx';
 
 export default function IntegrationSettings({ settings }) {
   const { t } = useI18n();
@@ -70,155 +71,160 @@ export default function IntegrationSettings({ settings }) {
 
   return (
     <section className='integration-settings'>
-      <h4>{t('Document import / export')}</h4>
-      <p>
-        {pandoc
-          ? pandoc.available
-            ? `${pandoc.version} (${pandoc.executable})`
-            : t('Pandoc was not found. Install it or choose its executable in Settings.')
-          : t('Checking Pandoc...')}
-      </p>
-      <div className='integration-buttons'>
-        {pandoc && !pandoc.available && (
-          <button disabled={busy} onClick={() => run(() => window.api.installPandoc())}>
-            {t('Install Pandoc')}
-          </button>
-        )}
-        <button
-          disabled={busy}
-          onClick={() =>
-            run(async () => {
-              const info = await window.api.choosePandoc();
-              if (info) {
-                setPandoc(info);
-              }
-            })
-          }
-        >
-          {t('Locate Pandoc')}
-        </button>
-        <button
-          disabled={busy}
-          onClick={() => run(async () => setPandoc(await window.api.pandocStatus()))}
-        >
-          {t('Check again')}
-        </button>
-      </div>
-      <GoogleDocsSettings />
-      <McpSettings />
-      <h4>{t('Semantic search (local embeddings)')}</h4>
-      <label className='setting-row'>
-        <span>{t('Automatically load downloaded model at startup')}</span>
-        <input
-          type='checkbox'
-          checked={!settings.lowResourceMode && (embedding?.autoload ?? true)}
-          disabled={!embedding || busy || embedding.busy || settings.lowResourceMode}
-          onChange={(e) => {
-            const enabled = e.target.checked;
-            run(async () => {
-              await window.api.setModelAutoload(enabled);
-              setEmbedding(await window.api.embeddingStatus());
-            });
-          }}
-        />
-      </label>
-      {settings.lowResourceMode && (
-        <p>{t('Autoload is disabled by low-resource mode; your preference is preserved.')}</p>
-      )}
-      <p>
-        {t(
-          'Downloads Xenova/all-MiniLM-L6-v2 from Hugging Face (about 23 MB). Model files are cached; note contents and search queries stay on this computer. No API key is required for this public model.'
-        )}
-      </p>
-      <label className='setting-row'>
-        <span>{t('Hugging Face token (optional)')}</span>
-        <input
-          type='password'
-          autoComplete='off'
-          spellCheck={false}
-          value={token}
-          placeholder={t(embedding?.tokenConfigured ? 'Token saved securely' : 'hf_... (optional)')}
-          onChange={(e) => setToken(e.target.value)}
-        />
-      </label>
-      <div className='integration-buttons'>
-        <button
-          disabled={busy || !token.trim() || !embedding?.encryptionAvailable}
-          onClick={() =>
-            run(async () => {
-              await window.api.saveHfToken(token);
-              setToken('');
-              setEmbedding(await window.api.embeddingStatus());
-              setMessage(t('Token saved with OS encryption.'));
-            })
-          }
-        >
-          {t('Save token')}
-        </button>
-        <button
-          disabled={busy || !embedding?.tokenConfigured}
-          onClick={() =>
-            run(async () => {
-              await window.api.saveHfToken('');
-              setToken('');
-              setEmbedding(await window.api.embeddingStatus());
-              setMessage(t('Token removed. Future downloads will use keyless access.'));
-            })
-          }
-        >
-          {t('Remove token')}
-        </button>
-        {embedding && !embedding.ready && (
+      <SettingsGroup title={t('Document import / export')}>
+        <p>
+          {pandoc
+            ? pandoc.available
+              ? `${pandoc.version} (${pandoc.executable})`
+              : t('Pandoc was not found. Install it or choose its executable in Settings.')
+            : t('Checking Pandoc...')}
+        </p>
+        <div className='integration-buttons'>
+          {pandoc && !pandoc.available && (
+            <button disabled={busy} onClick={() => run(() => window.api.installPandoc())}>
+              {t('Install Pandoc')}
+            </button>
+          )}
           <button
-            disabled={busy || embedding.busy}
+            disabled={busy}
             onClick={() =>
               run(async () => {
-                if (
-                  !embedding.downloaded &&
-                  !(await confirm(
-                    t(
-                      'Download the embedding model from Hugging Face? It requires about 23 MB of disk space.'
-                    )
-                  ))
-                ) {
-                  return;
+                const info = await window.api.choosePandoc();
+                if (info) {
+                  setPandoc(info);
                 }
-                await window.api.downloadEmbeddingModel();
-                setEmbedding(await window.api.embeddingStatus());
-                setMessage(t('Model ready for local semantic search.'));
               })
             }
           >
-            {t(embedding.downloaded ? 'Load model' : 'Download model')}
+            {t('Locate Pandoc')}
           </button>
+          <button
+            disabled={busy}
+            onClick={() => run(async () => setPandoc(await window.api.pandocStatus()))}
+          >
+            {t('Check again')}
+          </button>
+        </div>
+      </SettingsGroup>
+      <GoogleDocsSettings />
+      <McpSettings />
+      <SettingsGroup title={t('Semantic search (local embeddings)')}>
+        <label className='setting-row'>
+          <span>{t('Automatically load downloaded model at startup')}</span>
+          <input
+            type='checkbox'
+            checked={!settings.lowResourceMode && (embedding?.autoload ?? true)}
+            disabled={!embedding || busy || embedding.busy || settings.lowResourceMode}
+            onChange={(e) => {
+              const enabled = e.target.checked;
+              run(async () => {
+                await window.api.setModelAutoload(enabled);
+                setEmbedding(await window.api.embeddingStatus());
+              });
+            }}
+          />
+        </label>
+        {settings.lowResourceMode && (
+          <p>{t('Autoload is disabled by low-resource mode; your preference is preserved.')}</p>
         )}
-      </div>
-      <p role='status'>{embedding && t(embedding.detail)}</p>
-      {embedding?.error && (
-        <p className='error-text' role='alert'>
-          {embedding.error}
+        <p>
+          {t(
+            'Downloads Xenova/all-MiniLM-L6-v2 from Hugging Face (about 23 MB). Model files are cached; note contents and search queries stay on this computer. No API key is required for this public model.'
+          )}
         </p>
-      )}
-      {error && (
-        <p className='error-text' role='alert'>
-          {error}
-        </p>
-      )}
-      {message && <p role='status'>{message}</p>}
-      <PoliticalDebateSettings revision={modelRevision} />
-      <h4>{t('On-demand document summaries')}</h4>
-      <p>
-        {t(
-          'Uses {model}. The first download requires about 334 MB plus tokenizer files; document text stays on this computer.',
-          { model: summary?.model || 'Xenova/long-t5-tglobal-base-16384-book-summary' }
+        <label className='setting-row'>
+          <span>{t('Hugging Face token (optional)')}</span>
+          <input
+            type='password'
+            autoComplete='off'
+            spellCheck={false}
+            value={token}
+            placeholder={t(
+              embedding?.tokenConfigured ? 'Token saved securely' : 'hf_... (optional)'
+            )}
+            onChange={(e) => setToken(e.target.value)}
+          />
+        </label>
+        <div className='integration-buttons'>
+          <button
+            disabled={busy || !token.trim() || !embedding?.encryptionAvailable}
+            onClick={() =>
+              run(async () => {
+                await window.api.saveHfToken(token);
+                setToken('');
+                setEmbedding(await window.api.embeddingStatus());
+                setMessage(t('Token saved with OS encryption.'));
+              })
+            }
+          >
+            {t('Save token')}
+          </button>
+          <button
+            disabled={busy || !embedding?.tokenConfigured}
+            onClick={() =>
+              run(async () => {
+                await window.api.saveHfToken('');
+                setToken('');
+                setEmbedding(await window.api.embeddingStatus());
+                setMessage(t('Token removed. Future downloads will use keyless access.'));
+              })
+            }
+          >
+            {t('Remove token')}
+          </button>
+          {embedding && !embedding.ready && (
+            <button
+              disabled={busy || embedding.busy}
+              onClick={() =>
+                run(async () => {
+                  if (
+                    !embedding.downloaded &&
+                    !(await confirm(
+                      t(
+                        'Download the embedding model from Hugging Face? It requires about 23 MB of disk space.'
+                      )
+                    ))
+                  ) {
+                    return;
+                  }
+                  await window.api.downloadEmbeddingModel();
+                  setEmbedding(await window.api.embeddingStatus());
+                  setMessage(t('Model ready for local semantic search.'));
+                })
+              }
+            >
+              {t(embedding.downloaded ? 'Load model' : 'Download model')}
+            </button>
+          )}
+        </div>
+        <p role='status'>{embedding && t(embedding.detail)}</p>
+        {embedding?.error && (
+          <p className='error-text' role='alert'>
+            {embedding.error}
+          </p>
         )}
-      </p>
-      <ModelManagement onChange={() => setModelRevision((n) => n + 1)} />
-      <p role='status'>
-        {summary
-          ? `${summary.model} — ${t(summary.ready ? 'loaded' : 'not loaded')}`
-          : t('Checking model...')}
-      </p>
+        {error && (
+          <p className='error-text' role='alert'>
+            {error}
+          </p>
+        )}
+        {message && <p role='status'>{message}</p>}
+        <PoliticalDebateSettings revision={modelRevision} />
+      </SettingsGroup>
+      <SettingsGroup title={t('On-demand document summaries')}>
+        <p>
+          {t(
+            'Uses {model}. The first download requires about 334 MB plus tokenizer files; document text stays on this computer.',
+            { model: summary?.model || 'Xenova/long-t5-tglobal-base-16384-book-summary' }
+          )}
+        </p>
+        <ModelManagement onChange={() => setModelRevision((n) => n + 1)} />
+        <p role='status'>
+          {summary
+            ? `${summary.model} — ${t(summary.ready ? 'loaded' : 'not loaded')}`
+            : t('Checking model...')}
+        </p>
+      </SettingsGroup>
     </section>
   );
 }
@@ -262,8 +268,7 @@ function PoliticalDebateSettings({ revision }) {
     }
   };
   return (
-    <>
-      <h4>{t('Hypothesis testing (Political DEBATE)')}</h4>
+    <SettingsGroup title={t('Hypothesis testing (Political DEBATE)')}>
       <p>
         {t(
           'An on-demand 0.4B-parameter NLI model (mlburnham/Political_DEBATE_large_v1.0, MIT). It never runs automatically: use the Hypothesis button on a note. The default ONNX download is about 650 MB; other repositories may differ. Analysis stays on this computer.'
@@ -319,7 +324,7 @@ function PoliticalDebateSettings({ revision }) {
           {error}
         </p>
       )}
-    </>
+    </SettingsGroup>
   );
 }
 
@@ -373,8 +378,7 @@ function ModelManagement({ onChange }) {
     }
   };
   return (
-    <>
-      <h4>{t('Model storage')}</h4>
+    <SettingsGroup title={t('Model storage')}>
       <p>
         {t(
           'App-owned cache sizes include partial downloads and older repositories. Local model folders are not included or removed.'
@@ -414,6 +418,6 @@ function ModelManagement({ onChange }) {
           {error}
         </p>
       )}
-    </>
+    </SettingsGroup>
   );
 }

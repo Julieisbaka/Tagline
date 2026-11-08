@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useI18n } from '../../lib/i18n.js';
 import SettingRow from './SettingRow.jsx';
+import SettingsGroup from './SettingsGroup.jsx';
 
 export default function DictionarySettings() {
   const { t } = useI18n();
@@ -32,55 +33,56 @@ export default function DictionarySettings() {
   };
   return (
     <section className='dictionary-settings'>
-      <h3>{t('Custom dictionary')}</h3>
-      <SettingRow
-        label={t('Add word')}
-        description={t('Words in your dictionary are not marked as misspelled.')}
-      >
-        {(inputProps) => (
-          <form
-            onSubmit={(event) => {
-              event.preventDefault();
-              const value = word.trim();
-              if (value) {
-                change(async () => {
-                  await spellcheck.addWord(value);
-                  setWord('');
-                });
-              }
-            }}
-          >
-            <input
-              {...inputProps}
-              type='text'
-              value={word}
-              onChange={(event) => setWord(event.target.value)}
-            />{' '}
-            <button type='submit' disabled={!word.trim()}>
-              {t('Add')}
-            </button>
-          </form>
-        )}
-      </SettingRow>
-      {error && <p role='alert'>{error}</p>}
-      {words.length ? (
-        <ul className='dictionary-words'>
-          {words.map((entry) => (
-            <li key={entry}>
-              <span>{entry}</span>{' '}
-              <button
-                type='button'
-                aria-label={`${t('Remove')} ${entry}`}
-                onClick={() => change(() => spellcheck.removeWord(entry))}
-              >
-                {t('Remove')}
+      <SettingsGroup title={t('Custom dictionary')}>
+        <SettingRow
+          label={t('Add word')}
+          description={t('Words in your dictionary are not marked as misspelled.')}
+        >
+          {(inputProps) => (
+            <form
+              onSubmit={(event) => {
+                event.preventDefault();
+                const value = word.trim();
+                if (value) {
+                  change(async () => {
+                    await spellcheck.addWord(value);
+                    setWord('');
+                  });
+                }
+              }}
+            >
+              <input
+                {...inputProps}
+                type='text'
+                value={word}
+                onChange={(event) => setWord(event.target.value)}
+              />{' '}
+              <button type='submit' disabled={!word.trim()}>
+                {t('Add')}
               </button>
-            </li>
-          ))}
-        </ul>
-      ) : (
-        <p>{t('No custom words yet.')}</p>
-      )}
+            </form>
+          )}
+        </SettingRow>
+        {error && <p role='alert'>{error}</p>}
+        {words.length ? (
+          <ul className='dictionary-words'>
+            {words.map((entry) => (
+              <li key={entry}>
+                <span>{entry}</span>{' '}
+                <button
+                  type='button'
+                  aria-label={`${t('Remove')} ${entry}`}
+                  onClick={() => change(() => spellcheck.removeWord(entry))}
+                >
+                  {t('Remove')}
+                </button>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p>{t('No custom words yet.')}</p>
+        )}
+      </SettingsGroup>
     </section>
   );
 }

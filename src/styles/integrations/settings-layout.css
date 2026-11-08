@@ -153,6 +153,65 @@
   margin: 22px 0 8px;
 }
 
+.settings-group {
+  margin: 12px 0;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg-secondary);
+}
+
+.settings-group > summary {
+  position: relative;
+  padding: 11px 34px 11px 13px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  list-style: none;
+}
+
+.settings-group > summary::-webkit-details-marker {
+  display: none;
+}
+
+.settings-group > summary::after {
+  content: '⌄';
+  position: absolute;
+  right: 13px;
+  top: 50%;
+  transform: translateY(-55%);
+  color: var(--text-muted);
+}
+
+.settings-group:not([open]) > summary::after {
+  content: '›';
+}
+
+.settings-group > summary:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+  border-radius: 5px;
+}
+
+.settings-group-content {
+  padding: 2px 13px 10px;
+}
+
+.settings-group-content > :first-child,
+.settings-group-content > details:first-child {
+  margin-top: 0;
+}
+
+.settings-group-content > .settings-group:first-child {
+  margin-top: 4px;
+}
+
+.settings-group-content > .settings-integration-entry {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+
 .settings-panel p {
   font-size: 12px;
   color: var(--text-muted);
@@ -190,10 +249,6 @@
 
 .settings-panel > section > :first-child {
   margin-top: 0;
-}
-
-.editor-settings > h3:not(:first-child) {
-  margin-top: 28px;
 }
 
 @media (max-width: 560px) {

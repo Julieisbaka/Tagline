@@ -281,21 +281,25 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
         await settings();
         await js("document.querySelector('[data-section=editors]').click()");
         await check('[data-setting=flowSpellcheck]', false, 'flowSpellcheck');
-        await wait(
-          "document.querySelector('.flow-grid textarea')?.getAttribute('spellcheck') === 'false'"
-        );
+        await click('.settings button', 'Done');
+        await js("document.querySelector('.flow-cell-preview').focus()");
+        await wait("document.querySelector('.flow-grid textarea')?.getAttribute('spellcheck') === 'false'");
         assert.equal(
           await js("document.querySelector('.flow-grid th input').getAttribute('spellcheck')"),
           'false'
         );
+        await settings();
+        await js("document.querySelector('[data-section=editors]').click()");
         await check('[data-setting=flowSpellcheck]', true, 'flowSpellcheck');
-        await wait(
-          "document.querySelector('.flow-grid textarea')?.getAttribute('spellcheck') === 'true'"
-        );
+        await click('.settings button', 'Done');
+        await js("document.querySelector('.flow-cell-preview').focus()");
+        await wait("document.querySelector('.flow-grid textarea')?.getAttribute('spellcheck') === 'true'");
         assert.equal(
           await js("document.querySelector('.flow-grid th input').getAttribute('spellcheck')"),
           'true'
         );
+        await settings();
+        await js("document.querySelector('[data-section=editors]').click()");
         await js('document.querySelector(\'[data-setting="focusNewFlowRow"]\').click()');
         await js("document.querySelector('[data-section=editors]').click()");
         await check('[data-setting=sourceLineNumbers]', true, 'sourceLineNumbers');
@@ -350,7 +354,7 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
         await select('[aria-label="Flow mode"]', 'visual');
         await wait("!!document.querySelector('.flow-grid textarea')");
         // Context menus on cells and sheets, including keyboard dismissal.
-        await js(`document.querySelector('.flow-grid textarea').dispatchEvent(new MouseEvent('contextmenu',
+        await js(`document.querySelector('.flow-cell-preview').dispatchEvent(new MouseEvent('contextmenu',
           { bubbles: true, clientX: innerWidth - 2, clientY: innerHeight - 2 }))`);
         await wait("!!document.querySelector('[role=menu]')");
         assert.equal(
@@ -360,11 +364,11 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
           true,
           'Copy remains available from the cell context menu'
         );
-        assert.ok(
-          await js(
-            "document.querySelector('[role=menu]').getBoundingClientRect().right <= innerWidth"
-          )
-        );
+        const menuBounds = await js(`(() => {
+          const rect = document.querySelector('[role=menu]').getBoundingClientRect();
+          return { left: rect.left, right: rect.right, width: rect.width, viewport: innerWidth };
+        })()`);
+        assert.ok(menuBounds.right <= menuBounds.viewport, JSON.stringify(menuBounds));
         await click('[role=menuitem]', 'Insert row above');
         await wait("document.querySelectorAll('.flow-grid tbody tr').length === 6");
         wc.sendInputEvent({ type: 'keyDown', keyCode: 'Escape' });
@@ -417,17 +421,24 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
         await js("document.querySelector('.flow-sheet-select').focus()");
         await key('Right', ['alt', 'shift']);
         await wait("document.querySelector('.flow-sheet-select').textContent.trim() === 'Case'");
+        await wait("document.activeElement.textContent.trim() === 'Off-case'");
         assert.equal(await js('document.activeElement.textContent.trim()'), 'Off-case');
         await key('Left', ['alt', 'shift']);
         await wait(
           "document.querySelector('.flow-sheet-select').textContent.trim() === 'Off-case'"
         );
-        await delay(800);
+        let persistedSheets;
+        for (let attempt = 0; attempt < 50; attempt++) {
+          persistedSheets = JSON.parse(
+            await fs.readFile(path.join(vault, 'Round.flow'), 'utf8')
+          ).sheets.map((sheet) => sheet.name);
+          if (JSON.stringify(persistedSheets) === JSON.stringify(['Off-case', 'Case'])) break;
+          await delay(100);
+        }
         assert.deepEqual(
-          JSON.parse(await fs.readFile(path.join(vault, 'Round.flow'), 'utf8')).sheets.map(
-            (sheet) => sheet.name
-          ),
-          ['Off-case', 'Case']
+          persistedSheets,
+          ['Off-case', 'Case'],
+          `save status: ${await js("document.querySelector('.tab.active .tab-save-status')?.className || 'saved'")}`
         );
         assert.equal(await js("document.querySelector('.flow-sheet-close').tagName"), 'BUTTON');
         assert.equal(await js("document.querySelector('.flow-sheet-close').type"), 'button');

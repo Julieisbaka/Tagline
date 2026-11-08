@@ -8,6 +8,7 @@ import {
   validateReadingSample,
 } from '../../lib/readTime.js';
 import { displayName, isMarkdown } from '../../lib/vault.js';
+import SettingsGroup from './SettingsGroup.jsx';
 
 export default function ReadingSettings({ settings, update, contents = {} }) {
   const { t } = useI18n();
@@ -151,153 +152,157 @@ export default function ReadingSettings({ settings, update, contents = {} }) {
   };
   return (
     <section className='reading-settings'>
-      <h4>{t('Sending evidence')}</h4>
-      <label className='setting-row'>
-        <span>{t('Warn before sending evidence already in the speech document')}</span>
-        <input
-          type='checkbox'
-          data-setting='warnDuplicateSend'
-          checked={settings.warnDuplicateSend}
-          onChange={(event) => update({ warnDuplicateSend: event.target.checked })}
-        />
-      </label>
-      <h4>{t('Personal speech calibration')}</h4>
-      <p>
-        {t(
-          'Speaking rate is used without calibration. Default estimates account for pronunciation and pauses and are optimized for English.'
-        )}
-      </p>
-      <p>
-        {t(
-          'Record a timed reading of a document, or import documents and enter your reading time. Choose the full document or highlighted evidence and spoken citations. Only statistics and timing are saved locally.'
-        )}
-      </p>
-      <button disabled={busy} onClick={importSamples}>
-        {t('Import timed reading documents')}
-      </button>
-      {documents.length > 0 && !recording && (
-        <Recorder documents={documents} onStart={startRecording} t={t} />
-      )}
-      {recording && (
-        <fieldset className='reading-recording'>
-          <legend>{displayName(recording.path)}</legend>
-          <p role='timer' aria-live='off'>
-            {formatDuration(recording.elapsed)} —{' '}
-            {t(
-              recording.scope === 'full'
-                ? 'Full document'
-                : 'Highlighted evidence and spoken citations'
-            )}
-          </p>
-          <button onClick={toggleRecording}>{t(recording.started ? 'Pause' : 'Resume')}</button>
-          <button onClick={() => stopRecording(true)}>{t('Stop and save sample')}</button>
-          <button onClick={() => stopRecording(false)}>{t('Discard')}</button>
-        </fieldset>
-      )}
-      {drafts.map((draft) => (
-        <fieldset key={draft.id} data-reading-draft={draft.id}>
-          <legend>{draft.name}</legend>
-          <label className='setting-row'>
-            <span>{t('Reading scope')}</span>
-            <select
-              aria-label={t('Reading scope')}
-              value={draft.scope}
-              onChange={(event) => change(draft.id, { scope: event.target.value })}
-            >
-              <option value='full'>{t('Full document')}</option>
-              <option value='evidence'>{t('Highlighted evidence and spoken citations')}</option>
-            </select>
-          </label>
-          <label className='setting-row'>
-            <span>{t('Measured reading time (seconds)')}</span>
-            <input
-              aria-label={t('Measured reading time (seconds)')}
-              type='number'
-              min='0.1'
-              max='86400'
-              step='0.1'
-              value={draft.seconds}
-              onChange={(event) => change(draft.id, { seconds: event.target.value })}
-            />
-          </label>
-          {draft.warnings && <p role='status'>{draft.warnings}</p>}
-          <button onClick={() => save(draft)}>{t('Save timed sample')}</button>
-          <button
-            onClick={() => setDrafts((previous) => previous.filter((item) => item.id !== draft.id))}
-          >
-            {t('Cancel')}
-          </button>
-        </fieldset>
-      ))}
-      <p role='status'>
-        {result.profile
-          ? t('Calibrated from {count} samples. Median timing error: {error}%.', {
-              count: result.profile.count,
-              error: (result.profile.medianRelativeError * 100).toFixed(1),
-            })
-          : samples.length > 0
-            ? t('Add at least 3 timed samples to calibrate. Using the default speech algorithm.')
-            : t('No valid samples: using the default speech algorithm and speaking rate.')}
-      </p>
-      {result.profile && (
-        <p role='status'>
-          {t('Cross-validated error: about {error} seconds (leave-one-out).', {
-            error: result.profile.looMeanAbsoluteError.toFixed(1),
-          })}
-        </p>
-      )}
-      {result.profile?.outliers?.length > 0 && (
-        <p role='alert' className='error-text'>
-          {t('Possible mistimed samples: {names}. Re-time or remove them.', {
-            names: result.profile.outliers.map((entry) => entry.name).join(', '),
-          })}
-        </p>
-      )}
-      <p>
-        {t(
-          'Readability uses an English formula. Personal effort is relative to your samples (100 = baseline), not a comprehension test. Calibration error does not guarantee accuracy for new speeches.'
-        )}
-      </p>
-      {samples.map((sample) => (
-        <div className='reading-sample' key={sample.id}>
-          <span>
-            {sample.name} — {formatDuration(sample.seconds)} —{' '}
-            {t(
-              sample.scope === 'full'
-                ? 'Full document'
-                : 'Highlighted evidence and spoken citations'
-            )}
-          </span>
-          <button
-            aria-label={t('Remove sample {name}', { name: sample.name })}
-            onClick={() =>
-              update({ readingSamples: samples.filter((item) => item.id !== sample.id) })
-            }
-          >
-            {t('Remove')}
-          </button>
-          {result.profile && (
-            <small>
-              {t('Estimated: {time}', {
-                time: formatDuration(
-                  readingAssessment(sample.stats, settings.syllablesPerMinute, result.profile)
-                    .seconds
-                ),
-              })}
-            </small>
+      <SettingsGroup title={t('Sending evidence')}>
+        <label className='setting-row'>
+          <span>{t('Warn before sending evidence already in the speech document')}</span>
+          <input
+            type='checkbox'
+            data-setting='warnDuplicateSend'
+            checked={settings.warnDuplicateSend}
+            onChange={(event) => update({ warnDuplicateSend: event.target.checked })}
+          />
+        </label>
+      </SettingsGroup>
+      <SettingsGroup title={t('Personal speech calibration')}>
+        <p>
+          {t(
+            'Speaking rate is used without calibration. Default estimates account for pronunciation and pauses and are optimized for English.'
           )}
-        </div>
-      ))}
-      {samples.length > 0 && (
-        <button onClick={() => update({ readingSamples: [] })}>
-          {t('Reset speech calibration')}
-        </button>
-      )}
-      {(error || result.error) && (
-        <p role='alert' className='error-text'>
-          {error || result.error}
         </p>
-      )}
+        <p>
+          {t(
+            'Record a timed reading of a document, or import documents and enter your reading time. Choose the full document or highlighted evidence and spoken citations. Only statistics and timing are saved locally.'
+          )}
+        </p>
+        <button disabled={busy} onClick={importSamples}>
+          {t('Import timed reading documents')}
+        </button>
+        {documents.length > 0 && !recording && (
+          <Recorder documents={documents} onStart={startRecording} t={t} />
+        )}
+        {recording && (
+          <fieldset className='reading-recording'>
+            <legend>{displayName(recording.path)}</legend>
+            <p role='timer' aria-live='off'>
+              {formatDuration(recording.elapsed)} —{' '}
+              {t(
+                recording.scope === 'full'
+                  ? 'Full document'
+                  : 'Highlighted evidence and spoken citations'
+              )}
+            </p>
+            <button onClick={toggleRecording}>{t(recording.started ? 'Pause' : 'Resume')}</button>
+            <button onClick={() => stopRecording(true)}>{t('Stop and save sample')}</button>
+            <button onClick={() => stopRecording(false)}>{t('Discard')}</button>
+          </fieldset>
+        )}
+        {drafts.map((draft) => (
+          <fieldset key={draft.id} data-reading-draft={draft.id}>
+            <legend>{draft.name}</legend>
+            <label className='setting-row'>
+              <span>{t('Reading scope')}</span>
+              <select
+                aria-label={t('Reading scope')}
+                value={draft.scope}
+                onChange={(event) => change(draft.id, { scope: event.target.value })}
+              >
+                <option value='full'>{t('Full document')}</option>
+                <option value='evidence'>{t('Highlighted evidence and spoken citations')}</option>
+              </select>
+            </label>
+            <label className='setting-row'>
+              <span>{t('Measured reading time (seconds)')}</span>
+              <input
+                aria-label={t('Measured reading time (seconds)')}
+                type='number'
+                min='0.1'
+                max='86400'
+                step='0.1'
+                value={draft.seconds}
+                onChange={(event) => change(draft.id, { seconds: event.target.value })}
+              />
+            </label>
+            {draft.warnings && <p role='status'>{draft.warnings}</p>}
+            <button onClick={() => save(draft)}>{t('Save timed sample')}</button>
+            <button
+              onClick={() =>
+                setDrafts((previous) => previous.filter((item) => item.id !== draft.id))
+              }
+            >
+              {t('Cancel')}
+            </button>
+          </fieldset>
+        ))}
+        <p role='status'>
+          {result.profile
+            ? t('Calibrated from {count} samples. Median timing error: {error}%.', {
+                count: result.profile.count,
+                error: (result.profile.medianRelativeError * 100).toFixed(1),
+              })
+            : samples.length > 0
+              ? t('Add at least 3 timed samples to calibrate. Using the default speech algorithm.')
+              : t('No valid samples: using the default speech algorithm and speaking rate.')}
+        </p>
+        {result.profile && (
+          <p role='status'>
+            {t('Cross-validated error: about {error} seconds (leave-one-out).', {
+              error: result.profile.looMeanAbsoluteError.toFixed(1),
+            })}
+          </p>
+        )}
+        {result.profile?.outliers?.length > 0 && (
+          <p role='alert' className='error-text'>
+            {t('Possible mistimed samples: {names}. Re-time or remove them.', {
+              names: result.profile.outliers.map((entry) => entry.name).join(', '),
+            })}
+          </p>
+        )}
+        <p>
+          {t(
+            'Readability uses an English formula. Personal effort is relative to your samples (100 = baseline), not a comprehension test. Calibration error does not guarantee accuracy for new speeches.'
+          )}
+        </p>
+        {samples.map((sample) => (
+          <div className='reading-sample' key={sample.id}>
+            <span>
+              {sample.name} — {formatDuration(sample.seconds)} —{' '}
+              {t(
+                sample.scope === 'full'
+                  ? 'Full document'
+                  : 'Highlighted evidence and spoken citations'
+              )}
+            </span>
+            <button
+              aria-label={t('Remove sample {name}', { name: sample.name })}
+              onClick={() =>
+                update({ readingSamples: samples.filter((item) => item.id !== sample.id) })
+              }
+            >
+              {t('Remove')}
+            </button>
+            {result.profile && (
+              <small>
+                {t('Estimated: {time}', {
+                  time: formatDuration(
+                    readingAssessment(sample.stats, settings.syllablesPerMinute, result.profile)
+                      .seconds
+                  ),
+                })}
+              </small>
+            )}
+          </div>
+        ))}
+        {samples.length > 0 && (
+          <button onClick={() => update({ readingSamples: [] })}>
+            {t('Reset speech calibration')}
+          </button>
+        )}
+        {(error || result.error) && (
+          <p role='alert' className='error-text'>
+            {error || result.error}
+          </p>
+        )}
+      </SettingsGroup>
     </section>
   );
 }

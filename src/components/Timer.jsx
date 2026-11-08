@@ -178,9 +178,12 @@ export default function Timer({
   const aff = useCountdown(fmt ? Math.round(fmt.prep * 60) : 0, playEndSound);
   const neg = useCountdown(fmt ? Math.round(fmt.prep * 60) : 0, playEndSound);
   const [armed, setArmed] = useState(false);
+  const [micStatus, setMicStatus] = useState('idle');
   const [threshold, setThreshold] = useState(4);
   const [micError, setMicError] = useState('');
   const microphone = useRef(null);
+  const thresholdValue = useRef(threshold);
+  thresholdValue.current = threshold;
   const latest = useRef(null);
   latest.current = { main, aff, neg };
 
@@ -197,14 +200,19 @@ export default function Timer({
   const disarm = () => {
     releaseMicrophone();
     setArmed(false);
+    setMicStatus('idle');
   };
   useEffect(() => () => releaseMicrophone(), []);
 
   const arm = async () => {
+    if (microphone.current || latest.current.main.running || latest.current.main.remaining <= 0) {
+      return;
+    }
     setMicError('');
     const session = {};
     microphone.current = session;
     setArmed(true);
+    setMicStatus('requesting');
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
       if (microphone.current !== session) {
@@ -220,6 +228,11 @@ export default function Timer({
       if (microphone.current !== session) {
         return;
       }
+      if (latest.current.main.running || latest.current.main.remaining <= 0) {
+        disarm();
+        return;
+      }
+      setMicStatus('listening');
       const waveform = new Float32Array(analyser.fftSize);
       const spectrum = new Float32Array(analyser.frequencyBinCount);
       let voicedSince = 0;
@@ -230,9 +243,11 @@ export default function Timer({
         const now = performance.now();
         analyser.getFloatTimeDomainData(waveform);
         analyser.getFloatFrequencyData(spectrum);
-        if (speechLike(waveform, spectrum, session.context.sampleRate, threshold / 100)) {
+        if (
+          speechLike(waveform, spectrum, session.context.sampleRate, thresholdValue.current / 100)
+        ) {
           voicedSince ||= now;
-          if (now - voicedSince >= 300) {
+          if (now - voicedSince >= 500) {
             disarm();
             latest.current.aff.stop();
             latest.current.neg.stop();
@@ -437,9 +452,11 @@ export default function Timer({
         </label>
         <p role='status'>
           {t(
-            armed
-              ? 'Listening once for speech-like sound; background voices may trigger the timer.'
-              : 'Automatic start listens only when armed and turns off after starting.'
+            micStatus === 'requesting'
+              ? 'Connecting to the microphone…'
+              : micStatus === 'listening'
+                ? 'Listening once for sustained speech-like sound; background voices may trigger the timer.'
+                : 'Automatic start listens only when armed and turns off after starting.'
           )}
         </p>
         {micError && <p role='alert'>{micError}</p>}

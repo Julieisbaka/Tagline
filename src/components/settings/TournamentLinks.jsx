@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useI18n } from '../../lib/i18n.js';
+import SettingsGroup from './SettingsGroup.jsx';
 
 // These are manual browser links, not automated access to provider data.
 const providers = [
@@ -28,27 +29,24 @@ export default function TournamentLinks() {
   return (
     <>
       {providers.map((provider) => (
-        <div
-          className='settings-integration-entry'
-          data-tournament-provider={provider.name}
-          key={provider.name}
-        >
-          <div>
-            <h3>{provider.name}</h3>
-            <p>
-              {t(
-                'Open the official website in your browser. Sign in there if needed; Tagline does not import or sync this data.'
-              )}
-            </p>
+        <SettingsGroup title={provider.name} key={provider.name}>
+          <div className='settings-integration-entry' data-tournament-provider={provider.name}>
+            <div>
+              <p>
+                {t(
+                  'Open the official website in your browser. Sign in there if needed; Tagline does not import or sync this data.'
+                )}
+              </p>
+            </div>
+            <div className='integration-buttons'>
+              {provider.links.map(([label, url]) => (
+                <button key={url} onClick={() => open(url)}>
+                  {t(label)}
+                </button>
+              ))}
+            </div>
           </div>
-          <div className='integration-buttons'>
-            {provider.links.map(([label, url]) => (
-              <button key={url} onClick={() => open(url)}>
-                {t(label)}
-              </button>
-            ))}
-          </div>
-        </div>
+        </SettingsGroup>
       ))}
       {error && <p role='alert'>{error}</p>}
     </>

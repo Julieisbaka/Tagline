@@ -7,6 +7,7 @@ import CustomCssSettings from '../settings/CustomCssSettings.jsx';
 import CustomizationLimits from '../settings/CustomizationLimits.jsx';
 import EditorSettings from '../settings/EditorSettings.jsx';
 import DictionarySettings from '../settings/DictionarySettings.jsx';
+import SettingsGroup from '../settings/SettingsGroup.jsx';
 import ExtensionSettings from '../settings/ExtensionSettings.jsx';
 import InstallationSettings from '../settings/InstallationSettings.jsx';
 import IntegrationSettings from '../settings/IntegrationSettings.jsx';
@@ -215,7 +216,7 @@ export function SettingsDialog({
     const index = () => {
       const next = [...content.querySelectorAll('[data-settings-panel]')].map((panel) => ({
         id: panel.dataset.settingsPanel,
-        entries: [...panel.querySelectorAll('label, h3, h4, p, button, dt')]
+        entries: [...panel.querySelectorAll('label, h3, h4, p, button, dt, summary')]
           .map((element) => ({
             element,
             text: element.textContent.replace(/\s+/g, ' ').trim(),
@@ -276,6 +277,13 @@ export function SettingsDialog({
     setQuery('');
     requestAnimationFrame(() => {
       const target = entry?.element;
+      for (
+        let group = target?.closest('details');
+        group;
+        group = group.parentElement?.closest('details')
+      ) {
+        group.open = true;
+      }
       target?.scrollIntoView({ block: 'center' });
       const control = target?.matches('button')
         ? target
@@ -395,34 +403,35 @@ export function SettingsDialog({
               hidden={section !== 'general'}
               className='settings-panel'
             >
-              <h3>{t('Speech and reading')}</h3>
-              {field(
-                'Speaking rate (weighted syllables per minute)',
-                'syllablesPerMinute',
-                'number',
-                { min: 75, max: 1500 }
-              )}
-              <ReadingSettings settings={settings} update={update} contents={contents} />
-              <TimerSoundSettings settings={settings} update={update} />
-              <label className='setting-row'>
-                <span>{t('Active speech document')}</span>
-                <select
-                  data-setting='speechDoc'
-                  value={speechDoc}
-                  onChange={(event) => onSelectSpeechDoc(event.target.value)}
-                >
-                  {[...new Set([speechDoc, ...speechDocuments])].filter(Boolean).map((path) => (
-                    <option key={path} value={path}>
-                      {path}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <p className='settings-help'>
-                {t(
-                  'Speech documents use speech: true in YAML frontmatter. Right-click a Markdown file and choose Set as speech doc to make it active.'
+              <SettingsGroup title={t('Speech and reading')}>
+                {field(
+                  'Speaking rate (weighted syllables per minute)',
+                  'syllablesPerMinute',
+                  'number',
+                  { min: 75, max: 1500 }
                 )}
-              </p>
+                <ReadingSettings settings={settings} update={update} contents={contents} />
+                <TimerSoundSettings settings={settings} update={update} />
+                <label className='setting-row'>
+                  <span>{t('Active speech document')}</span>
+                  <select
+                    data-setting='speechDoc'
+                    value={speechDoc}
+                    onChange={(event) => onSelectSpeechDoc(event.target.value)}
+                  >
+                    {[...new Set([speechDoc, ...speechDocuments])].filter(Boolean).map((path) => (
+                      <option key={path} value={path}>
+                        {path}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <p className='settings-help'>
+                  {t(
+                    'Speech documents use speech: true in YAML frontmatter. Right-click a Markdown file and choose Set as speech doc to make it active.'
+                  )}
+                </p>
+              </SettingsGroup>
             </section>
             <section
               data-settings-panel='editors'
@@ -437,72 +446,79 @@ export function SettingsDialog({
               hidden={section !== 'accessibility'}
               className='settings-panel'
             >
-              <label className='setting-row'>
-                <span>{t('Emphasize editor focus outline')}</span>
-                <input
-                  type='checkbox'
-                  data-setting='editorFocusOutline'
-                  checked={settings.editorFocusOutline}
-                  onChange={(event) => update({ editorFocusOutline: event.target.checked })}
-                />
-              </label>
-              <p className='settings-help'>
-                {t(
-                  'Use a thicker outline for the focused note editor. Basic keyboard focus remains visible.'
-                )}
-              </p>
-              {[
-                ['Reduce motion', 'reduceMotion', 'Minimize interface animations and transitions.'],
-                [
-                  'Disable animations',
-                  'disableAnimations',
-                  'Disable interface animations and transitions.',
-                ],
-                [
-                  'Stronger keyboard focus indicators',
-                  'strongFocusIndicators',
-                  'Make the keyboard-focused control easier to see.',
-                ],
-                [
-                  'Larger interface text',
-                  'largerInterfaceText',
-                  'Enlarge application labels and menus without changing the editor font size.',
-                ],
-                [
-                  'Larger buttons and click targets',
-                  'largerClickTargets',
-                  'Increase the size of controls to make them easier to activate.',
-                ],
-                [
-                  'Always underline links',
-                  'underlineLinks',
-                  'Keep links underlined so they are recognizable without relying on color.',
-                ],
-              ].map(([label, key, description]) => (
-                <SettingRow key={key} label={t(label)} description={t(description)}>
+              <SettingsGroup title={t('Accessibility')}>
+                <label className='setting-row'>
+                  <span>{t('Emphasize editor focus outline')}</span>
                   <input
                     type='checkbox'
-                    data-setting={key}
-                    checked={settings[key]}
-                    onChange={(event) => update({ [key]: event.target.checked })}
+                    data-setting='editorFocusOutline'
+                    checked={settings.editorFocusOutline}
+                    onChange={(event) => update({ editorFocusOutline: event.target.checked })}
                   />
-                </SettingRow>
-              ))}
-              <p className='settings-help'>
-                {t(
-                  'Reduce motion also follows your system preference. Larger targets are at least 48 pixels. Stronger focus includes note editors.'
-                )}
-              </p>
+                </label>
+                <p className='settings-help'>
+                  {t(
+                    'Use a thicker outline for the focused note editor. Basic keyboard focus remains visible.'
+                  )}
+                </p>
+                {[
+                  [
+                    'Reduce motion',
+                    'reduceMotion',
+                    'Minimize interface animations and transitions.',
+                  ],
+                  [
+                    'Disable animations',
+                    'disableAnimations',
+                    'Disable interface animations and transitions.',
+                  ],
+                  [
+                    'Stronger keyboard focus indicators',
+                    'strongFocusIndicators',
+                    'Make the keyboard-focused control easier to see.',
+                  ],
+                  [
+                    'Larger interface text',
+                    'largerInterfaceText',
+                    'Enlarge application labels and menus without changing the editor font size.',
+                  ],
+                  [
+                    'Larger buttons and click targets',
+                    'largerClickTargets',
+                    'Increase the size of controls to make them easier to activate.',
+                  ],
+                  [
+                    'Always underline links',
+                    'underlineLinks',
+                    'Keep links underlined so they are recognizable without relying on color.',
+                  ],
+                ].map(([label, key, description]) => (
+                  <SettingRow key={key} label={t(label)} description={t(description)}>
+                    <input
+                      type='checkbox'
+                      data-setting={key}
+                      checked={settings[key]}
+                      onChange={(event) => update({ [key]: event.target.checked })}
+                    />
+                  </SettingRow>
+                ))}
+                <p className='settings-help'>
+                  {t(
+                    'Reduce motion also follows your system preference. Larger targets are at least 48 pixels. Stronger focus includes note editors.'
+                  )}
+                </p>
+              </SettingsGroup>
             </section>
             <section
               data-settings-panel='appearance'
               hidden={section !== 'appearance'}
               className='settings-panel'
             >
-              <h3>{t('Theme and typography')}</h3>
-              <ThemeSettings settings={settings} update={update} />
-              <AdvancedSettings settings={settings} update={update} section='fonts' />
-              <CustomCssSettings settings={settings} update={update} />
+              <SettingsGroup title={t('Theme and typography')}>
+                <ThemeSettings settings={settings} update={update} />
+                <AdvancedSettings settings={settings} update={update} section='fonts' />
+                <CustomCssSettings settings={settings} update={update} />
+              </SettingsGroup>
             </section>
             <section
               data-settings-panel='performance'
@@ -517,8 +533,9 @@ export function SettingsDialog({
               className='settings-panel'
             >
               <AdvancedSettings settings={settings} update={update} section='files' />
-              <h4>{t('Flow file association')}</h4>
-              <p>{platform.flowAssociation}</p>
+              <SettingsGroup title={t('Flow file association')}>
+                <p>{platform.flowAssociation}</p>
+              </SettingsGroup>
             </section>
             <section
               data-settings-panel='workspace'
@@ -544,48 +561,50 @@ export function SettingsDialog({
               hidden={section !== 'integrations'}
               className='settings-panel'
             >
-              <div className='settings-integration-entry'>
-                <div>
-                  <h3>Tabroom</h3>
+              <SettingsGroup title={t('Tabroom')}>
+                <div className='settings-integration-entry'>
                   <p>
                     {t(
                       'View tournament data by ID or URL and save its JSON backup. Optional sign-in uses your Tabroom permissions.'
                     )}
                   </p>
+                  <div className='integration-buttons'>
+                    <button onClick={onOpenTabroom}>{t('Open Tabroom')}</button>
+                  </div>
                 </div>
-                <div className='integration-buttons'>
-                  <button onClick={onOpenTabroom}>{t('Open Tabroom')}</button>
-                </div>
-              </div>
-              <div className='settings-integration-entry'>
-                <div>
-                  <h3>OpenCaselist</h3>
+              </SettingsGroup>
+              <SettingsGroup title={t('OpenCaselist')}>
+                <div className='settings-integration-entry'>
                   <p>
                     {t(
                       'Browse disclosures, download files, and publish changes using your OpenCaselist account.'
                     )}
                   </p>
+                  <div className='integration-buttons'>
+                    <button onClick={onOpenCaselist}>{t('Open OpenCaselist')}</button>
+                  </div>
                 </div>
-                <div className='integration-buttons'>
-                  <button onClick={onOpenCaselist}>{t('Open OpenCaselist')}</button>
-                </div>
-              </div>
+              </SettingsGroup>
               <TournamentLinks />
-              <OpenCaselistSettings />
-              <label className='setting-row'>
-                <span>{t('Open websites inside Tagline')}</span>
-                <input
-                  type='checkbox'
-                  data-setting='embedWebsites'
-                  checked={settings.embedWebsites}
-                  onChange={(e) => update({ embedWebsites: e.target.checked })}
-                />
-              </label>
-              <p>
-                {t(
-                  'Websites use a separate session and identify as Chrome. Disable to use your default browser.'
-                )}
-              </p>
+              <SettingsGroup title={t('OpenCaselist settings')}>
+                <OpenCaselistSettings />
+              </SettingsGroup>
+              <SettingsGroup title={t('Website behavior')}>
+                <label className='setting-row'>
+                  <span>{t('Open websites inside Tagline')}</span>
+                  <input
+                    type='checkbox'
+                    data-setting='embedWebsites'
+                    checked={settings.embedWebsites}
+                    onChange={(e) => update({ embedWebsites: e.target.checked })}
+                  />
+                </label>
+                <p>
+                  {t(
+                    'Websites use a separate session and identify as Chrome. Disable to use your default browser.'
+                  )}
+                </p>
+              </SettingsGroup>
               <IntegrationSettings settings={settings} />
             </section>
             <section
@@ -612,52 +631,53 @@ export function SettingsDialog({
               className='settings-panel'
             >
               <CustomizationLimits settings={settings} />
-              <section className='internal-flags'>
-                <h4>{t('Internal flags')}</h4>
-                <p>{t('These flags record workspace state and dismissed notices.')}</p>
-                <label className='setting-row'>
-                  <span>{t('Visual editor notice dismissed')}</span>
-                  <input
-                    type='checkbox'
-                    data-flag='visualNoticeDismissed'
-                    checked={!!settings.internalFlags?.visualNoticeDismissed}
-                    onChange={(e) =>
+              <SettingsGroup title={t('Internal flags')}>
+                <section className='internal-flags'>
+                  <p>{t('These flags record workspace state and dismissed notices.')}</p>
+                  <label className='setting-row'>
+                    <span>{t('Visual editor notice dismissed')}</span>
+                    <input
+                      type='checkbox'
+                      data-flag='visualNoticeDismissed'
+                      checked={!!settings.internalFlags?.visualNoticeDismissed}
+                      onChange={(e) =>
+                        update({
+                          internalFlags: {
+                            ...settings.internalFlags,
+                            visualNoticeDismissed: e.target.checked,
+                          },
+                        })
+                      }
+                    />
+                  </label>
+                  <label className='setting-row'>
+                    <span>{t('Has seen onboarding')}</span>
+                    <input
+                      type='checkbox'
+                      data-flag='hasSeenOnboarding'
+                      checked={!!settings.internalFlags?.hasSeenOnboarding}
+                      onChange={(event) =>
+                        update({
+                          internalFlags: {
+                            ...settings.internalFlags,
+                            hasSeenOnboarding: event.target.checked,
+                          },
+                        })
+                      }
+                    />
+                  </label>
+                  <button
+                    onClick={() => {
                       update({
-                        internalFlags: {
-                          ...settings.internalFlags,
-                          visualNoticeDismissed: e.target.checked,
-                        },
-                      })
-                    }
-                  />
-                </label>
-                <label className='setting-row'>
-                  <span>{t('Has seen onboarding')}</span>
-                  <input
-                    type='checkbox'
-                    data-flag='hasSeenOnboarding'
-                    checked={!!settings.internalFlags?.hasSeenOnboarding}
-                    onChange={(event) =>
-                      update({
-                        internalFlags: {
-                          ...settings.internalFlags,
-                          hasSeenOnboarding: event.target.checked,
-                        },
-                      })
-                    }
-                  />
-                </label>
-                <button
-                  onClick={() => {
-                    update({
-                      internalFlags: { ...settings.internalFlags, hasSeenOnboarding: false },
-                    });
-                    onClose();
-                  }}
-                >
-                  {t('Show onboarding again')}
-                </button>
-              </section>
+                        internalFlags: { ...settings.internalFlags, hasSeenOnboarding: false },
+                      });
+                      onClose();
+                    }}
+                  >
+                    {t('Show onboarding again')}
+                  </button>
+                </section>
+              </SettingsGroup>
             </section>
             <section
               data-settings-panel='installation'

@@ -574,6 +574,7 @@ test('platform: macOS desktop wiring provides native window controls, menus and 
         return Object.fromEntries(
           [
             'registerPandoc',
+            'registerSpellcheck',
             'registerEmbeddings',
             'registerDocuments',
             'registerFonts',

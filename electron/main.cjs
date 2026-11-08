@@ -40,6 +40,7 @@ const { registerGoogleDocs } = require('./googleDocs.cjs');
 const keyDefinitions = require('../src/lib/keybindings.json');
 const { registerNativeUi } = require('./nativeUi.cjs');
 const { registerMcp } = require('./mcp.cjs');
+const { registerSpellcheck } = require('./spellcheck.cjs');
 
 const isDev = process.argv.includes('--dev');
 // Surface stray rejections/exceptions in logs instead of failing silently.
@@ -201,6 +202,7 @@ function assertModelSender(event, action = 'Model management') {
 
 function registerIpc() {
   registerNativeUi({ ipcMain, nativeTheme, Menu, dialog, getWindow: () => win });
+  registerSpellcheck({ ipcMain, assertMainFrame: assertModelSender });
   ipcMain.handle('app:editText', (event, action) => {
     assertModelSender(event, 'Text editing');
     if (!['undo', 'redo', 'cut', 'copy', 'paste', 'selectAll'].includes(action)) {
@@ -835,6 +837,14 @@ function createWindow() {
       openWebsite(url);
     }
     return { action: 'deny' };
+  });
+  win.webContents.on('context-menu', (_event, params) => {
+    if (params.frame === win.webContents.mainFrame && params.isEditable && params.misspelledWord) {
+      win.webContents.send('spellcheck:context', {
+        word: params.misspelledWord,
+        suggestions: (params.dictionarySuggestions || []).slice(0, 8),
+      });
+    }
   });
   win.webContents.on('will-frame-navigate', (event) => {
     if (event.isMainFrame) {
