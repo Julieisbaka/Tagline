@@ -65,6 +65,23 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
         wc.executeJavaScript(code).catch((error) => {
           throw new Error(`${error.message}\nScript: ${code}`);
         });
+      const escapeUnsafeJsString = (value) =>
+        JSON.stringify(value).replace(/[<>/\u2028\u2029]/g, (ch) => {
+          switch (ch) {
+            case '<':
+              return '\\u003C';
+            case '>':
+              return '\\u003E';
+            case '/':
+              return '\\u002F';
+            case '\u2028':
+              return '\\u2028';
+            case '\u2029':
+              return '\\u2029';
+            default:
+              return ch;
+          }
+        });
       wc.on('console-message', (event) => {
         if (event.level === 'error') {
           console.error('Renderer:', event.message);
@@ -80,11 +97,11 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
         throw new Error('Timed out: ' + code);
       };
       const click = async (selector, text) => {
-        await wait(`[...document.querySelectorAll(${JSON.stringify(selector)})]
-          .some(el => el.textContent.trim() === ${JSON.stringify(text)})`);
+        await wait(`[...document.querySelectorAll(${escapeUnsafeJsString(selector)})]
+          .some(el => el.textContent.trim() === ${escapeUnsafeJsString(text)})`);
         const found =
-          await js(`(() => { const el=[...document.querySelectorAll(${JSON.stringify(selector)})]
-          .find(el => el.textContent.trim()===${JSON.stringify(text)}); if(!el)return false; el.click(); return true; })()`);
+          await js(`(() => { const el=[...document.querySelectorAll(${escapeUnsafeJsString(selector)})]
+          .find(el => el.textContent.trim()===${escapeUnsafeJsString(text)}); if(!el)return false; el.click(); return true; })()`);
         assert.equal(found, true, `Missing ${text}`);
       };
       const key = async (keyCode, modifiers = []) => {
