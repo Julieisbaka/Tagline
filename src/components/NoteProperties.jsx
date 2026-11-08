@@ -80,7 +80,68 @@ function StringList({ property, value, onSave, t }) {
   );
 }
 
+function TagList({ value, onSave, t }) {
+  const tags = (Array.isArray(value) ? value : typeof value === 'string' ? [value] : [])
+    .filter((tag) => typeof tag === 'string')
+    .map((tag) => tag.trim().replace(/^#+/, '').toLowerCase())
+    .filter((tag, index, list) => /^[a-z][\w/-]*$/.test(tag) && list.indexOf(tag) === index);
+  const [draft, setDraft] = useState('');
+  const [error, setError] = useState('');
+  const add = (event) => {
+    event.preventDefault();
+    const raw = draft.split(/[\s,]+/).filter(Boolean);
+    const next = raw.map((tag) => tag.replace(/^#+/, '').toLowerCase());
+    if (!next.length || next.some((tag) => !/^[a-z][\w/-]*$/.test(tag))) {
+      setError(
+        t('Use tags that start with a letter and contain only letters, numbers, /, _ or -.')
+      );
+      return;
+    }
+    onSave([...new Set([...tags, ...next])]);
+    setDraft('');
+    setError('');
+  };
+  return (
+    <div className='note-property-tags'>
+      <div className='note-tag-chips'>
+        {tags.map((tag) => (
+          <span className='note-tag-chip' key={tag}>
+            #{tag}
+            <button
+              type='button'
+              aria-label={t('Remove tag {tag}', { tag })}
+              onClick={() => onSave(tags.filter((item) => item !== tag))}
+            >
+              &times;
+            </button>
+          </span>
+        ))}
+      </div>
+      <form className='note-tag-add' onSubmit={add}>
+        <input
+          aria-label={t('Add a tag')}
+          placeholder={t('Add a tag')}
+          value={draft}
+          onChange={(event) => setDraft(event.target.value)}
+        />
+        <button type='submit' disabled={!draft.trim()}>
+          {t('Add')}
+        </button>
+      </form>
+      <small>{t('Tags are note metadata. Existing inline #tags remain searchable.')}</small>
+      {error && (
+        <span className='error-text' role='alert'>
+          {error}
+        </span>
+      )}
+    </div>
+  );
+}
+
 function PropertyValue({ property, value, onSave, t }) {
+  if (property === 'tags') {
+    return <TagList value={value} onSave={onSave} t={t} />;
+  }
   if (typeof value === 'string' || value === null) {
     return (
       <input
@@ -154,7 +215,8 @@ export default function NoteProperties({ content, onChange, editable, notify, on
   const { t } = useI18n();
   const metadata = useMemo(() => readFrontmatter(content), [content]);
   const [newKey, setNewKey] = useState('');
-  const properties = Object.entries(metadata.data);
+  const properties = Object.entries(metadata.data).filter(([key]) => key !== 'tags');
+  const hasTags = Object.hasOwn(metadata.data, 'tags');
 
   const save = (key, value) => {
     try {
@@ -181,7 +243,10 @@ export default function NoteProperties({ content, onChange, editable, notify, on
   };
 
   return (
-    <details className='note-properties' open={properties.length > 0 || !!metadata.prefix || undefined}>
+    <details
+      className='note-properties'
+      open={properties.length > 0 || !!metadata.prefix || undefined}
+    >
       <summary>{t('Properties')}</summary>
       {!editable ? (
         <>
@@ -196,32 +261,51 @@ export default function NoteProperties({ content, onChange, editable, notify, on
         </p>
       ) : (
         <div className='note-properties-editor'>
-          {properties.length ? (
-            <div className='note-property-list'>
-              {properties.map(([key, value]) => (
-                <div className='note-property' key={key}>
-                  <span className='note-property-name'>{key}</span>
-                  <PropertyValue
-                    property={key}
-                    value={value}
-                    onSave={(next) => save(key, next)}
-                    t={t}
-                  />
-                  <button
-                    type='button'
-                    className='icon-btn'
-                    aria-label={t('Remove property {property}', { property: key })}
-                    title={t('Remove property')}
-                    onClick={() => remove(key)}
-                  >
-                    &times;
-                  </button>
-                </div>
-              ))}
+          <div className='note-property-list'>
+            <div className='note-property'>
+              <span className='note-property-name'>{t('Tags')}</span>
+              <PropertyValue
+                property='tags'
+                value={metadata.data.tags ?? []}
+                onSave={(next) => save('tags', next)}
+                t={t}
+              />
+              {hasTags ? (
+                <button
+                  type='button'
+                  className='icon-btn'
+                  aria-label={t('Remove property {property}', { property: 'tags' })}
+                  title={t('Remove property')}
+                  onClick={() => remove('tags')}
+                >
+                  &times;
+                </button>
+              ) : (
+                <span />
+              )}
             </div>
-          ) : (
-            <p>{t('No properties yet. Add one to start.')}</p>
-          )}
+            {properties.map(([key, value]) => (
+              <div className='note-property' key={key}>
+                <span className='note-property-name'>{key}</span>
+                <PropertyValue
+                  property={key}
+                  value={value}
+                  onSave={(next) => save(key, next)}
+                  t={t}
+                />
+                <button
+                  type='button'
+                  className='icon-btn'
+                  aria-label={t('Remove property {property}', { property: key })}
+                  title={t('Remove property')}
+                  onClick={() => remove(key)}
+                >
+                  &times;
+                </button>
+              </div>
+            ))}
+          </div>
+          {!properties.length && <p>{t('No additional properties yet.')}</p>}
           <form className='note-property-add' onSubmit={add}>
             <input
               aria-label={t('Property name')}

@@ -403,15 +403,13 @@ export function SettingsDialog({
               hidden={section !== 'general'}
               className='settings-panel'
             >
-              <SettingsGroup title={t('Speech and reading')}>
+              <SettingsGroup title={t('Speech settings')}>
                 {field(
                   'Speaking rate (weighted syllables per minute)',
                   'syllablesPerMinute',
                   'number',
                   { min: 75, max: 1500 }
                 )}
-                <ReadingSettings settings={settings} update={update} contents={contents} />
-                <TimerSoundSettings settings={settings} update={update} />
                 <label className='setting-row'>
                   <span>{t('Active speech document')}</span>
                   <select
@@ -426,12 +424,14 @@ export function SettingsDialog({
                     ))}
                   </select>
                 </label>
-                <p className='settings-help'>
-                  {t(
-                    'Speech documents use speech: true in YAML frontmatter. Right-click a Markdown file and choose Set as speech doc to make it active.'
-                  )}
-                </p>
               </SettingsGroup>
+              <ReadingSettings settings={settings} update={update} contents={contents} />
+              <TimerSoundSettings settings={settings} update={update} />
+              <p className='settings-help'>
+                {t(
+                  'Speech documents use speech: true in YAML frontmatter. Right-click a Markdown file and choose Set as speech doc to make it active.'
+                )}
+              </p>
             </section>
             <section
               data-settings-panel='editors'
@@ -446,7 +446,7 @@ export function SettingsDialog({
               hidden={section !== 'accessibility'}
               className='settings-panel'
             >
-              <SettingsGroup title={t('Accessibility')}>
+              <SettingsGroup title={t('Accessibility')} collapsible={false}>
                 <label className='setting-row'>
                   <span>{t('Emphasize editor focus outline')}</span>
                   <input
@@ -502,12 +502,12 @@ export function SettingsDialog({
                     />
                   </SettingRow>
                 ))}
-                <p className='settings-help'>
-                  {t(
-                    'Reduce motion also follows your system preference. Larger targets are at least 48 pixels. Stronger focus includes note editors.'
-                  )}
-                </p>
               </SettingsGroup>
+              <p className='settings-help'>
+                {t(
+                  'Reduce motion also follows your system preference. Larger targets are at least 48 pixels. Stronger focus includes note editors.'
+                )}
+              </p>
             </section>
             <section
               data-settings-panel='appearance'
@@ -516,9 +516,9 @@ export function SettingsDialog({
             >
               <SettingsGroup title={t('Theme and typography')}>
                 <ThemeSettings settings={settings} update={update} />
-                <AdvancedSettings settings={settings} update={update} section='fonts' />
-                <CustomCssSettings settings={settings} update={update} />
               </SettingsGroup>
+              <AdvancedSettings settings={settings} update={update} section='fonts' />
+              <CustomCssSettings settings={settings} update={update} />
             </section>
             <section
               data-settings-panel='performance'
@@ -533,9 +533,7 @@ export function SettingsDialog({
               className='settings-panel'
             >
               <AdvancedSettings settings={settings} update={update} section='files' />
-              <SettingsGroup title={t('Flow file association')}>
-                <p>{platform.flowAssociation}</p>
-              </SettingsGroup>
+              <p className='settings-help'>{platform.flowAssociation}</p>
             </section>
             <section
               data-settings-panel='workspace'

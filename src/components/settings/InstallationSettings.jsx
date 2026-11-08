@@ -195,26 +195,6 @@ export default function InstallationSettings() {
       {error && <p role='alert'>{error}</p>}
       {!info && !error && <p role='status'>{t('Loading…')}</p>}
       {info && (
-        <dl className='installation-details'>
-          {[
-            ['Version', info.version],
-            ['Build type', t(info.packaged ? 'Packaged application' : 'Development build')],
-            ['Operating system', `${platforms[info.platform] || info.platform} ${info.osVersion}`],
-            ['Architecture', info.arch],
-            ['Electron', info.electron],
-            ['Chromium', info.chromium],
-            ['Node.js', info.node],
-            ['Application executable', info.executable],
-            ['Profile folder', info.profile],
-          ].map(([label, value]) => (
-            <div key={label}>
-              <dt>{t(label)}</dt>
-              <dd>{value}</dd>
-            </div>
-          ))}
-        </dl>
-      )}
-      {info && (
         <SettingsGroup title={t('Bug report details')}>
           <p>
             {t(
@@ -334,12 +314,6 @@ export default function InstallationSettings() {
             {updateError || updateState.error}
           </p>
         )}
-        <p>{platform.installInstructions}</p>
-        <p>
-          {t(
-            'Keep your profile folder to preserve settings, themes, extensions, and downloaded models. Vaults and revision history remain in their own folders. Back up your profile and vaults before updating.'
-          )}
-        </p>
       </SettingsGroup>
       <SettingsGroup title={t('Uninstall Tagline')}>
         <p>
@@ -368,6 +342,32 @@ export default function InstallationSettings() {
           <p>{t('Uninstall is available only in a packaged installation.')}</p>
         )}
       </SettingsGroup>
+      <p>{platform.installInstructions}</p>
+      <p>
+        {t(
+          'Keep your profile folder to preserve settings, themes, extensions, and downloaded models. Vaults and revision history remain in their own folders. Back up your profile and vaults before updating.'
+        )}
+      </p>
+      {info && (
+        <dl className='installation-details'>
+          {[
+            ['Version', info.version],
+            ['Build type', t(info.packaged ? 'Packaged application' : 'Development build')],
+            ['Operating system', `${platforms[info.platform] || info.platform} ${info.osVersion}`],
+            ['Architecture', info.arch],
+            ['Electron', info.electron],
+            ['Chromium', info.chromium],
+            ['Node.js', info.node],
+            ['Application executable', info.executable],
+            ['Profile folder', info.profile],
+          ].map(([label, value]) => (
+            <div key={label}>
+              <dt>{t(label)}</dt>
+              <dd>{value}</dd>
+            </div>
+          ))}
+        </dl>
+      )}
       {showUninstall && (
         <ModalBackdrop className='modal-backdrop' onMouseDown={() => setShowUninstall(false)}>
           <div

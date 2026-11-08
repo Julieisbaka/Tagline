@@ -29,7 +29,7 @@ export default function TournamentLinks() {
   return (
     <>
       {providers.map((provider) => (
-        <SettingsGroup title={provider.name} key={provider.name}>
+        <SettingsGroup title={provider.name} key={provider.name} collapsible={providers.length > 1}>
           <div className='settings-integration-entry' data-tournament-provider={provider.name}>
             <div>
               <p>

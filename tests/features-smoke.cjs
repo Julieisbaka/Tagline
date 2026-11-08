@@ -283,7 +283,9 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
         await check('[data-setting=flowSpellcheck]', false, 'flowSpellcheck');
         await click('.settings button', 'Done');
         await js("document.querySelector('.flow-cell-preview').focus()");
-        await wait("document.querySelector('.flow-grid textarea')?.getAttribute('spellcheck') === 'false'");
+        await wait(
+          "document.querySelector('.flow-grid textarea')?.getAttribute('spellcheck') === 'false'"
+        );
         assert.equal(
           await js("document.querySelector('.flow-grid th input').getAttribute('spellcheck')"),
           'false'
@@ -293,7 +295,9 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
         await check('[data-setting=flowSpellcheck]', true, 'flowSpellcheck');
         await click('.settings button', 'Done');
         await js("document.querySelector('.flow-cell-preview').focus()");
-        await wait("document.querySelector('.flow-grid textarea')?.getAttribute('spellcheck') === 'true'");
+        await wait(
+          "document.querySelector('.flow-grid textarea')?.getAttribute('spellcheck') === 'true'"
+        );
         assert.equal(
           await js("document.querySelector('.flow-grid th input').getAttribute('spellcheck')"),
           'true'
@@ -432,7 +436,9 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
           persistedSheets = JSON.parse(
             await fs.readFile(path.join(vault, 'Round.flow'), 'utf8')
           ).sheets.map((sheet) => sheet.name);
-          if (JSON.stringify(persistedSheets) === JSON.stringify(['Off-case', 'Case'])) break;
+          if (JSON.stringify(persistedSheets) === JSON.stringify(['Off-case', 'Case'])) {
+            break;
+          }
           await delay(100);
         }
         assert.deepEqual(

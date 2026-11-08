@@ -28,11 +28,7 @@ export default function FlowGrid({
       return;
     }
     setEditing((current) => {
-      if (
-        current &&
-        current.row < sheet.rows.length &&
-        current.column < sheet.columns.length
-      ) {
+      if (current && current.row < sheet.rows.length && current.column < sheet.columns.length) {
         return current;
       }
       return { row: 0, column: 0 };
@@ -201,8 +197,10 @@ export default function FlowGrid({
                       : cellBounds({ row: r, column: c }, { row: r, column: c });
                     if (!inside(r, c)) {
                       choose(r, c);
+                      setEditing({ row: r, column: c });
+                    } else if (!editing) {
+                      setEditing({ row: r, column: c });
                     }
-                    setEditing({ row: r, column: c });
                     context(e, [
                       { label: 'Copy cells', run: () => copy(area) },
                       { label: 'Cut cells', run: () => copy(area, true) },
@@ -239,7 +237,7 @@ export default function FlowGrid({
                       spellCheck={settings.flowSpellcheck !== false}
                       value={cell}
                       onBlur={(event) => {
-                        if (!event.relatedTarget?.closest?.('.flow-grid-wrap')) {
+                        if (!event.relatedTarget?.closest?.('.flow-grid-wrap, .context-menu')) {
                           setEditing(null);
                         }
                       }}

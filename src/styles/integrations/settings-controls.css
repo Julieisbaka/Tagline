@@ -55,6 +55,10 @@
   gap: 20px;
 }
 
+.settings-group-content .setting-row:not(:has(~ .setting-row)) {
+  border-bottom: 0;
+}
+
 .settings .setting-row > span {
   flex: 1;
   font-size: 13px;

@@ -314,6 +314,12 @@
   box-shadow: 0 8px 24px var(--shadow);
 }
 
+.context-menu-separator {
+  height: 1px;
+  margin: 4px 8px;
+  background: var(--border);
+}
+
 .context-item {
   padding: 5px 10px;
   border-radius: 4px;

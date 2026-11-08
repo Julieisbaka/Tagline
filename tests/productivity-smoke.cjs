@@ -336,10 +336,10 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
         await wait("document.querySelector('.note-title')?.value === 'Warm'");
         await exit;
         await js("document.querySelector('.flow-grid textarea').focus()");
-        await key('Enter', [primary]);
-        assert.equal(await js("document.querySelectorAll('.flow-grid textarea').length"), 2);
+        await key('Enter', [primary, 'shift']);
+        await wait("document.querySelectorAll('.flow-grid tbody tr').length === 2");
         await key('Enter', [primary, 'alt']);
-        await wait("document.querySelectorAll('.flow-grid textarea').length === 4");
+        await wait("document.querySelectorAll('.flow-grid tbody tr').length === 3");
         // Finder open-file delivery reuses the existing vault and window.
         app.emit('open-file', { preventDefault() {} }, cold);
         await wait("document.querySelector('.note-title')?.value === 'Cold'");

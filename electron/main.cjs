@@ -839,9 +839,9 @@ function createWindow() {
     return { action: 'deny' };
   });
   win.webContents.on('context-menu', (_event, params) => {
-    if (params.frame === win.webContents.mainFrame && params.isEditable && params.misspelledWord) {
+    if (params.frame === win.webContents.mainFrame && params.isEditable) {
       win.webContents.send('spellcheck:context', {
-        word: params.misspelledWord,
+        word: params.misspelledWord || '',
         suggestions: (params.dictionarySuggestions || []).slice(0, 8),
       });
     }

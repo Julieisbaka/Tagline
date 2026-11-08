@@ -47,10 +47,12 @@ function registerNativeUi({ ipcMain, nativeTheme, Menu, dialog, getWindow }) {
       items.some(
         (item) =>
           !item ||
-          typeof item.label !== 'string' ||
-          item.label.length > 2000 ||
-          typeof item.disabled !== 'boolean' ||
-          (item.accelerator !== undefined && typeof item.accelerator !== 'string')
+          (item.separator
+            ? Object.keys(item).some((key) => key !== 'separator')
+            : typeof item.label !== 'string' ||
+              item.label.length > 2000 ||
+              typeof item.disabled !== 'boolean' ||
+              (item.accelerator !== undefined && typeof item.accelerator !== 'string'))
       )
     ) {
       throw new Error('Invalid native menu.');
@@ -59,16 +61,20 @@ function registerNativeUi({ ipcMain, nativeTheme, Menu, dialog, getWindow }) {
       let selected = null;
       const build = (withAccelerators) =>
         Menu.buildFromTemplate(
-          items.map((item, index) => ({
-            label: item.label,
-            enabled: !item.disabled,
-            ...(withAccelerators && toAccelerator(item.accelerator)
-              ? { accelerator: toAccelerator(item.accelerator), registerAccelerator: false }
-              : {}),
-            click: () => {
-              selected = index;
-            },
-          }))
+          items.map((item, index) =>
+            item.separator
+              ? { type: 'separator' }
+              : {
+                  label: item.label,
+                  enabled: !item.disabled,
+                  ...(withAccelerators && toAccelerator(item.accelerator)
+                    ? { accelerator: toAccelerator(item.accelerator), registerAccelerator: false }
+                    : {}),
+                  click: () => {
+                    selected = index;
+                  },
+                }
+          )
         );
       let menu;
       try {

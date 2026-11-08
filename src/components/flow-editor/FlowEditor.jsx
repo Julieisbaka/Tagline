@@ -82,7 +82,7 @@ export default function FlowEditor({
   };
   useEffect(() => {
     const spellcheckMenu = (event) => {
-      const { sourceEvent, target, items } = event.detail;
+      const { phase, sourceEvent, target, items = [], pending } = event.detail;
       if (
         menuEvent.current !== sourceEvent ||
         !pendingMenu.current ||
@@ -91,7 +91,20 @@ export default function FlowEditor({
         return;
       }
       event.preventDefault();
-      setMenu({ ...pendingMenu.current, items: [...items, ...pendingMenu.current.items] });
+      if (phase === 'open') {
+        setMenu({ ...pendingMenu.current, forceApp: pending });
+        if (!pending) {
+          pendingMenu.current = null;
+        }
+        return;
+      }
+      if (items.length) {
+        setMenu((current) =>
+          current && menuEvent.current === sourceEvent
+            ? { ...current, items: [...items, { separator: true }, ...current.items] }
+            : current
+        );
+      }
       pendingMenu.current = null;
     };
     window.addEventListener('flow-spellcheck-context', spellcheckMenu);
@@ -482,6 +495,7 @@ export default function FlowEditor({
       {menu && (
         <ContextMenu
           {...menu}
+          forceApp={menu.forceApp}
           onClose={() => {
             setMenu(null);
             menuEvent.current = null;

@@ -1,4 +1,5 @@
 import { EditorContent, useEditor, useEditorState } from '@tiptap/react';
+import { TextSelection } from '@tiptap/pm/state';
 import { memo, useEffect, useMemo, useRef, useState } from 'react';
 import { splitFrontmatter } from '../lib/frontmatter.js';
 import { useI18n } from '../lib/i18n.js';
@@ -8,6 +9,7 @@ import { draggedNoteLink, draggedNotePath, hasNoteDrag } from '../lib/noteDrag.j
 import { cachedDocument, cacheDocument } from '../lib/visualCache.js';
 import { visualExtensions } from '../lib/visualExtensions.js';
 import { visualSelection } from '../lib/visualHelpers.js';
+import { wordRangeAt } from '../lib/wordSelection.js';
 import EditorLinkForm from './EditorLinkForm.jsx';
 import EditorToolbar from './EditorToolbar.jsx';
 import VisualFindReplace from './VisualFindReplace.jsx';
@@ -156,6 +158,29 @@ function VisualDocument({
           return true;
         }
         return false;
+      },
+      handleDoubleClick(view, pos) {
+        const $pos = view.state.doc.resolve(pos);
+        if (!$pos.parent.isTextblock) {
+          return false;
+        }
+        let text = '';
+        $pos.parent.forEach((node) => {
+          text += node.isText ? node.text : '\u0000'.repeat(node.nodeSize);
+        });
+        const offset = $pos.parentOffset;
+        const child = $pos.parent.childAfter(offset).node;
+        if (child && !child.isText && text[offset] === '\u0000') {
+          return false;
+        }
+        const range = wordRangeAt(text, offset);
+        if (!range) {
+          return false;
+        }
+        const start = $pos.start() + range[0];
+        const end = $pos.start() + range[1];
+        view.dispatch(view.state.tr.setSelection(TextSelection.create(view.state.doc, start, end)));
+        return true;
       },
       handleKeyDown(view, event) {
         if (event.isComposing) {

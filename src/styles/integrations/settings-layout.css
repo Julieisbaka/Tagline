@@ -154,19 +154,25 @@
 }
 
 .settings-group {
-  margin: 12px 0;
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  background: var(--bg-secondary);
+  margin: 24px 0;
+  border: 1px solid color-mix(in srgb, var(--border) 72%, transparent);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--bg-secondary) 42%, transparent);
+  overflow: clip;
 }
 
 .settings-group > summary {
   position: relative;
-  padding: 11px 34px 11px 13px;
+  padding: 12px 38px 12px 15px;
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;
   list-style: none;
+  transition: background-color 120ms ease;
+}
+
+.settings-group > summary:hover {
+  background: var(--bg-hover);
 }
 
 .settings-group > summary::-webkit-details-marker {
@@ -174,16 +180,21 @@
 }
 
 .settings-group > summary::after {
-  content: '⌄';
+  content: '';
   position: absolute;
-  right: 13px;
+  right: 17px;
   top: 50%;
-  transform: translateY(-55%);
+  width: 7px;
+  height: 7px;
+  border: solid var(--text-muted);
+  border-width: 0 1.5px 1.5px 0;
+  transform: translateY(-65%) rotate(-45deg);
   color: var(--text-muted);
+  transition: transform 120ms ease;
 }
 
-.settings-group:not([open]) > summary::after {
-  content: '›';
+.settings-group[open] > summary::after {
+  transform: translateY(-65%) rotate(45deg);
 }
 
 .settings-group > summary:focus-visible {
@@ -193,7 +204,31 @@
 }
 
 .settings-group-content {
-  padding: 2px 13px 10px;
+  padding: 2px 15px 12px;
+}
+
+.settings-group-static {
+  margin: 20px 0 24px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  overflow: visible;
+}
+
+.settings-group-heading {
+  margin: 0 0 8px;
+  padding: 0 0 8px;
+  border-bottom: 1px solid var(--border);
+  font-size: 14px;
+  font-weight: 650;
+}
+
+.settings-group-static > .settings-group-heading {
+  margin-top: 0;
+}
+
+.settings-group-static > .settings-group-content {
+  padding: 0;
 }
 
 .settings-group-content > :first-child,

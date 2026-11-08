@@ -6,9 +6,9 @@ import { useNativeUi } from '../../lib/nativeUi.js';
 import { useShortcutLookup } from '../../lib/keybindingContext.js';
 import { displayBinding } from '../../lib/keybindings.js';
 
-export default function ContextMenu({ x, y, items, onClose }) {
+export default function ContextMenu({ x, y, items, onClose, forceApp = false }) {
   const native = useNativeUi();
-  return native ? (
+  return native && !forceApp ? (
     <NativeContextMenu items={items} onClose={onClose} />
   ) : (
     <AppContextMenu x={x} y={y} items={items} onClose={onClose} />
@@ -24,11 +24,15 @@ function NativeContextMenu({ items, onClose }) {
     const { items, onClose, t, shortcut } = initial.current;
     window.api
       .nativeContextMenu(
-        items.map((item) => ({
-          label: item.translate === false ? item.label : t(item.label),
-          disabled: !!item.disabled,
-          accelerator: shortcut(item.command),
-        }))
+        items.map((item) =>
+          item.separator
+            ? { separator: true }
+            : {
+                label: item.translate === false ? item.label : t(item.label),
+                disabled: !!item.disabled,
+                accelerator: shortcut(item.command),
+              }
+        )
       )
       .then(async (index) => {
         if (!active) {
@@ -63,7 +67,9 @@ function AppContextMenu({ x, y, items, onClose }) {
     const rect = el.getBoundingClientRect();
     el.style.left = `${Math.floor(Math.max(8, Math.min(x, innerWidth - rect.width - 8)))}px`;
     el.style.top = `${Math.floor(Math.max(8, Math.min(y, innerHeight - rect.height - 8)))}px`;
-    el.querySelector('button:not(:disabled)')?.focus({ preventScroll: true });
+  }, [items.length, x, y]);
+  useLayoutEffect(() => {
+    ref.current?.querySelector('button:not(:disabled)')?.focus({ preventScroll: true });
   }, [x, y]);
   useEffect(() => {
     const outside = (e) => {
@@ -128,7 +134,11 @@ function AppContextMenu({ x, y, items, onClose }) {
         buttons[next]?.focus();
       }}
     >
-      {items.map(({ label, run, disabled, danger, command, translate }, i) => {
+      {items.map((item, i) => {
+        if (item.separator) {
+          return <div key={i} className='context-menu-separator' role='separator' />;
+        }
+        const { label, run, disabled, danger, command, translate } = item;
         const hint = displayBinding(shortcut(command));
         return (
           <button

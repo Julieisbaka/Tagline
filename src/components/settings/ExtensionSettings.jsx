@@ -226,7 +226,7 @@ export default function ExtensionSettings({ extensions }) {
         install(async () => files.map((file) => window.api.pathForFile(file)).filter(Boolean));
       }}
     >
-      <SettingsGroup title={t('Installed extensions')}>
+      <SettingsGroup title={t('Installed extensions')} collapsible={false}>
         <p>
           {t(
             'Extensions run in a sandbox without direct network, Node.js, or page access. The network permission can contact only the HTTPS hosts listed on the extension card. Enable only extensions you trust.'

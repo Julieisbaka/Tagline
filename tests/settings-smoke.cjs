@@ -142,7 +142,10 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
         if (checked !== value) {
           await click(`[data-setting="${key}"]`);
         }
-        await wait(`JSON.parse(localStorage.getItem('tagline-settings')).${key} === ${value}`);
+        const storedValue = key === 'showMarkdownExtension' ? !value : value;
+        await wait(
+          `JSON.parse(localStorage.getItem('tagline-settings')).${key} === ${storedValue}`
+        );
       };
       const reload = async () => {
         await new Promise((resolve) => {
@@ -224,7 +227,7 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
         const platformCopy = require(`../src/platform/${process.platform}.json`);
         assert.equal(
           await js(
-            "document.querySelector('[data-settings-panel=files] .settings-group-content > p').textContent"
+            "document.querySelector('[data-settings-panel=files] > p.settings-help').textContent"
           ),
           platformCopy.en.flowAssociation
         );
@@ -371,7 +374,7 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
         );
         assert.equal(
           await js(
-            "document.querySelector('[data-settings-panel=files] .settings-group-content > p').textContent"
+            "document.querySelector('[data-settings-panel=files] > p.settings-help').textContent"
           ),
           platformCopy.es.flowAssociation
         );
@@ -743,7 +746,7 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
         await done();
         await open('Beta.md');
         await settings('files');
-        await toggle('showMarkdownExtension', true);
+        await toggle('showMarkdownExtension', false);
         await done();
         assert.equal(
           await js(
@@ -756,7 +759,7 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
           'Beta.md'
         );
         await settings('files');
-        await toggle('showMarkdownExtension', false);
+        await toggle('showMarkdownExtension', true);
         await toggle('autoRelink', false);
         await done();
         await renameToExisting('Beta.md', 'Alpha');

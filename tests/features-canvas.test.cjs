@@ -75,6 +75,18 @@ test('vault indexing preserves link resolution precedence with indexed path look
   }
 });
 
+test('vault tags prefer note metadata and keep legacy inline tags searchable', async () => {
+  const { buildIndex } = await import('../src/lib/vault.js');
+  const index = buildIndex({
+    'Metadata.md': '---\ntags: [Aff, "#NEG", aff]\n---\n#legacy #AFF',
+    'Legacy.md': '#impact',
+  });
+  assert.deepEqual(index.tags.aff, ['Metadata.md']);
+  assert.deepEqual(index.tags.neg, ['Metadata.md']);
+  assert.deepEqual(index.tags.legacy, ['Metadata.md']);
+  assert.deepEqual(index.tags.impact, ['Legacy.md']);
+});
+
 test('JSON Canvas validates spec fields and round-trips unknown properties', async () => {
   const { EMPTY_CANVAS, parseCanvas, serializeCanvas, createCanvasNode } =
     await import('../src/lib/canvas.js');

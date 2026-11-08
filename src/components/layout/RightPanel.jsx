@@ -116,7 +116,11 @@ function Tags({ index, onTagClick }) {
     (a, b) => b[1].length - a[1].length || a[0].localeCompare(b[0])
   );
   if (!tags.length) {
-    return <div className='empty-hint'>{tr('No #tags yet.')}</div>;
+    return (
+      <div className='empty-hint'>
+        {tr('Add tags in note Properties. Existing #tags in note text remain searchable.')}
+      </div>
+    );
   }
   return (
     <div className='tag-list'>

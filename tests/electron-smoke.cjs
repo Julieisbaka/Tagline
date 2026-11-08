@@ -396,10 +396,7 @@ const delay = (ms) => new Promise((r) => setTimeout(r, ms));
           await fs.readFile(path.join(vault, 'Frontmatter.md'), 'utf8'),
           /^---\ntitle: Keep Me/
         );
-        assert.match(
-          await js("document.querySelector('.note-properties').textContent"),
-          /title/
-        );
+        assert.match(await js("document.querySelector('.note-properties').textContent"), /title/);
         assert.deepEqual(errors, []);
         console.log(
           'PASS: Tiptap rendering, real visual edits, Markdown round trips, card sending, visual frontmatter properties, Pandoc detection, encrypted token storage.'

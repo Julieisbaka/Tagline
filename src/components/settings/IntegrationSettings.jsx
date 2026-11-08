@@ -209,8 +209,8 @@ export default function IntegrationSettings({ settings }) {
           </p>
         )}
         {message && <p role='status'>{message}</p>}
-        <PoliticalDebateSettings revision={modelRevision} />
       </SettingsGroup>
+      <PoliticalDebateSettings revision={modelRevision} />
       <SettingsGroup title={t('On-demand document summaries')}>
         <p>
           {t(
@@ -218,13 +218,13 @@ export default function IntegrationSettings({ settings }) {
             { model: summary?.model || 'Xenova/long-t5-tglobal-base-16384-book-summary' }
           )}
         </p>
-        <ModelManagement onChange={() => setModelRevision((n) => n + 1)} />
         <p role='status'>
           {summary
             ? `${summary.model} — ${t(summary.ready ? 'loaded' : 'not loaded')}`
             : t('Checking model...')}
         </p>
       </SettingsGroup>
+      <ModelManagement onChange={() => setModelRevision((n) => n + 1)} />
     </section>
   );
 }

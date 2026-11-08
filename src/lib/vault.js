@@ -1,6 +1,6 @@
 // Pure helpers for indexing a vault: names, links, tags, backlinks.
 import { Lexer } from 'marked';
-import { splitFrontmatter } from './frontmatter.js';
+import { readFrontmatter, splitFrontmatter } from './frontmatter.js';
 
 /**
  * Test a case-insensitive flow-document extension.
@@ -116,6 +116,23 @@ export function extractTags(content) {
   return [...out];
 }
 
+export function extractMetadataTags(content) {
+  const value = readFrontmatter(content).data?.tags;
+  const values = Array.isArray(value)
+    ? value
+    : typeof value === 'string'
+      ? value.split(/[\s,]+/)
+      : [];
+  return [
+    ...new Set(
+      values
+        .filter((tag) => typeof tag === 'string')
+        .map((tag) => tag.trim().replace(/^#+/, '').toLowerCase())
+        .filter((tag) => /^[a-z][\w/-]*$/.test(tag))
+    ),
+  ];
+}
+
 /**
  * Map a note name or path to a candidate vault path; exact paths take precedence.
  * @param {string} target Note name or vault-relative path.
@@ -224,7 +241,7 @@ export function buildIndex(contents) {
         (unresolved[target] ||= new Set()).add(p);
       }
     }
-    for (const tag of extractTags(content)) {
+    for (const tag of new Set([...extractMetadataTags(content), ...extractTags(content)])) {
       (tags[tag] ||= []).push(p);
     }
   }

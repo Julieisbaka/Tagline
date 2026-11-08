@@ -107,6 +107,48 @@
   gap: 6px;
 }
 
+.note-property-tags {
+  display: grid;
+  gap: 7px;
+  min-width: 0;
+}
+
+.note-tag-chips,
+.note-tag-add {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.note-tag-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 6px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  color: var(--text-strong);
+  font-size: 12px;
+}
+
+.note-tag-chip button {
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  line-height: 1;
+}
+
+.note-tag-add input {
+  flex: 1 1 140px;
+  min-width: 0;
+}
+
+.note-property-tags small {
+  color: var(--text-muted);
+  font-size: 11px;
+}
+
 .note-property-complex textarea {
   flex: 1 1 220px;
   min-width: 0;

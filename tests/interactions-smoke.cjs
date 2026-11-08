@@ -55,9 +55,9 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
     win.webContents.setBackgroundThrottling(false);
     win.webContents.once('did-finish-load', async () => {
       const wc = win.webContents;
-      wc.on('console-message', (details) => {
-        if (details.level === 'error') {
-          console.error('Renderer:', details.message);
+      wc.on('console-message', (event) => {
+        if (event.level === 'error') {
+          console.error('Renderer:', event.message);
         }
       });
       const js = (code) => wc.executeJavaScript(code);

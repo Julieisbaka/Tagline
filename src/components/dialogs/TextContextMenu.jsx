@@ -6,6 +6,7 @@ export default function TextContextMenu() {
   useEffect(() => {
     const pendingSpell = [];
     const offSpell = window.api.spellcheck?.onContext((info) => pendingSpell.shift()?.(info));
+    let activeMenu = 0;
     const open = (event) => {
       if (event.defaultPrevented || event.target.closest('.context-menu')) {
         return;
@@ -19,9 +20,10 @@ export default function TextContextMenu() {
         return;
       }
       const editable = target && !target.readOnly && !target.disabled;
-      const wantsSpell = !!editable && window.api.spellcheck && target.spellcheck !== false;
+      const tracksSpell = !!editable && !!window.api.spellcheck && event.isTrusted;
+      const wantsSpell = tracksSpell && target.spellcheck !== false;
       // Leaving the event uncancelled lets Electron report the misspelled word.
-      if (!wantsSpell) {
+      if (!tracksSpell) {
         event.preventDefault();
       }
       const inputSelection =
@@ -52,11 +54,11 @@ export default function TextContextMenu() {
       };
       const rect = event.target.getBoundingClientRect();
       const keyboard = event.clientX === 0 && event.clientY === 0;
-      const show = (spell) => {
+      const spellItems = (spell) => {
         const word = spell?.word || '';
-        const spellItems = word
+        return word
           ? [
-              ...(spell.suggestions.length
+              ...((spell.suggestions || []).length
                 ? spell.suggestions.map((suggestion) => ({
                     label: suggestion,
                     translate: false,
@@ -69,51 +71,65 @@ export default function TextContextMenu() {
               },
             ]
           : [];
-        if (target.closest('.flow')) {
-          const flowMenuEvent = new CustomEvent('flow-spellcheck-context', {
-            cancelable: true,
-            detail: { sourceEvent: event, target, items: spellItems },
-          });
-          if (!window.dispatchEvent(flowMenuEvent)) {
+      };
+      const id = ++activeMenu;
+      const actions = [
+        ...(editable
+          ? [
+              { label: 'Undo', run: run('undo') },
+              { label: 'Redo', run: run('redo') },
+            ]
+          : []),
+        ...(editable ? [{ label: 'Cut', disabled: !selected, run: run('cut') }] : []),
+        { label: 'Copy', disabled: !selected, run: run('copy') },
+        ...(editable ? [{ label: 'Paste', run: run('paste') }] : []),
+        { label: 'Select all', run: run('selectAll') },
+      ];
+      const x = keyboard ? rect.left + 16 : event.clientX;
+      const y = keyboard ? rect.top + 16 : event.clientY;
+      const isFlow = !!target?.closest('.flow');
+      if (isFlow) {
+        const flowMenuEvent = new CustomEvent('flow-spellcheck-context', {
+          cancelable: true,
+          detail: { phase: 'open', sourceEvent: event, target, pending: wantsSpell },
+        });
+        if (!window.dispatchEvent(flowMenuEvent)) {
+          if (tracksSpell) {
+            pendingSpell.push((info) => {
+              if (!wantsSpell || activeMenu !== id) {
+                return;
+              }
+              window.dispatchEvent(
+                new CustomEvent('flow-spellcheck-context', {
+                  cancelable: true,
+                  detail: {
+                    phase: 'suggestions',
+                    sourceEvent: event,
+                    target,
+                    items: spellItems(info),
+                  },
+                })
+              );
+            });
+          }
+          return;
+        }
+      }
+      setMenu({ id, x, y, items: actions, spellcheck: wantsSpell });
+      if (tracksSpell) {
+        pendingSpell.push((info) => {
+          if (!wantsSpell || activeMenu !== id) {
             return;
           }
-        }
-        setMenu({
-          x: keyboard ? rect.left + 16 : event.clientX,
-          y: keyboard ? rect.top + 16 : event.clientY,
-          items: [
-            ...spellItems,
-            ...(editable
-              ? [
-                  { label: 'Undo', run: run('undo') },
-                  { label: 'Redo', run: run('redo') },
-                ]
-              : []),
-            ...(editable ? [{ label: 'Cut', disabled: !selected, run: run('cut') }] : []),
-            { label: 'Copy', disabled: !selected, run: run('copy') },
-            ...(editable ? [{ label: 'Paste', run: run('paste') }] : []),
-            { label: 'Select all', run: run('selectAll') },
-          ],
+          const suggestions = spellItems(info);
+          if (suggestions.length) {
+            setMenu((current) =>
+              current?.id === id
+                ? { ...current, items: [...suggestions, { separator: true }, ...actions] }
+                : current
+            );
+          }
         });
-      };
-      if (wantsSpell) {
-        let done = false;
-        const finish = (info) => {
-          if (!done) {
-            done = true;
-            show(info);
-          }
-        };
-        pendingSpell.push(finish);
-        setTimeout(() => {
-          const index = pendingSpell.indexOf(finish);
-          if (index >= 0) {
-            pendingSpell.splice(index, 1);
-          }
-          finish(null);
-        }, 250);
-      } else {
-        show(null);
       }
     };
     document.addEventListener('contextmenu', open);
@@ -122,5 +138,5 @@ export default function TextContextMenu() {
       offSpell?.();
     };
   }, []);
-  return menu && <ContextMenu {...menu} onClose={() => setMenu(null)} />;
+  return menu && <ContextMenu {...menu} forceApp={menu.spellcheck} onClose={() => setMenu(null)} />;
 }

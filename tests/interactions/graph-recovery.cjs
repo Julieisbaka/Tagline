@@ -201,10 +201,12 @@ module.exports = async function runScenario({
   await wait("!!document.querySelector('.settings')");
   await click('[data-section=advanced]');
   const spacing = await js(`(() => {
-    const limits = document.querySelector('.customization-limits').getBoundingClientRect();
-    const flags = document.querySelector('.internal-flags').getBoundingClientRect();
-    return { gap: flags.top - limits.bottom,
-      headingMargin: getComputedStyle(document.querySelector('.internal-flags h4')).marginTop,
+      const limits = document.querySelector('.customization-limits').getBoundingClientRect();
+      const flagsGroup = document.querySelector('.internal-flags').closest('.settings-group');
+      const flags = flagsGroup.getBoundingClientRect();
+      const heading = flagsGroup.querySelector(':scope > summary, :scope > .settings-group-heading');
+      return { gap: flags.top - limits.bottom,
+        headingMargin: getComputedStyle(heading).marginTop,
       rangeDisplay: getComputedStyle(document.querySelector('.customization-limits .setting-row small')).display };
   })()`);
   assert.ok(Math.abs(spacing.gap - 24) < 1, 'settings groups use consistent 24px separation');

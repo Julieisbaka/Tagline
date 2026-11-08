@@ -130,7 +130,7 @@ module.exports = async function runScenario({
     cell.dispatchEvent(new ClipboardEvent('paste', { bubbles: true, cancelable: true, clipboardData: data }));
   })()`);
   await wait(
-    'document.querySelector(\'.flow-grid textarea[data-row="1"][data-column="1"]\').value === \'response\''
+    'document.querySelector(\'.flow-cell-preview[data-row="1"][data-column="1"]\')?.textContent.trim() === \'response\''
   );
   assert.equal(await js("document.querySelectorAll('.flow-grid .cell-selected').length"), 4);
   await js(`(() => {
@@ -153,26 +153,36 @@ module.exports = async function runScenario({
     `document.activeElement.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', shiftKey: true, bubbles: true }))`
   );
   await wait("document.querySelectorAll('.flow-grid .cell-selected').length === 4");
-  await context('.flow-grid textarea[data-row="1"][data-column="1"]');
+  await context('.flow-grid td.cell-selected');
   assert.equal(
     await js("document.querySelector('.context-menu').parentElement === document.body"),
     true
   );
   await js('window.focus()');
   await button('.context-menu button', 'Cut cells');
+  const expectedCut = 'claim\tanswer\nimpact\tresponse';
+  let actualCut = '';
   for (let i = 0; i < 400; i++) {
-    if (
-      await js(
-        "[...document.querySelectorAll('.flow-grid textarea')].slice(0,4).every(el => el.value === '')"
-      )
-    ) {
+    actualCut = (await require('electron').clipboard.readText()).replace(/\r\n/g, '\n');
+    const cleared = await js(`(() => [...document.querySelectorAll('.flow-grid tbody tr')]
+      .slice(0, 2).every(row => [...row.querySelectorAll('td')].slice(0, 2).every(td => {
+        const value = td.querySelector('textarea')?.value ?? td.querySelector('.flow-cell-preview')?.textContent.trim();
+        return !value || value === '…';
+      })) )()`);
+    if (actualCut === expectedCut && cleared) {
       break;
     }
     await delay(50);
   }
+  assert.equal(actualCut, expectedCut);
   assert.equal(
-    (await require('electron').clipboard.readText()).replace(/\r\n/g, '\n'),
-    'claim\tanswer\nimpact\tresponse'
+    await js(`(() => [...document.querySelectorAll('.flow-grid tbody tr')]
+      .slice(0, 2).every(row => [...row.querySelectorAll('td')].slice(0, 2).every(td => {
+        const value = td.querySelector('textarea')?.value ?? td.querySelector('.flow-cell-preview')?.textContent.trim();
+        return !value || value === '…';
+      })) )()`),
+    true,
+    'Cut cells clears the selected range'
   );
   await js(`(() => {
     const cell = document.querySelector('.flow-grid textarea');

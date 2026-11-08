@@ -38,7 +38,7 @@ export default function AdvancedSettings({ settings, update, section = 'all' }) 
   return (
     <section className='advanced-settings'>
       {(section === 'all' || section === 'performance') && (
-        <SettingsGroup title={t('Performance and search')}>
+        <SettingsGroup title={t('Performance and search')} collapsible={section !== 'performance'}>
           <SettingRow
             label={t('Low-resource mode')}
             description={t(
@@ -144,14 +144,14 @@ export default function AdvancedSettings({ settings, update, section = 'all' }) 
             />
           </SettingRow>
           <SettingRow
-            label={t('Show .md file extension')}
-            description={t('Show the suffix in displayed Markdown file names.')}
+            label={t('Hide .md file extension')}
+            description={t('Hide the suffix without renaming files.')}
           >
             <input
               type='checkbox'
               data-setting='showMarkdownExtension'
-              checked={settings.showMarkdownExtension}
-              onChange={(e) => update({ showMarkdownExtension: e.target.checked })}
+              checked={!settings.showMarkdownExtension}
+              onChange={(e) => update({ showMarkdownExtension: !e.target.checked })}
             />
           </SettingRow>
         </SettingsGroup>
@@ -202,7 +202,7 @@ export default function AdvancedSettings({ settings, update, section = 'all' }) 
         </SettingsGroup>
       )}
       {(section === 'all' || section === 'history') && (
-        <SettingsGroup title={t('Revision history')}>
+        <SettingsGroup title={t('Revision history')} collapsible={section !== 'history'}>
           {number(
             'Maximum saved revisions per document',
             'historyRetention',
