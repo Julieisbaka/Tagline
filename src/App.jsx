@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createFlow } from '../electron/flow.mjs';
 import { useConfirm } from './components/dialogs/ConfirmProvider.jsx';
 import AppLayout from './components/layout/AppLayout.jsx';
-import { renameTarget } from './components/layout/Sidebar.jsx';
+import { renameTarget, sanitizeName } from './components/layout/Sidebar.jsx';
 import { clampPanel, PANEL_LIMITS } from './components/layout/Splitter.jsx';
 import { EMPTY_CANVAS } from './lib/canvas.js';
 import { containsEvidence, getSectionAt } from './lib/card.js';
@@ -384,7 +384,7 @@ export default function App() {
       ),
     newFolder: (dir = activePath ? dirName(activePath) : '') =>
       prompt(t('New folder name'), t('New folder'), (name) =>
-        v.createFolder(joinPath(dir, name.replace(/[\\/:*?"<>|]/g, '-')))
+        v.createFolder(joinPath(dir, sanitizeName(name)))
       ),
     newCanvas: (dir = activePath ? dirName(activePath) : '') =>
       createAndOpen(joinPath(dir, 'Untitled.canvas'), EMPTY_CANVAS).then(

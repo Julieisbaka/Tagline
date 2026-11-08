@@ -166,10 +166,17 @@ export default function Sidebar({
   );
 }
 
+// Sanitize a user-supplied name for the vault. '/' is kept as a folder
+// separator so 'x/y' nests under 'x'; other Windows-illegal characters become '-'.
+export function sanitizeName(name) {
+  return name
+    .split('/')
+    .map((part) => part.replace(/[\\:*?"<>|]/g, '-'))
+    .join('/');
+}
+
 export function renameTarget(node, newName) {
   const ext = node.type === 'file' ? node.path.match(/\.(md|flow|canvas|json)$/i)?.[0] || '' : '';
-  const clean = newName
-    .replace(/[\\/:*?"<>|]/g, '-')
-    .replace(new RegExp(`${ext.replace('.', '\\.')}$`, 'i'), '');
+  const clean = sanitizeName(newName).replace(new RegExp(`${ext.replace('.', '\\.')}$`, 'i'), '');
   return joinPath(dirName(node.path), clean + ext);
 }

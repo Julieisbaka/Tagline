@@ -488,10 +488,13 @@ function registerIpc() {
 
   async function renameVaultPath(from, to) {
     const dest = resolveInVault(to);
-    if (fssync.existsSync(dest)) {
+    const source = resolveInVault(from);
+    // Same path, different case: collides on case-insensitive filesystems,
+    // so rename through a temporary name instead.
+    const caseOnly = from !== to && from.toLowerCase() === to.toLowerCase();
+    if (fssync.existsSync(dest) && !caseOnly) {
       return { ok: false, code: 'destination-exists' };
     }
-    const source = resolveInVault(from);
     const stat = await fs.stat(source);
     let documents = [];
     if (stat.isDirectory()) {
@@ -522,7 +525,20 @@ function registerIpc() {
         await history.rename(oldPath, newPath);
         migrated.push([oldPath, newPath]);
       }
-      await fs.rename(source, dest);
+      if (caseOnly) {
+        const temp = path.join(path.dirname(source), `.tagline-rename-${randomUUID()}`);
+        await fs.rename(source, temp);
+        try {
+          await fs.rename(temp, dest);
+        } catch (error) {
+          try {
+            await fs.rename(temp, source);
+          } catch {}
+          throw error;
+        }
+      } else {
+        await fs.rename(source, dest);
+      }
     } catch (error) {
       await rollbackHistory();
       throw error;
