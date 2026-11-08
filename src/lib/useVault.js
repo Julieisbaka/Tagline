@@ -63,10 +63,7 @@ export function useVault(
    */
   const report = (e) =>
     setError(
-      String(e?.message || e).replace(
-        /^Error invoking remote method '[^']*': (?:\w*Error: )?/,
-        ''
-      )
+      String(e?.message || e).replace(/^Error invoking remote method '[^']*': (?:\w*Error: )?/, '')
     );
 
   const setSaveStatus = useCallback(

@@ -19,7 +19,13 @@ test('citation autofill reads JSON-LD graphs, repeated authors, entities and met
     'https://www.reuters.com/world/story-2024-01-01/'
   );
   assert.deepEqual(
-    { author: fields.author, title: fields.title, year: fields.year, publication: fields.publication, url: fields.url },
+    {
+      author: fields.author,
+      title: fields.title,
+      year: fields.year,
+      publication: fields.publication,
+      url: fields.url,
+    },
     {
       author: 'Jane Smith, John Doe',
       title: 'Climate & Energy',
@@ -281,7 +287,13 @@ test('citation transport pins public DNS results and handles redirects, errors a
     'https://www.nytimes.com/2024/03/05/us/politics/border-deal-vote.html'
   );
   assert.deepEqual(
-    { author: blocked.author, title: blocked.title, year: blocked.year, publication: blocked.publication, url: blocked.url },
+    {
+      author: blocked.author,
+      title: blocked.title,
+      year: blocked.year,
+      publication: blocked.publication,
+      url: blocked.url,
+    },
     {
       author: '',
       title: 'Border deal vote',
@@ -312,7 +324,13 @@ test('citation transport pins public DNS results and handles redirects, errors a
     );
   }
   assert.deepEqual(
-    { author: doiCitation.author, title: doiCitation.title, year: doiCitation.year, publication: doiCitation.publication, url: doiCitation.url },
+    {
+      author: doiCitation.author,
+      title: doiCitation.title,
+      year: doiCitation.year,
+      publication: doiCitation.publication,
+      url: doiCitation.url,
+    },
     {
       author: 'Ada Lovelace',
       title: 'Public metadata title',
