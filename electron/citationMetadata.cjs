@@ -129,7 +129,9 @@ function parseUrl(address) {
     title,
     year,
     publication: rule.publication || known?.[1] || '',
-    url: url.href,
+    url: cleanUrl(url.href),
+    originalUrl: url.href,
+    canonicalUrl: cleanUrl(url.href),
   };
 }
 
@@ -365,12 +367,28 @@ function names(value) {
     .join(', ');
 }
 
+const TRACKING_PARAMS = /^(?:utm_[a-z0-9_]+|fbclid|gclid|mc_cid|mc_eid|ref|ref_src)$/i;
+
+function cleanUrl(value, base) {
+  if (typeof value !== 'string' || !value) return '';
+  try {
+    const url = new URL(value, base);
+    for (const key of [...url.searchParams.keys()]) {
+      if (TRACKING_PARAMS.test(key)) url.searchParams.delete(key);
+    }
+    url.hash = '';
+    return url.href;
+  } catch {
+    return typeof value === 'string' ? value : '';
+  }
+}
+
 function canonicalPageUrl(value, base) {
   if (typeof value !== 'string' || !value) {
     return '';
   }
   try {
-    const url = new URL(value, base);
+    const url = new URL(cleanUrl(value, base) || value, base);
     return `${url.origin}${url.pathname.replace(/\/+$/, '') || '/'}`.toLowerCase();
   } catch {
     return '';
@@ -459,58 +477,78 @@ function parseMetadata(html, address, { allowUrlFallback = true } = {}) {
       null
     ) || {};
   const fromUrl = parseUrl(url.href);
+  const confidence = {};
+  const spans = {};
+  const setField = (field, value, source, conf) => {
+    if (value) {
+      confidence[field] = { score: conf, source };
+      spans[field] = { source, value };
+    }
+    return value;
+  };
   const date =
     text(article.datePublished || article.dateCreated) ||
     get(
       'article:published_time',
       'citation_publication_date',
+      'citation_date',
       'citation_online_date',
       'parsely-pub-date',
       'dcterms.issued',
       'dc.date',
       'date',
       'datepublished',
-      'pubdate'
+      'pubdate',
+      'sailthru.date'
     );
   const year = date.match(/\b(?:19|20)\d{2}\b/)?.[0] || (allowUrlFallback ? fromUrl.year : '');
-  const title =
-    text(article.headline || article.name) ||
-    get(
-      'citation_title',
-      'dc.title',
-      'dcterms.title',
-      'og:title',
-      'twitter:title',
-      'parsely-title'
-    ) ||
-    text(html.match(/<title\b[^>]*>([\s\S]*?)<\/title>/i)?.[1]) ||
-    (allowUrlFallback ? fromUrl.title : '');
-  const authorMeta = getAll('citation_author', 'dc.creator', 'dcterms.creator')
+  if (year) confidence.year = { score: article.datePublished ? 0.95 : 0.8, source: article.datePublished ? 'jsonld' : get('citation_publication_date') ? 'highwire' : 'meta' };
+
+  const jsonldTitle = text(article.headline || article.name);
+  const metaTitle = get('citation_title', 'dc.title', 'dcterms.title', 'og:title', 'twitter:title', 'parsely-title');
+  const htmlTitle = text(html.match(/<title\b[^>]*>([\s\S]*?)<\/title>/i)?.[1]);
+  const title = jsonldTitle || metaTitle || htmlTitle || (allowUrlFallback ? fromUrl.title : '');
+  if (title) confidence.title = { score: jsonldTitle ? 0.95 : metaTitle ? 0.85 : 0.6, source: jsonldTitle ? 'jsonld' : metaTitle ? 'meta' : 'html' };
+
+  const authorMeta = getAll('citation_author', 'dc.creator', 'dcterms.creator', 'citation_author_institution')
     .map((author) => author.replace(/^By\s+/i, ''))
     .filter(Boolean)
     .join(', ');
+  const jsonldAuthor = names(article.author);
+  const metaAuthor = authorMeta || get('author', 'author_name', 'article:author', 'parsely-author', 'byl').replace(/^By\s+/i, '');
+  const author = jsonldAuthor || metaAuthor || '';
+  if (author) confidence.author = { score: jsonldAuthor ? 0.95 : authorMeta ? 0.85 : 0.7, source: jsonldAuthor ? 'jsonld' : authorMeta ? 'highwire' : 'meta' };
+
+  const jsonldPub = names(article.publisher);
+  const metaPub = get(
+    'og:site_name',
+    'citation_journal_title',
+    'citation_conference_title',
+    'citation_publisher',
+    'citation_technical_report_institution',
+    'application-name',
+    'dc.publisher',
+    'dcterms.publisher'
+  );
+  const publication = jsonldPub || metaPub || (allowUrlFallback ? fromUrl.publication : '');
+  if (publication) confidence.publication = { score: jsonldPub ? 0.9 : metaPub ? 0.8 : 0.5, source: jsonldPub ? 'jsonld' : metaPub ? 'meta' : 'url' };
+
+  const doi = get('citation_doi', 'dc.identifier', 'prism.doi').replace(/^doi:\s*/i, '') || (doiFromUrl(url.href) || '');
+  const clean = cleanUrl(canonical || get('og:url') || url.href, url.href);
+  const original = url.href;
+  if (clean) confidence.url = { score: canonical ? 0.95 : 0.8, source: canonical ? 'canonical' : 'resolved' };
+
   return {
-    author:
-      names(article.author) ||
-      authorMeta ||
-      get('author', 'author_name', 'article:author', 'parsely-author', 'byl').replace(
-        /^By\s+/i,
-        ''
-      ),
+    author,
     title,
     year,
-    publication:
-      names(article.publisher) ||
-      get(
-        'og:site_name',
-        'citation_journal_title',
-        'citation_conference_title',
-        'application-name',
-        'dc.publisher',
-        'dcterms.publisher'
-      ) ||
-      (allowUrlFallback ? fromUrl.publication : ''),
-    url: url.href,
+    publication,
+    url: clean || original,
+    originalUrl: original,
+    canonicalUrl: clean || original,
+    doi: doi || '',
+    confidence,
+    spans,
   };
 }
 
@@ -578,12 +616,14 @@ async function extractCitation(value, { sourceOnly = false } = {}) {
     throw new Error('Enter a valid article URL.');
   }
   value = value.trim();
+  const rawInput = value;
   const doiInput = value.match(/^(?:doi:\s*)?(10\.\d{4,9}\/\S+)$/i);
   if (doiInput) {
     value = `https://doi.org/${doiInput[1]}`;
   } else if (/^(?:[a-z\d-]+\.)+[a-z]{2,}(?:[/?#]|$)/i.test(value)) {
     value = `https://${value}`;
   }
+  const originalUrl = cleanUrl(validateUrl(value).href);
   const fromUrl = parseUrl(value);
   const doi = doiFromUrl(value);
   let crossrefError = null;
@@ -591,16 +631,27 @@ async function extractCitation(value, { sourceOnly = false } = {}) {
     try {
       const metadata = await crossrefCitation(value);
       if (metadata) {
-        return metadata;
+        return {
+          ...metadata,
+          url: cleanUrl(metadata.url),
+          originalUrl,
+          canonicalUrl: cleanUrl(metadata.url),
+          confidence: metadata.confidence || { author: { score: 0.95, source: 'crossref' }, title: { score: 0.95, source: 'crossref' }, year: { score: 0.95, source: 'crossref' } },
+          spans: metadata.spans || {},
+        };
       }
     } catch (error) {
       crossrefError = error;
     }
   }
   let fields;
+  let resolvedUrl = originalUrl;
   try {
-    const { html, url } = await download(validateUrl(value));
-    fields = parseMetadata(html, url, { allowUrlFallback: !sourceOnly });
+    const result = await download(validateUrl(value));
+    resolvedUrl = cleanUrl(result.url);
+    fields = parseMetadata(result.html, result.url, { allowUrlFallback: !sourceOnly });
+    fields.originalUrl = originalUrl;
+    if (resolvedUrl && resolvedUrl !== originalUrl) fields.resolvedUrl = resolvedUrl;
   } catch (error) {
     if (sourceOnly) {
       if (crossrefError) {
@@ -620,7 +671,7 @@ async function extractCitation(value, { sourceOnly = false } = {}) {
       }
       throw error;
     }
-    return fromUrl;
+    return { ...fromUrl, url: cleanUrl(fromUrl.url), originalUrl, canonicalUrl: cleanUrl(fromUrl.url), confidence: {}, spans: {} };
   }
   if (!fields.title && !fields.author && !fields.year && (!sourceOnly || !fields.publication)) {
     if (crossrefError) {

@@ -1,6 +1,35 @@
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
 
+test('scanCards resolves Ibid within each document and reports original document spans', async () => {
+  const { scanCards, citedUrls } = await import('../src/lib/evidenceCheckup.js');
+  const text =
+    '---\r\ntitle: Test\r\n---\r\n#### One\r\n' +
+    '**Smith 2020** — "Study", [report][ref], p. 5\r\n' +
+    '#### Two\r\n**Ibid., p. 12**\r\n#### Three\r\nIbid.\r\n\r\n' +
+    '[ref]: https://example.com/report\r\n#### Missing\r\nNo citation.\r\n#### Last\r\nIbid.\r\n';
+  const cards = scanCards({ 'a.md': text, 'b.md': '#### Start\nIbid.\n' });
+  const [first, second, third, , last, other] = cards;
+  assert.equal(first.citation.url, 'https://example.com/report');
+  assert.equal(
+    text.slice(first.citationFieldSpans.url.start, first.citationFieldSpans.url.end),
+    '[report][ref]'
+  );
+  assert.deepEqual(second.citationFieldSpans.author, first.citationFieldSpans.author);
+  assert.equal(
+    text.slice(second.citationFieldSpans.locator.start, second.citationFieldSpans.locator.end),
+    'p. 12'
+  );
+  assert.deepEqual(third.citationFieldSpans.locator, second.citationFieldSpans.locator);
+  assert.ok(third.citationInheritedFields.includes('url'));
+  assert.equal(second.citationAuthorKind, 'name');
+  assert.equal(last.citation.author, '');
+  assert.equal(other.citation.author, '');
+  assert.equal(second.citationIbidResolved, true);
+  assert.equal(other.citationIbidResolved, false);
+  assert.deepEqual(citedUrls(cards), ['https://example.com/report']);
+});
+
 test('scanCards parses cite lines written by createCitation and ignores cards without one', async () => {
   const { createCitation } = await import('../src/lib/citation.js');
   const { scanCards } = await import('../src/lib/evidenceCheckup.js');
@@ -20,9 +49,10 @@ test('scanCards parses cite lines written by createCitation and ignores cards wi
     author: 'Smith',
     year: '2019',
     title: 'A *study*',
-    publication: 'Journal Vol 2',
+    publication: 'Journal',
     url: 'https://example.com/article',
     accessed: '2024-01-02',
+    volume: '2',
   });
   assert.equal(cards[1].citation, null);
   assert.equal(cards[2].title, 'Tag three');

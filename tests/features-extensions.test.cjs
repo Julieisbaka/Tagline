@@ -117,17 +117,17 @@ test('extension capabilities validate selection, command, helper, event and UI c
     ]),
     '**Smith 2024** — "A claim"'
   );
-  assert.deepEqual(extensionHelper('helpers.citations.extract', ['**Smith 2024** — "Study"']), {
-    citation: {
-      author: 'Smith',
-      year: '2024',
-      title: 'Study',
-      publication: '',
-      url: '',
-      accessed: '',
-    },
-    uncertainFields: [],
+  const extracted = extensionHelper('helpers.citations.extract', ['**Smith 2024** — "Study"']);
+  assert.deepEqual(extracted.citation, {
+    author: 'Smith',
+    year: '2024',
+    title: 'Study',
+    publication: '',
+    url: '',
+    accessed: '',
   });
+  assert.deepEqual(extracted.uncertainFields, []);
+  assert.equal(typeof extracted.fieldConfidence, 'object');
   assert.equal(
     extensionHelper('helpers.citations.extract', [
       '**Smith 2024** — [article][source]',

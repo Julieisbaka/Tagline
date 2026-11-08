@@ -45,7 +45,8 @@ export function normalizeCheckup(options = {}) {
 /**
  * Find cards in Markdown notes and extract their citation candidates.
  * @param {object} files - Map of note path to Markdown content.
- * @returns {object[]} - Cards with `path`, `title`, and `citation` (or null when the card has no citation line).
+ * @returns {object[]} Cards with citations and document-relative UTF-16 field spans (end exclusive).
+ *   Ibid inherits spans from the preceding citation in the same file, and lists inherited fields.
  */
 export function scanCards(files) {
   const cards = [];
@@ -54,20 +55,66 @@ export function scanCards(files) {
       continue;
     }
     const text = String(content ?? '');
-    const lines = text.split(/\r\n?|\n/);
+    const offsets = [0];
+    for (const match of text.matchAll(/\r\n|\r|\n/g)) {
+      offsets.push(match.index + match[0].length);
+    }
     const references = markdown.lexer(splitFrontmatter(text).body).links;
+    let previous = null;
+    let previousSpans = {};
     for (const card of detectCards(text)) {
-      const { citation, uncertainFields } = extractCardCitation(
-        lines.slice(card.lineIndex + 1, card.endLineIndex).join('\n'),
-        references
+      const start = offsets[card.lineIndex + 1] ?? text.length;
+      const extraction = extractCardCitation(
+        text.slice(start, card.endOffset),
+        references,
+        previous
       );
+      const {
+        citation,
+        uncertainFields,
+        fieldConfidence,
+        fieldSpans,
+        authorKind,
+        inheritedFields,
+      } = extraction;
+      const spans = Object.fromEntries(
+        Object.entries(fieldSpans).map(([field, span]) => [
+          field,
+          {
+            start: start + span.start,
+            end: start + span.end,
+            ...(span.segments
+              ? {
+                  segments: span.segments.map((part) => ({
+                    start: start + part.start,
+                    end: start + part.end,
+                  })),
+                }
+              : {}),
+          },
+        ])
+      );
+      for (const field of inheritedFields) {
+        if (previousSpans[field]) {
+          spans[field] = previousSpans[field];
+        }
+      }
       cards.push({
         path,
         title: card.title,
         lineIndex: card.lineIndex,
         citation,
         citationUncertainFields: uncertainFields,
+        citationFieldConfidence: fieldConfidence,
+        citationFieldSpans: spans,
+        citationAuthorKind: authorKind,
+        citationInheritedFields: inheritedFields,
+        ...(extraction.ibidResolved !== undefined
+          ? { citationIbidResolved: extraction.ibidResolved }
+          : {}),
       });
+      previous = citation && extraction.ibidResolved !== false ? extraction : null;
+      previousSpans = previous ? spans : {};
     }
   }
   return cards;

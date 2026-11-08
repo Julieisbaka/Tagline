@@ -77,6 +77,7 @@ test('does not interpret code, quoted examples or ordinary emphasis as citations
     const result = extractCardCitation(body);
     if (body.startsWith('**Inflation')) {
       assert.deepEqual(result.uncertainFields, ['author', 'year']);
+      assert.equal(body.slice(result.fieldSpans.year.start, result.fieldSpans.year.end), '50');
     } else {
       assert.equal(result.citation, null);
     }
@@ -147,10 +148,7 @@ test('builds arXiv and ISBN links and keeps BCE and range years', async () => {
   );
   assert.equal(isbn.citation.title, 'The Art of Computer Programming');
   assert.equal(isbn.citation.publication, '');
-  assert.equal(
-    isbn.citation.url,
-    'https://openlibrary.org/api/books?bibkeys=ISBN:9780201896831&jscmd=data'
-  );
+  assert.equal(isbn.citation.url, 'https://openlibrary.org/isbn/9780201896831');
 
   const bce = extractCardCitation('**Plato, 399 BCE** — "Apology"');
   assert.equal(bce.citation.author, 'Plato');
@@ -177,10 +175,7 @@ test('validates ISBN check digits before linking', async () => {
   assert.equal(isValidIsbn('not-an-isbn'), false);
 
   const valid = extractCardCitation('**Knuth 1997** — ISBN 978-0-201-89683-1');
-  assert.equal(
-    valid.citation.url,
-    'https://openlibrary.org/api/books?bibkeys=ISBN:9780201896831&jscmd=data'
-  );
+  assert.equal(valid.citation.url, 'https://openlibrary.org/isbn/9780201896831');
   assert.deepEqual(valid.uncertainFields, []);
 
   const invalid = extractCardCitation('**Knuth 1997** — ISBN 978-0-201-89683-2');
@@ -224,4 +219,180 @@ test('marks invalid or ambiguous dates uncertain instead of inventing a year', a
   const ambiguous = extractCardCitation('**Smith 2024** — "Study", Accessed 03/04/2024');
   assert.equal(ambiguous.citation.accessed, '');
   assert.ok(ambiguous.uncertainFields.includes('accessed'));
+});
+
+test('parses wrapped bold cites and debate separators/forms', async () => {
+  const { extractCardCitation } = await import('../src/lib/citationExtraction.js');
+  const wrapped = extractCardCitation(
+    '**Smith (2020) \u201cLong title\ncontinues here,\u201d Journal**'
+  );
+  assert.equal(wrapped.citation.author, 'Smith');
+  assert.equal(wrapped.citation.year, '2020');
+  assert.match(wrapped.citation.title, /Long title continues here/);
+
+  const emdash = extractCardCitation('**Smith \u2014 2024** — "Study"');
+  assert.equal(emdash.citation.author, 'Smith');
+  assert.equal(emdash.citation.year, '2024');
+
+  const nd = extractCardCitation('**United States, n.d.** — "Report"');
+  assert.equal(nd.citation.author, 'United States');
+  assert.equal(nd.citation.year, 'n.d.');
+
+  const locator = extractCardCitation('**Jones 2021** — "Case", Journal, p. 4');
+  assert.equal(locator.citation.author, 'Jones');
+  assert.match(locator.citation.locator || '', /p\. 4/);
+
+  assert.equal(typeof wrapped.fieldConfidence.author, 'number');
+});
+
+test('field spans trace original UTF-16 text through wrapping, escaping and normalization', async () => {
+  const { extractCardCitation } = await import('../src/lib/citationExtraction.js');
+  const body =
+    '<!-- note -->\r\n**D\u00edaz\\_Garc\u00eda, March 3,\r\n2022**\r\n' +
+    'Title: A wrapped\r\nPublication: Policy Journal\r\n' +
+    '[Article](https://example.com/a_(b))\r\nAccessed March 5, 2024\r\n';
+  const result = extractCardCitation(body);
+  assert.equal(result.citation.author, 'D\u00edaz_Garc\u00eda');
+  assert.equal(result.citation.year, '2022');
+  assert.equal(result.citation.accessed, '2024-03-05');
+  const fields = {
+    author: 'D\u00edaz\\_Garc\u00eda',
+    year: 'March 3,\r\n2022',
+    title: 'A wrapped',
+    publication: 'Policy Journal',
+    url: 'https://example.com/a_(b)',
+    accessed: 'March 5, 2024',
+  };
+  for (const [field, expected] of Object.entries(fields)) {
+    const span = result.fieldSpans[field];
+    assert.ok(span, `missing ${field} span`);
+    assert.equal(body.slice(span.start, span.end), expected, field);
+  }
+});
+
+test('field spans trace references, identifiers, and uncertain values to their source', async () => {
+  const { extractCardCitation } = await import('../src/lib/citationExtraction.js');
+  const references = { report: { href: 'https://example.com/long/path' } };
+  const text = '**Smith 24** — "Study", [Article][report], Accessed 03/04/2024';
+  const result = extractCardCitation(text, references);
+  assert.equal(result.citation.url, references.report.href);
+  assert.equal(
+    text.slice(result.fieldSpans.url.start, result.fieldSpans.url.end),
+    '[Article][report]'
+  );
+  assert.equal(text.slice(result.fieldSpans.year.start, result.fieldSpans.year.end), '24');
+  assert.ok(result.uncertainFields.includes('accessed'));
+  assert.equal(
+    text.slice(result.fieldSpans.accessed.start, result.fieldSpans.accessed.end),
+    '03/04/2024'
+  );
+
+  for (const [source, expected] of [
+    ['**Lee 2020** — doi:10.5555/test.', '10.5555/test'],
+    ['**Lee 2020** — arXiv:1706.03762', '1706.03762'],
+    ['**Lee 2020** — ISBN 978-0-201-89683-1', '978-0-201-89683-1'],
+    ['**Lee 2020** — [Missing][ref]', '[Missing][ref]'],
+  ]) {
+    const { fieldSpans } = extractCardCitation(source);
+    assert.equal(source.slice(fieldSpans.url.start, fieldSpans.url.end), expected);
+  }
+});
+
+test('spans distinguish repeated text and preserve Unicode offsets and year forms', async () => {
+  const { extractCardCitation } = await import('../src/lib/citationExtraction.js');
+  for (const [year, value] of [
+    ['n.d.', 'n.d.'],
+    ['1990-2000', '2000'],
+    ['399 BCE', '399 BCE'],
+  ]) {
+    const text = `<!-- \ud83d\udcda -->\n**Smith ${year}** — "Journal", Journal, vol. 2, no. 3`;
+    const { citation, fieldSpans } = extractCardCitation(text);
+    assert.equal(citation.year, value);
+    assert.equal(text.slice(fieldSpans.year.start, fieldSpans.year.end), year);
+    assert.equal(text.slice(fieldSpans.title.start, fieldSpans.title.end), 'Journal');
+    assert.equal(text.slice(fieldSpans.publication.start, fieldSpans.publication.end), 'Journal');
+    assert.notEqual(fieldSpans.title.start, fieldSpans.publication.start);
+    assert.equal(text.slice(fieldSpans.volume.start, fieldSpans.volume.end), '2');
+    assert.equal(text.slice(fieldSpans.issue.start, fieldSpans.issue.end), '3');
+  }
+});
+
+test('classifies personal, multiple and corporate authors without changing their text', async () => {
+  const { extractCardCitation } = await import('../src/lib/citationExtraction.js');
+  for (const [author, kind] of [
+    ['Smith', 'name'],
+    ['Jane Smith', 'first-last'],
+    ['Smith, Jane', 'last-first'],
+    ['Smith, Jane, Jones, Mary', 'multi'],
+    ['Smith and Jones', 'multi'],
+    ['Smith et al.', 'multi'],
+    ['World Health Organization', 'corporate'],
+    ['WHO', 'corporate'],
+    ['United States, Department of State', 'corporate'],
+    ['Research and Development Department', 'corporate'],
+    ['University of Oxford and World Health Organization', 'multi'],
+    ['World Health Organization and Jane Smith', 'multi'],
+  ]) {
+    const result = extractCardCitation(`**${author} 2020** — "Study"`);
+    assert.equal(result.citation.author, author);
+    assert.equal(result.authorKind, kind, author);
+  }
+});
+
+test('Ibid resolves only with previous context and retains explicit locators', async () => {
+  const { extractCardCitation } = await import('../src/lib/citationExtraction.js');
+  const original = extractCardCitation(
+    '**Jane Smith 2020** — "Study", Journal, p. 5, [a](https://example.com/a)'
+  );
+  const repeated = extractCardCitation('**Ibid., p. 12**', {}, original);
+  assert.equal(repeated.ibidResolved, true);
+  assert.equal(repeated.citation.author, 'Jane Smith');
+  assert.equal(repeated.citation.title, 'Study');
+  assert.equal(repeated.citation.url, 'https://example.com/a');
+  assert.equal(repeated.citation.locator, 'p. 12');
+  assert.equal(repeated.authorKind, 'first-last');
+  assert.equal(repeated.citation.form, 'ibid');
+  assert.ok(repeated.inheritedFields.includes('author'));
+  assert.equal(repeated.inheritedFields.includes('locator'), false);
+  assert.equal(repeated.fieldSpans.author, undefined);
+  assert.deepEqual(repeated.fieldSpans.locator, { start: 9, end: 14 });
+  const chained = extractCardCitation('Ibid.', {}, repeated);
+  assert.equal(chained.citation.locator, 'p. 12');
+  assert.equal(chained.citation.author, 'Jane Smith');
+  const implicitPage = extractCardCitation('Ibid., at 42–45', {}, original);
+  assert.equal(implicitPage.citation.locator, '42–45');
+  assert.equal(
+    'Ibid., at 42–45'.slice(
+      implicitPage.fieldSpans.locator.start,
+      implicitPage.fieldSpans.locator.end
+    ),
+    '42–45'
+  );
+  const unresolved = extractCardCitation('Ibid., p. 3');
+  assert.equal(unresolved.ibidResolved, false);
+  assert.equal(unresolved.citation.author, '');
+  assert.ok(unresolved.uncertainFields.includes('author'));
+  assert.equal(extractCardCitation('Ibid.', {}, unresolved).ibidResolved, false);
+  assert.equal(extractCardCitation('Ibid is a word, not a citation.', {}, original).citation, null);
+});
+
+test('publication spans expose exact segments when other fields interrupt the source', async () => {
+  const { extractCardCitation } = await import('../src/lib/citationExtraction.js');
+  const text = '**Smith 2020** — "Study", Journal, vol. 2, Series B';
+  const { fieldSpans } = extractCardCitation(text);
+  assert.ok(fieldSpans.publication.segments.length > 1);
+  const fragments = fieldSpans.publication.segments.map(({ start, end }) => text.slice(start, end));
+  assert.ok(fragments.join('').includes('Journal'));
+  assert.ok(fragments.join('').includes('Series B'));
+  assert.ok(!fragments.join('').includes('vol. 2'));
+});
+
+test('Ibid propagates uncertain inherited fields and allows local overrides', async () => {
+  const { extractCardCitation } = await import('../src/lib/citationExtraction.js');
+  const source = extractCardCitation('**Smith, February 30, 2024** — "Study", Accessed 03/04/2024');
+  const next = extractCardCitation('Ibid., Accessed 2024-05-01', {}, source);
+  assert.ok(next.uncertainFields.includes('year'));
+  assert.ok(next.inheritedFields.includes('year'));
+  assert.equal(next.uncertainFields.includes('accessed'), false);
+  assert.equal(next.citation.accessed, '2024-05-01');
 });

@@ -29,10 +29,21 @@ test('detects real card headings and preserves original line positions and bound
     '# End',
   ].join('\r\n');
   const cards = detectCards(text);
-  assert.deepEqual(cards, [
-    { title: 'First tag', lineIndex: 4, endLineIndex: 20 },
-    { title: 'Second', lineIndex: 20, endLineIndex: 22 },
-  ]);
+  assert.deepEqual(
+    cards.map(({ title, lineIndex, endLineIndex, confidence, weak }) => ({
+      title,
+      lineIndex,
+      endLineIndex,
+      confidence,
+      weak,
+    })),
+    [
+      { title: 'First tag', lineIndex: 4, endLineIndex: 20, confidence: 1, weak: false },
+      { title: 'Second', lineIndex: 20, endLineIndex: 22, confidence: 1, weak: false },
+    ]
+  );
+  assert.equal(typeof cards[0].startOffset, 'number');
+  assert.ok(cards[0].endOffset > cards[0].startOffset);
 });
 
 test('fences, embedded comments, and ordinary bold evidence do not supply citations', async () => {
@@ -164,8 +175,46 @@ test('parser ignores headings in lists, tables, blockquotes and HTML and retains
     '---',
     '#### Last',
   ].join('\r\n');
-  assert.deepEqual(detectCards(text), [
-    { title: 'Real', lineIndex: 16, endLineIndex: 18 },
-    { title: 'Last', lineIndex: 21, endLineIndex: 22 },
-  ]);
+  assert.deepEqual(
+    detectCards(text).map(({ title, lineIndex, endLineIndex }) => ({ title, lineIndex, endLineIndex })),
+    [
+      { title: 'Real', lineIndex: 16, endLineIndex: 18 },
+      { title: 'Last', lineIndex: 21, endLineIndex: 22 },
+    ]
+  );
+});
+
+test('cleans inline markdown in titles, handles trailing hashes and duplicate titles', async () => {
+  const { detectCards } = await import('../src/lib/cardDetection.js');
+  const text = [
+    '#### **Heg** — AT: Economy ####',
+    'cite',
+    '#### **Heg** — AT: Economy',
+    'cite',
+  ].join('\n');
+  const cards = detectCards(text);
+  assert.deepEqual(cards.map((c) => c.title), ['Heg — AT: Economy', 'Heg — AT: Economy']);
+});
+
+test('##### subheads stay inside a card by default', async () => {
+  const { detectCards } = await import('../src/lib/cardDetection.js');
+  const cards = detectCards('#### Card\ntext\n##### Sub\nmore\n#### Next\n');
+  assert.deepEqual(cards.map((c) => [c.title, c.endLineIndex]), [['Card', 4], ['Next', 6]]);
+});
+
+test('offsets are stable for selection/folding', async () => {
+  const { detectCards } = await import('../src/lib/cardDetection.js');
+  const text = '#### One\nbody\n#### Two\n';
+  const [a, b] = detectCards(text);
+  assert.equal(text.slice(a.startOffset, a.endOffset), '#### One\nbody\n');
+  assert.equal(text.slice(b.startOffset).startsWith('#### Two'), true);
+});
+
+test('configurable depth and weak candidates with confidence', async () => {
+  const { detectCards } = await import('../src/lib/cardDetection.js');
+  const text = '### Top\n#### Card\n##### Sub\n';
+  assert.deepEqual(detectCards(text, { depth: 3 }).map((c) => [c.title, c.depth, c.confidence]), [['Top', 3, 1]]);
+  const weak = detectCards(text, { weak: true });
+  assert.ok(weak.some((c) => c.title === 'Sub' && c.weak && c.confidence < 1));
+  assert.ok(weak.some((c) => c.title === 'Card' && !c.weak));
 });

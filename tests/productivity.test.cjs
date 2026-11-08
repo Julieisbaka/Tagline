@@ -18,13 +18,18 @@ test('citation autofill reads JSON-LD graphs, repeated authors, entities and met
   `,
     'https://www.reuters.com/world/story-2024-01-01/'
   );
-  assert.deepEqual(fields, {
-    author: 'Jane Smith, John Doe',
-    title: 'Climate & Energy',
-    year: '2025',
-    publication: 'Reuters',
-    url: 'https://www.reuters.com/world/story-2024-01-01/',
-  });
+  assert.deepEqual(
+    { author: fields.author, title: fields.title, year: fields.year, publication: fields.publication, url: fields.url },
+    {
+      author: 'Jane Smith, John Doe',
+      title: 'Climate & Energy',
+      year: '2025',
+      publication: 'Reuters',
+      url: 'https://www.reuters.com/world/story-2024-01-01/',
+    }
+  );
+  assert.equal(fields.originalUrl, 'https://www.reuters.com/world/story-2024-01-01/');
+  assert.equal(typeof fields.confidence.author, 'object');
   const fallback = parseMetadata(
     `<meta name="byl" content="By Jane Smith">
     <meta property="og:title" content="Research &#x2014; explained">`,
@@ -276,7 +281,7 @@ test('citation transport pins public DNS results and handles redirects, errors a
     'https://www.nytimes.com/2024/03/05/us/politics/border-deal-vote.html'
   );
   assert.deepEqual(
-    { ...blocked },
+    { author: blocked.author, title: blocked.title, year: blocked.year, publication: blocked.publication, url: blocked.url },
     {
       author: '',
       title: 'Border deal vote',
@@ -285,6 +290,7 @@ test('citation transport pins public DNS results and handles redirects, errors a
       url: 'https://www.nytimes.com/2024/03/05/us/politics/border-deal-vote.html',
     }
   );
+  assert.equal(blocked.originalUrl, blocked.url);
   await assert.rejects(
     module.exports.extractCitation(
       'https://www.nytimes.com/2024/03/05/us/politics/border-deal-vote.html',
@@ -306,7 +312,7 @@ test('citation transport pins public DNS results and handles redirects, errors a
     );
   }
   assert.deepEqual(
-    { ...doiCitation },
+    { author: doiCitation.author, title: doiCitation.title, year: doiCitation.year, publication: doiCitation.publication, url: doiCitation.url },
     {
       author: 'Ada Lovelace',
       title: 'Public metadata title',
@@ -315,6 +321,7 @@ test('citation transport pins public DNS results and handles redirects, errors a
       url: 'https://doi.org/10.5555/example.2024',
     }
   );
+  assert.equal(doiCitation.originalUrl, 'https://doi.org/10.5555/example.2024');
   assert.equal(requests.at(-1).hostname, 'api.crossref.org');
   route = 'large';
   await assert.rejects(extract(), /too large/);
