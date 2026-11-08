@@ -6,6 +6,17 @@ contextBridge.exposeInMainWorld('api', {
   nativeContextMenu: (items) => ipcRenderer.invoke('app:nativeContextMenu', items),
   nativeConfirm: (options) => ipcRenderer.invoke('app:nativeConfirm', options),
   editText: (action) => ipcRenderer.invoke('app:editText', action),
+  spellcheck: {
+    replace: (suggestion) => ipcRenderer.invoke('spellcheck:replace', suggestion),
+    listWords: () => ipcRenderer.invoke('spellcheck:listWords'),
+    addWord: (word) => ipcRenderer.invoke('spellcheck:addWord', word),
+    removeWord: (word) => ipcRenderer.invoke('spellcheck:removeWord', word),
+    onContext: (callback) => {
+      const listener = (_event, info) => callback(info);
+      ipcRenderer.on('spellcheck:context', listener);
+      return () => ipcRenderer.removeListener('spellcheck:context', listener);
+    },
+  },
   clipboardWrite: (text) => ipcRenderer.invoke('app:clipboardWrite', text),
   systemLanguages: (() => {
     try {

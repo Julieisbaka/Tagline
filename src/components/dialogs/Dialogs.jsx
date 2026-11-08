@@ -6,6 +6,7 @@ import AdvancedSettings from '../settings/AdvancedSettings.jsx';
 import CustomCssSettings from '../settings/CustomCssSettings.jsx';
 import CustomizationLimits from '../settings/CustomizationLimits.jsx';
 import EditorSettings from '../settings/EditorSettings.jsx';
+import DictionarySettings from '../settings/DictionarySettings.jsx';
 import ExtensionSettings from '../settings/ExtensionSettings.jsx';
 import InstallationSettings from '../settings/InstallationSettings.jsx';
 import IntegrationSettings from '../settings/IntegrationSettings.jsx';
@@ -423,6 +424,7 @@ export function SettingsDialog({
               className='settings-panel'
             >
               <EditorSettings settings={settings} update={update} />
+              <DictionarySettings />
             </section>
             <section
               data-settings-panel='accessibility'

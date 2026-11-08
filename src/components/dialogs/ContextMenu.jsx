@@ -25,7 +25,7 @@ function NativeContextMenu({ items, onClose }) {
     window.api
       .nativeContextMenu(
         items.map((item) => ({
-          label: t(item.label),
+          label: item.translate === false ? item.label : t(item.label),
           disabled: !!item.disabled,
           accelerator: shortcut(item.command),
         }))
@@ -127,7 +127,7 @@ function AppContextMenu({ x, y, items, onClose }) {
         buttons[next]?.focus();
       }}
     >
-      {items.map(({ label, run, disabled, danger, command }, i) => {
+      {items.map(({ label, run, disabled, danger, command, translate }, i) => {
         const hint = displayBinding(shortcut(command));
         return (
           <button
@@ -148,7 +148,7 @@ function AppContextMenu({ x, y, items, onClose }) {
               }
             }}
           >
-            {t(label)}
+            {translate === false ? label : t(label)}
           </button>
         );
       })}

@@ -4,8 +4,12 @@ import { useI18n } from '../../lib/i18n.js';
 export default function SettingRow({ label, description, children }) {
   const { t } = useI18n();
   const id = useId();
-  const controlId = children.props.id || id;
+  const controlId = children.props?.id || id;
   const helpId = `${id}-help`;
+  const controlProps = {
+    id: controlId,
+    'aria-describedby': [children.props?.['aria-describedby'], helpId].filter(Boolean).join(' '),
+  };
   const [open, setOpen] = useState(false);
   return (
     <div
@@ -45,10 +49,9 @@ export default function SettingRow({ label, description, children }) {
           </span>
         </span>
       </div>
-      {cloneElement(children, {
-        id: controlId,
-        'aria-describedby': [children.props['aria-describedby'], helpId].filter(Boolean).join(' '),
-      })}
+      {typeof children === 'function'
+        ? children(controlProps)
+        : cloneElement(children, controlProps)}
     </div>
   );
 }

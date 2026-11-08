@@ -616,14 +616,17 @@ test('platform: macOS desktop wiring provides native window controls, menus and 
   assert.equal(file.find((item) => item.role === 'close').accelerator, 'Cmd+Shift+W');
   file.find((item) => item.label === 'New Note').click();
   assert.equal(windows[0].sent.command, 'newNote');
+  const updateEvent = {
+    sender: windows[0].webContents,
+    senderFrame: windows[0].webContents.mainFrame,
+  };
   ipcMain.emit('app:saveHandlerReady', { sender: windows[0].webContents }, true);
-  const event = { sender: windows[0].webContents, senderFrame: windows[0].webContents.mainFrame };
-  const rejectedUpdate = handlers.get('app:installUpdate')(event);
+  const rejectedUpdate = handlers.get('app:installUpdate')(updateEvent);
   assert.equal(windows[0].sent.channel, 'app:prepareClose');
   ipcMain.emit('app:closeReady', { sender: windows[0].webContents }, false);
   await assert.rejects(rejectedUpdate, /Pending edits could not be saved/);
   assert.equal(windows[0].destroyed, undefined);
-  const installedUpdate = handlers.get('app:installUpdate')(event);
+  const installedUpdate = handlers.get('app:installUpdate')(updateEvent);
   ipcMain.emit('app:closeReady', { sender: windows[0].webContents }, true);
   await installedUpdate;
   assert.equal(
