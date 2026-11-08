@@ -4,6 +4,7 @@ import Highlight from '@tiptap/extension-highlight';
 import { TableKit } from '@tiptap/extension-table';
 import TaskItem from '@tiptap/extension-task-item';
 import TaskList from '@tiptap/extension-task-list';
+import { Underline as BaseUnderline } from '@tiptap/extension-underline';
 import { Markdown } from '@tiptap/markdown';
 import StarterKit from '@tiptap/starter-kit';
 
@@ -154,6 +155,34 @@ export const EvidenceCheckupComment = Node.create({
     `<!-- Evidence checkup (${node.attrs.category}): ${node.attrs.text} -->`,
 });
 
+const Underline = BaseUnderline.extend({
+  markdownTokenizer: {
+    name: 'underline',
+    level: 'inline',
+    start(src) {
+      return src.indexOf('++');
+    },
+    tokenize(src, _tokens, lexer) {
+      const match = /^(\+\+)(?!\s)([\s\S]*?[^+\s])(\+\+)/.exec(src);
+      if (!match) {
+        return undefined;
+      }
+      return {
+        type: 'underline',
+        raw: match[0],
+        text: match[2],
+        tokens: lexer.inlineTokens(match[2]),
+      };
+    },
+  },
+  parseMarkdown(token, helpers) {
+    return helpers.applyMark('underline', helpers.parseInline(token.tokens || []));
+  },
+  renderMarkdown(node, helpers) {
+    return `++${helpers.renderChildren(node)}++`;
+  },
+});
+
 export const CardMarker = Node.create({
   name: 'cardMarker',
   group: 'block',
@@ -199,7 +228,8 @@ export const CardMarker = Node.create({
  */
 export function visualExtensions() {
   return [
-    StarterKit.configure({ link: { openOnClick: false }, trailingNode: false }),
+    StarterKit.configure({ link: { openOnClick: false }, trailingNode: false, underline: false }),
+    Underline,
     Highlight,
     TableKit,
     TaskList,

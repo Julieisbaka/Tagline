@@ -181,7 +181,7 @@ export default function NoteProperties({ content, onChange, editable, notify, on
   };
 
   return (
-    <details className='note-properties' open={editable || undefined}>
+    <details className='note-properties' open={properties.length > 0 || !!metadata.prefix || undefined}>
       <summary>{t('Properties')}</summary>
       {!editable ? (
         <>

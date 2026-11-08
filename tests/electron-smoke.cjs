@@ -390,15 +390,19 @@ const delay = (ms) => new Promise((r) => setTimeout(r, ms));
           console.log('PASS: real CPU embedding inference through Electron IPC.');
         }
         await click('.tree-item', 'Frontmatter');
-        await waitFor("!!document.querySelector('.source-fallback')");
-        assert.ok(await js("!!document.querySelector('.cm-content')"));
+        await waitFor("!!document.querySelector('.visual-document')");
+        assert.ok(await js("!!document.querySelector('.note-properties')"));
         assert.match(
           await fs.readFile(path.join(vault, 'Frontmatter.md'), 'utf8'),
           /^---\ntitle: Keep Me/
         );
+        assert.match(
+          await js("document.querySelector('.note-properties').textContent"),
+          /title/
+        );
         assert.deepEqual(errors, []);
         console.log(
-          'PASS: Tiptap rendering, real visual edits, Markdown round trips, card sending, source fallback, Pandoc detection, encrypted token storage.'
+          'PASS: Tiptap rendering, real visual edits, Markdown round trips, card sending, visual frontmatter properties, Pandoc detection, encrypted token storage.'
         );
       } catch (e) {
         console.error('Renderer errors:', errors);

@@ -19,7 +19,25 @@ export default function FlowGrid({
   shortcutFor,
   shortcutHints,
 }) {
-  const [editing, setEditing] = useState(null);
+  const [editing, setEditing] = useState(() =>
+    sheet.rows.length && sheet.columns.length ? { row: 0, column: 0 } : null
+  );
+  useEffect(() => {
+    if (!sheet.rows.length || !sheet.columns.length) {
+      setEditing(null);
+      return;
+    }
+    setEditing((current) => {
+      if (
+        current &&
+        current.row < sheet.rows.length &&
+        current.column < sheet.columns.length
+      ) {
+        return current;
+      }
+      return { row: 0, column: 0 };
+    });
+  }, [sheet.rows.length, sheet.columns.length]);
   const markdownCache = useRef(new Map());
   const previewHtml = (text) => {
     if (!text) {
