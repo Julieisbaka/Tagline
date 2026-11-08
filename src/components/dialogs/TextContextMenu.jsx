@@ -69,6 +69,15 @@ export default function TextContextMenu() {
               },
             ]
           : [];
+        if (target.closest('.flow')) {
+          const flowMenuEvent = new CustomEvent('flow-spellcheck-context', {
+            cancelable: true,
+            detail: { sourceEvent: event, target, items: spellItems },
+          });
+          if (!window.dispatchEvent(flowMenuEvent)) {
+            return;
+          }
+        }
         setMenu({
           x: keyboard ? rect.left + 16 : event.clientX,
           y: keyboard ? rect.top + 16 : event.clientY,

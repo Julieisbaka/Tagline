@@ -28,6 +28,9 @@ export default function FlowEditor({
   const [active, setActive] = useState(0);
   const [renaming, setRenaming] = useState(null);
   const [menu, setMenu] = useState(null);
+  const flowRef = useRef(null);
+  const menuEvent = useRef(null);
+  const pendingMenu = useRef(null);
   const draggedSheet = useRef(null);
   const [sheetDropIndex, setSheetDropIndex] = useState(null);
   const gridRef = useRef(null);
@@ -67,10 +70,33 @@ export default function FlowEditor({
     focusTarget.current = null;
   }, [content]);
   const context = (e, items) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setMenu({ x: e.clientX, y: e.clientY, items });
+    const allowSpellcheck = e.target.matches('input, textarea');
+    if (!allowSpellcheck) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    menuEvent.current = e.nativeEvent;
+    const nextMenu = { x: e.clientX, y: e.clientY, items };
+    pendingMenu.current = allowSpellcheck ? nextMenu : null;
+    setMenu(allowSpellcheck ? null : nextMenu);
   };
+  useEffect(() => {
+    const spellcheckMenu = (event) => {
+      const { sourceEvent, target, items } = event.detail;
+      if (
+        menuEvent.current !== sourceEvent ||
+        !pendingMenu.current ||
+        !flowRef.current?.contains(target)
+      ) {
+        return;
+      }
+      event.preventDefault();
+      setMenu({ ...pendingMenu.current, items: [...items, ...pendingMenu.current.items] });
+      pendingMenu.current = null;
+    };
+    window.addEventListener('flow-spellcheck-context', spellcheckMenu);
+    return () => window.removeEventListener('flow-spellcheck-context', spellcheckMenu);
+  }, []);
   const applyFlowContent = (next) => {
     flowHistory.current.expected = next;
     currentContent.current = next;
@@ -168,7 +194,7 @@ export default function FlowEditor({
 
   if (mode === 'edit') {
     return (
-      <div className='flow' onKeyDownCapture={handleHistoryShortcut}>
+      <div className='flow' ref={flowRef} onKeyDownCapture={handleHistoryShortcut}>
         {parsed.error && (
           <div className='editor-notice' role='alert'>
             {parsed.error}
@@ -453,7 +479,16 @@ export default function FlowEditor({
         shortcutFor={shortcutFor}
         shortcutHints={shortcutHints}
       />
-      {menu && <ContextMenu {...menu} onClose={() => setMenu(null)} />}
+      {menu && (
+        <ContextMenu
+          {...menu}
+          onClose={() => {
+            setMenu(null);
+            menuEvent.current = null;
+            pendingMenu.current = null;
+          }}
+        />
+      )}
     </div>
   );
 }
