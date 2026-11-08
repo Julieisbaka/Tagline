@@ -443,7 +443,10 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
         await input('[aria-label="Speech 1 name"]', 'Opening');
         await input('[aria-label="Speech 1 time (mm:ss)"]', '1:15');
         await button('.timer-preset-dialog button', 'Add speech');
-        assert.equal(await js("document.activeElement.getAttribute('aria-label')"), 'Speech 2 name');
+        assert.equal(
+          await js("document.activeElement.getAttribute('aria-label')"),
+          'Speech 2 name'
+        );
         await input('[aria-label="Speech 2 name"]', 'Closing');
         await input('[aria-label="Speech 2 time (mm:ss)"]', '0:30');
         await button('.timer-preset-dialog button', 'Save preset');

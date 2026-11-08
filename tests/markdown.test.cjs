@@ -20,7 +20,9 @@ test('Markdown link resolution stays scoped to each render', async () => {
 test('Flow cell markdown subset renders inline formatting', async () => {
   const { createMarkdownParser } = await import('../src/lib/markdown.js');
   const parser = createMarkdownParser(() => null);
-  const html = parser.parse('**bold** *italic* ~~strike~~ ==highlight== ++underline++ `code` [link](https://example.com) [[Note]]');
+  const html = parser.parse(
+    '**bold** *italic* ~~strike~~ ==highlight== ++underline++ `code` [link](https://example.com) [[Note]]'
+  );
   assert.match(html, /<strong>bold<\/strong>/);
   assert.match(html, /<em>italic<\/em>/);
   assert.match(html, /<del>strike<\/del>/);

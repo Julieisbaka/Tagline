@@ -211,230 +211,233 @@ export default function FlowGrid({
                   }}
                 >
                   {editing?.row === r && editing?.column === c ? (
-                  <textarea
-                    data-row={r}
-                    data-column={c}
-                    aria-label={t('Row {row}, {column}', { row: r + 1, column: sheet.columns[c] })}
-                    spellCheck={settings.flowSpellcheck !== false}
-                    value={cell}
-                    onBlur={(event) => {
-                      if (!event.relatedTarget?.closest?.('.flow-grid-wrap')) {
-                        setEditing(null);
-                      }
-                    }}
-                    onPointerDown={(event) => {
-                      if (event.button !== 0) {
-                        return;
-                      }
-                      if (event.shiftKey) {
+                    <textarea
+                      data-row={r}
+                      data-column={c}
+                      aria-label={t('Row {row}, {column}', {
+                        row: r + 1,
+                        column: sheet.columns[c],
+                      })}
+                      spellCheck={settings.flowSpellcheck !== false}
+                      value={cell}
+                      onBlur={(event) => {
+                        if (!event.relatedTarget?.closest?.('.flow-grid-wrap')) {
+                          setEditing(null);
+                        }
+                      }}
+                      onPointerDown={(event) => {
+                        if (event.button !== 0) {
+                          return;
+                        }
+                        if (event.shiftKey) {
+                          event.preventDefault();
+                          choose(r, c, true);
+                        } else {
+                          choose(r, c);
+                        }
+                      }}
+                      onFocus={() => {
+                        if (keepSelection.current) {
+                          keepSelection.current = false;
+                          return;
+                        }
+                        if (!inside(r, c)) {
+                          choose(r, c);
+                        }
+                      }}
+                      onCopy={(event) => {
+                        if (
+                          !multi &&
+                          event.currentTarget.selectionStart !== event.currentTarget.selectionEnd
+                        ) {
+                          return;
+                        }
                         event.preventDefault();
-                        choose(r, c, true);
-                      } else {
+                        event.clipboardData.setData(
+                          'text/plain',
+                          copyFlowCells(
+                            sheet.rows,
+                            bounds || cellBounds({ row: r, column: c }, { row: r, column: c })
+                          )
+                        );
+                      }}
+                      onCut={(event) => {
+                        if (
+                          !multi &&
+                          event.currentTarget.selectionStart !== event.currentTarget.selectionEnd
+                        ) {
+                          return;
+                        }
+                        event.preventDefault();
+                        const area =
+                          bounds || cellBounds({ row: r, column: c }, { row: r, column: c });
+                        event.clipboardData.setData('text/plain', copyFlowCells(sheet.rows, area));
+                        clear(area);
+                      }}
+                      onPaste={(event) => {
+                        const text = event.clipboardData.getData('text/plain');
+                        const quotedCell =
+                          event.currentTarget.value === '' && /^"(?:[^"]|"")*"$/s.test(text);
+                        if (!multi && !quotedCell && !/[\t\r\n]/.test(text)) {
+                          return;
+                        }
+                        event.preventDefault();
+                        try {
+                          paste(text, multi ? bounds.top : r, multi ? bounds.left : c);
+                        } catch (error) {
+                          clipboardError(error);
+                        }
+                      }}
+                      placeholder='…'
+                      onChange={(e) => {
                         choose(r, c);
-                      }
-                    }}
-                    onFocus={() => {
-                      if (keepSelection.current) {
-                        keepSelection.current = false;
-                        return;
-                      }
-                      if (!inside(r, c)) {
-                        choose(r, c);
-                      }
-                    }}
-                    onCopy={(event) => {
-                      if (
-                        !multi &&
-                        event.currentTarget.selectionStart !== event.currentTarget.selectionEnd
-                      ) {
-                        return;
-                      }
-                      event.preventDefault();
-                      event.clipboardData.setData(
-                        'text/plain',
-                        copyFlowCells(
-                          sheet.rows,
-                          bounds || cellBounds({ row: r, column: c }, { row: r, column: c })
-                        )
-                      );
-                    }}
-                    onCut={(event) => {
-                      if (
-                        !multi &&
-                        event.currentTarget.selectionStart !== event.currentTarget.selectionEnd
-                      ) {
-                        return;
-                      }
-                      event.preventDefault();
-                      const area =
-                        bounds || cellBounds({ row: r, column: c }, { row: r, column: c });
-                      event.clipboardData.setData('text/plain', copyFlowCells(sheet.rows, area));
-                      clear(area);
-                    }}
-                    onPaste={(event) => {
-                      const text = event.clipboardData.getData('text/plain');
-                      const quotedCell =
-                        event.currentTarget.value === '' && /^"(?:[^"]|"")*"$/s.test(text);
-                      if (!multi && !quotedCell && !/[\t\r\n]/.test(text)) {
-                        return;
-                      }
-                      event.preventDefault();
-                      try {
-                        paste(text, multi ? bounds.top : r, multi ? bounds.left : c);
-                      } catch (error) {
-                        clipboardError(error);
-                      }
-                    }}
-                    placeholder='…'
-                    onChange={(e) => {
-                      choose(r, c);
-                      setCell(r, c, e.target.value);
-                    }}
-                    onKeyDown={(e) => {
-                      const extend = [
-                        ['flow-extend-up', -1, 0],
-                        ['flow-extend-down', 1, 0],
-                        ['flow-extend-left', 0, -1],
-                        ['flow-extend-right', 0, 1],
-                      ].find(([id]) => matchesBinding(e, binding(id, keybindings)));
-                      if (extend) {
-                        e.preventDefault();
-                        const head = selected?.head || { row: r, column: c };
-                        const row = Math.max(
-                          0,
-                          Math.min(sheet.rows.length - 1, head.row + extend[1])
-                        );
-                        const column = Math.max(
-                          0,
-                          Math.min(sheet.columns.length - 1, head.column + extend[2])
-                        );
-                        choose(row, column, true);
-                        const target = gridRef.current.querySelector(
-                          `[data-row="${row}"][data-column="${column}"]`
-                        );
-                        if (target && target !== document.activeElement) {
-                          keepSelection.current = true;
+                        setCell(r, c, e.target.value);
+                      }}
+                      onKeyDown={(e) => {
+                        const extend = [
+                          ['flow-extend-up', -1, 0],
+                          ['flow-extend-down', 1, 0],
+                          ['flow-extend-left', 0, -1],
+                          ['flow-extend-right', 0, 1],
+                        ].find(([id]) => matchesBinding(e, binding(id, keybindings)));
+                        if (extend) {
+                          e.preventDefault();
+                          const head = selected?.head || { row: r, column: c };
+                          const row = Math.max(
+                            0,
+                            Math.min(sheet.rows.length - 1, head.row + extend[1])
+                          );
+                          const column = Math.max(
+                            0,
+                            Math.min(sheet.columns.length - 1, head.column + extend[2])
+                          );
+                          choose(row, column, true);
+                          const target = gridRef.current.querySelector(
+                            `[data-row="${row}"][data-column="${column}"]`
+                          );
+                          if (target && target !== document.activeElement) {
+                            keepSelection.current = true;
+                            target.focus();
+                            target.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+                          }
+                          return;
+                        }
+                        if (matchesBinding(e, binding('flow-deselect', keybindings))) {
+                          e.preventDefault();
+                          setSelection(null);
+                          return;
+                        }
+                        if (multi && ['Delete', 'Backspace'].includes(e.key)) {
+                          e.preventDefault();
+                          clear();
+                          return;
+                        }
+                        if (matchesBinding(e, binding('flow-select-all', keybindings))) {
+                          e.preventDefault();
+                          selectAll();
+                          return;
+                        }
+                        if (matchesBinding(e, binding('flow-clear-selection', keybindings))) {
+                          e.preventDefault();
+                          clear();
+                          return;
+                        }
+                        if (matchesBinding(e, binding('flow-add-column', keybindings))) {
+                          e.preventDefault();
+                          addColumn();
+                          return;
+                        }
+                        const cellDown = matchesBinding(e, binding('flow-cell-down', keybindings));
+                        const cellUp = matchesBinding(e, binding('flow-cell-up', keybindings));
+                        if (cellDown || cellUp) {
+                          const nextRow = r + (cellDown ? 1 : -1);
+                          if (nextRow < 0 || nextRow >= sheet.rows.length) {
+                            return;
+                          }
+                          const target = gridRef.current?.querySelector(
+                            `[data-row="${nextRow}"][data-column="${c}"]`
+                          );
+                          if (!target) {
+                            return;
+                          }
+                          e.preventDefault();
+                          choose(nextRow, c);
                           target.focus();
                           target.scrollIntoView({ block: 'nearest', inline: 'nearest' });
-                        }
-                        return;
-                      }
-                      if (matchesBinding(e, binding('flow-deselect', keybindings))) {
-                        e.preventDefault();
-                        setSelection(null);
-                        return;
-                      }
-                      if (multi && ['Delete', 'Backspace'].includes(e.key)) {
-                        e.preventDefault();
-                        clear();
-                        return;
-                      }
-                      if (matchesBinding(e, binding('flow-select-all', keybindings))) {
-                        e.preventDefault();
-                        selectAll();
-                        return;
-                      }
-                      if (matchesBinding(e, binding('flow-clear-selection', keybindings))) {
-                        e.preventDefault();
-                        clear();
-                        return;
-                      }
-                      if (matchesBinding(e, binding('flow-add-column', keybindings))) {
-                        e.preventDefault();
-                        addColumn();
-                        return;
-                      }
-                      const cellDown = matchesBinding(
-                        e,
-                        binding('flow-cell-down', keybindings)
-                      );
-                      const cellUp = matchesBinding(e, binding('flow-cell-up', keybindings));
-                      if (cellDown || cellUp) {
-                        const nextRow = r + (cellDown ? 1 : -1);
-                        if (nextRow < 0 || nextRow >= sheet.rows.length) {
                           return;
                         }
-                        const target = gridRef.current?.querySelector(
-                          `[data-row="${nextRow}"][data-column="${c}"]`
+                        const nextCell = matchesBinding(e, binding('flow-next-cell', keybindings));
+                        const previousCell = matchesBinding(
+                          e,
+                          binding('flow-previous-cell', keybindings)
                         );
-                        if (!target) {
+                        if (nextCell || previousCell) {
+                          const direction = previousCell ? -1 : 1;
+                          let nextRow = r;
+                          let nextColumn = c + direction;
+                          if (nextColumn < 0) {
+                            nextRow -= 1;
+                            nextColumn = sheet.columns.length - 1;
+                          } else if (nextColumn >= sheet.columns.length) {
+                            nextRow += 1;
+                            nextColumn = 0;
+                          }
+                          const nextCell = gridRef.current?.querySelector(
+                            `[data-row="${nextRow}"][data-column="${nextColumn}"]`
+                          );
+                          if (nextCell) {
+                            e.preventDefault();
+                            choose(nextRow, nextColumn);
+                            nextCell.focus();
+                            nextCell.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+                          }
                           return;
                         }
-                        e.preventDefault();
-                        choose(nextRow, c);
-                        target.focus();
-                        target.scrollIntoView({ block: 'nearest', inline: 'nearest' });
-                        return;
-                      }
-                      const nextCell = matchesBinding(e, binding('flow-next-cell', keybindings));
-                      const previousCell = matchesBinding(
-                        e,
-                        binding('flow-previous-cell', keybindings)
-                      );
-                      if (nextCell || previousCell) {
-                        const direction = previousCell ? -1 : 1;
-                        let nextRow = r;
-                        let nextColumn = c + direction;
-                        if (nextColumn < 0) {
-                          nextRow -= 1;
-                          nextColumn = sheet.columns.length - 1;
-                        } else if (nextColumn >= sheet.columns.length) {
-                          nextRow += 1;
-                          nextColumn = 0;
-                        }
-                        const nextCell = gridRef.current?.querySelector(
-                          `[data-row="${nextRow}"][data-column="${nextColumn}"]`
-                        );
-                        if (nextCell) {
+                        if (matchesBinding(e, binding('flow-row-above', keybindings))) {
                           e.preventDefault();
-                          choose(nextRow, nextColumn);
-                          nextCell.focus();
-                          nextCell.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+                          insertRowAbove(r, c);
+                          return;
                         }
-                        return;
-                      }
-                      if (matchesBinding(e, binding('flow-row-above', keybindings))) {
-                        e.preventDefault();
-                        insertRowAbove(r, c);
-                        return;
-                      }
-                      if (matchesBinding(e, binding('flow-row', keybindings))) {
-                        e.preventDefault();
-                        addRow(r, c);
-                      }
-                    }}
-                  />
+                        if (matchesBinding(e, binding('flow-row', keybindings))) {
+                          e.preventDefault();
+                          addRow(r, c);
+                        }
+                      }}
+                    />
                   ) : (
-                  <div
-                    className='flow-cell-preview markdown-body'
-                    data-row={r}
-                    data-column={c}
-                    tabIndex={-1}
-                    aria-label={t('Row {row}, {column}', { row: r + 1, column: sheet.columns[c] })}
-                    onFocus={() => {
-                      if (keepSelection.current) {
-                        keepSelection.current = false;
-                      } else if (!inside(r, c)) {
-                        choose(r, c);
-                      }
-                      setEditing({ row: r, column: c });
-                    }}
-                    onPointerDown={(event) => {
-                      if (event.button !== 0) {
-                        return;
-                      }
-                      if (event.shiftKey) {
-                        event.preventDefault();
-                        choose(r, c, true);
-                      } else {
-                        choose(r, c);
-                      }
-                      setEditing({ row: r, column: c });
-                    }}
-                    dangerouslySetInnerHTML={{
-                      __html: cell ? previewHtml(cell) : '…',
-                    }}
-                  />
+                    <div
+                      className='flow-cell-preview markdown-body'
+                      data-row={r}
+                      data-column={c}
+                      tabIndex={-1}
+                      aria-label={t('Row {row}, {column}', {
+                        row: r + 1,
+                        column: sheet.columns[c],
+                      })}
+                      onFocus={() => {
+                        if (keepSelection.current) {
+                          keepSelection.current = false;
+                        } else if (!inside(r, c)) {
+                          choose(r, c);
+                        }
+                        setEditing({ row: r, column: c });
+                      }}
+                      onPointerDown={(event) => {
+                        if (event.button !== 0) {
+                          return;
+                        }
+                        if (event.shiftKey) {
+                          event.preventDefault();
+                          choose(r, c, true);
+                        } else {
+                          choose(r, c);
+                        }
+                        setEditing({ row: r, column: c });
+                      }}
+                      dangerouslySetInnerHTML={{
+                        __html: cell ? previewHtml(cell) : '…',
+                      }}
+                    />
                   )}
                 </td>
               ))}

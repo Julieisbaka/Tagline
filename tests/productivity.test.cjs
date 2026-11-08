@@ -378,7 +378,14 @@ test('configurable shortcuts support platform modifiers, conflicts, clearing and
   assert.equal(reservedBinding('Alt+ArrowUp', 'flow-cell-up'), false);
   assert.equal(
     matchesBinding(
-      { key: 'ArrowDown', ctrlKey: false, metaKey: false, altKey: true, shiftKey: false, code: 'ArrowDown' },
+      {
+        key: 'ArrowDown',
+        ctrlKey: false,
+        metaKey: false,
+        altKey: true,
+        shiftKey: false,
+        code: 'ArrowDown',
+      },
       'Alt+ArrowDown',
       'win32'
     ),

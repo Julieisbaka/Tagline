@@ -187,10 +187,7 @@ function registerIpc() {
     return event.sender[action]();
   });
   ipcMain.handle('app:clipboardWrite', (event, text) => {
-    if (
-      event.sender !== win?.webContents ||
-      event.senderFrame !== event.sender.mainFrame
-    ) {
+    if (event.sender !== win?.webContents || event.senderFrame !== event.sender.mainFrame) {
       throw new Error('Clipboard access is only available to the application main frame.');
     }
     if (typeof text !== 'string' || text.length > 1_000_000) {
@@ -443,12 +440,15 @@ function registerIpc() {
     }
     return true;
   }
-  ipcMain.handle('fs:write', (_e, rel, content, retention, canvasMode, experimentalHistoryDeltas) => {
-    if (typeof content !== 'string') {
-      throw new Error('Invalid file content.');
+  ipcMain.handle(
+    'fs:write',
+    (_e, rel, content, retention, canvasMode, experimentalHistoryDeltas) => {
+      if (typeof content !== 'string') {
+        throw new Error('Invalid file content.');
+      }
+      return writeVaultFile(rel, content, retention, canvasMode, experimentalHistoryDeltas);
     }
-    return writeVaultFile(rel, content, retention, canvasMode, experimentalHistoryDeltas);
-  });
+  );
 
   ipcMain.handle('fs:create', async (_e, rel, content = '') => {
     if (typeof content !== 'string') {

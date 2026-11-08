@@ -129,9 +129,7 @@ function createUpdateManager({
       } catch {
         // Deleted or unreadable installer: fall through and download again.
       }
-      await fs
-        .rm(path.dirname(downloaded.file), { recursive: true, force: true })
-        .catch(() => {});
+      await fs.rm(path.dirname(downloaded.file), { recursive: true, force: true }).catch(() => {});
       downloaded = null;
     }
     setState({ status: 'downloading', received: 0, total: asset.size, error: '' });
