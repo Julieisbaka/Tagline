@@ -42,7 +42,10 @@ export default function DictionarySettings() {
             event.preventDefault();
             const value = word.trim();
             if (value) {
-              change(() => spellcheck.addWord(value)).then(() => setWord(''));
+change(async () => {
+                await spellcheck.addWord(value);
+                setWord('');
+              });
             }
           }}
         >
