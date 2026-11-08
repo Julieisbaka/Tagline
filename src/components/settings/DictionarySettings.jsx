@@ -37,28 +37,30 @@ export default function DictionarySettings() {
         label={t('Add word')}
         description={t('Words in your dictionary are not marked as misspelled.')}
       >
-        <form
-          onSubmit={(event) => {
-            event.preventDefault();
-            const value = word.trim();
-            if (value) {
-change(async () => {
-                await spellcheck.addWord(value);
-                setWord('');
-              });
-            }
-          }}
-        >
-          <input
-            type='text'
-            value={word}
-            aria-label={t('Add word')}
-            onChange={(event) => setWord(event.target.value)}
-          />{' '}
-          <button type='submit' disabled={!word.trim()}>
-            {t('Add')}
-          </button>
-        </form>
+        {(inputProps) => (
+          <form
+            onSubmit={(event) => {
+              event.preventDefault();
+              const value = word.trim();
+              if (value) {
+                change(async () => {
+                  await spellcheck.addWord(value);
+                  setWord('');
+                });
+              }
+            }}
+          >
+            <input
+              {...inputProps}
+              type='text'
+              value={word}
+              onChange={(event) => setWord(event.target.value)}
+            />{' '}
+            <button type='submit' disabled={!word.trim()}>
+              {t('Add')}
+            </button>
+          </form>
+        )}
       </SettingRow>
       {error && <p role='alert'>{error}</p>}
       {words.length ? (
