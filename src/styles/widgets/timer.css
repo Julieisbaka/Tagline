@@ -95,3 +95,50 @@
   font-family: var(--font-mono);
   font-size: 24px;
 }
+
+.timer-preset-dialog {
+  gap: 8px;
+}
+
+.timer-preset-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.timer-preset-dialog p {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+.timer-preset-speeches {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.timer-preset-speech {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(70px, 100px) 36px;
+  gap: 6px;
+}
+
+.timer-preset-speech input {
+  min-width: 0;
+}
+
+.timer-preset-heading {
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+.timer button:disabled {
+  color: var(--text-muted);
+}
+
+.timer .link-btn:disabled:hover {
+  text-decoration: none;
+}

@@ -1,0 +1,38 @@
+{
+  "en": {
+    "flowAssociation": "Installed builds register Tagline for .flow files. In Get Info, select Tagline under Open With, then choose Change All.",
+    "updates": "When enabled, Tagline checks GitHub Releases and downloads updates at startup. Open the installer to finish updating.",
+    "installInstructions": "Downloads are verified against release checksums. Open the DMG and replace Tagline in Applications.",
+    "installButton": "Open installer",
+    "installing": "Opening the installer…",
+    "manualUpdate": "The disk image is open. Quit Tagline, drag the new app into Applications and choose Replace, then reopen Tagline. Your settings and vaults are kept.",
+    "applyCssShortcut": "Cmd+Enter applies",
+    "manualUninstall": "Remove Tagline manually after its location opens.",
+    "manualUninstallRemove": "The app location is open. Remove Tagline there; profile data will be removed after you quit.",
+    "manualUninstallKeep": "The app location is open. Remove Tagline there. Your profile data will be kept."
+  },
+  "es": {
+    "flowAssociation": "La versión instalada registra Tagline para archivos .flow. En Obtener información, selecciona Tagline en Abrir con y elige Cambiar todo.",
+    "updates": "Si está activado, Tagline busca en GitHub Releases y descarga actualizaciones al iniciar. Abre el instalador para terminar.",
+    "installInstructions": "Las descargas se verifican con las sumas de comprobación. Abre el DMG y reemplaza Tagline en Aplicaciones.",
+    "installButton": "Abrir instalador",
+    "installing": "Abriendo el instalador…",
+    "manualUpdate": "La imagen de disco está abierta. Cierra Tagline, arrastra la nueva aplicación a Aplicaciones y elige Reemplazar, luego vuelve a abrir Tagline. Tus ajustes y bóvedas se conservan.",
+    "applyCssShortcut": "Cmd+Intro aplica",
+    "manualUninstall": "Elimina Tagline manualmente cuando se abra su ubicación.",
+    "manualUninstallRemove": "Se abrió la ubicación de la aplicación. Elimina Tagline allí; los datos del perfil se eliminarán cuando cierres la aplicación.",
+    "manualUninstallKeep": "Se abrió la ubicación de la aplicación. Elimina Tagline allí. Se conservarán los datos del perfil."
+  },
+  "fr": {
+    "flowAssociation": "La version installée enregistre Tagline pour les fichiers .flow. Dans Lire les informations, sélectionnez Tagline sous Ouvrir avec, puis Tout modifier.",
+    "updates": "Si l’option est activée, Tagline recherche et télécharge les mises à jour GitHub Releases au démarrage. Ouvrez l’installateur pour terminer.",
+    "installInstructions": "Les téléchargements sont vérifiés par somme de contrôle. Ouvrez le DMG et remplacez Tagline dans Applications.",
+    "installButton": "Ouvrir l’installateur",
+    "installing": "Ouverture de l’installateur…",
+    "manualUpdate": "L’image disque est ouverte. Quittez Tagline, glissez la nouvelle application dans Applications et choisissez Remplacer, puis rouvrez Tagline. Vos paramètres et coffres sont conservés.",
+    "applyCssShortcut": "Cmd+Entrée applique",
+    "manualUninstall": "Supprimez Tagline manuellement après l’ouverture de son emplacement.",
+    "manualUninstallRemove": "L’emplacement de l’application est ouvert. Supprimez Tagline à cet endroit ; les données du profil seront supprimées après avoir quitté l’application.",
+    "manualUninstallKeep": "L’emplacement de l’application est ouvert. Supprimez Tagline à cet endroit. Les données du profil seront conservées."
+  }
+}

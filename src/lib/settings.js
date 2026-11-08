@@ -1,10 +1,11 @@
-import { useCallback, useEffect, useLayoutEffect, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { setRuntimeLimits } from '../../electron/customization.mjs';
 import DEFAULTS from './defaultSettings.json' with { type: 'json' };
 import { migrateEditorModes } from './editorModes.js';
 import { setLanguage } from './i18n.js';
 import { initialLanguage } from './localization.js';
 import { setNativeUi } from './nativeUi.js';
+import { resourceLimits } from './resourceLimits.js';
 import { applyTheme, getTheme } from './themes.js';
 import { configureVisualCache } from './visualCache.js';
 
@@ -38,6 +39,19 @@ function load() {
 export function useSettings() {
   const [settings, setSettings] = useState(load);
   const [themeRevision, setThemeRevision] = useState(0);
+  const lowResourceUpdated = useRef(false);
+  useEffect(() => {
+    window.api
+      .getLowResourceMode()
+      .then((lowResourceMode) => {
+        if (!lowResourceUpdated.current) {
+          setSettings((s) => ({ ...s, lowResourceMode }));
+        }
+      })
+      .catch((error) =>
+        window.dispatchEvent(new CustomEvent('app-error', { detail: error.message }))
+      );
+  }, []);
   useEffect(() => {
     /**
      * Refresh theme resolution when extension themes or runtime limits change.
@@ -65,7 +79,7 @@ export function useSettings() {
     try {
       applyTheme(
         getTheme(settings.theme, settings.customTheme, settings.themeSettings),
-        settings.themeTransition && !settings.reduceMotion
+        settings.themeTransition && !settings.reduceMotion && !settings.disableAnimations
       );
     } catch (error) {
       window.dispatchEvent(new CustomEvent('app-error', { detail: error.message }));
@@ -77,6 +91,7 @@ export function useSettings() {
     settings.themeSettings,
     settings.themeTransition,
     settings.reduceMotion,
+    settings.disableAnimations,
     settings.language,
     themeRevision,
   ]);
@@ -102,7 +117,7 @@ export function useSettings() {
   useLayoutEffect(() => {
     const root = document.documentElement;
     for (const [name, enabled] of [
-      ['reduce-motion', settings.reduceMotion],
+      ['reduce-motion', settings.reduceMotion || settings.disableAnimations],
       ['strong-focus', settings.strongFocusIndicators],
       ['large-interface-text', settings.largerInterfaceText],
       ['large-click-targets', settings.largerClickTargets],
@@ -114,6 +129,7 @@ export function useSettings() {
     window.dispatchEvent(new Event('accessibilitychange'));
   }, [
     settings.reduceMotion,
+    settings.disableAnimations,
     settings.strongFocusIndicators,
     settings.largerInterfaceText,
     settings.largerClickTargets,
@@ -121,8 +137,13 @@ export function useSettings() {
     settings.readableWidthPixels,
   ]);
   useLayoutEffect(() => {
-    configureVisualCache(settings.visualCacheEntries, settings.visualCacheCharacters);
-  }, [settings.visualCacheEntries, settings.visualCacheCharacters]);
+    const limits = resourceLimits({
+      visualCacheEntries: settings.visualCacheEntries,
+      visualCacheCharacters: settings.visualCacheCharacters,
+      lowResourceMode: settings.lowResourceMode,
+    });
+    configureVisualCache(limits.visualCacheEntries, limits.visualCacheCharacters);
+  }, [settings.visualCacheEntries, settings.visualCacheCharacters, settings.lowResourceMode]);
   useLayoutEffect(() => {
     if (!settings.customCssEnabled || !settings.customCss) {
       return;
@@ -209,6 +230,11 @@ export function useSettings() {
       );
     }
   }, [settings]);
-  const update = useCallback((patch) => setSettings((s) => ({ ...s, ...patch })), []);
+  const update = useCallback((patch) => {
+    if ('lowResourceMode' in patch) {
+      lowResourceUpdated.current = true;
+    }
+    setSettings((s) => ({ ...s, ...patch }));
+  }, []);
   return [settings, update];
 }

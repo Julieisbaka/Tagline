@@ -1,10 +1,12 @@
 import { useEffect, useState } from 'react';
 import { useI18n } from '../../lib/i18n.js';
+import { useConfirm } from '../dialogs/ConfirmProvider.jsx';
 import GoogleDocsSettings from './GoogleDocsSettings.jsx';
 import McpSettings from './McpSettings.jsx';
 
-export default function IntegrationSettings() {
+export default function IntegrationSettings({ settings }) {
   const { t } = useI18n();
+  const confirm = useConfirm();
   const [pandoc, setPandoc] = useState(null);
   const [embedding, setEmbedding] = useState(null);
   const [summary, setSummary] = useState(null);
@@ -12,6 +14,7 @@ export default function IntegrationSettings() {
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
   const [busy, setBusy] = useState(false);
+  const [modelRevision, setModelRevision] = useState(0);
 
   useEffect(() => {
     let disposed = false;
@@ -50,7 +53,7 @@ export default function IntegrationSettings() {
       disposed = true;
       clearInterval(interval);
     };
-  }, []);
+  }, [modelRevision]);
 
   const run = async (action) => {
     setBusy(true);
@@ -108,8 +111,8 @@ export default function IntegrationSettings() {
         <span>{t('Automatically load downloaded model at startup')}</span>
         <input
           type='checkbox'
-          checked={embedding?.autoload ?? true}
-          disabled={!embedding || busy || embedding.busy}
+          checked={!settings.lowResourceMode && (embedding?.autoload ?? true)}
+          disabled={!embedding || busy || embedding.busy || settings.lowResourceMode}
           onChange={(e) => {
             const enabled = e.target.checked;
             run(async () => {
@@ -119,6 +122,9 @@ export default function IntegrationSettings() {
           }}
         />
       </label>
+      {settings.lowResourceMode && (
+        <p>{t('Autoload is disabled by low-resource mode; your preference is preserved.')}</p>
+      )}
       <p>
         {t(
           'Downloads Xenova/all-MiniLM-L6-v2 from Hugging Face (about 23 MB). Model files are cached; note contents and search queries stay on this computer. No API key is required for this public model.'
@@ -167,6 +173,16 @@ export default function IntegrationSettings() {
             disabled={busy || embedding.busy}
             onClick={() =>
               run(async () => {
+                if (
+                  !embedding.downloaded &&
+                  !(await confirm(
+                    t(
+                      'Download the embedding model from Hugging Face? It requires about 23 MB of disk space.'
+                    )
+                  ))
+                ) {
+                  return;
+                }
                 await window.api.downloadEmbeddingModel();
                 setEmbedding(await window.api.embeddingStatus());
                 setMessage(t('Model ready for local semantic search.'));
@@ -189,14 +205,15 @@ export default function IntegrationSettings() {
         </p>
       )}
       {message && <p role='status'>{message}</p>}
-      <PoliticalDebateSettings />
+      <PoliticalDebateSettings revision={modelRevision} />
       <h4>{t('On-demand document summaries')}</h4>
       <p>
         {t(
-          'Uses {model}. It downloads and runs only after you request a summary; document text stays on this computer.',
+          'Uses {model}. The first download requires about 334 MB plus tokenizer files; document text stays on this computer.',
           { model: summary?.model || 'Xenova/long-t5-tglobal-base-16384-book-summary' }
         )}
       </p>
+      <ModelManagement onChange={() => setModelRevision((n) => n + 1)} />
       <p role='status'>
         {summary
           ? `${summary.model} — ${t(summary.ready ? 'loaded' : 'not loaded')}`
@@ -206,7 +223,7 @@ export default function IntegrationSettings() {
   );
 }
 
-function PoliticalDebateSettings() {
+function PoliticalDebateSettings({ revision }) {
   const { t } = useI18n();
   const [status, setStatus] = useState(null);
   const [repo, setRepo] = useState('');
@@ -231,7 +248,7 @@ function PoliticalDebateSettings() {
     return () => {
       disposed = true;
     };
-  }, []);
+  }, [revision]);
   const run = async (action) => {
     setBusy(true);
     setError('');
@@ -249,7 +266,7 @@ function PoliticalDebateSettings() {
       <h4>{t('Hypothesis testing (Political DEBATE)')}</h4>
       <p>
         {t(
-          'An on-demand 0.4B-parameter NLI model (mlburnham/Political_DEBATE_large_v1.0, MIT). It never runs automatically: use the Hypothesis button on a note. The ONNX download is about 650 MB, and analysis stays on this computer.'
+          'An on-demand 0.4B-parameter NLI model (mlburnham/Political_DEBATE_large_v1.0, MIT). It never runs automatically: use the Hypothesis button on a note. The default ONNX download is about 650 MB; other repositories may differ. Analysis stays on this computer.'
         )}
       </p>
       <label className='setting-row'>
@@ -297,6 +314,101 @@ function PoliticalDebateSettings() {
           )}
         </p>
       )}
+      {error && (
+        <p className='error-text' role='alert'>
+          {error}
+        </p>
+      )}
+    </>
+  );
+}
+
+function ModelManagement({ onChange }) {
+  const { t } = useI18n();
+  const confirm = useConfirm();
+  const [sizes, setSizes] = useState(null);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+  const refresh = async () => {
+    const values = await Promise.all([
+      window.api.embeddingCacheSize(),
+      window.api.summaryCacheSize(),
+      window.api.nliCacheSize(),
+    ]);
+    setSizes(values);
+  };
+  useEffect(() => {
+    refresh().catch((e) => setError(e.message));
+  }, []);
+  const models = [
+    ['Semantic search', (remove) => window.api.manageEmbeddingModel(remove)],
+    ['Document summaries', (remove) => window.api.manageSummaryModel(remove)],
+    [
+      'Political DEBATE',
+      (remove) => (remove ? window.api.removeNliCache() : window.api.unloadNliModel()),
+    ],
+  ];
+  const run = async (index, remove) => {
+    if (
+      remove &&
+      !(await confirm(
+        t(
+          'Remove the cached {model} model files? They must be downloaded again. Local model folders, tokens and search indexes are not deleted.',
+          { model: t(models[index][0]) }
+        )
+      ))
+    ) {
+      return;
+    }
+    setBusy(true);
+    setError('');
+    try {
+      await models[index][1](remove);
+      await refresh();
+    } catch (e) {
+      setError(e.message);
+    } finally {
+      onChange();
+      setBusy(false);
+    }
+  };
+  return (
+    <>
+      <h4>{t('Model storage')}</h4>
+      <p>
+        {t(
+          'App-owned cache sizes include partial downloads and older repositories. Local model folders are not included or removed.'
+        )}
+      </p>
+      {models.map(([name], index) => (
+        <div key={name}>
+          <p>
+            {t(name)} — {sizes ? `${(sizes[index] / 1_000_000).toFixed(1)} MB` : t('Checking...')}
+          </p>
+          <div className='integration-buttons'>
+            <button disabled={busy} onClick={() => run(index, false)}>
+              {t('Unload model')}
+            </button>
+            <button
+              disabled={busy || !sizes || sizes[index] === 0}
+              onClick={() => run(index, true)}
+            >
+              {t('Remove cached files')}
+            </button>
+          </div>
+        </div>
+      ))}
+      <button
+        disabled={busy}
+        onClick={() => {
+          setBusy(true);
+          refresh()
+            .catch((e) => setError(e.message))
+            .finally(() => setBusy(false));
+        }}
+      >
+        {t('Refresh sizes')}
+      </button>
       {error && (
         <p className='error-text' role='alert'>
           {error}

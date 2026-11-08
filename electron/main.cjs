@@ -469,12 +469,15 @@ function registerIpc() {
     }
     return true;
   }
-  ipcMain.handle('fs:write', (_e, rel, content, retention, canvasMode, experimentalHistoryDeltas) => {
-    if (typeof content !== 'string') {
-      throw new Error('Invalid file content.');
+  ipcMain.handle(
+    'fs:write',
+    (_e, rel, content, retention, canvasMode, experimentalHistoryDeltas) => {
+      if (typeof content !== 'string') {
+        throw new Error('Invalid file content.');
+      }
+      return writeVaultFile(rel, content, retention, canvasMode, experimentalHistoryDeltas);
     }
-    return writeVaultFile(rel, content, retention, canvasMode, experimentalHistoryDeltas);
-  });
+  );
 
   ipcMain.handle('fs:create', async (_e, rel, content = '') => {
     if (typeof content !== 'string') {
@@ -514,10 +517,13 @@ function registerIpc() {
 
   async function renameVaultPath(from, to) {
     const dest = resolveInVault(to);
-    if (fssync.existsSync(dest)) {
+    const source = resolveInVault(from);
+    // Same path, different case: collides on case-insensitive filesystems,
+    // so rename through a temporary name instead.
+    const caseOnly = from !== to && from.toLowerCase() === to.toLowerCase();
+    if (fssync.existsSync(dest) && !caseOnly) {
       return { ok: false, code: 'destination-exists' };
     }
-    const source = resolveInVault(from);
     const stat = await fs.stat(source);
     let documents = [];
     if (stat.isDirectory()) {
@@ -548,7 +554,20 @@ function registerIpc() {
         await history.rename(oldPath, newPath);
         migrated.push([oldPath, newPath]);
       }
-      await fs.rename(source, dest);
+      if (caseOnly) {
+        const temp = path.join(path.dirname(source), `.tagline-rename-${randomUUID()}`);
+        await fs.rename(source, temp);
+        try {
+          await fs.rename(temp, dest);
+        } catch (error) {
+          try {
+            await fs.rename(temp, source);
+          } catch {}
+          throw error;
+        }
+      } else {
+        await fs.rename(source, dest);
+      }
     } catch (error) {
       await rollbackHistory();
       throw error;
@@ -962,6 +981,11 @@ if (primary) {
       getWindow: () => win,
       safeStorage,
     });
+    const assertModelSender = (event) => {
+      if (event.sender !== win?.webContents || event.senderFrame !== event.sender.mainFrame) {
+        throw new Error('Model management is only available to the main application.');
+      }
+    };
     const { readToken } = registerEmbeddings({
       app,
       ipcMain,
@@ -969,9 +993,19 @@ if (primary) {
       getVaultRoot: () => vaultRoot,
       readConfig,
       writeConfig,
+      assertModelSender,
     });
-    registerNli({ app, ipcMain, dialog, getWindow: () => win, readConfig, writeConfig, readToken });
-    registerSummarization({ app, ipcMain });
+    registerNli({
+      app,
+      ipcMain,
+      dialog,
+      getWindow: () => win,
+      readConfig,
+      writeConfig,
+      readToken,
+      assertModelSender,
+    });
+    registerSummarization({ app, ipcMain, readConfig, assertModelSender });
     createWindow();
     // Quietly check for and download an update shortly after startup. Never
     // fails startup and never installs without the user choosing Install.

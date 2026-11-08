@@ -2,6 +2,7 @@ const { Worker } = require('node:worker_threads');
 const path = require('node:path');
 const fs = require('node:fs/promises');
 const defaults = require('../src/lib/defaultSettings.json');
+const { modelCache } = require('./modelCache.cjs');
 
 const MODEL = 'Xenova/all-MiniLM-L6-v2';
 const MODEL_FILES = [
@@ -11,10 +12,19 @@ const MODEL_FILES = [
   path.join('onnx', 'model_quantized.onnx'),
 ];
 
-function registerEmbeddings({ app, ipcMain, safeStorage, getVaultRoot, readConfig, writeConfig }) {
+function registerEmbeddings({
+  app,
+  ipcMain,
+  safeStorage,
+  getVaultRoot,
+  readConfig,
+  writeConfig,
+  assertModelSender,
+}) {
   const storage = path.join(app.getPath('userData'), 'semantic-search');
   const tokenFile = path.join(storage, 'huggingface-token.bin');
   const modelDir = path.join(storage, 'models', ...MODEL.split('/'));
+  const cache = modelCache(app.getPath('userData'), 'semantic-search');
   let worker;
   let sequence = 0;
   let tokenConfigured = false;
@@ -76,6 +86,9 @@ function registerEmbeddings({ app, ipcMain, safeStorage, getVaultRoot, readConfi
       worker = null;
     };
     worker.on('message', (message) => {
+      if (worker !== instance) {
+        return;
+      }
       if (message.progress) {
         state = { ...state, detail: message.progress };
         return;
@@ -143,10 +156,50 @@ function registerEmbeddings({ app, ipcMain, safeStorage, getVaultRoot, readConfi
       throw new Error('Invalid model autoload preference.');
     }
     writeConfig({ modelAutoload: enabled });
-    if (enabled && !state.ready && !state.busy) {
+    if (enabled && !readConfig().lowResourceMode && !state.ready && !state.busy) {
       await loadDownloaded();
     }
     return { autoload: enabled };
+  });
+  ipcMain.handle('embeddings:lowResource:get', (event) => {
+    assertModelSender(event);
+    return readConfig().lowResourceMode === true;
+  });
+  ipcMain.handle('embeddings:lowResource:set', (_e, enabled) => {
+    assertModelSender(_e);
+    if (typeof enabled !== 'boolean') {
+      throw new Error('Invalid low-resource preference.');
+    }
+    writeConfig({ lowResourceMode: enabled });
+    return enabled;
+  });
+  ipcMain.handle('embeddings:cacheSize', (event) => {
+    assertModelSender(event);
+    return cache.size();
+  });
+  ipcMain.handle('embeddings:manage', async (_e, remove) => {
+    assertModelSender(_e);
+    if (typeof remove !== 'boolean') {
+      throw new Error('Invalid model operation.');
+    }
+    await autoload;
+    if (state.busy) {
+      throw new Error('Wait for the embedding task to finish.');
+    }
+    state = { ...state, busy: true };
+    try {
+      const instance = worker;
+      worker = null;
+      state = { busy: true, ready: false, detail: 'Model not loaded.', error: '' };
+      if (instance) {
+        await instance.terminate();
+      }
+      if (remove) {
+        await cache.remove(readConfig().nliModel?.folder);
+      }
+    } finally {
+      state = { ...state, busy: false };
+    }
   });
   ipcMain.handle('embeddings:token', async (_e, token) => {
     if (typeof token !== 'string') {
@@ -171,10 +224,20 @@ function registerEmbeddings({ app, ipcMain, safeStorage, getVaultRoot, readConfi
   });
   ipcMain.handle('embeddings:download', async () => {
     await autoload;
+    if (state.busy) {
+      throw new Error('An embedding task is already running. Please wait for it to finish.');
+    }
     if (state.ready) {
       return { ready: true, model: MODEL };
     }
-    return request({ type: 'download', token: await readToken() });
+    state = { ...state, busy: true };
+    let token;
+    try {
+      token = await readToken();
+    } finally {
+      state = { ...state, busy: false };
+    }
+    return request({ type: 'download', token });
   });
   ipcMain.handle(
     'embeddings:search',
@@ -214,11 +277,21 @@ function registerEmbeddings({ app, ipcMain, safeStorage, getVaultRoot, readConfi
     if (!(await modelDownloaded())) {
       return;
     }
+    if (
+      readConfig().lowResourceMode ||
+      !(readConfig().modelAutoload ?? defaults.modelAutoload) ||
+      state.busy ||
+      state.ready
+    ) {
+      return;
+    }
     state = { ...state, detail: 'Loading downloaded model...' };
     await request({ type: 'load' });
   }
   autoload = (
-    (readConfig().modelAutoload ?? defaults.modelAutoload) ? loadDownloaded() : Promise.resolve()
+    !readConfig().lowResourceMode && (readConfig().modelAutoload ?? defaults.modelAutoload)
+      ? loadDownloaded()
+      : Promise.resolve()
   )
     .catch((e) => {
       state = { ...state, busy: false, ready: false, error: e.message };

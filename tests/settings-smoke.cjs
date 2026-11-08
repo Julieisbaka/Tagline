@@ -35,6 +35,12 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
   const vault = path.join(root, 'vault');
   const otherVault = path.join(root, 'other-vault');
   await fs.mkdir(profile, { recursive: true });
+  await fs.mkdir(path.join(profile, 'summarization', 'models', 'fixture'), { recursive: true });
+  await fs.writeFile(
+    path.join(profile, 'summarization', 'models', 'fixture', 'model'),
+    Buffer.alloc(100000)
+  );
+  await fs.writeFile(path.join(profile, 'summarization', 'keep'), 'safe');
   await fs.mkdir(vault);
   await fs.mkdir(otherVault);
   await fs.writeFile(path.join(otherVault, 'Other.md'), '# Other\n');
@@ -173,7 +179,57 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
         await wait("!!document.querySelector('.onboarding-skip')");
         await click('.onboarding-skip');
         await wait("document.querySelectorAll('.tree-item').length === 3");
-        await settings('general');
+        await click('.ribbon button:last-child');
+        await wait("!!document.querySelector('.settings')");
+        assert.equal(
+          await js(
+            "document.querySelector('[data-section=workspace]').getAttribute('aria-current')"
+          ),
+          'page'
+        );
+        wc.enableDeviceEmulation({
+          screenPosition: 'desktop',
+          viewSize: { width: 640, height: 760 },
+          deviceScaleFactor: 1,
+        });
+        await wait('window.innerWidth === 640');
+        await wait(`(() => {
+            const dialog = document.querySelector('.dialog.settings').getBoundingClientRect();
+            const sidebar = document.querySelector('.settings-sidebar').getBoundingClientRect();
+            const main = document.querySelector('.settings-main').getBoundingClientRect();
+            return dialog.left >= 0 && dialog.right <= innerWidth && sidebar.right <= main.left && main.width > 0;
+          })()`);
+        wc.disableDeviceEmulation();
+        await click('[data-section="general"]');
+        assert.deepEqual(
+          await js(
+            "[...document.querySelectorAll('.settings-sidebar [data-section]')].map(el => el.dataset.section)"
+          ),
+          [
+            'workspace',
+            'appearance',
+            'editors',
+            'general',
+            'files',
+            'history',
+            'shortcuts',
+            'accessibility',
+            'performance',
+            'integrations',
+            'extensions',
+            'advanced',
+            'installation',
+          ]
+        );
+        const platformCopy = require(`../src/platform/${process.platform}.json`);
+        assert.equal(
+          await js("document.querySelector('[data-settings-panel=files] > p').textContent"),
+          platformCopy.en.flowAssociation
+        );
+        assert.equal(
+          await js("document.querySelector('.custom-css-editor small').textContent"),
+          platformCopy.en.applyCssShortcut
+        );
         const timerSoundFile = path.join(root, 'timer.wav');
         const wav = Buffer.alloc(46);
         wav.write('RIFF', 0);
@@ -311,6 +367,10 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
         await wait(
           "document.querySelector('.settings-search input').getAttribute('aria-label') === 'Buscar ajustes'"
         );
+        assert.equal(
+          await js("document.querySelector('[data-settings-panel=files] > p').textContent"),
+          platformCopy.es.flowAssociation
+        );
         await click('[data-section=editors]');
         assert.equal(
           await js(`document.querySelector('[aria-label="Acerca de Mostrar números de línea"]')
@@ -347,6 +407,137 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
           await js("JSON.parse(localStorage.getItem('tagline-settings')).format"),
           'college'
         );
+        assert.equal(
+          await js("document.querySelector('.timer-controls button:nth-child(2)').disabled"),
+          true
+        );
+        assert.equal(
+          await js(
+            "[...document.querySelectorAll('.prep-box .link-btn')].every(button => button.disabled)"
+          ),
+          true
+        );
+        await click('.timer-controls button:first-child');
+        await wait("document.querySelector('.timer-display').textContent !== '9:00'");
+        assert.equal(
+          await js("document.querySelector('.timer-controls button:nth-child(2)').disabled"),
+          false
+        );
+        await click('.timer-controls button:first-child');
+        await click('.timer-controls button:nth-child(2)');
+        assert.equal(
+          await js("document.querySelector('.timer-controls button:nth-child(2)').disabled"),
+          true
+        );
+        await click('.prep-box:first-child button:first-of-type');
+        await wait(
+          "document.querySelector('.prep-box:first-child .prep-time').textContent !== '10:00'"
+        );
+        assert.equal(
+          await js("document.querySelector('.prep-box:first-child .link-btn').disabled"),
+          false
+        );
+        assert.equal(
+          await js("document.querySelector('.prep-box:last-child .link-btn').disabled"),
+          true
+        );
+        await click('.prep-box:first-child .link-btn');
+        assert.equal(
+          await js("document.querySelector('.prep-box:first-child .link-btn').disabled"),
+          true
+        );
+
+        const chooseTimerPreset = (value) =>
+          js(`(() => { const select = document.querySelector('.timer select');
+          select.value = ${JSON.stringify(value)}; select.dispatchEvent(new Event('change', { bubbles: true })); })()`);
+        assert.equal(
+          await js("document.querySelector('.timer select option:last-child').textContent"),
+          'Add preset…'
+        );
+        await chooseTimerPreset('__add_preset__');
+        await wait("!!document.querySelector('.timer-preset-dialog')");
+        assert.equal(
+          await js(
+            "document.activeElement === document.querySelector('.timer-preset-dialog input')"
+          ),
+          true
+        );
+        assert.equal(await js("document.querySelector('.timer select').value"), 'college');
+        assert.equal(
+          await js("document.querySelector('.timer-preset-dialog button[type=submit]').disabled"),
+          true
+        );
+        const originalSize = win.getSize();
+        win.setSize(900, 600);
+        await wait('window.innerWidth <= 900 && window.innerHeight <= 600');
+        assert.equal(
+          await js(`(() => {
+            const dialog = document.querySelector('.timer-preset-dialog').getBoundingClientRect();
+            const save = document.querySelector('.timer-preset-dialog button[type=submit]').getBoundingClientRect();
+            return dialog.top >= 0 && dialog.bottom <= innerHeight && dialog.left >= 0 &&
+              dialog.right <= innerWidth && save.bottom <= dialog.bottom;
+          })()`),
+          true
+        );
+        win.setSize(...originalSize);
+        wc.sendInputEvent({ type: 'keyDown', keyCode: 'Escape' });
+        wc.sendInputEvent({ type: 'keyUp', keyCode: 'Escape' });
+        await wait("!document.querySelector('.timer-preset-dialog')");
+        assert.equal(await js("document.querySelector('.timer select').value"), 'college');
+        await chooseTimerPreset('__add_preset__');
+        await wait("!!document.querySelector('.timer-preset-dialog')");
+        await input('.timer-preset-dialog input', 'Test preset');
+        await input('.timer-preset-field:nth-of-type(2) input', '1:60');
+        assert.equal(
+          await js("document.querySelector('.timer-preset-dialog button[type=submit]').disabled"),
+          true
+        );
+        await input('.timer-preset-field:nth-of-type(2) input', '2:15');
+        while (
+          (await js(
+            "document.querySelectorAll('.timer-preset-speech input[aria-label$=name]').length"
+          )) > 1
+        ) {
+          await click('.timer-preset-speech button');
+        }
+        await input('[aria-label="Speech 1 name"]', 'Opening');
+        await input('[aria-label="Speech 1 time (mm:ss)"]', '1:15');
+        await button('.timer-preset-dialog button', 'Add speech');
+        assert.equal(
+          await js("document.activeElement.getAttribute('aria-label')"),
+          'Speech 2 name'
+        );
+        await input('[aria-label="Speech 2 name"]', 'Closing');
+        await input('[aria-label="Speech 2 time (mm:ss)"]', '0:30');
+        await button('.timer-preset-dialog button', 'Save preset');
+        await wait(
+          "!document.querySelector('.timer-preset-dialog') && document.querySelector('.timer-display').textContent === '1:15'"
+        );
+        const customPreset = await js(
+          "JSON.parse(localStorage.getItem('tagline-settings')).timerPresets[0]"
+        );
+        assert.equal(customPreset.label, 'Test preset');
+        assert.equal(await js("document.querySelector('.timer select').value"), customPreset.id);
+        assert.equal(await js("document.querySelector('.prep-time').textContent"), '2:15');
+        assert.equal(
+          await js("document.querySelector('.timer-controls button:nth-child(2)').disabled"),
+          true
+        );
+        await click('.timer-speeches button:nth-child(2)');
+        assert.equal(await js("document.querySelector('.timer-display').textContent"), '0:30');
+        assert.equal(
+          await js("document.querySelector('.timer-controls button:nth-child(2)').disabled"),
+          true
+        );
+        await chooseTimerPreset('college');
+        await chooseTimerPreset(customPreset.id);
+        assert.equal(await js("document.querySelector('.timer-display').textContent"), '1:15');
+        await reload();
+        await click('.right-panel [title="Timer"]');
+        await wait("document.querySelector('.timer-display')?.textContent === '1:15'");
+        assert.equal(await js("document.querySelector('.timer select').value"), customPreset.id);
+        assert.equal(await js("document.querySelector('.prep-time').textContent"), '2:15');
+        await chooseTimerPreset('college');
         await open('Alpha.md');
         await wait('!!document.querySelector(\'[aria-label="Dismiss visual editor notice"]\')');
         await click('[aria-label="Dismiss visual editor notice"]');
@@ -371,10 +562,17 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
         await settings('integrations');
         await button('.integration-settings button', 'Install Pandoc');
         assert.equal(externalUrls.pop(), 'https://pandoc.org/installing.html');
+        assert.equal(
+          await js("!!document.querySelector('[data-tournament-provider=NSDA]')"),
+          false
+        );
+        assert.equal(
+          await js(
+            "[...document.querySelectorAll('[data-settings-panel=integrations] button')].some(el => el.textContent.trim() === 'Open Tabroom')"
+          ),
+          true
+        );
         for (const [provider, label, url] of [
-          ['NSDA', 'Tournament calendar', 'https://www.speechanddebate.org/tournament-calendar/'],
-          ['NSDA', 'Tournament results', 'https://www.tabroom.com/index/results/'],
-          ['NSDA', 'Membership login', 'https://www.speechanddebate.org/login/'],
           ['SpeechWire', 'Tournament calendar', 'https://postings.speechwire.com/p-calendar.php'],
           [
             'SpeechWire',
@@ -844,7 +1042,77 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
           '600px'
         );
         const visualText = await js("document.querySelector('.ProseMirror').textContent");
+        await settings('performance');
+        await toggle('lowResourceMode', true);
+        assert.equal(
+          JSON.parse(await fs.readFile(path.join(profile, 'config.json'), 'utf8')).lowResourceMode,
+          true
+        );
+        assert.equal(
+          await js("document.querySelector('[data-setting=searchMaxResults]').value"),
+          '200'
+        );
+        await done();
+        await reload();
+        await settings('performance');
+        await wait("document.querySelector('[data-setting=lowResourceMode]').checked");
+        await click('[data-section="integrations"]');
+        await wait(
+          "document.querySelector('.integration-settings')?.textContent.includes('Autoload is disabled by low-resource mode')"
+        );
+        await wait(
+          "[...document.querySelectorAll('.integration-settings button')].some(el => el.textContent.trim() === 'Download model' && !el.disabled)"
+        );
+        await button('.integration-settings button', 'Download model');
+        await wait("document.querySelector('.confirm-dialog')?.textContent.includes('23 MB')");
+        await button('.confirm-dialog button', 'Cancel');
+        assert.equal((await js('window.api.embeddingStatus()')).ready, false);
+        const summaryRemove = `(() => {
+          const row = [...document.querySelectorAll('.integration-settings div')].find(el =>
+            el.querySelector(':scope > p')?.textContent.startsWith('Document summaries —'));
+          return [...row.querySelectorAll('button')].find(el => el.textContent === 'Remove cached files');
+        })()`;
+        await wait(`${summaryRemove} && !${summaryRemove}.disabled`);
+        await js(`${summaryRemove}.click()`);
+        await wait(
+          "document.querySelector('.confirm-dialog')?.textContent.includes('Document summaries')"
+        );
+        await button('.confirm-dialog button', 'Cancel');
+        assert.equal(
+          (await fs.stat(path.join(profile, 'summarization', 'models', 'fixture', 'model'))).size,
+          100000
+        );
+        await wait(`${summaryRemove} && !${summaryRemove}.disabled`);
+        await js(`${summaryRemove}.click()`);
+        await button('.confirm-dialog button', 'Confirm');
+        await wait(
+          `${summaryRemove}.disabled && ${summaryRemove}.parentElement.parentElement.textContent.includes('0.0 MB')`
+        );
+        await assert.rejects(fs.stat(path.join(profile, 'summarization', 'models')), {
+          code: 'ENOENT',
+        });
+        assert.equal(
+          await fs.readFile(path.join(profile, 'summarization', 'keep'), 'utf8'),
+          'safe'
+        );
+        await click('[data-section="performance"]');
+        await toggle('lowResourceMode', false);
+        assert.equal(
+          JSON.parse(await fs.readFile(path.join(profile, 'config.json'), 'utf8')).lowResourceMode,
+          false
+        );
+        await done();
         await settings('accessibility');
+        await toggle('disableAnimations', true);
+        assert.equal(
+          await js("document.documentElement.classList.contains('reduce-motion')"),
+          true
+        );
+        await toggle('disableAnimations', false);
+        assert.equal(
+          await js("document.documentElement.classList.contains('reduce-motion')"),
+          false
+        );
         const accessibilityKeys = [
           'reduceMotion',
           'strongFocusIndicators',

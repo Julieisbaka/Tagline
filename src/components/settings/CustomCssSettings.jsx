@@ -3,12 +3,14 @@ import { Prec } from '@codemirror/state';
 import { EditorView, keymap } from '@codemirror/view';
 import CodeMirror from '@uiw/react-codemirror';
 import { useEffect, useMemo, useRef, useState } from 'react';
+import platformCopy from '@platform-settings';
 import { settingsCodeMirrorTheme } from '../../lib/editorExtensions.js';
 import { useI18n } from '../../lib/i18n.js';
 import { useConfirm } from '../dialogs/ConfirmProvider.jsx';
 
 export default function CustomCssSettings({ settings, update }) {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
+  const platform = platformCopy[locale] || platformCopy.en;
   const confirm = useConfirm();
   const [draft, setDraft] = useState(settings.customCss);
   const [error, setError] = useState('');
@@ -88,7 +90,7 @@ export default function CustomCssSettings({ settings, update }) {
       </label>
       <div className='custom-css-editor'>
         <span>
-          {label} <small>{t('Ctrl/Cmd+Enter applies')}</small>
+          {label} <small>{platform.applyCssShortcut}</small>
         </span>
         <CodeMirror
           value={draft}

@@ -4,14 +4,6 @@ import { useI18n } from '../../lib/i18n.js';
 // These are manual browser links, not automated access to provider data.
 const providers = [
   {
-    name: 'NSDA',
-    links: [
-      ['Tournament calendar', 'https://www.speechanddebate.org/tournament-calendar/'],
-      ['Tournament results', 'https://www.tabroom.com/index/results/'],
-      ['Membership login', 'https://www.speechanddebate.org/login/'],
-    ],
-  },
-  {
     name: 'SpeechWire',
     links: [
       ['Tournament calendar', 'https://postings.speechwire.com/p-calendar.php'],

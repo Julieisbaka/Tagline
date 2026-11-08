@@ -86,12 +86,12 @@ export default function ReadingSettings({ settings, update }) {
       <h4>{t('Personal speech calibration')}</h4>
       <p>
         {t(
-          'The speaking-rate setting is used only without calibration. Default estimates include syllables, number and acronym pronunciation, articulation complexity, and punctuation pauses. Estimates are optimized for English.'
+          'Speaking rate is used without calibration. Default estimates account for pronunciation and pauses and are optimized for English.'
         )}
       </p>
       <p>
         {t(
-          'Import one or more documents and enter the seconds you actually spent reading each. Choose the full document or only highlighted evidence and spoken citations. Only derived statistics and timing are saved locally.'
+          'Import documents and enter your reading time. Choose the full document or highlighted evidence and spoken citations. Only statistics and timing are saved locally.'
         )}
       </p>
       <button disabled={busy} onClick={importSamples}>
@@ -142,7 +142,7 @@ export default function ReadingSettings({ settings, update }) {
       </p>
       <p>
         {t(
-          'Readability uses a standard English formula. Personal effort is relative to your sample documents (100 = your sample baseline), not a comprehension test. Calibration error is in-sample, not a guarantee for new speeches.'
+          'Readability uses an English formula. Personal effort is relative to your samples (100 = baseline), not a comprehension test. Calibration error does not guarantee accuracy for new speeches.'
         )}
       </p>
       {samples.map((sample) => (

@@ -162,7 +162,10 @@ test('platform: credentials await async availability, encrypt/decrypt asynchrono
       module,
       __dirname: dirname,
       console,
-      require: (name) => (name === 'node:worker_threads' ? { Worker } : require(name)),
+      require: (name) =>
+        name === 'node:worker_threads'
+          ? { Worker }
+          : require('node:module').createRequire(path.join(dirname, 'embeddings.cjs'))(name),
     }
   );
   const app = new EventEmitter();
@@ -392,7 +395,10 @@ test('platform: model autoload preference persists and semantic search forwards 
       module,
       __dirname: dirname,
       console,
-      require: (name) => (name === 'node:worker_threads' ? { Worker } : require(name)),
+      require: (name) =>
+        name === 'node:worker_threads'
+          ? { Worker }
+          : require('node:module').createRequire(path.join(dirname, 'embeddings.cjs'))(name),
     }
   );
   const { registerEmbeddings } = module.exports;

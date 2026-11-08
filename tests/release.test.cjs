@@ -160,6 +160,10 @@ test('release tests shared logic once and gates every platform build on it', () 
   assert.equal(workflow.jobs.test.needs, 'version');
   assert.equal(workflow.jobs.test['runs-on'], 'ubuntu-latest');
   assert.deepEqual(workflow.jobs.build.needs, ['version', 'test']);
+  assert.equal(workflow.jobs.build.env.TAGLINE_TARGET_PLATFORM, '${{ matrix.renderer_platform }}');
+  for (const target of workflow.jobs.build.strategy.matrix.include) {
+    assert.equal(target.renderer_platform, target.platform === 'win' ? 'win32' : 'darwin');
+  }
   for (const [job, command] of [
     [workflow.jobs.test, 'npm run test:shared'],
     [workflow.jobs.build, 'npm run test:platform'],
@@ -179,25 +183,12 @@ test('release tests shared logic once and gates every platform build on it', () 
     );
   }
   assert.ok(!workflow.jobs.test.strategy, 'shared tests do not use a platform matrix');
-  const sharedCommand = workflow.jobs.test.steps.find((step) =>
-    step.run?.includes('npm run test:shared')
-  ).run;
-  assert.ok(
-    sharedCommand.includes('npm run build'),
-    'shared tests and the renderer build run together'
-  );
-  assert.ok(
-    workflow.jobs.test.steps.some(
-      (step) => step.uses === 'actions/upload-artifact@v4' && step.with.name === 'renderer-dist'
-    )
-  );
-  assert.ok(
-    workflow.jobs.build.steps.some(
-      (step) => step.uses === 'actions/download-artifact@v4' && step.with.name === 'renderer-dist'
-    )
-  );
+  assert.ok(workflow.jobs.test.steps.some((step) => step.run === 'npm run test:platform-build'));
   const builds = workflow.jobs.build.steps.map((step) => step.run).filter(Boolean);
-  assert.ok(!builds.includes('npm run build'), 'platform jobs reuse the shared renderer build');
+  assert.ok(builds.includes('npm run build'), 'each platform builds its own renderer');
+  assert.ok(builds.indexOf('npm run build') < builds.indexOf('npm run test:installation'));
+  assert.ok(!workflow.jobs.test.steps.some((step) => step.with?.name === 'renderer-dist'));
+  assert.ok(!workflow.jobs.build.steps.some((step) => step.with?.name === 'renderer-dist'));
   assert.ok(builds.indexOf('npm run test:platform') < builds.indexOf('npm run test:installation'));
   assert.ok(
     builds.indexOf('npm run test:installation') <

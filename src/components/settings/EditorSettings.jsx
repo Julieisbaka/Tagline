@@ -29,7 +29,7 @@ export default function EditorSettings({ settings, update }) {
       <h3>{t('Note editor')}</h3>
       <SettingRow
         label={t('Default editor')}
-        description={t('Choose the initial editing mode for Markdown notes.')}
+        description={t('Initial editing mode for Markdown notes.')}
       >
         <select
           data-setting='editorMode'
@@ -42,7 +42,7 @@ export default function EditorSettings({ settings, update }) {
       </SettingRow>
       <SettingRow
         label={t('Readable line width')}
-        description={t('Limit note text to the content width configured below.')}
+        description={t('Limit note text to the width below.')}
       >
         <input
           type='checkbox'
@@ -51,10 +51,7 @@ export default function EditorSettings({ settings, update }) {
           onChange={(event) => update({ readableWidth: event.target.checked })}
         />
       </SettingRow>
-      <SettingRow
-        label={t('Editor font size')}
-        description={t('Set the font size used for note text.')}
-      >
+      <SettingRow label={t('Editor font size')} description={t('Font size for note text.')}>
         <input
           type='number'
           data-setting='fontSize'
@@ -102,7 +99,7 @@ export default function EditorSettings({ settings, update }) {
       </p>
       <SettingRow
         label={t('Editor line height')}
-        description={t('Set the spacing between lines of note text.')}
+        description={t('Spacing between lines of note text.')}
       >
         <input
           type='number'
@@ -121,9 +118,7 @@ export default function EditorSettings({ settings, update }) {
       <h3>{t('Flow creation')}</h3>
       {checkbox('Separate negative block in new flows (2NC and 1NR)', 'separateNegativeBlock')}
       <p className='settings-help'>
-        {t(
-          'Only affects newly created flow files. Existing flows and their sheets are not changed.'
-        )}
+        {t('Only affects new flows; existing flows and sheets are unchanged.')}
       </p>
       <SettingRow
         label={t('Focus new flow rows')}
@@ -139,7 +134,7 @@ export default function EditorSettings({ settings, update }) {
       <h3>{t('Flow editor')}</h3>
       <SettingRow
         label={t('Default editor')}
-        description={t('Choose the initial editing mode for flow files.')}
+        description={t('Initial editing mode for flow files.')}
       >
         <select
           data-setting='flowEditorMode'
@@ -158,7 +153,7 @@ export default function EditorSettings({ settings, update }) {
       <h3>{t('Canvas editor')}</h3>
       <SettingRow
         label={t('Default editor')}
-        description={t('Choose the initial editing mode for canvas files.')}
+        description={t('Initial editing mode for canvas files.')}
       >
         <select
           data-setting='canvasEditorMode'
@@ -173,7 +168,7 @@ export default function EditorSettings({ settings, update }) {
       {checkbox(
         'Source editor spellcheck',
         'sourceSpellcheck',
-        'Underline possible spelling mistakes in Markdown source. Visual editor spellcheck is configured separately.'
+        'Underline possible mistakes in Markdown source. Visual spellcheck is separate.'
       )}
       {checkbox(
         'Show line numbers',
@@ -202,7 +197,7 @@ export default function EditorSettings({ settings, update }) {
       )}
       <SettingRow
         label={t('Tab size')}
-        description={t('Set how many columns a tab occupies in source editors.')}
+        description={t('Number of columns per tab in source editors.')}
       >
         <input
           type='number'

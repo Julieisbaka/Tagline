@@ -1,9 +1,11 @@
 import { useEffect, useState } from 'react';
+import platformCopy from '@platform-settings';
 import { useI18n } from '../../lib/i18n.js';
 import ModalBackdrop from '../dialogs/ModalBackdrop.jsx';
 
 export default function InstallationSettings() {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
+  const platform = platformCopy[locale] || platformCopy.en;
   const [info, setInfo] = useState(null);
   const [error, setError] = useState('');
   const [showUninstall, setShowUninstall] = useState(false);
@@ -53,11 +55,7 @@ export default function InstallationSettings() {
     try {
       const result = await window.api.installUpdate();
       if (result.manual) {
-        setInstallMessage(
-          t(
-            'The disk image is open. Quit Tagline, drag the new app into Applications and choose Replace, then reopen Tagline. Your settings and vaults are kept.'
-          )
-        );
+        setInstallMessage(platform.manualUpdate);
       }
     } catch (failure) {
       setUpdateError(failure.message);
@@ -75,11 +73,7 @@ export default function InstallationSettings() {
             : t('You are up to date.')
         );
       } else if (outcome.result?.manual) {
-        setInstallMessage(
-          t(
-            'The disk image is open. Quit Tagline, drag the new app into Applications and choose Replace, then reopen Tagline. Your settings and vaults are kept.'
-          )
-        );
+        setInstallMessage(platform.manualUpdate);
       }
     } catch (failure) {
       setUpdateError(failure.message);
@@ -186,11 +180,7 @@ export default function InstallationSettings() {
       if (result.manual) {
         setShowUninstall(false);
         setUninstallMessage(
-          t(
-            removeProfile
-              ? 'The app location is open. Remove Tagline there; profile data will be removed after you quit.'
-              : 'The app location is open. Remove Tagline there. Your profile data will be kept.'
-          )
+          removeProfile ? platform.manualUninstallRemove : platform.manualUninstallKeep
         );
       }
     } catch (failure) {
@@ -228,7 +218,7 @@ export default function InstallationSettings() {
           <h3>{t('Bug report details')}</h3>
           <p>
             {t(
-              'Copy these details and paste them into the bug report. They contain no file paths or personal information.'
+              'Copy these details into a bug report. They contain no file paths or personal information.'
             )}
           </p>
           <textarea
@@ -247,11 +237,7 @@ export default function InstallationSettings() {
         </>
       )}
       <h3>{t('Updates')}</h3>
-      <p>
-        {t(
-          'Tagline checks GitHub Releases shortly after startup and downloads the installer matching your operating system. Choose Update now or Install update and restart to install it; on Windows the updated app reopens automatically in the same folder.'
-        )}
-      </p>
+      <p>{platform.updates}</p>
       <label>
         <input
           type='checkbox'
@@ -303,7 +289,7 @@ export default function InstallationSettings() {
           )}
           {updateState.status === 'ready' && (
             <button className='primary' disabled={updating} onClick={installUpdate}>
-              {t(info.platform === 'win32' ? 'Install update and restart' : 'Open installer')}
+              {platform.installButton}
             </button>
           )}
         </div>
@@ -321,13 +307,7 @@ export default function InstallationSettings() {
           <span>{Math.round((updateState.received / (updateState.total || 1)) * 100)}%</span>
         </div>
       )}
-      {updateState.status === 'installing' && (
-        <p role='status'>
-          {t(
-            'Saving pending edits and starting the installer. Tagline will close, update, and reopen in the same folder.'
-          )}
-        </p>
-      )}
+      {updateState.status === 'installing' && <p role='status'>{platform.installing}</p>}
       {release?.updateAvailable && !release.download && (
         <p>
           {t(
@@ -348,11 +328,7 @@ export default function InstallationSettings() {
           {updateError || updateState.error}
         </p>
       )}
-      <p>
-        {t(
-          'Download the matching installer here, then start installation. Downloads are verified against release checksums. Windows saves pending edits before exiting; on macOS, open the DMG and replace the app in Applications.'
-        )}
-      </p>
+      <p>{platform.installInstructions}</p>
       <p>
         {t(
           'Keep your profile folder to preserve settings, themes, extensions, and downloaded models. Vaults and revision history remain in their own folders. Back up your profile and vaults before updating.'
@@ -425,13 +401,7 @@ export default function InstallationSettings() {
                 </small>
               </span>
             </label>
-            {info.platform !== 'win32' && (
-              <p>
-                {t(
-                  'Your operating system requires you to remove the app manually after its location opens.'
-                )}
-              </p>
-            )}
+            {platform.manualUninstall && <p>{platform.manualUninstall}</p>}
             {uninstallError && (
               <p className='error-text' role='alert'>
                 {uninstallError}

@@ -2,9 +2,11 @@ import { useEffect, useState } from 'react';
 import { useI18n } from '../../lib/i18n.js';
 
 import ModalBackdrop from './ModalBackdrop.jsx';
+import { useConfirm } from './ConfirmProvider.jsx';
 
 export default function SummaryDialog({ content, title, onClose }) {
   const { t } = useI18n();
+  const confirm = useConfirm();
   const [status, setStatus] = useState(null);
   const [summary, setSummary] = useState('');
   const [error, setError] = useState('');
@@ -78,9 +80,27 @@ export default function SummaryDialog({ content, title, onClose }) {
         {!status?.ready && (
           <button
             disabled={working || !status}
-            onClick={() => run(() => window.api.loadSummaryModel())}
+            onClick={() =>
+              run(async () => {
+                if (
+                  !status.downloaded &&
+                  !(await confirm(
+                    t(
+                      'Download the summary model from Hugging Face? It requires about 334 MB plus tokenizer files.'
+                    )
+                  ))
+                ) {
+                  return;
+                }
+                return window.api.loadSummaryModel();
+              })
+            }
           >
-            {t('Download and load summary model')}
+            {t(
+              status?.downloaded
+                ? 'Load summary model'
+                : 'Download and load summary model (about 334 MB)'
+            )}
           </button>
         )}
         <button

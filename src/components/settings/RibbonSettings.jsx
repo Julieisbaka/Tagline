@@ -40,7 +40,7 @@ export default function RibbonSettings({ settings, update, contributions = [] })
       <h3>{t('Sidebar shortcuts')}</h3>
       <p>
         {t(
-          'Choose which shortcuts appear and change their order. Drag icons on the sidebar to reorder them. Settings stays available.'
+          'Choose and reorder shortcuts here or drag them in the sidebar. Settings stays available.'
         )}
       </p>
       <ol>
