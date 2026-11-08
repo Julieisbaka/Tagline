@@ -50,6 +50,10 @@ test('platform: Pandoc uses literal arguments and reports failed conversion', as
     format: 'docx',
     outputPath: 'C:\\exports\\test & title.docx',
     title: 'test & title',
+    author: 'Ada Lovelace',
+    date: '2026-11-08',
+    toc: true,
+    referenceDoc: 'C:\\templates\\brief.docx',
   };
   assert.deepEqual(await convert(input), { warnings: '' });
   assert.equal(call.options.shell, false);
@@ -61,6 +65,10 @@ test('platform: Pandoc uses literal arguments and reports failed conversion', as
   );
   assert.ok(call.args.includes(input.outputPath));
   assert.ok(call.args.includes('title=test & title'));
+  assert.ok(call.args.includes('author=Ada Lovelace'));
+  assert.ok(call.args.includes('date=2026-11-08'));
+  assert.ok(call.args.includes('--toc'));
+  assert.ok(call.args.includes('--reference-doc=C:\\templates\\brief.docx'));
   assert.equal(call.args[0], '--from=html');
   exitCode = 43;
   await assert.rejects(convert({ ...input, format: 'pdf' }), /PDF engine is missing/);

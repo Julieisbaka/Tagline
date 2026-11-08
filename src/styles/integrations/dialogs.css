@@ -73,6 +73,26 @@
   white-space: pre-wrap;
 }
 
+.export-reference {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  font-size: 12px;
+}
+
+.export-reference > span {
+  max-width: 220px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text-muted);
+}
+
+.export-reference button {
+  font-size: 12px;
+}
+
 .modal-backdrop.tabroom-backdrop {
   padding: 24px;
   align-items: center;

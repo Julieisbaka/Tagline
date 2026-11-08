@@ -13,6 +13,8 @@ const FORMATS = {
   epub: { label: 'EPUB ebook', ext: 'epub', writer: 'epub3' },
   pdf: { label: 'PDF (requires a PDF engine)', ext: 'pdf', writer: 'latex' },
 };
+// Pandoc only accepts a reference document for its word-processor writers.
+const REFERENCE_FORMATS = new Set(['docx', 'odt']);
 
 function addRtfHighlightColor(rtf) {
   if (!rtf.includes('\\highlight99')) {
@@ -83,7 +85,7 @@ function highlightFilterPath(moduleDirectory) {
   return path.join(filterDirectory, 'highlightRoundTrip.lua');
 }
 
-function convert({ executable, html, format, outputPath, title }) {
+function convert({ executable, html, format, outputPath, title, author, date, toc, referenceDoc }) {
   if (!FORMATS[format]) {
     return Promise.reject(new Error('Unsupported export format.'));
   }
@@ -97,9 +99,20 @@ function convert({ executable, html, format, outputPath, title }) {
       '--wrap=none',
       '--metadata',
       `title=${title}`,
-      '--output',
-      outputPath,
     ];
+    if (author) {
+      args.push('--metadata', `author=${author}`);
+    }
+    if (date) {
+      args.push('--metadata', `date=${date}`);
+    }
+    if (toc) {
+      args.push('--toc');
+    }
+    if (referenceDoc && REFERENCE_FORMATS.has(format)) {
+      args.push(`--reference-doc=${referenceDoc}`);
+    }
+    args.push('--output', outputPath);
     const child = spawn(executable, args, { windowsHide: true, shell: false });
     let stderr = '';
     let settled = false;
@@ -164,40 +177,67 @@ function registerPandoc({ ipcMain, dialog, getWindow, readConfig, writeConfig })
     writeConfig({ pandocPath: result.filePaths[0] });
     return info;
   });
-  ipcMain.handle('pandoc:export', async (_event, { title, html, format }) => {
-    if (typeof title !== 'string' || typeof html !== 'string' || !FORMATS[format]) {
-      throw new Error('Invalid export request.');
-    }
-    const info = await status();
-    if (!info.available) {
-      throw new Error(info.message);
+  ipcMain.handle('pandoc:chooseReference', async (_event, format) => {
+    if (!REFERENCE_FORMATS.has(format)) {
+      throw new Error('Reference documents are only supported for Word and OpenDocument exports.');
     }
     const f = FORMATS[format];
-    const result = await dialog.showSaveDialog(getWindow(), {
-      title: `Export ${f.label}`,
-      defaultPath: title.replace(/[\\/:*?"<>|]/g, '-') + '.' + f.ext,
+    const result = await dialog.showOpenDialog(getWindow(), {
+      title: `Select ${f.label} reference document`,
+      properties: ['openFile'],
       filters: [{ name: f.label, extensions: [f.ext] }],
     });
-    if (result.canceled) {
-      return { canceled: true };
-    }
-    // Only replace the chosen destination after conversion succeeds.
-    const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'debate-export-'));
-    const tempOutput = path.join(tempDir, `document.${f.ext}`);
-    try {
-      const converted = await convert({
-        executable: info.executable,
-        html,
-        format,
-        outputPath: tempOutput,
-        title,
-      });
-      await fs.copyFile(tempOutput, result.filePath);
-      return { canceled: false, path: result.filePath, warnings: converted.warnings };
-    } finally {
-      await fs.rm(tempDir, { recursive: true, force: true });
-    }
+    return result.canceled ? { canceled: true } : { canceled: false, path: result.filePaths[0] };
   });
+  ipcMain.handle(
+    'pandoc:export',
+    async (_event, { title, html, format, author, date, toc, referenceDoc }) => {
+      if (
+        typeof title !== 'string' ||
+        typeof html !== 'string' ||
+        !FORMATS[format] ||
+        (author !== undefined && typeof author !== 'string') ||
+        (date !== undefined && typeof date !== 'string') ||
+        (toc !== undefined && typeof toc !== 'boolean') ||
+        (referenceDoc !== undefined && typeof referenceDoc !== 'string')
+      ) {
+        throw new Error('Invalid export request.');
+      }
+      const info = await status();
+      if (!info.available) {
+        throw new Error(info.message);
+      }
+      const f = FORMATS[format];
+      const result = await dialog.showSaveDialog(getWindow(), {
+        title: `Export ${f.label}`,
+        defaultPath: title.replace(/[\\/:*?"<>|]/g, '-') + '.' + f.ext,
+        filters: [{ name: f.label, extensions: [f.ext] }],
+      });
+      if (result.canceled) {
+        return { canceled: true };
+      }
+      // Only replace the chosen destination after conversion succeeds.
+      const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'debate-export-'));
+      const tempOutput = path.join(tempDir, `document.${f.ext}`);
+      try {
+        const converted = await convert({
+          executable: info.executable,
+          html,
+          format,
+          outputPath: tempOutput,
+          title,
+          author,
+          date,
+          toc,
+          referenceDoc,
+        });
+        await fs.copyFile(tempOutput, result.filePath);
+        return { canceled: false, path: result.filePath, warnings: converted.warnings };
+      } finally {
+        await fs.rm(tempDir, { recursive: true, force: true });
+      }
+    }
+  );
 }
 
 module.exports = {

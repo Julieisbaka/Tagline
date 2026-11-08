@@ -56,7 +56,13 @@ export default function ExportDialog({ title, content, resolve, onClose }) {
   const [result, setResult] = useState(null);
   const [connections, setConnections] = useState([]);
   const [connectionId, setConnectionId] = useState('');
+  const [author, setAuthor] = useState('');
+  const [date, setDate] = useState('');
+  const [toc, setToc] = useState(false);
+  const [referenceDoc, setReferenceDoc] = useState('');
   const googleDocs = format === 'google-docs';
+  const pandocFormat = !googleDocs && format !== 'html';
+  const referenceFormat = format === 'docx' || format === 'odt';
 
   useEffect(() => {
     window.api
@@ -105,7 +111,15 @@ export default function ExportDialog({ title, content, resolve, onClose }) {
               title,
               html: standaloneHtml(title, content, resolve, locale),
             })
-          : await window.api.exportDocument({ title, format, html: exportHtml(content, resolve) });
+          : await window.api.exportDocument({
+              title,
+              format,
+              html: exportHtml(content, resolve),
+              author,
+              date,
+              toc,
+              referenceDoc: referenceFormat ? referenceDoc : undefined,
+            });
       if (!result.canceled) {
         setResult(result);
       }
@@ -144,6 +158,9 @@ export default function ExportDialog({ title, content, resolve, onClose }) {
             disabled={busy}
             onChange={(e) => {
               setFormat(e.target.value);
+              if (e.target.value !== 'docx' && e.target.value !== 'odt') {
+                setReferenceDoc('');
+              }
               setResult(null);
               setError('');
             }}
@@ -179,6 +196,69 @@ export default function ExportDialog({ title, content, resolve, onClose }) {
               ))}
             </select>
           </label>
+        )}
+        {pandocFormat && (
+          <>
+            <label className='setting-row'>
+              <span>{t('Author')}</span>
+              <input
+                value={author}
+                disabled={busy}
+                placeholder={t('Optional')}
+                onChange={(event) => setAuthor(event.target.value)}
+              />
+            </label>
+            <label className='setting-row'>
+              <span>{t('Date')}</span>
+              <input
+                type='date'
+                value={date}
+                disabled={busy}
+                onChange={(event) => setDate(event.target.value)}
+              />
+            </label>
+            <label className='setting-row'>
+              <span>{t('Table of contents')}</span>
+              <input
+                type='checkbox'
+                checked={toc}
+                disabled={busy}
+                onChange={(event) => setToc(event.target.checked)}
+              />
+            </label>
+          </>
+        )}
+        {referenceFormat && (
+          <div className='setting-row'>
+            <span>{t('Reference document')}</span>
+            <span className='export-reference'>
+              <span title={referenceDoc}>
+                {referenceDoc ? referenceDoc.replace(/^.*[\\/]/, '') : t('Pandoc defaults')}
+              </span>
+              <button
+                disabled={busy}
+                onClick={async () => {
+                  try {
+                    const chosen = await window.api.chooseReferenceDoc(format);
+                    if (!chosen.canceled) {
+                      setReferenceDoc(chosen.path);
+                      setResult(null);
+                      setError('');
+                    }
+                  } catch (failure) {
+                    setError(failure.message);
+                  }
+                }}
+              >
+                {t('Choose')}
+              </button>
+              {referenceDoc && (
+                <button disabled={busy} onClick={() => setReferenceDoc('')}>
+                  {t('Clear')}
+                </button>
+              )}
+            </span>
+          </div>
         )}
         <p>
           {t(

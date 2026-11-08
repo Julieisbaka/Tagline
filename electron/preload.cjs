@@ -208,6 +208,7 @@ contextBridge.exposeInMainWorld('api', {
   reveal: (p) => ipcRenderer.invoke('shell:reveal', p),
   pandocStatus: () => ipcRenderer.invoke('pandoc:status'),
   choosePandoc: () => ipcRenderer.invoke('pandoc:choose'),
+  chooseReferenceDoc: (format) => ipcRenderer.invoke('pandoc:chooseReference', format),
   exportDocument: (document) => ipcRenderer.invoke('pandoc:export', document),
   exportHtml: (document) => ipcRenderer.invoke('documents:html', document),
   importDocument: (options) => ipcRenderer.invoke('documents:import', options),
