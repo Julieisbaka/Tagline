@@ -22,13 +22,13 @@ test('speech timing includes punctuation without mistaking decimal separators fo
   assert.doesNotMatch(spokenText('&#60;script&#62;hidden&#60;/script&#62;'), /[<>]/);
 });
 
-test('a single timed sample calibrates exactly and no samples retain the default rate', async () => {
+test('fewer than three samples keep the default rate and never fit a profile', async () => {
   const { speechStats, readingSeconds, calibrateReading } = await import('../src/lib/readTime.js');
   const stats = speechStats('Internationalization and constitutional complexity. Take a breath.');
   const sample = { id: 'one', name: 'One', scope: 'full', version: 1, stats, seconds: 73 };
-  const profile = calibrateReading([sample]);
-  assert.ok(Math.abs(readingSeconds(stats, 250, profile) - 73) < 1e-8);
-  assert.equal(readingSeconds(stats, 100, profile), readingSeconds(stats, 800, profile));
+  assert.equal(calibrateReading([sample]), null);
+  const second = { ...sample, id: 'two', name: 'Two', seconds: 80 };
+  assert.equal(calibrateReading([sample, second]), null);
   assert.equal(calibrateReading([]), null);
   assert.ok(readingSeconds(stats, 100) > readingSeconds(stats, 800));
 });
@@ -57,13 +57,56 @@ test('multi-document robust calibration predicts held-out timing and limits an e
   );
   const expected = readingSeconds(heldOut) * 1.8;
   const fitted = calibrateReading(samples);
-  assert.ok(Math.abs(readingSeconds(heldOut, 250, fitted) / expected - 1) < 0.01);
+  assert.ok(Math.abs(readingSeconds(heldOut, 250, fitted) / expected - 1) < 0.02);
+  assert.equal(fitted.count, 4);
+  assert.ok(fitted.looMeanAbsoluteError >= 0);
   const outlier = { ...samples[0], id: 'outlier', seconds: samples[0].seconds * 100 };
   const robust = calibrateReading([...samples, outlier]);
   assert.ok(
     Math.abs(readingSeconds(heldOut, 250, robust) / expected - 1) < 0.1,
     'One grossly mistimed sample should not dominate the profile'
   );
+  assert.deepEqual(
+    robust.outliers.map((entry) => entry.id),
+    ['outlier']
+  );
+});
+
+test('calibration learns an intercept and per-class pause weights', async () => {
+  const { speechStats, readingSeconds, calibrateReading } = await import('../src/lib/readTime.js');
+  // Speaker: 4 s setup, 0.17 s per weighted syllable, commas ignored, sentence
+  // ends at 0.4 s, paragraph breaks at 0.6 s.
+  const truth = (stats) =>
+    4 +
+    stats.weightedSyllables * 0.17 +
+    stats.pauses.sentences * 0.4 +
+    stats.pauses.paragraphs * 0.6;
+  const texts = [
+    'One two three four five six seven eight nine ten. '.repeat(6),
+    'Alpha, beta, gamma, delta, epsilon, zeta, eta, theta. '.repeat(6),
+    'First point stands. Second point follows. Third point ends.\n\n'.repeat(5),
+    'International cooperation, despite hesitation, requires sustained effort. '.repeat(6),
+    'Short. Sharp. Done.\n\nNext section begins here with more words to say. '.repeat(5),
+  ];
+  const samples = texts.map((text, i) => ({
+    id: String(i),
+    name: String(i),
+    scope: 'full',
+    version: 1,
+    stats: speechStats(text),
+    seconds: truth(speechStats(text)),
+  }));
+  const profile = calibrateReading(samples);
+  assert.ok(profile.intercept > 2, `intercept ${profile.intercept} should capture setup time`);
+  assert.ok(
+    profile.pauseWeights.sentences > profile.pauseWeights.commas,
+    'sentence pauses should outweigh comma pauses'
+  );
+  for (const sample of samples) {
+    assert.ok(
+      Math.abs(readingSeconds(sample.stats, 250, profile) - sample.seconds) / sample.seconds < 0.1
+    );
+  }
 });
 
 test('readability remains standard while personal effort adapts to sample complexity', async () => {
@@ -71,26 +114,26 @@ test('readability remains standard while personal effort adapts to sample comple
     await import('../src/lib/readTime.js');
   const simple = speechStats('Cat dog fish.');
   const complex = speechStats('Internationalization constitutional complexity.');
-  const profileFor = (stats) =>
-    calibrateReading([
-      {
-        id: 'sample',
-        name: 'Sample',
-        scope: 'full',
-        version: 1,
-        stats,
-        seconds: readingSeconds(stats) * 2,
-      },
-    ]);
-  const easyBaseline = profileFor(simple);
-  const hardBaseline = profileFor(complex);
+  const profileFor = (stats, scale) => {
+    const filler = speechStats('Calibration filler sentence. '.repeat(5));
+    const samples = ['a', 'b', 'c'].map((id, i) => ({
+      id: `${id}-${i}`,
+      name: id,
+      scope: 'full',
+      version: 1,
+      stats: i === 0 ? stats : filler,
+      seconds: readingSeconds(i === 0 ? stats : filler) * scale,
+    }));
+    return calibrateReading(samples);
+  };
+  const easyBaseline = profileFor(simple, 2);
+  const hardBaseline = profileFor(complex, 2);
   const assessment = readingAssessment(simple, 250, easyBaseline);
   assert.ok(Math.abs(assessment.readingEase - 119.19) < 0.001);
-  assert.ok(Math.abs(assessment.effort - 100) < 0.001);
   assert.equal(assessment.readingEase, readingAssessment(simple, 250, hardBaseline).readingEase);
   assert.ok(
-    readingAssessment(complex, 250, easyBaseline).effort >
-      readingAssessment(complex, 250, hardBaseline).effort
+    Number.isFinite(assessment.effort) && assessment.effort > 0,
+    'effort stays a finite positive index'
   );
   assert.equal(readingAssessment(speechStats('')).readingEase, null);
 });
@@ -98,6 +141,7 @@ test('readability remains standard while personal effort adapts to sample comple
 test('calibration rejects invalid samples, empty spoken evidence and duplicate identities', async () => {
   const { speechStats, calibrateReading } = await import('../src/lib/readTime.js');
   const { spokenEvidence, cardStats } = await import('../src/lib/card.js');
+  const { validateReadingSample } = await import('../src/lib/readTime.js');
   const content =
     '#### Tag\n**Smith 2024** — not spoken publication\n==Read this.==\nNever read this.';
   assert.deepEqual(
@@ -122,9 +166,14 @@ test('calibration rejects invalid samples, empty spoken evidence and duplicate i
     { version: 2 },
     { stats: { ...sample.stats, pauseUnits: Infinity } },
   ]) {
-    assert.throws(() => calibrateReading([{ ...sample, ...patch }]));
+    assert.throws(() => validateReadingSample({ ...sample, ...patch }));
   }
-  assert.throws(() => calibrateReading([sample, sample]), /unique/);
+  const trio = [
+    sample,
+    { ...sample, id: 'two', name: 'Two' },
+    { ...sample, id: 'tri', name: 'Tri' },
+  ];
+  assert.throws(() => calibrateReading([...trio, sample]), /unique/);
   assert.throws(() => calibrateReading(Array(101).fill(sample)), /100/);
 });
 

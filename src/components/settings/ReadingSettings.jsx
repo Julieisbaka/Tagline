@@ -135,11 +135,27 @@ export default function ReadingSettings({ settings, update }) {
       <p role='status'>
         {result.profile
           ? t('Calibrated from {count} samples. Median timing error: {error}%.', {
-              count: samples.length,
+              count: result.profile.count,
               error: (result.profile.medianRelativeError * 100).toFixed(1),
             })
-          : t('No valid samples: using the default speech algorithm and speaking rate.')}
+          : samples.length > 0
+            ? t('Add at least 3 timed samples to calibrate. Using the default speech algorithm.')
+            : t('No valid samples: using the default speech algorithm and speaking rate.')}
       </p>
+      {result.profile && (
+        <p role='status'>
+          {t('Cross-validated error: about {error} seconds (leave-one-out).', {
+            error: result.profile.looMeanAbsoluteError.toFixed(1),
+          })}
+        </p>
+      )}
+      {result.profile?.outliers?.length > 0 && (
+        <p role='alert' className='error-text'>
+          {t('Possible mistimed samples: {names}. Re-time or remove them.', {
+            names: result.profile.outliers.map((entry) => entry.name).join(', '),
+          })}
+        </p>
+      )}
       <p>
         {t(
           'Readability uses an English formula. Personal effort is relative to your samples (100 = baseline), not a comprehension test. Calibration error does not guarantee accuracy for new speeches.'

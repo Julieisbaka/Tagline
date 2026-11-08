@@ -90,14 +90,46 @@ const countWords = (s) =>
  */
 function evidenceParts(content) {
   content = splitFrontmatter(content).body;
-  // Strip headings, cites and markup so we only count evidence text.
+  // Strip headings and markup so only evidence text is counted.
   const body = content
     .split('\n')
     .filter((l) => !HEADING_RE.test(l))
     .join('\n');
-  const evidence = body.replace(/^\*\*[^*\n]+\*\*[^\n]*$/gm, '');
-  const highlighted = [...evidence.matchAll(/==([\s\S]*?)==|<mark\b[^>]*>([\s\S]*?)<\/mark>/gi)]
-    .map((m) => (m[1] ?? m[2]).replace(/\+\+/g, ''))
+  // Remove only the first bold lead line of the document — the citation lead
+  // ("**Smith 2024** — ..."). Bold evidence later in the card stays spoken.
+  const evidence = body.replace(/^\*\*[^*\n]+\*\*[^\n]*$/m, '');
+  // Collect outermost ==highlight== / <mark> spans; both can nest, so track
+  // open markers on a stack and keep only spans not contained in another span.
+  const marker = /==|<\/?mark\b[^>]*>/gi;
+  const stack = [];
+  const closed = [];
+  let match;
+  while ((match = marker.exec(evidence))) {
+    const token = match[0].toLowerCase();
+    if (token === '==') {
+      const open = stack.findLast((span) => span.kind === '==');
+      if (open) {
+        open.end = match.index;
+        closed.push(stack.splice(stack.lastIndexOf(open), 1)[0]);
+      } else {
+        stack.push({ kind: '==', start: match.index + 2 });
+      }
+    } else if (token.startsWith('</')) {
+      const open = stack.findLast((span) => span.kind === 'mark');
+      if (open) {
+        open.end = match.index;
+        closed.push(stack.splice(stack.lastIndexOf(open), 1)[0]);
+      }
+    } else {
+      stack.push({ kind: 'mark', start: marker.lastIndex });
+    }
+  }
+  const highlighted = closed
+    .filter(
+      (span, i) =>
+        !closed.some((other, j) => j !== i && other.start < span.start && other.end > span.end)
+    )
+    .map((span) => stripTags(evidence.slice(span.start, span.end)).replace(/\+\+|==/g, ''))
     .join(' ');
   return { body, highlighted, citations: spokenCitations(content) };
 }

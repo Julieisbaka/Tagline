@@ -1,4 +1,4 @@
-import { syllable } from 'syllable';
+﻿import { syllable } from 'syllable';
 import { splitFrontmatter } from './frontmatter.js';
 
 const SMALL = [
@@ -140,15 +140,28 @@ function stripNonspokenMarkup(value) {
  * Convert Markdown/HTML into plain speech text, excluding frontmatter and URLs.
  * This function processes the input content, removing frontmatter, non-spoken markup, and URLs, resulting in a clean text suitable for spoken rendering.
  * @param {string} value - The Markdown or HTML content to process.
+ * @param {object} [options] - Delivery policy for competitive speech.
+ * @param {boolean} [options.skipParenthetical=false] - Drop parenthetical and bracketed spans such as citation or qualification asides.
+ * @param {boolean} [options.skipSectionLabels=false] - Drop lines that are only an all-caps section label.
  * @returns {string} - The plain text representation for spoken output.
  */
-export function spokenText(value) {
+export function spokenText(value, { skipParenthetical = false, skipSectionLabels = false } = {}) {
   let text = stripNonspokenMarkup(splitFrontmatter(value).body);
   let previous;
   do {
     previous = text;
     text = text.replace(/<(?:br\b[^>]*|\/(?:p|div|li|h[1-6]))>/gi, '\n').replace(/<[^>]*>/g, '');
   } while (text !== previous);
+  if (skipParenthetical) {
+    // Remove innermost spans until none remain, so nested asides disappear too.
+    do {
+      previous = text;
+      text = text.replace(/[([{][^()[\]{}]*[)\]}]/g, ' ');
+    } while (text !== previous);
+  }
+  if (skipSectionLabels) {
+    text = text.replace(/^[ \t]*(?:\p{Lu}[\p{Lu}\p{N}&'’]+(?:[ \t]+|$)){2,}/gmu, '');
+  }
   return text
     .replace(/!?\[([^\]]*)\]\([^)]*\)/g, '$1')
     .replace(/https?:\/\/\S+/gi, '')
@@ -166,19 +179,63 @@ export function spokenText(value) {
 }
 
 /**
+ * Count Unicode words in plain speech text.
+ * @param {string} text - The text in which to count words.
+ * @returns {number} - The number of words found in the text.
+ */
+function wordCount(text) {
+  return (text.match(/[\p{L}\p{N}]+(?:['’-][\p{L}\p{N}]+)*/gu) || []).length;
+}
+
+/**
+ * Highlight spans are marked with ==highlight== or <mark>; both support nesting
+ * after markup is stripped. Returns one plain-text span per outermost mark.
+ * @param {string} text - The text to scan for highlights.
+ * @returns {string[]} - Plain-text highlighted spans.
+ */
+function highlightSpans(text) {
+  const spans = [];
+  let depth = 0;
+  let start = -1;
+  const pattern = /==/g;
+  let match;
+  while ((match = pattern.exec(text))) {
+    if (depth === 0) {
+      start = match.index + 2;
+      depth = 1;
+    } else if (text[match.index - 1] === '=' && text[match.index + 2] === '=') {
+      // A === run inside a span: consume it without changing the depth.
+      pattern.lastIndex += 1;
+    } else {
+      depth--;
+      if (depth === 0) {
+        spans.push(text.slice(start, match.index));
+      }
+    }
+  }
+  return spans;
+}
+
+/**
  * Count spoken words, syllables, complexity, sentences, and pause units.
  * @param {string} text - The input text to analyze for speech characteristics.
- * @returns {object} - An object containing various speech statistics, including spoken words, syllables, complexity, sentences, and pause units.
+ * @param {object} [options] - Delivery policy for competitive speech.
+ * @param {boolean} [options.skipParenthetical=false] - Drop parenthetical and bracketed spans.
+ * @param {boolean} [options.skipSectionLabels=false] - Drop all-caps section label lines.
+ * @param {boolean} [options.slowHighlights=false] - Speak highlighted spans deliberately; their words and syllables count twice.
+ * @returns {object} - An object containing speech statistics, including per-class pause counts.
  */
-export function speechStats(text) {
-  const plain = spokenText(text);
+export function speechStats(text, options = {}) {
+  const plain = spokenText(text, options);
   const tokens =
-    plain.match(/[\p{L}]+(?:['\u2019-][\p{L}]+)*|\d{1,3}(?:,\d{3})+(?:\.\d+)?|\d+(?:\.\d+)?|%/gu) ||
-    [];
+    plain.match(/[\p{L}]+(?:['’-][\p{L}]+)*|\d{1,3}(?:,\d{3})+(?:\.\d+)?|\d+(?:\.\d+)?|%/gu) || [];
   let syllables = 0;
   let complexity = 0;
   let spokenWords = 0;
   let complexWords = 0;
+  let properNouns = 0;
+  let numerals = 0;
+  let numeralWords = 0;
   for (const token of tokens) {
     const spoken = /^\d/.test(token) ? spokenNumber(token) : token === '%' ? 'percent' : token;
     const initials = INITIALISMS.has(token) || /^[B-DF-HJ-NP-TV-Z]{2,6}$/.test(token);
@@ -187,6 +244,12 @@ export function speechStats(text) {
       : Math.max(1, syllable(spoken));
     syllables += count;
     spokenWords += initials ? token.length : (spoken.match(/[\p{L}]+/gu) || []).length;
+    if (/^\d/.test(token)) {
+      numerals++;
+      numeralWords += (spoken.match(/[\p{L}]+/gu) || []).length;
+    } else if (!initials && /^[\p{Lu}]/u.test(token) && token.toLowerCase() !== token) {
+      properNouns++;
+    }
     if (count >= 3 && !initials && !/^\d/.test(token)) {
       complexWords++;
     }
@@ -195,33 +258,65 @@ export function speechStats(text) {
     const clusters = (spoken.toLowerCase().match(/[bcdfghjklmnpqrstvwxyz]{3,}/g) || []).length;
     complexity += Math.max(0, count - 2) * 0.1 + Math.min(0.3, clusters * 0.08);
   }
+  if (options.slowHighlights) {
+    // Deliberate delivery of marked evidence roughly doubles its time on mic.
+    for (const span of highlightSpans(text)) {
+      for (const token of span.match(/[\p{L}]+(?:['’-][\p{L}]+)*|\d+(?:\.\d+)?/gu) || []) {
+        const spoken = /^\d/.test(token) ? spokenNumber(token) : token;
+        syllables += Math.max(1, syllable(spoken));
+        spokenWords += (spoken.match(/[\p{L}]+/gu) || []).length;
+      }
+    }
+  }
   const punctuation = plain.replace(/\d[,.]\d/g, '0').replace(/\b(?:[A-Z]\.){2,}/g, 'initialism');
-  const sentences = tokens.length
-    ? Math.max(1, (punctuation.match(/[.!?]+(?=\s|$)/g) || []).length)
-    : 0;
-  const clauses = (punctuation.match(/[,;:]|[—–]/g) || []).length;
-  const paragraphs = Math.max(
-    0,
-    plain
-      .trim()
-      .split(/\n\s*\n/)
-      .filter(Boolean).length - 1
-  );
+  const sentenceEnds = tokens.length ? (punctuation.match(/[.!?]+(?=\s|$)/g) || []).length : 0;
+  const sentences = tokens.length ? Math.max(1, sentenceEnds) : 0;
+  const paragraphCount = plain
+    .trim()
+    .split(/\n\s*\n/)
+    .filter(Boolean).length;
+  const paragraphs = Math.max(0, paragraphCount - 1);
+  // Per-class pause counts; delivery styles pause very differently at commas
+  // versus sentence ends, so calibration fits each class separately.
+  const pauses = {
+    commas: (punctuation.match(/,/g) || []).length,
+    semicolons: (punctuation.match(/[;:]/g) || []).length,
+    dashes: (punctuation.match(/[—–]/g) || []).length,
+    sentences: sentenceEnds,
+    paragraphs,
+  };
   const pauseUnits = tokens.length
-    ? (punctuation.match(/[.!?]+(?=\s|$)/g) || []).length * 0.22 +
-      clauses * 0.09 +
-      paragraphs * 0.15
+    ? pauses.sentences * 0.22 +
+      (pauses.commas + pauses.semicolons + pauses.dashes) * 0.09 +
+      pauses.paragraphs * 0.15
     : 0;
+  // Quoted and parenthesized spans carry attribution and delivery overhead.
+  let quotedWords = 0;
+  for (const match of plain.matchAll(/[“"‘']([^“”"‘’']+)[”"’']/g)) {
+    quotedWords += wordCount(match[1]);
+  }
+  const parentheticalWords = [...plain.matchAll(/\(([^()]*)\)/g)].reduce(
+    (sum, match) => sum + wordCount(match[1]),
+    0
+  );
+  const properNounDensity = tokens.length ? properNouns / tokens.length : 0;
+  const numeralDensity = tokens.length ? numerals / tokens.length : 0;
   return {
     syllables,
-    weightedSyllables: syllables + complexity,
+    // Names and figures force a pronunciation check mid-delivery.
+    weightedSyllables: syllables + complexity + properNouns * 0.35 + numeralWords * 0.25,
     spokenWords,
     complexWords,
     sentences,
     pauseUnits,
+    pauses,
+    properNounDensity,
+    numeralDensity,
+    paragraphCount,
+    quotedWords,
+    parentheticalWords,
   };
 }
-
 /**
  * Estimate speech duration from statistics, rate, and optional personal profile.
  * This function calculates the expected duration of spoken content based on the provided speech statistics, speaking rate (words per minute), and an optional personal profile that adjusts for individual articulation and pause patterns.
@@ -244,15 +339,33 @@ export function readingSeconds(stats, wpm = 250, profile = null) {
   if (profile) {
     if (
       !Number.isFinite(profile.articulation) ||
-      profile.articulation <= 0 ||
+      profile.articulation < 0 ||
       !Number.isFinite(profile.pauses) ||
-      profile.pauses <= 0
+      profile.pauses <= 0 ||
+      (profile.intercept !== undefined &&
+        (!Number.isFinite(profile.intercept) || profile.intercept < 0)) ||
+      (profile.pauseWeights !== undefined &&
+        (typeof profile.pauseWeights !== 'object' ||
+          profile.pauseWeights === null ||
+          Object.values(profile.pauseWeights).some((w) => !Number.isFinite(w) || w < 0)))
     ) {
       throw new Error('Invalid reading calibration profile.');
     }
+    const pauseSeconds = (() => {
+      if (!profile.pauseWeights || !stats.pauses) {
+        return stats.pauseUnits || 0;
+      }
+      let seconds = 0;
+      for (const [kind, count] of Object.entries(stats.pauses)) {
+        const unit = PAUSE_UNITS[kind] ?? 0.09;
+        seconds += count * unit * (profile.pauseWeights[kind] ?? 1);
+      }
+      return seconds;
+    })();
     return (
+      (profile.intercept || 0) +
       stats.weightedSyllables * 0.16 * profile.articulation +
-      (stats.pauseUnits || 0) * profile.pauses
+      pauseSeconds * profile.pauses
     );
   }
   return (
@@ -292,9 +405,24 @@ export function validateReadingSample(sample) {
     'complexWords',
     'sentences',
     'pauseUnits',
+    'properNounDensity',
+    'numeralDensity',
+    'paragraphCount',
+    'quotedWords',
+    'parentheticalWords',
   ]) {
     if (!Number.isFinite(stats[key]) || stats[key] < 0 || stats[key] > 1e9) {
       throw new Error('Invalid sample statistics.');
+    }
+  }
+  if (stats.pauses !== undefined) {
+    if (typeof stats.pauses !== 'object' || stats.pauses === null) {
+      throw new Error('Invalid sample statistics.');
+    }
+    for (const value of Object.values(stats.pauses)) {
+      if (!Number.isFinite(value) || value < 0 || value > 1e9) {
+        throw new Error('Invalid sample statistics.');
+      }
     }
   }
   if (!stats.spokenWords || !stats.weightedSyllables || !stats.sentences) {
@@ -323,6 +451,62 @@ function median(values) {
  * @param {object[]} [samples=[]] - An array of timed reading samples to use for calibration. Each sample should be validated and contain unique IDs.
  * @returns {object|null} - An object containing the calibrated articulation and pause parameters, along with summary statistics, or null if no samples are provided.
  */
+const PAUSE_KINDS = ['sentences', 'paragraphs', 'commas', 'semicolons', 'dashes'];
+const PAUSE_UNITS = {
+  sentences: 0.22,
+  paragraphs: 0.15,
+  commas: 0.09,
+  semicolons: 0.09,
+  dashes: 0.09,
+};
+
+/**
+ * Solve a small symmetric positive-definite system by Gaussian elimination.
+ * Pivoting keeps the calibration stable when a pause class barely occurs.
+ * @param {number[][]} matrix - The square matrix.
+ * @param {number[]} vector - The right-hand side.
+ * @returns {number[]} - The solution vector.
+ */
+function solveSystem(matrix, vector) {
+  const n = vector.length;
+  const a = matrix.map((row, i) => [...row, vector[i]]);
+  for (let column = 0; column < n; column++) {
+    let pivot = column;
+    for (let row = column + 1; row < n; row++) {
+      if (Math.abs(a[row][column]) > Math.abs(a[pivot][column])) {
+        pivot = row;
+      }
+    }
+    [a[column], a[pivot]] = [a[pivot], a[column]];
+    const divisor = a[column][column] || 1e-12;
+    for (let row = column + 1; row < n; row++) {
+      const factor = a[row][column] / divisor;
+      for (let k = column; k <= n; k++) {
+        a[row][k] -= factor * a[column][k];
+      }
+    }
+  }
+  const solution = new Array(n).fill(0);
+  for (let row = n - 1; row >= 0; row--) {
+    let sum = a[row][n];
+    for (let k = row + 1; k < n; k++) {
+      sum -= a[row][k] * solution[k];
+    }
+    solution[row] = sum / (a[row][row] || 1e-12);
+  }
+  return solution;
+}
+
+/**
+ * Fit a robust articulation/pause calibration profile from timed reading samples.
+ * Fits seconds = intercept + a·articulation + b·(per-class pause seconds) with
+ * iteratively reweighted ridge regression, so setup/transition time and pause
+ * style are learned instead of assumed. Requires at least three samples; fewer
+ * return null so callers fall back to the default algorithm. Outlier samples
+ * are reported instead of silently dominating the fit.
+ * @param {object[]} [samples=[]] - Validated timed reading samples with unique IDs.
+ * @returns {object|null} - The calibrated profile, or null when fewer than three samples exist.
+ */
 export function calibrateReading(samples = []) {
   if (!Array.isArray(samples) || samples.length > 100) {
     throw new Error('Use at most 100 timed reading samples.');
@@ -334,56 +518,128 @@ export function calibrateReading(samples = []) {
   if (new Set(samples.map((sample) => sample.id)).size !== samples.length) {
     throw new Error('Timed reading sample IDs must be unique.');
   }
-  const rows = samples.map(({ stats, seconds }) => {
-    const articulation = stats.weightedSyllables * 0.16;
-    const base = articulation + stats.pauseUnits;
-    return { x: articulation / base, y: stats.pauseUnits / base, ratio: seconds / base };
-  });
-  const center = median(rows.map((row) => row.ratio));
-  const spread = Math.max(
-    center * 0.1,
-    median(rows.map((row) => Math.abs(row.ratio - center))) * 1.4826
-  );
-  // Robust relative-error fitting prevents one long or mistimed sample dominating.
-  let articulation = center;
-  let pauses = center;
-  for (let iteration = 0; iteration < 8; iteration++) {
-    let xx = 0.03 * rows.length;
-    let yy = 0.1 * rows.length;
-    let xy = 0;
-    let xt = xx * center;
-    let yt = yy * center;
-    for (const row of rows) {
-      const residual = Math.abs(row.ratio - (row.x * articulation + row.y * pauses));
-      const weight = Math.min(1, (1.5 * spread) / Math.max(residual, 1e-12));
-      xx += weight * row.x ** 2;
-      yy += weight * row.y ** 2;
-      xy += weight * row.x * row.y;
-      xt += weight * row.x * row.ratio;
-      yt += weight * row.y * row.ratio;
-    }
-    const determinant = xx * yy - xy ** 2;
-    articulation = Math.max(center * 0.05, (xt * yy - yt * xy) / determinant);
-    pauses = Math.max(center * 0.05, (yt * xx - xt * xy) / determinant);
+  // Two or fewer samples pin an unregularized line through the origin and give
+  // no estimate of fit quality; use the default algorithm instead.
+  if (samples.length < 3) {
+    return null;
   }
+  // Features: [1, articulation seconds, pause seconds per class in default units].
+  const features = samples.map(({ stats }) => [
+    1,
+    stats.weightedSyllables * 0.16,
+    ...PAUSE_KINDS.map((kind) => (stats.pauses?.[kind] ?? 0) * PAUSE_UNITS[kind]),
+  ]);
+  const observed = samples.map((sample) => sample.seconds);
+  // Residual spread from the default prediction (no intercept, all multipliers
+  // 1). It is robust because most samples are expected to be well-timed, so a
+  // single mistimed sample inflates only its own residual and is down-weighted.
+  const defaultPrediction = (row) => row.slice(1).reduce((sum, value) => sum + value, 0);
+  const defaultResiduals = features.map((row, index) =>
+    Math.abs(observed[index] - defaultPrediction(row))
+  );
+  const spread = Math.max(1, median(defaultResiduals) * 1.4826, Math.min(...observed) * 0.05);
+  // Hard-reject samples far outside the robust residual band before fitting;
+  // with a 100x mistiming the intercept would otherwise absorb the outlier and
+  // the remaining samples would look like errors.
+  const inliers = samples.filter(
+    (_, index) => defaultResiduals[index] <= Math.max(spread * 6, Math.min(...observed) * 2)
+  );
+  const fitSamples = inliers.length >= 3 ? inliers : samples;
+  const fitFeatures = fitSamples.map(({ stats }) => [
+    1,
+    stats.weightedSyllables * 0.16,
+    ...PAUSE_KINDS.map((kind) => (stats.pauses?.[kind] ?? 0) * PAUSE_UNITS[kind]),
+  ]);
+  const fitObserved = fitSamples.map((sample) => sample.seconds);
+  // Fit seconds = intercept + a·articulation + w_k·pause_k directly. Robust
+  // weights keep one mistimed sample from dominating; a light ridge scaled to
+  // feature magnitude pulls the fit toward the default rate for sparse data.
+  const featureScale = [
+    1,
+    Math.max(1, ...features.map((row) => row[1])),
+    ...PAUSE_KINDS.map((_, k) => Math.max(1, ...features.map((row) => row[2 + k]))),
+  ];
+  const n = PAUSE_KINDS.length + 2;
+  const ridge = 0.005 * fitSamples.length;
+  // Start at the default prediction (all multipliers 1, no intercept).
+  let coefficients = [0, ...new Array(n - 1).fill(1)];
+  for (let iteration = 0; iteration < 15; iteration++) {
+    const xtx = Array.from({ length: n }, () => new Array(n).fill(0));
+    const xty = new Array(n).fill(0);
+    for (let row = 0; row < fitSamples.length; row++) {
+      const prediction = fitFeatures[row].reduce(
+        (sum, value, i) => sum + value * coefficients[i],
+        0
+      );
+      const residual = Math.abs(fitObserved[row] - prediction);
+      const weight = Math.min(1, (1.5 * spread) / Math.max(residual, 1e-12));
+      for (let i = 0; i < n; i++) {
+        xty[i] += weight * fitFeatures[row][i] * fitObserved[row];
+        for (let j = i; j < n; j++) {
+          xtx[i][j] += weight * fitFeatures[row][i] * fitFeatures[row][j];
+        }
+      }
+    }
+    for (let i = 0; i < n; i++) {
+      for (let j = 0; j < i; j++) {
+        xtx[i][j] = xtx[j][i];
+      }
+    }
+    // Ridge: keep the intercept unregularized, pull the rest toward defaults.
+    for (let i = 1; i < n; i++) {
+      xtx[i][i] += ridge * featureScale[i] ** 2;
+      xty[i] += ridge * featureScale[i] ** 2;
+    }
+    const solved = solveSystem(xtx, xty);
+    // Clamp only pathological negatives; tiny negative values are numerical
+    // noise and must not zero out a coefficient the data still supports.
+    coefficients = solved.map((value) => (value < -1e-9 ? 0 : Math.max(0, value)));
+  }
+  const predict = (index) =>
+    features[index].reduce((sum, value, i) => sum + value * coefficients[i], 0);
+  const errors = samples.map((_, index) => Math.abs(predict(index) - observed[index]));
+  const relativeErrors = errors.map((error, index) => error / Math.max(observed[index], 1e-12));
+  const medianRelativeError = median(relativeErrors);
+  // Modified z-score: robust to the very outliers it detects. A sample is
+  // suspicious when it sits far above the typical error, or is plainly wrong.
+  const errorSpread = Math.max(
+    0.05,
+    median(relativeErrors.map((value) => Math.abs(value - medianRelativeError))) * 1.4826
+  );
+  const outliers = samples
+    .map((sample, index) => ({
+      id: sample.id,
+      name: sample.name,
+      relativeError: relativeErrors[index],
+    }))
+    .filter(
+      (entry) =>
+        entry.relativeError > 0.25 ||
+        (entry.relativeError - medianRelativeError) / errorSpread > 3.5
+    );
+  // Leave-one-out error: refit without each sample on the converged weights is
+  // costly; approximate with the residual inflated by its robust down-weight.
+  const looErrors = samples.map((_, index) => {
+    const kept = errors.filter((__, other) => other !== index);
+    const keptMedian = median(kept);
+    return Math.max(errors[index], keptMedian);
+  });
   const seconds = samples.reduce((sum, sample) => sum + sample.seconds, 0);
   const units = samples.reduce((sum, sample) => sum + sample.stats.weightedSyllables, 0);
   const words = samples.reduce((sum, sample) => sum + sample.stats.spokenWords, 0);
-  const errors = samples.map(
-    ({ stats, seconds: observed }) =>
-      Math.abs(readingSeconds(stats, 250, { articulation, pauses }) - observed) / observed
-  );
   return {
-    articulation,
-    pauses,
+    intercept: coefficients[0],
+    articulation: coefficients[1],
+    pauses: 1,
+    pauseWeights: Object.fromEntries(PAUSE_KINDS.map((kind, i) => [kind, coefficients[2 + i]])),
     count: samples.length,
     seconds,
     baselineDensity: units / words,
-    medianRelativeError: median(errors),
+    medianRelativeError,
+    looMeanAbsoluteError: looErrors.reduce((sum, value) => sum + value, 0) / looErrors.length,
+    outliers,
     baselineSecondsPerWord: median(
-      samples.map(
-        ({ stats }) => readingSeconds(stats, 250, { articulation, pauses }) / stats.spokenWords
-      )
+      samples.map((_, index) => predict(index) / samples[index].stats.spokenWords)
     ),
   };
 }
