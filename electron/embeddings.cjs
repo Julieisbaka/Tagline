@@ -62,6 +62,12 @@ function registerEmbeddings({ app, ipcMain, safeStorage, getVaultRoot, readConfi
     if (worker) {
       return;
     }
+    const config = readConfig();
+    if (config.modelAutoload === false) {
+      // Worker lazily loaded only when first embedding request comes in,
+      // even if autoload was previously enabled.
+      return;
+    }
     worker = new Worker(path.join(__dirname, 'embeddingWorker.cjs'), { workerData: { storage } });
     const instance = worker;
     const fail = (e) => {

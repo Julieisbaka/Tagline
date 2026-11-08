@@ -437,6 +437,15 @@ function registerIpc() {
         await fs.rm(temporary, { force: true });
       }
       throw error;
+    } finally {
+      // Ensure tmp file is cleaned up even on successful rename,
+      // in case of partial state from previous crashed sessions.
+      try {
+        await fs.access(temporary);
+        await fs.rm(temporary, { force: true });
+      } catch {
+        // File already renamed away or doesn't exist — no action needed.
+      }
     }
     return true;
   }

@@ -14,6 +14,12 @@ function registerSummarization({ app, ipcMain }) {
     if (worker) {
       return;
     }
+    const config = readConfig();
+    if (config.modelAutoload === false) {
+      // Worker lazily loaded only when first summarization request comes in,
+      // even if autoload was previously enabled.
+      return;
+    }
     worker = new Worker(path.join(__dirname, 'summarizationWorker.cjs'), {
       workerData: { storage },
     });
