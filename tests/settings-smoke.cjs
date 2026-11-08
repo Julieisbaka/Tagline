@@ -193,16 +193,12 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
           deviceScaleFactor: 1,
         });
         await wait('window.innerWidth === 640');
-        assert.equal(
-          await js(`(() => {
+        await wait(`(() => {
             const dialog = document.querySelector('.dialog.settings').getBoundingClientRect();
             const sidebar = document.querySelector('.settings-sidebar').getBoundingClientRect();
             const main = document.querySelector('.settings-main').getBoundingClientRect();
             return dialog.left >= 0 && dialog.right <= innerWidth && sidebar.right <= main.left && main.width > 0;
-          })()`),
-          true,
-          'settings remains within the narrow viewport'
-        );
+          })()`);
         wc.disableDeviceEmulation();
         await click('[data-section="general"]');
         assert.deepEqual(
@@ -566,10 +562,17 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
         await settings('integrations');
         await button('.integration-settings button', 'Install Pandoc');
         assert.equal(externalUrls.pop(), 'https://pandoc.org/installing.html');
+        assert.equal(
+          await js("!!document.querySelector('[data-tournament-provider=NSDA]')"),
+          false
+        );
+        assert.equal(
+          await js(
+            "[...document.querySelectorAll('[data-settings-panel=integrations] button')].some(el => el.textContent.trim() === 'Open Tabroom')"
+          ),
+          true
+        );
         for (const [provider, label, url] of [
-          ['NSDA', 'Tournament calendar', 'https://www.speechanddebate.org/tournament-calendar/'],
-          ['NSDA', 'Tournament results', 'https://www.tabroom.com/index/results/'],
-          ['NSDA', 'Membership login', 'https://www.speechanddebate.org/login/'],
           ['SpeechWire', 'Tournament calendar', 'https://postings.speechwire.com/p-calendar.php'],
           [
             'SpeechWire',
