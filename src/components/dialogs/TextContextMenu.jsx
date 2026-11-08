@@ -96,7 +96,11 @@ export default function TextContextMenu() {
           }
         };
         pendingSpell.push(finish);
-        setTimeout(() => finish(null), 250);
+        setTimeout(() => {
+          const index = pendingSpell.indexOf(finish);
+          if (index >= 0) pendingSpell.splice(index, 1);
+          finish(null);
+        }, 250);
       } else {
         show(null);
       }
