@@ -203,6 +203,11 @@ test('cleans inline markdown in titles, handles trailing hashes and duplicate ti
   );
 });
 
+test('removes incomplete HTML tag delimiters from card titles', async () => {
+  const { detectCards } = await import('../src/lib/cardDetection.js');
+  assert.equal(detectCards('#### <script').at(0)?.title, 'script');
+});
+
 test('##### subheads stay inside a card by default', async () => {
   const { detectCards } = await import('../src/lib/cardDetection.js');
   const cards = detectCards('#### Card\ntext\n##### Sub\nmore\n#### Next\n');
