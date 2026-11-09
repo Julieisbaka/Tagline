@@ -9,6 +9,7 @@ import { defaultEditorMode } from './lib/editorModes.js';
 import { markSpeechDocument, speechDocumentPaths } from './lib/frontmatter.js';
 import { useI18n } from './lib/i18n.js';
 import { KeybindingsContext } from './lib/keybindingContext.js';
+import { setUiSoundSettings, playUiSound } from './lib/uiSounds.js';
 import { useSettings } from './lib/settings.js';
 import { useFavorites } from './lib/useFavorites.js';
 import { useTabs } from './lib/useTabs.js';
@@ -149,7 +150,13 @@ export default function App() {
     setWebsite(null);
   }, [v.vault?.root, tabs.activeId, activePath, settings.embedWebsites]);
   useEffect(() => {
-    const onError = (e) => notify(e.detail);
+    setUiSoundSettings(settings.interactionSounds);
+  }, [settings.interactionSounds]);
+  useEffect(() => {
+    const onError = (e) => {
+      playUiSound('error');
+      notify(e.detail);
+    };
     window.addEventListener('app-error', onError);
     return () => window.removeEventListener('app-error', onError);
   }, [notify]);

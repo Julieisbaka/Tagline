@@ -5,6 +5,7 @@ import { EMPTY_CANVAS } from '../lib/canvas.js';
 import { defaultEditorMode } from '../lib/editorModes.js';
 import { markSpeechDocument } from '../lib/frontmatter.js';
 import { slugify } from '../lib/markdown.js';
+import { playUiSound } from '../lib/uiSounds.js';
 import { useAppExtensions } from '../lib/useAppExtensions.js';
 import { baseName, dirName, isMarkdown, joinPath, outline, resolveLink } from '../lib/vault.js';
 
@@ -36,6 +37,7 @@ export function useAppOperations({
     (path, newTab = false, line = null) => {
       setWebsite(null);
       tabs.openPath(path, newTab);
+      playUiSound('open');
       if (line != null) {
         setModes((s) => ({ ...s, [path]: 'edit' }));
         setJump({ path, line, n: Date.now() });

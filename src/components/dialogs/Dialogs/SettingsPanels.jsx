@@ -135,6 +135,18 @@ export default function SettingsPanels({
             </SettingRow>
           ))}
         </SettingsGroup>
+          <label className='setting-row'>
+            <span>{t('Interaction sounds')}</span>
+            <input
+              type='checkbox'
+              data-setting='interactionSounds'
+              checked={settings.interactionSounds}
+              onChange={(event) => update({ interactionSounds: event.target.checked })}
+            />
+          </label>
+          <p className='settings-help'>
+            {t('Play short sounds for opening notes, tabs, saving, and errors.')}
+          </p>
         <p className='settings-help'>
           {t(
             'Reduce motion also follows your system preference. Larger targets are at least 48 pixels. Stronger focus includes note editors.'

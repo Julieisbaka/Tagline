@@ -1,4 +1,5 @@
 ﻿import { useCallback, useEffect, useRef, useState } from 'react';
+import { playUiSound } from './uiSounds.js';
 
 let nextId = 1;
 /** Generate a unique tab identifier for the current renderer session. @returns {string} */
@@ -186,6 +187,7 @@ export function useTabs(vaultRoot, persist = true) {
       const i = tabs.findIndex((t) => t.id === id);
       const next = tabs.filter((t) => t.id !== id);
       setTabs(next);
+      playUiSound('close');
       if (id === activeId) {
         setActiveId(next[Math.min(i, next.length - 1)]?.id || null);
       }

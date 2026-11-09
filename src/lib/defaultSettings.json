@@ -8,6 +8,7 @@
   "timerPresets": [],
   "timerSoundName": "",
   "timerSoundEnabled": false,
+  "interactionSounds": false,
   "readableWidth": true,
   "readableWidthPixels": 820,
   "theme": "dark",

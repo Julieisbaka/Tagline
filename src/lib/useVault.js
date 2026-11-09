@@ -2,6 +2,7 @@
 import { folderPaths, normalizeFolders } from './folderPaths.js';
 import { translate } from './i18n.js';
 import { buildIndex, isMarkdown, rewriteLinks } from './vault.js';
+import { playUiSound } from './uiSounds.js';
 
 const api = window.api;
 const SAVE_DELAY = 400;
@@ -215,7 +216,11 @@ export function useVault(
       })
     );
     const completed = await inflight;
-    return saved.every(Boolean) && completed.every((result) => result.status === 'fulfilled');
+    if (saved.every(Boolean) && completed.every((result) => result.status === 'fulfilled')) {
+      playUiSound('save');
+      return true;
+    }
+    return false;
   }, [writeDisk, setSaveStatus]);
 
   useEffect(() => {
