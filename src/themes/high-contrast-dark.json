@@ -37,6 +37,40 @@
     "danger": "#ffb3c1",
     "warning": "#ffff00",
     "shadow": "#ffffff40",
-    "backdrop": "#000000cc"
-  }
+    "backdrop": "#000000cc",
+    "button-bg": "#202020",
+    "button-text": "#ffffff",
+    "button-border": "#ffffff",
+    "button-primary-bg": "#ffff00",
+    "button-primary-text": "#000000",
+    "input-bg": "#000000",
+    "input-text": "#ffffff",
+    "input-border": "#ffffff",
+    "input-placeholder": "#dddddd",
+    "sidebar-bg": "#000000",
+    "sidebar-text": "#ffffff",
+    "tab-bg": "#000000",
+    "tab-active-bg": "#202020",
+    "tab-active-text": "#ffffff",
+    "tab-hover-bg": "#202020",
+    "focus-ring": "#ffff00",
+    "disabled-text": "#808080",
+    "disabled-bg": "#101010",
+    "success": "#80ff80",
+    "link": "#80ffff",
+    "link-hover": "#ffffff"
+  },
+  "pairings": [
+    { "id": "body", "fg": "text", "bg": "bg", "minRatio": 4.5 },
+    { "id": "strong", "fg": "text-strong", "bg": "bg-elevated", "minRatio": 4.5 },
+    { "id": "muted", "fg": "text-muted", "bg": "bg", "minRatio": 4.5 },
+    { "id": "accent-control", "fg": "accent-text", "bg": "accent", "minRatio": 3 },
+    { "id": "primary-button", "fg": "button-primary-text", "bg": "button-primary-bg", "minRatio": 3 },
+    { "id": "button", "fg": "button-text", "bg": "button-bg", "minRatio": 4.5 },
+    { "id": "input", "fg": "input-text", "bg": "input-bg", "minRatio": 4.5 },
+    { "id": "sidebar", "fg": "sidebar-text", "bg": "sidebar-bg", "minRatio": 4.5 },
+    { "id": "tab-active", "fg": "tab-active-text", "bg": "tab-active-bg", "minRatio": 4.5 },
+    { "id": "selection", "fg": "selection-text", "bg": "selection", "minRatio": 3 },
+    { "id": "link", "fg": "link", "bg": "bg", "minRatio": 4.5 }
+  ]
 }

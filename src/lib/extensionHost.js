@@ -343,6 +343,7 @@ export class ExtensionHost {
       case 'helpers.themes.resolveSettings':
       case 'helpers.themes.get':
       case 'helpers.themes.extensionThemes':
+      case 'helpers.themes.contrast':
       case 'helpers.vault.isJson':
       case 'helpers.canvas.empty':
       case 'helpers.flow.parse':

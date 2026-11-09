@@ -65,6 +65,7 @@
           <a href="#colors">Color tokens</a>
           <a href="#variables">CSS variables</a>
           <a href="#metadata">Settings and metadata</a>
+          <a href="#contrast">Contrast pairings</a>
           <a href="#extension-themes">Package in an extension</a>
         </nav>
 
@@ -134,6 +135,11 @@
                 <tr>
                   <td><code>settings</code></td>
                   <td>Optional declarative controls shown in Appearance while the theme is active.</td>
+                </tr>
+                <tr>
+                  <td><code>pairings</code></td>
+                  <td>Optional contrast pairs checked for WCAG contrast in Appearance; see <a href="#contrast">Contrast
+                      pairings</a>.</td>
                 </tr>
                 <tr>
                   <td><code>metadata</code></td>
@@ -240,6 +246,47 @@
                   <td><code>shadow</code>, <code>backdrop</code></td>
                   <td>Shadows and modal-overlay tint, usually with alpha.</td>
                 </tr>
+                <tr>
+                  <td>
+                    <code>button-bg</code>, <code>button-text</code>, <code>button-border</code>,
+                    <code>button-primary-bg</code>, <code>button-primary-text</code>
+                  </td>
+                  <td>Standard and primary button surfaces, foregrounds, and borders.</td>
+                </tr>
+                <tr>
+                  <td>
+                    <code>input-bg</code>, <code>input-text</code>, <code>input-border</code>,
+                    <code>input-placeholder</code>
+                  </td>
+                  <td>Text input and select surfaces, foregrounds, border, and placeholder text.</td>
+                </tr>
+                <tr>
+                  <td><code>sidebar-bg</code>, <code>sidebar-text</code></td>
+                  <td>Sidebar surface and its foreground text.</td>
+                </tr>
+                <tr>
+                  <td>
+                    <code>tab-bg</code>, <code>tab-active-bg</code>, <code>tab-active-text</code>,
+                    <code>tab-hover-bg</code>
+                  </td>
+                  <td>Tab strip surfaces, the active tab, and hovered tabs.</td>
+                </tr>
+                <tr>
+                  <td><code>focus-ring</code></td>
+                  <td>Focus indicator outlines.</td>
+                </tr>
+                <tr>
+                  <td><code>disabled-text</code>, <code>disabled-bg</code></td>
+                  <td>Disabled controls and their surfaces.</td>
+                </tr>
+                <tr>
+                  <td><code>success</code></td>
+                  <td>Success and confirmation accents.</td>
+                </tr>
+                <tr>
+                  <td><code>link</code>, <code>link-hover</code></td>
+                  <td>Link foreground and hover state.</td>
+                </tr>
               </tbody>
             </table>
           </div>
@@ -331,6 +378,24 @@
             color-vision values are <code>protanopia</code>, <code>deuteranopia</code>, <code>tritanopia</code>, or
             <code>achromatopsia</code>; reduced motion is boolean; notes allow up to 1,000 characters.
           </p>
+        </section>
+
+        <section id="contrast">
+          <h2>Contrast pairings</h2>
+          <p>A theme can declare foreground/background token pairs to document and check its readability. Results are
+            advisory: they appear in Appearance and through <code>tagline.helpers.themes.contrast(theme)</code>, and
+            never change how the theme renders.</p>
+          <pre><code class="language-json">"pairings": [
+  { "id": "body", "fg": "text", "bg": "bg", "minRatio": 4.5 },
+  { "id": "accent-control", "fg": "accent-text", "bg": "accent", "minRatio": 3 }
+]</code></pre>
+          <p>Each pair needs a unique <code>id</code>, an <code>fg</code> and <code>bg</code> color token, and an optional
+            <code>minRatio</code> from 1 to 21 (default 4.5, the WCAG AA normal-text level; 3 suits large text and UI
+            controls). Tagline measures the resolved colors, compositing translucent tokens over <code>bg</code>, and
+            reports the ratio plus pass/fail per pair. Up to 64 pairs; the limit is adjustable in
+            <strong>Settings &gt; Advanced settings &gt; Theme and extension limits</strong>. The built-in themes ship
+            canonical pairs under ids such as <code>body</code>, <code>muted</code>, <code>selection</code>, and
+            <code>link</code>.</p>
         </section>
 
         <section id="extension-themes">

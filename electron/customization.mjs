@@ -8,6 +8,7 @@ export const LIMIT_DEFINITIONS = Object.freeze({
     min: 1024,
     max: 4194304,
   },
+  themePairings: { label: 'Theme contrast pairings', default: 64, min: 1, max: 256 },
   extensionSourceBytes: { label: 'Extension script bytes', default: 1048576, min: 1024, max: 8388608 },
   extensionCommands: { label: 'Commands per extension', default: 50, min: 1, max: 500 },
   extensionThemes: { label: 'Themes per extension', default: 20, min: 1, max: 200 },

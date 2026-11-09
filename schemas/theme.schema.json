@@ -120,6 +120,14 @@
       "items": {
         "$ref": "#/definitions/setting"
       }
+    },
+    "pairings": {
+      "type": "array",
+      "maxItems": 256,
+      "description": "Optional foreground/background token pairs checked for WCAG contrast. Advisory: results are shown in Appearance and available to helpers, never applied at runtime.",
+      "items": {
+        "$ref": "#/definitions/pairing"
+      }
     }
   },
   "additionalProperties": true,
@@ -154,8 +162,51 @@
         "danger",
         "warning",
         "shadow",
-        "backdrop"
+        "backdrop",
+        "button-bg",
+        "button-text",
+        "button-border",
+        "button-primary-bg",
+        "button-primary-text",
+        "input-bg",
+        "input-text",
+        "input-border",
+        "input-placeholder",
+        "sidebar-bg",
+        "sidebar-text",
+        "tab-bg",
+        "tab-active-bg",
+        "tab-active-text",
+        "tab-hover-bg",
+        "focus-ring",
+        "disabled-text",
+        "disabled-bg",
+        "success",
+        "link",
+        "link-hover"
       ]
+    },
+    "pairing": {
+      "type": "object",
+      "required": ["id", "fg", "bg"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9-]{0,63}$"
+        },
+        "fg": {
+          "$ref": "#/definitions/colorToken"
+        },
+        "bg": {
+          "$ref": "#/definitions/colorToken"
+        },
+        "minRatio": {
+          "type": "number",
+          "minimum": 1,
+          "maximum": 21
+        }
+      },
+      "additionalProperties": false
     },
     "setting": {
       "allOf": [

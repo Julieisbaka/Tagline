@@ -438,6 +438,8 @@
               call('helpers.themes.get', id, customTheme, settings),
             /** List themes contributed by extensions. @returns {Promise<object[]>} */
             extensionThemes: () => call('helpers.themes.extensionThemes'),
+            /** Validate a theme and measure WCAG contrast for its declared pairings. @returns {Promise<object[]>} */
+            contrast: (theme) => call('helpers.themes.contrast', theme),
           }),
           templates: Object.freeze({
             /** Expand date/time/title and target path/body/YAML properties; context is optional {path,content} with full Markdown content. @returns {Promise<string>} */

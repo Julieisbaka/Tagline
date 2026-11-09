@@ -35,6 +35,7 @@ import {
 import {
   BUILTIN_THEMES,
   COLOR_TOKENS,
+  checkThemeContrast,
   extensionThemes,
   getTheme,
   resolveThemeSettings,
@@ -444,6 +445,8 @@ export function extensionUtilityHelper(method, args) {
       );
     case 'helpers.themes.extensionThemes':
       return extensionThemes();
+    case 'helpers.themes.contrast':
+      return checkThemeContrast(validateTheme(object(args[0], 'Theme')));
     case 'helpers.vault.isJson':
       return isJson(text(args[0], 'Path'));
     case 'helpers.canvas.empty':

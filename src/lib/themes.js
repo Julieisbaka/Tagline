@@ -146,6 +146,124 @@ function validateThemeSettings(definitions = [], theme, limits) {
 }
 
 /**
+ * Validate optional contrast pairings against declared color tokens and runtime limits.
+ * @param {*} [value] - The array of { id, fg, bg, minRatio? } pairing definitions to validate.
+ * @param {object} [limits] - The runtime limits to enforce on the pairing count.
+ * @returns {object[]} - A validated copy of the pairing definitions.
+ */
+function validateThemePairings(value = [], limits = getRuntimeLimits()) {
+  if (value === undefined) {
+    return [];
+  }
+  if (!Array.isArray(value) || value.length > limits.themePairings) {
+    throw new Error(
+      `Theme pairings must be a list of at most ${limits.themePairings} { id, fg, bg } objects.`
+    );
+  }
+  const ids = new Set();
+  return value.map((pairing) => {
+    if (
+      !pairing ||
+      typeof pairing !== 'object' ||
+      Array.isArray(pairing) ||
+      typeof pairing.id !== 'string' ||
+      !/^[a-z][a-z0-9-]{0,63}$/.test(pairing.id) ||
+      ids.has(pairing.id) ||
+      !COLOR_TOKENS.includes(pairing.fg) ||
+      !COLOR_TOKENS.includes(pairing.bg) ||
+      (pairing.minRatio !== undefined &&
+        (typeof pairing.minRatio !== 'number' ||
+          !Number.isFinite(pairing.minRatio) ||
+          pairing.minRatio < 1 ||
+          pairing.minRatio > 21)) ||
+      Object.keys(pairing).some((key) => !['id', 'fg', 'bg', 'minRatio'].includes(key))
+    ) {
+      throw new Error(
+        'Theme pairings need unique ids, declared color tokens, and an optional 1-21 minRatio.'
+      );
+    }
+    ids.add(pairing.id);
+    return {
+      id: pairing.id,
+      fg: pairing.fg,
+      bg: pairing.bg,
+      ...(pairing.minRatio !== undefined ? { minRatio: pairing.minRatio } : {}),
+    };
+  });
+}
+
+/** Compose translucent hex colors over an opaque backdrop before measuring contrast.
+ * @param {string} value - #RRGGBB or #RRGGBBAA color.
+ * @param {{r:number,g:number,b:number}} backdrop - Opaque RGB channels to composite over.
+ * @returns {{r:number,g:number,b:number}} Opaque composited RGB channels.
+ */
+function compositeColor(value, backdrop) {
+  const channels = value.match(/^#([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})(?:([0-9a-f]{2}))?$/i);
+  const channel = (index) => parseInt(channels[index], 16);
+  const alpha = channels[4] === undefined ? 255 : channel(4);
+  const mix = (index, back) => (alpha / 255) * channel(index) + (1 - alpha / 255) * back;
+  return {
+    r: mix(1, backdrop.r),
+    g: mix(2, backdrop.g),
+    b: mix(3, backdrop.b),
+  };
+}
+
+/** WCAG relative luminance of opaque sRGB channels.
+ * @param {{r:number,g:number,b:number}} color
+ * @returns {number}
+ */
+function relativeLuminance(color) {
+  const channel = (value) => {
+    const scaled = value / 255;
+    return scaled <= 0.04045 ? scaled / 12.92 : ((scaled + 0.055) / 1.055) ** 2.4;
+  };
+  return (
+    0.2126 * channel(color.r) + 0.7152 * channel(color.g) + 0.0722 * channel(color.b)
+  );
+}
+
+/**
+ * Measure WCAG contrast for each declared pairing of a validated theme.
+ * Translucent colors composite over the theme's bg token, matching how they render.
+ * @param {object} theme - A validated or resolved theme containing colors and optional pairings.
+ * @returns {object[]} - One { id, fg, bg, minRatio, ratio, pass } result per pairing.
+ */
+export function checkThemeContrast(theme) {
+  if (!theme || typeof theme !== 'object' || !theme.colors) {
+    throw new Error('Contrast checking requires a theme with colors.');
+  }
+  if (typeof theme.colors.bg !== 'string') {
+    throw new Error('Contrast checking requires a theme with a bg color.');
+  }
+  const backdrop = compositeColor(theme.colors.bg, { r: 0, g: 0, b: 0 });
+  return (theme.pairings || []).map((pairing) => {
+    if (!COLOR_TOKENS.includes(pairing.fg) || !COLOR_TOKENS.includes(pairing.bg)) {
+      throw new Error(`Unknown color token in pairing: ${pairing.id}`);
+    }
+    const fgValue = theme.colors[pairing.fg];
+    const bgValue = theme.colors[pairing.bg];
+    if (typeof fgValue !== 'string' || typeof bgValue !== 'string') {
+      throw new Error(`Pairing ${pairing.id} references colors the theme does not define.`);
+    }
+    const fg = compositeColor(fgValue, backdrop);
+    const bg = compositeColor(bgValue, backdrop);
+    const fgL = relativeLuminance(fg);
+    const bgL = relativeLuminance(bg);
+    const ratio = (Math.max(fgL, bgL) + 0.05) / (Math.min(fgL, bgL) + 0.05);
+    const minRatio = pairing.minRatio ?? 4.5;
+    return {
+      id: pairing.id,
+      fg: pairing.fg,
+      bg: pairing.bg,
+      minRatio,
+      ratio: Math.round(ratio * 100) / 100,
+      pass: ratio >= minRatio,
+    };
+  });
+}
+
+/**
  * Validate and normalize a version-1 custom theme.
  * @param {object} value - The custom theme object to validate and normalize.
  * @param {object} [limits] - The runtime limits to enforce on the theme.
@@ -182,6 +300,7 @@ export function validateTheme(value, limits = getRuntimeLimits()) {
     colors: { ...base.colors, ...value.colors },
     variables: validateVariables(value.variables, limits),
     metadata: validateMetadata(value.metadata),
+    pairings: validateThemePairings(value.pairings, limits),
   };
   theme.settings = validateThemeSettings(value.settings, theme, limits);
   resolveThemeSettings(theme, {}, limits);

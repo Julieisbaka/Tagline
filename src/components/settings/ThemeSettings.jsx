@@ -8,6 +8,7 @@ import { LANGUAGES, useI18n } from '../../lib/i18n.js';
 import {
   BUILTIN_THEMES,
   COLOR_TOKENS,
+  checkThemeContrast,
   extensionThemes,
   getTheme,
   resolveThemeSettings,
@@ -90,6 +91,16 @@ export default function ThemeSettings({ settings, update }) {
     active = { error: err.message };
   }
   void contributed;
+  // Advisory WCAG ratios for the active theme's declared contrast pairings.
+  const contrast = useMemo(() => {
+    try {
+      return checkThemeContrast(
+        getTheme(settings.theme, settings.customTheme, settings.themeSettings)
+      );
+    } catch {
+      return null;
+    }
+  }, [settings.theme, settings.customTheme, settings.themeSettings]);
   const variablesLabel = t('CSS variables (JSON object)');
   const variablesExtensions = useMemo(
     () => [
@@ -258,6 +269,34 @@ export default function ThemeSettings({ settings, update }) {
           settings={settings}
           update={update}
         />
+      )}
+      {!!contrast?.length && (
+        <fieldset className='theme-options theme-contrast'>
+          <legend>{t('Contrast (WCAG)')}</legend>
+          <ul className='theme-contrast-results'>
+            {contrast.map((result) => (
+              <li
+                key={result.id}
+                data-contrast-pairing={result.id}
+                data-contrast-pass={result.pass ? 'true' : 'false'}
+              >
+                <span>{result.id}</span>
+                <span>
+                  {t('{ratio}:1, needs {min}:1', {
+                    ratio: result.ratio.toFixed(2),
+                    min: result.minRatio.toFixed(2),
+                  })}
+                </span>
+                <strong>{result.pass ? t('Pass') : t('Fail')}</strong>
+              </li>
+            ))}
+          </ul>
+          <p>
+            {t(
+              'Author-declared foreground/background pairs measured against the active theme settings. Results are advisory.'
+            )}
+          </p>
+        </fieldset>
       )}
       {active.error && (
         <p role='alert' className='error-text'>
