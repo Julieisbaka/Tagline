@@ -24,7 +24,7 @@ Thanks for your interest in contributing to Tagline, an Obsidian-style knowledge
 - `electron/` — main/preload Electron processes.
 - `tests/` — unit tests (`*.test.cjs`) and smoke tests (`*-smoke.cjs`).
 - `scripts/` — build and utility scripts.
-- `docs/` — user documentation.
+- `website/` — static GitHub Pages site and user documentation (`website/docs/`).
 - `build/` — app icons and branding.
 
 ## Testing
@@ -33,7 +33,7 @@ Tagline uses Node's built-in test runner (`node --test`) plus Electron smoke sui
 
 ```sh
 npm test              # all unit tests
-npm run test:all      # unit + every smoke suite (see README)
+npm run test:all      # unit + every smoke suite, sequentially
 npm run test:<name>   # individual smoke suite, e.g. test:a11y
 ```
 
@@ -41,8 +41,8 @@ npm run test:<name>   # individual smoke suite, e.g. test:a11y
 
 - Keep PRs focused on a single change.
 - Update or add tests for new behavior.
-- Update docs (`docs/`) and README when user-facing behavior changes.
-- All CI checks (lint, format, tests) must pass.
+- Update docs (`website/docs/`) and README when user-facing behavior changes.
+- All required CI checks (lint and tests) must pass; run `format:check` locally.
 
 ## Code of conduct
 

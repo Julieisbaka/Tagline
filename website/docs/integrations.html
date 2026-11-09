@@ -67,6 +67,9 @@
           requires <code>npx mcp-remote</code>.</p>
         <p>The local endpoint is <code>http://127.0.0.1:38419/mcp</code>. Requests use an
           <code>Authorization:</code> <code>Bearer</code> <code>&lt;token&gt;</code> header; keep the token private.</p>
+        <p>In <strong>Settings &gt; Integrations &gt; Agent access (MCP)</strong>, you can separately allow note
+          changes and local-model use. Inference tools require the relevant models to be loaded in Tagline; agent
+          requests do not download models.</p>
         <p>Available tools:</p>
         <ul>
           <li><strong>Read:</strong> <code>get_status</code>, <code>list_notes</code>, <code>read_note</code>,
@@ -87,6 +90,10 @@
                 <code>limit</code>.</li>
             </ul>
           </li>
+          <li><strong>Local models:</strong> <code>local_model_status</code> reports availability;
+            <code>embed_text</code>, <code>summarize_text</code>, and <code>analyze_hypotheses</code> process text
+            supplied by the client with loaded local models. Long input may be truncated; summaries and scores are
+            suggestions, not verified facts.</li>
           <li><strong>UI:</strong> <code>open_note</code>.</li>
         </ul>
         <p>The server also uses <code>tagline://note/&lt;path&gt;</code> for note resources. See the
@@ -169,7 +176,7 @@
           supported DOCX/HTML file into a <strong>new</strong> Google Doc in the selected account. Nothing is uploaded
           until you confirm the transfer. Follow the <a href="google-docs.html">complete Google Docs setup and transfer
             guide</a>.</p>
-        <h3>Direct Google sign-in <span class="feature-status">(In development)</span></h3>
+        <h3>Direct Google sign-in</h3>
         <ol>
           <li>Open <strong>Settings &gt; Integrations &gt; Google Docs / Drive</strong>.</li>
           <li>Choose <strong>Connect Google account</strong> and complete authorization in your system browser.</li>
