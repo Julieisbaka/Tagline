@@ -94,6 +94,27 @@
             "pattern": "^(?![/\\\\]|[a-zA-Z]:).+\\.[jJ][sS][oO][nN]$"
           }
         },
+        "themeGroups": {
+          "type": "array",
+          "maxItems": 50,
+          "items": {
+            "type": "object",
+            "required": ["id", "title", "light", "dark"],
+            "additionalProperties": false,
+            "properties": {
+              "id": { "$ref": "#/definitions/id" },
+              "title": { "type": "string", "minLength": 1, "maxLength": 80 },
+              "light": {
+                "type": "string",
+                "pattern": "^(?![/\\\\]|[a-zA-Z]:).+\\.[jJ][sS][oO][nN]$"
+              },
+              "dark": {
+                "type": "string",
+                "pattern": "^(?![/\\\\]|[a-zA-Z]:).+\\.[jJ][sS][oO][nN]$"
+              }
+            }
+          }
+        },
         "settings": {
           "type": "array",
           "maxItems": 256,

@@ -140,8 +140,9 @@ function registerExtensions({
       source = await fs.readFile(file, 'utf8');
     }
     const themes = [];
+    const themeGroups = [];
     let themePreviewBytes = 0;
-    for (const theme of item.contributes.themes) {
+    const readTheme = async (theme) => {
       const file = await containedFile(item.root, theme, '.json');
       const size = (await fs.stat(file)).size;
       if (size > currentLimits.themeFileBytes) {
@@ -153,7 +154,18 @@ function registerExtensions({
           `Extension theme previews exceed ${currentLimits.themePreviewBytes} bytes.`
         );
       }
-      themes.push(JSON.parse(await fs.readFile(file, 'utf8')));
+      return JSON.parse(await fs.readFile(file, 'utf8'));
+    };
+    for (const theme of item.contributes.themes) {
+      themes.push(await readTheme(theme));
+    }
+    for (const group of item.contributes.themeGroups ?? []) {
+      themeGroups.push({
+        id: group.id,
+        title: group.title,
+        light: await readTheme(group.light),
+        dark: await readTheme(group.dark),
+      });
     }
     const initialized = readConfig().initializedExtensions;
     const firstInstall = !!source && !(Array.isArray(initialized) && initialized.includes(item.id));
@@ -161,7 +173,7 @@ function registerExtensions({
     if (installToken) {
       installTokens.set(item.id, installToken);
     }
-    return { source, themes, limits: limits(), firstInstall, installToken };
+    return { source, themes, themeGroups, limits: limits(), firstInstall, installToken };
   });
 
   ipcMain.handle('extensions:completeInstall', async (_event, id, token) => {

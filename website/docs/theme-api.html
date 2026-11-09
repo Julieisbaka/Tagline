@@ -409,6 +409,13 @@
             <strong>Appearance &gt; Theme</strong> with the extension name. Runtime IDs look like
             <code>ext:ocean-themes:0</code>; changing contribution order changes those IDs.
           </p>
+          <p><strong>Light/dark groups.</strong> Declare <code>contributes.themeGroups</code> as
+            <code>[{"id":"ocean","title":"Ocean","light":"themes/ocean-light.json","dark":"themes/ocean-dark.json"}]</code>.
+            Each half gets a stable ID, <code>ext:ocean-themes:ocean:light</code> and
+            <code>ext:ocean-themes:ocean:dark</code>, independent of order. The picker also offers
+            <strong>Match system</strong> (<code>ext:ocean-themes:ocean:auto</code>), which follows the OS
+            light/dark setting live and falls back to the built-in light or dark theme if a half is unavailable.
+          </p>
           <p>If a saved extension theme is still loading or unavailable, the app retains the saved selection but
             temporarily renders the dark palette. A disabled or removed theme appears as <strong>Unavailable extension
               theme</strong>.</p>

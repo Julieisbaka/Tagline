@@ -124,6 +124,7 @@ export function useExtensions({ bridgeRef, notify }) {
           const {
             source,
             themes: files,
+            themeGroups = [],
             limits,
             firstInstall,
             installToken,
@@ -137,6 +138,18 @@ export function useExtensions({ bridgeRef, notify }) {
               id: `ext:${item.id}:${index}`,
               extension: item.name,
             })
+          );
+          themeGroups.forEach((group) =>
+            ['light', 'dark'].forEach((mode) =>
+              themes.push({
+                ...validateTheme(group[mode], limits),
+                mode,
+                id: `ext:${item.id}:${group.id}:${mode}`,
+                name: group[mode]?.name || `${group.title} (${mode})`,
+                extension: item.name,
+                group: { id: `ext:${item.id}:${group.id}`, title: group.title },
+              })
+            )
           );
           if (source) {
             const host = new ExtensionHost(

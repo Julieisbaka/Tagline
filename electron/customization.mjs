@@ -12,6 +12,7 @@ export const LIMIT_DEFINITIONS = Object.freeze({
   extensionSourceBytes: { label: 'Extension script bytes', default: 1048576, min: 1024, max: 8388608 },
   extensionCommands: { label: 'Commands per extension', default: 50, min: 1, max: 500 },
   extensionThemes: { label: 'Themes per extension', default: 20, min: 1, max: 200 },
+  extensionThemeGroups: { label: 'Theme groups per extension', default: 10, min: 1, max: 50 },
   extensionSettings: { label: 'Settings per extension', default: 32, min: 1, max: 256 },
   extensionWatches: { label: 'Listeners per event type per extension', default: 32, min: 1, max: 256 },
   extensionPendingCalls: { label: 'Pending calls per extension', default: 32, min: 1, max: 256 },

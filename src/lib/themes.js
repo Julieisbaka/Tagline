@@ -356,6 +356,12 @@ export function getTheme(id, customTheme, themeSettings = {}) {
   if (id === 'custom') {
     return resolveThemeSettings(validateTheme(customTheme), themeSettings[id]);
   }
+  if (id?.startsWith('ext:') && id.endsWith(':auto')) {
+    const base = id.slice(0, -5);
+    const mode = window.matchMedia?.('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+    const half = extensionThemeList.find((t) => t.id === `${base}:${mode}`);
+    return half ? resolveThemeSettings(half, themeSettings[half.id]) : mode === 'dark' ? dark : light;
+  }
   const theme =
     BUILTIN_THEMES.find((t) => t.id === id) || extensionThemeList.find((t) => t.id === id);
   // Extension themes load asynchronously (or may be disabled); keep the saved choice and show dark meanwhile.

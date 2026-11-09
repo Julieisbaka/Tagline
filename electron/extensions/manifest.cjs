@@ -216,6 +216,28 @@ function validateManifest(value, root, limits = DEFAULT_LIMITS) {
     relativeFile(root, value.main, '.js');
   }
   themes.forEach((theme) => relativeFile(root, theme, '.json'));
+  const rawGroups = contributes.themeGroups ?? [];
+  if (!Array.isArray(rawGroups) || rawGroups.length > limits.extensionThemeGroups) {
+    fail(`contributes.themeGroups must be a list of at most ${limits.extensionThemeGroups}.`);
+  }
+  const groupIds = new Set();
+  const themeGroups = rawGroups.map((group) => {
+    if (
+      !group ||
+      typeof group.id !== 'string' ||
+      !ID.test(group.id) ||
+      groupIds.has(group.id) ||
+      typeof group.title !== 'string' ||
+      !group.title.trim() ||
+      group.title.length > 80
+    ) {
+      fail('each theme group needs a unique id and a title of up to 80 characters.');
+    }
+    groupIds.add(group.id);
+    relativeFile(root, group.light, '.json');
+    relativeFile(root, group.dark, '.json');
+    return { id: group.id, title: group.title.trim(), light: group.light, dark: group.dark };
+  });
   return {
     manifestVersion: 1,
     id: value.id,
@@ -231,6 +253,7 @@ function validateManifest(value, root, limits = DEFAULT_LIMITS) {
     contributes: {
       commands: commands.map(({ id, title, key }) => ({ id, title: title.trim(), key: key || '' })),
       themes,
+      themeGroups,
       settings,
       ribbonItems: ribbonItems.map(({ id, title, icon, command }) => ({
         id,

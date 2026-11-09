@@ -65,6 +65,8 @@ export function useSettings() {
     const onThemes = () => setThemeRevision((n) => n + 1);
     window.addEventListener('extensionthemes', onThemes);
     window.addEventListener('customizationlimits', onThemes);
+    const scheme = window.matchMedia?.('(prefers-color-scheme: dark)');
+    scheme?.addEventListener?.('change', onThemes);
     window.api
       .getCustomizationLimits()
       .then((limits) => {
@@ -77,6 +79,7 @@ export function useSettings() {
     return () => {
       window.removeEventListener('extensionthemes', onThemes);
       window.removeEventListener('customizationlimits', onThemes);
+      scheme?.removeEventListener?.('change', onThemes);
     };
   }, []);
   useLayoutEffect(() => {
