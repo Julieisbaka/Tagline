@@ -55,7 +55,7 @@ export default function SettingControl({ setting, value, onChange, extensionId, 
                   setting.pathKind || 'file'
                 );
                 if (result) {onChange(result);}
-              } catch (error) {
+              } catch {
                 onChange(value);
               }
             }}
