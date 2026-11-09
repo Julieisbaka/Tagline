@@ -71,7 +71,12 @@ function validateNetworkHosts(value) {
   return hosts;
 }
 
-function validateNetworkRequest(networkHosts, address, options = {}, timeoutCap = REQUEST_TIMEOUT_MS) {
+function validateNetworkRequest(
+  networkHosts,
+  address,
+  options = {},
+  timeoutCap = REQUEST_TIMEOUT_MS
+) {
   if (typeof address !== 'string' || address.length > 2048) {
     throw new Error('Network URL must be text up to 2048 characters.');
   }
@@ -94,11 +99,18 @@ function validateNetworkRequest(networkHosts, address, options = {}, timeoutCap 
   if (!options || typeof options !== 'object' || Array.isArray(options)) {
     throw new Error('Network options must be an object.');
   }
-  if (Object.keys(options).some((key) => !['method', 'headers', 'body', 'timeoutMs', 'responseType'].includes(key))) {
+  if (
+    Object.keys(options).some(
+      (key) => !['method', 'headers', 'body', 'timeoutMs', 'responseType'].includes(key)
+    )
+  ) {
     throw new Error('Invalid network option.');
   }
   const method = options.method === undefined ? 'GET' : options.method;
-  if (typeof method !== 'string' || !['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'HEAD'].includes(method.toUpperCase())) {
+  if (
+    typeof method !== 'string' ||
+    !['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'HEAD'].includes(method.toUpperCase())
+  ) {
     throw new Error('Unsupported network method.');
   }
   const normalizedMethod = method.toUpperCase();
@@ -146,7 +158,8 @@ function validateNetworkRequest(networkHosts, address, options = {}, timeoutCap 
     }
     headers[name] = value;
   }
-  const timeoutMs = options.timeoutMs === undefined ? Math.min(REQUEST_TIMEOUT_MS, timeoutCap) : options.timeoutMs;
+  const timeoutMs =
+    options.timeoutMs === undefined ? Math.min(REQUEST_TIMEOUT_MS, timeoutCap) : options.timeoutMs;
   if (!Number.isInteger(timeoutMs) || timeoutMs < 1 || timeoutMs > timeoutCap) {
     throw new Error(`Network timeout must be from 1 to ${timeoutCap} ms.`);
   }
@@ -159,10 +172,17 @@ function validateNetworkRequest(networkHosts, address, options = {}, timeoutCap 
 
 function responseInfo(response) {
   const headers = Object.fromEntries(
-    Object.entries(response.headers).filter(([name, value]) => value !== undefined && name !== 'set-cookie')
+    Object.entries(response.headers).filter(
+      ([name, value]) => value !== undefined && name !== 'set-cookie'
+    )
   );
   const status = response.statusCode || 0;
-  return { status, statusText: response.statusMessage || '', ok: status >= 200 && status < 300, headers };
+  return {
+    status,
+    statusText: response.statusMessage || '',
+    ok: status >= 200 && status < 300,
+    headers,
+  };
 }
 
 function requestExtensionNetwork(networkHosts, address, options, timeoutCap = REQUEST_TIMEOUT_MS) {
@@ -177,7 +197,11 @@ function requestExtensionNetwork(networkHosts, address, options, timeoutCap = RE
       },
       (response) => {
         const contentLength = Number(response.headers['content-length']);
-        if (request.method !== 'HEAD' && Number.isFinite(contentLength) && contentLength > MAX_RESPONSE_BYTES) {
+        if (
+          request.method !== 'HEAD' &&
+          Number.isFinite(contentLength) &&
+          contentLength > MAX_RESPONSE_BYTES
+        ) {
           response.resume();
           outgoing.destroy(
             new Error(`Network responses may not exceed ${MAX_RESPONSE_BYTES} bytes.`)
@@ -247,31 +271,58 @@ function downloadExtensionNetwork(networkHosts, address, options, timeoutCap, ma
   }
   return new Promise((resolve, reject) => {
     let activeResponse;
-    const outgoing = https.request(request.url, {
-      method: request.method, headers: request.headers, lookup: publicLookup,
-    }, (response) => {
-      const info = responseInfo(response);
-      const length = Number(response.headers['content-length']);
-      const tooLarge = request.method !== 'HEAD' && Number.isFinite(length) && length > maxBytes;
-      if (!info.ok || tooLarge ||
-          (response.headers['content-encoding'] && response.headers['content-encoding'] !== 'identity')) {
-        response.resume();
-        outgoing.destroy(new Error(!info.ok ? `Download failed with HTTP ${info.status}.` :
-          tooLarge ? `Network downloads may not exceed ${maxBytes} bytes.` : 'Compressed network responses are not supported.'));
-        return;
+    const outgoing = https.request(
+      request.url,
+      {
+        method: request.method,
+        headers: request.headers,
+        lookup: publicLookup,
+      },
+      (response) => {
+        const info = responseInfo(response);
+        const length = Number(response.headers['content-length']);
+        const tooLarge = request.method !== 'HEAD' && Number.isFinite(length) && length > maxBytes;
+        if (
+          !info.ok ||
+          tooLarge ||
+          (response.headers['content-encoding'] &&
+            response.headers['content-encoding'] !== 'identity')
+        ) {
+          response.resume();
+          outgoing.destroy(
+            new Error(
+              !info.ok
+                ? `Download failed with HTTP ${info.status}.`
+                : tooLarge
+                  ? `Network downloads may not exceed ${maxBytes} bytes.`
+                  : 'Compressed network responses are not supported.'
+            )
+          );
+          return;
+        }
+        activeResponse = response;
+        let size = 0;
+        const bound = new Transform({
+          transform(chunk, _encoding, callback) {
+            size += chunk.length;
+            callback(
+              size > maxBytes
+                ? new Error(`Network downloads may not exceed ${maxBytes} bytes.`)
+                : null,
+              chunk
+            );
+          },
+        });
+        pipeline(response, bound, file.createWriteStream()).then(
+          () => resolve({ ...info, bytes: size }),
+          reject
+        );
       }
-      activeResponse = response;
-      let size = 0;
-      const bound = new Transform({
-        transform(chunk, _encoding, callback) {
-          size += chunk.length;
-          callback(size > maxBytes ? new Error(`Network downloads may not exceed ${maxBytes} bytes.`) : null, chunk);
-        },
-      });
-      pipeline(response, bound, file.createWriteStream())
-        .then(() => resolve({ ...info, bytes: size }), reject);
-    });
-    const deadline = setTimeout(() => outgoing.destroy(new Error('Network request timed out.')), request.timeoutMs);
+    );
+    const deadline = setTimeout(
+      () => outgoing.destroy(new Error('Network request timed out.')),
+      request.timeoutMs
+    );
     outgoing.on('close', () => clearTimeout(deadline));
     outgoing.on('error', (error) => {
       if (activeResponse) {

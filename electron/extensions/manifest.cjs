@@ -18,7 +18,15 @@ const PERMISSIONS = [
   'api',
 ];
 const ID = /^[a-z0-9][a-z0-9-]{1,63}$/;
-const REVIEW_PERMISSIONS = ['settings', 'editor:active-note', 'events', 'ui', 'network', 'secrets', 'api'];
+const REVIEW_PERMISSIONS = [
+  'settings',
+  'editor:active-note',
+  'events',
+  'ui',
+  'network',
+  'secrets',
+  'api',
+];
 
 function relativeFile(root, value, ext) {
   if (
@@ -132,9 +140,7 @@ function validateManifest(value, root, limits = DEFAULT_LIMITS) {
   const commands = contributes.commands ?? [];
   const themes = contributes.themes ?? [];
   const settings = validateSettingDefinitions(contributes.settings, limits);
-  const commandIds = new Set(
-    Array.isArray(commands) ? commands.map((command) => command?.id) : []
-  );
+  const commandIds = new Set(Array.isArray(commands) ? commands.map((command) => command?.id) : []);
   const surfaces = {};
   for (const kind of ['panels', 'webviews']) {
     const declarations = contributes[kind] ?? [];
@@ -180,14 +186,19 @@ function validateManifest(value, root, limits = DEFAULT_LIMITS) {
         if (
           !Array.isArray(extensions) ||
           extensions.length > 8 ||
-          extensions.some((ext) => typeof ext !== 'string' || !/^\.(md|flow|canvas|json)$/.test(ext)) ||
+          extensions.some(
+            (ext) => typeof ext !== 'string' || !/^\.(md|flow|canvas|json)$/.test(ext)
+          ) ||
           new Set(extensions).size !== extensions.length ||
           (mode !== undefined && !['read', 'edit', 'visual'].includes(mode)) ||
           (!extensions.length && mode === undefined)
         ) {
           fail(`panel ${item.id} has an invalid when condition.`);
         }
-        normalizedWhen = { ...(extensions.length ? { extensions } : {}), ...(mode ? { mode } : {}) };
+        normalizedWhen = {
+          ...(extensions.length ? { extensions } : {}),
+          ...(mode ? { mode } : {}),
+        };
       }
       return {
         id: item.id,
@@ -269,9 +280,15 @@ function validateManifest(value, root, limits = DEFAULT_LIMITS) {
   const statusIds = new Set();
   for (const item of statusBarItems) {
     if (
-      !item || typeof item.id !== 'string' || !ID.test(item.id) || statusIds.has(item.id) ||
-      typeof item.title !== 'string' || !item.title.trim() || item.title.length > 80 ||
-      typeof item.icon !== 'string' || !/^[a-z-]{1,40}$/.test(item.icon) ||
+      !item ||
+      typeof item.id !== 'string' ||
+      !ID.test(item.id) ||
+      statusIds.has(item.id) ||
+      typeof item.title !== 'string' ||
+      !item.title.trim() ||
+      item.title.length > 80 ||
+      typeof item.icon !== 'string' ||
+      !/^[a-z-]{1,40}$/.test(item.icon) ||
       !commandIds.has(item.command)
     ) {
       fail('each statusBarItems contribution needs a unique id, title, icon and declared command.');
@@ -286,11 +303,19 @@ function validateManifest(value, root, limits = DEFAULT_LIMITS) {
   const menuIds = new Set();
   for (const item of contextMenus) {
     if (
-      !item || typeof item.id !== 'string' || !ID.test(item.id) || menuIds.has(item.id) ||
-      typeof item.title !== 'string' || !item.title.trim() || item.title.length > 80 ||
-      !menuContexts.includes(item.context) || !commandIds.has(item.command)
+      !item ||
+      typeof item.id !== 'string' ||
+      !ID.test(item.id) ||
+      menuIds.has(item.id) ||
+      typeof item.title !== 'string' ||
+      !item.title.trim() ||
+      item.title.length > 80 ||
+      !menuContexts.includes(item.context) ||
+      !commandIds.has(item.command)
     ) {
-      fail('each context menu contribution needs a unique id, title, context and declared command.');
+      fail(
+        'each context menu contribution needs a unique id, title, context and declared command.'
+      );
     }
     menuIds.add(item.id);
   }
@@ -302,19 +327,32 @@ function validateManifest(value, root, limits = DEFAULT_LIMITS) {
   const supportedHandlerExtensions = ['.md', '.flow', '.canvas'];
   for (const item of fileHandlers) {
     if (
-      !item || typeof item.id !== 'string' || !ID.test(item.id) || handlerIds.has(item.id) ||
-      typeof item.title !== 'string' || !item.title.trim() || item.title.length > 80 ||
-      !Array.isArray(item.extensions) || !item.extensions.length || item.extensions.length > 3 ||
+      !item ||
+      typeof item.id !== 'string' ||
+      !ID.test(item.id) ||
+      handlerIds.has(item.id) ||
+      typeof item.title !== 'string' ||
+      !item.title.trim() ||
+      item.title.length > 80 ||
+      !Array.isArray(item.extensions) ||
+      !item.extensions.length ||
+      item.extensions.length > 3 ||
       item.extensions.some((ext) => !supportedHandlerExtensions.includes(ext)) ||
       new Set(item.extensions).size !== item.extensions.length ||
       !commandIds.has(item.command) ||
-      (item.priority !== undefined && (!Number.isInteger(item.priority) || item.priority < 0 || item.priority > 100))
+      (item.priority !== undefined &&
+        (!Number.isInteger(item.priority) || item.priority < 0 || item.priority > 100))
     ) {
-      fail('each file handler needs a unique id, title, supported extensions and declared command.');
+      fail(
+        'each file handler needs a unique id, title, supported extensions and declared command.'
+      );
     }
     handlerIds.add(item.id);
   }
-  if ((statusBarItems.length || contextMenus.length || fileHandlers.length) && !permissions.includes('ui')) {
+  if (
+    (statusBarItems.length || contextMenus.length || fileHandlers.length) &&
+    !permissions.includes('ui')
+  ) {
     fail('status bar items, context menus and file handlers require ui permission.');
   }
   if (value.main !== undefined) {

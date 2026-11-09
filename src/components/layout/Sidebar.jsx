@@ -57,7 +57,12 @@ function ContextMenu({ menu, onClose, actions, favorites, extensions }) {
       y={menu.y}
       onClose={onClose}
       items={[
-        ...items.map(([label, run, command]) => ({ label, run, command, danger: label === 'Delete' })),
+        ...items.map(([label, run, command]) => ({
+          label,
+          run,
+          command,
+          danger: label === 'Delete',
+        })),
         ...(contributed.length ? [{ separator: true }, ...contributed] : []),
       ]}
     />

@@ -110,10 +110,28 @@ export const extensionDiagnostics = StateField.define({
     value = value.map(transaction.changes);
     for (const effect of transaction.effects) {
       if (effect.is(extensionDiagnosticsEffect)) {
-        value = Decoration.set(effect.value.flatMap(({ from, to, message, severity, extensionId, quickFix }) =>
-          from >= 0 && to > from && to <= transaction.newDoc.length
-            ? [Decoration.mark({ class: `extension-diagnostic extension-diagnostic-${severity}`, attributes: { title: message, ...(quickFix ? { 'data-extension-id': extensionId, 'data-extension-command': quickFix.command, 'data-diagnostic-from': String(from), 'data-diagnostic-to': String(to) } : {}) } }).range(from, to)]
-            : []));
+        value = Decoration.set(
+          effect.value.flatMap(({ from, to, message, severity, extensionId, quickFix }) =>
+            from >= 0 && to > from && to <= transaction.newDoc.length
+              ? [
+                  Decoration.mark({
+                    class: `extension-diagnostic extension-diagnostic-${severity}`,
+                    attributes: {
+                      title: message,
+                      ...(quickFix
+                        ? {
+                            'data-extension-id': extensionId,
+                            'data-extension-command': quickFix.command,
+                            'data-diagnostic-from': String(from),
+                            'data-diagnostic-to': String(to),
+                          }
+                        : {}),
+                    },
+                  }).range(from, to),
+                ]
+              : []
+          )
+        );
       }
     }
     return value;

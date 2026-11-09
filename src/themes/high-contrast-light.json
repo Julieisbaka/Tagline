@@ -65,7 +65,12 @@
     { "id": "strong", "fg": "text-strong", "bg": "bg-elevated", "minRatio": 4.5 },
     { "id": "muted", "fg": "text-muted", "bg": "bg", "minRatio": 4.5 },
     { "id": "accent-control", "fg": "accent-text", "bg": "accent", "minRatio": 3 },
-    { "id": "primary-button", "fg": "button-primary-text", "bg": "button-primary-bg", "minRatio": 3 },
+    {
+      "id": "primary-button",
+      "fg": "button-primary-text",
+      "bg": "button-primary-bg",
+      "minRatio": 3
+    },
     { "id": "button", "fg": "button-text", "bg": "button-bg", "minRatio": 4.5 },
     { "id": "input", "fg": "input-text", "bg": "input-bg", "minRatio": 4.5 },
     { "id": "sidebar", "fg": "sidebar-text", "bg": "sidebar-bg", "minRatio": 4.5 },

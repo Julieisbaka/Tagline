@@ -18,7 +18,10 @@ const manifestValue = (permissions = ['api']) => ({
 test('api permission is review-gated and changes the review signature', () => {
   const manifest = validateManifest(manifestValue(), __dirname);
   assert.equal(needsReview(manifest, {}), true);
-  assert.equal(needsReview(manifest, { extensionReviews: { [manifest.id]: reviewSignature(manifest) } }), false);
+  assert.equal(
+    needsReview(manifest, { extensionReviews: { [manifest.id]: reviewSignature(manifest) } }),
+    false
+  );
   assert.notEqual(
     reviewSignature(manifest),
     reviewSignature(validateManifest(manifestValue([]), __dirname))
@@ -67,7 +70,9 @@ test('extension API export, discovery, calls and JSON payload limits are enforce
   );
   await assert.rejects(provider.handle('extensions.export', [2, ['other']]), /Export one/);
   await assert.rejects(
-    new ExtensionHost({ id: 'no-api', permissions: [] }, '', {}).handle('extensions.getApi', ['api-provider']),
+    new ExtensionHost({ id: 'no-api', permissions: [] }, '', {}).handle('extensions.getApi', [
+      'api-provider',
+    ]),
     /Permission "api"/
   );
 });

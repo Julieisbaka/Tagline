@@ -249,21 +249,39 @@ const diagnosticsKey = new PluginKey('taglineExtensionDiagnostics');
 const EditorDiagnostics = Extension.create({
   name: 'taglineExtensionDiagnostics',
   addProseMirrorPlugins() {
-    return [new Plugin({
-      key: diagnosticsKey,
-      state: {
-        init: () => DecorationSet.empty,
-        apply(transaction, decorations) {
-          const diagnostics = transaction.getMeta(diagnosticsKey);
-          if (diagnostics) return DecorationSet.create(transaction.doc, diagnostics.flatMap(({ from, to, message, severity, extensionId, quickFix }) =>
-            from >= 0 && to > from && to <= transaction.doc.content.size
-              ? [Decoration.inline(from, to, { class: `extension-diagnostic extension-diagnostic-${severity}`, title: message, ...(quickFix ? { 'data-extension-id': extensionId, 'data-extension-command': quickFix.command } : {}) })]
-              : []));
-          return decorations.map(transaction.mapping, transaction.doc);
+    return [
+      new Plugin({
+        key: diagnosticsKey,
+        state: {
+          init: () => DecorationSet.empty,
+          apply(transaction, decorations) {
+            const diagnostics = transaction.getMeta(diagnosticsKey);
+            if (diagnostics)
+              return DecorationSet.create(
+                transaction.doc,
+                diagnostics.flatMap(({ from, to, message, severity, extensionId, quickFix }) =>
+                  from >= 0 && to > from && to <= transaction.doc.content.size
+                    ? [
+                        Decoration.inline(from, to, {
+                          class: `extension-diagnostic extension-diagnostic-${severity}`,
+                          title: message,
+                          ...(quickFix
+                            ? {
+                                'data-extension-id': extensionId,
+                                'data-extension-command': quickFix.command,
+                              }
+                            : {}),
+                        }),
+                      ]
+                    : []
+                )
+              );
+            return decorations.map(transaction.mapping, transaction.doc);
+          },
         },
-      },
-      props: { decorations: (state) => diagnosticsKey.getState(state) },
-    })];
+        props: { decorations: (state) => diagnosticsKey.getState(state) },
+      }),
+    ];
   },
 });
 

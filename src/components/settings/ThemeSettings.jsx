@@ -219,20 +219,17 @@ export default function ThemeSettings({ settings, update }) {
           {contributed.map((theme) => (
             <option key={theme.id} value={theme.id}>{`${theme.name} (${theme.extension})`}</option>
           ))}
-          {[...new Map(contributed.filter((t) => t.group).map((t) => [t.group.id, t])).values()].map(
-            (theme) => (
-              <option key={`${theme.group.id}:auto`} value={`${theme.group.id}:auto`}>
-                {`${theme.group.title} (${theme.extension}) - ${t('Match system')}`}
-              </option>
-            )
-          )}
+          {[
+            ...new Map(contributed.filter((t) => t.group).map((t) => [t.group.id, t])).values(),
+          ].map((theme) => (
+            <option key={`${theme.group.id}:auto`} value={`${theme.group.id}:auto`}>
+              {`${theme.group.title} (${theme.extension}) - ${t('Match system')}`}
+            </option>
+          ))}
           {settings.theme.startsWith('ext:') &&
             !contributed.some(
-              (theme) =>
-                theme.id === settings.theme || `${theme.group?.id}:auto` === settings.theme
-            ) && (
-              <option value={settings.theme}>{t('Unavailable extension theme')}</option>
-            )}
+              (theme) => theme.id === settings.theme || `${theme.group?.id}:auto` === settings.theme
+            ) && <option value={settings.theme}>{t('Unavailable extension theme')}</option>}
           {settings.customTheme && <option value='custom'>{settings.customTheme.name}</option>}
         </select>
       </label>

@@ -10,12 +10,17 @@ export default function ExtensionPanelList({ extensions, placement, activePath, 
         surface.kind === 'panels' &&
         surface.placement === placement &&
         surface.visible &&
-        (!when?.extensions || !when.extensions.length || when.extensions.includes(activePath?.match(/\.[^.]+$/)?.[0]?.toLowerCase())) &&
+        (!when?.extensions ||
+          !when.extensions.length ||
+          when.extensions.includes(activePath?.match(/\.[^.]+$/)?.[0]?.toLowerCase())) &&
         (!when?.mode || when.mode === mode)
       );
     })
     .map((surface) => (
-      <section className={`extension-panel extension-panel-${placement}`} key={`${surface.host.manifest.id}:${surface.id}`}>
+      <section
+        className={`extension-panel extension-panel-${placement}`}
+        key={`${surface.host.manifest.id}:${surface.id}`}
+      >
         <header>
           <strong>{surface.title}</strong>
           <button aria-label={t('Close')} onClick={() => extensions.closeSurface(surface)}>

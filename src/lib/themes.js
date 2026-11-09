@@ -218,9 +218,7 @@ function relativeLuminance(color) {
     const scaled = value / 255;
     return scaled <= 0.04045 ? scaled / 12.92 : ((scaled + 0.055) / 1.055) ** 2.4;
   };
-  return (
-    0.2126 * channel(color.r) + 0.7152 * channel(color.g) + 0.0722 * channel(color.b)
-  );
+  return 0.2126 * channel(color.r) + 0.7152 * channel(color.g) + 0.0722 * channel(color.b);
 }
 
 /**
@@ -360,7 +358,11 @@ export function getTheme(id, customTheme, themeSettings = {}) {
     const base = id.slice(0, -5);
     const mode = window.matchMedia?.('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
     const half = extensionThemeList.find((t) => t.id === `${base}:${mode}`);
-    return half ? resolveThemeSettings(half, themeSettings[half.id]) : mode === 'dark' ? dark : light;
+    return half
+      ? resolveThemeSettings(half, themeSettings[half.id])
+      : mode === 'dark'
+        ? dark
+        : light;
   }
   const theme =
     BUILTIN_THEMES.find((t) => t.id === id) || extensionThemeList.find((t) => t.id === id);

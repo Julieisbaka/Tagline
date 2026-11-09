@@ -90,16 +90,21 @@ function ExtensionSettingsForm({ item, extensions }) {
           await window.api.extensionSecret(item.id, 'set', setting.id, null);
         }
       } else {
-        const next = Object.fromEntries(item.contributes.settings.filter(({ type }) => type !== 'secret').map((setting) => {
-            const value = values[setting.id];
-            if (setting.type === 'number' && String(value).trim() === '') {
-              throw new Error(t('Number settings cannot be empty.'));
-            }
-            return [setting.id, setting.type === 'number' ? Number(value) : value];
-          }));
+        const next = Object.fromEntries(
+          item.contributes.settings
+            .filter(({ type }) => type !== 'secret')
+            .map((setting) => {
+              const value = values[setting.id];
+              if (setting.type === 'number' && String(value).trim() === '') {
+                throw new Error(t('Number settings cannot be empty.'));
+              }
+              return [setting.id, setting.type === 'number' ? Number(value) : value];
+            })
+        );
         extensions.setSettings(item, next);
         for (const setting of item.contributes.settings.filter(({ type }) => type === 'secret')) {
-          if (values[setting.id]) await window.api.extensionSecret(item.id, 'set', setting.id, values[setting.id]);
+          if (values[setting.id])
+            await window.api.extensionSecret(item.id, 'set', setting.id, values[setting.id]);
         }
       }
       setError('');
@@ -121,7 +126,11 @@ function ExtensionSettingsForm({ item, extensions }) {
             onChange={(value) => setValues({ ...values, [setting.id]: value })}
           />
         ))}
-      {item.contributes.settings.some(({ type }) => type === 'secret') && <small>{t('Secret values are encrypted separately and never included in settings export.')}</small>}
+      {item.contributes.settings.some(({ type }) => type === 'secret') && (
+        <small>
+          {t('Secret values are encrypted separately and never included in settings export.')}
+        </small>
+      )}
       {error && (
         <p role='alert' className='error-text'>
           {error}

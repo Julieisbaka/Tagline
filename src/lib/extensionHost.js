@@ -237,13 +237,38 @@ export class ExtensionHost {
       case 'editor.setDiagnostics': {
         this.require('editor');
         const diagnostics = args[0];
-        if (!Array.isArray(diagnostics) || diagnostics.length > 200) throw new Error('Diagnostics must be a list of at most 200 ranges.');
+        if (!Array.isArray(diagnostics) || diagnostics.length > 200)
+          throw new Error('Diagnostics must be a list of at most 200 ranges.');
         const commands = new Set((this.manifest.contributes?.commands || []).map(({ id }) => id));
         const checked = diagnostics.map((item) => {
-          if (!item || !Number.isInteger(item.from) || !Number.isInteger(item.to) || item.from < 0 || item.to <= item.from || item.to > 5_000_000 || typeof item.message !== 'string' || item.message.length > 500 || !['error', 'warning', 'info'].includes(item.severity || 'info')) throw new Error('Invalid editor diagnostic.');
-          if (JSON.stringify(item).length > 4096) throw new Error('Editor diagnostic exceeds the size limit.');
-          if (item.quickFix && (typeof item.quickFix.title !== 'string' || item.quickFix.title.length > 80 || !commands.has(item.quickFix.command))) throw new Error('Quick fixes must reference a declared command.');
-          return { from: item.from, to: item.to, message: item.message, severity: item.severity || 'info', ...(item.quickFix ? { quickFix: item.quickFix } : {}) };
+          if (
+            !item ||
+            !Number.isInteger(item.from) ||
+            !Number.isInteger(item.to) ||
+            item.from < 0 ||
+            item.to <= item.from ||
+            item.to > 5_000_000 ||
+            typeof item.message !== 'string' ||
+            item.message.length > 500 ||
+            !['error', 'warning', 'info'].includes(item.severity || 'info')
+          )
+            throw new Error('Invalid editor diagnostic.');
+          if (JSON.stringify(item).length > 4096)
+            throw new Error('Editor diagnostic exceeds the size limit.');
+          if (
+            item.quickFix &&
+            (typeof item.quickFix.title !== 'string' ||
+              item.quickFix.title.length > 80 ||
+              !commands.has(item.quickFix.command))
+          )
+            throw new Error('Quick fixes must reference a declared command.');
+          return {
+            from: item.from,
+            to: item.to,
+            message: item.message,
+            severity: item.severity || 'info',
+            ...(item.quickFix ? { quickFix: item.quickFix } : {}),
+          };
         });
         return b.setEditorDiagnostics?.(this.manifest.id, checked) ?? false;
       }
@@ -514,10 +539,13 @@ export class ExtensionHost {
             throw new Error('Status bar command must reference a declared command.');
           }
         }
-        b.updateStatusBar?.(this, [...this.statusBar].map(([itemId, status]) => ({
-          id: itemId,
-          ...status,
-        })));
+        b.updateStatusBar?.(
+          this,
+          [...this.statusBar].map(([itemId, status]) => ({
+            id: itemId,
+            ...status,
+          }))
+        );
         return true;
       }
       case 'settings.get':
@@ -730,7 +758,9 @@ export class ExtensionHost {
     this.require('api');
     const api = await this.waitForApi();
     if (version !== undefined && version !== api.version) {
-      throw new Error(`Extension API version ${version} is unavailable; provider exports ${api.version}.`);
+      throw new Error(
+        `Extension API version ${version} is unavailable; provider exports ${api.version}.`
+      );
     }
     return { version: api.version, methods: [...api.methods] };
   }
@@ -749,7 +779,12 @@ export class ExtensionHost {
     return new Promise((resolve, reject) => {
       this.apiCalls.set(id, { resolve, reject });
       try {
-        this.port.postMessage({ type: 'api-call', id, method, payload: requireApiPayload(payload) });
+        this.port.postMessage({
+          type: 'api-call',
+          id,
+          method,
+          payload: requireApiPayload(payload),
+        });
       } catch (error) {
         this.apiCalls.delete(id);
         reject(error);

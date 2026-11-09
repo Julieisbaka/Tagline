@@ -57,7 +57,10 @@ export function useExtensions({ bridgeRef, notify }) {
         const note = bridgeRef.current.getActiveNote();
         host.run(target.dataset.extensionCommand, {
           path: note?.path || null,
-          selection: { from: Number(target.dataset.diagnosticFrom) || 0, to: Number(target.dataset.diagnosticTo) || 0 },
+          selection: {
+            from: Number(target.dataset.diagnosticFrom) || 0,
+            to: Number(target.dataset.diagnosticTo) || 0,
+          },
           uri: null,
         });
       } catch (error) {
@@ -77,7 +80,9 @@ export function useExtensions({ bridgeRef, notify }) {
       notify: (message) => notify(message),
       getActiveNote: () => bridgeRef.current.getActiveNote(),
       setEditorDiagnostics: (extensionId, diagnostics) => {
-        window.dispatchEvent(new CustomEvent('tagline-extension-diagnostics', { detail: { extensionId, diagnostics } }));
+        window.dispatchEvent(
+          new CustomEvent('tagline-extension-diagnostics', { detail: { extensionId, diagnostics } })
+        );
         return true;
       },
       insertText: (text) => bridgeRef.current.insertText(text),
@@ -118,7 +123,10 @@ export function useExtensions({ bridgeRef, notify }) {
       closeSurface: (host, kind, id) => {
         const declaration = host.manifest.contributes[kind].find((item) => item.id === id);
         if (declaration?.persistVisibility) {
-          writeSurfaceVisibility(`tagline-extension-surface:${host.manifest.id}:${kind}:${id}`, false);
+          writeSurfaceVisibility(
+            `tagline-extension-surface:${host.manifest.id}:${kind}:${id}`,
+            false
+          );
         }
         setSurfaces((previous) =>
           previous.map((item) =>
@@ -442,7 +450,11 @@ export function useExtensions({ bridgeRef, notify }) {
       if (context === 'file-explorer' || context === 'tab') {
         const extension = payload?.path?.match(/\.[^.\/]+$/)?.[0]?.toLowerCase();
         for (const declaration of host.manifest.contributes.fileHandlers || []) {
-          if (extension && declaration.extensions.includes(extension) && host.registered.has(declaration.command)) {
+          if (
+            extension &&
+            declaration.extensions.includes(extension) &&
+            host.registered.has(declaration.command)
+          ) {
             handlers.push({
               label: `Open with ${host.manifest.name}: ${declaration.title}`,
               extensionId: host.manifest.id,
@@ -469,7 +481,9 @@ export function useExtensions({ bridgeRef, notify }) {
     extensions,
     commands,
     ribbonItems,
-    statusBarItems: statusBarItems.filter((item) => hosts.current.get(item.host.manifest.id) === item.host),
+    statusBarItems: statusBarItems.filter(
+      (item) => hosts.current.get(item.host.manifest.id) === item.host
+    ),
     contextMenuItems,
     surfaces,
     closeSurface,

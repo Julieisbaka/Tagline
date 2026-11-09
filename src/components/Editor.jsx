@@ -108,7 +108,10 @@ export default function Editor({
     if (!view) return;
     const diagnostics = new Map();
     const update = (event) => {
-      diagnostics.set(event.detail.extensionId, event.detail.diagnostics.map((item) => ({ ...item, extensionId: event.detail.extensionId })));
+      diagnostics.set(
+        event.detail.extensionId,
+        event.detail.diagnostics.map((item) => ({ ...item, extensionId: event.detail.extensionId }))
+      );
       view.dispatch({ effects: extensionDiagnosticsEffect.of([...diagnostics.values()].flat()) });
     };
     window.addEventListener('tagline-extension-diagnostics', update);

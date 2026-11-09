@@ -253,7 +253,10 @@ function VisualDocument({
 
   useEffect(() => {
     const update = (event) => {
-      diagnostics.current.set(event.detail.extensionId, event.detail.diagnostics.map((item) => ({ ...item, extensionId: event.detail.extensionId })));
+      diagnostics.current.set(
+        event.detail.extensionId,
+        event.detail.diagnostics.map((item) => ({ ...item, extensionId: event.detail.extensionId }))
+      );
       setVisualDiagnostics(editor, [...diagnostics.current.values()].flat());
     };
     window.addEventListener('tagline-extension-diagnostics', update);

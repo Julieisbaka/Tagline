@@ -221,7 +221,11 @@ tagline.commands.register('save-checks', async () => {
       respond(response);
       response.on('end', () => outgoing.emit('close'));
     };
-    outgoing.destroy = (error) => { if (error) { process.nextTick(() => outgoing.emit('error', error)); } };
+    outgoing.destroy = (error) => {
+      if (error) {
+        process.nextTick(() => outgoing.emit('error', error));
+      }
+    };
     return outgoing;
   };
   const openedExternalUrls = [];
@@ -633,8 +637,15 @@ tagline.commands.register('save-checks', async () => {
         assert.equal(uiReport.notice, 'status');
         assert.equal(uiReport.selectionText, 'rgb(255, 255, 255)');
         const capabilities = await extensionStorage('demo');
-        assert.deepEqual(capabilities.networkCheck, { body: { ok: true }, path: 'network-smoke.bin', bytes: 11 });
-        assert.equal(await fs.readFile(path.join(vault, 'network-smoke.bin'), 'utf8'), '{"ok":true}');
+        assert.deepEqual(capabilities.networkCheck, {
+          body: { ok: true },
+          path: 'network-smoke.bin',
+          bytes: 11,
+        });
+        assert.equal(
+          await fs.readFile(path.join(vault, 'network-smoke.bin'), 'utf8'),
+          '{"ok":true}'
+        );
         assert.deepEqual(capabilities.installRegistration, {
           invalidInstallRejected: true,
           duplicateInstallRejected: true,

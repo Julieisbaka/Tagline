@@ -346,17 +346,37 @@ function registerExtensions({
     assertModelSender?.(event, 'Extension network access');
     const item = await authorizeNetwork(id);
     rateLimitNetwork(id);
-    return requestExtensionNetwork(item.networkHosts, url, options, limits().extensionNetworkTimeoutMs);
+    return requestExtensionNetwork(
+      item.networkHosts,
+      url,
+      options,
+      limits().extensionNetworkTimeoutMs
+    );
   });
 
   async function vaultDestination(root, rel) {
-    if (typeof rel !== 'string' || !rel || rel.length > 1024 || rel.includes('\\') ||
-        path.posix.isAbsolute(rel) || path.win32.isAbsolute(rel)) {
+    if (
+      typeof rel !== 'string' ||
+      !rel ||
+      rel.length > 1024 ||
+      rel.includes('\\') ||
+      path.posix.isAbsolute(rel) ||
+      path.win32.isAbsolute(rel)
+    ) {
       throw new Error('Download destination must be a vault-relative path.');
     }
     const parts = rel.split('/');
-    if (parts.some((part) => !part || part === '.' || part === '..' || /[<>:"|?*\x00-\x1f]/.test(part) ||
-        /[. ]$/.test(part) || /^(con|prn|aux|nul|com[1-9]|lpt[1-9])(?:\.|$)/i.test(part))) {
+    if (
+      parts.some(
+        (part) =>
+          !part ||
+          part === '.' ||
+          part === '..' ||
+          /[<>:"|?*\x00-\x1f]/.test(part) ||
+          /[. ]$/.test(part) ||
+          /^(con|prn|aux|nul|com[1-9]|lpt[1-9])(?:\.|$)/i.test(part)
+      )
+    ) {
       throw new Error('Invalid download destination.');
     }
     const realRoot = await fs.realpath(root);
@@ -393,8 +413,14 @@ function registerExtensions({
     const temporary = path.join(directory, `${randomUUID()}.tmp`);
     const file = await fs.open(temporary, 'wx', 0o600);
     try {
-      const result = await downloadExtensionNetwork(item.networkHosts, url, options,
-        currentLimits.extensionNetworkTimeoutMs, currentLimits.networkDownloadBytes, file);
+      const result = await downloadExtensionNetwork(
+        item.networkHosts,
+        url,
+        options,
+        currentLimits.extensionNetworkTimeoutMs,
+        currentLimits.networkDownloadBytes,
+        file
+      );
       await file.close();
       const refreshed = await authorizeNetwork(id, true);
       if (reviewSignature(refreshed) !== reviewSignature(item)) {

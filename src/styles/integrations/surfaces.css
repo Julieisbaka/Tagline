@@ -228,6 +228,15 @@
   flex: 1;
   min-height: 0;
 }
-.extension-diagnostic-error { text-decoration: underline wavy var(--danger, #c33); text-decoration-skip-ink: none; }
-.extension-diagnostic-warning { text-decoration: underline wavy var(--warning, #b80); text-decoration-skip-ink: none; }
-.extension-diagnostic-info { text-decoration: underline dotted var(--accent, #568); text-decoration-skip-ink: none; }
+.extension-diagnostic-error {
+  text-decoration: underline wavy var(--danger, #c33);
+  text-decoration-skip-ink: none;
+}
+.extension-diagnostic-warning {
+  text-decoration: underline wavy var(--warning, #b80);
+  text-decoration-skip-ink: none;
+}
+.extension-diagnostic-info {
+  text-decoration: underline dotted var(--accent, #568);
+  text-decoration-skip-ink: none;
+}
