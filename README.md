@@ -36,4 +36,6 @@ Do not delete the profile when updating. Back up the profile and vaults first.
 
 ## Documentation
 
-The Tagline user documentation is at the [Tagline documentation site](https://julieisbaka.github.io/Tagline/docs/index.html).
+Start with the [Getting started guide](https://julieisbaka.github.io/Tagline/docs/getting-started.html), browse the
+[Tagline documentation site](https://julieisbaka.github.io/Tagline/docs/index.html), or see the
+[changelog](https://julieisbaka.github.io/Tagline/changelog.html).
