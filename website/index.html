@@ -59,7 +59,8 @@
       </div>
 
       <div class="hero-art">
-        <div class="app-preview" role="img" aria-label="Tagline desktop workspace showing a debate research note">
+        <div class="app-preview" role="img"
+          aria-label="Tagline's dark workspace showing a sample debate case with the file explorer, editor, and backlinks panel">
           <svg class="preview-icon-library" aria-hidden="true">
             <symbol id="tagline-preview-file" viewBox="0 0 24 24">
               <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z M14 2v6h6" />
@@ -97,11 +98,43 @@
             <symbol id="tagline-preview-chevron-right" viewBox="0 0 24 24">
               <path d="m9 6 6 6-6 6" />
             </symbol>
+            <symbol id="tagline-preview-sidebar" viewBox="0 0 24 24">
+              <path d="M3 3h18v18H3z M9 3v18" />
+            </symbol>
+            <symbol id="tagline-preview-flow" viewBox="0 0 24 24">
+              <path d="M3 3h18v18H3z M9 3v18 M15 3v18 M3 9h18 M3 15h18" />
+            </symbol>
+            <symbol id="tagline-preview-canvas" viewBox="0 0 24 24">
+              <path d="M4 4h7v7H4z M13 4h7v5h-7z M13 11h7v9h-7z M4 13h7v7H4z" />
+            </symbol>
+            <symbol id="tagline-preview-timer" viewBox="0 0 24 24">
+              <path d="M12 8v5l3 2 M12 4a9 9 0 1 0 0 18 9 9 0 0 0 0-18z M10 2h4" />
+            </symbol>
+            <symbol id="tagline-preview-send" viewBox="0 0 24 24">
+              <path d="M22 2 11 13 M22 2l-7 20-4-9-9-4z" />
+            </symbol>
+            <symbol id="tagline-preview-eye" viewBox="0 0 24 24">
+              <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z M12 9a3 3 0 1 0 0 6 3 3 0 0 0 0-6z" />
+            </symbol>
+            <symbol id="tagline-preview-link" viewBox="0 0 24 24">
+              <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71 M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
+            </symbol>
+            <symbol id="tagline-preview-list" viewBox="0 0 24 24">
+              <path d="M8 6h13 M8 12h13 M8 18h13 M3 6h.01 M3 12h.01 M3 18h.01" />
+            </symbol>
+            <symbol id="tagline-preview-tag" viewBox="0 0 24 24">
+              <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z M7 7h.01" />
+            </symbol>
+            <symbol id="tagline-preview-x" viewBox="0 0 24 24">
+              <path d="M18 6 6 18 M6 6l12 12" />
+            </symbol>
           </svg>
           <div class="app-content">
-            <aside class="app-ribbon" aria-label="Workspace shortcuts">
-              <img class="mini-mark" src="favicon.svg" alt="" aria-hidden="true">
+            <nav class="app-ribbon" aria-label="Workspace shortcuts">
               <span class="ribbon-button ribbon-active" aria-hidden="true"><svg class="preview-icon">
+                  <use href="#tagline-preview-sidebar" />
+                </svg></span>
+              <span class="ribbon-button" aria-hidden="true"><svg class="preview-icon">
                   <use href="#tagline-preview-file" />
                 </svg></span>
               <span class="ribbon-button" aria-hidden="true"><svg class="preview-icon">
@@ -113,15 +146,26 @@
               <span class="ribbon-button" aria-hidden="true"><svg class="preview-icon">
                   <use href="#tagline-preview-command" />
                 </svg></span>
+              <span class="ribbon-button" aria-hidden="true"><svg class="preview-icon">
+                  <use href="#tagline-preview-folder" />
+                </svg></span>
+              <span class="ribbon-button" aria-hidden="true"><svg class="preview-icon">
+                  <use href="#tagline-preview-timer" />
+                </svg></span>
               <span class="ribbon-button ribbon-settings" aria-hidden="true"><svg class="preview-icon">
                   <use href="#tagline-preview-settings" />
                 </svg></span>
-            </aside>
+            </nav>
             <aside class="app-sidebar" aria-label="Sample vault file tree">
               <div class="sidebar-header">
-                <span class="sidebar-heading">FILES</span>
                 <span class="sidebar-action" aria-hidden="true"><svg class="preview-icon">
                     <use href="#tagline-preview-file-plus" />
+                  </svg></span>
+                <span class="sidebar-action" aria-hidden="true"><svg class="preview-icon">
+                    <use href="#tagline-preview-flow" />
+                  </svg></span>
+                <span class="sidebar-action" aria-hidden="true"><svg class="preview-icon">
+                    <use href="#tagline-preview-canvas" />
                   </svg></span>
                 <span class="sidebar-action" aria-hidden="true"><svg class="preview-icon">
                     <use href="#tagline-preview-folder-plus" />
@@ -135,29 +179,37 @@
                     <use href="#tagline-preview-chevron-down" />
                   </svg><svg class="preview-icon file-glyph">
                     <use href="#tagline-preview-folder" />
-                  </svg><span class="tree-label">Research</span></div>
-                <div class="file-row file-child"><svg class="preview-icon file-glyph">
-                    <use href="#tagline-preview-file" />
-                  </svg><span class="tree-label">Topic overview</span></div>
+                  </svg><span class="tree-label">Affirmative</span></div>
                 <div class="file-row file-child selected-file"><svg class="preview-icon file-glyph">
                     <use href="#tagline-preview-file" />
-                  </svg><span class="tree-label">Evidence file</span></div>
+                  </svg><span class="tree-label">1AC - Grid Plan</span></div>
+                <div class="file-row folder-row folder-spaced"><svg class="preview-icon tree-chevron">
+                    <use href="#tagline-preview-chevron-right" />
+                  </svg><svg class="preview-icon file-glyph">
+                    <use href="#tagline-preview-folder" />
+                  </svg><span class="tree-label">Blocks</span></div>
+                <div class="file-row folder-row folder-spaced"><svg class="preview-icon tree-chevron">
+                    <use href="#tagline-preview-chevron-right" />
+                  </svg><svg class="preview-icon file-glyph">
+                    <use href="#tagline-preview-folder" />
+                  </svg><span class="tree-label">Flows</span></div>
+                <div class="file-row folder-row folder-spaced"><svg class="preview-icon tree-chevron">
+                    <use href="#tagline-preview-chevron-right" />
+                  </svg><svg class="preview-icon file-glyph">
+                    <use href="#tagline-preview-folder" />
+                  </svg><span class="tree-label">Negative</span></div>
+                <div class="file-row folder-row folder-spaced"><svg class="preview-icon tree-chevron">
+                    <use href="#tagline-preview-chevron-right" />
+                  </svg><svg class="preview-icon file-glyph">
+                    <use href="#tagline-preview-folder" />
+                  </svg><span class="tree-label">Speech Docs</span></div>
                 <div class="file-row file-child"><svg class="preview-icon file-glyph">
                     <use href="#tagline-preview-file" />
-                  </svg><span class="tree-label">Case notes</span></div>
-                <div class="file-row folder-row folder-spaced"><svg class="preview-icon tree-chevron">
-                    <use href="#tagline-preview-chevron-right" />
-                  </svg><svg class="preview-icon file-glyph">
-                    <use href="#tagline-preview-folder" />
-                  </svg><span class="tree-label">Speeches</span></div>
-                <div class="file-row folder-row folder-spaced"><svg class="preview-icon tree-chevron">
-                    <use href="#tagline-preview-chevron-right" />
-                  </svg><svg class="preview-icon file-glyph">
-                    <use href="#tagline-preview-folder" />
-                  </svg><span class="tree-label">Maps</span></div>
+                  </svg><span class="tree-label">Welcome</span></div>
               </div>
-              <div class="vault-switch"><span aria-hidden="true">◉</span><span class="vault-name">Debate
-                  Vault</span><svg class="preview-icon vault-chevron" aria-hidden="true">
+              <div class="vault-switch"><svg class="preview-icon" aria-hidden="true">
+                  <use href="#tagline-preview-sidebar" />
+                </svg><span class="vault-name">Sample Vault</span><svg class="preview-icon vault-chevron" aria-hidden="true">
                   <use href="#tagline-preview-chevron-down" />
                 </svg></div>
             </aside>
@@ -166,48 +218,93 @@
                 <div class="tab-item active" role="tab" aria-selected="true"><svg class="preview-icon tab-file-icon"
                     aria-hidden="true">
                     <use href="#tagline-preview-file" />
-                  </svg><span class="tab-label">Evidence file</span></div>
+                  </svg><span class="tab-label">1AC - Grid Plan</span><span class="tab-close" aria-hidden="true"><svg class="preview-icon">
+                    <use href="#tagline-preview-x" />
+                  </svg></span></div>
               </div>
               <div class="note-header">
-                <svg class="preview-icon note-file-icon" aria-hidden="true">
-                  <use href="#tagline-preview-file" />
-                </svg>
-                <span class="note-title">Evidence file</span>
-                <span class="note-action" aria-hidden="true">↶</span>
+                <span class="note-title">1AC - Grid Plan</span>
+                <div class="note-actions">
+                  <span class="note-action-label">History</span>
                 <span class="mode-select">Visual <svg class="preview-icon" aria-hidden="true">
                     <use href="#tagline-preview-chevron-down" />
                   </svg></span>
-                <span class="note-action" aria-hidden="true">⇧</span>
-                <span class="note-action" aria-hidden="true">＋</span>
+                  <span class="note-action-label">Export</span>
+                  <span class="note-action-label">Hypothesis</span>
+                  <span class="note-action-label">Summarize</span>
+                  <span class="note-action-label">Create citation</span>
+                  <span class="note-action-icon" aria-hidden="true"><svg class="preview-icon">
+                      <use href="#tagline-preview-send" />
+                    </svg></span>
+                  <span class="note-action-icon" aria-hidden="true"><svg class="preview-icon">
+                      <use href="#tagline-preview-eye" />
+                    </svg></span>
+                </div>
+              </div>
+              <div class="preview-properties"><span>Properties</span><svg class="preview-icon" aria-hidden="true">
+                  <use href="#tagline-preview-chevron-right" />
+                </svg></div>
+              <div class="visual-toolbar" aria-hidden="true">
+                <span>Pocket</span><span>Hat</span><span>Block</span><span>Tag</span><span>Mark as card</span>
+                <span>Cite / Bold</span><span>Underline</span><span>Emphasis</span><span>Highlight</span>
+                <span>Clear formatting</span><span>Link</span><span>Find and replace</span><span>Send card</span>
               </div>
               <div class="note-viewport">
                 <article class="note-document">
-                  <p class="document-kicker">RESEARCH&nbsp; / &nbsp;AFFIRMATIVE CASE</p>
-                  <h2>Clean energy transition</h2>
-                  <h3>Energy independence is within reach</h3>
-                  <p>A transition to clean energy is not just an environmental imperative. It is an opportunity to
-                    build a more resilient and equitable economy.</p>
-                  <p>Distributed renewable power reduces exposure to fuel price shocks while keeping investment in
-                    local communities. A more diverse grid can respond to disruption without putting every region at
-                    risk.</p>
-                  <h4>GRID RESILIENCE</h4>
-                  <p><strong>DOE 2024</strong></p>
-                  <blockquote>
-                    <p>“A diversified portfolio of generation and storage strengthens reliability by reducing the
-                      impact of disruptions to any single resource.”</p>
-                  </blockquote>
-                  <p><em>U.S. Department of Energy, National Transmission Needs Study (2024)</em></p>
-                  <p><mark>Resilient infrastructure protects households first and gives local economies the room to
-                      keep moving.</mark></p>
-                  <p class="document-tag"><span>#energy</span><span>#resilience</span></p>
+                  <h1>1AC – Grid Plan</h1>
+                  <p class="document-tag"><span>#aff</span></p>
+                  <h2>Plan</h2>
+                  <p>The United States federal government should substantially increase its investment in electric grid cybersecurity.</p>
+                  <h2>Advantage 1 – Grid Resilience</h2>
+                  <h4>Grid attacks are rising – the status quo can't keep up</h4>
+                  <p><strong>Example 24 - Jane Example, Fictional Energy Institute, “Placeholder Grid Study,” 2024</strong></p>
+                  <p>This is example text. <u>Attacks on the grid have increased</u> substantially, and
+                    <mark>utilities lack the resources</mark> to <u>defend against sophisticated actors</u> without
+                    <mark>federal investment</mark>.</p>
+                  <h4>Federal action is key</h4>
+                  <p><strong>Sample 23 - John Sample, Imaginary Policy Review, 2023</strong></p>
+                  <p>Placeholder evidence. <mark>Only the federal government</mark> can
+                    <u>coordinate the thousands of utilities</u> that <mark>make up the grid.</mark></p>
                 </article>
               </div>
               <div class="status-bar">
-                <span class="status-item">Markdown</span>
-                <span class="status-item">Ln 8, Col 1</span>
-                <span class="status-item">Local vault</span>
+                <span class="status-item">Advantage 1</span>
+                <span class="status-item">2 cards</span>
+                <span class="status-item">67 words</span>
+                <span class="status-item">14 highlighted - ~0:06</span>
+                <span class="status-item">Default estimate</span>
+                <span class="status-item">Speech doc: Speech</span>
+                <span class="status-item">Visual editing</span>
               </div>
             </div>
+            <aside class="app-right-panel" aria-label="Backlinks, outline, tags, and timer">
+              <div class="panel-tabs">
+                <span class="panel-tab active" aria-hidden="true"><svg class="preview-icon">
+                    <use href="#tagline-preview-link" />
+                  </svg></span>
+                <span class="panel-tab" aria-hidden="true"><svg class="preview-icon">
+                    <use href="#tagline-preview-list" />
+                  </svg></span>
+                <span class="panel-tab" aria-hidden="true"><svg class="preview-icon">
+                    <use href="#tagline-preview-tag" />
+                  </svg></span>
+                <span class="panel-tab" aria-hidden="true"><svg class="preview-icon">
+                    <use href="#tagline-preview-timer" />
+                  </svg></span>
+              </div>
+              <div class="panel-body">
+                <div class="panel-section-title">Linked mentions (2)</div>
+                <div class="backlink">
+                  <div class="backlink-title">Welcome</div>
+                  <div class="backlink-snippet">Link files with [[Double brackets]], e.g. [[1AC - Grid Plan]]...</div>
+                </div>
+                <div class="backlink">
+                  <div class="backlink-title">Example HS AB</div>
+                  <div class="backlink-snippet">Runs a [[1AC - Grid Plan]]-style grid security aff.</div>
+                </div>
+                <div class="panel-section-title">Unlinked mentions (0)</div>
+              </div>
+            </aside>
           </div>
         </div>
       </div>

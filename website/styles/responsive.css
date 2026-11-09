@@ -1,7 +1,7 @@
 @media (max-width: 900px) {
   .hero {
-    grid-template-columns: 0.9fr 1.1fr;
-    gap: 20px;
+    grid-template-columns: 1fr;
+    gap: 28px;
   }
 
   .app-content {
