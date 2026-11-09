@@ -16,6 +16,44 @@ import { KEYBINDINGS, reservedBinding, validBinding } from './keybindings.js';
 
 const SANDBOX_URL = 'extension-sandbox.html';
 const MAX_TEXT = 5_000_000;
+const API_METHOD = /^[a-z][a-zA-Z0-9]{0,63}$/;
+const API_ID = /^[a-z0-9][a-z0-9-]{1,63}$/;
+
+function requireApiPayload(value) {
+  let serialized;
+  try {
+    serialized = JSON.stringify(value);
+  } catch {
+    throw new Error('Extension API payload must be JSON-serializable.');
+  }
+  if (serialized === undefined || new TextEncoder().encode(serialized).byteLength > 65536) {
+    throw new Error('Extension API payload must be JSON up to 65,536 bytes.');
+  }
+  return JSON.parse(serialized);
+}
+
+function requireApiVersion(value, optional = false) {
+  if (optional && value === undefined) {
+    return undefined;
+  }
+  if (!Number.isInteger(value) || value < 1 || value > 65535) {
+    throw new Error('Extension API version must be an integer from 1 to 65,535.');
+  }
+  return value;
+}
+
+function requireApiMethods(value) {
+  if (
+    !Array.isArray(value) ||
+    !value.length ||
+    value.length > 64 ||
+    value.some((method) => typeof method !== 'string' || !API_METHOD.test(method)) ||
+    new Set(value).size !== value.length
+  ) {
+    throw new Error('Extension API must export 1–64 unique lowercase method names.');
+  }
+  return value;
+}
 
 /**
  * Build the fully qualified internal command ID for an extension contribution.
@@ -64,6 +102,11 @@ export class ExtensionHost {
     this.pendingCalls = 0;
     this.messageTimes = [];
     this.networkRequestTimes = [];
+    this.exportedApi = null;
+    this.apiStarted = false;
+    this.apiWaiters = [];
+    this.apiCalls = new Map();
+    this.nextApiCall = 0;
     this.storageWrites = Promise.resolve();
     this.onMessage = this.onMessage.bind(this);
   }
@@ -229,6 +272,35 @@ export class ExtensionHost {
         }
         applicationEvents.emit(name, requirePayload(args[1]));
         return true;
+      }
+      case 'extensions.export': {
+        this.require('api');
+        if (this.exportedApi || this.apiStarted) {
+          throw new Error('Export one extension API during initialization.');
+        }
+        const version = requireApiVersion(args[0]);
+        const methods = requireApiMethods(args[1]);
+        this.exportedApi = { version, methods };
+        this.resolveApiWaiters();
+        return true;
+      }
+      case 'extensions.getApi': {
+        this.require('api');
+        const id = requireText(args[0], 'Extension ID', 64);
+        if (!API_ID.test(id)) {
+          throw new Error('Invalid extension ID.');
+        }
+        return b.getExtensionApi(this, id, requireApiVersion(args[1], true));
+      }
+      case 'extensions.call': {
+        this.require('api');
+        const id = requireText(args[0], 'Extension ID', 64);
+        const version = requireApiVersion(args[1]);
+        const method = args[2];
+        if (!API_ID.test(id) || typeof method !== 'string' || !API_METHOD.test(method)) {
+          throw new Error('Invalid extension API target.');
+        }
+        return b.callExtensionApi(this, id, version, method, requireApiPayload(args[3]));
       }
       case 'helpers.path':
         return pathHelper(args[0], args.slice(1));
@@ -555,6 +627,57 @@ export class ExtensionHost {
     this.port?.postMessage({ type, id, event });
   }
 
+  waitForApi() {
+    if (this.exportedApi) {
+      return Promise.resolve(this.exportedApi);
+    }
+    if (this.apiStarted || !this.frame) {
+      return Promise.reject(new Error(`${this.manifest.name} did not export an API.`));
+    }
+    return new Promise((resolve, reject) => this.apiWaiters.push({ resolve, reject }));
+  }
+
+  resolveApiWaiters(error) {
+    for (const waiter of this.apiWaiters.splice(0)) {
+      if (error) {
+        waiter.reject(error);
+      } else {
+        waiter.resolve(this.exportedApi);
+      }
+    }
+  }
+
+  async getApiDescriptor(version) {
+    this.require('api');
+    const api = await this.waitForApi();
+    if (version !== undefined && version !== api.version) {
+      throw new Error(`Extension API version ${version} is unavailable; provider exports ${api.version}.`);
+    }
+    return { version: api.version, methods: [...api.methods] };
+  }
+
+  async invokeApi(requester, version, method, payload) {
+    this.require('api');
+    requester.require('api');
+    const api = await this.getApiDescriptor(version);
+    if (!api.methods.includes(method)) {
+      throw new Error(`Unknown extension API method: ${method}.`);
+    }
+    if (!this.port || this.apiCalls.size >= this.limits.extensionPendingCalls) {
+      throw new Error('Extension API provider is stopped or busy.');
+    }
+    const id = ++this.nextApiCall;
+    return new Promise((resolve, reject) => {
+      this.apiCalls.set(id, { resolve, reject });
+      try {
+        this.port.postMessage({ type: 'api-call', id, method, payload: requireApiPayload(payload) });
+      } catch (error) {
+        this.apiCalls.delete(id);
+        reject(error);
+      }
+    });
+  }
+
   acceptMessage(now) {
     while (this.messageTimes.length && this.messageTimes[0] <= now - 1000) {
       this.messageTimes.shift();
@@ -585,6 +708,10 @@ export class ExtensionHost {
       return;
     }
     if (data.type === 'ready') {
+      this.apiStarted = true;
+      if (!this.exportedApi) {
+        this.resolveApiWaiters(new Error(`${this.manifest.name} did not export an API.`));
+      }
       this.settle?.();
     } else if (data.type === 'failed') {
       const error = new Error(String(data.message));
@@ -619,6 +746,21 @@ export class ExtensionHost {
         this.pendingCalls--;
       }
       this.port?.postMessage(reply);
+    } else if (data.type === 'api-result') {
+      const pending = this.apiCalls.get(data.id);
+      if (!pending) {
+        return;
+      }
+      this.apiCalls.delete(data.id);
+      if (data.error) {
+        pending.reject(new Error(String(data.error).slice(0, 500)));
+      } else {
+        try {
+          pending.resolve(requireApiPayload(data.value));
+        } catch (error) {
+          pending.reject(error);
+        }
+      }
     }
   }
 
@@ -635,6 +777,10 @@ export class ExtensionHost {
   }
 
   dispose() {
+    this.apiStarted = true;
+    this.resolveApiWaiters(new Error(`${this.manifest.name} was stopped.`));
+    this.apiCalls.forEach(({ reject }) => reject(new Error(`${this.manifest.name} was stopped.`)));
+    this.apiCalls.clear();
     this.watches.forEach((unsubscribe) => unsubscribe());
     this.watches.clear();
     this.activeNoteWatches.forEach((unsubscribe) => unsubscribe());

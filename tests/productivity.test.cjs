@@ -620,6 +620,7 @@ test('platform: extension manifests validate ids, permissions, commands and cont
   assert.deepEqual(loaded, {
     source: 'void 0;',
     themes: [],
+    themeGroups: [],
     limits: (await import('../electron/customization.mjs')).DEFAULT_LIMITS,
     firstInstall: true,
     installToken: loaded.installToken,

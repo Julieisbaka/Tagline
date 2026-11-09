@@ -15,9 +15,10 @@ const PERMISSIONS = [
   'ui',
   'network',
   'secrets',
+  'api',
 ];
 const ID = /^[a-z0-9][a-z0-9-]{1,63}$/;
-const REVIEW_PERMISSIONS = ['settings', 'editor:active-note', 'events', 'ui', 'network', 'secrets'];
+const REVIEW_PERMISSIONS = ['settings', 'editor:active-note', 'events', 'ui', 'network', 'secrets', 'api'];
 
 function relativeFile(root, value, ext) {
   if (
@@ -286,7 +287,7 @@ function needsReview(manifest, config) {
     return approved !== reviewSignature(manifest);
   }
   // Legacy extensions without a stored review may keep running only when they declare
-  // no review-gated capability; settings, editor:active-note, events, ui and network
+  // no review-gated capability; settings, editor:active-note, events, ui, network and api
   // always require an explicit, matching review before they are enabled.
   return manifest.permissions.some((permission) => REVIEW_PERMISSIONS.includes(permission));
 }

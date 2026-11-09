@@ -81,6 +81,7 @@
             <a href="#permissions">Permissions and isolation</a>
             <a href="#commands-editor">Commands and editor</a>
             <a href="#events">Events</a>
+            <a href="#extension-apis">Inter-extension APIs</a>
             <a href="#ui">Panels, webviews, and UI</a>
             <a href="#helpers">Helpers</a>
             <a href="#settings">Typed settings</a>
@@ -214,13 +215,14 @@
               <li><code>ui</code></li>
               <li><code>network</code></li>
               <li><code>secrets</code></li>
+              <li><code>api</code></li>
             </ul>
             <p>
               Tagline computes a review signature from the manifest’s declared permissions (sorted),
               network hosts, settings, ribbon items, panels, and webviews, then derives a SHA-256
               token from that value. Reloading extensions recomputes the token and compares it with
               the stored approval. Changing any reviewed field invalidates the approval; for
-              example, adding <code>network</code> or <code>secrets</code>, changing
+              example, adding <code>network</code>, <code>secrets</code>, or <code>api</code>, changing
               <code>networkHosts</code>, or changing a declared setting requires a new review.
             </p>
             <p>
@@ -496,6 +498,14 @@
                     </td>
                   </tr>
                   <tr>
+                    <td><code>api</code></td>
+                    <td>
+                      Export and call versioned JSON APIs between extensions. Both extensions must
+                      declare and receive approval for <code>api</code>; see
+                      <a href="#extension-apis">Inter-extension APIs</a>.
+                    </td>
+                  </tr>
+                  <tr>
                     <td>None</td>
                     <td>
                       Register declared commands, notify the user, use private extension storage,
@@ -656,6 +666,32 @@ await stop();</code></pre>
               limited to 128 characters; custom event and UI-message payloads must be
               JSON-serializable and no larger than 65,536 characters. Treat payloads from other
               extensions as untrusted.
+            </p>
+          </section>
+
+          <section id="extension-apis">
+            <h2>Inter-extension APIs</h2>
+            <p>
+              Both the provider and caller must declare the review-gated <code>api</code> permission
+              and have it allowed in Settings. APIs are host-mediated; extensions never receive
+              another extension's worker or privileges. Export one API during initialization with
+              a positive integer version and 1–64 lowercase method names:
+            </p>
+            <pre><code class="language-js">await tagline.extensions.export(1, {
+  lookup: async ({ query }) =&gt; ({ matches: await searchMyIndex(query) }),
+});</code></pre>
+            <p>
+              Call an enabled provider by extension ID. <code>getApi</code> waits for an API that is
+              still starting; pass a version to require an exact match. Each method takes one JSON
+              payload (use <code>null</code> when unused) and returns JSON. Inputs and outputs are
+              limited to 65,536 UTF-8 bytes; undeclared methods and mismatched versions reject.
+            </p>
+            <pre><code class="language-js">const api = await tagline.extensions.getApi('case-index', 1);
+const result = await api.methods.lookup({ query: 'climate' });</code></pre>
+            <p>
+              API methods do not inherit permissions: the provider must independently validate
+              inputs and only expose operations it intends to share. Disable, reload, or stop either
+              extension to end access.
             </p>
           </section>
 

@@ -16,6 +16,7 @@ const PERMISSION_LABELS = {
   ui: 'Display sandboxed panels, webviews and ribbon shortcuts',
   network: 'Make host-mediated HTTPS requests to reviewed hosts',
   secrets: 'Store and read OS-encrypted secrets such as API keys',
+  api: 'Share versioned JSON APIs with other approved extensions',
 };
 
 function ExtensionSettingsForm({ item, extensions }) {

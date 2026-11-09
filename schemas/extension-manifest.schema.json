@@ -62,7 +62,8 @@
           "events",
           "ui",
           "network",
-          "secrets"
+          "secrets",
+          "api"
         ]
       }
     },

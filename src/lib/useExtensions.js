@@ -94,6 +94,21 @@ export function useExtensions({ bridgeRef, notify }) {
       read: (path) => bridgeRef.current.read(path),
       write: (path, content) => bridgeRef.current.write(path, content),
       networkFetch: (id, url, options) => window.api.extensionNetworkFetch(id, url, options),
+      getExtensionApi: (requester, id, version) => {
+        const provider = hosts.current.get(id);
+        if (!provider) {
+          throw new Error(`Extension "${id}" is not running.`);
+        }
+        requester.require('api');
+        return provider.getApiDescriptor(version);
+      },
+      callExtensionApi: (requester, id, version, method, payload) => {
+        const provider = hosts.current.get(id);
+        if (!provider) {
+          throw new Error(`Extension "${id}" is not running.`);
+        }
+        return provider.invokeApi(requester, version, method, payload);
+      },
       secret: (id, action, key, value) => window.api.extensionSecret(id, action, key, value),
       extensionStorage: (id, action, key, value) =>
         window.api.extensionStorage(id, action, key, value),
@@ -120,6 +135,7 @@ export function useExtensions({ bridgeRef, notify }) {
         if (item.error || !item.enabled) {
           return item;
         }
+        let extensionHost = null;
         try {
           const {
             source,
@@ -160,9 +176,14 @@ export function useExtensions({ bridgeRef, notify }) {
               firstInstall,
               item.allowedPermissions
             );
+            extensionHost = host;
+            hosts.current.set(item.id, host);
             await host.start();
             if (current !== generation.current) {
               host.dispose();
+              if (hosts.current.get(item.id) === host) {
+                hosts.current.delete(item.id);
+              }
               return item;
             }
             if (installToken) {
@@ -175,9 +196,11 @@ export function useExtensions({ bridgeRef, notify }) {
             }
             if (current !== generation.current) {
               host.dispose();
+              if (hosts.current.get(item.id) === host) {
+                hosts.current.delete(item.id);
+              }
               return item;
             }
-            hosts.current.set(item.id, host);
             for (const command of item.contributes.commands) {
               nextCommands.push({
                 id: extensionCommandId(item.id, command.id),
@@ -192,6 +215,10 @@ export function useExtensions({ bridgeRef, notify }) {
           }
           return item;
         } catch (error) {
+          extensionHost?.dispose();
+          if (hosts.current.get(item.id) === extensionHost) {
+            hosts.current.delete(item.id);
+          }
           return { ...item, error: error.message };
         }
       })

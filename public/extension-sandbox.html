@@ -27,6 +27,7 @@
       const activeNoteWatches = new Map();
       const eventWatches = new Map();
       const surfaceListeners = new Map();
+      const apiHandlers = new Map();
       let installHandler = null;
       let registering = true;
       let next = 0;
@@ -34,6 +35,15 @@
       let limits;
       const send = (message) => postMessage(message);
       const describe = (error) => String((error && error.message) || error);
+      const validateApiPayload = (value) => {
+        let serialized;
+        try { serialized = JSON.stringify(value); }
+        catch { throw new Error('Extension API payload must be JSON-serializable.'); }
+        if (serialized === undefined || new TextEncoder().encode(serialized).byteLength > 65536) {
+          throw new Error('Extension API payload must be JSON up to 65,536 bytes.');
+        }
+        return JSON.parse(serialized);
+      };
       addEventListener('unhandledrejection', (event) => {
         event.preventDefault();
         send({ type: 'error', message: describe(event.reason) });
@@ -137,6 +147,44 @@
           get: (key) => call('settings.get', key),
           /** Validate and persist a declared setting. Requires settings. @returns {Promise<boolean>} */
           set: (key, value) => call('settings.set', key, value),
+        }),
+        extensions: Object.freeze({
+          /** Export one versioned JSON API during initialization. Requires api.
+           * @param {number} version Positive integer API version.
+           * @param {Record<string, (payload: *) => *|Promise<*>>} methods Lowercase method names and handlers.
+           * @returns {Promise<boolean>}
+           */
+          export(version, methods) {
+            if (!registering) throw new Error('Export an API during initialization.');
+            if (!Number.isInteger(version) || version < 1 || version > 65535) {
+              throw new TypeError('API version must be an integer from 1 to 65,535.');
+            }
+            if (!methods || typeof methods !== 'object' || Array.isArray(methods)) {
+              throw new TypeError('API methods must be an object.');
+            }
+            const entries = Object.entries(methods);
+            if (!entries.length || entries.length > 64 || entries.some(([name, handler]) =>
+              !/^[a-z][a-zA-Z0-9]{0,63}$/.test(name) || typeof handler !== 'function')) {
+              throw new TypeError('Export 1–64 methods with lowercase names and function handlers.');
+            }
+            entries.forEach(([name, handler]) => apiHandlers.set(name, handler));
+            return call('extensions.export', version, entries.map(([name]) => name)).catch((error) => {
+              apiHandlers.clear();
+              throw error;
+            });
+          },
+          /** Get an approved extension's exported API. Optionally require an exact version. Requires api.
+           * @param {string} id Target extension ID. @param {number} [version] Expected API version.
+           * @returns {Promise<{version:number,methods:Record<string,(payload:*)=>Promise<*>>}>}
+           */
+          async getApi(id, version) {
+            const api = await call('extensions.getApi', id, version);
+            const methods = Object.fromEntries(api.methods.map((name) => [
+              name,
+              (payload) => call('extensions.call', id, api.version, name, validateApiPayload(payload)),
+            ]));
+            return Object.freeze({ version: api.version, methods: Object.freeze(methods) });
+          },
         }),
         network: Object.freeze({
           /** Make a host-mediated HTTPS request to a manifest-declared networkHosts entry. Requires network.
@@ -575,6 +623,14 @@
             try { await listener(data.event); }
             catch (error) { send({ type: 'error', message: describe(error) }); }
           }
+        } else if (data.type === 'api-call') {
+          try {
+            const handler = apiHandlers.get(data.method);
+            if (!handler) throw new Error('Unknown exported API method.');
+            send({ type: 'api-result', id: data.id, value: validateApiPayload(await handler(validateApiPayload(data.payload))) });
+          } catch (error) {
+            send({ type: 'api-result', id: data.id, error: describe(error).slice(0, 500) });
+          }
         } else if (data.type === 'command') {
           try { await handlers.get(data.command)?.(); }
           catch (error) { send({ type: 'error', message: describe(error) }); }
@@ -602,7 +658,7 @@
           hostPort.postMessage(message);
         };
         hostPort.onmessage = ({ data: message }) => {
-          if (worker && ['result', 'command', 'vault-event', 'active-note-event', 'application-event', 'surface-event'].includes(message.type)) {
+          if (worker && ['result', 'command', 'vault-event', 'active-note-event', 'application-event', 'surface-event', 'api-call'].includes(message.type)) {
             worker.postMessage(message);
           }
         };
