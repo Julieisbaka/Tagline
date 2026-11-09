@@ -257,7 +257,7 @@ const EditorDiagnostics = Extension.create({
           apply(transaction, decorations) {
             const diagnostics = transaction.getMeta(diagnosticsKey);
             if (diagnostics)
-              return DecorationSet.create(
+              {return DecorationSet.create(
                 transaction.doc,
                 diagnostics.flatMap(({ from, to, message, severity, extensionId, quickFix }) =>
                   from >= 0 && to > from && to <= transaction.doc.content.size
@@ -275,7 +275,7 @@ const EditorDiagnostics = Extension.create({
                       ]
                     : []
                 )
-              );
+              );}
             return decorations.map(transaction.mapping, transaction.doc);
           },
         },
@@ -286,6 +286,6 @@ const EditorDiagnostics = Extension.create({
 });
 
 export function setVisualDiagnostics(editor, diagnostics) {
-  if (!editor?.view) return;
+  if (!editor?.view) {return;}
   editor.view.dispatch(editor.state.tr.setMeta(diagnosticsKey, diagnostics));
 }

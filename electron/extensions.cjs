@@ -454,13 +454,13 @@ function registerExtensions({
       throw new Error('Extension does not have vault:read permission.');
     }
     const root = getVaultRoot?.();
-    if (!root) throw new Error('No vault is open.');
+    if (!root) {throw new Error('No vault is open.');}
     const res = await dialog.showOpenDialog(getWindow(), {
       title: kind === 'folder' ? 'Choose a vault folder' : 'Choose a vault file',
       defaultPath: root,
       properties: kind === 'folder' ? ['openDirectory'] : ['openFile'],
     });
-    if (res.canceled || !res.filePaths[0]) return null;
+    if (res.canceled || !res.filePaths[0]) {return null;}
     const selected = path.resolve(res.filePaths[0]);
     const relative = path.relative(root, selected);
     if (relative.startsWith('..') || path.isAbsolute(relative)) {

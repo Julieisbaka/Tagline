@@ -105,7 +105,7 @@ export default function Editor({
   }, [jump, view]);
 
   useEffect(() => {
-    if (!view) return;
+    if (!view) {return;}
     const diagnostics = new Map();
     const update = (event) => {
       diagnostics.set(

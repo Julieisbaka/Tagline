@@ -238,7 +238,7 @@ export class ExtensionHost {
         this.require('editor');
         const diagnostics = args[0];
         if (!Array.isArray(diagnostics) || diagnostics.length > 200)
-          throw new Error('Diagnostics must be a list of at most 200 ranges.');
+          {throw new Error('Diagnostics must be a list of at most 200 ranges.');}
         const commands = new Set((this.manifest.contributes?.commands || []).map(({ id }) => id));
         const checked = diagnostics.map((item) => {
           if (
@@ -252,16 +252,16 @@ export class ExtensionHost {
             item.message.length > 500 ||
             !['error', 'warning', 'info'].includes(item.severity || 'info')
           )
-            throw new Error('Invalid editor diagnostic.');
+            {throw new Error('Invalid editor diagnostic.');}
           if (JSON.stringify(item).length > 4096)
-            throw new Error('Editor diagnostic exceeds the size limit.');
+            {throw new Error('Editor diagnostic exceeds the size limit.');}
           if (
             item.quickFix &&
             (typeof item.quickFix.title !== 'string' ||
               item.quickFix.title.length > 80 ||
               !commands.has(item.quickFix.command))
           )
-            throw new Error('Quick fixes must reference a declared command.');
+            {throw new Error('Quick fixes must reference a declared command.');}
           return {
             from: item.from,
             to: item.to,
