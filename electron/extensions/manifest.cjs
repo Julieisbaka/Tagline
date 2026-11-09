@@ -1,0 +1,279 @@
+const path = require('node:path');
+const { validateSettingDefinitions } = require('../extensionSettings.mjs');
+const { DEFAULT_LIMITS } = require('../customization.mjs');
+const { validateNetworkHosts } = require('../extensionNetwork.cjs');
+
+// Extensions live in <userData>/extensions/<folder>/manifest.json. The main process only reads and
+// validates files; extension code runs in a supervised sandbox worker (see src/lib/extensions.js).
+const PERMISSIONS = [
+  'editor',
+  'vault:read',
+  'vault:write',
+  'settings',
+  'editor:active-note',
+  'events',
+  'ui',
+  'network',
+  'secrets',
+];
+const ID = /^[a-z0-9][a-z0-9-]{1,63}$/;
+const REVIEW_PERMISSIONS = ['settings', 'editor:active-note', 'events', 'ui', 'network', 'secrets'];
+
+function relativeFile(root, value, ext) {
+  if (
+    typeof value !== 'string' ||
+    !value ||
+    path.posix.isAbsolute(value) ||
+    path.win32.isAbsolute(value) ||
+    /^[a-z]:/i.test(value) ||
+    !value.toLowerCase().endsWith(ext)
+  ) {
+    throw new Error(`Expected a relative ${ext} file path.`);
+  }
+  const full = path.resolve(root, value);
+  const rel = path.relative(root, full);
+  if (rel.startsWith('..') || path.isAbsolute(rel)) {
+    throw new Error(`File escapes the extension folder: ${value}`);
+  }
+  return full;
+}
+
+function validateManifest(value, root, limits = DEFAULT_LIMITS) {
+  const fail = (message) => {
+    throw new Error(`Invalid manifest: ${message}`);
+  };
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    fail('expected a JSON object.');
+  }
+  if (value.manifestVersion !== 1) {
+    fail('manifestVersion must be 1.');
+  }
+  if (typeof value.id !== 'string' || !ID.test(value.id)) {
+    fail('id must be 2-64 lowercase letters, digits or dashes.');
+  }
+  for (const key of ['name', 'version']) {
+    if (typeof value[key] !== 'string' || !value[key].trim() || value[key].length > 80) {
+      fail(`${key} is required.`);
+    }
+  }
+  for (const key of ['description', 'author']) {
+    if (value[key] !== undefined && (typeof value[key] !== 'string' || value[key].length > 500)) {
+      fail(`${key} must be text.`);
+    }
+  }
+  let sourceUrl = '';
+  if (value.sourceUrl !== undefined) {
+    if (
+      typeof value.sourceUrl !== 'string' ||
+      !value.sourceUrl.trim() ||
+      value.sourceUrl !== value.sourceUrl.trim() ||
+      value.sourceUrl.length > 2048
+    ) {
+      fail('sourceUrl must be a valid HTTPS URL of at most 2,048 characters.');
+    }
+    let parsedSourceUrl;
+    try {
+      parsedSourceUrl = new URL(value.sourceUrl);
+    } catch {
+      fail('sourceUrl must be a valid HTTPS URL of at most 2,048 characters.');
+    }
+    if (
+      parsedSourceUrl.protocol !== 'https:' ||
+      !parsedSourceUrl.hostname ||
+      parsedSourceUrl.username ||
+      parsedSourceUrl.password
+    ) {
+      fail('sourceUrl must use HTTPS and cannot contain embedded credentials.');
+    }
+    sourceUrl = parsedSourceUrl.href;
+  }
+  let authors;
+  if (value.authors === undefined) {
+    authors = value.author?.trim() ? [value.author.trim()] : [];
+  } else {
+    if (
+      !Array.isArray(value.authors) ||
+      value.authors.length < 1 ||
+      value.authors.length > 20 ||
+      value.authors.some(
+        (author) =>
+          typeof author !== 'string' ||
+          !author.trim() ||
+          author !== author.trim() ||
+          /[\r\n]/.test(author) ||
+          author.length > 200
+      )
+    ) {
+      fail('authors must be a list of 1 to 20 nonblank names, each at most 200 characters.');
+    }
+    authors = value.authors.map((author) => author.trim());
+    if (new Set(authors).size !== authors.length) {
+      fail('authors must not contain duplicate names.');
+    }
+  }
+  const permissions = value.permissions ?? [];
+  if (!Array.isArray(permissions) || permissions.some((p) => !PERMISSIONS.includes(p))) {
+    fail(`permissions may only contain ${PERMISSIONS.join(', ')}.`);
+  }
+  let networkHosts;
+  try {
+    networkHosts = validateNetworkHosts(value.networkHosts === undefined ? [] : value.networkHosts);
+  } catch (error) {
+    fail(error.message);
+  }
+  if (permissions.includes('network') !== networkHosts.length > 0) {
+    fail('network requires at least one networkHosts entry, and networkHosts requires network.');
+  }
+  const contributes = value.contributes ?? {};
+  if (typeof contributes !== 'object' || Array.isArray(contributes)) {
+    fail('contributes must be an object.');
+  }
+  const commands = contributes.commands ?? [];
+  const themes = contributes.themes ?? [];
+  const settings = validateSettingDefinitions(contributes.settings, limits);
+  const surfaces = {};
+  for (const kind of ['panels', 'webviews']) {
+    const declarations = contributes[kind] ?? [];
+    if (!Array.isArray(declarations) || declarations.length > 10) {
+      fail(`contributes.${kind} must be a list of at most 10.`);
+    }
+    const ids = new Set();
+    surfaces[kind] = declarations.map((item) => {
+      if (
+        !item ||
+        typeof item.id !== 'string' ||
+        !ID.test(item.id) ||
+        ids.has(item.id) ||
+        typeof item.title !== 'string' ||
+        !item.title.trim() ||
+        item.title.length > 80
+      ) {
+        fail(`each ${kind} contribution needs a unique id and a title of up to 80 characters.`);
+      }
+      ids.add(item.id);
+      return { id: item.id, title: item.title.trim() };
+    });
+    if (declarations.length && (!permissions.includes('ui') || !value.main)) {
+      fail(`${kind} require ui permission and a main script.`);
+    }
+  }
+  if (settings.length && !permissions.includes('settings')) {
+    fail('contributes.settings requires the settings permission.');
+  }
+  if (!Array.isArray(commands) || commands.length > limits.extensionCommands) {
+    fail(`contributes.commands must be a list of at most ${limits.extensionCommands}.`);
+  }
+  if (!Array.isArray(themes) || themes.length > limits.extensionThemes) {
+    fail(`contributes.themes must be a list of at most ${limits.extensionThemes}.`);
+  }
+  const seen = new Set();
+  for (const command of commands) {
+    if (
+      !command ||
+      typeof command.id !== 'string' ||
+      !ID.test(command.id) ||
+      seen.has(command.id)
+    ) {
+      fail('each command needs a unique lowercase id.');
+    }
+    seen.add(command.id);
+    if (typeof command.title !== 'string' || !command.title.trim() || command.title.length > 80) {
+      fail(`command ${command.id} needs a title.`);
+    }
+    if (command.key !== undefined && typeof command.key !== 'string') {
+      fail(`command ${command.id} key must be text.`);
+    }
+  }
+  if (commands.length && !value.main) {
+    fail('commands require a main script.');
+  }
+  const ribbonItems = contributes.ribbonItems ?? [];
+  if (!Array.isArray(ribbonItems) || ribbonItems.length > 10) {
+    fail('contributes.ribbonItems must be a list of at most 10.');
+  }
+  const ribbonIds = new Set();
+  for (const item of ribbonItems) {
+    if (
+      !item ||
+      typeof item.id !== 'string' ||
+      !ID.test(item.id) ||
+      ribbonIds.has(item.id) ||
+      typeof item.title !== 'string' ||
+      !item.title.trim() ||
+      item.title.length > 80 ||
+      typeof item.icon !== 'string' ||
+      !/^[a-z-]{1,40}$/.test(item.icon) ||
+      !commands.some((command) => command.id === item.command)
+    ) {
+      fail('each ribbon item needs a unique id, title, icon name and declared command.');
+    }
+    ribbonIds.add(item.id);
+  }
+  if (ribbonItems.length && !permissions.includes('ui')) {
+    fail('ribbon items require ui permission.');
+  }
+  if (value.main !== undefined) {
+    relativeFile(root, value.main, '.js');
+  }
+  themes.forEach((theme) => relativeFile(root, theme, '.json'));
+  return {
+    manifestVersion: 1,
+    id: value.id,
+    name: value.name.trim(),
+    version: value.version.trim(),
+    description: value.description || '',
+    author: value.author || '',
+    authors,
+    sourceUrl,
+    main: value.main || null,
+    permissions: [...new Set(permissions)],
+    networkHosts,
+    contributes: {
+      commands: commands.map(({ id, title, key }) => ({ id, title: title.trim(), key: key || '' })),
+      themes,
+      settings,
+      ribbonItems: ribbonItems.map(({ id, title, icon, command }) => ({
+        id,
+        title: title.trim(),
+        icon,
+        command,
+      })),
+      ...surfaces,
+    },
+  };
+}
+
+function reviewSignature(manifest) {
+  return JSON.stringify({
+    permissions: [...manifest.permissions].sort(),
+    settings: manifest.contributes.settings,
+    ...(manifest.contributes.ribbonItems.length
+      ? { ribbonItems: manifest.contributes.ribbonItems }
+      : {}),
+    ...(manifest.contributes.panels.length || manifest.contributes.webviews.length
+      ? { panels: manifest.contributes.panels, webviews: manifest.contributes.webviews }
+      : {}),
+    ...(manifest.networkHosts?.length ? { networkHosts: [...manifest.networkHosts].sort() } : {}),
+  });
+}
+
+function needsReview(manifest, config) {
+  const approved = config.extensionReviews?.[manifest.id];
+  if (approved !== undefined) {
+    return approved !== reviewSignature(manifest);
+  }
+  // Legacy extensions without a stored review may keep running only when they declare
+  // no review-gated capability; settings, editor:active-note, events, ui and network
+  // always require an explicit, matching review before they are enabled.
+  return manifest.permissions.some((permission) => REVIEW_PERMISSIONS.includes(permission));
+}
+
+module.exports = {
+  validateManifest,
+  relativeFile,
+  reviewSignature,
+  needsReview,
+  PERMISSIONS,
+  ID,
+  REVIEW_PERMISSIONS,
+};

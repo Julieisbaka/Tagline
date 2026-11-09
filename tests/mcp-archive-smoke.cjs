@@ -43,6 +43,9 @@ const assert = require('node:assert/strict');
   for (const file of ['mcp.cjs', 'vaultFiles.cjs']) {
     await fs.copyFile(path.join(root, 'electron', file), path.join(stage, 'electron', file));
   }
+  await fs.cp(path.join(root, 'electron', 'mcp'), path.join(stage, 'electron', 'mcp'), {
+    recursive: true,
+  });
   for (const file of [
     'cardDetection.js',
     'citationExtraction.js',
@@ -54,6 +57,12 @@ const assert = require('node:assert/strict');
     assert.ok(config.build.files.includes(`src/lib/${file}`), `Missing packaged file: ${file}`);
     await fs.copyFile(path.join(root, 'src', 'lib', file), path.join(stage, 'src', 'lib', file));
   }
+  assert.ok(config.build.files.includes('src/lib/citationExtraction/**/*'));
+  await fs.cp(
+    path.join(root, 'src', 'lib', 'citationExtraction'),
+    path.join(stage, 'src', 'lib', 'citationExtraction'),
+    { recursive: true }
+  );
   for (const dep of ['marked', 'yaml']) {
     await fs.cp(path.join(root, 'node_modules', dep), path.join(stage, 'node_modules', dep), {
       recursive: true,

@@ -114,10 +114,11 @@ const manifest = (overrides = {}) =>
     version: '1.0.0',
     authors: ['Ada'],
     main: 'main.js',
+    sourceUrl: 'https://github.com/owner/repo/tree/v1/ext',
     ...overrides,
   });
 
-async function setup(files, options) {
+async function setup(files, { validateSchema, ...options } = {}) {
   const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'tagline-registry-'));
   const installed = [];
   const github = fakeGitHub(files, {
@@ -127,6 +128,8 @@ async function setup(files, options) {
         { url: 'https://github.com/owner/repo/tree/v1/ext' },
         { url: 'https://github.com/owner/repo/tree/v1/broken' },
         { url: 'https://github.com/owner/repo/tree/v1/copy' },
+        { url: 'https://github.com/owner/repo/tree/v1/elsewhere' },
+        { url: 'https://github.com/owner/repo/tree/v1/unsourced' },
       ],
     },
     ...options,
@@ -135,6 +138,7 @@ async function setup(files, options) {
     fetchImpl: github.fetchImpl,
     stagingRoot: () => dir,
     validateManifest,
+    validateSchema,
     limits: () => undefined,
     maxFiles: 10,
     maxBytes: 10000,
@@ -169,7 +173,15 @@ test('registry lists manifests and installs a commit-pinned, hash-verified folde
     'ext/node_modules/pkg/index.js': 'skip',
     'ext/escape.link': '../../secret',
     'broken/manifest.json': '{"manifestVersion":2}',
-    'copy/manifest.json': manifest({ name: 'Copy' }),
+    'copy/manifest.json': manifest({
+      name: 'Copy',
+      sourceUrl: 'https://github.com/OWNER/Repo/tree/v1/copy',
+    }),
+    'elsewhere/manifest.json': manifest({
+      id: 'elsewhere',
+      sourceUrl: 'https://github.com/owner/repo/tree/main/elsewhere',
+    }),
+    'unsourced/manifest.json': manifest({ id: 'unsourced', sourceUrl: undefined }),
     'outside.txt': 'not part of the extension',
   };
   const { dir, registry, installed, requests } = await setup(files);
@@ -179,7 +191,13 @@ test('registry lists manifests and installs a commit-pinned, hash-verified folde
     assert.deepEqual(entries[0].authors, ['Ada']);
     assert.equal(entries[0].sourceUrl, 'https://github.com/owner/repo/tree/v1/ext');
     assert.match(entries[1].error, /manifestVersion/);
-    assert.match(entries[2].error, /already uses the extension id/);
+    assert.match(
+      entries[2].error,
+      /already uses the extension id/,
+      'owner and repository casing may differ'
+    );
+    assert.match(entries[3].error, /sourceUrl must match the registry URL/);
+    assert.match(entries[4].error, /sourceUrl must match the registry URL .* \(found none\)/);
 
     const result = await registry.install(entries[0].url, 'notes-helper');
     assert.equal(result.commit, 'a'.repeat(40));
@@ -222,6 +240,23 @@ test('registry install rejects files that do not match GitHub hashes', async () 
     );
     assert.equal(installed.length, 0);
     assert.deepEqual(await fs.readdir(dir), []);
+  } finally {
+    await fs.rm(dir, { recursive: true, force: true });
+  }
+});
+
+test('registry applies the optional schema check to listed and downloaded manifests', async () => {
+  const files = { 'ext/manifest.json': manifest({ unexpected: true }) };
+  const { dir, registry } = await setup(files, {
+    validateSchema: (value) => {
+      if ('unexpected' in value) {
+        throw new Error('Does not match extension-manifest.schema.json');
+      }
+    },
+  });
+  try {
+    const { entries } = await registry.list();
+    assert.match(entries[0].error, /extension-manifest\.schema\.json/);
   } finally {
     await fs.rm(dir, { recursive: true, force: true });
   }

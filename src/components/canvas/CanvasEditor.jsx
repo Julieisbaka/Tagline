@@ -5,14 +5,12 @@ import {
   createCanvasId,
   createCanvasNode,
   moveCanvasNodes,
-  resolveCanvasLink,
   serializeCanvas,
 } from '../../lib/canvas.js';
 import { binding, KEYBINDINGS, matchesBinding } from '../../lib/keybindings.js';
-import ContextMenu from '../dialogs/ContextMenu.jsx';
-import CanvasEdges from './CanvasEdges.jsx';
-import CanvasNode from './CanvasNode.jsx';
-import { PRESET_COLORS } from './canvasUtils.js';
+import CanvasBoard from './CanvasEditor/CanvasBoard.jsx';
+import CanvasControls from './CanvasEditor/CanvasControls.jsx';
+import openCanvasContextMenu from './CanvasEditor/canvasContextMenu.js';
 
 export default function CanvasEditor({
   canvas,
@@ -216,119 +214,29 @@ export default function CanvasEditor({
     [canvas, node, update]
   );
   const contextMenu = useCallback(
-    (event, nodeId, edgeId, position) => {
-      event.preventDefault?.();
-      event.stopPropagation?.();
-      const targetNode = canvas.nodes.find((item) => item.id === nodeId);
-      const targetEdge = canvas.edges.find((item) => item.id === edgeId);
-      const items = targetNode
-        ? [
-            ...(targetNode.type === 'file'
-              ? [
-                  {
-                    label: 'Open file',
-                    disabled: !resolveLink(targetNode.file, paths),
-                    run: () => onOpenFile(resolveLink(targetNode.file, paths), targetNode.subpath),
-                  },
-                ]
-              : []),
-            ...(targetNode.type === 'link'
-              ? [
-                  {
-                    label: 'Open link',
-                    disabled: !resolveCanvasLink(targetNode.url, paths),
-                    run: () => {
-                      const link = resolveCanvasLink(targetNode.url, paths);
-                      if (link.type === 'file') {
-                        onOpenFile(link.path, link.heading ? `#${link.heading}` : undefined);
-                      } else {
-                        onOpenUrl(link.url);
-                      }
-                    },
-                  },
-                ]
-              : []),
-            ...(targetNode.type !== 'group'
-              ? [
-                  {
-                    label: 'Duplicate node',
-                    run: () => {
-                      const copy = {
-                        ...targetNode,
-                        id: createCanvasId(),
-                        x: targetNode.x + 32,
-                        y: targetNode.y + 32,
-                      };
-                      update({ ...canvas, nodes: [...canvas.nodes, copy] });
-                      setSelectedNode(copy.id);
-                    },
-                  },
-                  { label: 'Group node', run: () => addNode('group', undefined, targetNode) },
-                ]
-              : []),
-            {
-              label: 'Connect nodes',
-              command: 'canvas-connect',
-              run: () => {
-                setConnectionStart(targetNode.id);
-                setConnecting(true);
-              },
-            },
-            {
-              label: 'Delete node',
-              command: 'canvas-delete',
-              danger: true,
-              run: () => removeNode(targetNode.id),
-            },
-          ]
-        : targetEdge
-          ? [
-              {
-                label: 'Reverse connection',
-                run: () =>
-                  update({
-                    ...canvas,
-                    edges: canvas.edges.map((item) =>
-                      item.id === targetEdge.id
-                        ? {
-                            ...item,
-                            fromNode: item.toNode,
-                            toNode: item.fromNode,
-                            fromSide: item.toSide || 'left',
-                            toSide: item.fromSide || 'right',
-                            fromEnd: item.toEnd || 'arrow',
-                            toEnd: item.fromEnd || 'none',
-                          }
-                        : item
-                    ),
-                  }),
-              },
-              {
-                label: 'Delete connection',
-                command: 'canvas-delete',
-                danger: true,
-                run: () => {
-                  update({
-                    ...canvas,
-                    edges: canvas.edges.filter((item) => item.id !== targetEdge.id),
-                  });
-                  setSelectedEdge(null);
-                },
-              },
-            ]
-          : ['text', 'file', 'link', 'group'].map((type) => ({
-              label: t('Add {type}', { type: t(type) }),
-              command: `canvas-add-${type}`,
-              run: () => addNode(type, position, null),
-            }));
-      setSelectedNode(targetNode?.id || null);
-      setSelectedEdge(targetEdge?.id || null);
-      setMenu({
-        x: event.clientX,
-        y: event.clientY,
-        items: [...items, { label: 'Open JSON source', run: onEditSource }],
-      });
-    },
+    (event, nodeId, edgeId, position) =>
+      openCanvasContextMenu(
+        {
+          canvas,
+          paths,
+          onOpenFile,
+          onOpenUrl,
+          update,
+          addNode,
+          removeNode,
+          onEditSource,
+          t,
+          setConnectionStart,
+          setConnecting,
+          setSelectedNode,
+          setSelectedEdge,
+          setMenu,
+        },
+        event,
+        nodeId,
+        edgeId,
+        position
+      ),
     [canvas, paths, onOpenFile, onOpenUrl, update, addNode, removeNode, onEditSource, t]
   );
   const selectEdge = useCallback((id) => {
@@ -509,253 +417,58 @@ export default function CanvasEditor({
         }
       }}
     >
-      <div className='canvas-toolbar'>
-        {['text', 'file', 'link', 'group'].map((type) => (
-          <button key={type} onClick={() => addNode(type)}>
-            {t('Add {type}', { type: t(type) })}
-          </button>
-        ))}
-        <button className={connecting ? 'active' : ''} onClick={connect}>
-          {connecting ? t('Cancel connection') : t('Connect nodes')}
-        </button>
-        {selectedNode && (
-          <button onClick={() => removeNode(selectedNode)}>{t('Delete node')}</button>
-        )}
-        {edge && (
-          <button
-            onClick={() => {
-              update({ ...canvas, edges: canvas.edges.filter((item) => item.id !== edge.id) });
-              setSelectedEdge(null);
-            }}
-          >
-            {t('Delete connection')}
-          </button>
-        )}
-        <label className='canvas-mode-control'>
-          {t('Relation')}
-          <select
-            aria-label={t('Relation')}
-            value={relationType}
-            onChange={(event) => setRelationType(event.target.value)}
-          >
-            <option value='connection'>{t('Connection')}</option>
-            <option value='supports'>{t('Supports')}</option>
-            <option value='answers'>{t('Answers')}</option>
-            <option value='contradicts'>{t('Contradicts')}</option>
-          </select>
-        </label>
-        <button aria-label={t('Zoom out')} onClick={() => zoom(1 / 1.2)}>
-          −
-        </button>
-        <button aria-label={t('Reset zoom')} onClick={() => zoom(1 / camera.k)}>
-          {Math.round(camera.k * 100)}%
-        </button>
-        <button aria-label={t('Zoom in')} onClick={() => zoom(1.2)}>
-          +
-        </button>
-        <button onClick={fit}>{t('Fit canvas')}</button>
-        {connecting && (
-          <span className='canvas-hint' role='status'>
-            {t(connectionStart ? 'Select the target node.' : 'Select a starting node.')}
-          </span>
-        )}
-      </div>
-      {node && (
-        <div className='canvas-inspector'>
-          <label>
-            {t('Node color')}
-            <select
-              aria-label={t('Node color')}
-              value={node.color || ''}
-              onChange={(event) => updateNode(node.id, { color: event.target.value || undefined })}
-            >
-              <option value=''>{t('Default')}</option>
-              {node.color?.startsWith('#') && <option value={node.color}>{node.color}</option>}
-              {PRESET_COLORS.map(([value, , name]) => (
-                <option key={value} value={value}>
-                  {t(name)}
-                </option>
-              ))}
-            </select>
-          </label>
-        </div>
-      )}
-      {edge && (
-        <div className='canvas-inspector'>
-          <label>
-            {t('Connection label')}
-            <input
-              aria-label={t('Connection label')}
-              value={edge.label || ''}
-              onChange={(event) =>
-                update({
-                  ...canvas,
-                  edges: canvas.edges.map((item) =>
-                    item.id === edge.id ? { ...item, label: event.target.value } : item
-                  ),
-                })
-              }
-            />
-          </label>
-          <label>
-            {t('Connection color')}
-            <select
-              aria-label={t('Connection color')}
-              value={edge.color || ''}
-              onChange={(event) =>
-                update({
-                  ...canvas,
-                  edges: canvas.edges.map((item) =>
-                    item.id === edge.id ? { ...item, color: event.target.value || undefined } : item
-                  ),
-                })
-              }
-            >
-              <option value=''>{t('Default')}</option>
-              {edge.color?.startsWith('#') && <option value={edge.color}>{edge.color}</option>}
-              {PRESET_COLORS.map(([value, , name]) => (
-                <option key={value} value={value}>
-                  {t(name)}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label>
-            {t('Endpoint')}
-            <select
-              aria-label={t('Endpoint')}
-              value={edge.toEnd || 'arrow'}
-              onChange={(event) =>
-                update({
-                  ...canvas,
-                  edges: canvas.edges.map((item) =>
-                    item.id === edge.id ? { ...item, toEnd: event.target.value } : item
-                  ),
-                })
-              }
-            >
-              <option value='arrow'>{t('Arrow')}</option>
-              <option value='none'>{t('None')}</option>
-            </select>
-          </label>
-        </div>
-      )}
-      <div
-        className='canvas-board-wrap'
-        ref={viewportRef}
-        style={{
-          backgroundPosition: `${camera.x}px ${camera.y}px`,
-          backgroundSize: `${22 * camera.k}px ${22 * camera.k}px`,
-        }}
-        onContextMenu={(event) => {
-          if (
-            event.target.closest('input, textarea, button, .context-menu, [contenteditable="true"]')
-          ) {
-            return;
-          }
-          const rect = event.currentTarget.getBoundingClientRect();
-          contextMenu(
-            event,
-            event.target.closest('[data-node-id]')?.dataset.nodeId,
-            event.target.closest('[data-edge-id]')?.dataset.edgeId,
-            {
-              x: Math.round((event.clientX - rect.left - camera.x) / camera.k),
-              y: Math.round((event.clientY - rect.top - camera.y) / camera.k),
-            }
-          );
-        }}
-        onPointerMove={moveGesture}
-        onPointerUp={endGesture}
-        onPointerCancel={() => {
-          cancelAnimationFrame(gestureFrame.current);
-          gestureFrame.current = 0;
-          gestureRef.current = null;
-          setGesture(null);
-        }}
-        onPointerDown={(event) => {
-          if (
-            event.button !== 0 ||
-            event.target.closest(
-              '.canvas-node, [data-edge-id], .context-menu, input, textarea, button'
-            )
-          ) {
-            return;
-          }
-          event.preventDefault();
-          setSelectedNode(null);
-          setSelectedEdge(null);
-          setMenu(null);
-          event.currentTarget.focus({ preventScroll: true });
-          event.currentTarget.setPointerCapture(event.pointerId);
-          gestureRef.current = {
-            type: 'pan',
-            clientX: event.clientX,
-            clientY: event.clientY,
-            camera,
-          };
-        }}
-        tabIndex={0}
-        aria-label={t('Canvas workspace')}
-      >
-        <div
-          className='canvas-board'
-          style={{ transform: `translate(${camera.x}px, ${camera.y}px) scale(${camera.k})` }}
-          tabIndex={0}
-          aria-label={t('Canvas')}
-          onKeyDown={(event) => {
-            if (
-              event.target !== event.currentTarget ||
-              !(event.key === 'ContextMenu' || (event.key === 'F10' && event.shiftKey))
-            ) {
-              return;
-            }
-            event.preventDefault();
-            const rect = event.currentTarget.getBoundingClientRect();
-            const wrap = event.currentTarget.parentElement.getBoundingClientRect();
-            const x = Math.max(rect.left, wrap.left) + 32,
-              y = Math.max(rect.top, wrap.top) + 32;
-            contextMenu({ clientX: x, clientY: y }, null, null, {
-              x: Math.round((x - rect.left) / camera.k),
-              y: Math.round((y - rect.top) / camera.k),
-            });
-          }}
-          onClick={() => {
-            setSelectedNode(null);
-            setSelectedEdge(null);
-          }}
-        >
-          <CanvasEdges
-            edges={canvas.edges}
-            nodes={nodesById}
-            selectedEdge={selectedEdge}
-            onSelect={selectEdge}
-            onContextMenu={contextMenu}
-          />
-          {layers.map((layer) => (
-            <div key={layer.name} className={layer.name}>
-              {layer.nodes.map((item, index) => (
-                <CanvasNode
-                  key={item.id}
-                  node={item}
-                  selected={item.id === selectedNode || (connecting && item.id === connectionStart)}
-                  order={index}
-                  onStartGesture={startGesture}
-                  onContextMenu={contextMenu}
-                  onSelect={selectNode}
-                  onUpdate={updateNode}
-                  onRemove={removeNode}
-                  onOpenFile={onOpenFile}
-                  onOpenUrl={onOpenUrl}
-                  onOpenLink={onOpenLink}
-                  paths={paths}
-                  contents={contents}
-                />
-              ))}
-            </div>
-          ))}
-        </div>
-        {menu && <ContextMenu {...menu} onClose={() => setMenu(null)} />}
-      </div>
+      <CanvasControls
+        addNode={addNode}
+        connecting={connecting}
+        connect={connect}
+        selectedNode={selectedNode}
+        removeNode={removeNode}
+        edge={edge}
+        update={update}
+        canvas={canvas}
+        setSelectedEdge={setSelectedEdge}
+        relationType={relationType}
+        setRelationType={setRelationType}
+        zoom={zoom}
+        camera={camera}
+        fit={fit}
+        connectionStart={connectionStart}
+        node={node}
+        updateNode={updateNode}
+        t={t}
+      />
+      <CanvasBoard
+        viewportRef={viewportRef}
+        camera={camera}
+        contextMenu={contextMenu}
+        moveGesture={moveGesture}
+        endGesture={endGesture}
+        gestureFrame={gestureFrame}
+        gestureRef={gestureRef}
+        setGesture={setGesture}
+        setSelectedNode={setSelectedNode}
+        setSelectedEdge={setSelectedEdge}
+        setMenu={setMenu}
+        canvas={canvas}
+        nodesById={nodesById}
+        selectedEdge={selectedEdge}
+        selectEdge={selectEdge}
+        layers={layers}
+        selectedNode={selectedNode}
+        connecting={connecting}
+        connectionStart={connectionStart}
+        startGesture={startGesture}
+        selectNode={selectNode}
+        updateNode={updateNode}
+        removeNode={removeNode}
+        onOpenFile={onOpenFile}
+        onOpenUrl={onOpenUrl}
+        onOpenLink={onOpenLink}
+        paths={paths}
+        contents={contents}
+        menu={menu}
+        t={t}
+      />
     </div>
   );
 }

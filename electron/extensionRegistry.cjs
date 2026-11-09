@@ -71,6 +71,27 @@ function parseSourceUrl(value) {
   };
 }
 
+// GitHub owner and repository names are case-insensitive; refs and folder paths are not.
+function assertSameSource(source, sourceUrl) {
+  let declared = null;
+  try {
+    declared = sourceUrl ? parseSourceUrl(sourceUrl.replace(/\/$/, '')) : null;
+  } catch {
+    // Reported below as a mismatch.
+  }
+  if (
+    !declared ||
+    declared.owner.toLowerCase() !== source.owner.toLowerCase() ||
+    declared.repo.toLowerCase() !== source.repo.toLowerCase() ||
+    declared.ref !== source.ref ||
+    declared.dir !== source.dir
+  ) {
+    throw new Error(
+      `The manifest sourceUrl must match the registry URL ${source.url} (found ${sourceUrl || 'none'}).`
+    );
+  }
+}
+
 function validateRegistry(data) {
   if (!data || typeof data !== 'object' || Array.isArray(data) || data.version !== 1) {
     throw new Error('The extension registry must be an object with version 1.');
@@ -123,6 +144,7 @@ function createExtensionRegistry({
   validateManifest,
   limits,
   installFromFolder,
+  validateSchema,
   maxFiles,
   maxBytes,
 }) {
@@ -177,14 +199,20 @@ function createExtensionRegistry({
     }
   };
 
+  function checkManifest(source, value) {
+    validateSchema?.(value);
+    const manifest = validateManifest(value, path.join(stagingRoot(), 'preview'), limits());
+    assertSameSource(source, manifest.sourceUrl);
+    return manifest;
+  }
+
   async function inspect(source) {
     try {
-      const manifest = validateManifest(
+      const manifest = checkManifest(
+        source,
         await requestJson(
           rawUrl(source, source.ref || 'HEAD', joinPath(source.dir, 'manifest.json'))
-        ),
-        path.join(stagingRoot(), 'preview'),
-        limits()
+        )
       );
       return {
         url: source.url,
@@ -193,7 +221,7 @@ function createExtensionRegistry({
         version: manifest.version,
         description: manifest.description,
         authors: manifest.authors,
-        sourceUrl: manifest.sourceUrl || source.url,
+        sourceUrl: manifest.sourceUrl,
         permissions: manifest.permissions,
         networkHosts: manifest.networkHosts,
         error: null,
@@ -313,8 +341,11 @@ function createExtensionRegistry({
     await fs.mkdir(staging, { recursive: true });
     try {
       await download(source, sha, staging);
-      const manifest = JSON.parse(await fs.readFile(path.join(staging, 'manifest.json'), 'utf8'));
-      if (manifest?.id !== expectedId) {
+      const manifest = checkManifest(
+        source,
+        JSON.parse(await fs.readFile(path.join(staging, 'manifest.json'), 'utf8'))
+      );
+      if (manifest.id !== expectedId) {
         throw new Error('The extension changed since the list loaded. Refresh and try again.');
       }
       return { ...(await installFromFolder(staging)), commit: sha };

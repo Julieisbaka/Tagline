@@ -253,22 +253,31 @@ test('citation transport pins public DNS results and handles redirects, errors a
       return request;
     },
   };
-  vm.runInNewContext(
-    fs.readFileSync(path.join(__dirname, '..', 'electron', 'citationMetadata.cjs'), 'utf8'),
-    {
-      module,
-      URL,
-      Buffer,
-      setTimeout,
-      clearTimeout,
-      require: (name) =>
-        ['node:http', 'node:https'].includes(name)
-          ? client
-          : name === 'node:dns'
-            ? { lookup: (_host, _options, cb) => cb(null, [{ address, family: 4 }]) }
-            : require(name),
+  const context = vm.createContext({ URL, Buffer, setTimeout, clearTimeout });
+  const modules = new Map();
+  const loadModule = (filename) => {
+    if (modules.has(filename)) {
+      return modules.get(filename).exports;
     }
-  );
+    const loaded = { exports: {} };
+    modules.set(filename, loaded);
+    const evaluate = vm.runInContext(
+      '(function (module, require) {\n' + fs.readFileSync(filename, 'utf8') + '\n})',
+      context,
+      { filename }
+    );
+    evaluate(loaded, (name) =>
+      ['node:http', 'node:https'].includes(name)
+        ? client
+        : name === 'node:dns'
+          ? { lookup: (_host, _options, cb) => cb(null, [{ address, family: 4 }]) }
+          : name.startsWith('.')
+            ? loadModule(path.resolve(path.dirname(filename), name))
+            : require(name)
+    );
+    return loaded.exports;
+  };
+  module.exports = loadModule(path.join(__dirname, '..', 'electron', 'citationMetadata.cjs'));
   const extract = () => module.exports.extractCitation('https://example.com/article');
   assert.equal((await extract()).author, 'A Writer');
   assert.equal(

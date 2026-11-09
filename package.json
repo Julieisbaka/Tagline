@@ -65,6 +65,7 @@
       "src/lib/defaultSettings.json",
       "src/lib/cardDetection.js",
       "src/lib/citationExtraction.js",
+      "src/lib/citationExtraction/**/*",
       "src/lib/evidenceCheckup.js",
       "src/lib/calendar.js",
       "src/lib/frontmatter.js",

@@ -221,6 +221,7 @@ tagline.commands.register('save-checks', async () => {
       id: 'demo',
       name: 'Demo',
       version: '1.1.0',
+      sourceUrl: 'https://github.com/example/demo',
     },
     'https://raw.githubusercontent.com/example/word-count/HEAD/manifest.json': {
       manifestVersion: 1,
@@ -230,6 +231,7 @@ tagline.commands.register('save-checks', async () => {
       authors: ['Registry Author'],
       description: 'Counts words in notes.',
       permissions: ['vault:read'],
+      sourceUrl: 'https://github.com/example/word-count',
     },
   };
   const originalFetch = global.fetch;

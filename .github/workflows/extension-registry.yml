@@ -6,7 +6,9 @@ on:
     paths:
       - extensions/registry.json
       - schemas/extension-registry.schema.json
+      - schemas/extension-manifest.schema.json
       - electron/extensionRegistry.cjs
+      - scripts/check-extension-registry.cjs
   workflow_dispatch:
 
 permissions:

@@ -167,8 +167,8 @@
             <ol>
               <li>
                 Publish the extension folder (with <code>manifest.json</code> at its root) in a
-                public GitHub repository. Declare <code>authors</code> and
-                <code>sourceUrl</code> so users can see who maintains it.
+                public GitHub repository. Declare <code>authors</code>, and set
+                <code>sourceUrl</code> to exactly the URL you will list in the registry.
               </li>
               <li>
                 Open a pull request that appends its URL to
@@ -187,9 +187,17 @@
               <code>https://github.com/owner/repo/tree/&lt;ref&gt;/&lt;folder&gt;</code> for a tag,
               branch, or commit and a subfolder. The ref cannot contain <code>/</code>. Pointing at
               a tag pins users to a reviewed release; pointing at a branch lets users update when
-              you push. Each extension <code>id</code> may appear only once. A pull-request check
-              validates the file against
-              <code>schemas/extension-registry.schema.json</code> and loads every listed manifest.
+              you push. Each extension <code>id</code> may appear only once.
+            </p>
+            <p>
+              The manifest's <code>sourceUrl</code> must point to the same repository, ref, and
+              folder as its registry URL (owner and repository names are compared
+              case-insensitively), so a registry entry cannot claim someone else's extension. A
+              pull-request check validates <code>extensions/registry.json</code> against
+              <code>schemas/extension-registry.schema.json</code>, then validates every listed
+              manifest against <code>schemas/extension-manifest.schema.json</code> and Tagline's
+              runtime rules. The app enforces the runtime rules and the <code>sourceUrl</code> match
+              again when listing and installing.
             </p>
           </section>
 
