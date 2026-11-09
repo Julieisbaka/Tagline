@@ -1,0 +1,193 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description"
+    content="A practical guide to Markdown notes, debate evidence cards, wiki links, templates, and revision history in Tagline.">
+  <meta name="theme-color" content="#ffffff">
+  <title>Notes &amp; evidence — Tagline</title>
+  <link rel="icon" href="../favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="../styles/base.css">
+  <link rel="stylesheet" href="../styles/docs.css">
+  <link rel="stylesheet" href="../styles/responsive.css">
+  <script src="../scripts/highlight.js" defer></script>
+</head>
+
+<body>
+  <a class="skip-link" href="#main">Skip to content</a>
+  <header class="site-header">
+    <a class="brand" href="../index.html"><img class="brand-mark" src="../favicon.svg" alt=""
+        aria-hidden="true"><span>Tagline</span></a>
+    <nav class="main-nav" aria-label="Main navigation">
+      <a href="../index.html#features">Features</a>
+      <a href="../pricing.html">Pricing</a>
+      <a href="index.html" aria-current="location">Docs</a>
+      <a href="https://github.com/Julieisbaka/Tagline">GitHub</a>
+    </nav>
+    <a class="button button-small button-outline" href="https://github.com/Julieisbaka/Tagline/releases/latest">Get
+      Tagline <span aria-hidden="true">↗</span></a>
+  </header>
+
+  <main id="main" class="docs-page section-wrap">
+    <div class="docs-hero">
+      <p class="eyebrow"><span class="eyebrow-mark" aria-hidden="true">01</span> Notes &amp; evidence</p>
+      <h1>Build a source-backed case.</h1>
+      <p>A focused guide to writing in Markdown, shaping debate cards, and keeping related research connected inside
+        your vault.</p>
+    </div>
+
+    <div class="docs-shell">
+      <aside class="docs-sidebar">
+        <h2>Guides</h2>
+        <nav aria-label="Documentation">
+          <a href="index.html">Documentation home</a>
+          <a href="getting-started.html">Getting started</a>
+          <a href="features.html">Working in Tagline</a>
+          <a href="notes-and-evidence.html" aria-current="page">Notes &amp; evidence</a>
+          <a href="search-and-citations.html">Search &amp; citations</a>
+          <a href="speech-workflows.html">Speech workflows</a>
+          <a href="integrations.html">Integrations</a>
+          <a href="google-docs.html">Google Docs transfer</a>
+          <a href="customization.html">Themes &amp; extensions</a>
+          <a href="theme-api.html">Theme format</a>
+          <a href="extension-api.html">Extension API</a>
+          <a href="json-formats.html">JSON formats</a>
+        </nav>
+      </aside>
+
+      <article class="docs-article">
+        <nav class="article-toc" aria-label="On this page">
+          <span>On this page</span>
+          <a href="#create-note">Create a note</a>
+          <a href="#edit-modes">Choose an editing mode</a>
+          <a href="#evidence-card">Format an evidence card</a>
+          <a href="#link-notes">Connect your notes</a>
+          <a href="#templates-history">Templates &amp; history</a>
+        </nav>
+
+        <section id="create-note">
+          <p class="article-kicker">01 / Start with a note</p>
+          <h2>Create a note in your vault</h2>
+          <ol class="guide-steps">
+            <li><span><strong>Open the vault</strong><br>Choose a folder from the file explorer. A vault is an ordinary
+                folder on your device.</span></li>
+            <li><span><strong>Create or open a Markdown note</strong><br>Notes are plain <code>.md</code> files, so they
+                remain readable outside Tagline.</span></li>
+            <li><span><strong>Keep source details nearby</strong><br>Use headings to organize claims and include the
+                author, publication, date, and a link or page reference with each piece of evidence.</span></li>
+          </ol>
+          <div class="docs-callout">
+            <p><strong>Files stay portable.</strong> Notes are stored in the vault; settings and downloaded local models
+              live in Tagline’s application profile instead.</p>
+          </div>
+        </section>
+
+        <section id="edit-modes">
+          <p class="article-kicker">02 / Write the way you prefer</p>
+          <h2>Choose an editing mode</h2>
+          <div class="mode-cards">
+            <div><span class="mode-card-icon">✎</span>
+              <h3>Visual</h3>
+              <p>Edit formatted Markdown without looking at every syntax marker.</p>
+            </div>
+            <div><span class="mode-card-icon">&lt;/&gt;</span>
+              <h3>Source</h3>
+              <p>Work directly with literal Markdown and YAML frontmatter.</p>
+            </div>
+            <div><span class="mode-card-icon">◉</span>
+              <h3>Read</h3>
+              <p>Review the rendered note without editing its text.</p>
+            </div>
+          </div>
+          <p>Switch modes from the note header. Properties stored in YAML frontmatter can be inspected from the
+            Properties section or edited in Source mode.</p>
+        </section>
+
+        <section id="evidence-card">
+          <p class="article-kicker">03 / Make evidence reusable</p>
+          <h2>Format a debate card</h2>
+          <p>In Visual mode, select text and use the formatting toolbar or keyboard shortcuts. The default debate-card
+            shortcuts are configurable in <strong>Settings &gt; Keyboard shortcuts</strong>:</p>
+          <div class="shortcut-grid">
+            <div><kbd>F4</kbd>–<kbd>F7</kbd><span>Apply debate-card headings</span></div>
+            <div><kbd>F8</kbd><span>Format citation / bold</span></div>
+            <div><kbd>F9</kbd> · <kbd>F10</kbd><span>Underline · emphasis</span></div>
+            <div><kbd>F11</kbd> · <kbd>F12</kbd><span>Highlight · clear formatting</span></div>
+          </div>
+          <p>Mac keyboards may require <kbd>Fn</kbd> with function keys. You can change the bindings in Settings rather
+            than relying on the defaults.</p>
+          <div class="example-card">
+            <span class="example-label">A useful card keeps the warrant and source together</span>
+            <strong>GRID RESILIENCE</strong>
+            <p>“A diversified portfolio of generation and storage strengthens reliability…”</p>
+            <small>U.S. Department of Energy, <em>National Transmission Needs Study</em> (2024)</small>
+          </div>
+          <p>When a card has a DOI, arXiv ID, or ISBN but is missing its title or year, choose
+            <strong>Fix with metadata</strong> next to the card to fill in the missing source details. Review the
+            metadata before relying on it.</p>
+          <p>For a complete citation workflow, see <a href="search-and-citations.html">Search &amp; citations</a>. To
+            send highlighted evidence to a speech document, see <a href="speech-workflows.html">Speech workflows</a>.
+          </p>
+        </section>
+
+        <section id="link-notes">
+          <p class="article-kicker">04 / Keep ideas connected</p>
+          <h2>Link notes and navigate your research</h2>
+          <p>Wiki links connect notes in the same vault. Use <code>[[Note]]</code> for a note,
+            <code>[[Note#Heading]]</code> for a section, or <code>[[Note|Label]]</code> to show custom link text.
+          </p>
+          <ol>
+            <li>Type <code>[[</code> in a note to open the link picker.</li>
+            <li>Use the arrow keys to choose a suggestion, then press Enter.</li>
+            <li>Confirm with <strong>Insert link</strong>. Existing heading and label suffixes are preserved when
+              changing the target.</li>
+          </ol>
+          <p>Use backlinks, mentions, tags, an outline, and graph view to find connected material. Press
+            <kbd>Ctrl+F</kbd> on Windows/Linux or <kbd>Cmd+F</kbd> on macOS to find and replace text in the current
+            note; replacements can be undone.
+          </p>
+          <p>To link to a note from outside Tagline, right-click its file in the explorer and choose
+            <strong>Copy Tagline link</strong>. A link such as
+            <code>tagline://note/Cases/Round%201.md#Plan%20A</code> opens the note and jumps to its “Plan A” heading.
+            Links only open notes in the vault already open; they never switch vaults or create files. See the
+            <a href="integrations.html#tagline-links">Tagline URI format and rules</a>.</p>
+        </section>
+
+        <section id="templates-history">
+          <p class="article-kicker">05 / Reuse and protect your work</p>
+          <h2>Use templates and revision history</h2>
+          <p>Put reusable Markdown files in a <code>Templates/</code> folder in your vault. When inserting a template,
+            Tagline can replace these placeholders:</p>
+          <ul class="placeholder-list">
+            <li><code>{{date}}</code> and <code>{{time}}</code> — current date and time</li>
+            <li><code>{{title}}</code> and <code>{{path}}</code> — target note title and vault-relative filename</li>
+            <li><code>{{content}}</code> and <code>{{properties}}</code> — note body and YAML properties</li>
+          </ul>
+          <p>Revision history is available from the note header and stored in <code>.tagline/history</code> inside the
+            vault. Adjust retention under <strong>Settings &gt; Files and folders</strong>. Back up the vault like any
+            other important folder.</p>
+        </section>
+
+        <p class="docs-source">Keyboard bindings can be customized in <strong>Settings &gt; Keyboard shortcuts</strong>.
+          See also <a href="features.html#notes">the workspace overview</a>.</p>
+        <nav class="guide-next" aria-label="More task guides">
+          <a href="search-and-citations.html"><small>Next guide</small><strong>Search &amp; citations →</strong></a>
+          <a href="speech-workflows.html"><small>Related guide</small><strong>Speech workflows →</strong></a>
+        </nav>
+      </article>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <a class="brand" href="../index.html"><img class="brand-mark" src="../favicon.svg" alt=""
+        aria-hidden="true"><span>Tagline</span></a>
+    <p>A local-first workspace for policy debate.</p>
+    <nav aria-label="Footer navigation"><a href="../index.html">Home</a><a href="../pricing.html">Pricing</a><a
+        href="index.html">Documentation</a><a href="../privacy.html">Privacy</a><a href="../terms.html">Terms</a><a
+        href="https://github.com/Julieisbaka/Tagline">App repository</a></nav>
+  </footer>
+</body>
+
+</html>

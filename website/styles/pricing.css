@@ -1,0 +1,152 @@
+.pricing-page {
+  min-height: calc(100vh - 148px);
+  padding-block: 64px 90px;
+}
+
+.pricing-hero {
+  max-width: 680px;
+  margin: 0 auto 45px;
+  text-align: center;
+}
+
+.pricing-hero .eyebrow {
+  justify-content: center;
+}
+
+.pricing-hero h1 {
+  margin-bottom: 18px;
+  font-size: clamp(46px, 6vw, 72px);
+  line-height: 1.04;
+}
+
+.pricing-hero h1 span {
+  color: var(--purple);
+}
+
+.pricing-hero>p:not(.eyebrow) {
+  max-width: 550px;
+  margin: 0 auto 23px;
+  color: var(--muted);
+  font-size: 16px;
+  line-height: 1.75;
+}
+
+.pricing-card {
+  width: min(650px, 100%);
+  margin: 0 auto;
+  padding: clamp(22px, 5vw, 38px);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: #fff;
+  box-shadow: 0 12px 38px #0000000a;
+}
+
+.pricing-card-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+  padding-bottom: 22px;
+  border-bottom: 1px solid var(--line);
+}
+
+.pricing-label {
+  margin-bottom: 7px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 650;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.pricing-card h2 {
+  margin: 0;
+  font-size: 24px;
+}
+
+.pricing-amount {
+  margin: 0;
+  color: var(--ink);
+  font-size: 38px;
+  font-weight: 750;
+  letter-spacing: -0.06em;
+  white-space: nowrap;
+}
+
+.pricing-amount span {
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0;
+}
+
+.pricing-features {
+  display: grid;
+  gap: 13px;
+  margin: 24px 0;
+  padding: 0;
+  list-style: none;
+}
+
+.pricing-features li {
+  display: flex;
+  align-items: flex-start;
+  gap: 11px;
+  color: #41464b;
+  font-size: 14px;
+  line-height: 1.55;
+}
+
+.pricing-features li span {
+  color: #1f6f49;
+  font-weight: 800;
+}
+
+.pricing-card>.button {
+  width: 100%;
+}
+
+.pricing-notes {
+  max-width: 650px;
+  margin: 39px auto 0;
+  color: var(--muted);
+}
+
+.pricing-notes h2 {
+  margin-bottom: 11px;
+  color: var(--ink);
+  font-size: 18px;
+}
+
+.pricing-notes p {
+  font-size: 13px;
+  line-height: 1.75;
+}
+
+.pricing-notes .text-link {
+  display: inline-block;
+  margin-top: 4px;
+}
+
+@media (max-width: 680px) {
+  .pricing-page {
+    padding-block: 44px 64px;
+  }
+
+  .pricing-hero {
+    margin-bottom: 32px;
+  }
+
+  .pricing-hero>p:not(.eyebrow) {
+    font-size: 14px;
+  }
+
+  .pricing-card-heading {
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .pricing-amount {
+    font-size: 32px;
+  }
+}

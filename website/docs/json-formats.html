@@ -1,0 +1,183 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description"
+    content="Learn which JSON formats Tagline uses and how to validate them with the project's schemas.">
+  <meta name="theme-color" content="#ffffff">
+  <title>JSON formats and schemas — Tagline</title>
+  <link rel="icon" href="../favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="../styles/base.css">
+  <link rel="stylesheet" href="../styles/docs.css">
+  <link rel="stylesheet" href="../styles/responsive.css">
+  <script src="../scripts/highlight.js" defer></script>
+</head>
+
+<body>
+  <a class="skip-link" href="#main">Skip to content</a>
+  <header class="site-header">
+    <a class="brand" href="../index.html"><img class="brand-mark" src="../favicon.svg" alt=""
+        aria-hidden="true"><span>Tagline</span></a>
+    <nav class="main-nav" aria-label="Main navigation">
+      <a href="../index.html#features">Features</a>
+      <a href="../pricing.html">Pricing</a>
+      <a href="index.html" aria-current="location">Docs</a>
+      <a href="https://github.com/Julieisbaka/Tagline">GitHub</a>
+    </nav>
+    <a class="button button-small button-outline" href="https://github.com/Julieisbaka/Tagline/releases/latest">
+      Get Tagline <span aria-hidden="true">↗</span>
+    </a>
+  </header>
+
+  <main id="main" class="docs-page section-wrap">
+    <div class="docs-hero">
+      <p class="eyebrow"><span class="eyebrow-mark" aria-hidden="true">06</span> Technical reference</p>
+      <h1>JSON formats and schemas.</h1>
+      <p>Use the project's schemas to validate Tagline files, get editor completion, and understand which data is
+        portable between workspaces.</p>
+    </div>
+
+    <div class="docs-shell">
+      <aside class="docs-sidebar">
+        <h2>Guides</h2>
+        <nav aria-label="Documentation">
+          <a href="index.html">Documentation home</a>
+          <a href="getting-started.html">Getting started</a>
+          <a href="features.html">Working in Tagline</a>
+          <a href="notes-and-evidence.html">Notes &amp; evidence</a>
+          <a href="search-and-citations.html">Search &amp; citations</a>
+          <a href="speech-workflows.html">Speech workflows</a>
+          <a href="integrations.html">Integrations</a>
+          <a href="google-docs.html">Google Docs transfer</a>
+          <a href="customization.html">Themes &amp; extensions</a>
+          <a href="theme-api.html">Theme format</a>
+          <a href="extension-api.html">Extension API</a>
+          <a href="json-formats.html" aria-current="page">JSON formats</a>
+        </nav>
+      </aside>
+
+      <article class="docs-article">
+        <nav class="article-toc" aria-label="On this page">
+          <span>On this page</span>
+          <a href="#formats">Supported formats</a>
+          <a href="#editor-support">Editor support</a>
+          <a href="#add-schema">Add schema metadata</a>
+        </nav>
+
+        <section id="formats">
+          <h2>Supported formats</h2>
+          <p>Tagline includes draft-07 JSON Schemas for its user-authored and exchanged formats. The schemas are
+            maintained with the application source and can be downloaded for offline use.</p>
+          <div class="table-scroll">
+            <table>
+              <thead>
+                <tr>
+                  <th>Format</th>
+                  <th>Schema</th>
+                  <th>Where it is used</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>Speech flow (<code>.flow</code>)</td>
+                  <td><a
+                      href="https://github.com/Julieisbaka/Tagline/blob/main/schemas/flow.schema.json">flow.schema.json</a>
+                  </td>
+                  <td>Multi-sheet debate speech grids.</td>
+                </tr>
+                <tr>
+                  <td>Extension manifest</td>
+                  <td><a
+                      href="https://github.com/Julieisbaka/Tagline/blob/main/schemas/extension-manifest.schema.json">extension-manifest.schema.json</a>
+                  </td>
+                  <td>Extension identity, entry points, contributions, and permissions.</td>
+                </tr>
+                <tr>
+                  <td>Theme</td>
+                  <td><a
+                      href="https://github.com/Julieisbaka/Tagline/blob/main/schemas/theme.schema.json">theme.schema.json</a>
+                  </td>
+                  <td>Imported/exported themes and themes contributed by extensions.</td>
+                </tr>
+                <tr>
+                  <td>Exported extension settings</td>
+                  <td><a
+                      href="https://github.com/Julieisbaka/Tagline/blob/main/schemas/extension-settings.schema.json">extension-settings.schema.json</a>
+                  </td>
+                  <td>Settings exported for an extension.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <p>Canvas files use the separate <a href="https://jsoncanvas.org/spec/1.0/">JSON Canvas 1.0 specification</a>.
+            Tagline stores them as <code>.canvas</code> files inside the vault.</p>
+        </section>
+
+        <section id="editor-support">
+          <h2>Enable validation and completion in VS Code</h2>
+          <p>The Tagline repository includes VS Code settings that associate speech flows, bundled/demo themes,
+            extension manifests, and exported settings with their schemas. When working in another workspace, copy the
+            schemas together and define matching <code>json.schemas</code> associations.</p>
+          <p>For example, this setting associates every <code>.flow</code> file in the workspace with a local copy of
+            the flow schema:</p>
+          <pre><code class="language-json">{
+  "json.schemas": [
+    {
+      "fileMatch": ["*.flow"],
+      "url": "./schemas/flow.schema.json"
+    }
+  ]
+}</code></pre>
+          <p>Set <code>.flow</code> files to the JSON language mode if VS Code does not recognize them. Keep the schemas
+            in the same relative layout when copying the folder: the theme and extension-settings schemas reference
+            definitions in the extension-manifest schema.</p>
+        </section>
+
+        <section id="add-schema">
+          <h2>Reference a schema from a file</h2>
+          <p>Alternatively, add a <code>$schema</code> property near the top of a JSON document. This example assumes
+            the JSON file sits beside a <code>schemas</code> folder:</p>
+          <pre><code class="language-json">{
+  "$schema": "./schemas/flow.schema.json",
+  "version": 1,
+  "sheets": [
+    {
+      "name": "Case",
+      "columns": ["1AC", "1NC"],
+      "rows": [["Claim", "Answer"]]
+    }
+  ]
+}</code></pre>
+          <p>References are relative to each schema's location rather than an absolute remote ID, so a copied schema
+            folder can be used offline. Some application import/export paths normalize files; do not rely on
+            <code>$schema</code> being retained by every exporter.
+          </p>
+        </section>
+
+        <div class="docs-callout">
+          <p><strong>Related:</strong> See <a href="customization.html#themes">themes</a>, the <a
+              href="customization.html#extensions">extension overview</a>, and the <a
+              href="extension-api.html">Extension API reference</a> for application setup and development.</p>
+        </div>
+      </article>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <a class="brand" href="../index.html"><img class="brand-mark" src="../favicon.svg" alt=""
+        aria-hidden="true"><span>Tagline</span></a>
+    <p>A local-first workspace for policy debate.</p>
+    <nav aria-label="Footer navigation">
+      <a href="../index.html">Home</a>
+      <a href="../pricing.html">Pricing</a>
+      <a href="index.html">Documentation</a>
+      <a href="../privacy.html">Privacy</a>
+      <a href="../terms.html">Terms</a>
+      <a href="https://github.com/Julieisbaka/Tagline">App repository</a>
+    </nav>
+  </footer>
+</body>
+
+</html>

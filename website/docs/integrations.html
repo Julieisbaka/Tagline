@@ -1,0 +1,218 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description"
+    content="Set up Tagline's optional Tabroom, OpenCaselist, local-model, Google Docs, and MCP integrations.">
+  <meta name="theme-color" content="#ffffff">
+  <title>Integrations — Tagline</title>
+  <link rel="icon" href="../favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="../styles/base.css">
+  <link rel="stylesheet" href="../styles/docs.css">
+  <link rel="stylesheet" href="../styles/responsive.css">
+  <script src="../scripts/highlight.js" defer></script>
+</head>
+
+<body>
+  <a class="skip-link" href="#main">Skip to content</a>
+  <header class="site-header">
+    <a class="brand" href="../index.html"><img class="brand-mark" src="../favicon.svg" alt=""
+        aria-hidden="true"><span>Tagline</span></a>
+    <nav class="main-nav" aria-label="Main navigation">
+      <a href="../index.html#features">Features</a>
+      <a href="../pricing.html">Pricing</a>
+      <a href="index.html" aria-current="location">Docs</a>
+      <a href="https://github.com/Julieisbaka/Tagline">GitHub</a>
+    </nav>
+    <a class="button button-small button-outline" href="https://github.com/Julieisbaka/Tagline/releases/latest">
+      Get Tagline <span aria-hidden="true">↗</span>
+    </a>
+  </header>
+
+  <main id="main" class="docs-page section-wrap">
+    <div class="docs-hero">
+      <p class="eyebrow"><span class="eyebrow-mark" aria-hidden="true">03</span> Optional connections</p>
+      <h1>Integrations</h1>
+      <p>Connect the tools that help with your workflow. Integrations are optional; choose when to sign in, download
+        local models, send a file, or give an AI client access to Tagline.</p>
+    </div>
+
+    <div class="docs-shell">
+      <aside class="docs-sidebar">
+        <h2>Guides</h2>
+        <nav aria-label="Documentation">
+          <a href="index.html">Documentation home</a>
+          <a href="getting-started.html">Getting started</a>
+          <a href="features.html">Working in Tagline</a>
+          <a href="notes-and-evidence.html">Notes &amp; evidence</a>
+          <a href="search-and-citations.html">Search &amp; citations</a>
+          <a href="speech-workflows.html">Speech workflows</a>
+          <a href="integrations.html" aria-current="page">Integrations</a>
+          <a href="google-docs.html">Google Docs transfer</a>
+          <a href="customization.html">Themes &amp; extensions</a>
+          <a href="theme-api.html">Theme format</a>
+          <a href="extension-api.html">Extension API</a>
+          <a href="json-formats.html">JSON formats</a>
+        </nav>
+      </aside>
+
+      <article class="docs-article">
+        <h2 id="agent-access">Agent access (MCP)</h2>
+        <p>Tagline can share notes with compatible AI clients through its local Model Context Protocol (MCP) server.
+          Open <strong>Settings &gt; Integrations &gt; Agent access (MCP)</strong> and enable it. Copy the configuration
+          snippet for your client: VS Code (<code>.vscode/mcp.json</code>), Copilot CLI
+          (<code>~/.copilot/mcp-config.json</code>), or Claude Code (use <code>claude mcp add</code>). Claude Desktop
+          requires <code>npx mcp-remote</code>.</p>
+        <p>The local endpoint is <code>http://127.0.0.1:38419/mcp</code>. Requests use an
+          <code>Authorization:</code> <code>Bearer</code> <code>&lt;token&gt;</code> header; keep the token private.</p>
+        <p>Available tools:</p>
+        <ul>
+          <li><strong>Read:</strong> <code>get_status</code>, <code>list_notes</code>, <code>read_note</code>,
+            <code>get_outline</code>, and <code>search_notes</code>.</li>
+          <li><strong>Write:</strong> <code>write_note</code>, <code>append_to_note</code>,
+            <code>create_folder</code>, <code>rename_path</code>, and <code>delete_path</code>. Deleting moves the
+            item to the operating system trash.</li>
+          <li><strong>Evidence:</strong>
+            <ul>
+              <li><code>list_cards</code> lists evidence cards and citation candidates. Accepts an optional Markdown
+                <code>path</code>, <code>offset</code>, and <code>limit</code>.</li>
+              <li><code>extract_citation</code> extracts a citation candidate from card Markdown. Accepts
+                <code>text</code> up to 100,000 characters.</li>
+              <li><code>validate_isbn</code> checks an ISBN-10 or ISBN-13 checksum without looking up a book. Accepts
+                <code>isbn</code> up to 100 characters.</li>
+              <li><code>audit_evidence</code> finds missing or uncertain citation fields and stale years. Accepts an
+                optional Markdown <code>path</code>, <code>staleYears</code> (1–100), <code>offset</code>, and
+                <code>limit</code>.</li>
+            </ul>
+          </li>
+          <li><strong>UI:</strong> <code>open_note</code>.</li>
+        </ul>
+        <p>The server also uses <code>tagline://note/&lt;path&gt;</code> for note resources. See the
+          <a href="#tagline-links">Tagline link format</a> below.</p>
+
+        <h2 id="tagline-links">Open notes with Tagline links</h2>
+        <p>Right-click a file in the explorer and choose <strong>Copy Tagline link</strong> to generate an app link.
+          The URI format is:</p>
+        <pre><code class="language-text">tagline://note/&lt;path&gt;[#&lt;heading&gt;]</code></pre>
+        <div class="table-scroll">
+          <table>
+            <thead>
+              <tr>
+                <th>Part</th>
+                <th>Meaning</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Scheme</td>
+                <td><code>tagline</code>, case-insensitive.</td>
+              </tr>
+              <tr>
+                <td>Host</td>
+                <td>The action. Only <code>note</code> is supported; it opens a note.</td>
+              </tr>
+              <tr>
+                <td>Path</td>
+                <td>A vault-relative note path, with each segment percent-encoded and <code>/</code> as the separator.</td>
+              </tr>
+              <tr>
+                <td>Fragment</td>
+                <td>An optional percent-encoded heading to jump to, matched by slug and limited to 200 characters.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <p>For example, <code>tagline://note/Cases/Round%201.md#Plan%20A</code> opens
+          <code>Cases/Round 1.md</code> and jumps to the “Plan A” heading.</p>
+        <h3>URI validation</h3>
+        <p>A URI can be at most 2,000 characters long and must not include a username, password, or port. The path is
+          percent-decoded once, then rejected if it:</p>
+        <ul>
+          <li>Is empty.</li>
+          <li>Contains a NUL character or a backslash.</li>
+          <li>Is absolute or starts with a drive letter such as <code>C:</code>.</li>
+          <li>Contains an empty segment or a segment starting with <code>.</code>, including <code>.</code>,
+            <code>..</code>, and hidden files.</li>
+        </ul>
+        <p>Other hosts, such as <code>tagline://settings/x</code>, are ignored. A fragment with invalid percent
+          encoding is dropped, but the note still opens.</p>
+        <h3>Opening behavior</h3>
+        <p>Links open only in the vault that is already open. They never switch vaults, create files, or run commands.
+          If the note is not in the open vault, Tagline shows <q>Link target not found in this vault</q>.</p>
+        <p>At most 20 links can be queued at once. Links arrive through the operating system: macOS
+          <code>open-url</code> events, or the command line on Windows and Linux.</p>
+
+        <h2 id="local-models">Local search and analysis models</h2>
+        <p>Download the embedding model in <strong>Settings &gt; Integrations</strong> to enable semantic or hybrid
+          search. The optional hypothesis-testing and note-summary tools use separate models that run locally after
+          download. These tools are on demand; they do not change the source note.</p>
+
+        <h2 id="tabroom">Tabroom tournaments</h2>
+        <p>Open <strong>Settings &gt; Integrations &gt; Open Tabroom</strong>, or use the “view and save tournament
+          data” command. Enter a tournament ID or a Tabroom tournament URL containing <code>tourn_id</code>. Public
+          tournament data can be read without signing in; signing in opens the official site in a separate, sandboxed
+          window.</p>
+        <p>Review the tournament viewer before saving a JSON backup. Backups may contain personal or restricted data, so
+          store and share them carefully. Tagline does not guess missing competitor or team IDs.</p>
+
+        <h2 id="opencaselist">OpenCaselist</h2>
+        <p>Open <strong>Settings &gt; Integrations &gt; Open OpenCaselist</strong>. Sign in on the official site in a
+          separate window. You can browse caselists and disclosed materials, search a selected caselist, and add or edit
+          rounds and citations. Downloaded files go into the current vault; existing files are not overwritten.</p>
+        <p>Team matching may require identity verification when available details are incomplete or ambiguous. Tagline
+          labels those results rather than treating a name-only match as certain.</p>
+
+        <h2 id="google-docs">Google Docs and Drive</h2>
+        <p>Tagline offers direct Google sign-in and an optional Google Apps Script webhook. Both transfer a note or
+          supported DOCX/HTML file into a <strong>new</strong> Google Doc in the selected account. Nothing is uploaded
+          until you confirm the transfer. Follow the <a href="google-docs.html">complete Google Docs setup and transfer
+            guide</a>.</p>
+        <h3>Direct Google sign-in <span class="feature-status">(In development)</span></h3>
+        <ol>
+          <li>Open <strong>Settings &gt; Integrations &gt; Google Docs / Drive</strong>.</li>
+          <li>Choose <strong>Connect Google account</strong> and complete authorization in your system browser.</li>
+          <li>Confirm the account in Tagline, then select that account as the destination when exporting.</li>
+        </ol>
+        <p>Direct sign-in requests identity and per-file Drive access, not unrestricted access to your entire Drive.
+          Credentials are protected in the local app profile, not stored in your vault or note settings.</p>
+        <h3>Apps Script webhook</h3>
+        <p>For a webhook connection, use <strong>Set up Google Docs transfer</strong> in Settings and follow the <a
+            href="google-docs.html#webhook">step-by-step Apps Script setup</a>. Review the bundled script before
+          authorizing it. Use a unique webhook secret, store it securely, and select the correct executing account and
+          destination folder.</p>
+        <div class="docs-callout docs-callout-warning">
+          <p><strong>Before connecting:</strong> review the scopes, script, and destination account. Disconnecting a
+            saved connection removes its local credentials but does not revoke Google’s authorization grant; manage that
+            grant in your Google Account.</p>
+        </div>
+
+        <h2 id="websites">Opening websites</h2>
+        <p>HTTP and HTTPS links open inside Tagline by default. You can turn off <strong>Open websites inside
+            Tagline</strong> in <strong>Settings &gt; Integrations</strong> to use your default browser instead.
+          Embedded websites cannot access the vault or app APIs; use an external browser for downloads.</p>
+
+        <p class="docs-source">For the complete account setup and transfer flow, continue to the <a
+            href="google-docs.html">Google Docs guide</a>. App source and releases are available from the <a
+            href="https://github.com/Julieisbaka/Tagline">Tagline repository</a>.</p>
+      </article>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <a class="brand" href="../index.html"><img class="brand-mark" src="../favicon.svg" alt=""
+        aria-hidden="true"><span>Tagline</span></a>
+    <p>A local-first workspace for policy debate.</p>
+    <nav aria-label="Footer navigation">
+      <a href="../index.html">Home</a>
+      <a href="../pricing.html">Pricing</a>
+      <a href="index.html">Documentation</a>
+      <a href="../privacy.html">Privacy</a>
+      <a href="../terms.html">Terms</a>
+      <a href="https://github.com/Julieisbaka/Tagline">App repository</a>
+    </nav>
+  </footer>
+</body>
+
+</html>

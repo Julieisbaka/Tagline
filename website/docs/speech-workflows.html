@@ -1,0 +1,177 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description"
+    content="Prepare a Tagline speech: configure a speech document, send evidence, estimate speaking time, and organize flows and argument maps.">
+  <meta name="theme-color" content="#ffffff">
+  <title>Speech workflows — Tagline</title>
+  <link rel="icon" href="../favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="../styles/base.css">
+  <link rel="stylesheet" href="../styles/docs.css">
+  <link rel="stylesheet" href="../styles/responsive.css">
+  <script src="../scripts/highlight.js" defer></script>
+</head>
+
+<body>
+  <a class="skip-link" href="#main">Skip to content</a>
+  <header class="site-header">
+    <a class="brand" href="../index.html"><img class="brand-mark" src="../favicon.svg" alt=""
+        aria-hidden="true"><span>Tagline</span></a>
+    <nav class="main-nav" aria-label="Main navigation">
+      <a href="../index.html#features">Features</a>
+      <a href="../pricing.html">Pricing</a>
+      <a href="index.html" aria-current="location">Docs</a>
+      <a href="https://github.com/Julieisbaka/Tagline">GitHub</a>
+    </nav>
+    <a class="button button-small button-outline" href="https://github.com/Julieisbaka/Tagline/releases/latest">Get
+      Tagline <span aria-hidden="true">↗</span></a>
+  </header>
+
+  <main id="main" class="docs-page section-wrap">
+    <div class="docs-hero">
+      <p class="eyebrow"><span class="eyebrow-mark" aria-hidden="true">03</span> Speech workflows</p>
+      <h1>Turn research into a speech.</h1>
+      <p>Mark the destination document, send it the evidence you need, and organize the round with speech timing, flows,
+        and argument maps.</p>
+    </div>
+
+    <div class="docs-shell">
+      <aside class="docs-sidebar">
+        <h2>Guides</h2>
+        <nav aria-label="Documentation">
+          <a href="index.html">Documentation home</a>
+          <a href="getting-started.html">Getting started</a>
+          <a href="features.html">Working in Tagline</a>
+          <a href="notes-and-evidence.html">Notes &amp; evidence</a>
+          <a href="search-and-citations.html">Search &amp; citations</a>
+          <a href="speech-workflows.html" aria-current="page">Speech workflows</a>
+          <a href="integrations.html">Integrations</a>
+          <a href="google-docs.html">Google Docs transfer</a>
+          <a href="customization.html">Themes &amp; extensions</a>
+          <a href="theme-api.html">Theme format</a>
+          <a href="extension-api.html">Extension API</a>
+          <a href="json-formats.html">JSON formats</a>
+        </nav>
+      </aside>
+
+      <article class="docs-article">
+        <nav class="article-toc" aria-label="On this page">
+          <span>On this page</span>
+          <a href="#choose-document">Choose a speech document</a>
+          <a href="#send-evidence">Send evidence</a>
+          <a href="#timing">Estimate speech time</a>
+          <a href="#prep-timer">Use the prep timer</a>
+          <a href="#flows">Build a flow</a>
+          <a href="#argument-map">Map arguments</a>
+        </nav>
+
+        <section id="choose-document">
+          <p class="article-kicker">01 / Set a destination</p>
+          <h2>Choose a speech document</h2>
+          <p>Tagline sends evidence to a Markdown file designated as a speech document. To mark an existing note:</p>
+          <ol class="guide-steps">
+            <li><span><strong>Right-click the Markdown file</strong> in the file explorer.</span></li>
+            <li><span>Choose <strong>Set as speech doc</strong>. Tagline adds <code>speech: true</code> to its YAML
+                frontmatter without discarding other metadata.</span></li>
+            <li><span>Choose the active destination under <strong>Settings &gt; General &gt; Active speech
+                  document</strong>.</span></li>
+          </ol>
+          <pre><code class="language-yaml">---
+speech: true
+---</code></pre>
+          <p>New speech documents include this marker automatically. You can mark multiple files, but only the selected
+            destination receives cards. The configured path is a local preference; if it is unavailable, Tagline uses
+            the first marked file in path order.</p>
+        </section>
+
+        <section id="send-evidence">
+          <p class="article-kicker">02 / Move evidence into a case</p>
+          <h2>Send selected evidence</h2>
+          <ol class="guide-steps">
+            <li><span>Open a research note and select the text or evidence card you want to use.</span></li>
+            <li><span>Press <kbd>Ctrl+Shift+S</kbd> on Windows/Linux or <kbd>Cmd+Shift+S</kbd> on macOS.</span></li>
+            <li><span>Review the active speech document and organize the inserted material into your argument.</span>
+            </li>
+          </ol>
+          <p>The same workflow can send highlighted evidence. Keep source details in the original card so the speech
+            document can be traced back to the research.</p>
+          <p>Need to create the source citation first? Follow <a href="search-and-citations.html#create-citation">Create
+              a citation</a>.</p>
+        </section>
+
+        <section id="timing">
+          <p class="article-kicker">03 / Check speaking time</p>
+          <h2>Estimate and calibrate a speech</h2>
+          <p>Tagline estimates speaking time from highlighted evidence and citations in a speech document. Personal
+            speech calibration can tune the estimate to your own pace:</p>
+          <ol>
+            <li>Open <strong>Settings &gt; General</strong>.</li>
+            <li>Open personal speech calibration.</li>
+            <li>Use your timed speech samples to adjust the estimate, then compare it with a real practice run.</li>
+          </ol>
+          <p>Use the estimate as a planning aid, then time a full read-through to confirm it works for your delivery.
+          </p>
+        </section>
+
+        <section id="prep-timer">
+          <p class="article-kicker">04 / Plan the round</p>
+          <h2>Use the speech and prep timer</h2>
+          <p>The timer includes speech and affirmative/negative preparation clocks for two policy-debate presets:</p>
+          <div class="preset-cards">
+            <div><small>HIGH SCHOOL</small><strong>8 · 3 · 5</strong><span>Policy debate preset</span></div>
+            <div><small>COLLEGE</small><strong>9 · 3 · 6</strong><span>Policy debate preset</span></div>
+          </div>
+          <p>Choose the preset that matches your round, then use the timer while practicing speeches and prep. These
+            formats are policy debate presets; check tournament rules if your round uses different times.</p>
+        </section>
+
+        <section id="flows">
+          <p class="article-kicker">05 / Track arguments</p>
+          <h2>Build a speech flow</h2>
+          <p>A <code>.flow</code> file is a multi-sheet speech grid. Move between cells and add rows with keyboard
+            shortcuts:</p>
+          <div class="shortcut-grid">
+            <div><kbd>Tab</kbd> / <kbd>Shift+Tab</kbd><span>Move between cells</span></div>
+            <div><kbd>Ctrl+Enter</kbd> / <kbd>Cmd+Enter</kbd><span>Add a row below</span></div>
+            <div><kbd>Ctrl+Shift+Enter</kbd> / <kbd>Cmd+Shift+Enter</kbd><span>Add a row above</span></div>
+          </div>
+          <p>To inspect or edit the saved structure directly, choose <strong>JSON source</strong> in the flow header.
+          </p>
+        </section>
+
+        <section id="argument-map">
+          <p class="article-kicker">06 / See the argument structure</p>
+          <h2>Connect an argument map</h2>
+          <p>Open a <code>.canvas</code> file and add the nodes you want to connect. Choose whether a relationship is
+            <strong>supporting</strong>, <strong>answering</strong>, or <strong>contradicting</strong>, choose
+            <strong>Connect nodes</strong>, then select the source and target nodes.
+          </p>
+          <p>Connections are stored as standard JSON Canvas edges in the canvas file, so the document remains a regular
+            <code>.canvas</code> file.
+          </p>
+        </section>
+
+        <p class="docs-source">See <a href="features.html#speech-tools">the workspace feature overview</a> for more
+          details on speech documents and flows.</p>
+        <nav class="guide-next" aria-label="More task guides">
+          <a href="search-and-citations.html"><small>Previous guide</small><strong>Search &amp; citations →</strong></a>
+          <a href="features.html"><small>More</small><strong>All Tagline features →</strong></a>
+        </nav>
+      </article>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <a class="brand" href="../index.html"><img class="brand-mark" src="../favicon.svg" alt=""
+        aria-hidden="true"><span>Tagline</span></a>
+    <p>A local-first workspace for policy debate.</p>
+    <nav aria-label="Footer navigation"><a href="../index.html">Home</a><a href="../pricing.html">Pricing</a><a
+        href="index.html">Documentation</a><a href="../privacy.html">Privacy</a><a href="../terms.html">Terms</a><a
+        href="https://github.com/Julieisbaka/Tagline">App repository</a></nav>
+  </footer>
+</body>
+
+</html>

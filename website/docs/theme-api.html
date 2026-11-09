@@ -1,0 +1,373 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Create, validate, import, and package Tagline themes using the JSON theme format.">
+  <meta name="theme-color" content="#ffffff">
+  <title>Theme format — Tagline</title>
+  <link rel="icon" href="../favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="../styles/base.css">
+  <link rel="stylesheet" href="../styles/docs.css">
+  <link rel="stylesheet" href="../styles/responsive.css">
+  <script src="../scripts/highlight.js" defer></script>
+</head>
+
+<body>
+  <a class="skip-link" href="#main">Skip to content</a>
+  <header class="site-header">
+    <a class="brand" href="../index.html"><img class="brand-mark" src="../favicon.svg" alt=""
+        aria-hidden="true"><span>Tagline</span></a>
+    <nav class="main-nav" aria-label="Main navigation">
+      <a href="../index.html#features">Features</a>
+      <a href="../pricing.html">Pricing</a>
+      <a href="index.html" aria-current="location">Docs</a>
+      <a href="https://github.com/Julieisbaka/Tagline">GitHub</a>
+    </nav>
+    <a class="button button-small button-outline" href="https://github.com/Julieisbaka/Tagline/releases/latest">
+      Get Tagline <span aria-hidden="true">↗</span>
+    </a>
+  </header>
+
+  <main id="main" class="docs-page section-wrap">
+    <div class="docs-hero">
+      <p class="eyebrow"><span class="eyebrow-mark" aria-hidden="true">07</span> Developer reference</p>
+      <h1>Build a Tagline theme.</h1>
+      <p>Themes are JSON color palettes with optional CSS-variable overrides. Create one in Appearance, validate it with
+        the schema, or package it with an extension.</p>
+    </div>
+
+    <div class="docs-shell">
+      <aside class="docs-sidebar">
+        <h2>Guides</h2>
+        <nav aria-label="Documentation">
+          <a href="index.html">Documentation home</a>
+          <a href="getting-started.html">Getting started</a>
+          <a href="features.html">Working in Tagline</a>
+          <a href="notes-and-evidence.html">Notes &amp; evidence</a>
+          <a href="search-and-citations.html">Search &amp; citations</a>
+          <a href="speech-workflows.html">Speech workflows</a>
+          <a href="integrations.html">Integrations</a>
+          <a href="google-docs.html">Google Docs transfer</a>
+          <a href="customization.html">Themes &amp; extensions</a>
+          <a href="theme-api.html" aria-current="page">Theme format</a>
+          <a href="extension-api.html">Extension API</a>
+          <a href="json-formats.html">JSON formats</a>
+        </nav>
+      </aside>
+
+      <article class="docs-article">
+        <nav class="article-toc" aria-label="On this page">
+          <span>On this page</span>
+          <a href="#create">Create and import</a>
+          <a href="#contract">JSON contract</a>
+          <a href="#colors">Color tokens</a>
+          <a href="#variables">CSS variables</a>
+          <a href="#metadata">Settings and metadata</a>
+          <a href="#extension-themes">Package in an extension</a>
+        </nav>
+
+        <section id="create">
+          <h2>Create, import, and export a theme</h2>
+          <ol>
+            <li>Open <strong>Settings &gt; Appearance</strong> and select a theme close to the result you want.</li>
+            <li>Choose <strong>Customize current theme</strong> to edit its color tokens and CSS-variable overrides.
+            </li>
+            <li>Choose <strong>Export current theme</strong> to save the complete palette as JSON, then edit that file
+              if needed.</li>
+            <li>Choose <strong>Import JSON theme</strong> and select the edited file.</li>
+          </ol>
+          <p>Import immediately selects the custom theme and saves it on this device. There is one standalone
+            custom-theme slot; importing another theme replaces that slot. Use an extension to distribute multiple
+            selectable themes.</p>
+          <p>A minimal theme can override only a few colors; unspecified values come from the built-in light or dark
+            base selected by <code>mode</code>.</p>
+          <pre><code class="language-json">{
+  "version": 1,
+  "name": "Ocean",
+  "mode": "dark",
+  "colors": {
+    "bg": "#101827",
+    "accent": "#9ac7ff",
+    "accent-text": "#101827",
+    "accent-dim": "#9ac7ff33",
+    "selection": "#9ac7ff55"
+  }
+}</code></pre>
+          <p>Fallback values come from the normal light or dark base, not from the currently selected or a high-contrast
+            theme. When deriving from a high-contrast palette, include all overrides you need.</p>
+        </section>
+
+        <section id="contract">
+          <h2>JSON contract</h2>
+          <div class="table-scroll">
+            <table>
+              <thead>
+                <tr>
+                  <th>Field</th>
+                  <th>Requirement</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><code>version</code></td>
+                  <td>Required number <code>1</code>.</td>
+                </tr>
+                <tr>
+                  <td><code>name</code></td>
+                  <td>Required nonblank string; at most 80 characters before trimming.</td>
+                </tr>
+                <tr>
+                  <td><code>mode</code></td>
+                  <td>Required <code>"dark"</code> or <code>"light"</code>. Also controls the native browser color
+                    scheme.</td>
+                </tr>
+                <tr>
+                  <td><code>colors</code></td>
+                  <td>Required object containing zero or more supported color tokens.</td>
+                </tr>
+                <tr>
+                  <td><code>variables</code></td>
+                  <td>Optional CSS custom-property overrides.</td>
+                </tr>
+                <tr>
+                  <td><code>settings</code></td>
+                  <td>Optional declarative controls shown in Appearance while the theme is active.</td>
+                </tr>
+                <tr>
+                  <td><code>metadata</code></td>
+                  <td>Optional author, description, license, tags, and accessibility information.</td>
+                </tr>
+                <tr>
+                  <td><code>id</code></td>
+                  <td>Optional input field, but not author-controlled identity. Standalone imports normalize it to
+                    <code>"custom"</code>; extensions receive an assigned ID.
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <p>Color values must be strings in <code>#RRGGBB</code> or <code>#RRGGBBAA</code> format. The last pair in the
+            eight-digit form is alpha. Shorthand hex, named colors, <code>rgb()</code>, <code>var()</code>, gradients,
+            and arbitrary CSS values are rejected. Unknown color tokens are rejected; an empty <code>colors</code>
+            object is valid. Import errors are shown instead of partially applying a theme.</p>
+          <p>The Appearance picker and extension loader enforce a configurable <strong>Theme file bytes</strong> limit
+            on each theme file: 65,536 bytes by default, adjustable from 1,024 to 1,048,576. The extension loader also
+            enforces a configurable <strong>Theme preview bytes</strong> limit on the aggregate JSON size of all
+            contributed theme files loaded from one extension: 524,288 bytes by default, adjustable from 1,024 to
+            4,194,304. Both limits are in <strong>Settings &gt; Advanced settings &gt; Theme and extension
+              limits</strong>, and the per-file limit applies independently of the aggregate limit. For portability,
+            keep shared theme files within both limits.</p>
+          <p>Use the <a href="https://github.com/Julieisbaka/Tagline/blob/main/schemas/theme.schema.json">theme JSON
+              schema</a> for validation and editor completion.</p>
+        </section>
+
+        <section id="colors">
+          <h2>Color tokens</h2>
+          <p>All tokens resolve to CSS custom properties named <code>--&lt;token&gt;</code>. Pair foreground and
+            background changes, and evaluate translucent colors after compositing them over their actual surfaces.</p>
+          <div class="table-scroll">
+            <table>
+              <thead>
+                <tr>
+                  <th>Token</th>
+                  <th>Purpose</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><code>bg</code></td>
+                  <td>Main workspace background.</td>
+                </tr>
+                <tr>
+                  <td><code>bg-secondary</code></td>
+                  <td>Sidebar and secondary surfaces.</td>
+                </tr>
+                <tr>
+                  <td><code>bg-elevated</code></td>
+                  <td>Raised surfaces and controls.</td>
+                </tr>
+                <tr>
+                  <td><code>bg-hover</code></td>
+                  <td>Hovered rows and controls.</td>
+                </tr>
+                <tr>
+                  <td><code>border</code></td>
+                  <td>Separators, outlines, and control borders.</td>
+                </tr>
+                <tr>
+                  <td><code>text</code>, <code>text-strong</code></td>
+                  <td>Normal and emphasized foreground text.</td>
+                </tr>
+                <tr>
+                  <td><code>text-muted</code>, <code>text-faint</code></td>
+                  <td>Secondary descriptions, metadata, and hints.</td>
+                </tr>
+                <tr>
+                  <td><code>accent</code>, <code>accent-text</code></td>
+                  <td>Links, active controls, focus indicators, and text on accent controls.</td>
+                </tr>
+                <tr>
+                  <td><code>accent-dim</code>, <code>selection</code>, <code>selection-text</code></td>
+                  <td>Translucent accent surfaces, selected content, and selected-text foreground.</td>
+                </tr>
+                <tr>
+                  <td><code>highlight-bg</code>, <code>highlight-text</code></td>
+                  <td>Debate highlights and search matches, with their foreground text.</td>
+                </tr>
+                <tr>
+                  <td><code>code</code></td>
+                  <td>Code foreground.</td>
+                </tr>
+                <tr>
+                  <td><code>h1</code>, <code>h2</code>, <code>h3</code>, <code>h4</code></td>
+                  <td>Pocket, hat, block, and tag heading colors.</td>
+                </tr>
+                <tr>
+                  <td><code>aff</code>, <code>neg</code></td>
+                  <td>Affirmative and negative side foregrounds and graph/flow accents.</td>
+                </tr>
+                <tr>
+                  <td><code>aff-bg</code>, <code>neg-bg</code></td>
+                  <td>Tinted affirmative and negative backgrounds.</td>
+                </tr>
+                <tr>
+                  <td><code>danger</code>, <code>warning</code></td>
+                  <td>Destructive-action/error and warning/caution accents.</td>
+                </tr>
+                <tr>
+                  <td><code>shadow</code>, <code>backdrop</code></td>
+                  <td>Shadows and modal-overlay tint, usually with alpha.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <p>The built-in themes are <strong>Dark</strong>, <strong>Light</strong>, <strong>High contrast dark</strong>,
+            and <strong>High contrast light</strong>. Their complete palettes are available in the <a
+              href="https://github.com/Julieisbaka/Tagline/tree/main/src/themes">application source</a>.</p>
+        </section>
+
+        <section id="variables">
+          <h2>CSS-variable overrides</h2>
+          <p>The optional <code>variables</code> object can set existing application variables and new custom properties
+            used by custom CSS. Names omit the leading <code>--</code>; values are CSS values, not declarations.</p>
+          <pre><code class="language-json">{
+  "version": 1,
+  "name": "Large serif",
+  "mode": "dark",
+  "colors": {},
+  "variables": {
+    "font-text": "Georgia, serif",
+    "font-ui": "system-ui, sans-serif",
+    "font-mono": "Menlo, Consolas, monospace",
+    "editor-font-size": "19px",
+    "accent": "var(--h1)",
+    "my-spacing": "calc(8px + 0.2vw)"
+  }
+}</code></pre>
+          <p>The app defines <code>font-text</code>, <code>font-ui</code>, <code>font-mono</code>, and
+            <code>editor-font-size</code>. Other names are accepted but only affect the interface if a stylesheet uses
+            them.
+          </p>
+          <p>By default, a theme can include up to 512 overrides; each name is at most 100 characters and each value at
+            most 2,048 characters. Names must begin with a lowercase letter and contain only lowercase letters, digits,
+            or hyphens. Values cannot contain semicolons, braces, null bytes, <code>url(...)</code>, or
+            <code>@import</code>. Limits can be adjusted in <strong>Settings &gt; Advanced settings &gt; Theme and
+              extension limits</strong>.
+          </p>
+          <p>Variable overrides take precedence over colors and over the Appearance preferences for
+            <code>font-text</code> and <code>editor-font-size</code>. Preferences are retained and resume when switching
+            to a theme without those overrides. Switching themes clears prior variable overrides instead of carrying
+            them forward.
+          </p>
+        </section>
+
+        <section id="metadata">
+          <h2>Theme settings and metadata</h2>
+          <p>A theme contributed by an extension can expose controls in Appearance without an extension script or
+            permissions. Controls can set a color token or a property declared in <code>variables</code>.</p>
+          <pre><code class="language-json">{
+  "settings": [
+    {
+      "id": "selection-color",
+      "title": "Selection background",
+      "type": "string",
+      "default": "#334466",
+      "variable": "selection"
+    },
+    {
+      "id": "reading-size",
+      "title": "Reading size",
+      "type": "number",
+      "default": 20,
+      "min": 12,
+      "max": 30,
+      "variable": "editor-font-size",
+      "unit": "px"
+    }
+  ],
+  "metadata": {
+    "author": "Example",
+    "description": "A reading theme",
+    "license": "MIT",
+    "tags": ["reading"],
+    "accessibility": {
+      "contrast": "high",
+      "colorVision": ["deuteranopia"],
+      "reducedMotion": true,
+      "notes": "Describe testing and limitations."
+    }
+  }
+}</code></pre>
+          <p>Theme settings use unique IDs and targets and follow the extension setting schema. Color controls require
+            hex strings; string settings can use an enum. Numeric units may be <code>px</code>, <code>em</code>,
+            <code>rem</code>, <code>%</code>, or empty. The extension-setting count limit also applies. Apply or reset
+            values in Appearance; they persist separately for each theme ID. Export and Customize capture resolved
+            values without live controls.
+          </p>
+          <p>Metadata text fields allow up to 500 characters. Tags allow 20 nonempty strings of up to 40 characters
+            each. Accessibility metadata is optional: contrast is <code>standard</code> or <code>high</code>;
+            color-vision values are <code>protanopia</code>, <code>deuteranopia</code>, <code>tritanopia</code>, or
+            <code>achromatopsia</code>; reduced motion is boolean; notes allow up to 1,000 characters.
+          </p>
+        </section>
+
+        <section id="extension-themes">
+          <h2>Package themes in an extension</h2>
+          <p>A theme-only extension needs no script. Put its manifest and theme JSON together:</p>
+          <pre><code class="language-bash">ocean-themes/
+  manifest.json
+  themes/
+    ocean.json</code></pre>
+          <p>The theme uses the same JSON format described above. After enabling the extension, it appears in
+            <strong>Appearance &gt; Theme</strong> with the extension name. Runtime IDs look like
+            <code>ext:ocean-themes:0</code>; changing contribution order changes those IDs.
+          </p>
+          <p>If a saved extension theme is still loading or unavailable, the app retains the saved selection but
+            temporarily renders the dark palette. A disabled or removed theme appears as <strong>Unavailable extension
+              theme</strong>.</p>
+          <p>See the <a href="customization.html#extensions">extension overview</a>, the <a
+              href="extension-api.html">Extension API reference</a>, and <a href="json-formats.html">JSON formats and
+              schemas</a>.</p>
+        </section>
+      </article>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <a class="brand" href="../index.html"><img class="brand-mark" src="../favicon.svg" alt=""
+        aria-hidden="true"><span>Tagline</span></a>
+    <p>A local-first workspace for policy debate.</p>
+    <nav aria-label="Footer navigation">
+      <a href="../index.html">Home</a>
+      <a href="../pricing.html">Pricing</a>
+      <a href="index.html">Documentation</a>
+      <a href="../privacy.html">Privacy</a>
+      <a href="../terms.html">Terms</a>
+      <a href="https://github.com/Julieisbaka/Tagline">App repository</a>
+    </nav>
+  </footer>
+</body>
+
+</html>

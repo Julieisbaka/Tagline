@@ -1,0 +1,160 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description"
+    content="Use Tagline vaults, Markdown notes, evidence search, speech flows, canvases, and debate timers.">
+  <meta name="theme-color" content="#ffffff">
+  <title>Working in Tagline — Tagline</title>
+  <link rel="icon" href="../favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="../styles/base.css">
+  <link rel="stylesheet" href="../styles/docs.css">
+  <link rel="stylesheet" href="../styles/responsive.css">
+  <script src="../scripts/highlight.js" defer></script>
+</head>
+
+<body>
+  <a class="skip-link" href="#main">Skip to content</a>
+  <header class="site-header">
+    <a class="brand" href="../index.html"><img class="brand-mark" src="../favicon.svg" alt=""
+        aria-hidden="true"><span>Tagline</span></a>
+    <nav class="main-nav" aria-label="Main navigation">
+      <a href="../index.html#features">Features</a>
+      <a href="../pricing.html">Pricing</a>
+      <a href="index.html" aria-current="location">Docs</a>
+      <a href="https://github.com/Julieisbaka/Tagline">GitHub</a>
+    </nav>
+    <a class="button button-small button-outline" href="https://github.com/Julieisbaka/Tagline/releases/latest">
+      Get Tagline <span aria-hidden="true">↗</span>
+    </a>
+  </header>
+
+  <main id="main" class="docs-page section-wrap">
+    <div class="docs-hero">
+      <p class="eyebrow"><span class="eyebrow-mark" aria-hidden="true">02</span> Your workspace</p>
+      <h1>Working in Tagline</h1>
+      <p>Keep research, evidence, and speeches connected. Tagline’s files stay in your vault, ready to organize with the
+        rest of your work.</p>
+    </div>
+
+    <div class="docs-shell">
+      <aside class="docs-sidebar">
+        <h2>Guides</h2>
+        <nav aria-label="Documentation">
+          <a href="index.html">Documentation home</a>
+          <a href="getting-started.html">Getting started</a>
+          <a href="features.html" aria-current="page">Working in Tagline</a>
+          <a href="notes-and-evidence.html">Notes &amp; evidence</a>
+          <a href="search-and-citations.html">Search &amp; citations</a>
+          <a href="speech-workflows.html">Speech workflows</a>
+          <a href="integrations.html">Integrations</a>
+          <a href="google-docs.html">Google Docs transfer</a>
+          <a href="customization.html">Themes &amp; extensions</a>
+          <a href="theme-api.html">Theme format</a>
+          <a href="extension-api.html">Extension API</a>
+          <a href="json-formats.html">JSON formats</a>
+        </nav>
+      </aside>
+
+      <article class="docs-article">
+        <div class="docs-callout docs-feature-links">
+          <p><strong>Looking for a specific task?</strong> Step-by-step guides cover <a
+              href="notes-and-evidence.html">notes and evidence</a>, <a href="search-and-citations.html">search and
+              citations</a>, and <a href="speech-workflows.html">speech workflows</a>.</p>
+        </div>
+
+        <h2 id="vaults">Vaults and notes</h2>
+        <p>A vault is a folder on your device. Notes are Markdown files; speech grids use <code>.flow</code> files;
+          visual canvases use <code>.canvas</code> files in the standard <a href="https://jsoncanvas.org/spec/1.0/">JSON
+            Canvas format</a>. Settings and downloaded models live in the app profile, not in the vault.</p>
+        <p>Replay the onboarding tour in <strong>Settings &gt; Advanced settings &gt; Internal flags &gt; Show
+            onboarding again</strong>.</p>
+        <p>Revision history is stored in <code>.tagline/history</code> inside the vault; change retention in
+          <strong>Settings &gt; Files and folders</strong>. Canvas history can save exact JSON and layout
+          (<strong>Complete</strong>) or content changes without movement-only revisions (<strong>Data</strong>). If a
+          flow or canvas becomes invalid, restore the most recent valid save when recovery is offered. Recovery skips
+          broken revisions, saves the current source to history, and persists the restored document.
+        </p>
+
+        <h2 id="notes">Write and organize notes</h2>
+        <p>Choose <strong>Visual</strong>, <strong>Source</strong>, or <strong>Read</strong> in a note header to edit
+          formatted Markdown, edit its literal source, or read the rendered note. YAML frontmatter stores properties.
+          Wiki links support <code>[[Note]]</code>, heading links such as <code>[[Note#Heading]]</code>, and custom
+          labels such as <code>[[Note|Label]]</code>.</p>
+        <p>Use backlinks, mentions, tags, an outline, or graph view to navigate a vault. Reusable Markdown templates can
+          include placeholders such as <code>{{date}}</code>, <code>{{title}}</code>, and <code>{{path}}</code>. Find
+          and replace text in a note with <kbd>Ctrl+F</kbd> on Windows/Linux or <kbd>Cmd+F</kbd> on macOS.</p>
+        <p>Templates in <code>Templates/</code> can also use <code>{{time}}</code>, <code>{{content}}</code>, and
+          <code>{{properties}}</code>. The path is the target note's vault-relative filename including <code>.md</code>;
+          content is the Markdown body without frontmatter; properties are the raw YAML without delimiters, preserving
+          comments and formatting. Placeholder values are inserted literally, not expanded recursively.
+        </p>
+        <p>Debate-card shortcuts are configurable in <strong>Settings &gt; Keyboard shortcuts</strong>:
+          <kbd>F4</kbd>–<kbd>F7</kbd> apply card headings, <kbd>F8</kbd> citation/bold, <kbd>F9</kbd> underline,
+          <kbd>F10</kbd> emphasis, <kbd>F11</kbd> highlight, and <kbd>F12</kbd> clears formatting. Mac keyboards may
+          need <kbd>Fn</kbd> with function keys.
+        </p>
+        <p>Sidebar shortcuts and file-explorer toolbar/status items can be reordered or hidden. Drag to reorder; use the
+          available up/down controls for keyboard-accessible shortcut ordering. Restore defaults even if all toolbar
+          items are hidden. All panels and dialogs are keyboard-navigable; opening moves focus into the surface, and
+          closing it restores focus to the control that opened it. Checkup completion and link-check results are
+          announced through live regions for assistive technology.</p>
+
+        <h2 id="research">Find and cite evidence</h2>
+        <p>Open vault search with <kbd>Ctrl+Shift+F</kbd> or <kbd>Cmd+Shift+F</kbd>. For semantic or hybrid search,
+          download the local embedding model from <strong>Settings &gt; Integrations</strong>.</p>
+        <p>Choose <strong>Create citation</strong> from a note, the command palette, or the File menu. Enter source
+          details or paste a public URL/DOI to autofill, then copy the Markdown citation or insert it into the current
+          note.</p>
+
+        <h2 id="speech-tools">Prepare speeches and flows</h2>
+        <p>Send selected or highlighted evidence to the active speech document with <kbd>Ctrl+Shift+S</kbd> or
+          <kbd>Cmd+Shift+S</kbd>. Tagline estimates speaking time from highlighted evidence and citations. Personal
+          speech calibration in <strong>Settings &gt; General</strong> can tune estimates from your own timed samples.
+        </p>
+        <p>Mark a Markdown document as a speech document with the <strong>Set as speech doc</strong> file action. A new
+          speech document uses this frontmatter:</p>
+        <pre><code class="language-yaml">---
+speech: true
+---</code></pre>
+        <p>Flows are multi-sheet speech grids. Use <kbd>Tab</kbd> and <kbd>Shift+Tab</kbd> to move between cells. Use
+          <kbd>Ctrl+Enter</kbd>/<kbd>Cmd+Enter</kbd> to add a row below, and add one above with
+          <kbd>Ctrl+Shift+Enter</kbd>/<kbd>Cmd+Shift+Enter</kbd>. In a canvas, connect arguments as supporting,
+          answering, or contradicting one another.
+        </p>
+        <p>The timer includes speech and affirmative/negative prep clocks for policy debate’s high-school 8-3-5 and
+          college 9-3-6 presets.</p>
+
+        <h2 id="export">Import and export</h2>
+        <p>Standalone HTML export is built in. Other formats use the separately installed Pandoc; PDF export also
+          requires a LaTeX engine. DOCX, ODT, RTF, HTML, and EPUB can be converted to Markdown for review before saving.
+          See the <a href="google-docs.html">Google Docs transfer guide</a> for account setup and upload details.</p>
+        <p>HTTP and HTTPS links open inside Tagline by default. Turn off <strong>Open websites inside Tagline</strong>
+          in <strong>Settings &gt; Integrations</strong> to use your default browser. Embedded sites cannot access the
+          vault or app APIs; use an external browser for downloads.</p>
+
+        <p class="docs-source">Related guides: <a href="notes-and-evidence.html">notes and evidence</a>, <a
+            href="search-and-citations.html">search and citations</a>, <a href="speech-workflows.html">speech
+            workflows</a>, and <a href="integrations.html">integrations</a>.</p>
+      </article>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <a class="brand" href="../index.html"><img class="brand-mark" src="../favicon.svg" alt=""
+        aria-hidden="true"><span>Tagline</span></a>
+    <p>A local-first workspace for policy debate.</p>
+    <nav aria-label="Footer navigation">
+      <a href="../index.html">Home</a>
+      <a href="../pricing.html">Pricing</a>
+      <a href="index.html">Documentation</a>
+      <a href="../privacy.html">Privacy</a>
+      <a href="../terms.html">Terms</a>
+      <a href="https://github.com/Julieisbaka/Tagline">App repository</a>
+    </nav>
+  </footer>
+</body>
+
+</html>

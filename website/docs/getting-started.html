@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Install Tagline, open a vault, and keep your debate research safe when updating.">
+  <meta name="theme-color" content="#ffffff">
+  <title>Getting started — Tagline</title>
+  <link rel="icon" href="../favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="../styles/base.css">
+  <link rel="stylesheet" href="../styles/docs.css">
+  <link rel="stylesheet" href="../styles/responsive.css">
+  <script src="../scripts/highlight.js" defer></script>
+</head>
+
+<body>
+  <a class="skip-link" href="#main">Skip to content</a>
+  <header class="site-header">
+    <a class="brand" href="../index.html"><img class="brand-mark" src="../favicon.svg" alt=""
+        aria-hidden="true"><span>Tagline</span></a>
+    <nav class="main-nav" aria-label="Main navigation">
+      <a href="../index.html#features">Features</a>
+      <a href="../pricing.html">Pricing</a>
+      <a href="index.html" aria-current="location">Docs</a>
+      <a href="https://github.com/Julieisbaka/Tagline">GitHub</a>
+    </nav>
+    <a class="button button-small button-outline" href="https://github.com/Julieisbaka/Tagline/releases/latest">
+      Get Tagline <span aria-hidden="true">↗</span>
+    </a>
+  </header>
+
+  <main id="main" class="docs-page section-wrap">
+    <div class="docs-hero">
+      <p class="eyebrow"><span class="eyebrow-mark" aria-hidden="true">01</span> Start here</p>
+      <h1>Getting started</h1>
+      <p>Install the desktop app, open a folder as a vault, and start building a research workflow that fits your next
+        round.</p>
+    </div>
+
+    <div class="docs-shell">
+      <aside class="docs-sidebar">
+        <h2>Guides</h2>
+        <nav aria-label="Documentation">
+          <a href="index.html">Documentation home</a>
+          <a href="getting-started.html" aria-current="page">Getting started</a>
+          <a href="features.html">Working in Tagline</a>
+          <a href="notes-and-evidence.html">Notes &amp; evidence</a>
+          <a href="search-and-citations.html">Search &amp; citations</a>
+          <a href="speech-workflows.html">Speech workflows</a>
+          <a href="integrations.html">Integrations</a>
+          <a href="google-docs.html">Google Docs transfer</a>
+          <a href="customization.html">Themes &amp; extensions</a>
+          <a href="theme-api.html">Theme format</a>
+          <a href="extension-api.html">Extension API</a>
+          <a href="json-formats.html">JSON formats</a>
+        </nav>
+      </aside>
+
+      <article class="docs-article">
+        <h2>Install the app</h2>
+        <p>Download the latest release for your computer from GitHub. Tagline currently publishes desktop builds for
+          Windows and macOS; choose the installer that matches your platform.</p>
+        <p><a class="button button-primary" href="https://github.com/Julieisbaka/Tagline/releases/latest">View the
+            latest release <span aria-hidden="true">↗</span></a></p>
+
+        <div class="docs-callout docs-callout-warning">
+          <p><strong>First launch:</strong> release builds are unsigned and not notarized, so Windows or macOS may show
+            an operating-system security warning. Tagline can check for, download, and install updates from Settings;
+            updates are not installed without your confirmation.</p>
+        </div>
+
+        <h2>Open a vault</h2>
+        <p>A vault is an ordinary folder. Choose a folder you already use for research, or create the sample vault from
+          Tagline’s welcome screen. Your Markdown notes, <code>.flow</code> speech grids, and <code>.canvas</code>
+          argument maps stay in that folder.</p>
+        <p>Settings and downloaded local models are kept in the application profile rather than in the vault. Keep
+          backups of both your vault and important app-profile data.</p>
+
+        <h2>Keep Tagline up to date</h2>
+        <ol>
+          <li>Open <strong>Settings &gt; Installation</strong> and choose <strong>Check for updates</strong>.</li>
+          <li>If an update is available, choose <strong>Download update</strong>. Tagline verifies the download against
+            the release checksum.</li>
+          <li>On Windows, choose <strong>Install update and restart</strong>; Tagline saves pending edits before
+            restarting. On macOS, choose <strong>Open installer</strong>, quit Tagline, then replace the app in
+            Applications with the one from the opened disk image.</li>
+        </ol>
+        <p>Update checks and installation are user-initiated, and in-app downloads are available in packaged
+          installations when a compatible release is published. If no compatible download is offered, install the
+          release manually. Keep the existing app ID, product name, install scope, and profile so the updated app can
+          find your existing settings. Back up your profile and vaults first; do not remove the profile when updating.</p>
+
+        <h2>Run from source</h2>
+        <p>For development, clone the project and use the repository’s npm scripts:</p>
+        <pre><code class="language-bash">npm install
+npm run dev      # start the development app
+npm start        # build and launch
+npm run package  # package for this operating system</code></pre>
+
+        <div class="docs-callout docs-feature-links">
+          <p><strong>Ready to use your vault?</strong> Continue with <a href="notes-and-evidence.html">writing notes and
+              building evidence</a>, or jump to <a href="search-and-citations.html">finding and citing research</a>.</p>
+        </div>
+
+        <p class="docs-source">Source: <a href="https://github.com/Julieisbaka/Tagline/blob/main/README.md">Tagline
+            README — Run and Releases</a>.</p>
+      </article>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <a class="brand" href="../index.html"><img class="brand-mark" src="../favicon.svg" alt=""
+        aria-hidden="true"><span>Tagline</span></a>
+    <p>A local-first workspace for policy debate.</p>
+    <nav aria-label="Footer navigation">
+      <a href="../index.html">Home</a>
+      <a href="../pricing.html">Pricing</a>
+      <a href="index.html">Documentation</a>
+      <a href="../privacy.html">Privacy</a>
+      <a href="../terms.html">Terms</a>
+      <a href="https://github.com/Julieisbaka/Tagline/releases">Releases</a>
+    </nav>
+  </footer>
+</body>
+
+</html>

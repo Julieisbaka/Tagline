@@ -1,0 +1,320 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description"
+    content="Connect Tagline to Google Docs with direct sign-in or a carefully configured Apps Script webhook.">
+  <meta name="theme-color" content="#ffffff">
+  <title>Google Docs transfer — Tagline</title>
+  <link rel="icon" href="../favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="../styles/base.css">
+  <link rel="stylesheet" href="../styles/docs.css">
+  <link rel="stylesheet" href="../styles/responsive.css">
+  <script src="../scripts/highlight.js" defer></script>
+</head>
+
+<body>
+  <a class="skip-link" href="#main">Skip to content</a>
+  <header class="site-header">
+    <a class="brand" href="../index.html"><img class="brand-mark" src="../favicon.svg" alt=""
+        aria-hidden="true"><span>Tagline</span></a>
+    <nav class="main-nav" aria-label="Main navigation">
+      <a href="../index.html#features">Features</a>
+      <a href="../pricing.html">Pricing</a>
+      <a href="index.html" aria-current="location">Docs</a>
+      <a href="https://github.com/Julieisbaka/Tagline">GitHub</a>
+    </nav>
+    <a class="button button-small button-outline" href="https://github.com/Julieisbaka/Tagline/releases/latest">
+      Get Tagline <span aria-hidden="true">↗</span>
+    </a>
+  </header>
+
+  <main id="main" class="docs-page section-wrap">
+    <div class="docs-hero">
+      <p class="eyebrow"><span class="eyebrow-mark" aria-hidden="true">05</span> Integrations / Google Docs</p>
+      <h1>Send a document to Google Drive.</h1>
+      <p>Connect with Google directly, or configure an Apps Script webhook. Both create a new Google Doc only after you
+        confirm the transfer.</p>
+    </div>
+
+    <div class="docs-shell">
+      <aside class="docs-sidebar">
+        <h2>Guides</h2>
+        <nav aria-label="Documentation">
+          <a href="index.html">Documentation home</a>
+          <a href="getting-started.html">Getting started</a>
+          <a href="features.html">Working in Tagline</a>
+          <a href="notes-and-evidence.html">Notes &amp; evidence</a>
+          <a href="search-and-citations.html">Search &amp; citations</a>
+          <a href="speech-workflows.html">Speech workflows</a>
+          <a href="integrations.html">Integrations</a>
+          <a href="google-docs.html" aria-current="page">Google Docs transfer</a>
+          <a href="customization.html">Themes &amp; extensions</a>
+          <a href="theme-api.html">Theme format</a>
+          <a href="extension-api.html">Extension API</a>
+          <a href="json-formats.html">JSON formats</a>
+        </nav>
+      </aside>
+
+      <article class="docs-article">
+        <nav class="article-toc" aria-label="On this page">
+          <span>On this page</span>
+          <a href="#direct-sign-in">Direct sign-in</a>
+          <a href="#webhook">Apps Script webhook</a>
+          <a href="#accounts">Multiple accounts</a>
+          <a href="#send-documents">Send documents</a>
+          <a href="#response-codes">Response codes</a>
+        </nav>
+
+        <div class="docs-callout docs-callout-warning">
+          <p><strong>Review before connecting.</strong> Confirm the Google account, requested access, Apps Script code,
+            and destination folder. Tagline does not upload anything until you explicitly confirm a transfer.</p>
+        </div>
+
+        <section id="direct-sign-in">
+          <p class="article-kicker">Option 1 / Recommended for most people</p>
+          <h2>Connect directly to Google <span class="feature-status">(In development)</span></h2>
+          <ol class="guide-steps">
+            <li><span>Open <strong>Settings &gt; Integrations &gt; Google Docs / Drive</strong>.</span></li>
+            <li><span>Select <strong>Connect Google account</strong>. Tagline opens Google authorization in your system
+                browser.</span></li>
+            <li><span>Choose the account you intend to use and grant email and per-file Drive access.</span></li>
+            <li><span>Return to Tagline and confirm the account shown in the native connection dialog. A pending sign-in
+                can be canceled; an unfinished sign-in times out after three minutes.</span></li>
+            <li><span>Select the connection before uploading, or choose it under <strong>Destination Google
+                  account</strong> in the note export dialog.</span></li>
+          </ol>
+          <p>This method needs no webhook URL, API key, or shared secret. Tagline uploads directly to Google's Drive API
+            and creates a new document in My Drive.</p>
+          <p>The desktop OAuth client requests <code>openid</code>, <code>userinfo.email</code>, and
+            <code>drive.file</code>. Drive access is limited to files created by or explicitly authorized for Tagline;
+            it is not unrestricted access to the entire Drive.
+          </p>
+          <p>Refresh tokens are protected by operating-system credential encryption in the app profile. They are not
+            stored in the vault or note settings, and are not exposed to the renderer. Access tokens stay in the main
+            process while an operation runs.</p>
+          <p>Tagline uses PKCE, a random state value, and a temporary callback listener bound to <code>127.0.0.1</code>.
+            The listener closes after sign-in, cancellation, or timeout.</p>
+          <p><strong>Disconnecting:</strong> Disconnect Google Docs removes the selected local connection and encrypted
+            credentials, but does not revoke Google's authorization grant. To revoke it, remove Tagline from your <a
+              href="https://myaccount.google.com/connections">Google Account connections</a>. If authorization expires
+            or is revoked, Tagline displays a reconnect error. Uploads are not retried automatically because a network
+            failure may leave document creation uncertain.</p>
+        </section>
+
+        <section id="webhook">
+          <p class="article-kicker">Option 2 / Apps Script</p>
+          <h2>Set up an Apps Script webhook</h2>
+          <p>Use the webhook when you need to run transfers through a Google account and folder you control. A direct
+            connection and webhook connections can coexist.</p>
+          <ol class="guide-steps">
+            <li><span>In Tagline, open <strong>Settings &gt; Integrations &gt; Set up Google Docs transfer</strong>.
+                Save or copy the bundled <a
+                  href="https://github.com/Julieisbaka/Tagline/blob/main/electron/google-docs-webhook.gs">Google Apps
+                  Script</a>.</span></li>
+            <li><span>Open <a href="https://script.google.com/home/start">Google Apps Script</a>, create a project, and
+                replace <code>Code.gs</code> with the script. Review the code before authorizing it.</span></li>
+            <li><span>Next to <strong>Services</strong>, select <strong>+</strong> and add <strong>Drive API</strong>,
+                version <strong>v3</strong>. For a standard Google Cloud project, enable the Google Drive API in that
+                project's Cloud console too.</span></li>
+            <li><span>In <strong>Project Settings &gt; Script properties</strong>, add <code>WEBHOOK_SECRET</code>. Use
+                a random 32–256 character non-space ASCII value. Generate and copy a secret in Tagline, or use a
+                password manager, then enter the same value in Tagline.</span></li>
+            <li><span>Optionally add <code>TARGET_FOLDER_ID</code> with the destination folder's ID (not its URL). The
+                script's account must be allowed to create files there. Without this property, documents go to the
+                script owner's My Drive.</span></li>
+            <li><span>In the script editor, select <code>authorizeGoogleDocs</code>, choose <strong>Run</strong>, and
+                grant your own script Drive access.</span></li>
+            <li><span>Select <strong>Deploy &gt; New deployment &gt; Web app</strong>. Set <strong>Execute as</strong>
+                to <strong>Me</strong> and <strong>Who has access</strong> to <strong>Anyone</strong>, then deploy. The
+                script checks the shared secret itself. If your Workspace administrator blocks anonymous web apps, the
+                webhook method will not work.</span></li>
+            <li><span>In Tagline, choose <strong>Add a connection / choose an account</strong>. Enter the deployment URL
+                ending in <code>/exec</code> and the same secret, then select <strong>Save Google Docs
+                  connection</strong>.</span></li>
+          </ol>
+          <p>Tagline performs a read-only account lookup and asks you to confirm the executing account's email before
+            saving. It does not upload a document during verification. Do not use the <code>/dev</code> test URL. After
+            changing the script, deploy a new version through <strong>Deploy &gt; Manage deployments</strong>.</p>
+          <p>Secrets are encrypted with the operating-system credential service in the app profile, not stored in the
+            vault or note settings. If encryption is unavailable, Tagline will not save the connection. Disconnecting
+            removes only the selected local connection; it does not delete scripts, deployments, or documents.</p>
+        </section>
+
+        <section id="accounts">
+          <h2>Use multiple Google accounts</h2>
+          <p>For direct sign-in, connect again and choose another account. Reconnecting the same Google identity updates
+            its existing direct connection. A direct connection and a script connection to the same account remain
+            separate choices and are labeled by method.</p>
+          <p>For the webhook method, create a separate Apps Script deployment and secret for each account. Use a
+            separate browser profile, or a private window signed in only to the intended account, while creating and
+            authorizing each deployment. The account selected later in the browser does not change the destination:
+            <strong>Execute as: Me</strong> runs as the account that deployed the script.
+          </p>
+          <p>Tagline shows the verified email for each saved connection. Select a connection before upload. If multiple
+            verified connections exist, the export dialog does not silently choose one. The confirmation names the
+            destination account and deployment. Before sending document content, Tagline checks the account again;
+            webhooks include an <code>expectedAccount</code> value which the script verifies before creating a document.
+          </p>
+          <p><strong>Open Google Doc</strong> uses the account from the completed upload, even if you later switch
+            connections. Google may still ask you to sign in or choose an account; a dedicated browser profile can avoid
+            opening the wrong session.</p>
+        </section>
+
+        <section id="send-documents">
+          <h2>Send documents</h2>
+          <ul>
+            <li>From a note, choose <strong>Export &gt; Google Docs &gt; Send to Google Docs</strong>. Tagline sends the
+              entire note, including unsaved edits, as HTML. Pandoc is not required. As with HTML export, wiki links
+              become labels and images are omitted.</li>
+            <li>For an existing file, open <strong>Settings &gt; Integrations &gt; Google Docs / Drive</strong> and
+              choose <strong>Upload DOCX or HTML...</strong>. Supported extensions are <code>.docx</code>,
+              <code>.html</code>, and <code>.htm</code>; the unencoded file-size limit is 5 MiB.
+            </li>
+            <li>Review the document name and destination in the native confirmation dialog. A successful creation
+              returns code <code>201</code> and offers an <strong>Open Google Doc</strong> button.</li>
+          </ul>
+          <p>Both connection methods create a new Google Doc. They do not overwrite existing documents or change their
+            sharing permissions. With a webhook destination folder, its existing permissions may be inherited.</p>
+        </section>
+
+        <section id="response-codes">
+          <h2>Webhook response codes</h2>
+          <p>The webhook accepts a JSON <code>POST</code> request. Upload requests include the shared secret, the
+            expected Google account, a title, MIME type, and base64-encoded file bytes. The separate
+            <code>account</code> action verifies which account will execute a transfer without creating a document.
+          </p>
+          <p>Supported MIME types are UTF-8 HTML (<code>text/html</code>) and DOCX
+            (<code>application/vnd.openxmlformats-officedocument.wordprocessingml.document</code>). Titles must contain
+            1–200 characters and no control characters. Content must be nonempty, standard padded base64 and decode to
+            no more than 5 MiB. This endpoint accepts uploaded file content, not Google Doc URLs, <code>.gdoc</code>
+            shortcuts, or arbitrary remote download URLs.</p>
+          <p>Verify the executing account with a read-only request first:</p>
+          <pre><code class="language-json">{
+  "secret": "&lt;your WEBHOOK_SECRET&gt;",
+  "action": "account"
+}</code></pre>
+          <p>An upload request includes the account email that Tagline confirmed:</p>
+          <pre><code class="language-json">{
+  "secret": "&lt;your WEBHOOK_SECRET&gt;",
+  "action": "upload",
+  "expectedAccount": "you@example.com",
+  "title": "Evidence",
+  "mimeType": "text/html",
+  "contentBase64": "&lt;standard base64-encoded file bytes&gt;"
+}</code></pre>
+          <p>Successful account verification returns code <code>200</code>, <code>document: null</code>, and the
+            executing account. A successful upload returns code <code>201</code> and the created document:</p>
+          <pre><code class="language-json">{
+  "ok": true,
+  "code": 201,
+  "message": "Google Doc created.",
+  "account": {
+    "email": "you@example.com",
+    "displayName": "Your name"
+  },
+  "document": {
+    "id": "&lt;new Google Doc ID&gt;",
+    "title": "Evidence",
+    "url": "https://docs.google.com/document/d/&lt;new Google Doc ID&gt;/edit"
+  }
+}</code></pre>
+          <p>Every script-generated error uses <code>ok: false</code>, a numeric <code>code</code>, a descriptive
+            <code>message</code>, <code>document: null</code>, and <code>account: null</code>. The account is obtained
+            from Drive's authenticated account lookup, not from the active browser user or a manually entered label. An
+            incorrect secret cannot retrieve account information.
+          </p>
+          <div class="table-scroll">
+            <table>
+              <thead>
+                <tr>
+                  <th>Code</th>
+                  <th>Meaning</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><code>200</code></td>
+                  <td>Executing account verified; no document was created.</td>
+                </tr>
+                <tr>
+                  <td><code>201</code></td>
+                  <td>A new Google Doc was created.</td>
+                </tr>
+                <tr>
+                  <td><code>400</code></td>
+                  <td>Missing or malformed JSON body, or invalid title.</td>
+                </tr>
+                <tr>
+                  <td><code>401</code></td>
+                  <td>Missing or incorrect shared secret.</td>
+                </tr>
+                <tr>
+                  <td><code>405</code></td>
+                  <td>GET is unsupported; use POST.</td>
+                </tr>
+                <tr>
+                  <td><code>409</code></td>
+                  <td>Expected Google account is missing or does not match. No document was created.</td>
+                </tr>
+                <tr>
+                  <td><code>413</code></td>
+                  <td>Request or decoded file exceeds the size limit.</td>
+                </tr>
+                <tr>
+                  <td><code>415</code></td>
+                  <td>Unsupported request content type or document MIME type.</td>
+                </tr>
+                <tr>
+                  <td><code>422</code></td>
+                  <td>Missing, empty, or malformed base64 content.</td>
+                </tr>
+                <tr>
+                  <td><code>500</code></td>
+                  <td>Unexpected script or configuration error.</td>
+                </tr>
+                <tr>
+                  <td><code>502</code></td>
+                  <td>Drive lookup or document creation failed. Check authorization, folder access, storage, and quotas.
+                  </td>
+                </tr>
+                <tr>
+                  <td><code>503</code></td>
+                  <td>Script properties or the advanced Drive service are missing/invalid, or the executing account
+                    could not be identified.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <p>Google Apps Script ContentService redirects the response to <code>script.googleusercontent.com</code>.
+            Tagline follows the expected redirect as a bodyless GET and rejects unrelated redirect hosts. The shared
+            secret is sent only in the initial POST body and must not be forwarded to the redirected request.</p>
+        </section>
+
+        <div class="docs-callout">
+          <p><strong>Still need help?</strong> Review the <a href="integrations.html#google-docs">integrations
+              overview</a>. App releases and source code are available in the <a
+              href="https://github.com/Julieisbaka/Tagline">Tagline repository</a>.</p>
+        </div>
+      </article>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <a class="brand" href="../index.html"><img class="brand-mark" src="../favicon.svg" alt=""
+        aria-hidden="true"><span>Tagline</span></a>
+    <p>A local-first workspace for policy debate.</p>
+    <nav aria-label="Footer navigation">
+      <a href="../index.html">Home</a>
+      <a href="../pricing.html">Pricing</a>
+      <a href="index.html">Documentation</a>
+      <a href="../privacy.html">Privacy</a>
+      <a href="../terms.html">Terms</a>
+      <a href="https://github.com/Julieisbaka/Tagline">App repository</a>
+    </nav>
+  </footer>
+</body>
+
+</html>

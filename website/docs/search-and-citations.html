@@ -1,0 +1,160 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description"
+    content="Find research in a Tagline vault, enable local semantic search, and create source-aware Markdown citations.">
+  <meta name="theme-color" content="#ffffff">
+  <title>Search &amp; citations — Tagline</title>
+  <link rel="icon" href="../favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="../styles/base.css">
+  <link rel="stylesheet" href="../styles/docs.css">
+  <link rel="stylesheet" href="../styles/responsive.css">
+  <script src="../scripts/highlight.js" defer></script>
+</head>
+
+<body>
+  <a class="skip-link" href="#main">Skip to content</a>
+  <header class="site-header">
+    <a class="brand" href="../index.html"><img class="brand-mark" src="../favicon.svg" alt=""
+        aria-hidden="true"><span>Tagline</span></a>
+    <nav class="main-nav" aria-label="Main navigation">
+      <a href="../index.html#features">Features</a>
+      <a href="../pricing.html">Pricing</a>
+      <a href="index.html" aria-current="location">Docs</a>
+      <a href="https://github.com/Julieisbaka/Tagline">GitHub</a>
+    </nav>
+    <a class="button button-small button-outline" href="https://github.com/Julieisbaka/Tagline/releases/latest">Get
+      Tagline <span aria-hidden="true">↗</span></a>
+  </header>
+
+  <main id="main" class="docs-page section-wrap">
+    <div class="docs-hero">
+      <p class="eyebrow"><span class="eyebrow-mark" aria-hidden="true">02</span> Search &amp; citations</p>
+      <h1>Find the source. Keep the trail.</h1>
+      <p>Search across a vault, optionally add meaning-based results with a local model, and turn source details into
+        citations you can reuse.</p>
+    </div>
+
+    <div class="docs-shell">
+      <aside class="docs-sidebar">
+        <h2>Guides</h2>
+        <nav aria-label="Documentation">
+          <a href="index.html">Documentation home</a>
+          <a href="getting-started.html">Getting started</a>
+          <a href="features.html">Working in Tagline</a>
+          <a href="notes-and-evidence.html">Notes &amp; evidence</a>
+          <a href="search-and-citations.html" aria-current="page">Search &amp; citations</a>
+          <a href="speech-workflows.html">Speech workflows</a>
+          <a href="integrations.html">Integrations</a>
+          <a href="google-docs.html">Google Docs transfer</a>
+          <a href="customization.html">Themes &amp; extensions</a>
+          <a href="theme-api.html">Theme format</a>
+          <a href="extension-api.html">Extension API</a>
+          <a href="json-formats.html">JSON formats</a>
+        </nav>
+      </aside>
+
+      <article class="docs-article">
+        <nav class="article-toc" aria-label="On this page">
+          <span>On this page</span>
+          <a href="#vault-search">Search your vault</a>
+          <a href="#semantic-search">Add semantic search</a>
+          <a href="#create-citation">Create a citation</a>
+          <a href="#local-tools">Local research tools</a>
+        </nav>
+
+        <section id="vault-search">
+          <p class="article-kicker">01 / Find what you have</p>
+          <h2>Search your vault</h2>
+          <ol class="guide-steps">
+            <li><span><strong>Open vault search</strong><br>Press <kbd>Ctrl+Shift+F</kbd> on Windows/Linux or
+                <kbd>Cmd+Shift+F</kbd> on macOS.</span></li>
+            <li><span><strong>Search across your notes</strong><br>Use a phrase, claim, source name, or tag to locate
+                relevant files.</span></li>
+            <li><span><strong>Open a result and check its context</strong><br>Review the surrounding argument and source
+                details before reusing evidence.</span></li>
+          </ol>
+          <p>For exact terms and known wording, start with regular vault search. Semantic search is optional and
+            requires a one-time local model download.</p>
+        </section>
+
+        <section id="semantic-search">
+          <p class="article-kicker">02 / Search by meaning</p>
+          <h2>Add semantic or hybrid search</h2>
+          <ol>
+            <li>Open <strong>Settings &gt; Integrations</strong>.</li>
+            <li>Download the local embedding model.</li>
+            <li>Return to vault search and use semantic or hybrid search for concepts that may be phrased differently in
+              your notes.</li>
+          </ol>
+          <div class="docs-callout">
+            <p><strong>Local model, local files.</strong> The embedding model runs on your device after download.
+              Tagline stores your research as files in the vault.</p>
+          </div>
+          <p>Semantic search complements keyword search; verify a result in its note before treating it as evidence.</p>
+        </section>
+
+        <section id="create-citation">
+          <p class="article-kicker">03 / Make a source traceable</p>
+          <h2>Create a citation</h2>
+          <p>Start from a note, the command palette, or the File menu. The command palette includes a citation preview
+            before you choose a citation action:</p>
+          <ol class="guide-steps">
+            <li><span><strong>Choose Create citation</strong><br>The citation form opens without replacing the current
+                note.</span></li>
+            <li><span><strong>Enter source details</strong><br>Fill in the available author, title, publication, date,
+                and locator fields.</span></li>
+            <li><span><strong>Paste a citation in one step</strong><br>Choose <strong>Paste citation</strong> to extract
+                citation details from the clipboard and fill the citation editor.</span></li>
+            <li><span><strong>Autofill when you have a public identifier</strong><br>Paste a public URL or DOI, then
+                choose <strong>Autofill from URL</strong>. Review the returned details for accuracy.</span></li>
+            <li><span><strong>Copy or insert</strong><br>Copy the Markdown citation, or insert it into the current
+                note.</span></li>
+          </ol>
+          <p>Keep the citation with the claim it supports. For keyboard formatting and evidence-card structure, see <a
+              href="notes-and-evidence.html#evidence-card">Format a debate card</a>.</p>
+        </section>
+
+        <section id="local-tools">
+          <p class="article-kicker">04 / Optional analysis</p>
+          <h2>Test a claim or summarize a note</h2>
+          <p>Tagline includes optional, on-demand local analysis tools:</p>
+          <ul>
+            <li><strong>Test a hypothesis</strong> compares selected text, a card, or a note with one or more
+              hypotheses. Download the Political DEBATE model from <strong>Settings &gt; Integrations</strong> before
+              using it.</li>
+            <li><strong>Summarize</strong> opens a summary dialog for a Markdown note. Download the summary model from
+              <strong>Settings &gt; Integrations</strong>.
+            </li>
+          </ul>
+          <div class="docs-callout docs-callout-warning">
+            <p><strong>Review, don’t replace.</strong> These tools are on demand, run locally after their models are
+              downloaded, and do not change the source note. Check any generated summary or analysis against the
+              underlying evidence.</p>
+          </div>
+        </section>
+
+        <p class="docs-source">See <a href="features.html#research">the workspace feature overview</a> for a compact
+          summary of search and citations.</p>
+        <nav class="guide-next" aria-label="More task guides">
+          <a href="notes-and-evidence.html"><small>Previous guide</small><strong>Notes &amp; evidence →</strong></a>
+          <a href="speech-workflows.html"><small>Next guide</small><strong>Speech workflows →</strong></a>
+        </nav>
+      </article>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <a class="brand" href="../index.html"><img class="brand-mark" src="../favicon.svg" alt=""
+        aria-hidden="true"><span>Tagline</span></a>
+    <p>A local-first workspace for policy debate.</p>
+    <nav aria-label="Footer navigation"><a href="../index.html">Home</a><a href="../pricing.html">Pricing</a><a
+        href="index.html">Documentation</a><a href="../privacy.html">Privacy</a><a href="../terms.html">Terms</a><a
+        href="https://github.com/Julieisbaka/Tagline">App repository</a></nav>
+  </footer>
+</body>
+
+</html>

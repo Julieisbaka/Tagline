@@ -1,0 +1,405 @@
+.hero {
+  overflow-x: clip;
+  min-height: 595px;
+  display: grid;
+  grid-template-columns: 0.9fr 1.1fr;
+  align-items: center;
+  gap: 42px;
+  padding-block: 54px 68px;
+}
+
+.hero-copy {
+  padding-bottom: 8px;
+}
+
+.eyebrow {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin: 0 0 18px;
+  color: #6b6f75;
+  font-size: 10px;
+  font-weight: 750;
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+}
+
+.eyebrow-mark {
+  display: grid;
+  width: 22px;
+  height: 22px;
+  place-items: center;
+  border-radius: 4px;
+  background: #6b4fd826;
+  color: var(--purple);
+  font-size: 13px;
+}
+
+h1 {
+  margin-bottom: 20px;
+  font-size: clamp(46px, 5.1vw, 68px);
+  font-weight: 740;
+  line-height: 1.04;
+}
+
+h1 span {
+  color: var(--purple);
+}
+
+.hero-lede {
+  max-width: 440px;
+  margin-bottom: 25px;
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.85;
+}
+
+.hero-actions {
+  display: flex;
+  align-items: center;
+  gap: 23px;
+}
+
+.text-link {
+  color: #41464b;
+  font-size: 11px;
+  font-weight: 700;
+  transition: color 160ms ease;
+}
+
+.platform-note {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 26px 0 0;
+  color: #625e6f;
+  font-size: 10px;
+}
+
+.platform-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #6eac7a;
+}
+
+.hero-art {
+  position: relative;
+  min-width: 0;
+  padding: 20px 8px;
+}
+
+.hero-orbit {
+  position: absolute;
+  border: 1px solid #ddd7ef;
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+.orbit-one {
+  inset: 0 -4% 0 8%;
+  transform: rotate(-8deg);
+}
+
+.orbit-two {
+  inset: 7% 2% -4% 0;
+  border-color: #ebe7f4;
+  transform: rotate(5deg);
+}
+
+.app-preview {
+  position: relative;
+  overflow: hidden;
+  border: 7px solid var(--white);
+  border-radius: 14px;
+  background: var(--white);
+  box-shadow: 0 28px 80px #34235c26, 0 3px 10px #34235c0c;
+  transform: rotate(1.2deg);
+}
+
+.window-bar {
+  position: relative;
+  height: 34px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding-inline: 12px;
+  border-bottom: 1px solid #eeecf1;
+  background: #faf9fc;
+}
+
+.window-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+}
+
+.dot-close {
+  background: #f18c8f;
+}
+
+.dot-minimize {
+  background: #efc56a;
+}
+
+.dot-maximize {
+  background: #84c88d;
+}
+
+.window-title {
+  position: absolute;
+  left: 50%;
+  color: #544d6a;
+  font-size: 8px;
+  font-weight: 700;
+  transform: translateX(-50%);
+}
+
+.window-title span {
+  color: #716c7c;
+  font-weight: 500;
+}
+
+.app-content {
+  min-height: 342px;
+  display: grid;
+  grid-template-columns: 145px minmax(0, 1fr);
+}
+
+.app-sidebar {
+  position: relative;
+  padding: 13px 8px;
+  background: #29214d;
+  color: #ddd8f2;
+}
+
+.sidebar-brand {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin: 0 0 25px 4px;
+  color: white;
+  font-size: 10px;
+  font-weight: 750;
+}
+
+.mini-mark {
+  width: 20px;
+  height: 20px;
+  margin-bottom: 4px;
+  border-radius: 6px;
+}
+
+.sidebar-label {
+  margin: 0 0 10px 7px;
+  color: #9e96bf;
+  font-size: 7px;
+  font-weight: 700;
+  letter-spacing: 1px;
+}
+
+.file-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 27px;
+  padding: 0 7px;
+  border-radius: 5px;
+  color: #d4d0e4;
+  font-size: 8px;
+}
+
+.file-child {
+  margin-left: 8px;
+}
+
+.selected-file {
+  background: #453a75;
+  color: white;
+}
+
+.file-glyph {
+  color: #aca0ef;
+  font-size: 10px;
+}
+
+.sidebar-bottom {
+  position: absolute;
+  right: 10px;
+  bottom: 12px;
+  left: 12px;
+  padding-top: 10px;
+  border-top: 1px solid #ffffff1c;
+  color: #c7c0df;
+  font-size: 8px;
+}
+
+.editor-pane {
+  position: relative;
+  min-width: 0;
+  background: #fff;
+}
+
+.editor-topbar {
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-inline: 13px;
+  border-bottom: 1px solid #f0eef4;
+  color: #777183;
+  font-size: 8px;
+}
+
+.crumb {
+  padding-inline: 3px;
+  color: #bbb5c7;
+}
+
+.mode-pill {
+  padding: 5px 7px;
+  border: 1px solid #ebe8f1;
+  border-radius: 5px;
+  color: #5a536d;
+  font-size: 7px;
+}
+
+.fake-note {
+  max-width: 330px;
+  margin: 27px auto 0;
+  padding: 0 25px 35px;
+}
+
+.note-kicker {
+  margin-bottom: 11px;
+  color: #65569d;
+  font-size: 7px;
+  font-weight: 750;
+  letter-spacing: 1.2px;
+}
+
+.fake-note h2 {
+  margin-bottom: 13px;
+  color: #29243b;
+  font-size: clamp(23px, 2.6vw, 34px);
+  line-height: 1.08;
+}
+
+.fake-line {
+  height: 5px;
+  margin-bottom: 7px;
+  border-radius: 5px;
+  background: #eceaf1;
+}
+
+.line-long {
+  width: 93%;
+}
+
+.line-medium {
+  width: 72%;
+}
+
+.line-short {
+  width: 43%;
+}
+
+.evidence-card {
+  margin: 19px 0 14px;
+  padding: 11px 12px;
+  border: 1px solid #e8e3f8;
+  border-left: 3px solid #7964df;
+  border-radius: 6px;
+  background: #faf9ff;
+}
+
+.card-top {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 7px;
+}
+
+.card-label,
+.card-year {
+  color: #777086;
+  font-size: 6px;
+  font-weight: 750;
+  letter-spacing: 0.7px;
+}
+
+.card-year {
+  color: #6b647c;
+}
+
+.evidence-card p {
+  margin-bottom: 8px;
+  color: #49445a;
+  font-size: 8px;
+  line-height: 1.55;
+}
+
+.card-citation {
+  padding-top: 7px;
+  border-top: 1px solid #ece9f4;
+  color: #625d70;
+  font-size: 6px;
+}
+
+.line-after {
+  margin-top: 11px;
+}
+
+.editor-status {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  display: flex;
+  justify-content: space-between;
+  padding: 9px 12px;
+  border-top: 1px solid #f0eef4;
+  color: #625e6f;
+  font-size: 6px;
+}
+
+.editor-status i {
+  display: inline-block;
+  width: 5px;
+  height: 5px;
+  margin-right: 4px;
+  border-radius: 50%;
+  background: #72b782;
+}
+
+.floating-note {
+  position: absolute;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border: 1px solid #eeebf3;
+  border-radius: 8px;
+  background: var(--white);
+  box-shadow: 0 12px 25px #34235c16;
+  color: #554e68;
+  font-size: 9px;
+  font-weight: 650;
+}
+
+.floating-note span:first-child {
+  color: var(--purple);
+  font-size: 14px;
+}
+
+.note-citation {
+  top: 5px;
+  right: -5px;
+  transform: rotate(4deg);
+}
+
+.note-local {
+  bottom: 4px;
+  left: -16px;
+  transform: rotate(-3deg);
+}
