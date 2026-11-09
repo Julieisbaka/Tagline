@@ -127,7 +127,7 @@
           "type": "array",
           "maxItems": 10,
           "items": {
-            "$ref": "#/definitions/surface"
+            "$ref": "#/definitions/panel"
           }
         },
         "webviews": {
@@ -157,6 +157,21 @@
               }
             }
           }
+        },
+        "statusBarItems": {
+          "type": "array",
+          "maxItems": 20,
+          "items": { "$ref": "#/definitions/statusBarItem" }
+        },
+        "contextMenus": {
+          "type": "array",
+          "maxItems": 50,
+          "items": { "$ref": "#/definitions/contextMenu" }
+        },
+        "fileHandlers": {
+          "type": "array",
+          "maxItems": 20,
+          "items": { "$ref": "#/definitions/fileHandler" }
         }
       },
       "additionalProperties": true
@@ -210,6 +225,18 @@
                     "minItems": 1
                   }
                 }
+              },
+              {
+                "required": ["statusBarItems"],
+                "properties": { "statusBarItems": { "minItems": 1 } }
+              },
+              {
+                "required": ["contextMenus"],
+                "properties": { "contextMenus": { "minItems": 1 } }
+              },
+              {
+                "required": ["fileHandlers"],
+                "properties": { "fileHandlers": { "minItems": 1 } }
               }
             ]
           }
@@ -313,6 +340,67 @@
         "title": {
           "$ref": "#/definitions/title"
         }
+      }
+    },
+    "panel": {
+      "allOf": [{ "$ref": "#/definitions/surface" }],
+      "properties": {
+        "placement": { "enum": ["right-panel", "sidebar-bottom", "editor-side"] },
+        "persistVisibility": { "type": "boolean" },
+        "when": {
+          "type": "object",
+          "properties": {
+            "extensions": {
+              "type": "array",
+              "maxItems": 8,
+              "uniqueItems": true,
+              "items": { "enum": [".md", ".flow", ".canvas", ".json"] }
+            },
+            "mode": { "enum": ["read", "edit", "visual"] }
+          },
+          "additionalProperties": false,
+          "anyOf": [
+            { "required": ["mode"] },
+            { "required": ["extensions"], "properties": { "extensions": { "minItems": 1 } } }
+          ]
+        }
+      }
+    },
+    "statusBarItem": {
+      "type": "object",
+      "required": ["id", "title", "icon", "command"],
+      "properties": {
+        "id": { "$ref": "#/definitions/id" },
+        "title": { "$ref": "#/definitions/title" },
+        "icon": { "type": "string", "pattern": "^[a-z-]{1,40}$" },
+        "command": { "$ref": "#/definitions/id" }
+      }
+    },
+    "contextMenu": {
+      "type": "object",
+      "required": ["id", "title", "context", "command"],
+      "properties": {
+        "id": { "$ref": "#/definitions/id" },
+        "title": { "$ref": "#/definitions/title" },
+        "context": { "enum": ["editor", "file-explorer", "tab", "canvas", "flow"] },
+        "command": { "$ref": "#/definitions/id" }
+      }
+    },
+    "fileHandler": {
+      "type": "object",
+      "required": ["id", "title", "extensions", "command"],
+      "properties": {
+        "id": { "$ref": "#/definitions/id" },
+        "title": { "$ref": "#/definitions/title" },
+        "extensions": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 3,
+          "uniqueItems": true,
+          "items": { "enum": [".md", ".flow", ".canvas"] }
+        },
+        "command": { "$ref": "#/definitions/id" },
+        "priority": { "type": "integer", "minimum": 0, "maximum": 100 }
       }
     },
     "command": {

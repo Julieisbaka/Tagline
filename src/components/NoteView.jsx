@@ -45,6 +45,7 @@ export default function NoteView({
   onRestore,
   settings,
   onDismissVisualNotice,
+  extensions,
 }) {
   const { t } = useI18n();
   const previousMode = useRef({ path, mode });
@@ -196,6 +197,7 @@ export default function NoteView({
           focusNewFlowRow={settings.focusNewFlowRow}
           keybindings={settings.keybindings}
           settings={settings}
+          extensions={extensions}
         />
       </div>
     );

@@ -13,7 +13,7 @@ const PERMISSION_LABELS = {
   settings: "Read and change only this extension's declared settings",
   'editor:active-note': 'Watch active-note paths without reading note content',
   events: 'Subscribe to application events and exchange custom extension events',
-  ui: 'Display sandboxed panels, webviews and ribbon shortcuts',
+  ui: 'Display panels, status items and shortcuts; add context menus and file actions',
   network: 'Make host-mediated HTTPS requests to reviewed hosts',
   secrets: 'Store and read OS-encrypted secrets such as API keys',
   api: 'Share versioned JSON APIs with other approved extensions',

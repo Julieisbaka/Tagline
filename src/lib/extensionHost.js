@@ -77,6 +77,23 @@ function requireText(value, label, max = MAX_TEXT) {
   return value;
 }
 
+function requireUiContext(value) {
+  if (value === undefined || value === null) {
+    return undefined;
+  }
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    throw new Error('UI command context must be an object.');
+  }
+  const path = value.path == null ? null : requireText(value.path, 'Context path', 1000);
+  const uri = value.uri == null ? null : requireText(value.uri, 'Context URI', 1500);
+  const selection = value.selection == null ? null : requirePayload(value.selection);
+  const context = { path, selection, uri };
+  if (new TextEncoder().encode(JSON.stringify(context)).byteLength > 8192) {
+    throw new Error('UI command context exceeds 8,192 bytes.');
+  }
+  return context;
+}
+
 export class ExtensionHost {
   constructor(
     manifest,
@@ -98,6 +115,12 @@ export class ExtensionHost {
     this.eventWatches = new Map();
     this.surfaces = new Map();
     this.surfaceTransports = new Map();
+    this.statusBar = new Map(
+      (manifest.contributes?.statusBarItems || []).map((item) => [
+        item.id,
+        { text: item.title, icon: item.icon, tooltip: item.title, command: item.command },
+      ])
+    );
     this.nextWatch = 0;
     this.pendingCalls = 0;
     this.messageTimes = [];
@@ -452,6 +475,38 @@ export class ExtensionHost {
         }
         return true;
       }
+      case 'ui.statusBar.setText':
+      case 'ui.statusBar.setIcon':
+      case 'ui.statusBar.setTooltip':
+      case 'ui.statusBar.setCommand': {
+        this.require('ui');
+        const [id, value] = args;
+        const item = this.manifest.contributes.statusBarItems?.find((entry) => entry.id === id);
+        if (!item) {
+          throw new Error('Undeclared status bar item.');
+        }
+        const state = this.statusBar.get(id);
+        if (method.endsWith('setText')) {
+          state.text = requireText(value, 'Status bar text', 160);
+        } else if (method.endsWith('setIcon')) {
+          state.icon = requireText(value, 'Status bar icon', 40);
+          if (!/^[a-z-]{1,40}$/.test(state.icon)) {
+            throw new Error('Invalid status bar icon.');
+          }
+        } else if (method.endsWith('setTooltip')) {
+          state.tooltip = requireText(value, 'Status bar tooltip', 250);
+        } else {
+          state.command = requireText(value, 'Status bar command', 64);
+          if (!this.manifest.contributes.commands.some((command) => command.id === state.command)) {
+            throw new Error('Status bar command must reference a declared command.');
+          }
+        }
+        b.updateStatusBar?.(this, [...this.statusBar].map(([itemId, status]) => ({
+          id: itemId,
+          ...status,
+        })));
+        return true;
+      }
       case 'settings.get':
         this.require('settings');
         return getExtensionSetting(this.manifest, requireText(args[0], 'Setting id', 64));
@@ -770,7 +825,7 @@ export class ExtensionHost {
     }
   }
 
-  run(commandId) {
+  run(commandId, context) {
     if (!this.frame) {
       throw new Error(
         `${this.manifest.name} was stopped. Reload or disable it in Settings > Extensions.`
@@ -779,7 +834,11 @@ export class ExtensionHost {
     if (!this.registered.has(commandId)) {
       throw new Error(`${this.manifest.name} has not registered "${commandId}".`);
     }
-    this.port.postMessage({ type: 'command', command: commandId });
+    this.port.postMessage({
+      type: 'command',
+      command: commandId,
+      ...(context === undefined ? {} : { context: requireUiContext(context) }),
+    });
   }
 
   dispose() {

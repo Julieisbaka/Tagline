@@ -4,6 +4,8 @@ import { resolveLink } from '../../../lib/vault.js';
 export default function openCanvasContextMenu(
   {
     canvas,
+    path,
+    extensions,
     paths,
     onOpenFile,
     onOpenUrl,
@@ -27,6 +29,16 @@ export default function openCanvasContextMenu(
   event.stopPropagation?.();
   const targetNode = canvas.nodes.find((item) => item.id === nodeId);
   const targetEdge = canvas.edges.find((item) => item.id === edgeId);
+  const contributed =
+    extensions?.contextMenuItems('canvas', {
+      path,
+      selection: targetNode
+        ? { type: 'node', id: targetNode.id }
+        : targetEdge
+          ? { type: 'edge', id: targetEdge.id }
+          : null,
+      uri: `tagline://note/${encodeURIComponent(path)}`,
+    }) || [];
   const items = targetNode
     ? [
         ...(targetNode.type === 'file'
@@ -132,6 +144,10 @@ export default function openCanvasContextMenu(
   setMenu({
     x: event.clientX,
     y: event.clientY,
-    items: [...items, { label: 'Open JSON source', run: onEditSource }],
+    items: [
+      ...items,
+      { label: 'Open JSON source', run: onEditSource },
+      ...(contributed.length ? [{ separator: true }, ...contributed] : []),
+    ],
   });
 }

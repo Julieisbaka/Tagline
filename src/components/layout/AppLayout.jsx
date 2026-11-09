@@ -8,10 +8,12 @@ import Onboarding from '../dialogs/Onboarding.jsx';
 import TextContextMenu from '../dialogs/TextContextMenu.jsx';
 import Welcome from '../dialogs/Welcome.jsx';
 import ExtensionSurface from '../ExtensionSurface.jsx';
+import Icon from '../Icon.jsx';
 import NoteView from '../NoteView.jsx';
 import ConfigurableBar from './ConfigurableBar.jsx';
 import Ribbon from './Ribbon.jsx';
 import RightPanel from './RightPanel.jsx';
+import ExtensionPanelList from './ExtensionPanelList.jsx';
 import Sidebar, { renameTarget } from './Sidebar.jsx';
 import Splitter from './Splitter.jsx';
 import TabBar from './TabBar.jsx';
@@ -186,7 +188,7 @@ export default function AppLayout({ app }) {
     return (
       <>
         {toastStatus}
-        <TextContextMenu />
+        <TextContextMenu extensions={ext} activePath={activePath} />
         {window.api.platform === 'darwin' && <div className='mac-titlebar'>Tagline</div>}
         <Welcome
           onOpen={v.chooseVault}
@@ -297,6 +299,7 @@ export default function AppLayout({ app }) {
           onOpenUrl={(url) =>
             window.api.websiteAction('external', url).catch((error) => notify(error.message))
           }
+          extensions={ext}
         />
       );
     }
@@ -331,6 +334,7 @@ export default function AppLayout({ app }) {
         onOpenHistory={() => openHistory(tab.path)}
         onRestore={(content) => restoreWorking(tab.path, content)}
         settings={settings}
+        extensions={ext}
         onDismissVisualNotice={() =>
           updateSettings({
             internalFlags: { ...settings.internalFlags, visualNoticeDismissed: true },
@@ -346,7 +350,7 @@ export default function AppLayout({ app }) {
       style={{ '--sidebar-width': `${sidebarWidth}px`, '--right-panel-width': `${rightWidth}px` }}
     >
       {toastStatus}
-      <TextContextMenu />
+      <TextContextMenu extensions={ext} activePath={activePath} />
       {window.api.platform === 'darwin' && <div className='mac-titlebar'>Tagline</div>}
       <Ribbon
         ctx={ctx}
@@ -369,6 +373,8 @@ export default function AppLayout({ app }) {
           spacedFolders={settings.underscoreFolders}
           hideFlowExtension={settings.hideFlowExtension}
           showMarkdownExtension={settings.showMarkdownExtension}
+          extensions={ext}
+          mode={mode}
         />
       )}
       {showLeft && (
@@ -397,10 +403,19 @@ export default function AppLayout({ app }) {
               ? actions.rename({ type: 'file', path, name: path.split('/').pop() })
               : v.reveal(path)
           }
+          extensions={ext}
         />
         <div className='workspace'>
-          {renderWorkspace()}
-          {websiteView}
+          <div className='workspace-content'>
+            {renderWorkspace()}
+            {websiteView}
+          </div>
+          <ExtensionPanelList
+            extensions={ext}
+            placement='editor-side'
+            activePath={activePath}
+            mode={mode}
+          />
         </div>
         <ConfigurableBar
           className='status-bar'
@@ -442,6 +457,17 @@ export default function AppLayout({ app }) {
           }}
         >
           {stats?.error && <span role='alert'>{stats.error}</span>}
+          {ext.statusBarItems.map((item) => (
+            <button
+              className='link-btn extension-status-item'
+              key={`${item.host.manifest.id}:${item.id}`}
+              data-bar-item={`ext:${item.host.manifest.id}:${item.id}`}
+              title={item.tooltip}
+              onClick={() => ext.run({ extensionId: item.host.manifest.id, command: item.command })}
+            >
+              <Icon name={item.icon} size={12} /> {item.text}
+            </button>
+          ))}
         </ConfigurableBar>
       </main>
       <div style={{ display: showRight ? 'contents' : 'none' }}>
@@ -456,6 +482,7 @@ export default function AppLayout({ app }) {
         <RightPanel
           extensions={ext}
           activePath={activePath}
+          mode={mode}
           content={activeContent}
           index={v.index}
           contents={v.contents}

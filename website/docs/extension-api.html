@@ -395,7 +395,11 @@
                     <td><code>contributes.panels</code>, <code>contributes.webviews</code></td>
                     <td>
                       Up to 10 <code>{ id, title }</code> declarations each; require
-                      <code>ui</code> permission and <code>main</code>.
+                      <code>ui</code> permission and <code>main</code>. Panels may set
+                      <code>placement</code> to <code>right-panel</code> (default),
+                      <code>sidebar-bottom</code>, or <code>editor-side</code>,
+                      <code>persistVisibility: true</code>, and a simple <code>when</code> filter
+                      using <code>extensions</code> and/or <code>mode</code>.
                     </td>
                   </tr>
                   <tr>
@@ -403,6 +407,30 @@
                     <td>
                       Up to 10 <code>{ id, title, icon, command }</code> shortcuts; requires
                       <code>ui</code> and a declared command. Unknown icon names use the file icon.
+                    </td>
+                  </tr>
+                  <tr>
+                    <td><code>contributes.statusBarItems</code></td>
+                    <td>
+                      Up to 20 <code>{ id, title, icon, command }</code> read-only status items;
+                      require <code>ui</code> and a declared command. Clicking runs that command.
+                    </td>
+                  </tr>
+                  <tr>
+                    <td><code>contributes.contextMenus</code></td>
+                    <td>
+                      Up to 50 <code>{ id, title, context, command }</code> actions for
+                      <code>editor</code>, <code>file-explorer</code>, <code>tab</code>,
+                      <code>canvas</code>, or <code>flow</code>; require <code>ui</code> and a
+                      declared command.
+                    </td>
+                  </tr>
+                  <tr>
+                    <td><code>contributes.fileHandlers</code></td>
+                    <td>
+                      Up to 20 explicit “Open with” actions for <code>.md</code>,
+                      <code>.flow</code>, or <code>.canvas</code>. Priority (0–100) only orders
+                      matching handlers; native open behavior is unchanged.
                     </td>
                   </tr>
                 </tbody>
@@ -479,8 +507,8 @@
                   <tr>
                     <td><code>ui</code></td>
                     <td>
-                      Display declared ribbon shortcuts, panels, and webviews; exchange messages
-                      with those surfaces.
+                      Display declared status items, ribbon shortcuts, panels, and webviews; add
+                      context-menu/file-handler actions and exchange surface messages.
                     </td>
                   </tr>
                   <tr>
@@ -735,7 +763,7 @@ const result = await api.methods.lookup({ query: 'climate' });</code></pre>
           </section>
 
           <section id="ui">
-            <h2>Panels, webviews, and UI</h2>
+            <h2>Status bar, menus, panels, and webviews</h2>
             <p>
               Declare surfaces before using them. IDs use command-ID syntax; titles are nonblank and
               at most 80 characters. Each surface belongs to its extension.
@@ -744,10 +772,37 @@ const result = await api.methods.lookup({ query: 'climate' });</code></pre>
   "permissions": ["ui"],
   "main": "main.js",
   "contributes": {
-    "panels": [{ "id": "research-panel", "title": "Research" }],
+    "commands": [{ "id": "open-research", "title": "Open research" }],
+    "statusBarItems": [{ "id": "research-status", "title": "Ready", "icon": "search", "command": "open-research" }],
+    "contextMenus": [{ "id": "editor-research", "title": "Research selection", "context": "editor", "command": "open-research" }],
+    "fileHandlers": [{ "id": "markdown-research", "title": "Research note", "extensions": [".md"], "command": "open-research", "priority": 10 }],
+    "panels": [{ "id": "research-panel", "title": "Research", "placement": "sidebar-bottom", "persistVisibility": true, "when": { "extensions": [".md"], "mode": "edit" } }],
     "webviews": [{ "id": "source-details", "title": "Source details" }]
   }
 }</code></pre>
+            <pre><code class="language-js">await tagline.commands.register('open-research', async (context) =&gt; {
+  // Context is bounded and may contain a path, selected text or range, and Tagline URI.
+  await tagline.notify(context?.path || 'No file selected');
+});
+await tagline.ui.statusBar.setText('research-status', '2 sources');
+await tagline.ui.statusBar.setTooltip('research-status', 'Open research tools');
+await tagline.ui.statusBar.setIcon('research-status', 'search');
+await tagline.ui.statusBar.setCommand('research-status', 'open-research');</code></pre>
+            <p>
+              Status-bar items display only text, icon, and tooltip—no extension HTML. Their click
+              command must be declared. Context-menu and file-handler commands receive a bounded
+              <code>{ path, selection, uri }</code> object; unavailable fields are
+              <code>null</code>. Editor selections are text (clipped to 4,096 characters); canvas
+              and flow selections contain only compact node/edge IDs or cell bounds. Context data
+              is supplied only after an explicit user menu action.
+            </p>
+            <p>
+              File handlers appear as “Open with …” in file and tab context menus. They never
+              replace double-click/open behavior; priority only sorts matching extension handlers.
+              Panels default to the right panel. <code>persistVisibility</code> stores only whether
+              the panel is open, and <code>when</code> supports a short allowlist of document
+              extensions and/or modes—no executable expressions.
+            </p>
             <pre><code class="language-js">tagline.webviews.onMessage('source-details', async (message) =&gt; {
   if (message.ready) {
     await tagline.webviews.postMessage('source-details', {
@@ -771,7 +826,8 @@ await tagline.webviews.show('source-details');</code></pre>
               reloading removes contributed surfaces.
             </p>
             <p>
-              Panels appear above the built-in right sidebar; webviews appear as dialogs. HTML is
+              Right-panel contributions appear above the built-in right sidebar; other panel
+              placements follow their declaration, while webviews appear as dialogs. HTML is
               limited to 200,000 characters and runs in an opaque-origin
               <code>sandbox="allow-scripts"</code> iframe without same-origin access, Node, Electron
               APIs, network requests, forms, nested frames/workers, popups, or arbitrary navigation.

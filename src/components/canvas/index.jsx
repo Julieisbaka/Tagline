@@ -21,6 +21,7 @@ export default function CanvasView({
   onOpenUrl,
   onOpenLink,
   settings,
+  extensions,
 }) {
   const { t } = useI18n();
   const [title, setTitle] = useState(baseName(path));
@@ -91,6 +92,8 @@ export default function CanvasView({
       ) : (
         <CanvasEditor
           canvas={parsed.canvas}
+          path={path}
+          extensions={extensions}
           onChange={onChange}
           paths={paths}
           onEditSource={() => setMode('edit')}

@@ -8,6 +8,21 @@ import {
 } from './extensionSettings.js';
 import { registerExtensionThemes, validateTheme } from './themes.js';
 
+const readSurfaceVisibility = (key) => {
+  try {
+    return localStorage.getItem(key) === 'true';
+  } catch {
+    return false;
+  }
+};
+const writeSurfaceVisibility = (key, visible) => {
+  try {
+    localStorage.setItem(key, String(visible));
+  } catch {
+    // Surface state remains usable for this session when storage is unavailable.
+  }
+};
+
 /**
  * Manage extension hosts, contributions, and their application bridge lifecycle.
  * @param {object} options - The options object containing bridgeRef and notify callback.
@@ -17,6 +32,7 @@ export function useExtensions({ bridgeRef, notify }) {
   const [extensions, setExtensions] = useState([]);
   const [commands, setCommands] = useState([]);
   const [surfaces, setSurfaces] = useState([]);
+  const [statusBarItems, setStatusBarItems] = useState([]);
   const hosts = useRef(new Map());
   const generation = useRef(0);
   const [settingsRevision, settingsChanged] = useState(0);
@@ -34,6 +50,7 @@ export function useExtensions({ bridgeRef, notify }) {
     const current = ++generation.current;
     hosts.current.forEach((host) => host.dispose());
     hosts.current = new Map();
+    setStatusBarItems([]);
     const bridge = {
       notify: (message) => notify(message),
       getActiveNote: () => bridgeRef.current.getActiveNote(),
@@ -43,6 +60,7 @@ export function useExtensions({ bridgeRef, notify }) {
       runTiptapCommand: (command, options) => bridgeRef.current.runTiptapCommand(command, options),
       updateSurface: (host, kind, id, html, show) => {
         const declaration = host.manifest.contributes[kind].find((item) => item.id === id);
+        const storageKey = `tagline-extension-surface:${host.manifest.id}:${kind}:${id}`;
         setSurfaces((previous) => {
           const existing = previous.find(
             (item) => item.host === host && item.kind === kind && item.id === id
@@ -53,8 +71,16 @@ export function useExtensions({ bridgeRef, notify }) {
             id,
             html,
             title: `${host.manifest.name}: ${declaration.title}`,
-            visible: show || existing?.visible || false,
+            placement: declaration.placement || 'right-panel',
+            when: declaration.when,
+            visible:
+              show ||
+              existing?.visible ||
+              (!existing && declaration.persistVisibility && readSurfaceVisibility(storageKey)),
           };
+          if (declaration.persistVisibility && show) {
+            writeSurfaceVisibility(storageKey, true);
+          }
           return [
             ...previous.filter(
               (item) => !(item.host === host && item.kind === kind && item.id === id)
@@ -63,16 +89,27 @@ export function useExtensions({ bridgeRef, notify }) {
           ];
         });
       },
-      closeSurface: (host, kind, id) =>
+      closeSurface: (host, kind, id) => {
+        const declaration = host.manifest.contributes[kind].find((item) => item.id === id);
+        if (declaration?.persistVisibility) {
+          writeSurfaceVisibility(`tagline-extension-surface:${host.manifest.id}:${kind}:${id}`, false);
+        }
         setSurfaces((previous) =>
           previous.map((item) =>
             item.host === host && item.kind === kind && item.id === id
               ? { ...item, visible: false }
               : item
           )
-        ),
+        );
+      },
+      updateStatusBar: (host, items) =>
+        setStatusBarItems((previous) => [
+          ...previous.filter((item) => item.host !== host),
+          ...items.map((item) => ({ ...item, host })),
+        ]),
       removeSurfaces: (host) => {
         setSurfaces((previous) => previous.filter((item) => item.host !== host));
+        setStatusBarItems((previous) => previous.filter((item) => item.host !== host));
         setExtensions((previous) =>
           previous.map((item) =>
             item.id === host.manifest.id
@@ -220,6 +257,15 @@ export function useExtensions({ bridgeRef, notify }) {
                 command: command.id,
               });
             }
+            if (
+              host.manifest.permissions.includes('ui') &&
+              (host.allowedPermissions || host.manifest.permissions).includes('ui')
+            ) {
+              setStatusBarItems((previous) => [
+                ...previous.filter((status) => status.host !== host),
+                ...[...host.statusBar].map(([id, status]) => ({ ...status, id, host })),
+              ]);
+            }
           }
           return item;
         } catch (error) {
@@ -339,10 +385,65 @@ export function useExtensions({ bridgeRef, notify }) {
         run: () => run({ extensionId: item.id, command: declaration.command }),
       }))
     );
+  const contextMenuItems = (context, payload) => {
+    const items = [];
+    const handlers = [];
+    for (const host of hosts.current.values()) {
+      if (
+        !host.manifest.permissions.includes('ui') ||
+        !(host.allowedPermissions || host.manifest.permissions).includes('ui')
+      ) {
+        continue;
+      }
+      for (const declaration of host.manifest.contributes.contextMenus || []) {
+        if (declaration.context === context && host.registered.has(declaration.command)) {
+          items.push({
+            label: `${host.manifest.name}: ${declaration.title}`,
+            extensionId: host.manifest.id,
+            command: declaration.command,
+            priority: 0,
+            run: () => {
+              try {
+                host.run(declaration.command, payload);
+              } catch (error) {
+                notify(error.message);
+              }
+            },
+          });
+        }
+      }
+      if (context === 'file-explorer' || context === 'tab') {
+        const extension = payload?.path?.match(/\.[^.\/]+$/)?.[0]?.toLowerCase();
+        for (const declaration of host.manifest.contributes.fileHandlers || []) {
+          if (extension && declaration.extensions.includes(extension) && host.registered.has(declaration.command)) {
+            handlers.push({
+              label: `Open with ${host.manifest.name}: ${declaration.title}`,
+              extensionId: host.manifest.id,
+              command: declaration.command,
+              priority: declaration.priority,
+              run: () => {
+                try {
+                  host.run(declaration.command, payload);
+                } catch (error) {
+                  notify(error.message);
+                }
+              },
+            });
+          }
+        }
+      }
+    }
+    return [
+      ...items.sort((a, b) => a.label.localeCompare(b.label)),
+      ...handlers.sort((a, b) => b.priority - a.priority || a.label.localeCompare(b.label)),
+    ];
+  };
   return {
     extensions,
     commands,
     ribbonItems,
+    statusBarItems: statusBarItems.filter((item) => hosts.current.get(item.host.manifest.id) === item.host),
+    contextMenuItems,
     surfaces,
     closeSurface,
     run,

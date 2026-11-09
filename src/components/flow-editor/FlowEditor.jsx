@@ -22,6 +22,7 @@ export default function FlowEditor({
   focusNewFlowRow = true,
   keybindings,
   settings,
+  extensions,
 }) {
   const { t } = useI18n();
   const confirm = useConfirm();
@@ -76,7 +77,17 @@ export default function FlowEditor({
       e.stopPropagation();
     }
     menuEvent.current = e.nativeEvent;
-    const nextMenu = { x: e.clientX, y: e.clientY, items };
+    const contributed =
+      extensions?.contextMenuItems('flow', {
+        path,
+        selection: selected ? { sheet: idx, bounds } : null,
+        uri: `tagline://note/${encodeURIComponent(path)}`,
+      }) || [];
+    const nextMenu = {
+      x: e.clientX,
+      y: e.clientY,
+      items: [...items, ...(contributed.length ? [{ separator: true }, ...contributed] : [])],
+    };
     pendingMenu.current = allowSpellcheck ? nextMenu : null;
     setMenu(allowSpellcheck ? null : nextMenu);
   };

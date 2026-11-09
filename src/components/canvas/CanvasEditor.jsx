@@ -14,6 +14,8 @@ import openCanvasContextMenu from './CanvasEditor/canvasContextMenu.js';
 
 export default function CanvasEditor({
   canvas,
+  path,
+  extensions,
   onChange,
   paths,
   contents,
@@ -218,6 +220,8 @@ export default function CanvasEditor({
       openCanvasContextMenu(
         {
           canvas,
+          path,
+          extensions,
           paths,
           onOpenFile,
           onOpenUrl,
@@ -237,7 +241,19 @@ export default function CanvasEditor({
         edgeId,
         position
       ),
-    [canvas, paths, onOpenFile, onOpenUrl, update, addNode, removeNode, onEditSource, t]
+    [
+      canvas,
+      path,
+      extensions,
+      paths,
+      onOpenFile,
+      onOpenUrl,
+      update,
+      addNode,
+      removeNode,
+      onEditSource,
+      t,
+    ]
   );
   const selectEdge = useCallback((id) => {
     setSelectedEdge(id);

@@ -1,8 +1,10 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import ContextMenu from './ContextMenu.jsx';
 
-export default function TextContextMenu() {
+export default function TextContextMenu({ extensions, activePath }) {
   const [menu, setMenu] = useState(null);
+  const extensionContext = useRef(null);
+  extensionContext.current = { extensions, activePath };
   useEffect(() => {
     const pendingSpell = [];
     const offSpell = window.api.spellcheck?.onContext((info) => pendingSpell.shift()?.(info));
@@ -13,7 +15,10 @@ export default function TextContextMenu() {
       }
       const target = event.target.closest('input, textarea, [contenteditable="true"]');
       const selection = window.getSelection();
-      if (!target && !selection?.toString()) {
+      const inNoteEditor =
+        !!event.target.closest('.note-view') &&
+        !event.target.closest('.note-header, .canvas-editor, .flow-grid, .flow-sheet-tabs');
+      if (!target && !selection?.toString() && !inNoteEditor) {
         return;
       }
       if (target?.matches('input[type="checkbox"], input[type="radio"], input[type="range"]')) {
@@ -35,6 +40,9 @@ export default function TextContextMenu() {
       const selected = inputSelection
         ? inputSelection[0] !== inputSelection[1]
         : !!selection?.toString();
+      const selectionText = inputSelection
+        ? target.value.slice(inputSelection[0], inputSelection[1])
+        : selection?.toString() || '';
       const run = (action, custom) => async () => {
         await Promise.resolve();
         if ((target && !target.isConnected) || (range && !range.startContainer.isConnected)) {
@@ -87,7 +95,7 @@ export default function TextContextMenu() {
       ];
       const x = keyboard ? rect.left + 16 : event.clientX;
       const y = keyboard ? rect.top + 16 : event.clientY;
-      const isFlow = !!target?.closest('.flow');
+      const isFlow = !!target?.closest('.flow-grid, .flow-sheet-tabs');
       if (isFlow) {
         const flowMenuEvent = new CustomEvent('flow-spellcheck-context', {
           cancelable: true,
@@ -115,7 +123,26 @@ export default function TextContextMenu() {
           return;
         }
       }
-      setMenu({ id, x, y, items: actions, spellcheck: wantsSpell });
+      const { extensions: extensionApi, activePath: path } = extensionContext.current || {};
+      const contributed =
+        inNoteEditor && path
+          ? extensionApi?.contextMenuItems('editor', {
+              path,
+              selection: selectionText ? selectionText.slice(0, 4096) : null,
+              uri: `tagline://note/${encodeURIComponent(path)}`,
+            }) || []
+          : [];
+      const menuItems = [
+        ...actions,
+        ...(contributed.length ? [{ separator: true }, ...contributed] : []),
+      ];
+      setMenu({
+        id,
+        x,
+        y,
+        items: menuItems,
+        spellcheck: wantsSpell,
+      });
       if (tracksSpell) {
         pendingSpell.push((info) => {
           if (!wantsSpell || activeMenu !== id) {
@@ -125,7 +152,7 @@ export default function TextContextMenu() {
           if (suggestions.length) {
             setMenu((current) =>
               current?.id === id
-                ? { ...current, items: [...suggestions, { separator: true }, ...actions] }
+                ? { ...current, items: [...suggestions, { separator: true }, ...menuItems] }
                 : current
             );
           }

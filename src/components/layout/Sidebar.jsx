@@ -6,9 +6,10 @@ import Menu from '../dialogs/ContextMenu.jsx';
 import Icon from '../Icon.jsx';
 import RefreshButton from '../RefreshButton.jsx';
 import ConfigurableBar from './ConfigurableBar.jsx';
+import ExtensionPanelList from './ExtensionPanelList.jsx';
 import FileTree from './FileTree.jsx';
 
-function ContextMenu({ menu, onClose, actions, favorites }) {
+function ContextMenu({ menu, onClose, actions, favorites, extensions }) {
   const { node } = menu;
   const isFolder = node.type === 'folder';
   const items = isFolder
@@ -44,17 +45,21 @@ function ContextMenu({ menu, onClose, actions, favorites }) {
         ['Reveal in file explorer', () => actions.reveal(node.path)],
         ['Delete', () => actions.remove(node)],
       ];
+  const context = {
+    path: isFolder ? null : node.path,
+    selection: null,
+    uri: isFolder ? null : `tagline://note/${encodeURIComponent(node.path)}`,
+  };
+  const contributed = extensions?.contextMenuItems('file-explorer', context) || [];
   return (
     <Menu
       x={menu.x}
       y={menu.y}
       onClose={onClose}
-      items={items.map(([label, run, command]) => ({
-        label,
-        run,
-        command,
-        danger: label === 'Delete',
-      }))}
+      items={[
+        ...items.map(([label, run, command]) => ({ label, run, command, danger: label === 'Delete' })),
+        ...(contributed.length ? [{ separator: true }, ...contributed] : []),
+      ]}
     />
   );
 }
@@ -71,6 +76,8 @@ export default function Sidebar({
   spacedFolders = false,
   hideFlowExtension = true,
   showMarkdownExtension = false,
+  extensions,
+  mode,
 }) {
   const { t } = useI18n();
   const [menu, setMenu] = useState(null);
@@ -149,6 +156,12 @@ export default function Sidebar({
         hideFlowExtension={hideFlowExtension}
         showMarkdownExtension={showMarkdownExtension}
       />
+      <ExtensionPanelList
+        extensions={extensions}
+        placement='sidebar-bottom'
+        activePath={activePath}
+        mode={mode}
+      />
       <div className='sidebar-footer' title={vault.root}>
         <button className='vault-switch' onClick={actions.switchVault}>
           <Icon name='vault' size={14} /> {vault.name}
@@ -160,6 +173,7 @@ export default function Sidebar({
           onClose={() => setMenu(null)}
           actions={actions}
           favorites={favorites}
+          extensions={extensions}
         />
       )}
     </aside>

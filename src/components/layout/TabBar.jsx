@@ -16,6 +16,7 @@ export default function TabBar({
   onFileAction,
   hideFlowExtension = true,
   showMarkdownExtension = false,
+  extensions,
 }) {
   const { t: tr } = useI18n();
   const [menu, setMenu] = useState(null);
@@ -85,6 +86,12 @@ export default function TabBar({
           onAuxClick={(e) => e.button === 1 && onClose(t.id)}
           onContextMenu={(e) => {
             e.preventDefault();
+            const context = {
+              path: t.kind === 'file' ? t.path : null,
+              selection: null,
+              uri: t.kind === 'file' ? `tagline://note/${encodeURIComponent(t.path)}` : null,
+            };
+            const contributed = extensions?.contextMenuItems('tab', context) || [];
             setMenu({
               x: e.clientX,
               y: e.clientY,
@@ -100,6 +107,7 @@ export default function TabBar({
                       },
                     ]
                   : []),
+                ...(contributed.length ? [{ separator: true }, ...contributed] : []),
               ],
             });
           }}

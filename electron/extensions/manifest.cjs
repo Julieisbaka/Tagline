@@ -132,6 +132,9 @@ function validateManifest(value, root, limits = DEFAULT_LIMITS) {
   const commands = contributes.commands ?? [];
   const themes = contributes.themes ?? [];
   const settings = validateSettingDefinitions(contributes.settings, limits);
+  const commandIds = new Set(
+    Array.isArray(commands) ? commands.map((command) => command?.id) : []
+  );
   const surfaces = {};
   for (const kind of ['panels', 'webviews']) {
     const declarations = contributes[kind] ?? [];
@@ -152,7 +155,47 @@ function validateManifest(value, root, limits = DEFAULT_LIMITS) {
         fail(`each ${kind} contribution needs a unique id and a title of up to 80 characters.`);
       }
       ids.add(item.id);
-      return { id: item.id, title: item.title.trim() };
+      if (kind === 'webviews') {
+        return { id: item.id, title: item.title.trim() };
+      }
+      const placement = item.placement ?? 'right-panel';
+      const persistVisibility = item.persistVisibility ?? false;
+      const when = item.when;
+      if (!['right-panel', 'sidebar-bottom', 'editor-side'].includes(placement)) {
+        fail(`panel ${item.id} has an invalid placement.`);
+      }
+      if (typeof persistVisibility !== 'boolean') {
+        fail(`panel ${item.id} persistVisibility must be boolean.`);
+      }
+      let normalizedWhen = null;
+      if (when !== undefined) {
+        if (!when || typeof when !== 'object' || Array.isArray(when)) {
+          fail(`panel ${item.id} when must be an object.`);
+        }
+        if (Object.keys(when).some((key) => !['extensions', 'mode'].includes(key))) {
+          fail(`panel ${item.id} when has an unsupported condition.`);
+        }
+        const extensions = when.extensions ?? [];
+        const mode = when.mode;
+        if (
+          !Array.isArray(extensions) ||
+          extensions.length > 8 ||
+          extensions.some((ext) => typeof ext !== 'string' || !/^\.(md|flow|canvas|json)$/.test(ext)) ||
+          new Set(extensions).size !== extensions.length ||
+          (mode !== undefined && !['read', 'edit', 'visual'].includes(mode)) ||
+          (!extensions.length && mode === undefined)
+        ) {
+          fail(`panel ${item.id} has an invalid when condition.`);
+        }
+        normalizedWhen = { ...(extensions.length ? { extensions } : {}), ...(mode ? { mode } : {}) };
+      }
+      return {
+        id: item.id,
+        title: item.title.trim(),
+        placement,
+        persistVisibility,
+        when: normalizedWhen,
+      };
     });
     if (declarations.length && (!permissions.includes('ui') || !value.main)) {
       fail(`${kind} require ui permission and a main script.`);
@@ -213,6 +256,61 @@ function validateManifest(value, root, limits = DEFAULT_LIMITS) {
   if (ribbonItems.length && !permissions.includes('ui')) {
     fail('ribbon items require ui permission.');
   }
+  const statusBarItems = contributes.statusBarItems ?? [];
+  if (!Array.isArray(statusBarItems) || statusBarItems.length > 20) {
+    fail('contributes.statusBarItems must be a list of at most 20.');
+  }
+  const statusIds = new Set();
+  for (const item of statusBarItems) {
+    if (
+      !item || typeof item.id !== 'string' || !ID.test(item.id) || statusIds.has(item.id) ||
+      typeof item.title !== 'string' || !item.title.trim() || item.title.length > 80 ||
+      typeof item.icon !== 'string' || !/^[a-z-]{1,40}$/.test(item.icon) ||
+      !commandIds.has(item.command)
+    ) {
+      fail('each statusBarItems contribution needs a unique id, title, icon and declared command.');
+    }
+    statusIds.add(item.id);
+  }
+  const contextMenus = contributes.contextMenus ?? [];
+  const menuContexts = ['editor', 'file-explorer', 'tab', 'canvas', 'flow'];
+  if (!Array.isArray(contextMenus) || contextMenus.length > 50) {
+    fail('contributes.contextMenus must be a list of at most 50.');
+  }
+  const menuIds = new Set();
+  for (const item of contextMenus) {
+    if (
+      !item || typeof item.id !== 'string' || !ID.test(item.id) || menuIds.has(item.id) ||
+      typeof item.title !== 'string' || !item.title.trim() || item.title.length > 80 ||
+      !menuContexts.includes(item.context) || !commandIds.has(item.command)
+    ) {
+      fail('each context menu contribution needs a unique id, title, context and declared command.');
+    }
+    menuIds.add(item.id);
+  }
+  const fileHandlers = contributes.fileHandlers ?? [];
+  if (!Array.isArray(fileHandlers) || fileHandlers.length > 20) {
+    fail('contributes.fileHandlers must be a list of at most 20.');
+  }
+  const handlerIds = new Set();
+  const supportedHandlerExtensions = ['.md', '.flow', '.canvas'];
+  for (const item of fileHandlers) {
+    if (
+      !item || typeof item.id !== 'string' || !ID.test(item.id) || handlerIds.has(item.id) ||
+      typeof item.title !== 'string' || !item.title.trim() || item.title.length > 80 ||
+      !Array.isArray(item.extensions) || !item.extensions.length || item.extensions.length > 3 ||
+      item.extensions.some((ext) => !supportedHandlerExtensions.includes(ext)) ||
+      new Set(item.extensions).size !== item.extensions.length ||
+      !commandIds.has(item.command) ||
+      (item.priority !== undefined && (!Number.isInteger(item.priority) || item.priority < 0 || item.priority > 100))
+    ) {
+      fail('each file handler needs a unique id, title, supported extensions and declared command.');
+    }
+    handlerIds.add(item.id);
+  }
+  if ((statusBarItems.length || contextMenus.length || fileHandlers.length) && !permissions.includes('ui')) {
+    fail('status bar items, context menus and file handlers require ui permission.');
+  }
   if (value.main !== undefined) {
     relativeFile(root, value.main, '.js');
   }
@@ -262,6 +360,25 @@ function validateManifest(value, root, limits = DEFAULT_LIMITS) {
         icon,
         command,
       })),
+      statusBarItems: statusBarItems.map(({ id, title, icon, command }) => ({
+        id,
+        title: title.trim(),
+        icon,
+        command,
+      })),
+      contextMenus: contextMenus.map(({ id, title, context, command }) => ({
+        id,
+        title: title.trim(),
+        context,
+        command,
+      })),
+      fileHandlers: fileHandlers.map(({ id, title, extensions, command, priority = 0 }) => ({
+        id,
+        title: title.trim(),
+        extensions,
+        command,
+        priority,
+      })),
       ...surfaces,
     },
   };
@@ -273,6 +390,15 @@ function reviewSignature(manifest) {
     settings: manifest.contributes.settings,
     ...(manifest.contributes.ribbonItems.length
       ? { ribbonItems: manifest.contributes.ribbonItems }
+      : {}),
+    ...(manifest.contributes.statusBarItems.length
+      ? { statusBarItems: manifest.contributes.statusBarItems }
+      : {}),
+    ...(manifest.contributes.contextMenus.length
+      ? { contextMenus: manifest.contributes.contextMenus }
+      : {}),
+    ...(manifest.contributes.fileHandlers.length
+      ? { fileHandlers: manifest.contributes.fileHandlers }
       : {}),
     ...(manifest.contributes.panels.length || manifest.contributes.webviews.length
       ? { panels: manifest.contributes.panels, webviews: manifest.contributes.webviews }

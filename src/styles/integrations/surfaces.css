@@ -118,6 +118,28 @@
   margin-bottom: 12px;
 }
 
+.extension-panel-sidebar-bottom {
+  flex-shrink: 0;
+  max-height: 40%;
+  overflow: auto;
+  padding: 8px;
+  border-top: 1px solid var(--border);
+}
+
+.extension-panel-editor-side {
+  width: min(320px, 40%);
+  flex-shrink: 0;
+  overflow: auto;
+  padding: 8px;
+  border-left: 1px solid var(--border);
+}
+
+.extension-status-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
 .extension-webview-dialog {
   width: min(800px, 92vw);
   max-height: 90vh;

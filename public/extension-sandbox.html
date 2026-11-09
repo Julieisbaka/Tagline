@@ -218,6 +218,18 @@
         }),
         panels: surfaceApi('panels'),
         webviews: surfaceApi('webviews'),
+        ui: Object.freeze({
+          statusBar: Object.freeze({
+            /** Update text on a declared status bar item. Requires ui. @returns {Promise<boolean>} */
+            setText: (id, text) => call('ui.statusBar.setText', id, text),
+            /** Update icon on a declared status bar item. Requires ui. @returns {Promise<boolean>} */
+            setIcon: (id, icon) => call('ui.statusBar.setIcon', id, icon),
+            /** Update tooltip on a declared status bar item. Requires ui. @returns {Promise<boolean>} */
+            setTooltip: (id, tooltip) => call('ui.statusBar.setTooltip', id, tooltip),
+            /** Point a declared status bar item at a declared command. Requires ui. @returns {Promise<boolean>} */
+            setCommand: (id, command) => call('ui.statusBar.setCommand', id, command),
+          }),
+        }),
         canvas: Object.freeze({
           /** Read and validate a .canvas file. Requires vault:read. @returns {Promise<object>} */
           read: (path) => call('canvas.read', path),
@@ -638,7 +650,7 @@
             send({ type: 'api-result', id: data.id, error: describe(error).slice(0, 500) });
           }
         } else if (data.type === 'command') {
-          try { await handlers.get(data.command)?.(); }
+          try { await handlers.get(data.command)?.(data.context); }
           catch (error) { send({ type: 'error', message: describe(error) }); }
         }
       });
