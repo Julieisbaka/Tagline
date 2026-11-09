@@ -234,6 +234,19 @@ export class ExtensionHost {
       case 'editor.setSelection':
         this.require('editor');
         return b.setSelection(requireSelection(args[0]));
+      case 'editor.setDiagnostics': {
+        this.require('editor');
+        const diagnostics = args[0];
+        if (!Array.isArray(diagnostics) || diagnostics.length > 200) throw new Error('Diagnostics must be a list of at most 200 ranges.');
+        const commands = new Set((this.manifest.contributes?.commands || []).map(({ id }) => id));
+        const checked = diagnostics.map((item) => {
+          if (!item || !Number.isInteger(item.from) || !Number.isInteger(item.to) || item.from < 0 || item.to <= item.from || item.to > 5_000_000 || typeof item.message !== 'string' || item.message.length > 500 || !['error', 'warning', 'info'].includes(item.severity || 'info')) throw new Error('Invalid editor diagnostic.');
+          if (JSON.stringify(item).length > 4096) throw new Error('Editor diagnostic exceeds the size limit.');
+          if (item.quickFix && (typeof item.quickFix.title !== 'string' || item.quickFix.title.length > 80 || !commands.has(item.quickFix.command))) throw new Error('Quick fixes must reference a declared command.');
+          return { from: item.from, to: item.to, message: item.message, severity: item.severity || 'info', ...(item.quickFix ? { quickFix: item.quickFix } : {}) };
+        });
+        return b.setEditorDiagnostics?.(this.manifest.id, checked) ?? false;
+      }
       case 'editor.getTiptapSnapshot':
         this.require('editor');
         return b.getTiptapSnapshot();
@@ -561,6 +574,11 @@ export class ExtensionHost {
       case 'vault.read':
         this.require('vault:read');
         return b.read(requireText(args[0], 'Path', 1000));
+      case 'vault.choosePath': {
+        this.require('vault:read');
+        const kind = args[0] === 'folder' ? 'folder' : 'file';
+        return b.chooseVaultPath(this.manifest.id, kind);
+      }
       case 'vault.write':
         this.require('vault:write');
         return b.write(requireText(args[0], 'Path', 1000), requireText(args[1], 'Content'));

@@ -1,6 +1,6 @@
 // CodeMirror extensions: debate formatting commands, inline decorations, theme.
 import { HighlightStyle, syntaxHighlighting } from '@codemirror/language';
-import { EditorSelection } from '@codemirror/state';
+import { EditorSelection, StateEffect, StateField } from '@codemirror/state';
 import { Decoration, EditorView, MatchDecorator, ViewPlugin } from '@codemirror/view';
 import { tags as t } from '@lezer/highlight';
 
@@ -102,6 +102,24 @@ export const debateDecorations = [
   markPlugin(/!?\[\[[^\]\n]+\]\]/g, 'cm-wikilink'),
   markPlugin(/(?<=^|\s)#[A-Za-z][\w/-]*/g, 'cm-hashtag'),
 ];
+
+export const extensionDiagnosticsEffect = StateEffect.define();
+export const extensionDiagnostics = StateField.define({
+  create: () => Decoration.none,
+  update(value, transaction) {
+    value = value.map(transaction.changes);
+    for (const effect of transaction.effects) {
+      if (effect.is(extensionDiagnosticsEffect)) {
+        value = Decoration.set(effect.value.flatMap(({ from, to, message, severity, extensionId, quickFix }) =>
+          from >= 0 && to > from && to <= transaction.newDoc.length
+            ? [Decoration.mark({ class: `extension-diagnostic extension-diagnostic-${severity}`, attributes: { title: message, ...(quickFix ? { 'data-extension-id': extensionId, 'data-extension-command': quickFix.command, 'data-diagnostic-from': String(from), 'data-diagnostic-to': String(to) } : {}) } }).range(from, to)]
+            : []));
+      }
+    }
+    return value;
+  },
+  provide: (field) => EditorView.decorations.from(field),
+});
 
 // Return the [[link]] target under a document position, if any.
 /** Find the wiki-link target and optional heading at a CodeMirror document position. @param {object} state @param {number} pos @returns {{target:string,heading:string}|null} */

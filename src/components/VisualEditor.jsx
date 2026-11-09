@@ -7,7 +7,7 @@ import { binding, KEYBINDINGS, matchesBinding } from '../lib/keybindings.js';
 import { slugify } from '../lib/markdown.js';
 import { draggedNoteLink, draggedNotePath, hasNoteDrag } from '../lib/noteDrag.js';
 import { cachedDocument, cacheDocument } from '../lib/visualCache.js';
-import { visualExtensions } from '../lib/visualExtensions.js';
+import { setVisualDiagnostics, visualExtensions } from '../lib/visualExtensions.js';
 import { visualSelection } from '../lib/visualHelpers.js';
 import { wordRangeAt } from '../lib/wordSelection.js';
 import EditorLinkForm from './EditorLinkForm.jsx';
@@ -75,6 +75,7 @@ function VisualDocument({
   const { t } = useI18n();
   const lastMarkdown = useRef(value);
   const lastProp = useRef(value);
+  const diagnostics = useRef(new Map());
   const initialContent = useRef(null);
   if (!initialContent.current) {
     const cached = cachedDocument(value);
@@ -249,6 +250,15 @@ function VisualDocument({
       },
     });
   }, [editor, spellcheck]);
+
+  useEffect(() => {
+    const update = (event) => {
+      diagnostics.current.set(event.detail.extensionId, event.detail.diagnostics.map((item) => ({ ...item, extensionId: event.detail.extensionId })));
+      setVisualDiagnostics(editor, [...diagnostics.current.values()].flat());
+    };
+    window.addEventListener('tagline-extension-diagnostics', update);
+    return () => window.removeEventListener('tagline-extension-diagnostics', update);
+  }, [editor]);
 
   useEffect(() => {
     visualRef.current = editor;

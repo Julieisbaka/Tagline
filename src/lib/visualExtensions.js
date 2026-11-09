@@ -1,4 +1,6 @@
-import { Node, mergeAttributes, nodeInputRule } from '@tiptap/core';
+import { Extension, Node, mergeAttributes, nodeInputRule } from '@tiptap/core';
+import { Plugin, PluginKey } from '@tiptap/pm/state';
+import { Decoration, DecorationSet } from '@tiptap/pm/view';
 import FindAndReplace from '@tiptap/extension-find-and-replace';
 import Highlight from '@tiptap/extension-highlight';
 import { TableKit } from '@tiptap/extension-table';
@@ -228,6 +230,7 @@ export const CardMarker = Node.create({
  */
 export function visualExtensions() {
   return [
+    EditorDiagnostics,
     StarterKit.configure({ link: { openOnClick: false }, trailingNode: false, underline: false }),
     Underline,
     Highlight,
@@ -240,4 +243,31 @@ export function visualExtensions() {
     FindAndReplace.configure({ injectCSS: false, searchDebounceMs: 0 }),
     Markdown.configure({ markedOptions: { gfm: true, breaks: true } }),
   ];
+}
+
+const diagnosticsKey = new PluginKey('taglineExtensionDiagnostics');
+const EditorDiagnostics = Extension.create({
+  name: 'taglineExtensionDiagnostics',
+  addProseMirrorPlugins() {
+    return [new Plugin({
+      key: diagnosticsKey,
+      state: {
+        init: () => DecorationSet.empty,
+        apply(transaction, decorations) {
+          const diagnostics = transaction.getMeta(diagnosticsKey);
+          if (diagnostics) return DecorationSet.create(transaction.doc, diagnostics.flatMap(({ from, to, message, severity, extensionId, quickFix }) =>
+            from >= 0 && to > from && to <= transaction.doc.content.size
+              ? [Decoration.inline(from, to, { class: `extension-diagnostic extension-diagnostic-${severity}`, title: message, ...(quickFix ? { 'data-extension-id': extensionId, 'data-extension-command': quickFix.command } : {}) })]
+              : []));
+          return decorations.map(transaction.mapping, transaction.doc);
+        },
+      },
+      props: { decorations: (state) => diagnosticsKey.getState(state) },
+    })];
+  },
+});
+
+export function setVisualDiagnostics(editor, diagnostics) {
+  if (!editor?.view) return;
+  editor.view.dispatch(editor.state.tr.setMeta(diagnosticsKey, diagnostics));
 }

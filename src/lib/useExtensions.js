@@ -45,6 +45,28 @@ export function useExtensions({ bridgeRef, notify }) {
     window.addEventListener('extension-settings-changed', changed);
     return () => window.removeEventListener('extension-settings-changed', changed);
   }, []);
+  useEffect(() => {
+    const activateQuickFix = (event) => {
+      const target = event.target.closest?.('[data-extension-command][data-extension-id]');
+      if (!target) return;
+      const host = hosts.current.get(target.dataset.extensionId);
+      if (!host) return;
+      event.preventDefault();
+      try {
+        host.require('editor');
+        const note = bridgeRef.current.getActiveNote();
+        host.run(target.dataset.extensionCommand, {
+          path: note?.path || null,
+          selection: { from: Number(target.dataset.diagnosticFrom) || 0, to: Number(target.dataset.diagnosticTo) || 0 },
+          uri: null,
+        });
+      } catch (error) {
+        notify(error.message);
+      }
+    };
+    document.addEventListener('click', activateQuickFix);
+    return () => document.removeEventListener('click', activateQuickFix);
+  }, [bridgeRef, notify]);
 
   const reload = useCallback(async () => {
     const current = ++generation.current;
@@ -54,6 +76,10 @@ export function useExtensions({ bridgeRef, notify }) {
     const bridge = {
       notify: (message) => notify(message),
       getActiveNote: () => bridgeRef.current.getActiveNote(),
+      setEditorDiagnostics: (extensionId, diagnostics) => {
+        window.dispatchEvent(new CustomEvent('tagline-extension-diagnostics', { detail: { extensionId, diagnostics } }));
+        return true;
+      },
       insertText: (text) => bridgeRef.current.insertText(text),
       setSelection: (selection) => bridgeRef.current.setSelection(selection),
       getTiptapSnapshot: () => bridgeRef.current.getTiptapSnapshot(),
@@ -129,6 +155,7 @@ export function useExtensions({ bridgeRef, notify }) {
       },
       list: () => bridgeRef.current.list(),
       read: (path) => bridgeRef.current.read(path),
+      chooseVaultPath: (id, kind) => window.api.extensionChooseVaultPath(id, kind),
       write: (path, content) => bridgeRef.current.write(path, content),
       networkFetch: (id, url, options) => window.api.extensionNetworkFetch(id, url, options),
       networkFetchToFile: async (id, url, destination, options) => {

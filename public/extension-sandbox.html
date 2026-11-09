@@ -123,6 +123,8 @@
           insertText: (text) => call('editor.insertText', text),
           /** Set {from,to}; CodeMirror offsets or Tiptap positions. Requires editor. @returns {Promise<boolean>} */
           setSelection: (selection) => call('editor.setSelection', selection),
+          /** Replace this extension's bounded editor diagnostics. Offsets are CodeMirror positions in source mode and Tiptap positions in visual mode. @param {Array<{from:number,to:number,message:string,severity?:'error'|'warning'|'info',quickFix?:{title:string,command:string}}>} diagnostics */
+          setDiagnostics: (diagnostics) => call('editor.setDiagnostics', diagnostics),
           tiptap: Object.freeze({
             /** Read a serializable visual-editor document and selection. Requires editor. @returns {Promise<object>} */
             getSnapshot: () => call('editor.getTiptapSnapshot'),
@@ -578,6 +580,8 @@
           flush: () => call('vault.flush'),
           /** Replace text only if it still equals expected; requires vault:read and vault:write. @returns {Promise<boolean>} */
           compareAndSwap: (path, expected, content) => call('vault.compareAndSwap', path, expected, content),
+          /** Open a vault file/folder picker and return a vault-relative path, or null. Requires vault:read. @returns {Promise<string|null>} */
+          choosePath: (kind = 'file') => call('vault.choosePath', kind),
           /** Subscribe to vault create/change/delete/reset events. Requires vault:read.
            * @returns {Promise<() => Promise<boolean>>} Async disposer.
            */

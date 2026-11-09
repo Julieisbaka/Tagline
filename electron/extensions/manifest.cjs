@@ -204,6 +204,12 @@ function validateManifest(value, root, limits = DEFAULT_LIMITS) {
   if (settings.length && !permissions.includes('settings')) {
     fail('contributes.settings requires the settings permission.');
   }
+  if (settings.some(({ type }) => type === 'secret') && !permissions.includes('secrets')) {
+    fail('secret settings require the secrets permission.');
+  }
+  if (settings.some(({ type }) => type === 'path') && !permissions.includes('vault:read')) {
+    fail('path settings require the vault:read permission.');
+  }
   if (!Array.isArray(commands) || commands.length > limits.extensionCommands) {
     fail(`contributes.commands must be a list of at most ${limits.extensionCommands}.`);
   }

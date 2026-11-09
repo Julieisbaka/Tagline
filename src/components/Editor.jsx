@@ -18,6 +18,8 @@ import { detectCards } from '../lib/cardDetection.js';
 import {
   clearFormatting,
   debateDecorations,
+  extensionDiagnostics,
+  extensionDiagnosticsEffect,
   editorTheme,
   linkAt,
   setHeading,
@@ -102,6 +104,17 @@ export default function Editor({
     view.focus();
   }, [jump, view]);
 
+  useEffect(() => {
+    if (!view) return;
+    const diagnostics = new Map();
+    const update = (event) => {
+      diagnostics.set(event.detail.extensionId, event.detail.diagnostics.map((item) => ({ ...item, extensionId: event.detail.extensionId })));
+      view.dispatch({ effects: extensionDiagnosticsEffect.of([...diagnostics.values()].flat()) });
+    };
+    window.addEventListener('tagline-extension-diagnostics', update);
+    return () => window.removeEventListener('tagline-extension-diagnostics', update);
+  }, [view]);
+
   const extensions = useMemo(() => {
     const wikiComplete = (ctx) => {
       const m = ctx.matchBefore(/\[\[[^\]\n]*/);
@@ -146,6 +159,7 @@ export default function Editor({
       ...(settings.sourceAutocomplete ? [autocompletion({ override: [wikiComplete] })] : []),
       debateKeys,
       ...debateDecorations,
+      extensionDiagnostics,
       ...editorTheme,
       EditorView.contentAttributes.of({
         'aria-label': t('Source note editor'),

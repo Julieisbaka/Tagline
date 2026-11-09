@@ -40,6 +40,7 @@ function saved(manifest) {
  */
 export function getExtensionSetting(manifest, key) {
   const setting = definition(manifest, key);
+  if (setting.type === 'secret') return '';
   const data = saved(manifest);
   return validateSettingValue(setting, Object.hasOwn(data, key) ? data[key] : setting.default);
 }
@@ -54,7 +55,9 @@ export function getExtensionSetting(manifest, key) {
 export function setExtensionSettings(manifest, values) {
   const data = saved(manifest);
   for (const [key, value] of Object.entries(values)) {
-    data[key] = validateSettingValue(definition(manifest, key), value);
+    const setting = definition(manifest, key);
+    if (setting.type === 'secret') continue;
+    data[key] = validateSettingValue(setting, value);
   }
   const text = JSON.stringify(data);
   if (text.length > getRuntimeLimits().extensionStorageCharacters) {
