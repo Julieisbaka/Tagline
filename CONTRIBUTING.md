@@ -25,6 +25,7 @@ Thanks for your interest in contributing to Tagline, an Obsidian-style knowledge
 - `tests/` — unit tests (`*.test.cjs`) and smoke tests (`*-smoke.cjs`).
 - `scripts/` — build and utility scripts.
 - `website/` — static GitHub Pages site and user documentation (`website/docs/`).
+- `extensions/registry.json` — community extension registry shown in the in-app extension browser.
 - `build/` — app icons and branding.
 
 ## Testing
@@ -36,6 +37,10 @@ npm test              # all unit tests
 npm run test:all      # unit + every smoke suite, sequentially
 npm run test:<name>   # individual smoke suite, e.g. test:a11y
 ```
+
+## Submitting an extension
+
+Community extensions appear in **Settings > Extensions > Browse extensions** when their GitHub URL is listed in [`extensions/registry.json`](extensions/registry.json). To add yours, open a pull request that appends `{ "url": "https://github.com/owner/repo" }` (or `https://github.com/owner/repo/tree/<ref>/<folder>` for a tag, branch, or subfolder). The folder must contain a valid `manifest.json`; the Extension registry workflow checks every listed manifest. See [Browse and publish extensions](https://julieisbaka.github.io/Tagline/docs/extension-api.html#registry).
 
 ## Pull requests
 

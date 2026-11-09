@@ -6,7 +6,7 @@ const Ajv = require('ajv');
 
 const root = path.join(__dirname, '..');
 const directory = path.join(root, 'schemas');
-const names = ['flow', 'extension-manifest', 'theme', 'extension-settings'];
+const names = ['flow', 'extension-manifest', 'theme', 'extension-settings', 'extension-registry'];
 const schemas = Object.fromEntries(
   names.map((name) => [
     name,

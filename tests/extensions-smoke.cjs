@@ -208,6 +208,35 @@ tagline.commands.register('save-checks', async () => {
   shell.openExternal = async (url) => {
     openedExternalUrls.push(url);
   };
+  const registryResponses = {
+    'https://raw.githubusercontent.com/Julieisbaka/Tagline/main/extensions/registry.json': {
+      version: 1,
+      extensions: [
+        { url: 'https://github.com/example/demo' },
+        { url: 'https://github.com/example/word-count' },
+      ],
+    },
+    'https://raw.githubusercontent.com/example/demo/HEAD/manifest.json': {
+      manifestVersion: 1,
+      id: 'demo',
+      name: 'Demo',
+      version: '1.1.0',
+    },
+    'https://raw.githubusercontent.com/example/word-count/HEAD/manifest.json': {
+      manifestVersion: 1,
+      id: 'word-count',
+      name: 'Word Count',
+      version: '2.0.0',
+      authors: ['Registry Author'],
+      description: 'Counts words in notes.',
+      permissions: ['vault:read'],
+    },
+  };
+  const originalFetch = global.fetch;
+  global.fetch = async (url, options) =>
+    registryResponses[url]
+      ? new Response(JSON.stringify(registryResponses[url]))
+      : originalFetch(url, options);
   app.setPath('userData', profile);
   const ext = (id) => path.join(profile, 'extensions', id);
   await fs.mkdir(path.join(ext('demo'), 'themes'), { recursive: true });
@@ -816,6 +845,32 @@ tagline.commands.register('save-checks', async () => {
         await js(`document.querySelector('[data-extension="demo"] button').click()`);
         await delay(50);
         assert.deepEqual(openedExternalUrls, ['https://github.com/example/demo']);
+        await js(
+          `[...document.querySelectorAll('.settings button')].find(el => el.textContent.trim() === 'Browse registry').click()`
+        );
+        await wait(
+          `document.querySelectorAll('[data-registry-extension]').length === 2`,
+          'registry cards'
+        );
+        const registryCard = await js(
+          `document.querySelector('[data-registry-extension="https://github.com/example/word-count"]').textContent`
+        );
+        assert.match(registryCard, /Word Count/);
+        assert.match(registryCard, /v2\.0\.0/);
+        assert.match(registryCard, /Registry Author/);
+        assert.match(registryCard, /Read notes in the open vault/);
+        assert.match(registryCard, /Install/);
+        assert.match(
+          await js(
+            `document.querySelector('[data-registry-extension="https://github.com/example/demo"]').textContent`
+          ),
+          /Update to v1\.1\.0/
+        );
+        assert.equal(
+          await js(`document.querySelectorAll('.extension-card[data-extension]').length`),
+          2,
+          'registry cards do not replace installed cards'
+        );
 
         await js(`document.querySelector('[data-section="files"]').click()`);
         await js(`document.querySelector('[data-setting="hideFlowExtension"]').click()`);

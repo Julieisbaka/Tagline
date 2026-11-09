@@ -221,7 +221,8 @@
 }
 
 .vault-switch:hover {
-  background: #ececec;
+  background: var(--preview-bg-hover);
+  color: var(--preview-text-strong);
 }
 
 .vault-name {
@@ -231,7 +232,7 @@
 .vault-chevron {
   width: 11px;
   height: 11px;
-  color: #6b6f75;
+  color: var(--preview-text-faint);
 }
 
 .editor-pane {

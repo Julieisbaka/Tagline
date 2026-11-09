@@ -136,6 +136,20 @@
   color: var(--text-muted);
 }
 
+.extension-installed {
+  flex: 0 0 auto;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--accent-dim);
+  color: var(--text);
+  font-size: 11px;
+}
+
+.extension-browser-search {
+  width: 100%;
+  margin: 8px 0;
+}
+
 .extension-toggle {
   display: flex;
   align-items: center;

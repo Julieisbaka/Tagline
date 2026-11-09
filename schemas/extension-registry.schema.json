@@ -1,0 +1,33 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Tagline extension registry",
+  "description": "Community extension list shown in Settings > Extensions > Browse extensions. Add an extension by opening a pull request that appends its GitHub URL.",
+  "type": "object",
+  "required": ["version", "extensions"],
+  "additionalProperties": false,
+  "properties": {
+    "$schema": {
+      "type": "string"
+    },
+    "version": {
+      "const": 1
+    },
+    "extensions": {
+      "type": "array",
+      "maxItems": 500,
+      "items": {
+        "type": "object",
+        "required": ["url"],
+        "additionalProperties": false,
+        "properties": {
+          "url": {
+            "description": "GitHub folder containing manifest.json: https://github.com/owner/repo for the default branch root, or https://github.com/owner/repo/tree/<ref>/<folder>. The ref cannot contain slashes.",
+            "type": "string",
+            "maxLength": 2048,
+            "pattern": "^https://github\\.com/[A-Za-z0-9][A-Za-z0-9-]{0,38}/[A-Za-z0-9._-]{1,100}(?:/tree/[A-Za-z0-9._@+-]{1,255}(?:/[A-Za-z0-9._@+-]{1,255})*)?/?$"
+          }
+        }
+      }
+    }
+  }
+}

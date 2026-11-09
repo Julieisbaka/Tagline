@@ -4,6 +4,7 @@ const { validateSettingDefinitions, validateSettingValue } = require('./extensio
 const { createHash, randomUUID } = require('node:crypto');
 const { DEFAULT_LIMITS, validateLimits } = require('./customization.mjs');
 const { requestExtensionNetwork, validateNetworkHosts } = require('./extensionNetwork.cjs');
+const { createExtensionRegistry } = require('./extensionRegistry.cjs');
 
 // Extensions live in <userData>/extensions/<folder>/manifest.json. The main process only reads and
 // validates files; extension code runs in a supervised sandbox worker (see src/lib/extensions.js).
@@ -904,6 +905,17 @@ function registerExtensions({
       await fs.rm(staging, { recursive: true, force: true });
     }
   }
+
+  const registry = createExtensionRegistry({
+    stagingRoot: () => path.join(app.getPath('userData'), 'extension-downloads'),
+    validateManifest,
+    limits,
+    installFromFolder,
+    maxFiles: MAX_INSTALL_FILES,
+    maxBytes: MAX_INSTALL_BYTES,
+  });
+  ipcMain.handle('extensions:registryList', (_event, refresh) => registry.list(refresh === true));
+  ipcMain.handle('extensions:registryInstall', (_event, url, id) => registry.install(url, id));
 
   ipcMain.handle('extensions:installFolder', (_event, source) => installFromFolder(source));
   ipcMain.handle('extensions:chooseAndInstall', async () => {

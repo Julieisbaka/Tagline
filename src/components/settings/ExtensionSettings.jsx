@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { getRuntimeLimits } from '../../../electron/customization.mjs';
 import { useConfirm } from '../dialogs/ConfirmProvider.jsx';
 import { useI18n } from '../../lib/i18n.js';
+import ExtensionBrowser from './ExtensionBrowser.jsx';
 import SettingControl from './SettingControl.jsx';
 import SettingsGroup from './SettingsGroup.jsx';
 
@@ -384,6 +385,7 @@ export default function ExtensionSettings({ extensions }) {
           ))}
         </ul>
       </SettingsGroup>
+      <ExtensionBrowser extensions={extensions} permissionLabels={PERMISSION_LABELS} />
     </div>
   );
 }

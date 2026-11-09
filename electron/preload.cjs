@@ -159,6 +159,8 @@ contextBridge.exposeInMainWorld('api', {
   pathForFile: (file) => webUtils.getPathForFile(file),
   installExtensionFolder: (source) => ipcRenderer.invoke('extensions:installFolder', source),
   chooseExtensionFolder: () => ipcRenderer.invoke('extensions:chooseAndInstall'),
+  listExtensionRegistry: (refresh) => ipcRenderer.invoke('extensions:registryList', refresh),
+  installRegistryExtension: (url, id) => ipcRenderer.invoke('extensions:registryInstall', url, id),
   mcp: {
     status: () => ipcRenderer.invoke('mcp:status'),
     configure: (options) => ipcRenderer.invoke('mcp:configure', options),

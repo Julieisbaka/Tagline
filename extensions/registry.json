@@ -1,0 +1,9 @@
+{
+  "$schema": "../schemas/extension-registry.schema.json",
+  "version": 1,
+  "extensions": [
+    {
+      "url": "https://github.com/Julieisbaka/Tagline/tree/main/demo/tagline-api-demo"
+    }
+  ]
+}

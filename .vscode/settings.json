@@ -29,6 +29,12 @@
         "**/*-settings.json"
       ],
       "url": "./schemas/extension-settings.schema.json"
+    },
+    {
+      "fileMatch": [
+        "/extensions/registry.json"
+      ],
+      "url": "./schemas/extension-registry.schema.json"
     }
   ]
 }

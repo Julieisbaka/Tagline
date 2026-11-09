@@ -74,6 +74,7 @@
           <nav class="article-toc" aria-label="On this page">
             <span>On this page</span>
             <a href="#install">Install and reload</a>
+            <a href="#registry">Browse and publish</a>
             <a href="#review">Review before enabling</a>
             <a href="#minimal">Minimal command</a>
             <a href="#manifest">Manifest</a>
@@ -140,6 +141,55 @@
               <code>welcome</code> webview. Entry evaluation and setup share the startup deadline
               (10 seconds by default); show onboarding and return rather than waiting for the user
               to finish it.
+            </p>
+          </section>
+
+          <section id="registry">
+            <h2>Browse and publish extensions</h2>
+            <p>
+              <strong>Settings &gt; Extensions &gt; Browse extensions</strong> lists community
+              extensions from the
+              <a href="https://github.com/Julieisbaka/Tagline/blob/main/extensions/registry.json"
+                >Tagline extension registry</a
+              >. Tagline contacts GitHub only after you select <strong>Browse registry</strong>.
+              Each card shows the name, version, authors, description, permissions, and network
+              hosts read from the extension's <code>manifest.json</code>. Installed extensions show
+              <strong>Installed</strong>, or <strong>Update to vX</strong> when the registry version
+              differs.
+            </p>
+            <p>
+              Installing resolves the listed ref to a commit, downloads only the files in that
+              folder, checks every file against its Git blob hash, then uses the same validation,
+              size limits, and permission review as installing from a folder. Registry extensions
+              are not reviewed by Tagline; install only extensions you trust.
+            </p>
+            <h3>Submit an extension</h3>
+            <ol>
+              <li>
+                Publish the extension folder (with <code>manifest.json</code> at its root) in a
+                public GitHub repository. Declare <code>authors</code> and
+                <code>sourceUrl</code> so users can see who maintains it.
+              </li>
+              <li>
+                Open a pull request that appends its URL to
+                <code>extensions/registry.json</code>:
+              </li>
+            </ol>
+            <pre><code class="language-json">{
+  "version": 1,
+  "extensions": [
+    { "url": "https://github.com/you/tagline-word-count" },
+    { "url": "https://github.com/you/tools/tree/v1.2.0/word-count" }
+  ]
+}</code></pre>
+            <p>
+              Use <code>https://github.com/owner/repo</code> for the default branch root, or
+              <code>https://github.com/owner/repo/tree/&lt;ref&gt;/&lt;folder&gt;</code> for a tag,
+              branch, or commit and a subfolder. The ref cannot contain <code>/</code>. Pointing at
+              a tag pins users to a reviewed release; pointing at a branch lets users update when
+              you push. Each extension <code>id</code> may appear only once. A pull-request check
+              validates the file against
+              <code>schemas/extension-registry.schema.json</code> and loads every listed manifest.
             </p>
           </section>
 

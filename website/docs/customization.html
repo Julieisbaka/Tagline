@@ -72,6 +72,12 @@
           schema usage.</p>
 
         <h2 id="extensions">Install an extension</h2>
+        <p>To install a community extension, open <strong>Settings &gt; Extensions &gt; Browse extensions</strong>,
+          select <strong>Browse registry</strong>, review the listed permissions, and choose <strong>Install</strong>.
+          Registry extensions are listed through pull requests to the
+          <a href="https://github.com/Julieisbaka/Tagline/blob/main/extensions/registry.json">extension registry</a>;
+          see <a href="extension-api.html#registry">Browse and publish extensions</a>. To install from a local folder:
+        </p>
         <ol>
           <li>Open <strong>Settings &gt; Extensions &gt; Open extensions folder</strong>.</li>
           <li>Add an extension folder with a <code>manifest.json</code> and its referenced files.</li>
@@ -92,7 +98,8 @@
           Disabling the extension blocks access but does not delete its secrets.</p>
 
         <h2 id="formats">Schemas and examples</h2>
-        <p>The repository includes JSON Schemas for speech flows, themes, extension manifests, and exported extension
+        <p>The repository includes JSON Schemas for speech flows, themes, extension manifests, the extension registry,
+          and exported extension
           settings. Canvases follow the standard JSON Canvas format. Use the schemas to validate your files or enable
           editor completion, and see the demo extension for a working example.</p>
         <ul>

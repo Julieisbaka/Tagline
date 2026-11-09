@@ -54,6 +54,16 @@
           <h2>0.1.0 <span class="feature-status">In development</span></h2>
           <p>This release is still in development, so these notes may change before it is published.</p>
 
+          <h3>Added</h3>
+          <ul>
+            <li><strong>Settings &gt; Extensions &gt; Browse extensions</strong> lists community extensions from the
+              <a href="https://github.com/Julieisbaka/Tagline/blob/main/extensions/registry.json">extension registry</a>
+              and installs or updates them from GitHub with per-file integrity checks. Authors
+              <a href="docs/extension-api.html#registry">submit extensions</a> by pull request.</li>
+            <li>Extension manifests can declare <code>authors</code> and a <code>sourceUrl</code>, shown on the extension
+              card with a <strong>View source</strong> button.</li>
+          </ul>
+
           <h3>Improved</h3>
           <ul>
             <li>Card detection removes incomplete HTML delimiters from card titles, keeping malformed markup out of the
