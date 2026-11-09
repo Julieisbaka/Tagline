@@ -149,6 +149,7 @@ export default function ExtensionSettings({ extensions }) {
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
   const [dragging, setDragging] = useState(false);
+  const authors = (item) => (item.authors?.length ? item.authors.join(', ') : item.author);
   const act = async (task) => {
     setBusy(true);
     setError('');
@@ -272,9 +273,9 @@ export default function ExtensionSettings({ extensions }) {
                 <div>
                   <strong>{item.name || item.folder}</strong>
                   {item.version && <span className='extension-version'>v{item.version}</span>}
-                  {item.author && (
+                  {authors(item) && (
                     <span className='extension-author'>
-                      {t('by {author}', { author: item.author })}
+                      {t('by {author}', { author: authors(item) })}
                     </span>
                   )}
                 </div>
@@ -291,6 +292,16 @@ export default function ExtensionSettings({ extensions }) {
                 )}
               </div>
               {item.description && <p>{item.description}</p>}
+              {item.sourceUrl && (
+                <div className='settings-actions'>
+                  <button
+                    disabled={busy}
+                    onClick={() => act(() => window.api.websiteAction('external', item.sourceUrl))}
+                  >
+                    {t('View source')}
+                  </button>
+                </div>
+              )}
               {item.reviewRequired && (
                 <p role='alert'>
                   {t(

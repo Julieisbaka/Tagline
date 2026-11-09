@@ -204,6 +204,10 @@ tagline.commands.register('save-checks', async () => {
   }
   const profile = path.join(root, 'profile');
   const vault = path.join(root, 'vault');
+  const openedExternalUrls = [];
+  shell.openExternal = async (url) => {
+    openedExternalUrls.push(url);
+  };
   app.setPath('userData', profile);
   const ext = (id) => path.join(profile, 'extensions', id);
   await fs.mkdir(path.join(ext('demo'), 'themes'), { recursive: true });
@@ -236,6 +240,8 @@ tagline.commands.register('save-checks', async () => {
       name: 'Demo',
       version: '1.0.0',
       description: 'Smoke test extension',
+      authors: ['First Author', 'Second Author'],
+      sourceUrl: 'https://github.com/example/demo',
       main: 'main.js',
       permissions: ['editor', 'vault:read', 'vault:write', 'events', 'ui'],
       contributes: {
@@ -803,10 +809,13 @@ tagline.commands.register('save-checks', async () => {
           el.value = 'dark'; el.dispatchEvent(new Event('change', { bubbles: true })); })()`);
         await js(`document.querySelector('[data-section="extensions"]').click()`);
         await wait(`document.querySelectorAll('.extension-card').length === 2`, 'extension cards');
-        assert.match(
-          await js(`document.querySelector('[data-extension="demo"]').textContent`),
-          /Create and change notes/
-        );
+        const demoCard = await js(`document.querySelector('[data-extension="demo"]').textContent`);
+        assert.match(demoCard, /Create and change notes/);
+        assert.match(demoCard, /First Author, Second Author/);
+        assert.match(demoCard, /v1\.0\.0/);
+        await js(`document.querySelector('[data-extension="demo"] button').click()`);
+        await delay(50);
+        assert.deepEqual(openedExternalUrls, ['https://github.com/example/demo']);
 
         await js(`document.querySelector('[data-section="files"]').click()`);
         await js(`document.querySelector('[data-setting="hideFlowExtension"]').click()`);

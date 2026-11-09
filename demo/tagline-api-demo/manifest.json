@@ -4,7 +4,8 @@
   "name": "API Demo",
   "version": "1.0.0",
   "description": "Demonstrates every Tagline extension API, including reviewed host-mediated network requests.",
-  "author": "Tagline",
+  "authors": ["Tagline contributors"],
+  "sourceUrl": "https://github.com/Julieisbaka/Tagline/tree/main/demo/tagline-api-demo",
   "main": "main.js",
   "permissions": [
     "editor",

@@ -1,107 +1,131 @@
 <!doctype html>
 <html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="description"
+      content="Build Tagline extensions with the manifest format, permissions, sandboxed JavaScript API, vault access, and UI contributions."
+    />
+    <meta name="theme-color" content="#ffffff" />
+    <title>Extension API — Tagline</title>
+    <link rel="icon" href="../favicon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="../styles/base.css" />
+    <link rel="stylesheet" href="../styles/docs.css" />
+    <link rel="stylesheet" href="../styles/responsive.css" />
+    <script src="../scripts/highlight.js" defer></script>
+  </head>
 
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description"
-    content="Build Tagline extensions with the manifest format, permissions, sandboxed JavaScript API, vault access, and UI contributions.">
-  <meta name="theme-color" content="#ffffff">
-  <title>Extension API — Tagline</title>
-  <link rel="icon" href="../favicon.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="../styles/base.css">
-  <link rel="stylesheet" href="../styles/docs.css">
-  <link rel="stylesheet" href="../styles/responsive.css">
-  <script src="../scripts/highlight.js" defer></script>
-</head>
+  <body>
+    <a class="skip-link" href="#main">Skip to content</a>
+    <header class="site-header">
+      <a class="brand" href="../index.html"
+        ><img class="brand-mark" src="../favicon.svg" alt="" aria-hidden="true" /><span
+          >Tagline</span
+        ></a
+      >
+      <nav class="main-nav" aria-label="Main navigation">
+        <a href="../index.html#features">Features</a>
+        <a href="../pricing.html">Pricing</a>
+        <a href="index.html" aria-current="location">Docs</a>
+        <a href="https://github.com/Julieisbaka/Tagline">GitHub</a>
+      </nav>
+      <a
+        class="button button-small button-outline"
+        href="https://github.com/Julieisbaka/Tagline/releases/latest"
+      >
+        Get Tagline <span aria-hidden="true">↗</span>
+      </a>
+    </header>
 
-<body>
-  <a class="skip-link" href="#main">Skip to content</a>
-  <header class="site-header">
-    <a class="brand" href="../index.html"><img class="brand-mark" src="../favicon.svg" alt=""
-        aria-hidden="true"><span>Tagline</span></a>
-    <nav class="main-nav" aria-label="Main navigation">
-      <a href="../index.html#features">Features</a>
-      <a href="../pricing.html">Pricing</a>
-      <a href="index.html" aria-current="location">Docs</a>
-      <a href="https://github.com/Julieisbaka/Tagline">GitHub</a>
-    </nav>
-    <a class="button button-small button-outline" href="https://github.com/Julieisbaka/Tagline/releases/latest">
-      Get Tagline <span aria-hidden="true">↗</span>
-    </a>
-  </header>
+    <main id="main" class="docs-page section-wrap">
+      <div class="docs-hero">
+        <p class="eyebrow">
+          <span class="eyebrow-mark" aria-hidden="true">08</span> Developer reference
+        </p>
+        <h1>Build a Tagline extension.</h1>
+        <p>
+          Extend the workspace with commands, settings, themes, and sandboxed UI. Declare only the
+          permissions your extension needs and use the provided bridge instead of accessing app
+          internals.
+        </p>
+      </div>
 
-  <main id="main" class="docs-page section-wrap">
-    <div class="docs-hero">
-      <p class="eyebrow"><span class="eyebrow-mark" aria-hidden="true">08</span> Developer reference</p>
-      <h1>Build a Tagline extension.</h1>
-      <p>Extend the workspace with commands, settings, themes, and sandboxed UI. Declare only the permissions your
-        extension needs and use the provided bridge instead of accessing app internals.</p>
-    </div>
+      <div class="docs-shell">
+        <aside class="docs-sidebar">
+          <h2>Guides</h2>
+          <nav aria-label="Documentation">
+            <a href="index.html">Documentation home</a>
+            <a href="getting-started.html">Getting started</a>
+            <a href="features.html">Working in Tagline</a>
+            <a href="notes-and-evidence.html">Notes &amp; evidence</a>
+            <a href="search-and-citations.html">Search &amp; citations</a>
+            <a href="speech-workflows.html">Speech workflows</a>
+            <a href="integrations.html">Integrations</a>
+            <a href="google-docs.html">Google Docs transfer</a>
+            <a href="customization.html">Themes &amp; extensions</a>
+            <a href="theme-api.html">Theme format</a>
+            <a href="extension-api.html" aria-current="page">Extension API</a>
+            <a href="json-formats.html">JSON formats</a>
+          </nav>
+        </aside>
 
-    <div class="docs-shell">
-      <aside class="docs-sidebar">
-        <h2>Guides</h2>
-        <nav aria-label="Documentation">
-          <a href="index.html">Documentation home</a>
-          <a href="getting-started.html">Getting started</a>
-          <a href="features.html">Working in Tagline</a>
-          <a href="notes-and-evidence.html">Notes &amp; evidence</a>
-          <a href="search-and-citations.html">Search &amp; citations</a>
-          <a href="speech-workflows.html">Speech workflows</a>
-          <a href="integrations.html">Integrations</a>
-          <a href="google-docs.html">Google Docs transfer</a>
-          <a href="customization.html">Themes &amp; extensions</a>
-          <a href="theme-api.html">Theme format</a>
-          <a href="extension-api.html" aria-current="page">Extension API</a>
-          <a href="json-formats.html">JSON formats</a>
-        </nav>
-      </aside>
+        <article class="docs-article">
+          <nav class="article-toc" aria-label="On this page">
+            <span>On this page</span>
+            <a href="#install">Install and reload</a>
+            <a href="#review">Review before enabling</a>
+            <a href="#minimal">Minimal command</a>
+            <a href="#manifest">Manifest</a>
+            <a href="#permissions">Permissions and isolation</a>
+            <a href="#commands-editor">Commands and editor</a>
+            <a href="#events">Events</a>
+            <a href="#ui">Panels, webviews, and UI</a>
+            <a href="#helpers">Helpers</a>
+            <a href="#settings">Typed settings</a>
+            <a href="#canvas-flow">Canvas and flow</a>
+            <a href="#vault">Vault API</a>
+            <a href="#storage">Private storage</a>
+            <a href="#secrets">Encrypted secrets</a>
+            <a href="#themes-shortcuts">Shortcuts and themes</a>
+          </nav>
 
-      <article class="docs-article">
-        <nav class="article-toc" aria-label="On this page">
-          <span>On this page</span>
-          <a href="#install">Install and reload</a>
-          <a href="#review">Review before enabling</a>
-          <a href="#minimal">Minimal command</a>
-          <a href="#manifest">Manifest</a>
-          <a href="#permissions">Permissions and isolation</a>
-          <a href="#commands-editor">Commands and editor</a>
-          <a href="#events">Events</a>
-          <a href="#ui">Panels, webviews, and UI</a>
-          <a href="#helpers">Helpers</a>
-          <a href="#settings">Typed settings</a>
-          <a href="#canvas-flow">Canvas and flow</a>
-          <a href="#vault">Vault API</a>
-          <a href="#storage">Private storage</a>
-          <a href="#secrets">Encrypted secrets</a>
-          <a href="#themes-shortcuts">Shortcuts and themes</a>
-        </nav>
-
-        <section id="install">
-          <h2>Install and reload</h2>
-          <ol>
-            <li>Open <strong>Settings &gt; Extensions &gt; Open extensions folder</strong>.</li>
-            <li>Create a subfolder containing <code>manifest.json</code> and its referenced files.</li>
-            <li>Select <strong>Reload extensions</strong>, review the requested permissions, and enable the extension.
-            </li>
-            <li>Find contributed commands in the command palette (<kbd>Mod+P</kbd>) and themes in <strong>Settings &gt;
-                Appearance &gt; Theme</strong>.</li>
-          </ol>
-          <p>Extensions live in the app profile, not in a vault. Reload after changing extension files. Reloading
-            recreates enabled script hosts; disabling removes the host and its contributions but does not explicitly
-            delete its private stored data.</p>
-          <p>Entry scripts run in a sandboxed worker with the supplied <code>tagline</code> bridge. They are async
-            function bodies, not ES modules: top-level <code>await</code> works, but top-level
-            <code>import</code>/<code>export</code> and CommonJS <code>require</code> do not. Bundle dependencies into a
-            self-contained script.
-          </p>
-          <h3>First-install setup</h3>
-          <p>Register at most one <code>tagline.onInstall(handler)</code> synchronously while the entry script
-            initializes. Tagline awaits it before marking the host ready. Use idempotent setup: an interrupted callback
-            may run again on the next load. Successful setup is remembered by extension ID, so ordinary reloads,
-            updates, and disable/re-enable do not repeat it. Theme-only extensions do not have this hook.</p>
-          <pre><code class="language-js">tagline.onInstall(async () =&gt; {
+          <section id="install">
+            <h2>Install and reload</h2>
+            <ol>
+              <li>Open <strong>Settings &gt; Extensions &gt; Open extensions folder</strong>.</li>
+              <li>
+                Create a subfolder containing <code>manifest.json</code> and its referenced files.
+              </li>
+              <li>
+                Select <strong>Reload extensions</strong>, review the requested permissions, and
+                enable the extension.
+              </li>
+              <li>
+                Find contributed commands in the command palette (<kbd>Mod+P</kbd>) and themes in
+                <strong>Settings &gt; Appearance &gt; Theme</strong>.
+              </li>
+            </ol>
+            <p>
+              Extensions live in the app profile, not in a vault. Reload after changing extension
+              files. Reloading recreates enabled script hosts; disabling removes the host and its
+              contributions but does not explicitly delete its private stored data.
+            </p>
+            <p>
+              Entry scripts run in a sandboxed worker with the supplied <code>tagline</code> bridge.
+              They are async function bodies, not ES modules: top-level <code>await</code> works,
+              but top-level <code>import</code>/<code>export</code> and CommonJS
+              <code>require</code> do not. Bundle dependencies into a self-contained script.
+            </p>
+            <h3>First-install setup</h3>
+            <p>
+              Register at most one <code>tagline.onInstall(handler)</code> synchronously while the
+              entry script initializes. Tagline awaits it before marking the host ready. Use
+              idempotent setup: an interrupted callback may run again on the next load. Successful
+              setup is remembered by extension ID, so ordinary reloads, updates, and
+              disable/re-enable do not repeat it. Theme-only extensions do not have this hook.
+            </p>
+            <pre><code class="language-js">tagline.onInstall(async () =&gt; {
   if (!(await tagline.storage.get('installedAt'))) {
     await tagline.storage.set('installedAt', new Date().toISOString());
   }
@@ -111,57 +135,77 @@
   );
   await tagline.webviews.show('welcome');
 });</code></pre>
-          <p>This example needs <code>ui</code> permission and a declared <code>welcome</code> webview. Entry evaluation
-            and setup share the startup deadline (10 seconds by default); show onboarding and return rather than waiting
-            for the user to finish it.</p>
-        </section>
+            <p>
+              This example needs <code>ui</code> permission and a declared
+              <code>welcome</code> webview. Entry evaluation and setup share the startup deadline
+              (10 seconds by default); show onboarding and return rather than waiting for the user
+              to finish it.
+            </p>
+          </section>
 
-        <section id="review">
-          <h2>Review before enabling</h2>
-          <p>Enabling an extension that declares any of these capabilities requires an explicit review of its
-            manifest:</p>
-          <ul>
-            <li><code>settings</code></li>
-            <li><code>editor:active-note</code></li>
-            <li><code>events</code></li>
-            <li><code>ui</code></li>
-            <li><code>network</code></li>
-            <li><code>secrets</code></li>
-          </ul>
-          <p>Tagline computes a review signature from the manifest’s declared permissions (sorted), network hosts,
-            settings, ribbon items, panels, and webviews, then derives a SHA-256 token from that value. Reloading
-            extensions recomputes the token and compares it with the stored approval. Changing any reviewed field
-            invalidates the approval; for example, adding <code>network</code> or <code>secrets</code>, changing
-            <code>networkHosts</code>, or
-            changing a declared setting requires a new review.</p>
-          <p>Only <strong>Settings &gt; Extensions</strong> can enable or approve an extension, and enabling requires the
-            token for its current manifest. A missing or stale token is rejected with
-            <q>Extension permissions or settings changed. Reload and review before enabling.</q> After a successful
-            enable, the approval signature is stored in <code>extensionReviews</code> in the app’s
-            <code>config.json</code>. On every launch and reload, Tagline scans each manifest and checks its stored
-            approval again.</p>
-          <p>If an approval no longer matches, the extension is treated as disabled: its host does not start, its
-            commands are unavailable, and its selectable themes fall back to the default palette until you review and
-            enable it again. Extensions that declare a gated capability but have no stored approval—including
-            extensions installed before reviews were introduced—also need review. The native menu can open
-            <strong>Settings &gt; Extensions</strong> only; it cannot enable or approve an extension.</p>
-          <p>An extension declaring <code>network</code> must also declare <code>networkHosts</code>, a list of exact
-            lowercase hostnames. Tagline includes this list in the review signature and shows it in
-            <strong>Settings &gt; Extensions</strong>. Review the requested hosts before approving the extension.</p>
-        </section>
+          <section id="review">
+            <h2>Review before enabling</h2>
+            <p>
+              Enabling an extension that declares any of these capabilities requires an explicit
+              review of its manifest:
+            </p>
+            <ul>
+              <li><code>settings</code></li>
+              <li><code>editor:active-note</code></li>
+              <li><code>events</code></li>
+              <li><code>ui</code></li>
+              <li><code>network</code></li>
+              <li><code>secrets</code></li>
+            </ul>
+            <p>
+              Tagline computes a review signature from the manifest’s declared permissions (sorted),
+              network hosts, settings, ribbon items, panels, and webviews, then derives a SHA-256
+              token from that value. Reloading extensions recomputes the token and compares it with
+              the stored approval. Changing any reviewed field invalidates the approval; for
+              example, adding <code>network</code> or <code>secrets</code>, changing
+              <code>networkHosts</code>, or changing a declared setting requires a new review.
+            </p>
+            <p>
+              Only <strong>Settings &gt; Extensions</strong> can enable or approve an extension, and
+              enabling requires the token for its current manifest. A missing or stale token is
+              rejected with
+              <q>Extension permissions or settings changed. Reload and review before enabling.</q>
+              After a successful enable, the approval signature is stored in
+              <code>extensionReviews</code> in the app’s <code>config.json</code>. On every launch
+              and reload, Tagline scans each manifest and checks its stored approval again.
+            </p>
+            <p>
+              If an approval no longer matches, the extension is treated as disabled: its host does
+              not start, its commands are unavailable, and its selectable themes fall back to the
+              default palette until you review and enable it again. Extensions that declare a gated
+              capability but have no stored approval—including extensions installed before reviews
+              were introduced—also need review. The native menu can open
+              <strong>Settings &gt; Extensions</strong> only; it cannot enable or approve an
+              extension.
+            </p>
+            <p>
+              An extension declaring <code>network</code> must also declare
+              <code>networkHosts</code>, a list of exact lowercase hostnames. Tagline includes this
+              list in the review signature and shows it in
+              <strong>Settings &gt; Extensions</strong>. Review the requested hosts before approving
+              the extension.
+            </p>
+          </section>
 
-        <section id="minimal">
-          <h2>A minimal command extension</h2>
-          <p>Create an extension folder with a manifest and one entry script:</p>
-          <pre><code class="language-text">debate-tools/
+          <section id="minimal">
+            <h2>A minimal command extension</h2>
+            <p>Create an extension folder with a manifest and one entry script:</p>
+            <pre><code class="language-text">debate-tools/
   manifest.json
   main.js</code></pre>
-          <pre><code class="language-json">{
+            <pre><code class="language-json">{
   "manifestVersion": 1,
   "id": "debate-tools",
   "name": "Debate Tools",
   "version": "0.1.0",
   "description": "Insert a reminder into the active note.",
+  "authors": ["Example Author"],
+  "sourceUrl": "https://github.com/example/debate-tools",
   "main": "main.js",
   "permissions": ["editor"],
   "contributes": {
@@ -170,7 +214,7 @@
     ]
   }
 }</code></pre>
-          <pre><code class="language-js">await tagline.commands.register('insert-reminder', async () =&gt; {
+            <pre><code class="language-js">await tagline.commands.register('insert-reminder', async () =&gt; {
   const note = await tagline.editor.getActiveNote();
   if (!note || !/\.md$/i.test(note.path) || note.mode === 'read') {
     await tagline.notify('Open a Markdown note in an editing mode first.');
@@ -180,189 +224,267 @@
     '\n\nVerify author, date, and source before use.\n',
   );
 });</code></pre>
-          <p>The command appears as <strong>Debate Tools: Insert evidence reminder</strong>; its internal application ID
-            is <code>ext:debate-tools.insert-reminder</code>. Register and await every contributed command during
-            initialization.</p>
-        </section>
+            <p>
+              The command appears as <strong>Debate Tools: Insert evidence reminder</strong>; its
+              internal application ID is <code>ext:debate-tools.insert-reminder</code>. Register and
+              await every contributed command during initialization.
+            </p>
+          </section>
 
-        <section id="manifest">
-          <h2>Manifest reference</h2>
-          <div class="table-scroll">
-            <table>
-              <thead>
-                <tr>
-                  <th>Field</th>
-                  <th>Requirement</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr>
-                  <td><code>manifestVersion</code></td>
-                  <td>Required number <code>1</code>.</td>
-                </tr>
-                <tr>
-                  <td><code>id</code></td>
-                  <td>Required, 2–64 characters; starts with a lowercase letter or digit and contains only lowercase
-                    letters, digits, or hyphens. Unique across valid installed manifests.</td>
-                </tr>
-                <tr>
-                  <td><code>name</code></td>
-                  <td>Required nonblank string, at most 80 characters.</td>
-                </tr>
-                <tr>
-                  <td><code>version</code></td>
-                  <td>Required nonblank string, at most 80 characters; semantic-version syntax is not enforced.</td>
-                </tr>
-                <tr>
-                  <td><code>description</code>, <code>author</code></td>
-                  <td>Optional strings, each at most 500 characters.</td>
-                </tr>
-                <tr>
-                  <td><code>main</code></td>
-                  <td>Relative path to a <code>.js</code> file when commands or script contributions are used; optional
-                    for theme-only extensions.</td>
-                </tr>
-                <tr>
-                  <td><code>permissions</code></td>
-                  <td>Optional array of <code>editor</code>, <code>editor:active-note</code>, <code>settings</code>,
-                    <code>vault:read</code>, <code>vault:write</code>, <code>events</code>, <code>ui</code>,
-                    <code>network</code>, or <code>secrets</code>. Defaults to <code>[]</code>.
-                  </td>
-                </tr>
-                <tr>
-                  <td><code>networkHosts</code></td>
-                  <td>Required when <code>permissions</code> includes <code>network</code>. List the exact lowercase
-                    hostnames the extension needs; the list is reviewed and included in the approval signature.</td>
-                </tr>
-                <tr>
-                  <td><code>contributes.commands</code></td>
-                  <td>Up to 50 declarations; each has a unique ID and nonblank title (up to 80 characters). Requires
-                    <code>main</code>.
-                  </td>
-                </tr>
-                <tr>
-                  <td><code>contributes.themes</code></td>
-                  <td>Up to 20 relative <code>.json</code> paths.</td>
-                </tr>
-                <tr>
-                  <td><code>contributes.settings</code></td>
-                  <td>Up to 32 typed settings; requires <code>settings</code> permission.</td>
-                </tr>
-                <tr>
-                  <td><code>contributes.panels</code>, <code>contributes.webviews</code></td>
-                  <td>Up to 10 <code>{ id, title }</code> declarations each; require <code>ui</code> permission and
-                    <code>main</code>.
-                  </td>
-                </tr>
-                <tr>
-                  <td><code>contributes.ribbonItems</code></td>
-                  <td>Up to 10 <code>{ id, title, icon, command }</code> shortcuts; requires <code>ui</code> and a
-                    declared command. Unknown icon names use the file icon.</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-          <p>Contribution IDs use the extension-ID character rules. Paths must remain inside the extension folder;
-            absolute paths, traversal, and symlinks resolving outside it are rejected. Default file limits are 1 MiB for
-            scripts and 64 KiB per contributed theme. The aggregate JSON size of theme files loaded from one extension
-            is limited to 524,288 bytes by default; this <strong>Theme preview bytes</strong> limit can be adjusted from
-            1,024 to 4,194,304 bytes. Per-file limits apply independently. Limits are adjustable within fixed bounds in
-            <strong>Settings &gt; Advanced settings &gt; Theme and extension limits</strong>.</p>
-          <p>Invalid manifests and load failures are shown in extension settings. A script must finish initialization
-            within 10 seconds. See the <a href="json-formats.html">JSON formats guide</a> for schema validation and
-            editor completion.</p>
-        </section>
+          <section id="manifest">
+            <h2>Manifest reference</h2>
+            <div class="table-scroll">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Field</th>
+                    <th>Requirement</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><code>manifestVersion</code></td>
+                    <td>Required number <code>1</code>.</td>
+                  </tr>
+                  <tr>
+                    <td><code>id</code></td>
+                    <td>
+                      Required, 2–64 characters; starts with a lowercase letter or digit and
+                      contains only lowercase letters, digits, or hyphens. Unique across valid
+                      installed manifests.
+                    </td>
+                  </tr>
+                  <tr>
+                    <td><code>name</code></td>
+                    <td>Required nonblank string, at most 80 characters.</td>
+                  </tr>
+                  <tr>
+                    <td><code>version</code></td>
+                    <td>
+                      Required nonblank string, at most 80 characters; semantic-version syntax is
+                      not enforced.
+                    </td>
+                  </tr>
+                  <tr>
+                    <td><code>description</code>, <code>author</code></td>
+                    <td>
+                      Optional description and legacy single-author strings, each at most 500
+                      characters. Use <code>authors</code> for multiple authors.
+                    </td>
+                  </tr>
+                  <tr>
+                    <td><code>authors</code></td>
+                    <td>
+                      Optional list of 1–20 unique, nonblank author names, each at most 200
+                      characters. If omitted, the legacy <code>author</code> value is shown as the
+                      sole author.
+                    </td>
+                  </tr>
+                  <tr>
+                    <td><code>sourceUrl</code></td>
+                    <td>
+                      Optional HTTPS URL (up to 2,048 characters), without embedded credentials. It
+                      appears on the extension card as a link to the source or project page.
+                    </td>
+                  </tr>
+                  <tr>
+                    <td><code>main</code></td>
+                    <td>
+                      Relative path to a <code>.js</code> file when commands or script contributions
+                      are used; optional for theme-only extensions.
+                    </td>
+                  </tr>
+                  <tr>
+                    <td><code>permissions</code></td>
+                    <td>
+                      Optional array of <code>editor</code>, <code>editor:active-note</code>,
+                      <code>settings</code>, <code>vault:read</code>, <code>vault:write</code>,
+                      <code>events</code>, <code>ui</code>, <code>network</code>, or
+                      <code>secrets</code>. Defaults to <code>[]</code>.
+                    </td>
+                  </tr>
+                  <tr>
+                    <td><code>networkHosts</code></td>
+                    <td>
+                      Required when <code>permissions</code> includes <code>network</code>. List the
+                      exact lowercase hostnames the extension needs; the list is reviewed and
+                      included in the approval signature.
+                    </td>
+                  </tr>
+                  <tr>
+                    <td><code>contributes.commands</code></td>
+                    <td>
+                      Up to 50 declarations; each has a unique ID and nonblank title (up to 80
+                      characters). Requires <code>main</code>.
+                    </td>
+                  </tr>
+                  <tr>
+                    <td><code>contributes.themes</code></td>
+                    <td>Up to 20 relative <code>.json</code> paths.</td>
+                  </tr>
+                  <tr>
+                    <td><code>contributes.settings</code></td>
+                    <td>Up to 32 typed settings; requires <code>settings</code> permission.</td>
+                  </tr>
+                  <tr>
+                    <td><code>contributes.panels</code>, <code>contributes.webviews</code></td>
+                    <td>
+                      Up to 10 <code>{ id, title }</code> declarations each; require
+                      <code>ui</code> permission and <code>main</code>.
+                    </td>
+                  </tr>
+                  <tr>
+                    <td><code>contributes.ribbonItems</code></td>
+                    <td>
+                      Up to 10 <code>{ id, title, icon, command }</code> shortcuts; requires
+                      <code>ui</code> and a declared command. Unknown icon names use the file icon.
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <p>
+              Contribution IDs use the extension-ID character rules. Paths must remain inside the
+              extension folder; absolute paths, traversal, and symlinks resolving outside it are
+              rejected. Default file limits are 1 MiB for scripts and 64 KiB per contributed theme.
+              The aggregate JSON size of theme files loaded from one extension is limited to 524,288
+              bytes by default; this <strong>Theme preview bytes</strong> limit can be adjusted from
+              1,024 to 4,194,304 bytes. Per-file limits apply independently. Limits are adjustable
+              within fixed bounds in
+              <strong>Settings &gt; Advanced settings &gt; Theme and extension limits</strong>.
+            </p>
+            <p>
+              Invalid manifests and load failures are shown in extension settings. A script must
+              finish initialization within 10 seconds. See the
+              <a href="json-formats.html">JSON formats guide</a> for schema validation and editor
+              completion.
+            </p>
+          </section>
 
-        <section id="permissions">
-          <h2>Permissions and isolation</h2>
-          <div class="table-scroll">
-            <table>
-              <thead>
-                <tr>
-                  <th>Permission</th>
-                  <th>Grants</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr>
-                  <td><code>editor</code></td>
-                  <td>Read the active note and selection; insert text, set selection, and run approved Tiptap commands.
-                    Reading a note exposes its entire content.</td>
-                </tr>
-                <tr>
-                  <td><code>editor:active-note</code></td>
-                  <td>Subscribe to active-note path changes only, without content or selection access. Does not imply
-                    <code>editor</code>.
-                  </td>
-                </tr>
-                <tr>
-                  <td><code>settings</code></td>
-                  <td>Read and write only this extension's declared, validated settings.</td>
-                </tr>
-                <tr>
-                  <td><code>vault:read</code></td>
-                  <td>List and read loaded <code>.md</code>, <code>.flow</code>, and <code>.canvas</code> documents;
-                    watch changes.</td>
-                </tr>
-                <tr>
-                  <td><code>vault:write</code></td>
-                  <td>Create, replace, rename, trash, and flush supported notes. Append and compare-and-swap also
-                    require <code>vault:read</code>.</td>
-                </tr>
-                <tr>
-                  <td><code>events</code></td>
-                  <td>Subscribe to application events (plus each event's data permission) and namespaced custom events;
-                    emit events only in this extension's namespace.</td>
-                </tr>
-                <tr>
-                  <td><code>ui</code></td>
-                  <td>Display declared ribbon shortcuts, panels, and webviews; exchange messages with those surfaces.
-                  </td>
-                </tr>
-                <tr>
-                  <td><code>network</code></td>
-                  <td>Use <code>tagline.network.fetch()</code> for host-mediated HTTPS <code>GET</code>/<code>POST</code>
-                    requests to hosts declared in <code>networkHosts</code>.</td>
-                </tr>
-                <tr>
-                  <td><code>secrets</code></td>
-                  <td>Read, store, check, and delete OS-encrypted secret strings scoped to this extension ID.
-                    Requires review; see <a href="#secrets">Encrypted secrets</a>.</td>
-                </tr>
-                <tr>
-                  <td>None</td>
-                  <td>Register declared commands, notify the user, use private extension storage, and contribute JSON
-                    themes.</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-          <p>Undeclared permission checks reject API calls. For every network request, the main process rechecks that
-            the extension is enabled and its manifest still declares the permission and requested host. Requests reject
-            local or private DNS results, embedded URL credentials, non-HTTPS schemes, non-default ports, cookies,
-            automatic redirects, and compressed responses. Requests are limited to 10 per second, request and response
-            bodies of 1,000,000 bytes each, and a 15-second timeout. The extension worker and webviews have no direct
-            network access. Extensions also have no direct Node.js, Electron API, application DOM, profile storage, or
-            arbitrary filesystem access. See <a href="#review">Review before enabling</a> for the manifest approval
-            required for gated capabilities.</p>
-          <ul>
-            <li>Workers keep synchronous extension loops off the application UI thread. A supervisor stops a worker that
-              misses heartbeats for 5 seconds; startup has a 10-second deadline.</li>
-            <li>More than 200 messages in a rolling second stops an extension. At most 32 bridge calls may be pending,
-              and each extension may register up to 32 vault watches and 32 active-note listeners.</li>
-            <li>Nested <code>Worker</code> and <code>SharedWorker</code> constructors are disabled. Disable, reload, or
-              unload tears down the worker.</li>
-          </ul>
-          <p>Runtime failures appear in notifications and startup failures on the extension card. Await bridge calls and
-            handle specific errors where you can explain recovery; unhandled command errors are surfaced to the user.
-          </p>
-        </section>
+          <section id="permissions">
+            <h2>Permissions and isolation</h2>
+            <div class="table-scroll">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Permission</th>
+                    <th>Grants</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><code>editor</code></td>
+                    <td>
+                      Read the active note and selection; insert text, set selection, and run
+                      approved Tiptap commands. Reading a note exposes its entire content.
+                    </td>
+                  </tr>
+                  <tr>
+                    <td><code>editor:active-note</code></td>
+                    <td>
+                      Subscribe to active-note path changes only, without content or selection
+                      access. Does not imply <code>editor</code>.
+                    </td>
+                  </tr>
+                  <tr>
+                    <td><code>settings</code></td>
+                    <td>Read and write only this extension's declared, validated settings.</td>
+                  </tr>
+                  <tr>
+                    <td><code>vault:read</code></td>
+                    <td>
+                      List and read loaded <code>.md</code>, <code>.flow</code>, and
+                      <code>.canvas</code> documents; watch changes.
+                    </td>
+                  </tr>
+                  <tr>
+                    <td><code>vault:write</code></td>
+                    <td>
+                      Create, replace, rename, trash, and flush supported notes. Append and
+                      compare-and-swap also require <code>vault:read</code>.
+                    </td>
+                  </tr>
+                  <tr>
+                    <td><code>events</code></td>
+                    <td>
+                      Subscribe to application events (plus each event's data permission) and
+                      namespaced custom events; emit events only in this extension's namespace.
+                    </td>
+                  </tr>
+                  <tr>
+                    <td><code>ui</code></td>
+                    <td>
+                      Display declared ribbon shortcuts, panels, and webviews; exchange messages
+                      with those surfaces.
+                    </td>
+                  </tr>
+                  <tr>
+                    <td><code>network</code></td>
+                    <td>
+                      Use <code>tagline.network.fetch()</code> for host-mediated HTTPS
+                      <code>GET</code>/<code>POST</code> requests to hosts declared in
+                      <code>networkHosts</code>.
+                    </td>
+                  </tr>
+                  <tr>
+                    <td><code>secrets</code></td>
+                    <td>
+                      Read, store, check, and delete OS-encrypted secret strings scoped to this
+                      extension ID. Requires review; see <a href="#secrets">Encrypted secrets</a>.
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>None</td>
+                    <td>
+                      Register declared commands, notify the user, use private extension storage,
+                      and contribute JSON themes.
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <p>
+              Undeclared permission checks reject API calls. For every network request, the main
+              process rechecks that the extension is enabled and its manifest still declares the
+              permission and requested host. Requests reject local or private DNS results, embedded
+              URL credentials, non-HTTPS schemes, non-default ports, cookies, automatic redirects,
+              and compressed responses. Requests are limited to 10 per second, request and response
+              bodies of 1,000,000 bytes each, and a 15-second timeout. The extension worker and
+              webviews have no direct network access. Extensions also have no direct Node.js,
+              Electron API, application DOM, profile storage, or arbitrary filesystem access. See
+              <a href="#review">Review before enabling</a> for the manifest approval required for
+              gated capabilities.
+            </p>
+            <ul>
+              <li>
+                Workers keep synchronous extension loops off the application UI thread. A supervisor
+                stops a worker that misses heartbeats for 5 seconds; startup has a 10-second
+                deadline.
+              </li>
+              <li>
+                More than 200 messages in a rolling second stops an extension. At most 32 bridge
+                calls may be pending, and each extension may register up to 32 vault watches and 32
+                active-note listeners.
+              </li>
+              <li>
+                Nested <code>Worker</code> and <code>SharedWorker</code> constructors are disabled.
+                Disable, reload, or unload tears down the worker.
+              </li>
+            </ul>
+            <p>
+              Runtime failures appear in notifications and startup failures on the extension card.
+              Await bridge calls and handle specific errors where you can explain recovery;
+              unhandled command errors are surfaced to the user.
+            </p>
+          </section>
 
-        <section id="commands-editor">
-          <h2>Commands and editor</h2>
-          <p>Bridge methods return promises. Command handlers receive no arguments and expose no return value to the
-            host.</p>
-          <pre><code class="language-js">await tagline.commands.register(id, handler);
+          <section id="commands-editor">
+            <h2>Commands and editor</h2>
+            <p>
+              Bridge methods return promises. Command handlers receive no arguments and expose no
+              return value to the host.
+            </p>
+            <pre><code class="language-js">await tagline.commands.register(id, handler);
 await tagline.notify(message);
 
 const note = await tagline.editor.getActiveNote();
@@ -371,97 +493,117 @@ await tagline.editor.insertText(markdown);
 await tagline.editor.setSelection({ from: 1, to: 12 });
 const snapshot = await tagline.editor.tiptap.getSnapshot();
 await tagline.editor.tiptap.runCommand('toggleBold');</code></pre>
-          <p>Notifications accept strings up to 500 characters and include the extension name. The active-note snapshot
-            includes vault-relative path, current content (including unsaved edits), selected text, and editor state.
-            Modes are <code>visual</code>, <code>edit</code>, or <code>read</code>; kinds are <code>markdown</code>,
-            <code>flow</code>, or <code>canvas</code>. Content is available only with <code>editor</code>.
-          </p>
-          <p><code>insertText</code> requires an open Markdown note in an editing mode and a ready editor. In visual
-            mode it parses Markdown; in source mode it inserts literal text. It replaces the selection or inserts at the
-            cursor and schedules normal autosaving. It rejects in reading mode or on a flow, and accepts up to 5,000,000
-            characters.</p>
-          <p>Selection offsets are source-character offsets starting at 0 in source mode and ProseMirror positions in
-            visual mode (text usually starts at 1); the coordinate systems are not interchangeable. Invalid or
-            out-of-document positions reject. Tiptap snapshots and commands require an active visual Markdown editor;
-            reading mode, flows, and source fallback reject.</p>
-          <p>Approved Tiptap commands are <code>toggleBold</code>, <code>toggleItalic</code>,
-            <code>toggleUnderline</code>, <code>toggleHighlight</code>, <code>toggleStrike</code>,
-            <code>toggleHeading</code>, <code>setParagraph</code>, <code>toggleBulletList</code>,
-            <code>toggleOrderedList</code>, <code>toggleBlockquote</code>, <code>undo</code>, <code>redo</code>, and
-            <code>unsetAllMarks</code>. Only <code>toggleHeading</code> accepts options: <code>{ level: 1..6 }</code>.
-          </p>
-          <p>Use <code>tagline.editor.onActiveNoteChanged(callback)</code> with the separate
-            <code>editor:active-note</code> permission to subscribe to <code>{ path }</code> changes only. It does not
-            provide an initial snapshot; call <code>getActiveNote()</code> only when full editor access is needed and
-            approved. Unloading the extension unsubscribes automatically.
-          </p>
-        </section>
+            <p>
+              Notifications accept strings up to 500 characters and include the extension name. The
+              active-note snapshot includes vault-relative path, current content (including unsaved
+              edits), selected text, and editor state. Modes are <code>visual</code>,
+              <code>edit</code>, or <code>read</code>; kinds are <code>markdown</code>,
+              <code>flow</code>, or <code>canvas</code>. Content is available only with
+              <code>editor</code>.
+            </p>
+            <p>
+              <code>insertText</code> requires an open Markdown note in an editing mode and a ready
+              editor. In visual mode it parses Markdown; in source mode it inserts literal text. It
+              replaces the selection or inserts at the cursor and schedules normal autosaving. It
+              rejects in reading mode or on a flow, and accepts up to 5,000,000 characters.
+            </p>
+            <p>
+              Selection offsets are source-character offsets starting at 0 in source mode and
+              ProseMirror positions in visual mode (text usually starts at 1); the coordinate
+              systems are not interchangeable. Invalid or out-of-document positions reject. Tiptap
+              snapshots and commands require an active visual Markdown editor; reading mode, flows,
+              and source fallback reject.
+            </p>
+            <p>
+              Approved Tiptap commands are <code>toggleBold</code>, <code>toggleItalic</code>,
+              <code>toggleUnderline</code>, <code>toggleHighlight</code>, <code>toggleStrike</code>,
+              <code>toggleHeading</code>, <code>setParagraph</code>, <code>toggleBulletList</code>,
+              <code>toggleOrderedList</code>, <code>toggleBlockquote</code>, <code>undo</code>,
+              <code>redo</code>, and <code>unsetAllMarks</code>. Only
+              <code>toggleHeading</code> accepts options: <code>{ level: 1..6 }</code>.
+            </p>
+            <p>
+              Use <code>tagline.editor.onActiveNoteChanged(callback)</code> with the separate
+              <code>editor:active-note</code> permission to subscribe to
+              <code>{ path }</code> changes only. It does not provide an initial snapshot; call
+              <code>getActiveNote()</code> only when full editor access is needed and approved.
+              Unloading the extension unsubscribes automatically.
+            </p>
+          </section>
 
-        <section id="events">
-          <h2>Application event bus</h2>
-          <p>Every subscription requires <code>events</code>. Built-in events also require the listed data permission.
-            Subscriptions do not replay initial state and are removed on disable, reload, or worker failure.</p>
-          <div class="table-scroll">
-            <table>
-              <thead>
-                <tr>
-                  <th>Event</th>
-                  <th>Additional permission</th>
-                  <th>Payload</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr>
-                  <td><code>vault.changed</code></td>
-                  <td><code>vault:read</code></td>
-                  <td><code>{ open: boolean }</code>, when the open vault changes.</td>
-                </tr>
-                <tr>
-                  <td><code>vault.fileChanged</code></td>
-                  <td><code>vault:read</code></td>
-                  <td>Path-only change/reset events, like <code>vault.watch</code>.</td>
-                </tr>
-                <tr>
-                  <td><code>note.changed</code></td>
-                  <td><code>editor:active-note</code></td>
-                  <td><code>{ path: string | null }</code>.</td>
-                </tr>
-                <tr>
-                  <td><code>editor.updated</code></td>
-                  <td><code>editor</code></td>
-                  <td><code>{ path, mode }</code>, on content, note, or mode changes.</td>
-                </tr>
-                <tr>
-                  <td><code>editor.selectionChanged</code></td>
-                  <td><code>editor</code></td>
-                  <td><code>{ mode, selection: { from, to }, path? }</code>.</td>
-                </tr>
-                <tr>
-                  <td><code>editor.ready</code></td>
-                  <td><code>editor</code></td>
-                  <td><code>{ mode, path? }</code>.</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-          <pre><code class="language-js">const stop = await tagline.events.on(
+          <section id="events">
+            <h2>Application event bus</h2>
+            <p>
+              Every subscription requires <code>events</code>. Built-in events also require the
+              listed data permission. Subscriptions do not replay initial state and are removed on
+              disable, reload, or worker failure.
+            </p>
+            <div class="table-scroll">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Event</th>
+                    <th>Additional permission</th>
+                    <th>Payload</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><code>vault.changed</code></td>
+                    <td><code>vault:read</code></td>
+                    <td><code>{ open: boolean }</code>, when the open vault changes.</td>
+                  </tr>
+                  <tr>
+                    <td><code>vault.fileChanged</code></td>
+                    <td><code>vault:read</code></td>
+                    <td>Path-only change/reset events, like <code>vault.watch</code>.</td>
+                  </tr>
+                  <tr>
+                    <td><code>note.changed</code></td>
+                    <td><code>editor:active-note</code></td>
+                    <td><code>{ path: string | null }</code>.</td>
+                  </tr>
+                  <tr>
+                    <td><code>editor.updated</code></td>
+                    <td><code>editor</code></td>
+                    <td><code>{ path, mode }</code>, on content, note, or mode changes.</td>
+                  </tr>
+                  <tr>
+                    <td><code>editor.selectionChanged</code></td>
+                    <td><code>editor</code></td>
+                    <td><code>{ mode, selection: { from, to }, path? }</code>.</td>
+                  </tr>
+                  <tr>
+                    <td><code>editor.ready</code></td>
+                    <td><code>editor</code></td>
+                    <td><code>{ mode, path? }</code>.</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <pre><code class="language-js">const stop = await tagline.events.on(
   'editor.selectionChanged',
   async (event) =&gt; {
     await tagline.storage.set('last-selection', event.selection);
   },
 );
 await stop();</code></pre>
-          <p>Custom event names follow <code>ext.&lt;extension-id&gt;.&lt;event-name&gt;</code>. Extensions may listen
-            to other namespaces but can emit only in their own. Names are limited to 128 characters; custom event and
-            UI-message payloads must be JSON-serializable and no larger than 65,536 characters. Treat payloads from
-            other extensions as untrusted.</p>
-        </section>
+            <p>
+              Custom event names follow <code>ext.&lt;extension-id&gt;.&lt;event-name&gt;</code>.
+              Extensions may listen to other namespaces but can emit only in their own. Names are
+              limited to 128 characters; custom event and UI-message payloads must be
+              JSON-serializable and no larger than 65,536 characters. Treat payloads from other
+              extensions as untrusted.
+            </p>
+          </section>
 
-        <section id="ui">
-          <h2>Panels, webviews, and UI</h2>
-          <p>Declare surfaces before using them. IDs use command-ID syntax; titles are nonblank and at most 80
-            characters. Each surface belongs to its extension.</p>
-          <pre><code class="language-json">{
+          <section id="ui">
+            <h2>Panels, webviews, and UI</h2>
+            <p>
+              Declare surfaces before using them. IDs use command-ID syntax; titles are nonblank and
+              at most 80 characters. Each surface belongs to its extension.
+            </p>
+            <pre><code class="language-json">{
   "permissions": ["ui"],
   "main": "main.js",
   "contributes": {
@@ -469,7 +611,7 @@ await stop();</code></pre>
     "webviews": [{ "id": "source-details", "title": "Source details" }]
   }
 }</code></pre>
-          <pre><code class="language-js">tagline.webviews.onMessage('source-details', async (message) =&gt; {
+            <pre><code class="language-js">tagline.webviews.onMessage('source-details', async (message) =&gt; {
   if (message.ready) {
     await tagline.webviews.postMessage('source-details', {
       title: 'Example source',
@@ -484,23 +626,28 @@ await tagline.webviews.setHtml(
     '}); taglineWebview.postMessage({ ready: true });&lt;/script&gt;',
 );
 await tagline.webviews.show('source-details');</code></pre>
-          <p>Register message handlers before showing the surface. The page should send a ready message after
-            registering its handler; posting to an unmounted surface rejects. <code>setHtml</code> replaces the page,
-            <code>show</code> displays it, and <code>close</code> hides/unmounts it while retaining HTML for reopening.
-            Disabling or reloading removes contributed surfaces.
-          </p>
-          <p>Panels appear above the built-in right sidebar; webviews appear as dialogs. HTML is limited to 200,000
-            characters and runs in an opaque-origin <code>sandbox="allow-scripts"</code> iframe without same-origin
-            access, Node, Electron APIs, network requests, forms, nested frames/workers, popups, or arbitrary
-            navigation. Styles must be inline; images may use data URLs. Never inject unescaped note content; use
-            <code>textContent</code>. Webview scripts have DOM access and can still block renderer responsiveness if
-            they do expensive synchronous work.
-          </p>
-          <h3>Theme-aware UI kit</h3>
-          <p>Panels and webviews receive app colors, fonts, selection colors, and a shared control stylesheet. Prefer
-            <code>taglineUI</code> factories to hardcoded colors:
-          </p>
-          <pre><code class="language-js">const ui = taglineUI;
+            <p>
+              Register message handlers before showing the surface. The page should send a ready
+              message after registering its handler; posting to an unmounted surface rejects.
+              <code>setHtml</code> replaces the page, <code>show</code> displays it, and
+              <code>close</code> hides/unmounts it while retaining HTML for reopening. Disabling or
+              reloading removes contributed surfaces.
+            </p>
+            <p>
+              Panels appear above the built-in right sidebar; webviews appear as dialogs. HTML is
+              limited to 200,000 characters and runs in an opaque-origin
+              <code>sandbox="allow-scripts"</code> iframe without same-origin access, Node, Electron
+              APIs, network requests, forms, nested frames/workers, popups, or arbitrary navigation.
+              Styles must be inline; images may use data URLs. Never inject unescaped note content;
+              use <code>textContent</code>. Webview scripts have DOM access and can still block
+              renderer responsiveness if they do expensive synchronous work.
+            </p>
+            <h3>Theme-aware UI kit</h3>
+            <p>
+              Panels and webviews receive app colors, fonts, selection colors, and a shared control
+              stylesheet. Prefer <code>taglineUI</code> factories to hardcoded colors:
+            </p>
+            <pre><code class="language-js">const ui = taglineUI;
 document.body.append(
   ui.card({
     title: 'Research',
@@ -517,19 +664,24 @@ document.body.append(
     ],
   }),
 );</code></pre>
-          <p>Factories return native elements with labels, keyboard behavior, focus indicators, and reduced-motion
-            support. Available controls include <code>stack</code>, <code>card</code>, <code>field</code>,
-            <code>select</code>, <code>toggle</code>, <code>notice</code>, and <code>button</code>. Text and labels are
-            inserted as text, not HTML. In webviews, <code>taglineWebview.getTheme()</code> returns the current theme
-            and <code>onThemeChange(callback)</code> observes updates; see the <a href="theme-api.html">Theme API</a>.
-          </p>
-        </section>
+            <p>
+              Factories return native elements with labels, keyboard behavior, focus indicators, and
+              reduced-motion support. Available controls include <code>stack</code>,
+              <code>card</code>, <code>field</code>, <code>select</code>, <code>toggle</code>,
+              <code>notice</code>, and <code>button</code>. Text and labels are inserted as text,
+              not HTML. In webviews, <code>taglineWebview.getTheme()</code> returns the current
+              theme and <code>onThemeChange(callback)</code> observes updates; see the
+              <a href="theme-api.html">Theme API</a>.
+            </p>
+          </section>
 
-        <section id="helpers">
-          <h2>Helpers and disposable subscriptions</h2>
-          <p>Pure helpers require no permission. Path helpers normalize vault-relative paths and reject absolute paths
-            or traversal above the vault root; they do not access files.</p>
-          <pre><code class="language-js">const path = await tagline.helpers.path.join('Research', 'Energy.md');
+          <section id="helpers">
+            <h2>Helpers and disposable subscriptions</h2>
+            <p>
+              Pure helpers require no permission. Path helpers normalize vault-relative paths and
+              reject absolute paths or traversal above the vault root; they do not access files.
+            </p>
+            <pre><code class="language-js">const path = await tagline.helpers.path.join('Research', 'Energy.md');
 const text = await tagline.helpers.markdown.toText('**Evidence**');
 const outline = await tagline.helpers.markdown.outline('# Case\n\n#### Card');
 const html = await tagline.helpers.markdown.toHtml('**Safe**');
@@ -540,197 +692,266 @@ const stats = await tagline.helpers.cards.stats(card.text);
 const timing = await tagline.helpers.speech.estimate(card.text, 250);
 const citation = await tagline.helpers.citations.create({ author: 'Smith', year: '2024' });
 const filled = await tagline.helpers.templates.fill('Case: {{title}}', 'Energy');</code></pre>
-          <ul>
-            <li><strong>Markdown:</strong> <code>toText</code>, <code>toHtml</code> (sanitized),
-              <code>frontmatter</code>, <code>slugify</code>, <code>outline</code>, <code>extractLinks</code>,
-              <code>extractTags</code>, and <code>resolveLink(target, paths)</code>. Frontmatter returns
-              <code>{ data, body, prefix }</code>; invalid YAML rejects. Outline line numbers are zero-based and include
-              frontmatter lines.
-            </li>
-            <li><strong>Cards and speech:</strong> <code>cards.getAt</code>, <code>cards.stats</code>,
-              <code>cards.spokenEvidence</code>, <code>cards.formatDuration</code>, <code>speech.analyze</code>, and
-              <code>speech.estimate(text, wordsPerMinute = 250)</code>.
-            </li>
-            <li><strong>Other helpers:</strong> <code>templates.fill</code>, <code>citations.create</code>,
-              <code>search.fuzzyScore</code>, <code>countdown.remainingAt</code>,
-              <code>language.system</code>/<code>initial</code>, <code>keybindings.valid</code>/<code>display</code>,
-              and layout normalization/movement helpers.
-            </li>
-            <li><strong>Structured data:</strong> canvas and flow parse/serialize/create helpers; folder path
-              normalization; frontmatter and speech-path helpers; calendar date/grid helpers; vault path/index/link
-              helpers; and NLI premise, hypothesis, and label helpers.</li>
-          </ul>
-          <div class="table-scroll">
-            <table>
-              <thead>
-                <tr>
-                  <th>Namespace</th>
-                  <th>Pure helper methods</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr>
-                  <td><code>path</code></td>
-                  <td><code>join</code>, <code>normalize</code>, <code>basename</code>, <code>dirname</code>,
-                    <code>extname</code>.
-                  </td>
-                </tr>
-                <tr>
-                  <td><code>markdown</code>, <code>vault</code></td>
-                  <td>Markdown text/rendering/frontmatter/outline/link/tag helpers; vault path classification, naming,
-                    indexing, flattening, link rewriting, and fuzzy scoring. These helpers parse supplied data and do
-                    not read files.</td>
-                </tr>
-                <tr>
-                  <td><code>cards</code>, <code>speech</code></td>
-                  <td>Card lookup/statistics/spoken evidence/duration formatting; speech text, analysis, estimates,
-                    reading time, sample validation/calibration, and assessment.</td>
-                </tr>
-                <tr>
-                  <td><code>templates</code>, <code>citations</code>, <code>search</code></td>
-                  <td>Template filling, citation Markdown creation, and fuzzy relevance scoring.</td>
-                </tr>
-                <tr>
-                  <td><code>calendar</code></td>
-                  <td><code>dateValue</code>, <code>parseDate</code>, <code>moveMonth</code>, <code>monthDays</code>.
-                    Date strings must be strict <code>YYYY-MM-DD</code>; month grids start on Sunday.</td>
-                </tr>
-                <tr>
-                  <td><code>flowCells</code></td>
-                  <td><code>bounds</code>, <code>copy</code>, <code>parse</code>, <code>paste</code>. Cell positions are
-                    zero-based, bounds inclusive, and paste returns a copy.</td>
-                </tr>
-                <tr>
-                  <td><code>folders</code>, <code>frontmatter</code></td>
-                  <td><code>folders.paths</code>, <code>folders.normalize</code>, <code>frontmatter.split</code>,
-                    <code>frontmatter.markSpeech</code>, <code>frontmatter.speechPaths</code>.
-                  </td>
-                </tr>
-                <tr>
-                  <td><code>canvas</code>, <code>flow</code></td>
-                  <td>Canvas parse/serialize, node and edge creation, group membership, ID creation, link resolution,
-                    file suggestions, and movement; flow parse/serialize/create and <code>setCell</code>. They return
-                    new values. Canvas relations are <code>supports</code>, <code>answers</code>, and
-                    <code>contradicts</code>.
-                  </td>
-                </tr>
-                <tr>
-                  <td><code>countdown</code>, <code>language</code>, <code>keybindings</code>, <code>layout</code></td>
-                  <td>Deadline countdown; supported-language selection (<code>en</code>, <code>es</code>,
-                    <code>fr</code>); shortcut validation/display; ribbon and workspace item normalization/movement.
-                  </td>
-                </tr>
-                <tr>
-                  <td><code>nli</code></td>
-                  <td><code>premise</code>, <code>hypotheses</code>, <code>label</code> for preparing text and mapping
-                    probabilities to Tagline entailment labels.</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-          <p><code>templates.fill(template, title, context)</code> recognizes <code>{{date}}</code>,
-            <code>{{time}}</code>, <code>{{title}}</code>, <code>{{path}}</code>, <code>{{content}}</code>, and
-            <code>{{properties}}</code>. Pass a target vault-relative path and full Markdown content in
-            <code>context</code>; content expands to the body without frontmatter and properties to the original YAML
-            without delimiter lines. Values substitute literally in one pass, omitted values become empty strings, and
-            unknown placeholders remain unchanged.
-          </p>
-          <p>Additional bounds include 10,000 supplied paths for link resolution; 10,000 document paths and 1,000,000
-            total text characters; 1,000 entries for layout catalogs and ID arrays; 10,000 folder-tree nodes and 100
-            levels; and 100,000 flow cells. Speech estimates accept 50–1,000 words per minute, and calibration accepts
-            up to 100 validated samples.</p>
-          <p>Invalid or oversized inputs reject rather than being silently truncated. Markdown rendering, text,
-            links/tags, card analysis, and speech timing exclude frontmatter; link and tag extraction skip fenced and
-            inline code.</p>
-          <h3>Expanded helper surface</h3>
-          <p>Every pure utility in <code>src/lib</code> is also available through <code>tagline.helpers</code> without
-            a permission. In addition to the namespaces and methods above, the bridge exposes:</p>
-          <div class="table-scroll">
-            <table>
-              <thead>
-                <tr>
-                  <th>Namespace</th>
-                  <th>Helpers</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr>
-                  <td><code>cards</code></td>
-                  <td><code>detect(markdown)</code>, <code>containsEvidence(document, text)</code>.</td>
-                </tr>
-                <tr>
-                  <td><code>checkup</code></td>
-                  <td><code>fields()</code>, <code>defaults()</code>, <code>normalize(options)</code>,
-                    <code>scan(documents)</code>, <code>citedUrls(cards)</code>, <code>audit(cards, options, now)</code>,
-                    <code>linkIssues(cards, results)</code>, <code>sourceIssues(cards, results)</code>.</td>
-                </tr>
-                <tr>
-                  <td><code>citations</code></td>
-                  <td><code>extract</code>, <code>isValidIsbn</code>, <code>expandTwoDigitYear</code>,
-                    <code>create</code>, <code>spoken</code>.</td>
-                </tr>
-                <tr>
-                  <td><code>frontmatter</code></td>
-                  <td><code>read(markdown)</code>.</td>
-                </tr>
-                <tr>
-                  <td><code>keybindings</code></td>
-                  <td><code>all()</code>, <code>binding(id, overrides, extra)</code>,
-                    <code>reserved(shortcut, id)</code>, <code>event(event, platform)</code>,
-                    <code>matches(event, shortcut, platform)</code>,
-                    <code>conflict(id, shortcut, overrides, extra)</code>, <code>editor(shortcut)</code>.</td>
-                </tr>
-                <tr>
-                  <td><code>language</code></td>
-                  <td><code>languages()</code>.</td>
-                </tr>
-                <tr>
-                  <td><code>layout</code></td>
-                  <td><code>ribbonItems()</code>, <code>defaultRibbonItems()</code>, <code>fileActions()</code>,
-                    <code>statusItems()</code>.</td>
-                </tr>
-                <tr>
-                  <td><code>nli</code></td>
-                  <td><code>templates()</code>.</td>
-                </tr>
-                <tr>
-                  <td><code>search</code></td>
-                  <td><code>parse</code>, <code>filter</code>, <code>vault</code>, <code>excerpt</code>,
-                    <code>mergeHybrid</code>, <code>candidateLimit</code>, <code>fuzzyScore</code>.</td>
-                </tr>
-                <tr>
-                  <td><code>themes</code></td>
-                  <td><code>builtin()</code>, <code>colorTokens()</code>, <code>validate(theme)</code>,
-                    <code>resolveSettings(theme, values)</code>, <code>get(id, customTheme, settings)</code>,
-                    <code>extensionThemes()</code>.</td>
-                </tr>
-                <tr>
-                  <td><code>vault</code></td>
-                  <td><code>isJson(path)</code>.</td>
-                </tr>
-                <tr>
-                  <td><code>canvas</code></td>
-                  <td><code>empty()</code>.</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-          <p>Existing <code>path</code>, <code>calendar</code>, <code>flow</code>, <code>flowCells</code>,
-            <code>folders</code>, <code>markdown</code>, <code>templates</code>, <code>speech</code>,
-            <code>readTime</code>, and other <code>vault</code>, <code>canvas</code>, and <code>citations</code>
-            helpers are unchanged. Inputs are validated and bounded: text up to 100,000 characters, documents up to
-            10,000 entries, search limits from 1 to 1,000, and keybinding platforms limited to <code>darwin</code>,
-            <code>win32</code>, and <code>linux</code>.</p>
-          <p><code>tagline.helpers.createDisposables()</code> is synchronous. Add unsubscribe functions with
-            <code>add</code>, then call <code>dispose()</code>; it clears the group and surfaces disposal failures.
-          </p>
-        </section>
+            <ul>
+              <li>
+                <strong>Markdown:</strong> <code>toText</code>, <code>toHtml</code> (sanitized),
+                <code>frontmatter</code>, <code>slugify</code>, <code>outline</code>,
+                <code>extractLinks</code>, <code>extractTags</code>, and
+                <code>resolveLink(target, paths)</code>. Frontmatter returns
+                <code>{ data, body, prefix }</code>; invalid YAML rejects. Outline line numbers are
+                zero-based and include frontmatter lines.
+              </li>
+              <li>
+                <strong>Cards and speech:</strong> <code>cards.getAt</code>,
+                <code>cards.stats</code>, <code>cards.spokenEvidence</code>,
+                <code>cards.formatDuration</code>, <code>speech.analyze</code>, and
+                <code>speech.estimate(text, wordsPerMinute = 250)</code>.
+              </li>
+              <li>
+                <strong>Other helpers:</strong> <code>templates.fill</code>,
+                <code>citations.create</code>, <code>search.fuzzyScore</code>,
+                <code>countdown.remainingAt</code>,
+                <code>language.system</code>/<code>initial</code>,
+                <code>keybindings.valid</code>/<code>display</code>, and layout
+                normalization/movement helpers.
+              </li>
+              <li>
+                <strong>Structured data:</strong> canvas and flow parse/serialize/create helpers;
+                folder path normalization; frontmatter and speech-path helpers; calendar date/grid
+                helpers; vault path/index/link helpers; and NLI premise, hypothesis, and label
+                helpers.
+              </li>
+            </ul>
+            <div class="table-scroll">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Namespace</th>
+                    <th>Pure helper methods</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><code>path</code></td>
+                    <td>
+                      <code>join</code>, <code>normalize</code>, <code>basename</code>,
+                      <code>dirname</code>, <code>extname</code>.
+                    </td>
+                  </tr>
+                  <tr>
+                    <td><code>markdown</code>, <code>vault</code></td>
+                    <td>
+                      Markdown text/rendering/frontmatter/outline/link/tag helpers; vault path
+                      classification, naming, indexing, flattening, link rewriting, and fuzzy
+                      scoring. These helpers parse supplied data and do not read files.
+                    </td>
+                  </tr>
+                  <tr>
+                    <td><code>cards</code>, <code>speech</code></td>
+                    <td>
+                      Card lookup/statistics/spoken evidence/duration formatting; speech text,
+                      analysis, estimates, reading time, sample validation/calibration, and
+                      assessment.
+                    </td>
+                  </tr>
+                  <tr>
+                    <td><code>templates</code>, <code>citations</code>, <code>search</code></td>
+                    <td>
+                      Template filling, citation Markdown creation, and fuzzy relevance scoring.
+                    </td>
+                  </tr>
+                  <tr>
+                    <td><code>calendar</code></td>
+                    <td>
+                      <code>dateValue</code>, <code>parseDate</code>, <code>moveMonth</code>,
+                      <code>monthDays</code>. Date strings must be strict <code>YYYY-MM-DD</code>;
+                      month grids start on Sunday.
+                    </td>
+                  </tr>
+                  <tr>
+                    <td><code>flowCells</code></td>
+                    <td>
+                      <code>bounds</code>, <code>copy</code>, <code>parse</code>,
+                      <code>paste</code>. Cell positions are zero-based, bounds inclusive, and paste
+                      returns a copy.
+                    </td>
+                  </tr>
+                  <tr>
+                    <td><code>folders</code>, <code>frontmatter</code></td>
+                    <td>
+                      <code>folders.paths</code>, <code>folders.normalize</code>,
+                      <code>frontmatter.split</code>, <code>frontmatter.markSpeech</code>,
+                      <code>frontmatter.speechPaths</code>.
+                    </td>
+                  </tr>
+                  <tr>
+                    <td><code>canvas</code>, <code>flow</code></td>
+                    <td>
+                      Canvas parse/serialize, node and edge creation, group membership, ID creation,
+                      link resolution, file suggestions, and movement; flow parse/serialize/create
+                      and <code>setCell</code>. They return new values. Canvas relations are
+                      <code>supports</code>, <code>answers</code>, and <code>contradicts</code>.
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <code>countdown</code>, <code>language</code>, <code>keybindings</code>,
+                      <code>layout</code>
+                    </td>
+                    <td>
+                      Deadline countdown; supported-language selection (<code>en</code>,
+                      <code>es</code>, <code>fr</code>); shortcut validation/display; ribbon and
+                      workspace item normalization/movement.
+                    </td>
+                  </tr>
+                  <tr>
+                    <td><code>nli</code></td>
+                    <td>
+                      <code>premise</code>, <code>hypotheses</code>, <code>label</code> for
+                      preparing text and mapping probabilities to Tagline entailment labels.
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <p>
+              <code>templates.fill(template, title, context)</code> recognizes
+              <code>{{date}}</code>, <code>{{time}}</code>, <code>{{title}}</code>,
+              <code>{{path}}</code>, <code>{{content}}</code>, and <code>{{properties}}</code>. Pass
+              a target vault-relative path and full Markdown content in <code>context</code>;
+              content expands to the body without frontmatter and properties to the original YAML
+              without delimiter lines. Values substitute literally in one pass, omitted values
+              become empty strings, and unknown placeholders remain unchanged.
+            </p>
+            <p>
+              Additional bounds include 10,000 supplied paths for link resolution; 10,000 document
+              paths and 1,000,000 total text characters; 1,000 entries for layout catalogs and ID
+              arrays; 10,000 folder-tree nodes and 100 levels; and 100,000 flow cells. Speech
+              estimates accept 50–1,000 words per minute, and calibration accepts up to 100
+              validated samples.
+            </p>
+            <p>
+              Invalid or oversized inputs reject rather than being silently truncated. Markdown
+              rendering, text, links/tags, card analysis, and speech timing exclude frontmatter;
+              link and tag extraction skip fenced and inline code.
+            </p>
+            <h3>Expanded helper surface</h3>
+            <p>
+              Every pure utility in <code>src/lib</code> is also available through
+              <code>tagline.helpers</code> without a permission. In addition to the namespaces and
+              methods above, the bridge exposes:
+            </p>
+            <div class="table-scroll">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Namespace</th>
+                    <th>Helpers</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><code>cards</code></td>
+                    <td>
+                      <code>detect(markdown)</code>, <code>containsEvidence(document, text)</code>.
+                    </td>
+                  </tr>
+                  <tr>
+                    <td><code>checkup</code></td>
+                    <td>
+                      <code>fields()</code>, <code>defaults()</code>,
+                      <code>normalize(options)</code>, <code>scan(documents)</code>,
+                      <code>citedUrls(cards)</code>, <code>audit(cards, options, now)</code>,
+                      <code>linkIssues(cards, results)</code>,
+                      <code>sourceIssues(cards, results)</code>.
+                    </td>
+                  </tr>
+                  <tr>
+                    <td><code>citations</code></td>
+                    <td>
+                      <code>extract</code>, <code>isValidIsbn</code>,
+                      <code>expandTwoDigitYear</code>, <code>create</code>, <code>spoken</code>.
+                    </td>
+                  </tr>
+                  <tr>
+                    <td><code>frontmatter</code></td>
+                    <td><code>read(markdown)</code>.</td>
+                  </tr>
+                  <tr>
+                    <td><code>keybindings</code></td>
+                    <td>
+                      <code>all()</code>, <code>binding(id, overrides, extra)</code>,
+                      <code>reserved(shortcut, id)</code>, <code>event(event, platform)</code>,
+                      <code>matches(event, shortcut, platform)</code>,
+                      <code>conflict(id, shortcut, overrides, extra)</code>,
+                      <code>editor(shortcut)</code>.
+                    </td>
+                  </tr>
+                  <tr>
+                    <td><code>language</code></td>
+                    <td><code>languages()</code>.</td>
+                  </tr>
+                  <tr>
+                    <td><code>layout</code></td>
+                    <td>
+                      <code>ribbonItems()</code>, <code>defaultRibbonItems()</code>,
+                      <code>fileActions()</code>, <code>statusItems()</code>.
+                    </td>
+                  </tr>
+                  <tr>
+                    <td><code>nli</code></td>
+                    <td><code>templates()</code>.</td>
+                  </tr>
+                  <tr>
+                    <td><code>search</code></td>
+                    <td>
+                      <code>parse</code>, <code>filter</code>, <code>vault</code>,
+                      <code>excerpt</code>, <code>mergeHybrid</code>, <code>candidateLimit</code>,
+                      <code>fuzzyScore</code>.
+                    </td>
+                  </tr>
+                  <tr>
+                    <td><code>themes</code></td>
+                    <td>
+                      <code>builtin()</code>, <code>colorTokens()</code>,
+                      <code>validate(theme)</code>, <code>resolveSettings(theme, values)</code>,
+                      <code>get(id, customTheme, settings)</code>, <code>extensionThemes()</code>.
+                    </td>
+                  </tr>
+                  <tr>
+                    <td><code>vault</code></td>
+                    <td><code>isJson(path)</code>.</td>
+                  </tr>
+                  <tr>
+                    <td><code>canvas</code></td>
+                    <td><code>empty()</code>.</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <p>
+              Existing <code>path</code>, <code>calendar</code>, <code>flow</code>,
+              <code>flowCells</code>, <code>folders</code>, <code>markdown</code>,
+              <code>templates</code>, <code>speech</code>, <code>readTime</code>, and other
+              <code>vault</code>, <code>canvas</code>, and <code>citations</code> helpers are
+              unchanged. Inputs are validated and bounded: text up to 100,000 characters, documents
+              up to 10,000 entries, search limits from 1 to 1,000, and keybinding platforms limited
+              to <code>darwin</code>, <code>win32</code>, and <code>linux</code>.
+            </p>
+            <p>
+              <code>tagline.helpers.createDisposables()</code> is synchronous. Add unsubscribe
+              functions with <code>add</code>, then call <code>dispose()</code>; it clears the group
+              and surfaces disposal failures.
+            </p>
+          </section>
 
-        <section id="settings">
-          <h2>Typed extension settings</h2>
-          <p>Declare <code>settings</code> permission and typed contributions. This is a manifest fragment; include the
-            required manifest fields as well.</p>
-          <pre><code class="language-json">{
+          <section id="settings">
+            <h2>Typed extension settings</h2>
+            <p>
+              Declare <code>settings</code> permission and typed contributions. This is a manifest
+              fragment; include the required manifest fields as well.
+            </p>
+            <pre><code class="language-json">{
   "permissions": ["settings"],
   "contributes": {
     "settings": [
@@ -740,39 +961,51 @@ const filled = await tagline.helpers.templates.fill('Case: {{title}}', 'Energy')
     ]
   }
 }</code></pre>
-          <pre><code class="language-js">const limit = await tagline.settings.get('limit');
+            <pre><code class="language-js">const limit = await tagline.settings.get('limit');
 await tagline.settings.set('limit', 10);</code></pre>
-          <p>Each setting has a unique ID, nonblank title (up to 80 characters), type, and valid default. Optional
-            descriptions are limited to 500 characters. Booleans accept only booleans; numbers must be finite and may
-            have inclusive bounds; strings default to a 1,000-character limit (configurable from 1 to 10,000) and may
-            restrict values to 1–50 unique enum choices. Invalid definitions, undeclared IDs, and type or range
-            mismatches reject instead of coercing values.</p>
-          <p>Users can edit, save, and reset settings on the extension card under <strong>Settings &gt;
-              Extensions</strong>. Settings are scoped to the extension ID and separate from private storage. They are
-            not encrypted; do not use them for secrets. Invalid saved values surface errors and can be reset by the
-            user.</p>
-        </section>
+            <p>
+              Each setting has a unique ID, nonblank title (up to 80 characters), type, and valid
+              default. Optional descriptions are limited to 500 characters. Booleans accept only
+              booleans; numbers must be finite and may have inclusive bounds; strings default to a
+              1,000-character limit (configurable from 1 to 10,000) and may restrict values to 1–50
+              unique enum choices. Invalid definitions, undeclared IDs, and type or range mismatches
+              reject instead of coercing values.
+            </p>
+            <p>
+              Users can edit, save, and reset settings on the extension card under
+              <strong>Settings &gt; Extensions</strong>. Settings are scoped to the extension ID and
+              separate from private storage. They are not encrypted; do not use them for secrets.
+              Invalid saved values surface errors and can be reset by the user.
+            </p>
+          </section>
 
-        <section id="canvas-flow">
-          <h2>Canvas and flow documents</h2>
-          <p><code>tagline.canvas.read(path)</code> and <code>tagline.flow.read(path)</code> parse documents and require
-            <code>vault:read</code>. Their <code>write(path, document)</code> counterparts validate and serialize data,
-            require <code>vault:write</code>, and return the saved path. Paths must end in <code>.canvas</code> or
-            <code>.flow</code>. Saves use normal autosaving and revision history; call
-            <code>tagline.vault.flush()</code> to await disk persistence.
-          </p>
-          <p>Pure helpers require no permissions: canvas parse/serialize, node and argument-edge creation, group
-            membership, link resolution, file suggestions, and node movement; flow parse/serialize/create and cell
-            updates. Relations are <code>supports</code>, <code>answers</code>, or <code>contradicts</code>. Helpers
-            return new values rather than mutating inputs. Canvas link resolution only considers supplied paths and
-            never opens or reads files.</p>
-          <p>See <a href="json-formats.html">JSON formats and schemas</a> for flow validation and the standard JSON
-            Canvas specification.</p>
-        </section>
+          <section id="canvas-flow">
+            <h2>Canvas and flow documents</h2>
+            <p>
+              <code>tagline.canvas.read(path)</code> and <code>tagline.flow.read(path)</code> parse
+              documents and require <code>vault:read</code>. Their
+              <code>write(path, document)</code> counterparts validate and serialize data, require
+              <code>vault:write</code>, and return the saved path. Paths must end in
+              <code>.canvas</code> or <code>.flow</code>. Saves use normal autosaving and revision
+              history; call <code>tagline.vault.flush()</code> to await disk persistence.
+            </p>
+            <p>
+              Pure helpers require no permissions: canvas parse/serialize, node and argument-edge
+              creation, group membership, link resolution, file suggestions, and node movement; flow
+              parse/serialize/create and cell updates. Relations are <code>supports</code>,
+              <code>answers</code>, or <code>contradicts</code>. Helpers return new values rather
+              than mutating inputs. Canvas link resolution only considers supplied paths and never
+              opens or reads files.
+            </p>
+            <p>
+              See <a href="json-formats.html">JSON formats and schemas</a> for flow validation and
+              the standard JSON Canvas specification.
+            </p>
+          </section>
 
-        <section id="vault">
-          <h2>Vault API</h2>
-          <pre><code class="language-js">const paths = await tagline.vault.list();
+          <section id="vault">
+            <h2>Vault API</h2>
+            <pre><code class="language-js">const paths = await tagline.vault.list();
 const content = await tagline.vault.read(path);
 const actualPath = await tagline.vault.write(path, content);
 await tagline.vault.append(path, text);
@@ -782,124 +1015,174 @@ await tagline.vault.flush();
 const changed = await tagline.vault.compareAndSwap(path, expected, replacement);
 const stop = await tagline.vault.watch((event) =&gt; {});
 await stop();</code></pre>
-          <p><code>list</code>, <code>read</code>, and <code>watch</code> require <code>vault:read</code>. Mutations and
-            <code>flush</code> require <code>vault:write</code>; <code>append</code> and <code>compareAndSwap</code>
-            require both. Paths are vault-relative with <code>/</code> separators, preserve file extensions, and are
-            limited to 1,000 characters.
-          </p>
-          <ul>
-            <li><code>list</code> returns loaded supported note paths, not arbitrary files or folders. <code>read</code>
-              returns current loaded content and rejects for an absent note; reload the vault after external edits.</li>
-            <li><code>write</code> accepts <code>.md</code>, <code>.flow</code>, and <code>.canvas</code>. It replaces
-              loaded content or creates a note through the normal workflow. Folder normalization/collision handling can
-              change a new path; use the returned path. Writes are debounced, so resolving does not mean disk
-              persistence is complete. Content is limited to 5,000,000 characters.</li>
-            <li><code>append</code> adds literal text to an existing note and preserves unsaved edits.
-              <code>compareAndSwap</code> compares the entire loaded text, including unsaved edits, and replaces only on
-              an exact match; mismatch returns <code>false</code>. Concurrent extension mutations are serialized.
-            </li>
-            <li><code>flush</code> waits for queued autosaves and in-flight writes for the current vault, including user
-              edits. It rejects on save failure; edits made after it starts may require another flush.</li>
-            <li><code>rename</code> and <code>delete</code> act on existing notes (not folders), flush first, and reject
-              on save failure. Rename uses the app's normal relinking and tab updates; delete moves the note to the OS
-              trash and closes its tabs.</li>
-            <li><code>watch</code> reports path-only create/change/delete events or <code>{ type: 'reset' }</code> when
-              switching vaults. Events may be coalesced; renames appear as delete/create. Read a current snapshot
-              separately when needed.</li>
-          </ul>
-        </section>
+            <p>
+              <code>list</code>, <code>read</code>, and <code>watch</code> require
+              <code>vault:read</code>. Mutations and <code>flush</code> require
+              <code>vault:write</code>; <code>append</code> and <code>compareAndSwap</code> require
+              both. Paths are vault-relative with <code>/</code> separators, preserve file
+              extensions, and are limited to 1,000 characters.
+            </p>
+            <ul>
+              <li>
+                <code>list</code> returns loaded supported note paths, not arbitrary files or
+                folders. <code>read</code> returns current loaded content and rejects for an absent
+                note; reload the vault after external edits.
+              </li>
+              <li>
+                <code>write</code> accepts <code>.md</code>, <code>.flow</code>, and
+                <code>.canvas</code>. It replaces loaded content or creates a note through the
+                normal workflow. Folder normalization/collision handling can change a new path; use
+                the returned path. Writes are debounced, so resolving does not mean disk persistence
+                is complete. Content is limited to 5,000,000 characters.
+              </li>
+              <li>
+                <code>append</code> adds literal text to an existing note and preserves unsaved
+                edits. <code>compareAndSwap</code> compares the entire loaded text, including
+                unsaved edits, and replaces only on an exact match; mismatch returns
+                <code>false</code>. Concurrent extension mutations are serialized.
+              </li>
+              <li>
+                <code>flush</code> waits for queued autosaves and in-flight writes for the current
+                vault, including user edits. It rejects on save failure; edits made after it starts
+                may require another flush.
+              </li>
+              <li>
+                <code>rename</code> and <code>delete</code> act on existing notes (not folders),
+                flush first, and reject on save failure. Rename uses the app's normal relinking and
+                tab updates; delete moves the note to the OS trash and closes its tabs.
+              </li>
+              <li>
+                <code>watch</code> reports path-only create/change/delete events or
+                <code>{ type: 'reset' }</code> when switching vaults. Events may be coalesced;
+                renames appear as delete/create. Read a current snapshot separately when needed.
+              </li>
+            </ul>
+          </section>
 
-        <section id="storage">
-          <h2>Private extension storage</h2>
-          <pre><code class="language-js">const value = await tagline.storage.get('key'); // value or null
+          <section id="storage">
+            <h2>Private extension storage</h2>
+            <pre><code class="language-js">const value = await tagline.storage.get('key'); // value or null
 await tagline.storage.set('key', { enabled: true });
 await tagline.storage.set('key', null); // delete the key</code></pre>
-          <p>No permission is required. Keys are strings up to 200 characters; values should be JSON-compatible. Setting
-            <code>null</code> or <code>undefined</code> removes a key. The total serialized object is limited to 100,000
-            characters. Storage is scoped by extension ID in the local app profile and survives host reloads; it is not
-            encrypted, synced, or a vault file.
-          </p>
-          <p>Do not store API keys or other credentials here. Use <a href="#secrets"><code>tagline.secrets</code></a>
-            for encrypted secret strings.</p>
-        </section>
+            <p>
+              No permission is required. Keys are strings up to 200 characters; values should be
+              JSON-compatible. Setting <code>null</code> or <code>undefined</code> removes a key.
+              The total serialized object is limited to 100,000 characters. Storage is scoped by
+              extension ID in the local app profile and survives host reloads; it is not encrypted,
+              synced, or a vault file.
+            </p>
+            <p>
+              Do not store API keys or other credentials here. Use
+              <a href="#secrets"><code>tagline.secrets</code></a> for encrypted secret strings.
+            </p>
+          </section>
 
-        <section id="secrets">
-          <h2>Encrypted extension secrets</h2>
-          <p>Declare the review-gated <code>secrets</code> permission in <code>manifest.json</code> to use
-            <code>tagline.secrets</code>:</p>
-          <pre><code class="language-json">"permissions": ["secrets"]</code></pre>
-          <pre><code class="language-js">await tagline.secrets.set('api-key', 'your-api-key'); // Promise&lt;true&gt;
+          <section id="secrets">
+            <h2>Encrypted extension secrets</h2>
+            <p>
+              Declare the review-gated <code>secrets</code> permission in
+              <code>manifest.json</code> to use <code>tagline.secrets</code>:
+            </p>
+            <pre><code class="language-json">"permissions": ["secrets"]</code></pre>
+            <pre><code class="language-js">await tagline.secrets.set('api-key', 'your-api-key'); // Promise&lt;true&gt;
 const key = await tagline.secrets.get('api-key'); // string or null
 await tagline.secrets.has('api-key'); // Promise&lt;boolean&gt;
 await tagline.secrets.delete('api-key'); // Promise&lt;boolean&gt;; same as set(key, null)</code></pre>
-          <p>Keys are non-empty strings up to 200 characters. Values are strings up to 10,000 characters, and each extension can
-            hold up to 50 secrets. <code>get</code> returns <code>null</code> when the key is absent;
-            <code>has</code> returns whether it exists. Setting <code>null</code> or <code>undefined</code> deletes the
-            key, as does <code>delete</code>.</p>
-          <p>Secrets are encrypted with the operating-system credential service through Electron
-            <code>safeStorage</code> in the main process and stored in
-            <code>&lt;userData&gt;/extension-secrets/&lt;extension-id&gt;.bin</code>, scoped by extension ID. They are
-            never written to the vault, settings exports, <code>tagline.storage</code>, or <code>localStorage</code>.
-            Calls reject if OS encryption is unavailable or the extension is disabled; there is no unencrypted
-            fallback.</p>
-          <p>Users can remove an extension's secrets with <strong>Clear stored secrets</strong> on its card in
-            <strong>Settings &gt; Extensions</strong>. Disabling an extension blocks access but does not clear its
-            stored secrets.</p>
-          <div class="docs-callout docs-callout-warning">
-            <p><strong>Keep secrets out of UI and logs.</strong> Do not log secret values or send them to panels or
-              webviews. Read and use them in your entry script (<code>main.js</code>) with
-              <code>tagline.network.fetch()</code>. Network requests also require the reviewed <code>network</code>
-              permission and the destination hostname in <code>networkHosts</code>.</p>
-          </div>
-        </section>
+            <p>
+              Keys are non-empty strings up to 200 characters. Values are strings up to 10,000
+              characters, and each extension can hold up to 50 secrets. <code>get</code> returns
+              <code>null</code> when the key is absent; <code>has</code> returns whether it exists.
+              Setting <code>null</code> or <code>undefined</code> deletes the key, as does
+              <code>delete</code>.
+            </p>
+            <p>
+              Secrets are encrypted with the operating-system credential service through Electron
+              <code>safeStorage</code> in the main process and stored in
+              <code>&lt;userData&gt;/extension-secrets/&lt;extension-id&gt;.bin</code>, scoped by
+              extension ID. They are never written to the vault, settings exports,
+              <code>tagline.storage</code>, or <code>localStorage</code>. Calls reject if OS
+              encryption is unavailable or the extension is disabled; there is no unencrypted
+              fallback.
+            </p>
+            <p>
+              Users can remove an extension's secrets with <strong>Clear stored secrets</strong> on
+              its card in <strong>Settings &gt; Extensions</strong>. Disabling an extension blocks
+              access but does not clear its stored secrets.
+            </p>
+            <div class="docs-callout docs-callout-warning">
+              <p>
+                <strong>Keep secrets out of UI and logs.</strong> Do not log secret values or send
+                them to panels or webviews. Read and use them in your entry script
+                (<code>main.js</code>) with <code>tagline.network.fetch()</code>. Network requests
+                also require the reviewed <code>network</code> permission and the destination
+                hostname in <code>networkHosts</code>.
+              </p>
+            </div>
+          </section>
 
-        <section id="themes-shortcuts">
-          <h2>Shortcuts and contributed themes</h2>
-          <p><code>Mod+Alt+K</code> uses the portable primary modifier. Valid modifiers include <code>Mod</code>,
-            <code>Ctrl</code>, <code>Meta</code>, <code>Alt</code>, and <code>Shift</code>; use uppercase letter keys in
-            manifests. Users can change or clear extension shortcuts in <strong>Settings &gt; Keyboard shortcuts &gt;
-              Extensions</strong>. Malformed, reserved, or already-used defaults are dropped rather than overriding
-            another command; the command remains available in the palette.
-          </p>
-          <p>Theme-only extensions need no script or permissions:</p>
-          <pre><code class="language-json">{
+          <section id="themes-shortcuts">
+            <h2>Shortcuts and contributed themes</h2>
+            <p>
+              <code>Mod+Alt+K</code> uses the portable primary modifier. Valid modifiers include
+              <code>Mod</code>, <code>Ctrl</code>, <code>Meta</code>, <code>Alt</code>, and
+              <code>Shift</code>; use uppercase letter keys in manifests. Users can change or clear
+              extension shortcuts in
+              <strong>Settings &gt; Keyboard shortcuts &gt; Extensions</strong>. Malformed,
+              reserved, or already-used defaults are dropped rather than overriding another command;
+              the command remains available in the palette.
+            </p>
+            <p>Theme-only extensions need no script or permissions:</p>
+            <pre><code class="language-json">{
   "manifestVersion": 1,
   "id": "ocean-themes",
   "name": "Ocean Themes",
   "version": "0.1.0",
   "contributes": { "themes": ["themes/ocean.json"] }
 }</code></pre>
-          <p>Theme IDs are assigned as <code>ext:&lt;extension-id&gt;:&lt;zero-based-file-index&gt;</code>. Keep the
-            theme list order stable to preserve saved selections. See the <a href="theme-api.html">Theme API</a> for the
-            theme file format and the <a href="json-formats.html">JSON formats guide</a> for schemas.</p>
-        </section>
+            <p>
+              Theme IDs are assigned as
+              <code>ext:&lt;extension-id&gt;:&lt;zero-based-file-index&gt;</code>. Keep the theme
+              list order stable to preserve saved selections. See the
+              <a href="theme-api.html">Theme API</a> for the theme file format and the
+              <a href="json-formats.html">JSON formats guide</a> for schemas.
+            </p>
+          </section>
 
-        <div class="docs-callout">
-          <p><strong>Keep exploring:</strong> Browse the <a
-              href="https://github.com/Julieisbaka/Tagline/tree/main/demo">API demo extension</a> for working examples,
-            or open the <a href="https://github.com/Julieisbaka/Tagline/tree/main/schemas">JSON schemas</a> for
-            manifests, themes, and exported settings.</p>
-        </div>
-        <p class="docs-source">Source: <a
-            href="https://github.com/Julieisbaka/Tagline/blob/main/website/docs/extension-api.html">Extension API reference</a>.
-        </p>
-      </article>
-    </div>
-  </main>
+          <div class="docs-callout">
+            <p>
+              <strong>Keep exploring:</strong> Browse the
+              <a href="https://github.com/Julieisbaka/Tagline/tree/main/demo">API demo extension</a>
+              for working examples, or open the
+              <a href="https://github.com/Julieisbaka/Tagline/tree/main/schemas">JSON schemas</a>
+              for manifests, themes, and exported settings.
+            </p>
+          </div>
+          <p class="docs-source">
+            Source:
+            <a
+              href="https://github.com/Julieisbaka/Tagline/blob/main/website/docs/extension-api.html"
+              >Extension API reference</a
+            >.
+          </p>
+        </article>
+      </div>
+    </main>
 
-  <footer class="site-footer">
-    <a class="brand" href="../index.html"><img class="brand-mark" src="../favicon.svg" alt=""
-        aria-hidden="true"><span>Tagline</span></a>
-    <p>A local-first workspace for policy debate.</p>
-    <nav aria-label="Footer navigation">
-      <a href="../index.html">Home</a>
-      <a href="../pricing.html">Pricing</a>
-      <a href="index.html">Documentation</a>
-      <a href="../privacy.html">Privacy</a>
-      <a href="../terms.html">Terms</a>
-      <a href="https://github.com/Julieisbaka/Tagline">App repository</a>
-    </nav>
-  </footer>
-</body>
-
+    <footer class="site-footer">
+      <a class="brand" href="../index.html"
+        ><img class="brand-mark" src="../favicon.svg" alt="" aria-hidden="true" /><span
+          >Tagline</span
+        ></a
+      >
+      <p>A local-first workspace for policy debate.</p>
+      <nav aria-label="Footer navigation">
+        <a href="../index.html">Home</a>
+        <a href="../pricing.html">Pricing</a>
+        <a href="index.html">Documentation</a>
+        <a href="../privacy.html">Privacy</a>
+        <a href="../terms.html">Terms</a>
+        <a href="https://github.com/Julieisbaka/Tagline">App repository</a>
+      </nav>
+    </footer>
+  </body>
 </html>

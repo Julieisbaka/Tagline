@@ -28,6 +28,23 @@
       "type": "string",
       "maxLength": 500
     },
+    "authors": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 20,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "maxLength": 200,
+        "pattern": "^\\S(?:[^\\r\\n]*\\S)?$"
+      }
+    },
+    "sourceUrl": {
+      "type": "string",
+      "pattern": "^https://(?![^/?#@]*@)[^/?#\\s]+(?:[/?#][^\\s]*)?$",
+      "maxLength": 2048,
+      "description": "Optional HTTPS URL for the extension source or project page. Embedded credentials are not allowed."
+    },
     "main": {
       "type": "string",
       "pattern": "^(?![/\\\\]|[a-zA-Z]:).+\\.[jJ][sS]$",

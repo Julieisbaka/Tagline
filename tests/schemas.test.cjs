@@ -123,6 +123,50 @@ test('platform: extension manifest schema accepts the demo and checks declaratio
   }
 });
 
+test('extension manifest metadata supports authors and HTTPS source URLs', () => {
+  const { validateManifest } = require('../electron/extensions.cjs');
+  const manifest = {
+    manifestVersion: 1,
+    id: 'metadata-test',
+    name: 'Metadata test',
+    version: '2.1.0',
+    authors: ['First Author', 'Second Author'],
+    sourceUrl: 'https://github.com/example/metadata-test',
+  };
+  check('extension-manifest', manifest);
+  assert.deepEqual(validateManifest(manifest, root).authors, manifest.authors);
+  assert.equal(validateManifest(manifest, root).version, '2.1.0');
+  assert.equal(
+    validateManifest(manifest, root).sourceUrl,
+    'https://github.com/example/metadata-test'
+  );
+  assert.deepEqual(
+    validateManifest(
+      { manifestVersion: 1, id: 'legacy-author', name: 'Legacy', version: '1', author: 'Single' },
+      root
+    ).authors,
+    ['Single']
+  );
+
+  for (const invalid of [
+    { ...manifest, authors: 'One Author' },
+    { ...manifest, authors: ['First Author', ' First Author '] },
+    { ...manifest, authors: [''] },
+    { ...manifest, authors: ['First\nAuthor'] },
+    { ...manifest, authors: ['x'.repeat(201)] },
+    { ...manifest, authors: Array(21).fill('Author') },
+    { ...manifest, sourceUrl: 'http://example.com' },
+    { ...manifest, sourceUrl: 'javascript:alert(1)' },
+    { ...manifest, sourceUrl: 'https://user:password@example.com' },
+    { ...manifest, sourceUrl: ' https://example.com' },
+    { ...manifest, sourceUrl: 'not a URL' },
+    { ...manifest, sourceUrl: `https://example.com/${'x'.repeat(2048)}` },
+  ]) {
+    check('extension-manifest', invalid, false);
+    assert.throws(() => validateManifest(invalid, root));
+  }
+});
+
 test('theme schema validates bundled themes, settings, CSS variables and metadata', async () => {
   const { COLOR_TOKENS, validateTheme } = await import('../src/lib/themes.js');
   assert.deepEqual(new Set(schemas.theme.definitions.colorToken.enum), new Set(COLOR_TOKENS));

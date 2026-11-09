@@ -144,6 +144,56 @@ function validateManifest(value, root, limits = DEFAULT_LIMITS) {
       fail(`${key} must be text.`);
     }
   }
+  let sourceUrl = '';
+  if (value.sourceUrl !== undefined) {
+    if (
+      typeof value.sourceUrl !== 'string' ||
+      !value.sourceUrl.trim() ||
+      value.sourceUrl !== value.sourceUrl.trim() ||
+      value.sourceUrl.length > 2048
+    ) {
+      fail('sourceUrl must be a valid HTTPS URL of at most 2,048 characters.');
+    }
+    let parsedSourceUrl;
+    try {
+      parsedSourceUrl = new URL(value.sourceUrl);
+    } catch {
+      fail('sourceUrl must be a valid HTTPS URL of at most 2,048 characters.');
+    }
+    if (
+      parsedSourceUrl.protocol !== 'https:' ||
+      !parsedSourceUrl.hostname ||
+      parsedSourceUrl.username ||
+      parsedSourceUrl.password
+    ) {
+      fail('sourceUrl must use HTTPS and cannot contain embedded credentials.');
+    }
+    sourceUrl = parsedSourceUrl.href;
+  }
+  let authors;
+  if (value.authors === undefined) {
+    authors = value.author?.trim() ? [value.author.trim()] : [];
+  } else {
+    if (
+      !Array.isArray(value.authors) ||
+      value.authors.length < 1 ||
+      value.authors.length > 20 ||
+      value.authors.some(
+        (author) =>
+          typeof author !== 'string' ||
+          !author.trim() ||
+          author !== author.trim() ||
+          /[\r\n]/.test(author) ||
+          author.length > 200
+      )
+    ) {
+      fail('authors must be a list of 1 to 20 nonblank names, each at most 200 characters.');
+    }
+    authors = value.authors.map((author) => author.trim());
+    if (new Set(authors).size !== authors.length) {
+      fail('authors must not contain duplicate names.');
+    }
+  }
   const permissions = value.permissions ?? [];
   if (!Array.isArray(permissions) || permissions.some((p) => !PERMISSIONS.includes(p))) {
     fail(`permissions may only contain ${PERMISSIONS.join(', ')}.`);
@@ -256,6 +306,8 @@ function validateManifest(value, root, limits = DEFAULT_LIMITS) {
     version: value.version.trim(),
     description: value.description || '',
     author: value.author || '',
+    authors,
+    sourceUrl,
     main: value.main || null,
     permissions: [...new Set(permissions)],
     networkHosts,
