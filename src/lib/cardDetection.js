@@ -33,7 +33,11 @@ function cleanTitle(value) {
             return token.raw ?? token.text ?? '';
           })
           .join('');
-      return walk(tokens).replace(TRAILING_HASHES, '').replace(/\s+/g, ' ').trim();
+      return walk(tokens)
+        .replace(/[<>]/g, '')
+        .replace(TRAILING_HASHES, '')
+        .replace(/\s+/g, ' ')
+        .trim();
     }
   } catch {
     /* fall through */
@@ -44,7 +48,7 @@ function cleanTitle(value) {
     .replace(/\[([^\]]+)\]\([^)]*\)/g, '$1')
     .replace(/(\*\*|__|~~)(.+?)\1/g, '$2')
     .replace(/(\*|_)(.+?)\1/g, '$2')
-    .replace(/<[^>]+>/g, '')
+    .replace(/[<>]/g, '')
     .replace(TRAILING_HASHES)
     .replace(/\s+/g, ' ')
     .trim();
