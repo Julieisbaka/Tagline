@@ -79,6 +79,7 @@
             <a href="#minimal">Minimal command</a>
             <a href="#manifest">Manifest</a>
             <a href="#permissions">Permissions and isolation</a>
+            <a href="#network">Network API</a>
             <a href="#commands-editor">Commands and editor</a>
             <a href="#events">Events</a>
             <a href="#extension-apis">Inter-extension APIs</a>
@@ -485,7 +486,7 @@
                   <tr>
                     <td><code>network</code></td>
                     <td>
-                      Use <code>tagline.network.fetch()</code> for host-mediated HTTPS
+                      Use <code>tagline.network.fetch()</code> and <code>fetchToFile()</code> for host-mediated HTTPS
                       <code>GET</code>/<code>POST</code> requests to hosts declared in
                       <code>networkHosts</code>.
                     </td>
@@ -520,8 +521,8 @@
               process rechecks that the extension is enabled and its manifest still declares the
               permission and requested host. Requests reject local or private DNS results, embedded
               URL credentials, non-HTTPS schemes, non-default ports, cookies, automatic redirects,
-              and compressed responses. Requests are limited to 10 per second, request and response
-              bodies of 1,000,000 bytes each, and a 15-second timeout. The extension worker and
+              and compressed responses. Requests are limited to 10 per second and request bodies of
+              1,000,000 bytes; see <a href="#network">Network API</a> for response and timeout limits. The extension worker and
               webviews have no direct network access. Extensions also have no direct Node.js,
               Electron API, application DOM, profile storage, or arbitrary filesystem access. See
               <a href="#review">Review before enabling</a> for the manifest approval required for
@@ -548,6 +549,44 @@
               Await bridge calls and handle specific errors where you can explain recovery;
               unhandled command errors are surfaced to the user.
             </p>
+          </section>
+
+          <section id="network">
+            <h2>Network API</h2>
+            <p>
+              <code>tagline.network.fetch(url, options)</code> supports GET, POST, PUT, PATCH,
+              DELETE, and HEAD. GET and HEAD cannot have a body; other bodies are text up to
+              1,000,000 UTF-8 bytes. The response has <code>status</code>, <code>statusText</code>,
+              <code>ok</code>, <code>headers</code>, and <code>body</code>. Response bodies are
+              limited to 1,000,000 bytes. <code>responseType</code> can be <code>text</code>
+              (default), <code>json</code> (parsed JSON; invalid JSON rejects), or
+              <code>base64</code> (binary bytes encoded as a string).
+            </p>
+            <pre><code class="language-js">const response = await tagline.network.fetch('https://api.example.com/items', {
+  method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({ reviewed: true }), responseType: 'json', timeoutMs: 10000,
+});</code></pre>
+            <p>
+              <code>timeoutMs</code> is a positive integer no greater than the configurable
+              <code>extensionNetworkTimeoutMs</code> cap (15,000 ms by default). Omitting it uses
+              15,000 ms or the cap, whichever is smaller. Customize the cap in Settings.
+            </p>
+            <p>
+              <code>tagline.network.fetchToFile(url, vaultPath, options)</code> requires both
+              <code>network</code> and <code>vault:write</code>. It streams a successful response
+              through a private temporary file, then saves bytes to a new vault-relative path;
+              existing files are never overwritten and parent folders must already exist without
+              symbolic links. Failures remove the temporary file. The result contains response
+              metadata, <code>bytes</code>, and <code>path</code>. The same request options apply,
+              except <code>responseType</code>. Downloads have a separate configurable
+              <code>networkDownloadBytes</code> limit (20,000,000 bytes by default).
+              The vault tree only displays non-hidden <code>.md</code>, <code>.flow</code>,
+              <code>.canvas</code>, and <code>.json</code> files; other downloaded files remain
+              on disk but do not appear in the tree.
+            </p>
+            <pre><code class="language-js">const saved = await tagline.network.fetchToFile(
+  'https://api.example.com/evidence.pdf', 'Evidence/evidence.pdf', { timeoutMs: 12000 }
+);</code></pre>
           </section>
 
           <section id="commands-editor">

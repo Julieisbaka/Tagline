@@ -105,6 +105,7 @@ export function useAppExtensions({
 
   bridgeRef.current = {
     root: v.vault?.root,
+    reloadVault: v.reload,
     getActiveNote: () => {
       if (!activePath || activeContent === undefined) {
         return null;

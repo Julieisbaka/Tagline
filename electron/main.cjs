@@ -218,6 +218,8 @@ if (primary) {
       dialog,
       getWindow: () => state.win,
       safeStorage,
+      getVaultRoot: () => state.vaultRoot,
+      assertModelSender,
     });
     const embeddings = registerEmbeddings({
       app,

@@ -189,10 +189,16 @@
         network: Object.freeze({
           /** Make a host-mediated HTTPS request to a manifest-declared networkHosts entry. Requires network.
            * @param {string} url HTTPS URL on an exact approved host.
-           * @param {{method?:'GET'|'POST',headers?:Record<string,string>,body?:string}} [options]
-           * @returns {Promise<{status:number,statusText:string,ok:boolean,headers:Record<string,string|string[]>,body:string}>}
+           * @param {{method?:'GET'|'POST'|'PUT'|'PATCH'|'DELETE'|'HEAD',headers?:Record<string,string>,body?:string,timeoutMs?:number,responseType?:'text'|'json'|'base64'}} [options]
+           * @returns {Promise<{status:number,statusText:string,ok:boolean,headers:Record<string,string|string[]>,body:*}>}
            */
           fetch: (url, options) => call('network.fetch', url, options),
+          /** Download to a new vault-relative path. Requires network and vault:write.
+           * @param {string} url HTTPS URL on a declared host. @param {string} path Vault-relative destination.
+           * @param {{method?:string,headers?:Record<string,string>,body?:string,timeoutMs?:number}} [options]
+           * @returns {Promise<{status:number,statusText:string,ok:boolean,headers:object,bytes:number,path:string}>}
+           */
+          fetchToFile: (url, path, options) => call('network.fetchToFile', url, path, options),
         }),
         events: Object.freeze({
           /** Subscribe to permitted application or ext.ID.name events. Requires events and event data permissions.

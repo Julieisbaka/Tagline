@@ -1,6 +1,8 @@
 const https = require('node:https');
 const net = require('node:net');
 const { domainToASCII } = require('node:url');
+const { Transform } = require('node:stream');
+const { pipeline } = require('node:stream/promises');
 const { publicLookup } = require('./citationMetadata.cjs');
 
 const MAX_NETWORK_HOSTS = 20;
@@ -69,7 +71,7 @@ function validateNetworkHosts(value) {
   return hosts;
 }
 
-function validateNetworkRequest(networkHosts, address, options = {}) {
+function validateNetworkRequest(networkHosts, address, options = {}, timeoutCap = REQUEST_TIMEOUT_MS) {
   if (typeof address !== 'string' || address.length > 2048) {
     throw new Error('Network URL must be text up to 2048 characters.');
   }
@@ -92,20 +94,20 @@ function validateNetworkRequest(networkHosts, address, options = {}) {
   if (!options || typeof options !== 'object' || Array.isArray(options)) {
     throw new Error('Network options must be an object.');
   }
-  if (Object.keys(options).some((key) => !['method', 'headers', 'body'].includes(key))) {
-    throw new Error('Network options may only contain method, headers, and body.');
+  if (Object.keys(options).some((key) => !['method', 'headers', 'body', 'timeoutMs', 'responseType'].includes(key))) {
+    throw new Error('Invalid network option.');
   }
   const method = options.method === undefined ? 'GET' : options.method;
-  if (typeof method !== 'string' || !['GET', 'POST'].includes(method.toUpperCase())) {
-    throw new Error('Network requests support only GET and POST.');
+  if (typeof method !== 'string' || !['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'HEAD'].includes(method.toUpperCase())) {
+    throw new Error('Unsupported network method.');
   }
   const normalizedMethod = method.toUpperCase();
   const body = options.body;
   if (body !== undefined && typeof body !== 'string') {
     throw new Error('Network request bodies must be text.');
   }
-  if (body !== undefined && normalizedMethod !== 'POST') {
-    throw new Error('Only POST requests may include a body.');
+  if (body !== undefined && ['GET', 'HEAD'].includes(normalizedMethod)) {
+    throw new Error('GET and HEAD requests cannot include a body.');
   }
   if (body !== undefined && Buffer.byteLength(body, 'utf8') > MAX_REQUEST_BYTES) {
     throw new Error(`Network request bodies may not exceed ${MAX_REQUEST_BYTES} bytes.`);
@@ -144,11 +146,27 @@ function validateNetworkRequest(networkHosts, address, options = {}) {
     }
     headers[name] = value;
   }
-  return { url, method: normalizedMethod, headers, body };
+  const timeoutMs = options.timeoutMs === undefined ? Math.min(REQUEST_TIMEOUT_MS, timeoutCap) : options.timeoutMs;
+  if (!Number.isInteger(timeoutMs) || timeoutMs < 1 || timeoutMs > timeoutCap) {
+    throw new Error(`Network timeout must be from 1 to ${timeoutCap} ms.`);
+  }
+  const responseType = options.responseType === undefined ? 'text' : options.responseType;
+  if (!['text', 'json', 'base64'].includes(responseType)) {
+    throw new Error('Network responseType must be text, json, or base64.');
+  }
+  return { url, method: normalizedMethod, headers, body, timeoutMs, responseType };
 }
 
-function requestExtensionNetwork(networkHosts, address, options) {
-  const request = validateNetworkRequest(networkHosts, address, options);
+function responseInfo(response) {
+  const headers = Object.fromEntries(
+    Object.entries(response.headers).filter(([name, value]) => value !== undefined && name !== 'set-cookie')
+  );
+  const status = response.statusCode || 0;
+  return { status, statusText: response.statusMessage || '', ok: status >= 200 && status < 300, headers };
+}
+
+function requestExtensionNetwork(networkHosts, address, options, timeoutCap = REQUEST_TIMEOUT_MS) {
+  const request = validateNetworkRequest(networkHosts, address, options, timeoutCap);
   return new Promise((resolve, reject) => {
     const outgoing = https.request(
       request.url,
@@ -159,7 +177,7 @@ function requestExtensionNetwork(networkHosts, address, options) {
       },
       (response) => {
         const contentLength = Number(response.headers['content-length']);
-        if (Number.isFinite(contentLength) && contentLength > MAX_RESPONSE_BYTES) {
+        if (request.method !== 'HEAD' && Number.isFinite(contentLength) && contentLength > MAX_RESPONSE_BYTES) {
           response.resume();
           outgoing.destroy(
             new Error(`Network responses may not exceed ${MAX_RESPONSE_BYTES} bytes.`)
@@ -194,28 +212,74 @@ function requestExtensionNetwork(networkHosts, address, options) {
           if (exceeded) {
             return;
           }
-          const headers = Object.fromEntries(
-            Object.entries(response.headers).filter(
-              ([name, value]) => value !== undefined && name !== 'set-cookie'
-            )
-          );
-          const status = response.statusCode || 0;
-          resolve({
-            status,
-            statusText: response.statusMessage || '',
-            ok: status >= 200 && status < 300,
-            headers,
-            body: Buffer.concat(chunks).toString('utf8'),
-          });
+          const bytes = Buffer.concat(chunks);
+          let body = bytes.toString(request.responseType === 'base64' ? 'base64' : 'utf8');
+          if (request.responseType === 'json') {
+            try {
+              body = JSON.parse(body);
+            } catch {
+              reject(new Error('Network response is not valid JSON.'));
+              return;
+            }
+          }
+          resolve({ ...responseInfo(response), body });
         });
       }
     );
     const deadline = setTimeout(
       () => outgoing.destroy(new Error('Network request timed out.')),
-      REQUEST_TIMEOUT_MS
+      request.timeoutMs
     );
     outgoing.on('close', () => clearTimeout(deadline));
     outgoing.on('error', reject);
+    if (request.body !== undefined) {
+      outgoing.write(request.body);
+    }
+    outgoing.end();
+  });
+}
+
+// The caller owns and removes the exclusively opened temporary file.
+function downloadExtensionNetwork(networkHosts, address, options, timeoutCap, maxBytes, file) {
+  const request = validateNetworkRequest(networkHosts, address, options, timeoutCap);
+  if (options?.responseType !== undefined) {
+    throw new Error('responseType is not supported for downloads.');
+  }
+  return new Promise((resolve, reject) => {
+    let activeResponse;
+    const outgoing = https.request(request.url, {
+      method: request.method, headers: request.headers, lookup: publicLookup,
+    }, (response) => {
+      const info = responseInfo(response);
+      const length = Number(response.headers['content-length']);
+      const tooLarge = request.method !== 'HEAD' && Number.isFinite(length) && length > maxBytes;
+      if (!info.ok || tooLarge ||
+          (response.headers['content-encoding'] && response.headers['content-encoding'] !== 'identity')) {
+        response.resume();
+        outgoing.destroy(new Error(!info.ok ? `Download failed with HTTP ${info.status}.` :
+          tooLarge ? `Network downloads may not exceed ${maxBytes} bytes.` : 'Compressed network responses are not supported.'));
+        return;
+      }
+      activeResponse = response;
+      let size = 0;
+      const bound = new Transform({
+        transform(chunk, _encoding, callback) {
+          size += chunk.length;
+          callback(size > maxBytes ? new Error(`Network downloads may not exceed ${maxBytes} bytes.`) : null, chunk);
+        },
+      });
+      pipeline(response, bound, file.createWriteStream())
+        .then(() => resolve({ ...info, bytes: size }), reject);
+    });
+    const deadline = setTimeout(() => outgoing.destroy(new Error('Network request timed out.')), request.timeoutMs);
+    outgoing.on('close', () => clearTimeout(deadline));
+    outgoing.on('error', (error) => {
+      if (activeResponse) {
+        activeResponse.destroy(error);
+      } else {
+        reject(error);
+      }
+    });
     if (request.body !== undefined) {
       outgoing.write(request.body);
     }
@@ -230,4 +294,5 @@ module.exports = {
   validateNetworkHosts,
   validateNetworkRequest,
   requestExtensionNetwork,
+  downloadExtensionNetwork,
 };

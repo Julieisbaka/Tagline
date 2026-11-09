@@ -20,6 +20,8 @@ export const LIMIT_DEFINITIONS = Object.freeze({
   extensionStorageCharacters: { label: 'Storage characters per extension store', default: 100000, min: 1000, max: 1000000 },
   extensionStartupMs: { label: 'Extension startup timeout (ms)', default: 10000, min: 1000, max: 60000 },
   extensionHeartbeatMs: { label: 'Extension heartbeat timeout (ms)', default: 5000, min: 1000, max: 30000 },
+  extensionNetworkTimeoutMs: { label: 'Extension network timeout cap (ms)', default: 15000, min: 1000, max: 120000 },
+  networkDownloadBytes: { label: 'Extension download bytes', default: 20000000, min: 1000, max: 100000000 },
 });
 
 export const DEFAULT_LIMITS = Object.freeze(Object.fromEntries(

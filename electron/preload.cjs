@@ -143,6 +143,8 @@ contextBridge.exposeInMainWorld('api', {
   loadExtension: (id) => ipcRenderer.invoke('extensions:load', id),
   extensionNetworkFetch: (id, url, options) =>
     ipcRenderer.invoke('extensions:networkFetch', id, url, options),
+  extensionNetworkFetchToFile: (id, url, destination, options) =>
+    ipcRenderer.invoke('extensions:networkFetchToFile', id, url, destination, options),
   extensionSecret: (id, action, key, value) =>
     ipcRenderer.invoke('extensions:secret', id, action, key, value),
   extensionStorage: (id, action, key, value) =>

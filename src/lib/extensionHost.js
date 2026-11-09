@@ -460,15 +460,21 @@ export class ExtensionHost {
         return setExtensionSettings(this.manifest, {
           [requireText(args[0], 'Setting id', 64)]: args[1],
         });
-      case 'network.fetch': {
+      case 'network.fetch':
+      case 'network.fetchToFile': {
         this.require('network');
+        if (method === 'network.fetchToFile') {
+          this.require('vault:write');
+        }
         const now = Date.now();
         this.networkRequestTimes = this.networkRequestTimes.filter((time) => now - time < 1000);
         if (this.networkRequestTimes.length >= 10) {
           throw new Error('Extensions are limited to 10 network requests per second.');
         }
         this.networkRequestTimes.push(now);
-        return b.networkFetch(this.manifest.id, args[0], args[1]);
+        return method === 'network.fetch'
+          ? b.networkFetch(this.manifest.id, args[0], args[1])
+          : b.networkFetchToFile(this.manifest.id, args[0], args[1], args[2]);
       }
       case 'editor.watchActiveNote': {
         this.require('editor:active-note');

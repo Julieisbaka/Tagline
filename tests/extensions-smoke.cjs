@@ -38,6 +38,9 @@ tagline.commands.register('capabilities', async () => {
   let lateInstallRejected = false;
   try { tagline.onInstall(() => {}); } catch (error) { lateInstallRejected = error.message.includes('initialization'); }
   await tagline.storage.set('installRegistration', { invalidInstallRejected, duplicateInstallRejected, lateInstallRejected });
+  const response = await tagline.network.fetch('https://api.example.com/data', { method: 'PATCH', body: 'test', responseType: 'json' });
+  const saved = await tagline.network.fetchToFile('https://api.example.com/data', 'network-smoke.bin');
+  await tagline.storage.set('networkCheck', { body: response.body, path: saved.path, bytes: saved.bytes });
   const disposables = tagline.helpers.createDisposables();
   disposables.add(await tagline.events.on('ext.demo.check', payload => tagline.storage.set('eventCheck', payload)));
   disposables.add(await tagline.events.on('editor.selectionChanged', payload => tagline.storage.set('selectionEvent', payload)));
@@ -204,6 +207,23 @@ tagline.commands.register('save-checks', async () => {
   }
   const profile = path.join(root, 'profile');
   const vault = path.join(root, 'vault');
+  const https = require('node:https');
+  const originalRequest = https.request;
+  https.request = (url, options, respond) => {
+    if (url.hostname !== 'api.example.com') {
+      return originalRequest(url, options, respond);
+    }
+    const outgoing = new (require('node:events').EventEmitter)();
+    outgoing.write = () => {};
+    outgoing.end = () => {
+      const response = require('node:stream').Readable.from([Buffer.from('{"ok":true}')]);
+      Object.assign(response, { statusCode: 200, statusMessage: 'OK', headers: {} });
+      respond(response);
+      response.on('end', () => outgoing.emit('close'));
+    };
+    outgoing.destroy = (error) => { if (error) { process.nextTick(() => outgoing.emit('error', error)); } };
+    return outgoing;
+  };
   const openedExternalUrls = [];
   shell.openExternal = async (url) => {
     openedExternalUrls.push(url);
@@ -274,7 +294,8 @@ tagline.commands.register('save-checks', async () => {
       authors: ['First Author', 'Second Author'],
       sourceUrl: 'https://github.com/example/demo',
       main: 'main.js',
-      permissions: ['editor', 'vault:read', 'vault:write', 'events', 'ui'],
+      permissions: ['editor', 'vault:read', 'vault:write', 'events', 'ui', 'network'],
+      networkHosts: ['api.example.com'],
       contributes: {
         commands: [
           { id: 'stamp', title: 'Stamp note', key: 'Mod+Alt+K' },
@@ -375,6 +396,7 @@ tagline.commands.register('save-checks', async () => {
     ribbonItems: demoManifest.contributes.ribbonItems,
     panels: demoManifest.contributes.panels,
     webviews: demoManifest.contributes.webviews,
+    networkHosts: demoManifest.networkHosts,
   });
   await fs.writeFile(
     path.join(profile, 'config.json'),
@@ -611,6 +633,8 @@ tagline.commands.register('save-checks', async () => {
         assert.equal(uiReport.notice, 'status');
         assert.equal(uiReport.selectionText, 'rgb(255, 255, 255)');
         const capabilities = await extensionStorage('demo');
+        assert.deepEqual(capabilities.networkCheck, { body: { ok: true }, path: 'network-smoke.bin', bytes: 11 });
+        assert.equal(await fs.readFile(path.join(vault, 'network-smoke.bin'), 'utf8'), '{"ok":true}');
         assert.deepEqual(capabilities.installRegistration, {
           invalidInstallRejected: true,
           duplicateInstallRejected: true,

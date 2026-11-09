@@ -1,9 +1,10 @@
 const fs = require('node:fs/promises');
+const { constants: fsConstants } = require('node:fs');
 const path = require('node:path');
 const { validateSettingValue } = require('./extensionSettings.mjs');
 const { createHash, randomUUID } = require('node:crypto');
 const { validateLimits } = require('./customization.mjs');
-const { requestExtensionNetwork } = require('./extensionNetwork.cjs');
+const { requestExtensionNetwork, downloadExtensionNetwork } = require('./extensionNetwork.cjs');
 const {
   validateManifest,
   reviewSignature,
@@ -25,6 +26,8 @@ function registerExtensions({
   dialog,
   getWindow,
   safeStorage,
+  getVaultRoot,
+  assertModelSender,
 }) {
   const installTokens = new Map();
   const networkRequestTimes = new Map();
@@ -312,7 +315,7 @@ function registerExtensions({
   };
   registerStorageHandlers(context);
 
-  ipcMain.handle('extensions:networkFetch', async (_event, id, url, options) => {
+  async function authorizeNetwork(id, vaultWrite = false) {
     if (typeof id !== 'string' || !ID.test(id)) {
       throw new Error('Invalid extension request.');
     }
@@ -323,6 +326,13 @@ function registerExtensions({
     if (!item.allowedPermissions.includes('network')) {
       throw new Error('Network permission is required.');
     }
+    if (vaultWrite && !item.allowedPermissions.includes('vault:write')) {
+      throw new Error('Vault write permission is required for downloads.');
+    }
+    return item;
+  }
+
+  function rateLimitNetwork(id) {
     const now = Date.now();
     const recent = (networkRequestTimes.get(id) || []).filter((time) => now - time < 1000);
     if (recent.length >= 10) {
@@ -330,7 +340,82 @@ function registerExtensions({
     }
     recent.push(now);
     networkRequestTimes.set(id, recent);
-    return requestExtensionNetwork(item.networkHosts, url, options);
+  }
+
+  ipcMain.handle('extensions:networkFetch', async (event, id, url, options) => {
+    assertModelSender?.(event, 'Extension network access');
+    const item = await authorizeNetwork(id);
+    rateLimitNetwork(id);
+    return requestExtensionNetwork(item.networkHosts, url, options, limits().extensionNetworkTimeoutMs);
+  });
+
+  async function vaultDestination(root, rel) {
+    if (typeof rel !== 'string' || !rel || rel.length > 1024 || rel.includes('\\') ||
+        path.posix.isAbsolute(rel) || path.win32.isAbsolute(rel)) {
+      throw new Error('Download destination must be a vault-relative path.');
+    }
+    const parts = rel.split('/');
+    if (parts.some((part) => !part || part === '.' || part === '..' || /[<>:"|?*\x00-\x1f]/.test(part) ||
+        /[. ]$/.test(part) || /^(con|prn|aux|nul|com[1-9]|lpt[1-9])(?:\.|$)/i.test(part))) {
+      throw new Error('Invalid download destination.');
+    }
+    const realRoot = await fs.realpath(root);
+    let parent = realRoot;
+    for (const part of parts.slice(0, -1)) {
+      parent = path.join(parent, part);
+      const stat = await fs.lstat(parent);
+      if (!stat.isDirectory() || stat.isSymbolicLink()) {
+        throw new Error('Download destination must use existing vault folders, without links.');
+      }
+    }
+    return { realRoot, target: path.join(parent, parts.at(-1)) };
+  }
+
+  ipcMain.handle('extensions:networkFetchToFile', async (event, id, url, rel, options) => {
+    assertModelSender?.(event, 'Extension network access');
+    const item = await authorizeNetwork(id, true);
+    const root = getVaultRoot?.();
+    if (!root) {
+      throw new Error('Open a vault before downloading.');
+    }
+    const destination = await vaultDestination(root, rel);
+    const currentLimits = limits();
+    rateLimitNetwork(id);
+    const downloads = path.join(app.getPath('userData'), 'extension-downloads');
+    const directory = path.join(downloads, id);
+    for (const folder of [downloads, directory]) {
+      await fs.mkdir(folder, { recursive: true });
+      const stat = await fs.lstat(folder);
+      if (!stat.isDirectory() || stat.isSymbolicLink()) {
+        throw new Error('Invalid extension download directory.');
+      }
+    }
+    const temporary = path.join(directory, `${randomUUID()}.tmp`);
+    const file = await fs.open(temporary, 'wx', 0o600);
+    try {
+      const result = await downloadExtensionNetwork(item.networkHosts, url, options,
+        currentLimits.extensionNetworkTimeoutMs, currentLimits.networkDownloadBytes, file);
+      await file.close();
+      const refreshed = await authorizeNetwork(id, true);
+      if (reviewSignature(refreshed) !== reviewSignature(item)) {
+        throw new Error('Extension permissions or hosts changed during download.');
+      }
+      if (getVaultRoot() !== root) {
+        throw new Error('The vault changed during download.');
+      }
+      const checked = await vaultDestination(root, rel);
+      if (checked.realRoot !== destination.realRoot || checked.target !== destination.target) {
+        throw new Error('The vault changed during download.');
+      }
+      await fs.copyFile(temporary, checked.target, fsConstants.COPYFILE_EXCL);
+      return { ...result, path: rel };
+    } finally {
+      try {
+        await file.close();
+      } finally {
+        await fs.rm(temporary, { force: true });
+      }
+    }
   });
 
   registerInstallHandlers(context);

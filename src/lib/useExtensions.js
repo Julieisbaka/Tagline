@@ -94,6 +94,14 @@ export function useExtensions({ bridgeRef, notify }) {
       read: (path) => bridgeRef.current.read(path),
       write: (path, content) => bridgeRef.current.write(path, content),
       networkFetch: (id, url, options) => window.api.extensionNetworkFetch(id, url, options),
+      networkFetchToFile: async (id, url, destination, options) => {
+        const root = bridgeRef.current.root;
+        const result = await window.api.extensionNetworkFetchToFile(id, url, destination, options);
+        if (bridgeRef.current.root === root) {
+          await bridgeRef.current.reloadVault();
+        }
+        return result;
+      },
       getExtensionApi: (requester, id, version) => {
         const provider = hosts.current.get(id);
         if (!provider) {
