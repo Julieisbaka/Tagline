@@ -348,7 +348,7 @@ app.on('browser-window-created', (_event, win) => {
           js("window.api.openProjectPage('https://example.com')"),
           /Unknown project page/
         );
-        await js("document.querySelector('.installation-settings > button.danger').click()");
+        await js("document.querySelector('.installation-settings button.danger').click()");
         await wait("!!document.querySelector('.uninstall-dialog')");
         const uninstallChoices = await js(
           "document.querySelector('.uninstall-dialog').textContent"
