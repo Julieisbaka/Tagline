@@ -126,7 +126,8 @@
               entry script initializes. Tagline awaits it before marking the host ready. Use
               idempotent setup: an interrupted callback may run again on the next load. Successful
               setup is remembered by extension ID, so ordinary reloads, updates, and
-              disable/re-enable do not repeat it. Theme-only extensions do not have this hook.
+              disable/re-enable do not repeat it. Extensions without an entry script do not have
+              this hook.
             </p>
             <pre><code class="language-js">tagline.onInstall(async () =&gt; {
   if (!(await tagline.storage.get('installedAt'))) {
@@ -352,7 +353,7 @@
                     <td><code>main</code></td>
                     <td>
                       Relative path to a <code>.js</code> file when commands or script contributions
-                      are used; optional for theme-only extensions.
+                      are used; optional for extensions with only declarative assets.
                     </td>
                   </tr>
                   <tr>
@@ -386,6 +387,32 @@
                   <tr>
                     <td><code>contributes.themeGroups</code></td>
                     <td>Up to 10 <code>{id, title, light, dark}</code> light/dark pairs of relative <code>.json</code> paths; enables Match system.</td>
+                  </tr>
+                  <tr>
+                    <td><code>contributes.translations</code></td>
+                    <td>
+                      Optional <code>{ "en": "locales/en.json" }</code> map for <code>en</code>,
+                      <code>es</code>, and <code>fr</code>. Each file is a flat JSON map of string
+                      keys to translations; keys are isolated by extension ID. Use
+                      <code>tagline.i18n.t(key, values)</code> in the extension script.
+                    </td>
+                  </tr>
+                  <tr>
+                    <td><code>contributes.fonts</code></td>
+                    <td>
+                      Up to 20 <code>{ family, file, license, source?, weight?, style? }</code>
+                      entries for bundled <code>.woff2</code>, <code>.woff</code>, <code>.ttf</code>,
+                      or <code>.otf</code> files. License is required; HTTPS source URL is optional.
+                      Families appear in the font-family setting while enabled.
+                    </td>
+                  </tr>
+                  <tr>
+                    <td><code>contributes.templates</code></td>
+                    <td>
+                      Up to 50 <code>{ id, title, file }</code> Markdown files, available from
+                      template commands and <strong>Settings &gt; General &gt; Templates</strong>
+                      without copying into a vault.
+                    </td>
                   </tr>
                   <tr>
                     <td><code>contributes.settings</code></td>
@@ -440,6 +467,9 @@
               Contribution IDs use the extension-ID character rules. Paths must remain inside the
               extension folder; absolute paths, traversal, and symlinks resolving outside it are
               rejected. Default file limits are 1 MiB for scripts and 64 KiB per contributed theme.
+              Translation catalogs are limited to 256 KiB each; fonts to 10 MiB each and 20 MiB in
+              total; templates to 1 MiB each and 4 MiB in total. These declarative assets need no
+              permissions and are removed from the app when the extension is disabled.
               The aggregate JSON size of theme files loaded from one extension is limited to 524,288
               bytes by default; this <strong>Theme preview bytes</strong> limit can be adjusted from
               1,024 to 4,194,304 bytes. Per-file limits apply independently. Limits are adjustable

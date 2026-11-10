@@ -99,7 +99,12 @@ export default function SettingsPanels({
             />
           </SettingRow>
         </SettingsGroup>
-        <TemplateSettings settings={settings} update={update} contents={contents} />
+        <TemplateSettings
+          settings={settings}
+          update={update}
+          contents={contents}
+          extensions={extensions}
+        />
         <p className='settings-help'>
           {t(
             'Speech documents use speech: true in YAML frontmatter. Right-click a Markdown file and choose Set as speech doc to make it active.'

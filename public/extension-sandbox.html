@@ -106,6 +106,14 @@
           if (installHandler) throw new Error('Only one install handler may be registered.');
           installHandler = handler;
         },
+        i18n: Object.freeze({
+          /** Translate this extension's manifest-declared locale catalog. English is the fallback.
+           * @param {string} key Catalog key without the extension namespace.
+           * @param {Record<string, string|number|boolean>} [values] Named interpolation values.
+           * @returns {Promise<string>}
+           */
+          t: (key, values) => call('i18n.translate', key, values),
+        }),
         commands: Object.freeze({
           /** Register an async command declared in the manifest. @param {string} id Command ID.
            * @param {function} handler Callback invoked by Tagline. @returns {Promise<boolean>}

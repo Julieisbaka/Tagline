@@ -18,6 +18,45 @@ const { containedFile } = require('./extensions/files.cjs');
 const { registerStorageHandlers } = require('./extensions/storage.cjs');
 const { registerInstallHandlers } = require('./extensions/install.cjs');
 
+const MAX_TRANSLATION_BYTES = 262144;
+const MAX_TEMPLATE_BYTES = 1048576;
+const MAX_TEMPLATE_TOTAL_BYTES = 4194304;
+const MAX_FONT_BYTES = 10485760;
+const MAX_FONT_TOTAL_BYTES = 20971520;
+const FONT_MIME_TYPES = {
+  '.woff2': 'font/woff2',
+  '.woff': 'font/woff',
+  '.ttf': 'font/ttf',
+  '.otf': 'font/otf',
+};
+
+function parseTranslationCatalog(text, locale) {
+  let catalog;
+  try {
+    catalog = JSON.parse(text);
+  } catch {
+    throw new Error(`Invalid ${locale} translation catalog JSON.`);
+  }
+  const entries = Object.entries(catalog || {});
+  if (
+    !catalog ||
+    typeof catalog !== 'object' ||
+    Array.isArray(catalog) ||
+    entries.length > 2000 ||
+    entries.some(
+      ([key, value]) =>
+        !key ||
+        key.length > 128 ||
+        key === '__proto__' ||
+        typeof value !== 'string' ||
+        value.length > 10000
+    )
+  ) {
+    throw new Error(`Invalid ${locale} translation catalog.`);
+  }
+  return Object.fromEntries(entries);
+}
+
 function registerExtensions({
   app,
   ipcMain,
@@ -127,7 +166,7 @@ function registerExtensions({
     return { canceled: false };
   });
 
-  // Returns code and theme files only for enabled, valid extensions.
+  // Returns code and declared assets only for enabled, valid extensions.
   ipcMain.handle('extensions:load', async (_e, id) => {
     const item = (await scan()).find((ext) => ext.id === id);
     if (!item || item.error) {
@@ -147,7 +186,12 @@ function registerExtensions({
     }
     const themes = [];
     const themeGroups = [];
+    const translations = {};
+    const fonts = [];
+    const templates = [];
     let themePreviewBytes = 0;
+    let fontBytes = 0;
+    let templateBytes = 0;
     const readTheme = async (theme) => {
       const file = await containedFile(item.root, theme, '.json');
       const size = (await fs.stat(file)).size;
@@ -173,13 +217,68 @@ function registerExtensions({
         dark: await readTheme(group.dark),
       });
     }
+    for (const [locale, relative] of Object.entries(item.contributes.translations ?? {})) {
+      const file = await containedFile(item.root, relative, '.json');
+      const size = (await fs.stat(file)).size;
+      if (size > MAX_TRANSLATION_BYTES) {
+        throw new Error(`Translation catalog exceeds ${MAX_TRANSLATION_BYTES} bytes.`);
+      }
+      translations[locale] = parseTranslationCatalog(await fs.readFile(file, 'utf8'), locale);
+    }
+    for (const font of item.contributes.fonts ?? []) {
+      const extension = path.extname(font.file).toLowerCase();
+      const file = await containedFile(item.root, font.file, extension);
+      const size = (await fs.stat(file)).size;
+      if (size > MAX_FONT_BYTES) {
+        throw new Error(`Extension font exceeds ${MAX_FONT_BYTES} bytes.`);
+      }
+      fontBytes += size;
+      if (fontBytes > MAX_FONT_TOTAL_BYTES) {
+        throw new Error(`Extension fonts exceed ${MAX_FONT_TOTAL_BYTES} bytes.`);
+      }
+      fonts.push({
+        family: font.family,
+        weight: font.weight,
+        style: font.style,
+        license: font.license,
+        source: font.source,
+        mimeType: FONT_MIME_TYPES[extension],
+        data: (await fs.readFile(file)).toString('base64'),
+      });
+    }
+    for (const template of item.contributes.templates ?? []) {
+      const file = await containedFile(item.root, template.file, '.md');
+      const size = (await fs.stat(file)).size;
+      if (size > MAX_TEMPLATE_BYTES) {
+        throw new Error(`Extension template exceeds ${MAX_TEMPLATE_BYTES} bytes.`);
+      }
+      templateBytes += size;
+      if (templateBytes > MAX_TEMPLATE_TOTAL_BYTES) {
+        throw new Error(`Extension templates exceed ${MAX_TEMPLATE_TOTAL_BYTES} bytes.`);
+      }
+      templates.push({
+        id: template.id,
+        title: template.title,
+        content: await fs.readFile(file, 'utf8'),
+      });
+    }
     const initialized = readConfig().initializedExtensions;
     const firstInstall = !!source && !(Array.isArray(initialized) && initialized.includes(item.id));
     const installToken = firstInstall ? randomUUID() : null;
     if (installToken) {
       installTokens.set(item.id, installToken);
     }
-    return { source, themes, themeGroups, limits: limits(), firstInstall, installToken };
+    return {
+      source,
+      themes,
+      themeGroups,
+      translations,
+      fonts,
+      templates,
+      limits: currentLimits,
+      firstInstall,
+      installToken,
+    };
   });
 
   ipcMain.handle('extensions:completeInstall', async (_event, id, token) => {

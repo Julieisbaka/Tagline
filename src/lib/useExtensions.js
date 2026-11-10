@@ -7,6 +7,8 @@ import {
   setExtensionSettings,
 } from './extensionSettings.js';
 import { registerExtensionThemes, validateTheme } from './themes.js';
+import { registerExtensionFonts } from './extensionFonts.js';
+import { registerExtensionTranslations, translateExtension } from './i18n.js';
 
 const readSurfaceVisibility = (key) => {
   try {
@@ -33,6 +35,7 @@ export function useExtensions({ bridgeRef, notify }) {
   const [commands, setCommands] = useState([]);
   const [surfaces, setSurfaces] = useState([]);
   const [statusBarItems, setStatusBarItems] = useState([]);
+  const [templates, setTemplates] = useState([]);
   const hosts = useRef(new Map());
   const generation = useRef(0);
   const [settingsRevision, settingsChanged] = useState(0);
@@ -79,6 +82,9 @@ export function useExtensions({ bridgeRef, notify }) {
     const current = ++generation.current;
     hosts.current.forEach((host) => host.dispose());
     hosts.current = new Map();
+    setTemplates([]);
+    registerExtensionTranslations([]);
+    void registerExtensionFonts([]);
     setStatusBarItems([]);
     const bridge = {
       notify: (message) => notify(message),
@@ -206,6 +212,7 @@ export function useExtensions({ bridgeRef, notify }) {
         bridgeRef.current.compareAndSwap(path, expected, content),
       watch: (listener) => bridgeRef.current.watch(listener),
       watchActiveNote: (listener) => bridgeRef.current.watchActiveNote(listener),
+      translate: (extensionId, key, values) => translateExtension(extensionId, key, values),
     };
     let list;
     try {
@@ -215,6 +222,9 @@ export function useExtensions({ bridgeRef, notify }) {
       return;
     }
     const themes = [];
+    const extensionTranslations = [];
+    const extensionFonts = [];
+    const extensionTemplates = [];
     const nextCommands = [];
     const loaded = await Promise.all(
       list.map(async (item) => {
@@ -227,6 +237,9 @@ export function useExtensions({ bridgeRef, notify }) {
             source,
             themes: files,
             themeGroups = [],
+            translations = {},
+            fonts = [],
+            templates: contributedTemplates = [],
             limits,
             firstInstall,
             installToken,
@@ -308,6 +321,17 @@ export function useExtensions({ bridgeRef, notify }) {
               ]);
             }
           }
+          extensionTranslations.push({ id: item.id, translations });
+          extensionFonts.push(...fonts.map((font) => ({ ...font, extensionId: item.id })));
+          extensionTemplates.push(
+            ...contributedTemplates.map((template) => ({
+              id: `ext:${item.id}:${template.id}`,
+              extensionId: item.id,
+              extensionName: item.name,
+              title: template.title,
+              content: template.content,
+            }))
+          );
           return item;
         } catch (error) {
           extensionHost?.dispose();
@@ -321,7 +345,13 @@ export function useExtensions({ bridgeRef, notify }) {
     if (current !== generation.current) {
       return;
     }
+    registerExtensionTranslations(extensionTranslations);
+    await registerExtensionFonts(extensionFonts);
+    if (current !== generation.current) {
+      return;
+    }
     registerExtensionThemes(themes);
+    setTemplates(extensionTemplates);
     setExtensions(loaded);
     setCommands(nextCommands);
   }, [bridgeRef, notify]);
@@ -499,6 +529,7 @@ export function useExtensions({ bridgeRef, notify }) {
     setPermission,
     uninstall,
     settingsRevision,
+    templates,
     getSetting: getExtensionSetting,
     setSettings: setExtensionSettings,
     resetSettings: resetExtensionSettings,

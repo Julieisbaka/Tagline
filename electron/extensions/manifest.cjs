@@ -18,6 +18,8 @@ const PERMISSIONS = [
   'api',
 ];
 const ID = /^[a-z0-9][a-z0-9-]{1,63}$/;
+const TRANSLATION_LOCALES = ['en', 'es', 'fr'];
+const FONT_EXTENSIONS = ['.woff2', '.woff', '.ttf', '.otf'];
 const REVIEW_PERMISSIONS = [
   'settings',
   'editor:active-note',
@@ -139,6 +141,104 @@ function validateManifest(value, root, limits = DEFAULT_LIMITS) {
   }
   const commands = contributes.commands ?? [];
   const themes = contributes.themes ?? [];
+  const rawTranslations = contributes.translations ?? {};
+  if (
+    !rawTranslations ||
+    typeof rawTranslations !== 'object' ||
+    Array.isArray(rawTranslations) ||
+    Object.keys(rawTranslations).some((locale) => !TRANSLATION_LOCALES.includes(locale))
+  ) {
+    fail(`contributes.translations may only map ${TRANSLATION_LOCALES.join(', ')} to files.`);
+  }
+  const translations = Object.fromEntries(
+    Object.entries(rawTranslations).map(([locale, file]) => {
+      relativeFile(root, file, '.json');
+      return [locale, file];
+    })
+  );
+  const rawFonts = contributes.fonts ?? [];
+  if (!Array.isArray(rawFonts) || rawFonts.length > 20) {
+    fail('contributes.fonts must be a list of at most 20.');
+  }
+  const fontKeys = new Set();
+  const fonts = rawFonts.map((font) => {
+    if (
+      !font ||
+      typeof font.family !== 'string' ||
+      !/^[A-Za-z0-9][A-Za-z0-9 ._-]{0,79}$/.test(font.family) ||
+      typeof font.file !== 'string' ||
+      !FONT_EXTENSIONS.includes(path.extname(font.file).toLowerCase()) ||
+      typeof font.license !== 'string' ||
+      !font.license.trim() ||
+      font.license.length > 200
+    ) {
+      fail('each font needs a safe family, supported file, and license.');
+    }
+    const weight = font.weight ?? '400';
+    const normalizedWeight = String(weight);
+    const validWeight =
+      /^(100|200|300|400|500|600|700|800|900)( (100|200|300|400|500|600|700|800|900))?$/;
+    const style = font.style ?? 'normal';
+    if (!validWeight.test(normalizedWeight) || !['normal', 'italic', 'oblique'].includes(style)) {
+      fail(`font ${font.family} has an invalid weight or style.`);
+    }
+    const key = `${font.family.toLowerCase()}|${normalizedWeight}|${style}`;
+    if (fontKeys.has(key)) {
+      fail(`font ${font.family} duplicates a family, weight, and style.`);
+    }
+    fontKeys.add(key);
+    let source = '';
+    if (font.source !== undefined) {
+      if (typeof font.source !== 'string' || font.source.length > 2048) {
+        fail(`font ${font.family} source must be an HTTPS URL.`);
+      }
+      let parsedSource;
+      try {
+        parsedSource = new URL(font.source);
+      } catch {
+        fail(`font ${font.family} source must be an HTTPS URL.`);
+      }
+      if (
+        parsedSource.protocol !== 'https:' ||
+        !parsedSource.hostname ||
+        parsedSource.username ||
+        parsedSource.password
+      ) {
+        fail(`font ${font.family} source must be an HTTPS URL without embedded credentials.`);
+      }
+      source = parsedSource.href;
+    }
+    relativeFile(root, font.file, path.extname(font.file));
+    return {
+      family: font.family.trim(),
+      file: font.file,
+      weight: normalizedWeight,
+      style,
+      license: font.license.trim(),
+      source,
+    };
+  });
+  const rawTemplates = contributes.templates ?? [];
+  if (!Array.isArray(rawTemplates) || rawTemplates.length > 50) {
+    fail('contributes.templates must be a list of at most 50.');
+  }
+  const templateIds = new Set();
+  const templates = rawTemplates.map((template) => {
+    if (
+      !template ||
+      typeof template.id !== 'string' ||
+      !ID.test(template.id) ||
+      templateIds.has(template.id) ||
+      typeof template.title !== 'string' ||
+      !template.title.trim() ||
+      template.title.length > 80
+    ) {
+      fail('each template needs a unique id and a title of up to 80 characters.');
+    }
+    templateIds.add(template.id);
+    relativeFile(root, template.file, '.md');
+    return { id: template.id, title: template.title.trim(), file: template.file };
+  });
   const settings = validateSettingDefinitions(contributes.settings, limits);
   const commandIds = new Set(Array.isArray(commands) ? commands.map((command) => command?.id) : []);
   const surfaces = {};
@@ -397,6 +497,9 @@ function validateManifest(value, root, limits = DEFAULT_LIMITS) {
       commands: commands.map(({ id, title, key }) => ({ id, title: title.trim(), key: key || '' })),
       themes,
       themeGroups,
+      translations,
+      fonts,
+      templates,
       settings,
       ribbonItems: ribbonItems.map(({ id, title, icon, command }) => ({
         id,
@@ -444,6 +547,11 @@ function reviewSignature(manifest) {
     ...(manifest.contributes.fileHandlers.length
       ? { fileHandlers: manifest.contributes.fileHandlers }
       : {}),
+    ...(Object.keys(manifest.contributes.translations).length
+      ? { translations: manifest.contributes.translations }
+      : {}),
+    ...(manifest.contributes.fonts.length ? { fonts: manifest.contributes.fonts } : {}),
+    ...(manifest.contributes.templates.length ? { templates: manifest.contributes.templates } : {}),
     ...(manifest.contributes.panels.length || manifest.contributes.webviews.length
       ? { panels: manifest.contributes.panels, webviews: manifest.contributes.webviews }
       : {}),

@@ -185,6 +185,30 @@ const Underline = BaseUnderline.extend({
   },
 });
 
+function visibleHighlight(value) {
+  const color = value.trim().toLowerCase().replace(/\s+/g, '');
+  return !/^(?:transparent|none|initial|inherit|unset|white|#fff(?:fff)?|rgba?\(255,255,255(?:,1(?:\.0+)?)?\)|rgba\([^)]*,0(?:\.0+)?\))$/.test(
+    color
+  );
+}
+
+const ClipboardHighlight = Highlight.extend({
+  parseHTML() {
+    return [
+      { tag: 'mark' },
+      {
+        style: 'background-color',
+        getAttrs: (value) => (visibleHighlight(value) ? null : false),
+      },
+      {
+        style: 'background-color',
+        getAttrs: (value) => (visibleHighlight(value) ? false : null),
+        clearMark: (mark) => mark.type.name === 'highlight',
+      },
+    ];
+  },
+}).configure({ HTMLAttributes: { style: 'background-color: #ffff00' } });
+
 export const CardMarker = Node.create({
   name: 'cardMarker',
   group: 'block',
@@ -233,7 +257,7 @@ export function visualExtensions() {
     EditorDiagnostics,
     StarterKit.configure({ link: { openOnClick: false }, trailingNode: false, underline: false }),
     Underline,
-    Highlight,
+    ClipboardHighlight,
     TableKit,
     TaskList,
     TaskItem.configure({ nested: true }),

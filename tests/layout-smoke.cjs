@@ -29,6 +29,11 @@ const delay = (ms) => new Promise((r) => setTimeout(r, ms));
     vault = path.join(root, 'v');
   await fs.mkdir(profile, { recursive: true });
   await fs.mkdir(vault);
+  await fs.mkdir(path.join(vault, '.tagline'));
+  await fs.writeFile(
+    path.join(vault, '.tagline', 'vault.json'),
+    JSON.stringify({ version: require('../electron/vaultMigrations.cjs').migrations.length })
+  );
   let body = '# Long doc\n\n';
   for (let i = 0; i < 60; i++) {
     body += `#### Card ${i}\n\n**Smith ${i}**\n\n==Evidence paragraph ${i} with some highlighted text.== More.\n\n`;

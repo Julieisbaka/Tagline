@@ -577,13 +577,29 @@ test('platform: extension manifests validate ids, permissions, commands and cont
       JSON.stringify(manifest)
     );
     for (const [name, text] of Object.entries(files)) {
-      await fs.writeFile(path.join(userData, 'extensions', folder, name), text);
+      const file = path.join(userData, 'extensions', folder, name);
+      await fs.mkdir(path.dirname(file), { recursive: true });
+      await fs.writeFile(file, text);
     }
   };
   await write(
     'a',
-    { ...base, main: 'main.js', contributes: { commands: [{ id: 'count', title: 'Count' }] } },
-    { 'main.js': 'void 0;' }
+    {
+      ...base,
+      main: 'main.js',
+      contributes: {
+        commands: [{ id: 'count', title: 'Count' }],
+        translations: { en: 'locales/en.json' },
+        fonts: [{ family: 'Debate Sans', file: 'fonts/debate.woff2', license: 'OFL-1.1' }],
+        templates: [{ id: 'case-note', title: 'Case note', file: 'templates/case.md' }],
+      },
+    },
+    {
+      'main.js': 'void 0;',
+      'locales/en.json': JSON.stringify({ hello: 'Hello {name}' }),
+      'fonts/debate.woff2': 'font-bytes',
+      'templates/case.md': '# {{title}}\n\nClaim: ',
+    }
   );
   await write('b', base);
   await write('c', { ...base, id: 'broken' }, {});
@@ -621,6 +637,19 @@ test('platform: extension manifests validate ids, permissions, commands and cont
     source: 'void 0;',
     themes: [],
     themeGroups: [],
+    translations: { en: { hello: 'Hello {name}' } },
+    fonts: [
+      {
+        family: 'Debate Sans',
+        weight: '400',
+        style: 'normal',
+        license: 'OFL-1.1',
+        source: '',
+        mimeType: 'font/woff2',
+        data: Buffer.from('font-bytes').toString('base64'),
+      },
+    ],
+    templates: [{ id: 'case-note', title: 'Case note', content: '# {{title}}\n\nClaim: ' }],
     limits: (await import('../electron/customization.mjs')).DEFAULT_LIMITS,
     firstInstall: true,
     installToken: loaded.installToken,

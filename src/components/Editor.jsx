@@ -12,6 +12,7 @@ import {
   lineNumbers,
 } from '@codemirror/view';
 import CodeMirror from '@uiw/react-codemirror';
+import { Editor as TiptapEditor } from '@tiptap/core';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { createCodeMirrorFindReplacePanel } from '../lib/codeMirrorFindReplace.js';
 import { detectCards } from '../lib/cardDetection.js';
@@ -29,6 +30,8 @@ import { applicationEvents } from '../lib/extensionCapabilities.js';
 import { useI18n } from '../lib/i18n.js';
 import { binding, editorBinding, KEYBINDINGS } from '../lib/keybindings.js';
 import { draggedNoteLink, draggedNotePath, hasNoteDrag } from '../lib/noteDrag.js';
+import { smartPasteMarkdown } from '../lib/smartPaste.js';
+import { visualExtensions } from '../lib/visualExtensions.js';
 import EditorLinkForm from './EditorLinkForm.jsx';
 import EditorToolbar from './EditorToolbar.jsx';
 
@@ -175,6 +178,57 @@ export default function Editor({
         ? [EditorView.theme({ '.cm-activeLine': { backgroundColor: 'var(--bg-hover)' } })]
         : []),
       EditorView.domEventHandlers({
+        paste(event, view) {
+          const plain = event.clipboardData?.getData('text/plain');
+          if (!plain) {
+            return false;
+          }
+          const html = event.clipboardData.getData('text/html');
+          let text = plain;
+          if (html) {
+            let editor;
+            try {
+              editor = new TiptapEditor({
+                element: null,
+                extensions: visualExtensions(),
+                content: html,
+              });
+              const normalized = (value) => value.replace(/\s+/g, ' ').trim();
+              if (
+                normalized(editor.state.doc.textBetween(0, editor.state.doc.content.size, '\n')) ===
+                normalized(plain)
+              ) {
+                text = editor.getMarkdown();
+              }
+            } catch {
+              // Fall back to the original plain text if HTML cannot be represented safely.
+            } finally {
+              editor?.destroy();
+            }
+          }
+          const structured = smartPasteMarkdown(text);
+          const { from, to } = view.state.selection.main;
+          if (structured !== text) {
+            text = structured;
+            if (from > 0 && view.state.doc.sliceString(from - 1, from) !== '\n') {
+              text = '\n\n' + text;
+            }
+            if (to < view.state.doc.length && view.state.doc.sliceString(to, to + 1) !== '\n') {
+              text += '\n\n';
+            }
+          }
+          if (text === plain) {
+            return false;
+          }
+          event.preventDefault();
+          view.dispatch({
+            changes: { from, to, insert: text },
+            selection: { anchor: from + text.length },
+            userEvent: 'input.paste',
+            scrollIntoView: true,
+          });
+          return true;
+        },
         dragover(e) {
           if (!hasNoteDrag(e.dataTransfer)) {
             return false;

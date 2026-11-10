@@ -203,6 +203,25 @@ export class ExtensionHost {
       case 'notify':
         b.notify(`${this.manifest.name}: ${requireText(args[0], 'Message', 500)}`);
         return true;
+      case 'i18n.translate': {
+        const key = requireText(args[0], 'Translation key', 128);
+        const values = args[1] ?? {};
+        if (
+          !values ||
+          typeof values !== 'object' ||
+          Array.isArray(values) ||
+          Object.entries(values).length > 50 ||
+          Object.entries(values).some(
+            ([name, value]) =>
+              !/^[A-Za-z0-9_]{1,64}$/.test(name) ||
+              !['string', 'number', 'boolean'].includes(typeof value) ||
+              String(value).length > 1000
+          )
+        ) {
+          throw new Error('Translation values must be up to 50 short scalar values.');
+        }
+        return b.translate(this.manifest.id, key, values);
+      }
       case 'editor.getActiveNote':
         this.require('editor');
         return b.getActiveNote();

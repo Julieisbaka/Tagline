@@ -326,7 +326,19 @@ export default function App() {
   );
 
   const templateFolder = templateFolderName(settings);
-  const templates = templatePaths(paths, templateFolder);
+  const templates = [
+    ...templatePaths(paths, templateFolder).map((path) => ({
+      id: path,
+      path,
+      title: baseName(path),
+      label: baseName(path),
+      content: v.contents[path] || '',
+    })),
+    ...ext.templates.map((template) => ({
+      ...template,
+      label: `${template.extensionName}: ${template.title}`,
+    })),
+  ];
   const pickTemplate = (onPick) => {
     if (!templates.length) {
       return notify(
@@ -338,8 +350,8 @@ export default function App() {
     return setModal({
       type: 'palette',
       placeholder: t('Choose a template…'),
-      items: templates.map((p) => ({ id: p, label: baseName(p), path: p })),
-      onSelect: (it) => onPick(it.path),
+      items: templates.map(({ id, label }) => ({ id, label })),
+      onSelect: (item) => onPick(templates.find((template) => template.id === item.id)),
     });
   };
 

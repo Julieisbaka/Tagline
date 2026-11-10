@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useI18n } from '../../lib/i18n.js';
+import { getExtensionFonts } from '../../lib/extensionFonts.js';
 import SettingRow from './SettingRow.jsx';
 
 /**
@@ -13,8 +14,14 @@ import SettingRow from './SettingRow.jsx';
  */
 export default function AutoSetting({ def, settings, update }) {
   const { t } = useI18n();
+  const [extensionFonts, setExtensionFonts] = useState(getExtensionFonts);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  useEffect(() => {
+    const updateFonts = () => setExtensionFonts(getExtensionFonts());
+    window.addEventListener('extension-fonts-changed', updateFonts);
+    return () => window.removeEventListener('extension-fonts-changed', updateFonts);
+  }, []);
   const key = def.key;
   const value = settings[key];
   const label = t(def.label ?? key);
@@ -79,7 +86,9 @@ export default function AutoSetting({ def, settings, update }) {
       <textarea
         data-setting={key}
         value={
-          typeof value === 'string' ? value : JSON.stringify(value ?? def.defaultValue ?? null, null, 2)
+          typeof value === 'string'
+            ? value
+            : JSON.stringify(value ?? def.defaultValue ?? null, null, 2)
         }
         onChange={(event) => {
           try {
@@ -93,16 +102,30 @@ export default function AutoSetting({ def, settings, update }) {
   } else {
     // text and fontFamily
     control = (
-      <input
-        value={value ?? ''}
-        placeholder={def.placeholder}
-        data-setting={key}
-        onChange={(event) =>
-          def.type === 'fontFamily'
-            ? update({ fontFamily: event.target.value, importedFont: false })
-            : update({ [key]: event.target.value })
-        }
-      />
+      <>
+        <input
+          value={value ?? ''}
+          placeholder={def.placeholder}
+          list={def.type === 'fontFamily' ? 'extension-font-families' : undefined}
+          data-setting={key}
+          onChange={(event) =>
+            def.type === 'fontFamily'
+              ? update({ fontFamily: event.target.value, importedFont: false })
+              : update({ [key]: event.target.value })
+          }
+        />
+        {def.type === 'fontFamily' && (
+          <datalist id='extension-font-families'>
+            {extensionFonts.map((font) => (
+              <option
+                key={`${font.extensionId}:${font.family}:${font.weight}:${font.style}`}
+                value={font.family}
+                label={`${font.license}${font.source ? ` · ${font.source}` : ''}`}
+              />
+            ))}
+          </datalist>
+        )}
+      </>
     );
   }
   const row = def.description ? (

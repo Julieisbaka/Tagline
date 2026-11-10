@@ -50,6 +50,7 @@ export default function NoteView({
   const { t } = useI18n();
   const previousMode = useRef({ path, mode });
   const [modeAnnouncement, setModeAnnouncement] = useState('');
+  const [split, setSplit] = useState(false);
   useEffect(() => {
     const previous = previousMode.current;
     previousMode.current = { path, mode };
@@ -226,6 +227,11 @@ export default function NoteView({
             <option value='edit'>{t('Source')}</option>
             <option value='read'>{t('Read')}</option>
           </select>
+          {mode !== 'read' && (
+            <button aria-pressed={split} onClick={() => setSplit((value) => !value)}>
+              {t('Split view')}
+            </button>
+          )}
           <button onClick={onExport}>{t('Export')}</button>
           {onTestHypothesis && (
             <button
@@ -306,49 +312,62 @@ export default function NoteView({
         />
       )}
       <div
-        className={`note-body${settings.readableWidth ? ' readable' : ''}${settings.editorFocusOutline ? ' editor-focus-outline' : ''}`}
+        className={`note-body${split && mode !== 'read' ? ' split-view' : ''}${settings.readableWidth ? ' readable' : ''}${settings.editorFocusOutline ? ' editor-focus-outline' : ''}`}
       >
-        {sourceMode ? (
-          <Editor
-            jump={jump?.path === path ? jump : null}
-            keybindings={settings.keybindings}
-            settings={settings}
-            value={content}
-            onChange={onChange}
-            noteNames={noteNames}
-            notePaths={notePaths}
-            notify={notify}
-            onOpenLink={onOpenLink}
-            onSendCard={onSendCard}
-            onCursor={setCursor}
-            viewRef={viewRef}
-          />
-        ) : mode === 'visual' ? (
-          <VisualEditor
-            value={content}
-            onChange={onChange}
-            onOpenLink={onOpenLink}
-            spellcheck={settings.visualSpellcheck}
-            onReady={onVisualEditorReady}
-            keybindings={settings.keybindings}
-            onSendCard={sendCurrent}
-            onSection={setVisualSection}
-            noteNames={noteNames}
-            notePaths={notePaths}
-            notify={notify}
-            visualRef={visualRef}
-            jump={jump?.path === path ? jump : null}
-            toolbarVisible={settings.visualToolbar}
-          />
-        ) : (
-          <Preview
-            content={content}
-            resolve={resolve}
-            onOpenLink={onOpenLink}
-            onTagClick={onTagClick}
-            highlightOnly={highlightOnly}
-            scrollTo={jump && jump.path === path ? jump : null}
-          />
+        <div className='note-edit-pane'>
+          {sourceMode ? (
+            <Editor
+              jump={jump?.path === path ? jump : null}
+              keybindings={settings.keybindings}
+              settings={settings}
+              value={content}
+              onChange={onChange}
+              noteNames={noteNames}
+              notePaths={notePaths}
+              notify={notify}
+              onOpenLink={onOpenLink}
+              onSendCard={onSendCard}
+              onCursor={setCursor}
+              viewRef={viewRef}
+            />
+          ) : mode === 'visual' ? (
+            <VisualEditor
+              value={content}
+              onChange={onChange}
+              onOpenLink={onOpenLink}
+              spellcheck={settings.visualSpellcheck}
+              onReady={onVisualEditorReady}
+              keybindings={settings.keybindings}
+              onSendCard={sendCurrent}
+              onSection={setVisualSection}
+              noteNames={noteNames}
+              notePaths={notePaths}
+              notify={notify}
+              visualRef={visualRef}
+              jump={jump?.path === path ? jump : null}
+              toolbarVisible={settings.visualToolbar}
+            />
+          ) : (
+            <Preview
+              content={content}
+              resolve={resolve}
+              onOpenLink={onOpenLink}
+              onTagClick={onTagClick}
+              highlightOnly={highlightOnly}
+              scrollTo={jump && jump.path === path ? jump : null}
+            />
+          )}
+        </div>
+        {split && mode !== 'read' && (
+          <div className='note-preview-pane' role='region' aria-label={t('Live preview')}>
+            <Preview
+              content={content}
+              resolve={resolve}
+              onOpenLink={onOpenLink}
+              onTagClick={onTagClick}
+              highlightOnly={false}
+            />
+          </div>
         )}
       </div>
     </div>

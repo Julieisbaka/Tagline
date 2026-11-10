@@ -1,4 +1,4 @@
-const { app } = require('electron');
+const { app, clipboard, ClipboardItem } = require('electron');
 const fs = require('node:fs/promises');
 const path = require('node:path');
 const os = require('node:os');
@@ -35,8 +35,14 @@ const delay = (ms) => new Promise((r) => setTimeout(r, ms));
   const temp = await fs.mkdtemp(path.join(os.tmpdir(), 'debate-electron-test-'));
   const vault = path.join(temp, 'vault');
   await fs.mkdir(vault);
+  await fs.mkdir(path.join(vault, '.tagline'));
+  await fs.writeFile(
+    path.join(vault, '.tagline', 'vault.json'),
+    JSON.stringify({ version: require('../electron/vaultMigrations.cjs').migrations.length })
+  );
   await fs.writeFile(path.join(vault, 'Cards.md'), fixture);
   await fs.writeFile(path.join(vault, 'Other.md'), '# Other\n\n## Section\n\nOther evidence.');
+  await fs.writeFile(path.join(vault, 'Plain.md'), '# Plain\n\nStart.');
   await fs.writeFile(
     path.join(vault, 'Frontmatter.md'),
     '---\ntitle: Keep Me\n---\n# Note\n\nBody'
@@ -100,7 +106,7 @@ const delay = (ms) => new Promise((r) => setTimeout(r, ms));
       try {
         await waitFor("!!document.querySelector('.onboarding-skip')");
         await js("document.querySelector('.onboarding-skip').click()");
-        await waitFor("document.querySelectorAll('.tree-item').length === 5");
+        await waitFor("document.querySelectorAll('.tree-item').length === 6");
         await click('.tree-item', 'Cards');
         await waitFor("!!document.querySelector('.visual-document')");
         assert.equal(
@@ -397,6 +403,127 @@ const delay = (ms) => new Promise((r) => setTimeout(r, ms));
           /^---\ntitle: Keep Me/
         );
         assert.match(await js("document.querySelector('.note-properties').textContent"), /title/);
+        // Exercise real clipboard paste and copy in both editors, including Google Docs-style spans.
+        await click('.note-actions button', 'Split view');
+        await waitFor("!!document.querySelector('.note-preview-pane .preview')");
+        assert.ok(
+          await js(`(() => {
+          const edit = document.querySelector('.note-edit-pane').getBoundingClientRect();
+          const preview = document.querySelector('.note-preview-pane').getBoundingClientRect();
+          return edit.width > 0 && preview.width > 0 && Math.abs(edit.right - preview.left) < 2;
+        })()`)
+        );
+        const richText =
+          'Climate action works\nSmith 2024 — Climate research\nA long evidence paragraph with highlighted and plain words, plus underlining, bold, italic and a link.';
+        const richHtml =
+          '<p>Climate action works</p><p>Smith 2024 — Climate research</p><p>A long evidence paragraph with <span style="background-color: rgb(255, 255, 0)">highlighted <span style="background-color: rgb(255, 255, 255)">and plain</span> words</span>, plus <span style="text-decoration: underline">underlining</span>, <b>bold</b>, <i>italic</i> and <a href="https://example.com">a link</a>.</p>';
+        await clipboard.write([
+          new ClipboardItem({ 'text/plain': richText, 'text/html': richHtml }),
+        ]);
+        await js(`(() => { const ed = document.querySelector('.visual-document').editor;
+          ed.commands.setTextSelection(ed.state.doc.content.size - 1); ed.commands.focus(); })()`);
+        await waitFor("!!document.activeElement.closest('.visual-document')");
+        wc.paste();
+        await waitFor(
+          "document.querySelector('.visual-document').editor.getMarkdown().includes('Climate action works')"
+        );
+        const pasted = await js("document.querySelector('.visual-document').editor.getMarkdown()");
+        assert.match(pasted, /#### Climate action works/);
+        assert.match(pasted, /\*\*Smith 2024/);
+        assert.match(pasted, /==highlighted==/);
+        assert.doesNotMatch(pasted, /==and plain==/);
+        assert.match(pasted, /\+\+underlining\+\+/);
+        assert.match(pasted, /\*\*bold\*\*/);
+        assert.match(pasted, /\*italic\*/);
+        assert.match(pasted, /\[a link\]\(https:\/\/example\.com\)/);
+        await waitFor(
+          "document.querySelector('.note-preview-pane').textContent.includes('Climate action works')"
+        );
+        await js(`(() => { const ed = document.querySelector('.visual-document').editor;
+          ed.state.doc.descendants((node, pos) => { if (node.isText && node.text.includes('highlighted')) {
+            const start = pos + node.text.indexOf('highlighted'); ed.commands.setTextSelection({ from: start, to: start + 11 }); return false;
+          } }); ed.commands.focus(); })()`);
+        await waitFor("!!document.activeElement.closest('.visual-document')");
+        wc.copy();
+        await delay(100);
+        assert.match(
+          await (await (await clipboard.read())[0].getType('text/html')).text(),
+          /background-color:\s*(?:#ffff00|rgb\(255,\s*255,\s*0\))/i
+        );
+        assert.equal(await clipboard.readText(), 'highlighted');
+        await mode('edit');
+        await waitFor("!!document.querySelector('.cm-content')");
+        assert.ok(await js("!!document.querySelector('.note-preview-pane .preview')"));
+        await clipboard.write([
+          new ClipboardItem({ 'text/plain': richText, 'text/html': richHtml }),
+        ]);
+        await js("document.querySelector('.cm-content').focus()");
+        wc.sendInputEvent({ type: 'keyDown', keyCode: 'End', modifiers: ['control'] });
+        wc.sendInputEvent({ type: 'keyUp', keyCode: 'End', modifiers: ['control'] });
+        wc.paste();
+        await waitFor(
+          "window.api.read('Frontmatter.md').then(text => (text.match(/Climate action works/g) || []).length === 2)"
+        );
+        const sourcePasted = await fs.readFile(path.join(vault, 'Frontmatter.md'), 'utf8');
+        assert.equal((sourcePasted.match(/#### Climate action works/g) || []).length, 2);
+        assert.match(sourcePasted, /==highlighted==/);
+        assert.match(sourcePasted, /\+\+underlining\+\+/);
+        assert.match(sourcePasted, /\[a link\]\(https:\/\/example\.com\)/);
+        // A partial selection inside a highlight must retain its parent formatting.
+        await js(`(() => { const preview = document.querySelector('.note-preview-pane .preview');
+          const text = [...preview.querySelectorAll('mark')].find(el => el.textContent.includes('highlighted')).firstChild;
+          const range = document.createRange(); range.setStart(text, 0); range.setEnd(text, 5);
+          preview.tabIndex = -1; preview.focus(); const sel = window.getSelection(); sel.removeAllRanges(); sel.addRange(range);
+        })()`);
+        wc.copy();
+        await delay(100);
+        assert.equal(await clipboard.readText(), 'highl');
+        assert.match(
+          await (await (await clipboard.read())[0].getType('text/html')).text(),
+          /<mark[^>]*background-color:\s*(?:#ffff00|rgb\(255,\s*255,\s*0\))/i
+        );
+        await click('.note-actions button', 'Split view');
+        await waitFor("!document.querySelector('.note-preview-pane')");
+        await mode('visual');
+        await waitFor("!!document.querySelector('.visual-document')");
+        await js(`(() => { const ed = document.querySelector('.visual-document').editor;
+          ed.commands.setTextSelection(ed.state.doc.content.size - 1); ed.commands.focus(); })()`);
+        await waitFor("!!document.activeElement.closest('.visual-document')");
+        wc.paste();
+        await waitFor(
+          "document.querySelector('.visual-document').editor.getMarkdown().includes('==highl==')"
+        );
+        await waitFor("window.api.read('Frontmatter.md').then(text => text.includes('==highl=='))");
+        await click('.tree-item', 'Other');
+        await waitFor("document.querySelector('.note-title')?.value === 'Other'");
+        await click('.tree-item', 'Frontmatter');
+        await waitFor(
+          "document.querySelector('.visual-document')?.editor.getMarkdown().includes('==highl==')"
+        );
+        await click('.tree-item', 'Plain');
+        await waitFor("document.querySelector('.note-title')?.value === 'Plain'");
+        await clipboard.writeText(richText);
+        await js(`(() => { const ed = document.querySelector('.visual-document').editor;
+          ed.commands.setTextSelection(ed.state.doc.content.size - 1); ed.commands.focus(); })()`);
+        await waitFor("!!document.activeElement.closest('.visual-document')");
+        wc.paste();
+        await waitFor(
+          "document.querySelector('.visual-document').editor.getMarkdown().includes('#### Climate action works')"
+        );
+        assert.match(
+          await js("document.querySelector('.visual-document').editor.getMarkdown()"),
+          /\*\*Smith 2024 — Climate research\*\*/
+        );
+        await mode('edit');
+        await waitFor("!!document.querySelector('.cm-content')");
+        await clipboard.writeText(richText);
+        await js("document.querySelector('.cm-content').focus()");
+        wc.sendInputEvent({ type: 'keyDown', keyCode: 'End', modifiers: ['control'] });
+        wc.sendInputEvent({ type: 'keyUp', keyCode: 'End', modifiers: ['control'] });
+        wc.paste();
+        await waitFor(
+          "window.api.read('Plain.md').then(text => (text.match(/#### Climate action works/g) || []).length === 2)"
+        );
         assert.deepEqual(errors, []);
         console.log(
           'PASS: Tiptap rendering, real visual edits, Markdown round trips, card sending, visual frontmatter properties, Pandoc detection, encrypted token storage.'

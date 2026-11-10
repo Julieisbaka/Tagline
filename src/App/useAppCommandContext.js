@@ -89,11 +89,11 @@ export function useAppCommandContext({
     newFolder: () => actions.newFolder(),
     newFromTemplate: () =>
       pickTemplate((tp) =>
-        prompt(t('Name for the new note'), baseName(tp), (name) => {
+        prompt(t('Name for the new note'), tp.title, (name) => {
           const file = `${name.replace(/[\\/:*?"<>|]/g, '-')}.md`;
           const create = (folder) => {
             const path = folder ? `${folder}/${file}` : file;
-            return createAndOpen(path, fillTemplate(v.contents[tp] || '', name, { path }));
+            return createAndOpen(path, fillTemplate(tp.content, name, { path }));
           };
           const folders = folderPaths(v.tree || []);
           if (!folders.length) {
@@ -126,7 +126,7 @@ export function useAppCommandContext({
           onSelect: (choice) => {
             try {
               const current = activeContent || '';
-              const filled = fillTemplate(v.contents[tp] || '', baseName(activePath), {
+              const filled = fillTemplate(tp.content, baseName(activePath), {
                 path: activePath,
                 content: current,
                 properties: false,
@@ -170,7 +170,7 @@ export function useAppCommandContext({
         return notify(t('Switch to an editing mode to insert a template'));
       }
       return pickTemplate((tp) => {
-        const { hasFrontmatter, body } = templateBody(v.contents[tp] || '');
+        const { hasFrontmatter, body } = templateBody(tp.content);
         if (hasFrontmatter) {
           notify(
             t(

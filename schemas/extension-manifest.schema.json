@@ -116,6 +116,25 @@
             }
           }
         },
+        "translations": {
+          "type": "object",
+          "propertyNames": { "enum": ["en", "es", "fr"] },
+          "additionalProperties": {
+            "type": "string",
+            "pattern": "^(?![/\\\\]|[a-zA-Z]:).+\\.[jJ][sS][oO][nN]$"
+          },
+          "description": "Locale-to-JSON-file map. Catalogs are flat string maps and keys are namespaced to the extension."
+        },
+        "fonts": {
+          "type": "array",
+          "maxItems": 20,
+          "items": { "$ref": "#/definitions/font" }
+        },
+        "templates": {
+          "type": "array",
+          "maxItems": 50,
+          "items": { "$ref": "#/definitions/template" }
+        },
         "settings": {
           "type": "array",
           "maxItems": 256,
@@ -403,6 +422,49 @@
         "priority": { "type": "integer", "minimum": 0, "maximum": 100 }
       }
     },
+    "font": {
+      "type": "object",
+      "required": ["family", "file", "license"],
+      "additionalProperties": false,
+      "properties": {
+        "family": { "type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9 ._-]{0,79}$" },
+        "file": {
+          "type": "string",
+          "pattern": "^(?![/\\\\]|[a-zA-Z]:).+\\.([wW][oO][fF][fF]2|[wW][oO][fF][fF]|[tT][tT][fF]|[oO][tT][fF])$",
+          "description": "A font file inside the extension folder."
+        },
+        "weight": {
+          "oneOf": [
+            { "type": "integer", "enum": [100, 200, 300, 400, 500, 600, 700, 800, 900] },
+            {
+              "type": "string",
+              "pattern": "^(100|200|300|400|500|600|700|800|900)( (100|200|300|400|500|600|700|800|900))?$"
+            }
+          ]
+        },
+        "style": { "enum": ["normal", "italic", "oblique"] },
+        "license": { "type": "string", "pattern": "\\S", "maxLength": 200 },
+        "source": {
+          "type": "string",
+          "pattern": "^https://(?![^/?#@]*@)[^/?#\\s]+(?:[/?#][^\\s]*)?$",
+          "maxLength": 2048
+        }
+      }
+    },
+    "template": {
+      "type": "object",
+      "required": ["id", "title", "file"],
+      "additionalProperties": false,
+      "properties": {
+        "id": { "$ref": "#/definitions/id" },
+        "title": { "$ref": "#/definitions/title" },
+        "file": {
+          "type": "string",
+          "pattern": "^(?![/\\\\]|[a-zA-Z]:).+\\.[mM][dD]$",
+          "description": "A Markdown file inside the extension folder."
+        }
+      }
+    },
     "command": {
       "allOf": [
         {
@@ -569,11 +631,19 @@
         },
         {
           "if": { "properties": { "type": { "enum": ["secret", "path"] } } },
-          "then": { "propertyNames": { "enum": ["id", "title", "description", "type", "default", "pathKind"] } }
+          "then": {
+            "propertyNames": {
+              "enum": ["id", "title", "description", "type", "default", "pathKind"]
+            }
+          }
         },
         {
           "if": { "properties": { "type": { "enum": ["array", "object"] } } },
-          "then": { "propertyNames": { "enum": ["id", "title", "description", "type", "default", "schema", "maxLength"] } }
+          "then": {
+            "propertyNames": {
+              "enum": ["id", "title", "description", "type", "default", "schema", "maxLength"]
+            }
+          }
         }
       ]
     }

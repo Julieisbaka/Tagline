@@ -411,6 +411,27 @@ body.resizing-panels * {
   overflow: auto;
 }
 
+.note-edit-pane {
+  height: 100%;
+}
+
+.note-body.split-view {
+  display: flex;
+  overflow: hidden;
+}
+
+.split-view .note-edit-pane,
+.split-view .note-preview-pane {
+  flex: 1 1 0;
+  min-width: 0;
+  height: 100%;
+  overflow: auto;
+}
+
+.split-view .note-preview-pane {
+  border-left: 1px solid var(--border);
+}
+
 .note-body .editor {
   height: 100%;
 }

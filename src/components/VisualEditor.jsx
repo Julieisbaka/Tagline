@@ -1,4 +1,5 @@
 import { EditorContent, useEditor, useEditorState } from '@tiptap/react';
+import { Fragment, Slice } from '@tiptap/pm/model';
 import { TextSelection } from '@tiptap/pm/state';
 import { memo, useEffect, useMemo, useRef, useState } from 'react';
 import { splitFrontmatter } from '../lib/frontmatter.js';
@@ -6,6 +7,7 @@ import { useI18n } from '../lib/i18n.js';
 import { binding, KEYBINDINGS, matchesBinding } from '../lib/keybindings.js';
 import { slugify } from '../lib/markdown.js';
 import { draggedNoteLink, draggedNotePath, hasNoteDrag } from '../lib/noteDrag.js';
+import { isCardLead } from '../lib/smartPaste.js';
 import { cachedDocument, cacheDocument } from '../lib/visualCache.js';
 import { setVisualDiagnostics, visualExtensions } from '../lib/visualExtensions.js';
 import { visualSelection } from '../lib/visualHelpers.js';
@@ -111,6 +113,32 @@ function VisualDocument({
         role: 'textbox',
         'aria-multiline': 'true',
         'aria-label': t('Visual note editor'),
+      },
+      transformPasted(slice) {
+        const nodes = [];
+        slice.content.forEach((node) => nodes.push(node));
+        if (
+          nodes.length < 3 ||
+          nodes[0].type.name !== 'paragraph' ||
+          nodes[1].type.name !== 'paragraph' ||
+          !isCardLead(
+            nodes[0].textContent,
+            nodes[1].textContent,
+            nodes
+              .slice(2)
+              .map((node) => node.textContent)
+              .join('\n')
+          )
+        ) {
+          return slice;
+        }
+        const schema = nodes[0].type.schema;
+        nodes[0] = schema.nodes.heading.create({ level: 4 }, nodes[0].content);
+        const bold = schema.marks.bold.create();
+        const citation = [];
+        nodes[1].content.forEach((node) => citation.push(node.mark(bold.addToSet(node.marks))));
+        nodes[1] = nodes[1].copy(Fragment.fromArray(citation));
+        return new Slice(Fragment.fromArray(nodes), 0, slice.openEnd);
       },
       handleDOMEvents: {
         dragover(_view, event) {
