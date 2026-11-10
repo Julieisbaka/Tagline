@@ -22,3 +22,10 @@ test('citesExtract and health report', async () => {
   assert.match(report, /## a\.md/);
   assert.match(report, /<https:\/\/x\.test\/a> \(404\)/);
 });
+
+test('citesExtract does not reintroduce HTML comment openers while stripping comments', async () => {
+  const { scanCards, citesExtract } = await import('../src/lib/evidenceCheckup.js');
+  const files = { 'a.md': '#### Card\n<!<!-- nested -->--\n\nBody.\n' };
+  const extract = citesExtract(files, scanCards(files));
+  assert.doesNotMatch(extract, /<!--/);
+});
