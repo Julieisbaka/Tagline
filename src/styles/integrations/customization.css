@@ -211,6 +211,13 @@
   color: var(--text-muted);
 }
 
+.extension-settings-form > label {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
 .settings .theme-file-input {
   max-width: 250px;
   font-size: 11px;

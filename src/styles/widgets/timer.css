@@ -60,8 +60,8 @@
 }
 
 .timer-auto-start {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) max-content;
+  display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 8px 12px;
   padding: 8px;
@@ -72,11 +72,9 @@
 .timer-auto-start label {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: 6px;
-}
-
-.timer-auto-start > button {
-  justify-self: start;
+  min-width: 0;
 }
 
 .timer-auto-start input {
@@ -84,7 +82,7 @@
 }
 
 .timer-auto-start p {
-  grid-column: 1 / -1;
+  flex: 1 0 100%;
   margin: 0;
   font-size: 12px;
 }
@@ -178,10 +176,7 @@
 
 @media (max-width: 480px) {
   .timer-auto-start {
-    grid-template-columns: 1fr;
-  }
-
-  .timer-auto-start p {
-    grid-column: auto;
+    flex-direction: column;
+    align-items: flex-start;
   }
 }
