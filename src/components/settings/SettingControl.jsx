@@ -1,7 +1,9 @@
 export default function SettingControl({ setting, value, onChange, extensionId, ...attributes }) {
   const description = (text) => {
     const match = /\[([^\]]{1,100})\]\((https?:\/\/[^\s)]+)\)/.exec(text);
-    if (!match) {return text;}
+    if (!match) {
+      return text;
+    }
     return (
       <>
         {text.slice(0, match.index)}
@@ -54,7 +56,9 @@ export default function SettingControl({ setting, value, onChange, extensionId, 
                   extensionId,
                   setting.pathKind || 'file'
                 );
-                if (result) {onChange(result);}
+                if (result) {
+                  onChange(result);
+                }
               } catch {
                 onChange(value);
               }

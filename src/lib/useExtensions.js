@@ -48,9 +48,13 @@ export function useExtensions({ bridgeRef, notify }) {
   useEffect(() => {
     const activateQuickFix = (event) => {
       const target = event.target.closest?.('[data-extension-command][data-extension-id]');
-      if (!target) {return;}
+      if (!target) {
+        return;
+      }
       const host = hosts.current.get(target.dataset.extensionId);
-      if (!host) {return;}
+      if (!host) {
+        return;
+      }
       event.preventDefault();
       try {
         host.require('editor');

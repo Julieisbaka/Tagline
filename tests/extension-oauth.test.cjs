@@ -35,7 +35,9 @@ test('extension OAuth uses an ephemeral loopback redirect and validates state', 
       assert.equal(await get(`${redirect.href}?state=wrong&code=nope`), 400);
       badStateStatus = 400;
       assert.equal(
-        await get(`${redirect.href}?state=${encodeURIComponent(authorization.searchParams.get('state'))}&code=abc&scope=profile`),
+        await get(
+          `${redirect.href}?state=${encodeURIComponent(authorization.searchParams.get('state'))}&code=abc&scope=profile`
+        ),
         200
       );
     },
@@ -59,18 +61,24 @@ test('extension OAuth rejects unapproved destinations and caller-supplied state'
     /HTTPS/
   );
   assert.throws(
-    () => beginExtensionAuthorization({ ...common, address: 'https://other.example.com/authorize' }),
+    () =>
+      beginExtensionAuthorization({ ...common, address: 'https://other.example.com/authorize' }),
     /exact host/
   );
   assert.throws(
-    () => beginExtensionAuthorization({ ...common, address: 'https://auth.example.com/authorize?state=mine' }),
+    () =>
+      beginExtensionAuthorization({
+        ...common,
+        address: 'https://auth.example.com/authorize?state=mine',
+      }),
     /generates them/
   );
   assert.throws(
     () =>
-      beginExtensionAuthorization(
-        { ...common, address: 'https://auth.example.com/authorize?code_challenge=abc&code_challenge_method=S256' }
-      ),
+      beginExtensionAuthorization({
+        ...common,
+        address: 'https://auth.example.com/authorize?code_challenge=abc&code_challenge_method=S256',
+      }),
     /generates them/
   );
 });

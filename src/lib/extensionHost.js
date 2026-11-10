@@ -237,8 +237,9 @@ export class ExtensionHost {
       case 'editor.setDiagnostics': {
         this.require('editor');
         const diagnostics = args[0];
-        if (!Array.isArray(diagnostics) || diagnostics.length > 200)
-          {throw new Error('Diagnostics must be a list of at most 200 ranges.');}
+        if (!Array.isArray(diagnostics) || diagnostics.length > 200) {
+          throw new Error('Diagnostics must be a list of at most 200 ranges.');
+        }
         const commands = new Set((this.manifest.contributes?.commands || []).map(({ id }) => id));
         const checked = diagnostics.map((item) => {
           if (
@@ -251,17 +252,20 @@ export class ExtensionHost {
             typeof item.message !== 'string' ||
             item.message.length > 500 ||
             !['error', 'warning', 'info'].includes(item.severity || 'info')
-          )
-            {throw new Error('Invalid editor diagnostic.');}
-          if (JSON.stringify(item).length > 4096)
-            {throw new Error('Editor diagnostic exceeds the size limit.');}
+          ) {
+            throw new Error('Invalid editor diagnostic.');
+          }
+          if (JSON.stringify(item).length > 4096) {
+            throw new Error('Editor diagnostic exceeds the size limit.');
+          }
           if (
             item.quickFix &&
             (typeof item.quickFix.title !== 'string' ||
               item.quickFix.title.length > 80 ||
               !commands.has(item.quickFix.command))
-          )
-            {throw new Error('Quick fixes must reference a declared command.');}
+          ) {
+            throw new Error('Quick fixes must reference a declared command.');
+          }
           return {
             from: item.from,
             to: item.to,
@@ -303,7 +307,9 @@ export class ExtensionHost {
             options.cols > 20 ||
             typeof options.withHeaderRow !== 'boolean'
           ) {
-            throw new Error('Table options require 1–20 rows and columns and a header-row boolean.');
+            throw new Error(
+              'Table options require 1–20 rows and columns and a header-row boolean.'
+            );
           }
         } else if (options !== undefined) {
           throw new Error('This command does not accept options.');
@@ -697,7 +703,10 @@ export class ExtensionHost {
       case 'storage.set': {
         const key = requireText(args[0], 'Key', 200);
         const valueText = JSON.stringify(args[1]);
-        if (valueText !== undefined && new TextEncoder().encode(valueText).byteLength > this.limits.extensionStorageCharacters) {
+        if (
+          valueText !== undefined &&
+          new TextEncoder().encode(valueText).byteLength > this.limits.extensionStorageCharacters
+        ) {
           throw new Error('Extension storage exceeds the configured limit.');
         }
         return (this.storageWrites = this.storageWrites
@@ -709,7 +718,9 @@ export class ExtensionHost {
               delete next[key];
             }
             const text = JSON.stringify(next);
-            if (new TextEncoder().encode(text).byteLength > this.limits.extensionStorageCharacters) {
+            if (
+              new TextEncoder().encode(text).byteLength > this.limits.extensionStorageCharacters
+            ) {
               throw new Error('Extension storage exceeds the configured limit.');
             }
             await this.bridge.extensionStorage(this.manifest.id, 'set', key, args[1]);
@@ -737,7 +748,9 @@ export class ExtensionHost {
             const parsed = JSON.parse(legacy);
             if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
               const text = JSON.stringify(parsed);
-              if (new TextEncoder().encode(text).byteLength <= this.limits.extensionStorageCharacters) {
+              if (
+                new TextEncoder().encode(text).byteLength <= this.limits.extensionStorageCharacters
+              ) {
                 await this.bridge.extensionStorage(this.manifest.id, 'replace', null, parsed);
                 data = parsed;
               }

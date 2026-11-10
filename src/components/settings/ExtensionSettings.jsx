@@ -103,8 +103,9 @@ function ExtensionSettingsForm({ item, extensions }) {
         );
         extensions.setSettings(item, next);
         for (const setting of item.contributes.settings.filter(({ type }) => type === 'secret')) {
-          if (values[setting.id])
-            {await window.api.extensionSecret(item.id, 'set', setting.id, values[setting.id]);}
+          if (values[setting.id]) {
+            await window.api.extensionSecret(item.id, 'set', setting.id, values[setting.id]);
+          }
         }
       }
       setError('');

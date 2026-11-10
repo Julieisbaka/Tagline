@@ -122,7 +122,10 @@ test('network request validation bounds destinations, methods, headers and bodie
     ).body,
     'x'
   );
-  assert.equal(validateNetworkRequest(['api.example.com'], 'https://api.example.com').timeoutMs, 30000);
+  assert.equal(
+    validateNetworkRequest(['api.example.com'], 'https://api.example.com').timeoutMs,
+    30000
+  );
 });
 
 test('network requests use the public DNS guard and return bounded response data', async () => {

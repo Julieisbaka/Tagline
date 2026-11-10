@@ -4,7 +4,12 @@ const { validateNetworkRequest } = require('../extensionNetwork.cjs');
 
 const MAX_TIMEOUT_MS = 5 * 60_000;
 
-function beginExtensionAuthorization({ address, networkHosts, timeoutMs = MAX_TIMEOUT_MS, openExternal }) {
+function beginExtensionAuthorization({
+  address,
+  networkHosts,
+  timeoutMs = MAX_TIMEOUT_MS,
+  openExternal,
+}) {
   if (!Number.isInteger(timeoutMs) || timeoutMs < 1000 || timeoutMs > MAX_TIMEOUT_MS) {
     throw new Error(`OAuth timeout must be from 1000 to ${MAX_TIMEOUT_MS} ms.`);
   }

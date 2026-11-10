@@ -21,10 +21,14 @@ export function setUiSoundSettings(value) {
  * @returns {void}
  */
 export function playUiSound(kind) {
-  if (!enabled) {return;}
+  if (!enabled) {
+    return;
+  }
   try {
     context ||= new AudioContext();
-    if (context.state === 'suspended') {context.resume();}
+    if (context.state === 'suspended') {
+      context.resume();
+    }
     const now = context.currentTime;
     const oscillator = context.createOscillator();
     const gain = context.createGain();

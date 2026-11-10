@@ -225,10 +225,7 @@ test('extension capabilities validate selection, command, helper, event and UI c
     'insertTable',
     { rows: 3, cols: 2, withHeaderRow: true },
   ]);
-  assert.deepEqual(calls.at(-1), [
-    'insertTable',
-    { rows: 3, cols: 2, withHeaderRow: true },
-  ]);
+  assert.deepEqual(calls.at(-1), ['insertTable', { rows: 3, cols: 2, withHeaderRow: true }]);
   assert.equal(await host.handle('network.cancelAuthorization', []), true);
   assert.equal(calls.at(-1), manifest.id);
   await assert.rejects(host.handle('editor.runTiptapCommand', ['setContent']), /Unsupported/);
