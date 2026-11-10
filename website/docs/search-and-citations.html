@@ -5,7 +5,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="description"
-    content="Find research in a Tagline vault, enable local semantic search, and create source-aware Markdown citations.">
+    content="Search your vault and scholarly metadata, cut evidence cards, and create source-aware Markdown citations.">
   <meta name="theme-color" content="#ffffff">
   <title>Search &amp; citations — Tagline</title>
   <link rel="icon" href="../favicon.svg" type="image/svg+xml">
@@ -34,8 +34,8 @@
     <div class="docs-hero">
       <p class="eyebrow"><span class="eyebrow-mark" aria-hidden="true">02</span> Search &amp; citations</p>
       <h1>Find the source. Keep the trail.</h1>
-      <p>Search across a vault, optionally add meaning-based results with a local model, and turn source details into
-        citations you can reuse.</p>
+      <p>Search your vault or scholarly metadata, optionally add local meaning-based results, and turn source details
+        into citations you can reuse.</p>
     </div>
 
     <div class="docs-shell">
@@ -62,6 +62,7 @@
           <span>On this page</span>
           <a href="#vault-search">Search your vault</a>
           <a href="#semantic-search">Add semantic search</a>
+          <a href="#scholarly-search">Search scholarly works</a>
           <a href="#create-citation">Create a citation</a>
           <a href="#local-tools">Local research tools</a>
         </nav>
@@ -97,8 +98,30 @@
           <p>Semantic search complements keyword search; verify a result in its note before treating it as evidence.</p>
         </section>
 
+        <section id="scholarly-search">
+          <p class="article-kicker">03 / Find scholarly sources</p>
+          <h2>Search scholarly works and cut a card</h2>
+          <ol class="guide-steps">
+            <li><span><strong>Open search</strong><br>Press <kbd>Ctrl+Shift+F</kbd> on Windows/Linux or
+                <kbd>Cmd+Shift+F</kbd> on macOS, then choose <strong>Scholarly (Crossref)</strong> as the search
+                mode.</span></li>
+            <li><span><strong>Find a source</strong><br>Enter a query and press <kbd>Enter</kbd> or choose
+                <strong>Search Crossref</strong>. Open a result's source to review it.</span></li>
+            <li><span><strong>Cut a card</strong><br>Choose <strong>Cut card</strong>, review and complete the prefilled
+                citation, and enter a card tag. Paste an excerpt from the source that you have permission to use.</span>
+            </li>
+            <li><span><strong>Save to the vault</strong><br>Choose <strong>Save card to vault</strong> to create and open
+                a Markdown note containing the tag, citation, and excerpt.</span></li>
+          </ol>
+          <div class="docs-callout">
+            <p><strong>Crossref, not JSTOR.</strong> Search sends your query to Crossref and returns scholarly metadata;
+              it does not search JSTOR directly or provide access to paywalled full text. Some results may be missing
+              citation details, so check the source and fill them in before saving.</p>
+          </div>
+        </section>
+
         <section id="create-citation">
-          <p class="article-kicker">03 / Make a source traceable</p>
+          <p class="article-kicker">04 / Make a source traceable</p>
           <h2>Create a citation</h2>
           <p>Start from a note, the command palette, or the File menu. The command palette includes a citation preview
             before you choose a citation action:</p>
@@ -119,7 +142,7 @@
         </section>
 
         <section id="local-tools">
-          <p class="article-kicker">04 / Optional analysis</p>
+          <p class="article-kicker">05 / Optional analysis</p>
           <h2>Test a claim or summarize a note</h2>
           <p>Tagline includes optional, on-demand local analysis tools:</p>
           <ul>

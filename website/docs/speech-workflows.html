@@ -5,7 +5,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="description"
-    content="Prepare a Tagline speech: configure a speech document, send evidence, estimate speaking time, and organize flows and argument maps.">
+    content="Prepare a Tagline speech with evidence, practice analytics, a floating timer, flows, and argument maps.">
   <meta name="theme-color" content="#ffffff">
   <title>Speech workflows — Tagline</title>
   <link rel="icon" href="../favicon.svg" type="image/svg+xml">
@@ -64,6 +64,8 @@
           <a href="#send-evidence">Send evidence</a>
           <a href="#timing">Estimate speech time</a>
           <a href="#prep-timer">Use the prep timer</a>
+          <a href="#floating-timer">Keep the timer visible</a>
+          <a href="#delivery-analytics">Track filler words</a>
           <a href="#flows">Build a flow</a>
           <a href="#argument-map">Map arguments</a>
         </nav>
@@ -76,7 +78,7 @@
             <li><span><strong>Right-click the Markdown file</strong> in the file explorer.</span></li>
             <li><span>Choose <strong>Set as speech doc</strong>. Tagline adds <code>speech: true</code> to its YAML
                 frontmatter without discarding other metadata.</span></li>
-            <li><span>Choose the active destination under <strong>Settings &gt; General &gt; Active speech
+            <li><span>Choose the active destination under <strong>Settings &gt; Speech and reading &gt; Active speech
                   document</strong>.</span></li>
           </ol>
           <pre><code class="language-yaml">---
@@ -108,7 +110,7 @@ speech: true
           <p>Tagline estimates speaking time from highlighted evidence and citations in a speech document. Personal
             speech calibration can tune the estimate to your own pace:</p>
           <ol>
-            <li>Open <strong>Settings &gt; General</strong>.</li>
+            <li>Open <strong>Settings &gt; Speech and reading</strong>.</li>
             <li>Open personal speech calibration.</li>
             <li>Use your timed speech samples to adjust the estimate, then compare it with a real practice run.</li>
           </ol>
@@ -128,8 +130,46 @@ speech: true
             formats are policy debate presets; check tournament rules if your round uses different times.</p>
         </section>
 
+        <section id="floating-timer">
+          <p class="article-kicker">05 / Keep time in view</p>
+          <h2>Show the timer above other windows</h2>
+          <ol>
+            <li>Open <strong>Settings &gt; Speech and reading</strong>.</li>
+            <li>Under <strong>Floating timer</strong>, enable <strong>Show timer above other windows</strong>. This is off
+              by default.</li>
+            <li>Open the <strong>Timer</strong> tab in the right sidebar. Start a speech or prep timer, or choose
+              <strong>Arm automatic start</strong>. Drag the floating timer where it is easy to see while reading in
+              your browser.</li>
+          </ol>
+          <p>The floating timer remains visible when Tagline is in the background or minimized. It hides when no timer
+            is running or armed, or when the setting is disabled. Some fullscreen apps may cover it.</p>
+        </section>
+
+        <section id="delivery-analytics">
+          <p class="article-kicker">06 / Review practice</p>
+          <h2>Track filler words over a season</h2>
+          <ol class="guide-steps">
+            <li><span><strong>Open delivery analytics</strong><br>Open the command palette with <kbd>Ctrl+P</kbd> on
+                Windows/Linux or <kbd>Cmd+P</kbd> on macOS, then choose <strong>Delivery analytics: analyze a
+                  transcript</strong>.</span></li>
+            <li><span><strong>Analyze a practice transcript</strong><br>Paste the transcript and optionally enter its
+                measured duration in seconds to calculate words per minute.</span></li>
+            <li><span><strong>Save a practice</strong><br>Enter a season, speech name, and date, then choose
+                <strong>Save speech statistics</strong>. Use the same season name for each practice.</span></li>
+            <li><span><strong>Compare practices</strong><br>Enter the season to see saved counts and filler words per
+                100 words in date order. Select <strong>Show only the entered speech</strong> to filter by speech name;
+                use <strong>Delete</strong> to remove a saved record.</span></li>
+          </ol>
+          <div class="docs-callout">
+            <p><strong>Estimates, not transcription.</strong> Counts include English hesitation words such as “um” and
+              “uh”, plus “like” and “so yeah”. “Like” can be meaningful, and transcription errors can affect results.
+              Tagline does not record or transcribe audio here. Saved statistics stay in the local app profile, not the
+              vault; the transcript is not saved.</p>
+          </div>
+        </section>
+
         <section id="flows">
-          <p class="article-kicker">05 / Track arguments</p>
+          <p class="article-kicker">07 / Track arguments</p>
           <h2>Build a speech flow</h2>
           <p>A <code>.flow</code> file is a multi-sheet speech grid. Move between cells and add rows with keyboard
             shortcuts:</p>
@@ -143,7 +183,7 @@ speech: true
         </section>
 
         <section id="argument-map">
-          <p class="article-kicker">06 / See the argument structure</p>
+          <p class="article-kicker">08 / See the argument structure</p>
           <h2>Connect an argument map</h2>
           <p>Open a <code>.canvas</code> file and add the nodes you want to connect. Choose whether a relationship is
             <strong>supporting</strong>, <strong>answering</strong>, or <strong>contradicting</strong>, choose
