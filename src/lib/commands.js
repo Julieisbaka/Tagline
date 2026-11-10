@@ -74,6 +74,7 @@ export function buildCommands(ctx, overrides = {}) {
       ),
       c('send-card', 'Send card under cursor to speech doc', ctx.sendCard, 'Ctrl+Shift+S'),
       c('insert-template', 'Insert template at cursor', ctx.insertTemplate),
+      c('apply-template', 'Apply template to current note', ctx.applyTemplate),
       c('set-speech', 'Speech doc: use current file as speech doc', ctx.setCurrentAsSpeechDoc),
       c('rename', 'Rename current file', ctx.renameCurrent),
       c('delete', 'Delete current file', ctx.deleteCurrent),
@@ -87,6 +88,7 @@ export function buildCommands(ctx, overrides = {}) {
     'highlight-only',
     'send-card',
     'insert-template',
+    'apply-template',
     'set-speech',
   ];
   const available = list.filter((item) => ctx.isMarkdown || !markdownOnly.includes(item.id));

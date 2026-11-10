@@ -3,7 +3,21 @@ import { formatDuration } from '../lib/card.js';
 import { remainingAt } from '../lib/countdown.js';
 import { useI18n } from '../lib/i18n.js';
 import { speechLike } from '../lib/voiceActivity.js';
+import { playUiSound } from '../lib/uiSounds.js';
 import TimerPresetDialog from './dialogs/TimerPresetDialog.jsx';
+
+const ARM_GRACE_MS = 400;
+const METER_FULL_SCALE = 0.3;
+
+function micErrorMessage(error, t) {
+  if (error?.name === 'NotAllowedError' || error?.name === 'SecurityError') {
+    return t('Microphone access was denied. Allow it in system settings, then arm again.');
+  }
+  if (error?.name === 'NotFoundError' || error?.name === 'OverconstrainedError') {
+    return t('No microphone was found. Connect one, then arm again.');
+  }
+  return t('Microphone unavailable: {error}', { error: error?.message ?? String(error) });
+}
 
 export const FORMATS = {
   highschool: {
@@ -129,6 +143,8 @@ export default function Timer({
   onAddPreset,
   timerSoundEnabled = false,
   timerSoundName = '',
+  interactionSounds = false,
+  onArmedChange,
 }) {
   const { t } = useI18n();
   const customPresets = Array.isArray(presets)
@@ -181,6 +197,8 @@ export default function Timer({
   const [micStatus, setMicStatus] = useState('idle');
   const [threshold, setThreshold] = useState(4);
   const [micError, setMicError] = useState('');
+  const [micIssue, setMicIssue] = useState(false);
+  const [level, setLevel] = useState(0);
   const microphone = useRef(null);
   const thresholdValue = useRef(threshold);
   thresholdValue.current = threshold;
@@ -201,14 +219,19 @@ export default function Timer({
     releaseMicrophone();
     setArmed(false);
     setMicStatus('idle');
+    setLevel(0);
   };
   useEffect(() => () => releaseMicrophone(), []);
+  useEffect(() => {
+    onArmedChange?.(armed);
+  }, [armed, onArmedChange]);
 
   const arm = async () => {
     if (microphone.current || latest.current.main.running || latest.current.main.remaining <= 0) {
       return;
     }
     setMicError('');
+    setMicIssue(false);
     const session = {};
     microphone.current = session;
     setArmed(true);
@@ -233,6 +256,7 @@ export default function Timer({
         return;
       }
       setMicStatus('listening');
+      const listeningSince = performance.now();
       const waveform = new Float32Array(analyser.fftSize);
       const spectrum = new Float32Array(analyser.frequencyBinCount);
       let voicedSince = 0;
@@ -243,6 +267,11 @@ export default function Timer({
         const now = performance.now();
         analyser.getFloatTimeDomainData(waveform);
         analyser.getFloatFrequencyData(spectrum);
+        setLevel(Math.sqrt(waveform.reduce((sum, value) => sum + value * value, 0) / waveform.length));
+        if (now - listeningSince < ARM_GRACE_MS) {
+          voicedSince = 0;
+          return;
+        }
         if (
           speechLike(waveform, spectrum, session.context.sampleRate, thresholdValue.current / 100)
         ) {
@@ -258,17 +287,35 @@ export default function Timer({
           voicedSince = 0;
         }
       };
-      stream.getAudioTracks()[0]?.addEventListener('ended', () => {
+      const track = stream.getAudioTracks()[0];
+      track?.addEventListener('ended', () => {
         if (microphone.current === session) {
           disarm();
-          setMicError(t('Microphone disconnected.'));
+          setMicIssue(true);
+          setMicError(t('Microphone disconnected or access was revoked.'));
+        }
+      });
+      track?.addEventListener('mute', () => {
+        if (microphone.current === session) {
+          setMicIssue(true);
+          setMicError(t('The system is muting the microphone. Check microphone settings.'));
+        }
+      });
+      track?.addEventListener('unmute', () => {
+        if (microphone.current === session) {
+          setMicIssue(false);
+          setMicError('');
         }
       });
       session.interval = setInterval(sample, 50);
+      if (interactionSounds) {
+        playUiSound('open');
+      }
     } catch (error) {
       if (microphone.current === session) {
         disarm();
-        setMicError(t('Microphone unavailable: {error}', { error: error.message }));
+        setMicIssue(true);
+        setMicError(micErrorMessage(error, t));
       }
     }
   };
@@ -459,7 +506,66 @@ export default function Timer({
                 : 'Automatic start listens only when armed and turns off after starting.'
           )}
         </p>
+        {armed && micStatus === 'listening' && (
+          <div className='mic-meter'>
+            <div
+              role='meter'
+              aria-label={t('Microphone input level')}
+              aria-valuemin={0}
+              aria-valuemax={100}
+              aria-valuenow={Math.round(Math.min(1, level / METER_FULL_SCALE) * 100)}
+              style={{
+                position: 'relative',
+                height: 8,
+                background: 'var(--background-modifier-border, #8884)',
+                borderRadius: 4,
+                overflow: 'hidden',
+              }}
+            >
+              <div
+                style={{
+                  width: `${Math.min(1, level / METER_FULL_SCALE) * 100}%`,
+                  height: '100%',
+                  background: level >= threshold / 100 ? 'var(--text-error, #d33)' : 'var(--text-accent, #48f)',
+                }}
+              />
+              <div
+                style={{
+                  position: 'absolute',
+                  top: 0,
+                  bottom: 0,
+                  left: `${Math.min(1, threshold / 100 / METER_FULL_SCALE) * 100}%`,
+                  width: 2,
+                  background: 'currentColor',
+                }}
+              />
+            </div>
+            <small>
+              {level >= threshold / 100
+                ? t('Above threshold: speaking will start the timer.')
+                : level < threshold / 100 / 4
+                  ? t('Too quiet: speak louder or lower the threshold.')
+                  : t('Below threshold.')}
+            </small>
+          </div>
+        )}
         {micError && <p role='alert'>{micError}</p>}
+        {micIssue && (
+          <button
+            type='button'
+            onClick={() =>
+              Promise.resolve(window.api.openMicrophoneSettings?.())
+                .then((opened) => {
+                  if (opened === false) {
+                    setMicError(t('Open your system sound or privacy settings to allow the microphone.'));
+                  }
+                })
+                .catch((error) => setMicError(error.message))
+            }
+          >
+            {t('Microphone settings')}
+          </button>
+        )}
       </div>
 
       <h4>{t('Prep time')}</h4>

@@ -13,6 +13,7 @@ import {
 } from './extensionCapabilities.js';
 import { getExtensionSetting, setExtensionSettings } from './extensionSettings.js';
 import { KEYBINDINGS, reservedBinding, validBinding } from './keybindings.js';
+import { templateFolderName, templatePaths } from './template.js';
 
 const SANDBOX_URL = 'extension-sandbox.html';
 const MAX_TEXT = 5_000_000;
@@ -627,6 +628,22 @@ export class ExtensionHost {
       case 'editor.unwatchActiveNote': {
         this.activeNoteWatches.get(args[0])?.();
         return this.activeNoteWatches.delete(args[0]);
+      }
+      case 'helpers.templates.list': {
+        this.require('vault:read');
+        const folder =
+          args[0] === undefined
+            ? templateFolderName(JSON.parse(localStorage.getItem('tagline-settings') || '{}'))
+            : requireText(args[0], 'Folder', 1000).replace(/^\/+|\/+$/g, '');
+        return templatePaths(await b.list(), folder);
+      }
+      case 'helpers.templates.read': {
+        this.require('vault:read');
+        const path = requireText(args[0], 'Path', 1000);
+        if (!/\.md$/i.test(path)) {
+          throw new Error('Templates must be Markdown files.');
+        }
+        return b.read(path);
       }
       case 'vault.list':
         this.require('vault:read');

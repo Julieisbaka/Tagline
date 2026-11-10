@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useRef } from 'react';
 import { EditorSelection } from '@codemirror/state';
 import { buildCommands, fillTemplate } from '../lib/commands.js';
-import { templateBody } from '../lib/template.js';
+import { templateBody, extractCursor } from '../lib/template.js';
+import { folderPaths } from '../lib/folderPaths.js';
 import { getSectionAt } from '../lib/card.js';
 import { defaultEditorMode } from '../lib/editorModes.js';
-import { markSpeechDocument } from '../lib/frontmatter.js';
+import { markSpeechDocument, mergeFrontmatter, splitFrontmatter } from '../lib/frontmatter.js';
 import { binding, displayBinding, KEYBINDINGS, matchesBinding } from '../lib/keybindings.js';
 import { slugify } from '../lib/markdown.js';
 import { standardizeAll } from '../lib/standardizeFormatting.js';
@@ -89,10 +90,81 @@ export function useAppCommandContext({
     newFromTemplate: () =>
       pickTemplate((tp) =>
         prompt(t('Name for the new note'), baseName(tp), (name) => {
-          const path = `${name.replace(/[\\/:*?"<>|]/g, '-')}.md`;
-          return createAndOpen(path, fillTemplate(v.contents[tp] || '', name, { path }));
+          const file = `${name.replace(/[\\/:*?"<>|]/g, '-')}.md`;
+          const create = (folder) => {
+            const path = folder ? `${folder}/${file}` : file;
+            return createAndOpen(path, fillTemplate(v.contents[tp] || '', name, { path }));
+          };
+          const folders = folderPaths(v.tree || []);
+          if (!folders.length) {
+            return create('');
+          }
+          return setModal({
+            type: 'palette',
+            placeholder: t('Choose a folder…'),
+            items: [
+              { id: '', label: t('Vault root'), path: '' },
+              ...folders.map((p) => ({ id: p, label: p, path: p })),
+            ],
+            onSelect: (it) => create(it.path),
+          });
         })
       ),
+    applyTemplate: () => {
+      if (!activePath || !isMarkdown(activePath) || mode === 'read') {
+        return notify(t('Switch to an editing mode to apply a template'));
+      }
+      return pickTemplate((tp) =>
+        setModal({
+          type: 'palette',
+          placeholder: t('How should the template body be applied?'),
+          items: [
+            { id: 'keep', label: t('Merge properties only, keep note body') },
+            { id: 'append', label: t('Merge properties and append template body') },
+            { id: 'replace', label: t('Merge properties and replace note body') },
+          ],
+          onSelect: (choice) => {
+            try {
+              const current = activeContent || '';
+              const filled = fillTemplate(v.contents[tp] || '', baseName(activePath), {
+                path: activePath,
+                content: current,
+                properties: false,
+                cursor: true,
+              });
+              const template = splitFrontmatter(filled);
+              const merged =
+                template.raw === null ? current : mergeFrontmatter(current, template.raw);
+              const target = splitFrontmatter(merged);
+              const body = template.body.replace(/^\r?\n/, '');
+              const joined = {
+                keep: merged,
+                append: `${merged}${merged && !merged.endsWith('\n') ? '\n' : ''}${body}`,
+                replace: `${target.prefix}${target.prefix ? '\n' : ''}${body}`,
+              }[choice.id];
+              const { text, cursor } = extractCursor(joined);
+              const view = editorRef.current;
+              if (mode === 'visual' && !sourceFallback) {
+                v.updateContent(activePath, text);
+                return notify(t('Template applied. Cursor placement needs source mode.'));
+              }
+              if (!view) {
+                return notify(t('Switch to an editing mode to apply a template'));
+              }
+              view.dispatch({
+                changes: { from: 0, to: view.state.doc.length, insert: text },
+                selection: { anchor: cursor >= 0 ? cursor : text.length },
+                scrollIntoView: true,
+              });
+              view.focus();
+            } catch (error) {
+              notify(error.message);
+            }
+            return undefined;
+          },
+        })
+      );
+    },
     insertTemplate: () => {
       if (!activePath || !isMarkdown(activePath) || mode === 'read') {
         return notify(t('Switch to an editing mode to insert a template'));
@@ -102,13 +174,14 @@ export function useAppCommandContext({
         if (hasFrontmatter) {
           notify(
             t(
-              'Template properties (YAML frontmatter) were not inserted. Use “Create new note from template” to keep them.'
+              'Template properties (YAML frontmatter) were not inserted. Use “Apply template to current note” to merge them.'
             )
           );
         }
         const template = fillTemplate(body, baseName(activePath), {
           path: activePath,
           content: activeContent || '',
+          properties: false,
         });
         if (mode === 'visual' && !sourceFallback && visualRef.current) {
           visualRef.current

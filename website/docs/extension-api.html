@@ -926,7 +926,9 @@ const card = await tagline.helpers.cards.getAt(markdown, 0);
 const stats = await tagline.helpers.cards.stats(card.text);
 const timing = await tagline.helpers.speech.estimate(card.text, 250);
 const citation = await tagline.helpers.citations.create({ author: 'Smith', year: '2024' });
-const filled = await tagline.helpers.templates.fill('Case: {{title}}', 'Energy');</code></pre>
+const filled = await tagline.helpers.templates.fill('Case: {{title}} by {{author}}', 'Energy', { vars: { author: 'Kim' } });
+const templatePaths = await tagline.helpers.templates.list();
+const templateText = await tagline.helpers.templates.read(templatePaths[0]);</code></pre>
             <ul>
               <li>
                 <strong>Markdown:</strong> <code>toText</code>, <code>toHtml</code> (sanitized),
@@ -1051,12 +1053,18 @@ const filled = await tagline.helpers.templates.fill('Case: {{title}}', 'Energy')
             </div>
             <p>
               <code>templates.fill(template, title, context)</code> recognizes
-              <code>{{date}}</code>, <code>{{time}}</code>, <code>{{title}}</code>,
+              <code>{{date}}</code>, <code>{{time}}</code> (both local time, with optional formats such as
+              <code>{{date:dddd, MMMM D}}</code> or <code>{{time:hh:mm A}}</code>), <code>{{title}}</code>,
               <code>{{path}}</code>, <code>{{content}}</code>, and <code>{{properties}}</code>. Pass
               a target vault-relative path and full Markdown content in <code>context</code>;
               content expands to the body without frontmatter and properties to the original YAML
-              without delimiter lines. Values substitute literally in one pass, omitted values
+              without delimiter lines. Pass <code>context.vars</code>, an object of string values (at most 100),
+              to fill custom placeholders such as <code>{{author}}</code>; built-in names cannot be overridden.
+              Values substitute literally in one pass, omitted values
               become empty strings, and unknown placeholders remain unchanged.
+              <code>templates.list(folder?)</code> returns Markdown template paths from the configured template
+              folder (or <code>folder</code>), and <code>templates.read(path)</code> returns a template's text; both
+              require the <code>vault:read</code> permission.
             </p>
             <p>
               Additional bounds include 10,000 supplied paths for link resolution; 10,000 document

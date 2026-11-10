@@ -137,6 +137,7 @@ function Tags({ index, onTagClick }) {
 export default function RightPanel(props) {
   const { t } = useI18n();
   const [tab, setTab] = useState('backlinks');
+  const [timerArmed, setTimerArmed] = useState(false);
   return (
     <aside className='right-panel'>
       <div className='panel-tabs'>
@@ -144,11 +145,27 @@ export default function RightPanel(props) {
           <button
             key={id}
             className={`icon-btn${tab === id ? ' active' : ''}`}
-            title={t(title)}
-            aria-label={t(title)}
+            title={id === 'timer' && timerArmed ? t('Timer (microphone armed)') : t(title)}
+            aria-label={id === 'timer' && timerArmed ? t('Timer (microphone armed)') : t(title)}
             onClick={() => setTab(id)}
+            style={id === 'timer' && timerArmed ? { position: 'relative' } : undefined}
           >
             <Icon name={icon} />
+            {id === 'timer' && timerArmed && (
+              <span
+                className='armed-dot'
+                aria-hidden='true'
+                style={{
+                  position: 'absolute',
+                  top: 2,
+                  right: 2,
+                  width: 8,
+                  height: 8,
+                  borderRadius: '50%',
+                  background: 'var(--text-error, #d33)',
+                }}
+              />
+            )}
           </button>
         ))}
       </div>
@@ -181,6 +198,8 @@ export default function RightPanel(props) {
             }
             timerSoundEnabled={props.settings.timerSoundEnabled}
             timerSoundName={props.settings.timerSoundName}
+            interactionSounds={props.settings.interactionSounds}
+            onArmedChange={setTimerArmed}
           />
         </div>
       </div>

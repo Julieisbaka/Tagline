@@ -8,6 +8,7 @@ import { containsEvidence, getSectionAt } from './lib/card.js';
 import { defaultEditorMode } from './lib/editorModes.js';
 import { markSpeechDocument, speechDocumentPaths } from './lib/frontmatter.js';
 import { useI18n } from './lib/i18n.js';
+import { templateFolderName, templatePaths } from './lib/template.js';
 import { KeybindingsContext } from './lib/keybindingContext.js';
 import { setUiSoundSettings, playUiSound } from './lib/uiSounds.js';
 import { useSettings } from './lib/settings.js';
@@ -324,10 +325,8 @@ export default function App() {
     ]
   );
 
-  const templateFolder = (settings.templateFolder || 'Templates').replace(/^\/+|\/+$/g, '');
-  const templates = paths.filter(
-    (p) => p.toLowerCase().startsWith(`${templateFolder.toLowerCase()}/`) && isMarkdown(p)
-  );
+  const templateFolder = templateFolderName(settings);
+  const templates = templatePaths(paths, templateFolder);
   const pickTemplate = (onPick) => {
     if (!templates.length) {
       return notify(

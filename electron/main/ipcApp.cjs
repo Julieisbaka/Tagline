@@ -124,6 +124,17 @@ function registerAppIpc(
     }
     return shell.openExternal(page === 'repository' ? REPOSITORY_URL : RELEASES_URL);
   });
+  ipcMain.handle('app:openMicrophoneSettings', (event) => {
+    assertModelSender(event, 'Opening microphone settings');
+    const url = {
+      win32: 'ms-settings:privacy-microphone',
+      darwin: 'x-apple.systempreferences:com.apple.preference.security?Privacy_Microphone',
+    }[process.platform];
+    if (!url) {
+      return false;
+    }
+    return shell.openExternal(url).then(() => true);
+  });
   ipcMain.handle('app:uninstall', async (event, removeProfile) => {
     assertModelSender(event, 'Uninstalling');
     const result = await uninstallApplication({ app, shell, removeProfile });

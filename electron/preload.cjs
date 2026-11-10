@@ -40,6 +40,7 @@ contextBridge.exposeInMainWorld('api', {
     return () => ipcRenderer.removeListener('app:updateState', listener);
   },
   openProjectPage: (page) => ipcRenderer.invoke('app:openProjectPage', page),
+  openMicrophoneSettings: () => ipcRenderer.invoke('app:openMicrophoneSettings'),
   uninstallApp: (removeProfile) => ipcRenderer.invoke('app:uninstall', removeProfile),
   googleDocs: {
     status: () => ipcRenderer.invoke('googleDocs:status'),

@@ -417,6 +417,17 @@ export function extensionHelper(method, args) {
       if (!context || typeof context !== 'object' || Array.isArray(context)) {
         throw new Error('Template context must be an object.');
       }
+      const vars = context.vars === undefined ? {} : context.vars;
+      if (!vars || typeof vars !== 'object' || Array.isArray(vars)) {
+        throw new Error('Template vars must be an object of strings.');
+      }
+      const entries = Object.entries(vars);
+      if (entries.length > 100) {
+        throw new Error('Template vars can have at most 100 entries.');
+      }
+      for (const [name, value] of entries) {
+        requireHelperText(value, `Template var "${name}"`);
+      }
       return fillTemplate(
         requireHelperText(args[0], 'Template'),
         requireHelperText(args[1], 'Title'),
@@ -426,6 +437,7 @@ export function extensionHelper(method, args) {
             context.content === undefined ? '' : context.content,
             'Content'
           ),
+          vars: Object.fromEntries(entries),
         }
       );
     }

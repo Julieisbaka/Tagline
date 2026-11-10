@@ -106,6 +106,30 @@ function updateFrontmatter(content, update) {
 }
 
 /**
+ * Add properties from a YAML mapping to a note's frontmatter; existing keys are kept unless overwrite is set.
+ * @param {string} content
+ * @param {string} raw - YAML without fences.
+ * @param {{overwrite?:boolean}} [options]
+ * @returns {string}
+ */
+export function mergeFrontmatter(content, raw, { overwrite = false } = {}) {
+  const incoming = metadataDocument(raw).toJS({ maxAliasCount: 50 }) || {};
+  const existing = readFrontmatter(content);
+  if (existing.error) {
+    throw new Error(`Invalid YAML frontmatter: ${existing.error}`);
+  }
+  const keys = Object.keys(incoming).filter((key) => overwrite || !(key in existing.data));
+  if (!keys.length) {
+    return content;
+  }
+  return updateFrontmatter(content, (document) => {
+    for (const key of keys) {
+      document.set(key, incoming[key]);
+    }
+  });
+}
+
+/**
  * Return Markdown with speech: true set in YAML frontmatter.
  * @param {string} content
  * @returns {string}

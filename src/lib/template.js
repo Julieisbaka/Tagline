@@ -56,24 +56,66 @@ export function formatDate(date, format) {
  * {{date:FORMAT}} and {{time:FORMAT}} accept custom local-time formats.
  * @param {string} text - The template string containing placeholders to expand.
  * @param {string} title - The title to insert into the template.
- * @param {{path?:string,content?:string}} [context] - The context object containing optional path and content for the template.
+ * @param {{path?:string,content?:string,vars?:Record<string,string>,properties?:boolean,cursor?:boolean}} [context] - path/content of the target note; vars supplies custom {{name}} values; properties=false blanks {{properties}}; cursor=true keeps the {{cursor}} marker.
  * @returns {string} - The resulting string with all placeholders expanded.
  */
-export function fillTemplate(text, title, { path = '', content = '' } = {}) {
+export function fillTemplate(
+  text,
+  title,
+  { path = '', content = '', vars = {}, properties = true, cursor = false } = {}
+) {
   const now = new Date();
   const metadata = splitFrontmatter(content);
   const values = {
     title,
     path,
     content: metadata.body,
-    properties: metadata.raw ?? '',
+    properties: properties ? (metadata.raw ?? '') : '',
+    cursor: cursor ? '{{cursor}}' : '',
   };
   const defaults = { date: 'YYYY-MM-DD', time: 'HH:mm' };
   return text.replace(
-    /{{(?:(date|time)(?::([^}]*))?|(title|path|content|properties))}}/g,
-    (_match, clock, format, key) =>
-      clock ? formatDate(now, format?.trim() || defaults[clock]) : values[key]
+    /{{(?:(date|time)(?::([^}]*))?|(title|path|content|properties|cursor)|([A-Za-z_][\w-]*))}}/g,
+    (match, clock, format, key, custom) => {
+      if (clock) {
+        return formatDate(now, format?.trim() || defaults[clock]);
+      }
+      if (key) {
+        return values[key];
+      }
+      return Object.hasOwn(vars, custom) ? vars[custom] : match;
+    }
   );
+}
+
+/**
+ * Remove the {{cursor}} marker from filled text and report its offset (-1 when absent).
+ * @param {string} text
+ * @returns {{text:string,cursor:number}}
+ */
+export function extractCursor(text) {
+  const cursor = text.indexOf('{{cursor}}');
+  return { text: text.replace(/{{cursor}}/g, ''), cursor };
+}
+
+/**
+ * Return the template folder name from settings, without surrounding slashes.
+ * @param {{templateFolder?:string}} [settings]
+ * @returns {string}
+ */
+export function templateFolderName(settings) {
+  return (settings?.templateFolder || 'Templates').replace(/^\/+|\/+$/g, '') || 'Templates';
+}
+
+/**
+ * Filter vault paths down to Markdown templates in the template folder.
+ * @param {string[]} paths
+ * @param {string} folder
+ * @returns {string[]}
+ */
+export function templatePaths(paths, folder) {
+  const prefix = `${folder.toLowerCase()}/`;
+  return paths.filter((p) => p.toLowerCase().startsWith(prefix) && /\.md$/i.test(p)).sort();
 }
 
 /**

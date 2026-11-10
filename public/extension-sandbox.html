@@ -514,8 +514,12 @@
             contrast: (theme) => call('helpers.themes.contrast', theme),
           }),
           templates: Object.freeze({
-            /** Expand date/time/title and target path/body/YAML properties; context is optional {path,content} with full Markdown content. @returns {Promise<string>} */
+            /** Expand date/time (with {{date:FORMAT}}), title, path, content, properties and custom {{name}} placeholders; context is optional {path,content,vars} where vars maps names to strings. @returns {Promise<string>} */
             fill: (template, title, context) => call('helpers.templates.fill', template, title, context),
+            /** List Markdown template paths in the configured template folder, or in the optional folder argument. Requires vault:read. @returns {Promise<string[]>} */
+            list: (folder) => call('helpers.templates.list', folder),
+            /** Read a Markdown template by path. Requires vault:read. @returns {Promise<string>} */
+            read: (path) => call('helpers.templates.read', path),
           }),
           speech: Object.freeze({
             /** Analyze spoken words, syllables and reading effort. @returns {Promise<object>} */

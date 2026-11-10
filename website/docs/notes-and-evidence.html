@@ -163,13 +163,23 @@
         <section id="templates-history">
           <p class="article-kicker">05 / Reuse and protect your work</p>
           <h2>Use templates and revision history</h2>
-          <p>Put reusable Markdown files in a <code>Templates/</code> folder in your vault. When inserting a template,
-            Tagline can replace these placeholders:</p>
+          <p>Put reusable Markdown files in your template folder (<code>Templates/</code> by default; change it under
+            <strong>Settings &gt; General &gt; Templates</strong>). Tagline can replace these placeholders:</p>
           <ul class="placeholder-list">
-            <li><code>{{date}}</code> and <code>{{time}}</code> — current date and time</li>
+            <li><code>{{date}}</code> and <code>{{time}}</code> — current local date and time. Add a format such as
+              <code>{{date:dddd, MMMM D}}</code> or <code>{{time:hh:mm A}}</code>; wrap literal text in
+              <code>[brackets]</code></li>
             <li><code>{{title}}</code> and <code>{{path}}</code> — target note title and vault-relative filename</li>
-            <li><code>{{content}}</code> and <code>{{properties}}</code> — note body and YAML properties</li>
+            <li><code>{{content}}</code> and <code>{{properties}}</code> — note body and raw YAML properties.
+              <code>{{properties}}</code> expands only in <strong>Create new note from template</strong>; it is empty
+              when inserting or applying, so bare YAML never lands in a note body</li>
+            <li><code>{{cursor}}</code> — where the cursor lands after <strong>Apply template to current note</strong></li>
           </ul>
+          <p><strong>Insert template at cursor</strong> inserts only the template body and warns if the template had
+            YAML frontmatter. <strong>Apply template to current note</strong> merges template properties into the note's
+            frontmatter (existing keys are kept) and lets you keep, append, or replace the body.
+            <strong>Create new note from template</strong> keeps the full frontmatter and lets you pick the target
+            folder.</p>
           <p>Revision history is available from the note header and stored in <code>.tagline/history</code> inside the
             vault. Adjust retention under <strong>Settings &gt; Files and folders</strong>. Back up the vault like any
             other important folder.</p>
