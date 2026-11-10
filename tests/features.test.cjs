@@ -93,7 +93,14 @@ test('palette exposes configured workspace actions only in the matching editor',
     const appIds = new Set(
       KEYBINDINGS.filter((item) => item.scope === 'app').map((item) => item.id)
     );
-    const all = buildCommands({ hasNote: true, isMarkdown: true });
+    let formatted = false;
+    const all = buildCommands({
+      hasNote: true,
+      isMarkdown: true,
+      formatMarkup: () => (formatted = true),
+    });
+    all.find((command) => command.id === 'format-markup').run();
+    assert.ok(formatted);
     for (const command of all) {
       assert.ok(appIds.has(command.id), `${command.id} must be configurable`);
     }

@@ -1,10 +1,12 @@
 import { useEffect, useMemo, useRef } from 'react';
+import { EditorSelection } from '@codemirror/state';
 import { buildCommands, fillTemplate } from '../lib/commands.js';
 import { getSectionAt } from '../lib/card.js';
 import { defaultEditorMode } from '../lib/editorModes.js';
 import { markSpeechDocument } from '../lib/frontmatter.js';
 import { binding, displayBinding, KEYBINDINGS, matchesBinding } from '../lib/keybindings.js';
 import { slugify } from '../lib/markdown.js';
+import { standardizeAll } from '../lib/standardizeFormatting.js';
 import { baseName, isCanvas, isFlow, isMarkdown, outline } from '../lib/vault.js';
 import { visualSelection } from '../lib/visualHelpers.js';
 
@@ -115,6 +117,51 @@ export function useAppCommandContext({
         view.focus();
         return undefined;
       });
+    },
+    formatMarkup: () => {
+      if (!activePath || !isMarkdown(activePath)) {
+        return notify(t('Open a Markdown note to format markup.'));
+      }
+      if (mode === 'read') {
+        return notify(t('Switch to an editing mode to format markup.'));
+      }
+      if (mode === 'visual' && !sourceFallback && visualRef.current) {
+        const editor = visualRef.current;
+        if (editor.state.selection.empty) {
+          return notify(t('Select text to format markup.'));
+        }
+        const selected = visualSelection(editor);
+        editor
+          .chain()
+          .focus()
+          .insertContent(standardizeAll(selected), { contentType: 'markdown' })
+          .run();
+        return;
+      }
+      const view = editorRef.current;
+      if ((mode === 'edit' || sourceFallback) && view) {
+        const { state } = view;
+        if (!state.selection.ranges.some((range) => !range.empty)) {
+          return notify(t('Select text to format markup.'));
+        }
+        const transaction = state.changeByRange((range) => {
+          if (range.empty) {
+            return { range };
+          }
+          const text = state.sliceDoc(range.from, range.to);
+          const formatted = standardizeAll(text);
+          return formatted === text
+            ? { range }
+            : {
+                changes: { from: range.from, to: range.to, insert: formatted },
+                range: EditorSelection.range(range.from, range.from + formatted.length),
+              };
+        });
+        view.dispatch(transaction);
+        view.focus();
+        return;
+      }
+      return notify(t('Switch to an editing mode to format markup.'));
     },
     openGraph: tabs.openGraph,
     openSettings: actions.settings,

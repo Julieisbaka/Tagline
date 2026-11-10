@@ -251,6 +251,15 @@
     "markdown": true
   },
   {
+    "id": "format-markup",
+    "label": "Format markup: standardize highlights and bold",
+    "action": "formatMarkup",
+    "scope": "app",
+    "key": "",
+    "note": true,
+    "markdown": true
+  },
+  {
     "id": "insert-template",
     "label": "Insert template at cursor",
     "action": "insertTemplate",
