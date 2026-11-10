@@ -143,6 +143,8 @@ export default function Timer({
   onAddPreset,
   timerSoundEnabled = false,
   timerSoundName = '',
+  timerAutoStartUseSpeechRecognition = false,
+  recognitionLanguage = 'en',
   interactionSounds = false,
   onArmedChange,
 }) {
@@ -212,6 +214,15 @@ export default function Timer({
       return;
     }
     clearInterval(session.interval);
+    if (session.recognition) {
+      session.recognition.onresult = null;
+      session.recognition.onspeechstart = null;
+      session.recognition.onerror = null;
+      session.recognition.onend = null;
+      try {
+        session.recognition.abort();
+      } catch {}
+    }
     session.stream?.getTracks().forEach((track) => track.stop());
     session.context?.close().catch(() => {});
   };
@@ -236,7 +247,98 @@ export default function Timer({
     microphone.current = session;
     setArmed(true);
     setMicStatus('requesting');
+
+    const triggerStart = (offsetMs = 0) => {
+      if (microphone.current !== session) {
+        return;
+      }
+      disarm();
+      latest.current.aff.stop();
+      latest.current.neg.stop();
+      latest.current.main.start(Date.now() - offsetMs);
+    };
+
     try {
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      if (timerAutoStartUseSpeechRecognition) {
+        if (!SpeechRecognition) {
+          throw Object.assign(new Error(t('Web Speech API is not available on this system.')), {
+            name: 'NotSupportedError',
+          });
+        }
+        const recognition = new SpeechRecognition();
+        session.recognition = recognition;
+        recognition.continuous = true;
+        recognition.interimResults = true;
+        recognition.maxAlternatives = 1;
+        if (recognitionLanguage) {
+          recognition.lang = recognitionLanguage;
+        }
+        const listeningSince = performance.now();
+        let triggered = false;
+        const heardSpeech = () => {
+          if (triggered || microphone.current !== session) {
+            return;
+          }
+          if (performance.now() - listeningSince < ARM_GRACE_MS) {
+            return;
+          }
+          triggered = true;
+          triggerStart(0);
+        };
+        recognition.onspeechstart = heardSpeech;
+        recognition.onresult = (event) => {
+          for (let i = event.resultIndex; i < event.results.length; i++) {
+            if (event.results[i]?.[0]?.transcript?.trim()) {
+              heardSpeech();
+              return;
+            }
+          }
+        };
+        recognition.onerror = (event) => {
+          if (microphone.current !== session) {
+            return;
+          }
+          const code = event?.error;
+          // "no-speech" / "aborted" are normal while waiting; keep listening by restarting on end.
+          if (code === 'not-allowed' || code === 'service-not-allowed' || code === 'audio-capture') {
+            disarm();
+            setMicIssue(true);
+            setMicError(
+              code === 'audio-capture'
+                ? t('No microphone was found. Connect one, then arm again.')
+                : t('Microphone access was denied. Allow it in system settings, then arm again.')
+            );
+          } else if (code && code !== 'no-speech' && code !== 'aborted') {
+            setMicIssue(true);
+            setMicError(t('Speech recognition error: {error}', { error: code }));
+          }
+        };
+        recognition.onend = () => {
+          if (microphone.current !== session || triggered) {
+            return;
+          }
+          try {
+            recognition.start();
+          } catch {
+            // ignore restart races while stopping
+          }
+        };
+        recognition.start();
+        if (microphone.current !== session) {
+          return;
+        }
+        if (latest.current.main.running || latest.current.main.remaining <= 0) {
+          disarm();
+          return;
+        }
+        setMicStatus('listening');
+        if (interactionSounds) {
+          playUiSound('open');
+        }
+        return;
+      }
+
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
       if (microphone.current !== session) {
         stream.getTracks().forEach((track) => track.stop());
@@ -282,10 +384,7 @@ export default function Timer({
         if (voiced) {
           voicedSince ||= now;
           if (now - voicedSince >= 650) {
-            disarm();
-            latest.current.aff.stop();
-            latest.current.neg.stop();
-            latest.current.main.start(Date.now() - (now - voicedSince));
+            triggerStart(now - voicedSince);
             return;
           }
         } else {
@@ -491,29 +590,35 @@ export default function Timer({
         >
           {t(armed ? 'Cancel automatic start' : 'Arm automatic start')}
         </button>
-        <label>
-          {t('Microphone volume threshold (%)')}
-          <input
-            type='number'
-            min='1'
-            max='30'
-            value={threshold}
-            disabled={armed}
-            onChange={(event) =>
-              setThreshold(Math.min(30, Math.max(1, Number(event.target.value) || 1)))
-            }
-          />
-        </label>
+        {!timerAutoStartUseSpeechRecognition && (
+          <label>
+            {t('Microphone volume threshold (%)')}
+            <input
+              type='number'
+              min='1'
+              max='30'
+              value={threshold}
+              disabled={armed}
+              onChange={(event) =>
+                setThreshold(Math.min(30, Math.max(1, Number(event.target.value) || 1)))
+              }
+            />
+          </label>
+        )}
         <p role='status'>
           {t(
             micStatus === 'requesting'
               ? 'Connecting to the microphone…'
               : micStatus === 'listening'
-                ? 'Listening once for sustained speech; adapts to ambient noise, but background voices may still trigger.'
-                : 'Automatic start listens only when armed and turns off after starting.'
+                ? timerAutoStartUseSpeechRecognition
+                  ? 'Listening once for speech with Web Speech API; recognition may depend on system/browser services and background voices may still trigger.'
+                  : 'Listening once for sustained speech; adapts to ambient noise, but background voices may still trigger.'
+                : timerAutoStartUseSpeechRecognition
+                  ? 'Automatic start listens only when armed (Web Speech API) and turns off after starting.'
+                  : 'Automatic start listens only when armed and turns off after starting.'
           )}
         </p>
-        {armed && micStatus === 'listening' && (
+        {armed && micStatus === 'listening' && !timerAutoStartUseSpeechRecognition && (
           <div className='mic-meter'>
             <div
               role='meter'
@@ -533,7 +638,8 @@ export default function Timer({
                 style={{
                   width: `${Math.min(1, level / METER_FULL_SCALE) * 100}%`,
                   height: '100%',
-                  background: level >= threshold / 100 ? 'var(--text-error, #d33)' : 'var(--text-accent, #48f)',
+                  background:
+                    level >= threshold / 100 ? 'var(--text-error, #d33)' : 'var(--text-accent, #48f)',
                 }}
               />
               <div

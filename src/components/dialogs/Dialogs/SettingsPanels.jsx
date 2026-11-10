@@ -65,6 +65,23 @@ export default function SettingsPanels({
         </SettingsGroup>
         <ReadingSettings settings={settings} update={update} contents={contents} />
         <TimerSoundSettings settings={settings} update={update} />
+        <SettingsGroup title={t('Timer auto-start')}>
+          <SettingRow
+            label={t('Use Web Speech API for automatic start')}
+            description={t(
+              'Detect speech with your browser speech recognition when automatic start is armed. May require internet access, can be less private, and may be unavailable on some systems. When off, Tagline uses on-device sound detection.'
+            )}
+          >
+            <input
+              type='checkbox'
+              data-setting='timerAutoStartUseSpeechRecognition'
+              checked={!!settings.timerAutoStartUseSpeechRecognition}
+              onChange={(event) =>
+                update({ timerAutoStartUseSpeechRecognition: event.target.checked })
+              }
+            />
+          </SettingRow>
+        </SettingsGroup>
         <TemplateSettings settings={settings} update={update} contents={contents} />
         <p className='settings-help'>
           {t(

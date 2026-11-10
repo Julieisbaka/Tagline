@@ -9,6 +9,7 @@
   "timerPresets": [],
   "timerSoundName": "",
   "timerSoundEnabled": false,
+  "timerAutoStartUseSpeechRecognition": false,
   "interactionSounds": false,
   "readableWidth": true,
   "readableWidthPixels": 820,
