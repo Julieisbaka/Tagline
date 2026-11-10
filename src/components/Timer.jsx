@@ -105,9 +105,9 @@ function useCountdown(initial, onComplete) {
   return {
     remaining,
     running,
-    start: () => {
+    start: (at = Date.now()) => {
       if (deadline.current === null && remaining > 0) {
-        deadline.current = Date.now() + remaining * 1000;
+        deadline.current = at + remaining * 1000;
         setRunning(true);
       }
     },
@@ -144,6 +144,8 @@ export default function Timer({
   timerSoundEnabled = false,
   timerSoundName = '',
   interactionSounds = false,
+  micThreshold = 4,
+  onMicThresholdChange = () => {},
   onArmedChange,
 }) {
   const { t } = useI18n();
@@ -195,13 +197,18 @@ export default function Timer({
   const neg = useCountdown(fmt ? Math.round(fmt.prep * 60) : 0, playEndSound);
   const [armed, setArmed] = useState(false);
   const [micStatus, setMicStatus] = useState('idle');
-  const [threshold, setThreshold] = useState(4);
+  const [threshold, setThreshold] = useState(micThreshold);
   const [micError, setMicError] = useState('');
   const [micIssue, setMicIssue] = useState(false);
   const [level, setLevel] = useState(0);
   const microphone = useRef(null);
   const thresholdValue = useRef(threshold);
   thresholdValue.current = threshold;
+  const updateThreshold = (value) => {
+    const next = Math.min(30, Math.max(1, Number(value) || 1));
+    setThreshold(next);
+    onMicThresholdChange?.(next);
+  };
   const latest = useRef(null);
   latest.current = { main, aff, neg };
 
@@ -280,7 +287,7 @@ export default function Timer({
             disarm();
             latest.current.aff.stop();
             latest.current.neg.stop();
-            latest.current.main.start();
+            latest.current.main.start(Date.now() - (now - voicedSince));
             return;
           }
         } else {
@@ -493,7 +500,7 @@ export default function Timer({
             value={threshold}
             disabled={armed}
             onChange={(event) =>
-              setThreshold(Math.min(30, Math.max(1, Number(event.target.value) || 1)))
+              updateThreshold(Math.min(30, Math.max(1, Number(event.target.value) || 1)))
             }
           />
         </label>

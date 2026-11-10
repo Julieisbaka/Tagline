@@ -269,6 +269,15 @@
     "markdown": true
   },
   {
+    "id": "apply-template",
+    "label": "Apply template to current note",
+    "action": "applyTemplate",
+    "scope": "app",
+    "key": "",
+    "note": true,
+    "markdown": true
+  },
+  {
     "id": "set-speech",
     "label": "Speech doc: use current file as speech doc",
     "action": "setCurrentAsSpeechDoc",

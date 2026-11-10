@@ -199,6 +199,8 @@ export default function RightPanel(props) {
             timerSoundEnabled={props.settings.timerSoundEnabled}
             timerSoundName={props.settings.timerSoundName}
             interactionSounds={props.settings.interactionSounds}
+            micThreshold={props.settings.micThreshold}
+            onMicThresholdChange={(micThreshold) => props.updateSettings({ micThreshold })}
             onArmedChange={setTimerArmed}
           />
         </div>
