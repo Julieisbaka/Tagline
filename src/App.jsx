@@ -324,10 +324,17 @@ export default function App() {
     ]
   );
 
-  const templates = paths.filter((p) => p.toLowerCase().startsWith('templates/') && isMarkdown(p));
+  const templateFolder = (settings.templateFolder || 'Templates').replace(/^\/+|\/+$/g, '');
+  const templates = paths.filter(
+    (p) => p.toLowerCase().startsWith(`${templateFolder.toLowerCase()}/`) && isMarkdown(p)
+  );
   const pickTemplate = (onPick) => {
     if (!templates.length) {
-      return notify(t('Add markdown files to a “Templates” folder to use templates'));
+      return notify(
+        t('Add markdown files to the “{folder}” folder to use templates', {
+          folder: templateFolder,
+        })
+      );
     }
     return setModal({
       type: 'palette',

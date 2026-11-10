@@ -13,6 +13,7 @@ import TournamentLinks from '../../settings/TournamentLinks.jsx';
 import ReadingSettings from '../../settings/ReadingSettings.jsx';
 import RibbonSettings from '../../settings/RibbonSettings.jsx';
 import SettingRow from '../../settings/SettingRow.jsx';
+import TemplateSettings from '../../settings/TemplateSettings.jsx';
 import ThemeSettings from '../../settings/ThemeSettings.jsx';
 import TimerSoundSettings from '../../settings/TimerSoundSettings.jsx';
 
@@ -63,6 +64,7 @@ export default function SettingsPanels({
         </SettingsGroup>
         <ReadingSettings settings={settings} update={update} contents={contents} />
         <TimerSoundSettings settings={settings} update={update} />
+        <TemplateSettings settings={settings} update={update} contents={contents} />
         <p className='settings-help'>
           {t(
             'Speech documents use speech: true in YAML frontmatter. Right-click a Markdown file and choose Set as speech doc to make it active.'

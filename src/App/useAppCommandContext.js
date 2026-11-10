@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef } from 'react';
 import { EditorSelection } from '@codemirror/state';
 import { buildCommands, fillTemplate } from '../lib/commands.js';
+import { templateBody } from '../lib/template.js';
 import { getSectionAt } from '../lib/card.js';
 import { defaultEditorMode } from '../lib/editorModes.js';
 import { markSpeechDocument } from '../lib/frontmatter.js';
@@ -97,7 +98,15 @@ export function useAppCommandContext({
         return notify(t('Switch to an editing mode to insert a template'));
       }
       return pickTemplate((tp) => {
-        const template = fillTemplate(v.contents[tp] || '', baseName(activePath), {
+        const { hasFrontmatter, body } = templateBody(v.contents[tp] || '');
+        if (hasFrontmatter) {
+          notify(
+            t(
+              'Template properties (YAML frontmatter) were not inserted. Use “Create new note from template” to keep them.'
+            )
+          );
+        }
+        const template = fillTemplate(body, baseName(activePath), {
           path: activePath,
           content: activeContent || '',
         });

@@ -3,6 +3,7 @@
   "readingSamples": [],
   "speechDoc": "Speech Docs/Speech.md",
   "warnDuplicateSend": true,
+  "templateFolder": "Templates",
   "fontSize": 16,
   "format": "highschool",
   "timerPresets": [],
