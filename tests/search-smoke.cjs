@@ -326,6 +326,50 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
           'Both.md',
           'A keyword runner-up must win fusion even with a final result limit of one'
         );
+        ipcMain.removeHandler('scholarly:search');
+        ipcMain.handle('scholarly:search', async (_event, query) => {
+          assert.equal(query, 'climate policy');
+          return [
+            {
+              author: 'Ada Smith',
+              year: '2023',
+              title: 'Climate Policy',
+              publication: 'Journal',
+              url: 'https://doi.org/10.1234/example',
+            },
+          ];
+        });
+        await mode('scholarly');
+        await input('climate policy');
+        await js(
+          "[...document.querySelectorAll('.search button')].find(b => b.textContent === 'Search Crossref').click()"
+        );
+        await wait(
+          "document.querySelector('.search-result strong')?.textContent === 'Climate Policy'"
+        );
+        await js(
+          "[...document.querySelectorAll('.search-result button')].find(b => b.textContent === 'Cut card').click()"
+        );
+        assert.equal(
+          await js(
+            "[...document.querySelectorAll('.search section label')].find(l => l.textContent.includes('Author')).querySelector('input').value"
+          ),
+          'Ada Smith'
+        );
+        await js(`(() => {
+          const el = document.querySelector('.search section textarea');
+          Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, 'value').set.call(el, 'Evidence from the source.');
+          el.dispatchEvent(new Event('input', { bubbles: true }));
+        })()`);
+        await js(
+          "[...document.querySelectorAll('.search button')].find(b => b.textContent === 'Save card to vault').click()"
+        );
+        await wait("!document.querySelector('.search')");
+        const card = await fs.readFile(path.join(vault, 'Climate Policy.md'), 'utf8');
+        assert.match(card, /Ada Smith/);
+        assert.match(card, /2023/);
+        assert.match(card, /10\.1234\/example/);
+        assert.match(card, /Evidence from the source\./);
         console.log(
           'PASS: typo recovery, deep accent-folded previews, keyboard navigation, matching-line jumps, hybrid fusion, tags/phrases, semantic recall, explicit failures, stale requests, result limit.'
         );

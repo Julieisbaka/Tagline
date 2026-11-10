@@ -30,6 +30,7 @@
     "test:canvas": "node scripts/run-smoke.cjs node tests/canvas-smoke.cjs",
     "icons": "electron scripts/generate-icons.cjs",
     "test:speech": "node scripts/run-smoke.cjs node tests/speech-smoke.cjs",
+    "test:floating-timer": "node scripts/run-smoke.cjs node tests/floating-timer-smoke.cjs",
     "test:localization": "node scripts/run-smoke.cjs node tests/localization-smoke.cjs",
     "test:profile": "node scripts/run-smoke.cjs node tests/profile-smoke.cjs",
     "test:improvements": "node scripts/run-smoke.cjs node tests/improvements-smoke.cjs",

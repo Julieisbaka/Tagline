@@ -9,6 +9,7 @@ const {
   session,
   nativeTheme,
   clipboard,
+  screen,
 } = require('electron');
 const path = require('path');
 const fs = require('fs/promises');
@@ -22,6 +23,8 @@ const { registerSummarization } = require('./summarization.cjs');
 const { registerDocuments } = require('./documents.cjs');
 const { registerFonts } = require('./fonts.cjs');
 const { registerTimerSound } = require('./timerSound.cjs');
+const { registerFloatingTimer } = require('./floatingTimer.cjs');
+const { registerScholarlySearch } = require('./scholarlySearch.cjs');
 const { registerExtensions } = require('./extensions.cjs');
 const { extractCitation } = require('./citationMetadata.cjs');
 const { checkLinks } = require('./evidenceLinks.cjs');
@@ -209,6 +212,14 @@ if (primary) {
     registerGoogleDocs({ app, ipcMain, safeStorage, dialog, shell, getWindow: () => state.win });
     registerFonts({ app, ipcMain, dialog, getWindow: () => state.win });
     registerTimerSound({ app, ipcMain, dialog, getWindow: () => state.win });
+    registerFloatingTimer({
+      ipcMain,
+      BrowserWindow,
+      screen,
+      getWindow: () => state.win,
+      assertModelSender,
+    });
+    registerScholarlySearch({ ipcMain, assertModelSender });
     registerExtensions({
       app,
       ipcMain,

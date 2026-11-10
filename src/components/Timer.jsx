@@ -144,6 +144,7 @@ export default function Timer({
   timerSoundEnabled = false,
   timerSoundName = '',
   timerAutoStartUseSpeechRecognition = false,
+  timerFloatingWindow = false,
   recognitionLanguage = 'en',
   interactionSounds = false,
   onArmedChange,
@@ -237,6 +238,38 @@ export default function Timer({
     onArmedChange?.(armed);
   }, [armed, onArmedChange]);
 
+  useEffect(() => {
+    const active = armed || main.running || aff.running || neg.running;
+    const remaining = aff.running ? aff.remaining : neg.running ? neg.remaining : main.remaining;
+    const label = aff.running
+      ? t('Aff prep')
+      : neg.running
+        ? t('Neg prep')
+        : fmt?.speeches[speech]?.[0];
+    window.api.setFloatingTimer?.(
+      timerFloatingWindow && active && fmt
+        ? {
+            label: label || '',
+            time: formatDuration(remaining),
+            status: armed ? t('Armed') : t('Running'),
+          }
+        : null
+    );
+  }, [
+    timerFloatingWindow,
+    armed,
+    main.running,
+    main.remaining,
+    aff.running,
+    aff.remaining,
+    neg.running,
+    neg.remaining,
+    fmt,
+    speech,
+    t,
+  ]);
+  useEffect(() => () => window.api.setFloatingTimer?.(null), []);
+
   const arm = async () => {
     if (microphone.current || latest.current.main.running || latest.current.main.remaining <= 0) {
       return;
@@ -301,7 +334,11 @@ export default function Timer({
           }
           const code = event?.error;
           // "no-speech" / "aborted" are normal while waiting; keep listening by restarting on end.
-          if (code === 'not-allowed' || code === 'service-not-allowed' || code === 'audio-capture') {
+          if (
+            code === 'not-allowed' ||
+            code === 'service-not-allowed' ||
+            code === 'audio-capture'
+          ) {
             disarm();
             setMicIssue(true);
             setMicError(
@@ -639,7 +676,9 @@ export default function Timer({
                   width: `${Math.min(1, level / METER_FULL_SCALE) * 100}%`,
                   height: '100%',
                   background:
-                    level >= threshold / 100 ? 'var(--text-error, #d33)' : 'var(--text-accent, #48f)',
+                    level >= threshold / 100
+                      ? 'var(--text-error, #d33)'
+                      : 'var(--text-accent, #48f)',
                 }}
               />
               <div
@@ -670,7 +709,9 @@ export default function Timer({
               Promise.resolve(window.api.openMicrophoneSettings?.())
                 .then((opened) => {
                   if (opened === false) {
-                    setMicError(t('Open your system sound or privacy settings to allow the microphone.'));
+                    setMicError(
+                      t('Open your system sound or privacy settings to allow the microphone.')
+                    );
                   }
                 })
                 .catch((error) => setMicError(error.message))

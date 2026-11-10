@@ -535,6 +535,7 @@ export default function AppLayout({ app }) {
           maxResults={resourceLimits(settings).searchMaxResults}
           showMarkdownExtension={settings.showMarkdownExtension}
           onOpen={open}
+          onCreateCard={createAndOpen}
           onClose={() => setModal(null)}
         />
       )}
@@ -610,7 +611,11 @@ export default function AppLayout({ app }) {
         <QuoteVerificationDialog contents={v.contents} onClose={() => setModal(null)} />
       )}
       {modal?.type === 'delivery-analytics' && (
-        <DeliveryAnalyticsDialog onClose={() => setModal(null)} />
+        <DeliveryAnalyticsDialog
+          settings={settings}
+          updateSettings={updateSettings}
+          onClose={() => setModal(null)}
+        />
       )}
       {toast && (
         <div className='toast' aria-hidden='true'>

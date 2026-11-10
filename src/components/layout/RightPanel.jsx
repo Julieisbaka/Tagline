@@ -199,6 +199,7 @@ export default function RightPanel(props) {
             timerSoundEnabled={props.settings.timerSoundEnabled}
             timerSoundName={props.settings.timerSoundName}
             timerAutoStartUseSpeechRecognition={props.settings.timerAutoStartUseSpeechRecognition}
+            timerFloatingWindow={props.settings.timerFloatingWindow}
             recognitionLanguage={props.settings.language}
             interactionSounds={props.settings.interactionSounds}
             onArmedChange={setTimerArmed}

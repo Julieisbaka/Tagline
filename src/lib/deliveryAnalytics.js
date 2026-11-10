@@ -1,5 +1,5 @@
 const WORD = /[\p{L}\p{N}]+(?:['’-][\p{L}\p{N}]+)*/gu;
-const FILLERS = new Set(['um', 'uh', 'erm', 'er', 'umm', 'uhh']);
+const FILLERS = new Set(['um', 'uh', 'erm', 'er', 'umm', 'uhh', 'like']);
 
 /** Count conservative English filler tokens and calculate pace only from a supplied duration. */
 export function analyzeDelivery(transcript, seconds = null) {
@@ -9,10 +9,19 @@ export function analyzeDelivery(transcript, seconds = null) {
   if (seconds !== null && (!Number.isFinite(seconds) || seconds <= 0 || seconds > 86400)) {
     throw new Error('Duration must be between 0 and 86,400 seconds.');
   }
-  const words = transcript.match(WORD) || [];
+  const words = [...transcript.matchAll(WORD)];
   const fillers = {};
-  for (const word of words) {
-    const lower = word.toLowerCase();
+  for (let i = 0; i < words.length; i++) {
+    const lower = words[i][0].toLowerCase();
+    if (
+      lower === 'so' &&
+      words[i + 1]?.[0].toLowerCase() === 'yeah' &&
+      /^\s*,?\s*$/.test(transcript.slice(words[i].index + words[i][0].length, words[i + 1].index))
+    ) {
+      fillers['so yeah'] = (fillers['so yeah'] || 0) + 1;
+      i++;
+      continue;
+    }
     if (FILLERS.has(lower)) {
       fillers[lower] = (fillers[lower] || 0) + 1;
     }

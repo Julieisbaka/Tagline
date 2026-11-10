@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'none'; style-src 'unsafe-inline'"
+    />
+    <title>Tagline timer</title>
+    <style>
+      body {
+        margin: 0;
+        background: #222632;
+        color: #fff;
+        font:
+          14px system-ui,
+          sans-serif;
+        -webkit-app-region: drag;
+      }
+      main {
+        box-sizing: border-box;
+        height: 110px;
+        padding: 10px 14px;
+        border: 1px solid #596070;
+      }
+      header {
+        display: flex;
+        justify-content: space-between;
+        gap: 8px;
+        color: #c9d1e3;
+      }
+      #label {
+        overflow: hidden;
+        white-space: nowrap;
+        text-overflow: ellipsis;
+      }
+      #time {
+        text-align: center;
+        font-size: 46px;
+        font-variant-numeric: tabular-nums;
+        line-height: 1.35;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <header><span id="label"></span><span id="status"></span></header>
+      <div id="time"></div>
+    </main>
+  </body>
+</html>

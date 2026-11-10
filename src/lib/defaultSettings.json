@@ -1,6 +1,7 @@
 {
   "syllablesPerMinute": 375,
   "readingSamples": [],
+  "deliveryHistory": [],
   "speechDoc": "Speech Docs/Speech.md",
   "warnDuplicateSend": true,
   "templateFolder": "Templates",
@@ -10,6 +11,7 @@
   "timerSoundName": "",
   "timerSoundEnabled": false,
   "timerAutoStartUseSpeechRecognition": false,
+  "timerFloatingWindow": false,
   "interactionSounds": false,
   "readableWidth": true,
   "readableWidthPixels": 820,

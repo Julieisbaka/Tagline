@@ -11,6 +11,7 @@ import {
 } from '../../lib/search.js';
 import { displayName } from '../../lib/vault.js';
 import ModalBackdrop from './ModalBackdrop.jsx';
+import ScholarlySearch from './ScholarlySearch.jsx';
 
 // Keyword and local embedding search share tag and phrase constraints.
 export default function SearchModal({
@@ -20,6 +21,7 @@ export default function SearchModal({
   maxResults = defaults.searchMaxResults,
   showMarkdownExtension = false,
   onOpen,
+  onCreateCard,
   onClose,
 }) {
   const { t } = useI18n();
@@ -30,6 +32,7 @@ export default function SearchModal({
   const [error, setError] = useState('');
   const requestId = useRef(0);
   const resultList = useRef(null);
+  const scholarlyButton = useRef(null);
   const semanticTimerRef = useRef(null);
   const search = useMemo(() => createSearchEngine(contents, index), [contents, index]);
 
@@ -85,7 +88,7 @@ export default function SearchModal({
   }, [query, contents, index, maxResults, mode, t]);
 
   useEffect(() => {
-    if (mode === 'text') {
+    if (mode !== 'semantic' && mode !== 'hybrid') {
       return undefined;
     }
     const text = parseQuery(query).text.replace(/"/g, '').trim();
@@ -167,19 +170,28 @@ export default function SearchModal({
           autoFocus
           className='palette-input'
           aria-label={t('Search')}
-          placeholder={t('Search vault…  (try: tag:neg "political capital")')}
+          placeholder={t(
+            mode === 'scholarly'
+              ? 'Search scholarly works…'
+              : 'Search vault…  (try: tag:neg "political capital")'
+          )}
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           onKeyDown={(e) => {
-            navigate(e);
+            if (mode !== 'scholarly') {
+              navigate(e);
+            }
             if (e.key === 'Escape') {
               onClose();
             }
-            if (e.key === 'Enter' && mode !== 'text' && !busy) {
+            if (e.key === 'Enter' && (mode === 'semantic' || mode === 'hybrid') && !busy) {
               runSemantic();
             }
             if (e.key === 'Enter' && mode === 'text' && displayed.length) {
               openResult(e, displayed[0].path, displayed[0].matches[0]?.line);
+            }
+            if (e.key === 'Enter' && mode === 'scholarly') {
+              scholarlyButton.current?.click();
             }
           }}
         />
@@ -192,8 +204,9 @@ export default function SearchModal({
             <option value='text'>{t('Full text')}</option>
             <option value='hybrid'>{t('Hybrid (keywords + local meaning)')}</option>
             <option value='semantic'>{t('Semantic (local embeddings)')}</option>
+            <option value='scholarly'>{t('Scholarly (Crossref)')}</option>
           </select>
-          {mode !== 'text' && (
+          {(mode === 'semantic' || mode === 'hybrid') && (
             <button
               disabled={busy || !parseQuery(query).text.replace(/"/g, '').trim()}
               onClick={runSemantic}
@@ -208,88 +221,99 @@ export default function SearchModal({
             </button>
           )}
         </div>
-        {mode === 'semantic' && (
-          <div className='search-count'>
-            {t(
-              'Ranks the closest matching passage in each note. Supports tag: filters; scores are similarity, not confidence.'
+        {mode === 'scholarly' ? (
+          <ScholarlySearch
+            query={query}
+            onCreateCard={onCreateCard}
+            onClose={onClose}
+            searchButtonRef={scholarlyButton}
+          />
+        ) : (
+          <>
+            {mode === 'semantic' && (
+              <div className='search-count'>
+                {t(
+                  'Ranks the closest matching passage in each note. Supports tag: filters; scores are similarity, not confidence.'
+                )}
+              </div>
             )}
-          </div>
-        )}
-        {mode === 'hybrid' && (
-          <div className='search-count' role='status'>
-            {t(
-              semanticResults === null
-                ? 'Keyword results shown. Run hybrid search to include local semantic matches.'
-                : 'Combines keyword and semantic rankings. Tags and quoted phrases remain required.'
+            {mode === 'hybrid' && (
+              <div className='search-count' role='status'>
+                {t(
+                  semanticResults === null
+                    ? 'Keyword results shown. Run hybrid search to include local semantic matches.'
+                    : 'Combines keyword and semantic rankings. Tags and quoted phrases remain required.'
+                )}
+              </div>
             )}
-          </div>
-        )}
-        {error && (
-          <div className='search-error' role='alert'>
-            {error}
-          </div>
-        )}
-        <div className='search-count' aria-live='polite'>
-          {query.trim() ? t('{count} file(s)', { count: displayed.length }) : ''}
-          {displayed.some((result) => result.approximate) &&
-            ` — ${t('No exact matches. Showing close spelling matches.')}`}
-        </div>
-        <div className='search-count'>
-          {t('Arrow keys to choose a file; Enter to open. Quoted phrases match exactly.')}
-        </div>
-        {query.trim() &&
-          !displayed.length &&
-          !busy &&
-          (mode === 'text' || semanticResults !== null) && (
-            <div className='search-count'>
-              {t('No matching notes. Try fewer words or remove a tag or quoted phrase.')}
+            {error && (
+              <div className='search-error' role='alert'>
+                {error}
+              </div>
+            )}
+            <div className='search-count' aria-live='polite'>
+              {query.trim() ? t('{count} file(s)', { count: displayed.length }) : ''}
+              {displayed.some((result) => result.approximate) &&
+                ` — ${t('No exact matches. Showing close spelling matches.')}`}
             </div>
-          )}
-        <div className='search-results' ref={resultList} onKeyDown={navigate}>
-          {displayed.map((r) => (
-            <div key={r.path} className='search-result'>
-              <button
-                type='button'
-                className='search-file'
-                onClick={(e) => openResult(e, r.path, r.matches[0]?.line)}
-              >
-                {displayName(r.path, true, showMarkdownExtension)}{' '}
-                <span className='palette-detail'>{r.path}</span>
-                {r.sources && (
-                  <span className='palette-detail'>
-                    {' '}
-                    —{' '}
-                    {t(
-                      r.sources.length === 2
-                        ? 'Keyword + semantic'
-                        : r.sources[0] === 'keyword'
-                          ? 'Keyword match'
-                          : 'Semantic match'
+            <div className='search-count'>
+              {t('Arrow keys to choose a file; Enter to open. Quoted phrases match exactly.')}
+            </div>
+            {query.trim() &&
+              !displayed.length &&
+              !busy &&
+              (mode === 'text' || semanticResults !== null) && (
+                <div className='search-count'>
+                  {t('No matching notes. Try fewer words or remove a tag or quoted phrase.')}
+                </div>
+              )}
+            <div className='search-results' ref={resultList} onKeyDown={navigate}>
+              {displayed.map((r) => (
+                <div key={r.path} className='search-result'>
+                  <button
+                    type='button'
+                    className='search-file'
+                    onClick={(e) => openResult(e, r.path, r.matches[0]?.line)}
+                  >
+                    {displayName(r.path, true, showMarkdownExtension)}{' '}
+                    <span className='palette-detail'>{r.path}</span>
+                    {r.sources && (
+                      <span className='palette-detail'>
+                        {' '}
+                        —{' '}
+                        {t(
+                          r.sources.length === 2
+                            ? 'Keyword + semantic'
+                            : r.sources[0] === 'keyword'
+                              ? 'Keyword match'
+                              : 'Semantic match'
+                        )}
+                      </span>
                     )}
-                  </span>
-                )}
-                {r.score != null && (
-                  <span className='search-score'>
-                    {' '}
-                    ({t('similarity')} {r.score.toFixed(3)})
-                  </span>
-                )}
-              </button>
-              {r.matches.map((m) => (
-                <button
-                  type='button'
-                  key={m.line}
-                  className='search-line'
-                  onClick={(e) => openResult(e, r.path, m.line)}
-                >
-                  {searchExcerpt(m.text.trim(), r.matchedTerms || terms).map((part, i) =>
-                    part.match ? <mark key={i}>{part.text}</mark> : part.text
-                  )}
-                </button>
+                    {r.score != null && (
+                      <span className='search-score'>
+                        {' '}
+                        ({t('similarity')} {r.score.toFixed(3)})
+                      </span>
+                    )}
+                  </button>
+                  {r.matches.map((m) => (
+                    <button
+                      type='button'
+                      key={m.line}
+                      className='search-line'
+                      onClick={(e) => openResult(e, r.path, m.line)}
+                    >
+                      {searchExcerpt(m.text.trim(), r.matchedTerms || terms).map((part, i) =>
+                        part.match ? <mark key={i}>{part.text}</mark> : part.text
+                      )}
+                    </button>
+                  ))}
+                </div>
               ))}
             </div>
-          ))}
-        </div>
+          </>
+        )}
       </div>
     </ModalBackdrop>
   );

@@ -1,10 +1,7 @@
 import AdvancedSettings from '../../settings/AdvancedSettings.jsx';
 import AutoSetting from '../../settings/AutoSetting.jsx';
 import DEFAULTS from '../../../lib/defaultSettings.json';
-import {
-  INTERNAL_FLAG_LABELS,
-  settingDefinition,
-} from '../../settings/settingsSchema.js';
+import { INTERNAL_FLAG_LABELS, settingDefinition } from '../../settings/settingsSchema.js';
 import CustomCssSettings from '../../settings/CustomCssSettings.jsx';
 import CustomizationLimits from '../../settings/CustomizationLimits.jsx';
 import EditorSettings from '../../settings/EditorSettings.jsx';
@@ -70,6 +67,21 @@ export default function SettingsPanels({
         </SettingsGroup>
         <ReadingSettings settings={settings} update={update} contents={contents} />
         <TimerSoundSettings settings={settings} update={update} />
+        <SettingsGroup title={t('Floating timer')}>
+          <SettingRow
+            label={t('Show timer above other windows')}
+            description={t(
+              'Show a draggable timer while a speech or prep timer is running or automatic start is armed. Some fullscreen apps may cover it.'
+            )}
+          >
+            <input
+              type='checkbox'
+              data-setting='timerFloatingWindow'
+              checked={!!settings.timerFloatingWindow}
+              onChange={(event) => update({ timerFloatingWindow: event.target.checked })}
+            />
+          </SettingRow>
+        </SettingsGroup>
         <SettingsGroup title={t('Timer auto-start')}>
           <SettingRow
             label={t('Use Web Speech API for automatic start')}

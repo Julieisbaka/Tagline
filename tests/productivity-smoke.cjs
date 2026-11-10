@@ -195,6 +195,39 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
           await js("document.querySelector('.analysis-dialog').textContent"),
           /Filler words: 2/
         );
+        await js(`(() => {
+          const fields = document.querySelectorAll('.analysis-dialog input[maxlength="80"]');
+          for (const [el, value] of [[fields[0], '2026–27'], [fields[1], '1AC']]) {
+            Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set.call(el, value);
+            el.dispatchEvent(new Event('input', { bubbles: true }));
+          }
+        })()`);
+        await click('.analysis-dialog button', 'Save speech statistics');
+        await wait(
+          "JSON.parse(localStorage.getItem('tagline-settings')).deliveryHistory?.length === 1"
+        );
+        await js(`(() => {
+          const el = document.querySelector('.analysis-dialog textarea');
+          Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, 'value').set.call(el, 'Um we like so yeah');
+          el.dispatchEvent(new Event('input', { bubbles: true }));
+        })()`);
+        await wait(
+          "document.querySelector('.analysis-dialog').textContent.includes('Filler words: 3')"
+        );
+        await click('.analysis-dialog button', 'Save speech statistics');
+        await wait(
+          "JSON.parse(localStorage.getItem('tagline-settings')).deliveryHistory?.length === 2"
+        );
+        assert.match(
+          await js("document.querySelector('.analysis-dialog').textContent"),
+          /3 \/ 5 words \(60\.0 per 100 words\)/
+        );
+        assert.equal(
+          await js(
+            "JSON.stringify(JSON.parse(localStorage.getItem('tagline-settings')).deliveryHistory).includes('Um we')"
+          ),
+          false
+        );
         await click('.analysis-dialog button', 'Close');
         console.log(
           'PASS: quote comparison and transcript analytics work from the command palette.'
@@ -305,6 +338,9 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
         assert.equal((await js('window.api.listRecentVaults()')).length, 2);
         await js("document.querySelector('.vault-switch').click()");
         await wait("!!document.querySelector('.vault-manager-dialog')");
+        await wait(
+          "[...document.querySelectorAll('.vault-manager-list li strong')].some(item => item.textContent === 'Flow vault with spaces')"
+        );
         await js(`(() => [...document.querySelectorAll('.vault-manager-list li')]
           .find(item => item.querySelector('strong')?.textContent === 'Flow vault with spaces')
           .querySelector('button').click())()`);
@@ -313,6 +349,9 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
         assert.ok(recentVaults.some((item) => item.root === vault));
         await js("document.querySelector('.vault-switch').click()");
         await wait("!!document.querySelector('.vault-manager-dialog')");
+        await wait(
+          "[...document.querySelectorAll('.vault-manager-list li strong')].some(item => item.textContent === 'Second vault')"
+        );
         await js(`(() => [...document.querySelectorAll('.vault-manager-list li')]
           .find(item => item.querySelector('strong')?.textContent === 'Second vault')
           .querySelectorAll('button')[2].click())()`);

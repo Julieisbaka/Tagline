@@ -30,6 +30,7 @@ function createWindowManager(
         contextIsolation: true,
         nodeIntegration: false,
         sandbox: true,
+        backgroundThrottling: false,
         additionalArguments: [
           `--tagline-languages=${encodeURIComponent(JSON.stringify(app.getPreferredSystemLanguages()))}`,
         ],

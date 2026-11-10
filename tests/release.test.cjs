@@ -221,7 +221,7 @@ test('full test runner builds the renderer once and standalone smoke scripts pre
   assert.match(smokeRunner, /TAGLINE_TEST_DIST_READY !== '1'/);
   assert.equal(
     Object.values(scripts).filter((command) => command.includes('scripts/run-smoke.cjs')).length,
-    20
+    21
   );
 });
 
