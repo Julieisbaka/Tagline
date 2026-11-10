@@ -62,7 +62,11 @@ export const SETTING_GROUPS = [
     section: 'files',
     title: 'Folder paths',
     items: [
-      { key: 'underscoreFolders', type: 'checkbox', label: 'Use underscores for spaces in folder paths' },
+      {
+        key: 'underscoreFolders',
+        type: 'checkbox',
+        label: 'Use underscores for spaces in folder paths',
+      },
     ],
   },
   {
@@ -112,9 +116,7 @@ export const SETTING_GROUPS = [
         key: 'persistWorkspaceTabs',
         type: 'checkbox',
         label: 'Save workspace tabs',
-        notes: [
-          'When disabled, open tabs are not saved. Saved workspaces return when re-enabled.',
-        ],
+        notes: ['When disabled, open tabs are not saved. Saved workspaces return when re-enabled.'],
       },
     ],
   },
@@ -201,5 +203,7 @@ export function inferSettingType(value) {
  * @returns {object} The definition to render.
  */
 export function settingDefinition(key, defaultValue) {
-  return SETTING_META[key] ?? { key, type: inferSettingType(defaultValue), label: key, defaultValue };
+  return (
+    SETTING_META[key] ?? { key, type: inferSettingType(defaultValue), label: key, defaultValue }
+  );
 }

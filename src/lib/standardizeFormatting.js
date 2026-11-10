@@ -18,8 +18,9 @@ function standardizeLine(line, marker) {
   let previous;
   do {
     previous = result;
-    result = result.replace(adjacent, (_match, left, separator, right) =>
-      `${marker}${left}${separator}${right}${marker}`
+    result = result.replace(
+      adjacent,
+      (_match, left, separator, right) => `${marker}${left}${separator}${right}${marker}`
     );
   } while (result !== previous);
 

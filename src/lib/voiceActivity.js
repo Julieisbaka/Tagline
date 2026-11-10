@@ -5,9 +5,7 @@ export function speechLike(waveform, spectrum, sampleRate, threshold) {
   if (!waveform.length || !spectrum.length) {
     return false;
   }
-  const rms = Math.sqrt(
-    waveform.reduce((sum, value) => sum + value * value, 0) / waveform.length
-  );
+  const rms = Math.sqrt(waveform.reduce((sum, value) => sum + value * value, 0) / waveform.length);
   // Require signal clearly above the configured sensitivity floor to ignore room noise.
   if (rms < threshold * 1.15) {
     return false;

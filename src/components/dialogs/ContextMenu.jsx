@@ -62,10 +62,7 @@ function AppContextMenu({ x, y, items, onClose }) {
   const { t } = useI18n();
   const shortcut = useShortcutLookup();
   // Focus the menu itself, not the first action, so nothing looks pre-selected.
-  useLayoutEffect(
-    () => containFocus(ref.current, previousFocus.current, false, true),
-    []
-  );
+  useLayoutEffect(() => containFocus(ref.current, previousFocus.current, false, true), []);
   useLayoutEffect(() => {
     const el = ref.current;
     const rect = el.getBoundingClientRect();

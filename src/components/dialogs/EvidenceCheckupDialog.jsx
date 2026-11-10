@@ -73,7 +73,9 @@ export default function EvidenceCheckupDialog({
   const [error, setError] = useState('');
   const [addComments, setAddComments] = useState(false);
   const [message, setMessage] = useState('');
-  const [monitor, setMonitor] = useState(() => !!readStoredJson(LINK_ROT_KEY, {}, isSettings).enabled);
+  const [monitor, setMonitor] = useState(
+    () => !!readStoredJson(LINK_ROT_KEY, {}, isSettings).enabled
+  );
   const [extract, setExtract] = useState({ tagline: false, firstLast: false });
 
   useEffect(() => {
@@ -455,7 +457,10 @@ export default function EvidenceCheckupDialog({
                 setMonitor(e.target.checked);
                 localStorage.setItem(
                   LINK_ROT_KEY,
-                  JSON.stringify({ ...readStoredJson(LINK_ROT_KEY, {}, isSettings), enabled: e.target.checked })
+                  JSON.stringify({
+                    ...readStoredJson(LINK_ROT_KEY, {}, isSettings),
+                    enabled: e.target.checked,
+                  })
                 );
               }}
             />
@@ -463,9 +468,7 @@ export default function EvidenceCheckupDialog({
           </label>
           <button
             disabled={!!busy || !scan || !links}
-            onClick={() =>
-              saveDoc('Vault health report', vaultHealthReport(scan.cards, links))
-            }
+            onClick={() => saveDoc('Vault health report', vaultHealthReport(scan.cards, links))}
           >
             {t('Save health report')}
           </button>
