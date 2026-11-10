@@ -1,6 +1,7 @@
 import { binding, displayBinding } from '../../lib/keybindings.js';
 import { resourceLimits } from '../../lib/resourceLimits.js';
 import { baseName, dirName, displayName, isCanvas, isJson, isMarkdown } from '../../lib/vault.js';
+import { useLinkRotMonitor } from '../../lib/useLinkRotMonitor.js';
 import { STATUS_ITEMS } from '../../lib/workspaceItems.js';
 import { deferred } from '../Deferred.jsx';
 import ModalBackdrop from '../dialogs/ModalBackdrop.jsx';
@@ -103,6 +104,11 @@ export default function AppLayout({ app }) {
     speechDocuments,
     favorites,
   } = app;
+  useLinkRotMonitor({
+    contents: v.contents,
+    createFile: v.createFile,
+    vaultKey: v.ready ? v.vault?.root : '',
+  });
   const openHistory = async (path) => {
     try {
       if (await v.flush()) {
@@ -592,6 +598,7 @@ export default function AppLayout({ app }) {
           getContent={v.getContent}
           updateContent={v.updateContent}
           flush={v.flush}
+          createFile={v.createFile}
           onOpen={(path) => {
             setModal(null);
             open(path, false);

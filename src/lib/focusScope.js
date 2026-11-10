@@ -55,9 +55,15 @@ export function trapTabKey(event, root) {
  * @param {Element} root
  * @param {Element} [previousFocus]
  * @param {boolean} [modal]
+ * @param {boolean} [focusRoot] Focus the scope root instead of the first element.
  * @returns {function}
  */
-export function containFocus(root, previousFocus = root.ownerDocument.activeElement, modal = true) {
+export function containFocus(
+  root,
+  previousFocus = root.ownerDocument.activeElement,
+  modal = true,
+  focusRoot = false
+) {
   const document = root.ownerDocument;
   const parent =
     [...scopes].reverse().find((candidate) => candidate.root.contains(previousFocus)) ||
@@ -81,7 +87,8 @@ export function containFocus(root, previousFocus = root.ownerDocument.activeElem
    * Focus the first tabbable element, or the scope root when none exists.
    * @returns {void}
    */
-  const focusFirst = () => (focusableElements(root)[0] || root).focus({ preventScroll: true });
+  const focusFirst = () =>
+    (focusRoot ? root : focusableElements(root)[0] || root).focus({ preventScroll: true });
   /**
    * Restore focus into the topmost scope when focus escapes it.
    * @param {FocusEvent} event

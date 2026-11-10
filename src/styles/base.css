@@ -154,6 +154,7 @@ kbd {
 .context-menu button:hover,
 .context-menu button:focus-visible {
   background: var(--accent-dim);
+  outline-offset: -2px;
 }
 
 html.reduce-motion *,

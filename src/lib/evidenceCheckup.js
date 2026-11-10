@@ -352,3 +352,82 @@ export function annotateEvidence(files, cards, issues, categories, describe) {
   }
   return updated;
 }
+
+const stripMarkdown = (text) =>
+  text
+    .replace(/<!--[\s\S]*?-->/g, '')
+    .replace(/!?\[([^\]]*)\]\([^)]*\)/g, '$1')
+    .replace(/[*_=~`>#]+/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+/**
+ * Build a Markdown vault health report listing dead links found by a link check.
+ * @param {object[]} cards - Cards from scanCards.
+ * @param {object} results - Map of URL to link-check result.
+ * @param {Date} [now]
+ * @returns {string} Markdown document.
+ */
+export function vaultHealthReport(cards, results, now = new Date()) {
+  const issues = linkIssues(cards, results);
+  const lines = [
+    '# Vault health report',
+    '',
+    `Generated ${now.toISOString().slice(0, 10)}. Cards scanned: ${cards.length}. Dead links: ${issues.length}.`,
+    '',
+  ];
+  const byPath = new Map();
+  for (const issue of issues) {
+    byPath.set(issue.path, [...(byPath.get(issue.path) || []), issue]);
+  }
+  if (!issues.length) {
+    lines.push('No dead links found.');
+  }
+  for (const [path, list] of byPath) {
+    lines.push(`## ${path}`, '');
+    for (const issue of list) {
+      const archive = issue.archiveUrl ? ` ([archived](${issue.archiveUrl}))` : '';
+      lines.push(`- ${issue.card}: <${issue.url}> (${issue.reason})${archive}`);
+    }
+    lines.push('');
+  }
+  return lines.join('\n').trimEnd() + '\n';
+}
+
+/**
+ * Build a new Markdown doc of card cites, optionally with taglines and first/last sentences.
+ * @param {object} files - Map of note path to content.
+ * @param {object[]} cards - Cards from scanCards.
+ * @param {{tagline?: boolean, firstLast?: boolean}} [options]
+ * @returns {string} Markdown document.
+ */
+export function citesExtract(files, cards, { tagline = false, firstLast = false } = {}) {
+  const lines = ['# Cites extract', ''];
+  for (const card of cards) {
+    const [cite = '', ...rest] = files[card.path]
+      .slice(card.bodyStart, card.bodyEnd)
+      .trim()
+      .split(/\r?\n[ \t]*\r?\n/);
+    const citeText = stripMarkdown(cite);
+    if (!citeText) {
+      continue;
+    }
+    const entry = [];
+    if (tagline) {
+      entry.push(`**${stripMarkdown(card.title)}**`);
+    }
+    entry.push(citeText);
+    if (firstLast) {
+      const sentences = stripMarkdown(rest.join(' ')).match(/[^.!?]+[.!?]+(?=\s|$)|[^.!?]+$/g);
+      const picked = sentences?.length ? [sentences[0], sentences.at(-1)] : [];
+      if (sentences?.length === 1) {
+        picked.pop();
+      }
+      if (picked.length) {
+        entry.push(picked.map((s) => s.trim()).join(' … '));
+      }
+    }
+    lines.push(entry.join('\n\n'), '');
+  }
+  return lines.join('\n').trimEnd() + '\n';
+}

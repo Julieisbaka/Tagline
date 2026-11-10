@@ -10,8 +10,11 @@ import {
   recutIssues,
   scanCards,
   sourceIssues,
+  citesExtract,
+  vaultHealthReport,
 } from '../../lib/evidenceCheckup.js';
 import { useI18n } from '../../lib/i18n.js';
+import { LINK_ROT_KEY } from '../../lib/useLinkRotMonitor.js';
 import { readStoredJson } from '../../lib/storedJson.js';
 
 import ModalBackdrop from './ModalBackdrop.jsx';
@@ -55,6 +58,7 @@ export default function EvidenceCheckupDialog({
   getContent,
   updateContent,
   flush,
+  createFile,
   onOpen,
   onClose,
 }) {
@@ -69,6 +73,8 @@ export default function EvidenceCheckupDialog({
   const [error, setError] = useState('');
   const [addComments, setAddComments] = useState(false);
   const [message, setMessage] = useState('');
+  const [monitor, setMonitor] = useState(() => !!readStoredJson(LINK_ROT_KEY, {}, isSettings).enabled);
+  const [extract, setExtract] = useState({ tagline: false, firstLast: false });
 
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
@@ -95,6 +101,15 @@ export default function EvidenceCheckupDialog({
       setBusy('');
     }
   };
+
+  const saveDoc = (name, text) =>
+    run('save', async () => {
+      const path = await createFile(`${name} ${new Date().toISOString().slice(0, 10)}.md`, text);
+      if (!path) {
+        throw new Error(t('Could not create the document.'));
+      }
+      setMessage(t('Created {path}.', { path }));
+    });
 
   const saveComments = async (files, cards, findings, categories) => {
     const updated = annotateEvidence(files, cards, findings, categories, describe);
@@ -431,6 +446,50 @@ export default function EvidenceCheckupDialog({
           </button>
           <button disabled={!!busy || !scan || !linkCount} onClick={compareSources}>
             {t(busy === 'sources' ? 'Comparing sources...' : 'Compare sources')}
+          </button>
+          <label className='evidence-toggle'>
+            <input
+              type='checkbox'
+              checked={monitor}
+              onChange={(e) => {
+                setMonitor(e.target.checked);
+                localStorage.setItem(
+                  LINK_ROT_KEY,
+                  JSON.stringify({ ...readStoredJson(LINK_ROT_KEY, {}, isSettings), enabled: e.target.checked })
+                );
+              }}
+            />
+            <span>{t('Weekly background link check (sends cited URLs to their sites)')}</span>
+          </label>
+          <button
+            disabled={!!busy || !scan || !links}
+            onClick={() =>
+              saveDoc('Vault health report', vaultHealthReport(scan.cards, links))
+            }
+          >
+            {t('Save health report')}
+          </button>
+          <label className='evidence-toggle'>
+            <input
+              type='checkbox'
+              checked={extract.tagline}
+              onChange={(e) => setExtract({ ...extract, tagline: e.target.checked })}
+            />
+            <span>{t('Tagline')}</span>
+          </label>
+          <label className='evidence-toggle'>
+            <input
+              type='checkbox'
+              checked={extract.firstLast}
+              onChange={(e) => setExtract({ ...extract, firstLast: e.target.checked })}
+            />
+            <span>{t('First and last sentence')}</span>
+          </label>
+          <button
+            disabled={!!busy || !scan}
+            onClick={() => saveDoc('Cites extract', citesExtract(scan.files, scan.cards, extract))}
+          >
+            {t('Extract cites')}
           </button>
         </div>
         {error && (

@@ -61,16 +61,18 @@ function AppContextMenu({ x, y, items, onClose }) {
   const previousFocus = useRef(document.activeElement);
   const { t } = useI18n();
   const shortcut = useShortcutLookup();
-  useLayoutEffect(() => containFocus(ref.current, previousFocus.current, false), []);
+  // Focus the menu itself, not the first action, so nothing looks pre-selected.
+  useLayoutEffect(
+    () => containFocus(ref.current, previousFocus.current, false, true),
+    []
+  );
   useLayoutEffect(() => {
     const el = ref.current;
     const rect = el.getBoundingClientRect();
     el.style.left = `${Math.floor(Math.max(8, Math.min(x, innerWidth - rect.width - 8)))}px`;
     el.style.top = `${Math.floor(Math.max(8, Math.min(y, innerHeight - rect.height - 8)))}px`;
   }, [items.length, x, y]);
-  useLayoutEffect(() => {
-    ref.current?.querySelector('button:not(:disabled)')?.focus({ preventScroll: true });
-  }, [x, y]);
+
   useEffect(() => {
     const outside = (e) => {
       if (!ref.current?.contains(e.target)) {
