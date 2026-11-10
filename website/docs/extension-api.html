@@ -45,9 +45,9 @@
         </p>
         <h1>Build a Tagline extension.</h1>
         <p>
-          Extend the workspace with commands, settings, themes, and sandboxed UI. Declare only the
-          permissions your extension needs and use the provided bridge instead of accessing app
-          internals.
+          Extend the workspace with commands, settings, themes, translations, fonts, templates, and
+          sandboxed UI. Declare only the permissions your extension needs and use the provided
+          bridge instead of accessing app internals.
         </p>
       </div>
 
@@ -77,6 +77,7 @@
             <a href="#registry">Browse and publish</a>
             <a href="#review">Review before enabling</a>
             <a href="#minimal">Minimal command</a>
+            <a href="#assets">Packaged assets</a>
             <a href="#manifest">Manifest</a>
             <a href="#permissions">Permissions and isolation</a>
             <a href="#network">Network API</a>
@@ -290,6 +291,47 @@
               The command appears as <strong>Debate Tools: Insert evidence reminder</strong>; its
               internal application ID is <code>ext:debate-tools.insert-reminder</code>. Register and
               await every contributed command during initialization.
+            </p>
+          </section>
+
+          <section id="assets">
+            <h2>Package translations, fonts, and templates</h2>
+            <p>
+              Declarative assets can be used without an entry script or permissions. Put every
+              referenced file inside the extension folder:
+            </p>
+            <pre><code class="language-text">debate-kit/
+  manifest.json
+  locales/en.json
+  fonts/debate-sans.woff2
+  templates/case-note.md</code></pre>
+            <pre><code class="language-json">{
+  "manifestVersion": 1,
+  "id": "debate-kit",
+  "name": "Debate Kit",
+  "version": "1.0.0",
+  "contributes": {
+    "translations": { "en": "locales/en.json" },
+    "fonts": [
+      {
+        "family": "Debate Sans",
+        "file": "fonts/debate-sans.woff2",
+        "license": "OFL-1.1",
+        "source": "https://example.com/debate-sans"
+      }
+    ],
+    "templates": [{ "id": "case-note", "title": "Case note", "file": "templates/case-note.md" }]
+  }
+}</code></pre>
+            <p>
+              Catalogs are flat JSON string maps, such as
+              <code>{ "welcome": "Welcome, {name}" }</code>. Keys are isolated under
+              <code>ext.debate-kit</code>; an entry script can call
+              <code>await tagline.i18n.t('welcome', { name: 'Kim' })</code>. Add a
+              <code>main</code> script to the manifest to use that API. Contributed fonts appear in
+              the font-family setting, and templates appear in template commands and
+              <strong>Settings &gt; General &gt; Templates</strong>. Assets disappear when the
+              extension is disabled; templates are never copied into the vault.
             </p>
           </section>
 
