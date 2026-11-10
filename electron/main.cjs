@@ -89,7 +89,7 @@ const { createVault } = require(path.join(__dirname, 'main', 'vault.cjs'));
 const { createWindowManager } = require(path.join(__dirname, 'main', 'window.cjs'));
 const { registerAppIpc } = require(path.join(__dirname, 'main', 'ipcApp.cjs'));
 const { registerVaultIpc } = require(path.join(__dirname, 'main', 'ipcVault.cjs'));
-const vault = createVault({ app, path, fs, fssync, randomUUID, process }, state);
+const vault = createVault({ app, path, fs, fssync, randomUUID, process, dialog }, state);
 const { readConfig, writeConfig, resolveInVault, openVault } = vault;
 const { createWindow, buildMenu } = createWindowManager(
   {

@@ -1,4 +1,6 @@
-function createVault({ app, path, fs, fssync, randomUUID, process }, state) {
+const { prepareVault } = require('../vaultMigrations.cjs');
+
+function createVault({ app, path, fs, fssync, randomUUID, process, dialog }, state) {
   const configPath = () => path.join(app.getPath('userData'), 'config.json');
 
   function readConfig() {
@@ -62,7 +64,15 @@ function createVault({ app, path, fs, fssync, randomUUID, process }, state) {
   }
 
   async function openVault(dir) {
-    await fs.mkdir(dir, { recursive: true });
+    const accepted = await prepareVault(dir, {
+      showMessageBox:
+        dialog &&
+        ((options) =>
+          state.win ? dialog.showMessageBox(state.win, options) : dialog.showMessageBox(options)),
+    });
+    if (!accepted) {
+      return null;
+    }
     state.vaultRoot = path.resolve(dir);
     const saved = readConfig().recentVaults;
     const key = (value) => (process.platform === 'win32' ? value.toLowerCase() : value);
@@ -101,6 +111,7 @@ function createVault({ app, path, fs, fssync, randomUUID, process }, state) {
           if (error.code !== 'ENOENT' && error.code !== 'ENOTDIR') {
             throw error;
           }
+          exists = fssync.existsSync(`${root}.tagline-migration.json`);
         }
         return { root, name: path.basename(root), exists };
       })

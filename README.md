@@ -24,6 +24,8 @@ renderer, and package that renderer for the same target. Rebuild for each target
 
 Open a folder as a vault or create the sample vault on first launch.
 
+Older vault formats open a migration wizard before loading. Review the required upgrades, pause cloud sync and close other editors, then choose **Back up and upgrade**. Upgrades run in order on a separate copy; the original stays beside the vault as a `.tagline-backup-<id>` folder. Cancel leaves the vault unchanged. Newer, unsupported formats are refused rather than rewritten. Keep backups until you have checked your data; to restore, close Tagline and replace the upgraded folder with its backup.
+
 ## Releases and updates
 
 Builds are unsigned and not notarized, so OS security warnings are expected.

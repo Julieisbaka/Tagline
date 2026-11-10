@@ -195,7 +195,7 @@ export default function App() {
         let file;
         while (!disposed && (file = await window.api.nextFlowFile())) {
           const result = await flowVaultRef.current.openFlowFile(file);
-          if (!disposed) {
+          if (!disposed && result) {
             setExternalFlow(result);
           }
         }

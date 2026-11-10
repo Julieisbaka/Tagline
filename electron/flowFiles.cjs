@@ -78,6 +78,9 @@ function registerFlowFiles({
       !path.isAbsolute(relative) &&
       !relative.split(path.sep).some((part) => part.startsWith('.'));
     const vault = await openVault(inside ? current : path.dirname(real));
+    if (!vault) {
+      return null;
+    }
     return { vault, path: path.relative(vault.root, real).split(path.sep).join('/') };
   });
   return true;

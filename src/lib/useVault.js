@@ -442,6 +442,9 @@ export function useVault(
         throw new Error('Could not save current edits. The flow file was not opened.');
       }
       const result = await api.openFlowFile(file);
+      if (!result) {
+        return null;
+      }
       await open(result.vault);
       return result;
     },

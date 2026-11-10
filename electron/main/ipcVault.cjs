@@ -30,7 +30,10 @@ function registerVaultIpc(
   ipcMain.handle('vault:getLast', async (event) => {
     assertModelSender(event, 'Vault access');
     const { lastVault } = readConfig();
-    if (lastVault && fssync.existsSync(lastVault)) {
+    if (
+      lastVault &&
+      (fssync.existsSync(lastVault) || fssync.existsSync(`${lastVault}.tagline-migration.json`))
+    ) {
       return openVault(lastVault);
     }
     return null;
@@ -109,6 +112,9 @@ function registerVaultIpc(
       return null;
     }
     const info = await openVault(path.join(res.filePaths[0], 'Tagline Sample Vault'));
+    if (!info) {
+      return null;
+    }
     for (const [rel, content] of Object.entries(SAMPLE_VAULT)) {
       const full = resolveInVault(rel);
       await fs.mkdir(path.dirname(full), { recursive: true });
