@@ -181,6 +181,12 @@ async function demoTiptap(command, options) {
   await requireVisualEditor();
   const before = await tagline.editor.tiptap.getSnapshot();
   if (command === 'toggleHeading') await tagline.editor.tiptap.runCommand(command, { level: options?.level ?? 2 });
+  else if (command === 'insertTable')
+    await tagline.editor.tiptap.runCommand(command, {
+      rows: options?.rows ?? 2,
+      cols: options?.cols ?? 2,
+      withHeaderRow: options?.withHeaderRow ?? true,
+    });
   else await tagline.editor.tiptap.runCommand(command);
   const after = await tagline.editor.tiptap.getSnapshot();
   const blocks = (after.doc.content || []).map((node) => node.type);

@@ -770,8 +770,9 @@ await stop();</code></pre>
             <p>
               Custom event names follow <code>ext.&lt;extension-id&gt;.&lt;event-name&gt;</code>.
               Extensions may listen to other namespaces but can emit only in their own. Names are
-              limited to 128 characters; custom event and UI-message payloads must be
-              JSON-serializable and no larger than 131,072 UTF-8 bytes (128 KiB). Treat payloads from other
+              limited to 128 characters; custom event payloads must be JSON-serializable and no
+              larger than 131,072 UTF-8 bytes (128 KiB); webview UI-message payloads are
+              JSON-serializable and capped at 65,536 UTF-8 bytes. Treat payloads from other
               extensions as untrusted.
             </p>
           </section>

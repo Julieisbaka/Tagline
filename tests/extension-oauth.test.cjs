@@ -66,6 +66,13 @@ test('extension OAuth rejects unapproved destinations and caller-supplied state'
     () => beginExtensionAuthorization({ ...common, address: 'https://auth.example.com/authorize?state=mine' }),
     /generates them/
   );
+  assert.throws(
+    () =>
+      beginExtensionAuthorization(
+        { ...common, address: 'https://auth.example.com/authorize?code_challenge=abc&code_challenge_method=S256' }
+      ),
+    /generates them/
+  );
 });
 
 test('extension OAuth can be canceled and closes its loopback server', async () => {

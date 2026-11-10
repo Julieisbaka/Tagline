@@ -128,8 +128,7 @@
           tiptap: Object.freeze({
             /** Read a serializable visual-editor document and selection. Requires editor. @returns {Promise<object>} */
             getSnapshot: () => call('editor.getTiptapSnapshot'),
-            /** Run an allowlisted visual-editor command; toggleHeading takes {level:1..6}. Requires editor. @returns {Promise<boolean>} */
-            /** Run a host-approved command: text marks/blocks, task lists, tables, history, and basic formatting. Options are supported only by toggleHeading ({level:1..6}) and insertTable ({rows:1..20,cols:1..20,withHeaderRow:boolean}). Requires editor. */
+            /** Run a host-approved command: text marks/blocks, task lists, tables, history, and basic formatting. Options are supported only by toggleHeading ({level:1..6}) and insertTable ({rows:1..20,cols:1..20,withHeaderRow:boolean}). Requires editor. @returns {Promise<boolean>} */
             runCommand: (command, options) => call('editor.runTiptapCommand', command, options),
           }),
           /** Subscribe to {path} active-note events without content. Requires editor:active-note.
@@ -201,8 +200,8 @@
            * @param {{method?:string,headers?:Record<string,string>,body?:string,timeoutMs?:number}} [options]
            * @returns {Promise<{status:number,statusText:string,ok:boolean,headers:object,bytes:number,path:string}>}
            */
-           fetchToFile: (url, path, options) => call('network.fetchToFile', url, path, options),
-           /** Open an HTTPS authorization URL in the system browser and wait for an ephemeral 127.0.0.1 OAuth redirect. Tagline supplies redirect_uri and state; the URL host must be in networkHosts. Requires network. @param {string} url HTTPS authorization URL without state. @param {{timeoutMs?:number}} [options] @returns {Promise<{redirectUri:string,parameters:Record<string,string>}>} */
+          fetchToFile: (url, path, options) => call('network.fetchToFile', url, path, options),
+          /** Open an HTTPS authorization URL in the system browser and wait for an ephemeral 127.0.0.1 OAuth redirect. Tagline supplies redirect_uri, state, and an S256 PKCE challenge; the URL host must be in networkHosts. Requires network. @param {string} url HTTPS authorization URL without state or PKCE parameters. @param {{timeoutMs?:number}} [options] @returns {Promise<{redirectUri:string,codeVerifier:string,parameters:Record<string,string>}>} */
           authorize: (url, options) => call('network.authorize', url, options),
           /** Cancel this extension's pending localhost OAuth authorization, if any. Requires network. */
           cancelAuthorization: () => call('network.cancelAuthorization'),
