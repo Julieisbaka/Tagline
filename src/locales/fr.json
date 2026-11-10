@@ -588,7 +588,7 @@
   "Arm automatic start": "Activer le démarrage automatique",
   "Cancel automatic start": "Annuler le démarrage automatique",
   "Microphone volume threshold (%)": "Seuil de volume du microphone (%)",
-  "Listening once for speech-like sound; background voices may trigger the timer.": "Écoute ponctuelle de sons ressemblant à la parole ; les voix en arrière-plan peuvent déclencher le chronomètre.",
+  "Listening once for sustained speech; adapts to ambient noise, but background voices may still trigger.": "Écoute ponctuelle d’une parole soutenue ; s’adapte au bruit ambiant, mais les voix en arrière-plan peuvent encore déclencher le chronomètre.",
   "Automatic start listens only when armed and turns off after starting.": "Le démarrage automatique écoute uniquement lorsqu'il est activé et se désactive après le démarrage.",
   "Microphone disconnected.": "Microphone déconnecté.",
   "Microphone unavailable: {error}": "Microphone indisponible : {error}",

@@ -230,7 +230,6 @@ export default function FlowGrid({
                     <textarea
                       data-row={r}
                       data-column={c}
-                      autoFocus
                       aria-label={t('Row {row}, {column}', {
                         row: r + 1,
                         column: sheet.columns[c],

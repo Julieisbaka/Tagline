@@ -9,7 +9,6 @@
   "timerPresets": [],
   "timerSoundName": "",
   "timerSoundEnabled": false,
-  "micThreshold": 4,
   "interactionSounds": false,
   "readableWidth": true,
   "readableWidthPixels": 820,

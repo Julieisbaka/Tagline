@@ -1,4 +1,5 @@
 import AdvancedSettings from '../../settings/AdvancedSettings.jsx';
+import DEFAULTS from '../../../lib/defaultSettings.json';
 import CustomCssSettings from '../../settings/CustomCssSettings.jsx';
 import CustomizationLimits from '../../settings/CustomizationLimits.jsx';
 import EditorSettings from '../../settings/EditorSettings.jsx';
@@ -274,38 +275,32 @@ export default function SettingsPanels({
         <SettingsGroup title={t('Internal flags')}>
           <section className='internal-flags'>
             <p>{t('These flags record workspace state and dismissed notices.')}</p>
-            <label className='setting-row'>
-              <span>{t('Visual editor notice dismissed')}</span>
-              <input
-                type='checkbox'
-                data-flag='visualNoticeDismissed'
-                checked={!!settings.internalFlags?.visualNoticeDismissed}
-                onChange={(e) =>
-                  update({
-                    internalFlags: {
-                      ...settings.internalFlags,
-                      visualNoticeDismissed: e.target.checked,
-                    },
-                  })
-                }
-              />
-            </label>
-            <label className='setting-row'>
-              <span>{t('Has seen onboarding')}</span>
-              <input
-                type='checkbox'
-                data-flag='hasSeenOnboarding'
-                checked={!!settings.internalFlags?.hasSeenOnboarding}
-                onChange={(event) =>
-                  update({
-                    internalFlags: {
-                      ...settings.internalFlags,
-                      hasSeenOnboarding: event.target.checked,
-                    },
-                  })
-                }
-              />
-            </label>
+            {Object.keys({ ...DEFAULTS.internalFlags, ...(settings.internalFlags || {}) }).map(
+              (flag) => {
+                const labels = {
+                  visualNoticeDismissed: 'Visual editor notice dismissed',
+                  hasSeenOnboarding: 'Has seen onboarding',
+                };
+                return (
+                  <label className='setting-row' key={flag}>
+                    <span>{t(labels[flag] || flag)}</span>
+                    <input
+                      type='checkbox'
+                      data-flag={flag}
+                      checked={!!settings.internalFlags?.[flag]}
+                      onChange={(e) =>
+                        update({
+                          internalFlags: {
+                            ...settings.internalFlags,
+                            [flag]: e.target.checked,
+                          },
+                        })
+                      }
+                    />
+                  </label>
+                );
+              }
+            )}
             <button
               onClick={() => {
                 update({
@@ -317,6 +312,77 @@ export default function SettingsPanels({
               {t('Show onboarding again')}
             </button>
           </section>
+        </SettingsGroup>
+        <SettingsGroup title={t('All settings')}>
+          {Object.entries(DEFAULTS).map(([key, defaultValue]) => {
+            if (key === 'internalFlags') {
+              return null;
+            }
+            const value = settings[key];
+            if (typeof defaultValue === 'boolean') {
+              return (
+                <label className='setting-row' key={key}>
+                  <span>{key}</span>
+                  <input
+                    type='checkbox'
+                    data-setting={key}
+                    checked={!!value}
+                    onChange={(e) => update({ [key]: e.target.checked })}
+                  />
+                </label>
+              );
+            }
+            if (typeof defaultValue === 'number') {
+              return (
+                <label className='setting-row' key={key}>
+                  <span>{key}</span>
+                  <input
+                    type='number'
+                    data-setting={key}
+                    value={value ?? ''}
+                    onChange={(e) => {
+                      if (e.target.value !== '') {
+                        update({ [key]: Number(e.target.value) });
+                      }
+                    }}
+                  />
+                </label>
+              );
+            }
+            if (typeof defaultValue === 'string') {
+              return (
+                <label className='setting-row' key={key}>
+                  <span>{key}</span>
+                  <input
+                    type='text'
+                    data-setting={key}
+                    value={value ?? ''}
+                    onChange={(e) => update({ [key]: e.target.value })}
+                  />
+                </label>
+              );
+            }
+            return (
+              <label className='setting-row' key={key}>
+                <span>{key}</span>
+                <textarea
+                  data-setting={key}
+                  value={
+                    typeof value === 'string'
+                      ? value
+                      : JSON.stringify(value ?? defaultValue ?? null, null, 2)
+                  }
+                  onChange={(e) => {
+                    try {
+                      update({ [key]: JSON.parse(e.target.value) });
+                    } catch {
+                      // Ignore invalid JSON while typing.
+                    }
+                  }}
+                />
+              </label>
+            );
+          })}
         </SettingsGroup>
       </section>
       <section

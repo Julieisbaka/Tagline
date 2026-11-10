@@ -144,8 +144,6 @@ export default function Timer({
   timerSoundEnabled = false,
   timerSoundName = '',
   interactionSounds = false,
-  micThreshold = 4,
-  onMicThresholdChange = () => {},
   onArmedChange,
 }) {
   const { t } = useI18n();
@@ -197,18 +195,13 @@ export default function Timer({
   const neg = useCountdown(fmt ? Math.round(fmt.prep * 60) : 0, playEndSound);
   const [armed, setArmed] = useState(false);
   const [micStatus, setMicStatus] = useState('idle');
-  const [threshold, setThreshold] = useState(micThreshold);
+  const [threshold, setThreshold] = useState(4);
   const [micError, setMicError] = useState('');
   const [micIssue, setMicIssue] = useState(false);
   const [level, setLevel] = useState(0);
   const microphone = useRef(null);
   const thresholdValue = useRef(threshold);
   thresholdValue.current = threshold;
-  const updateThreshold = (value) => {
-    const next = Math.min(30, Math.max(1, Number(value) || 1));
-    setThreshold(next);
-    onMicThresholdChange?.(next);
-  };
   const latest = useRef(null);
   latest.current = { main, aff, neg };
 
@@ -267,6 +260,7 @@ export default function Timer({
       const waveform = new Float32Array(analyser.fftSize);
       const spectrum = new Float32Array(analyser.frequencyBinCount);
       let voicedSince = 0;
+      let ambientRms = thresholdValue.current / 100;
       const sample = () => {
         if (microphone.current !== session) {
           return;
@@ -274,16 +268,20 @@ export default function Timer({
         const now = performance.now();
         analyser.getFloatTimeDomainData(waveform);
         analyser.getFloatFrequencyData(spectrum);
-        setLevel(Math.sqrt(waveform.reduce((sum, value) => sum + value * value, 0) / waveform.length));
+        const rms = Math.sqrt(
+          waveform.reduce((sum, value) => sum + value * value, 0) / waveform.length
+        );
+        setLevel(rms);
         if (now - listeningSince < ARM_GRACE_MS) {
+          ambientRms = ambientRms * 0.85 + rms * 0.15;
           voicedSince = 0;
           return;
         }
-        if (
-          speechLike(waveform, spectrum, session.context.sampleRate, thresholdValue.current / 100)
-        ) {
+        const floor = Math.max(thresholdValue.current / 100, ambientRms * 1.6);
+        const voiced = speechLike(waveform, spectrum, session.context.sampleRate, floor);
+        if (voiced) {
           voicedSince ||= now;
-          if (now - voicedSince >= 500) {
+          if (now - voicedSince >= 650) {
             disarm();
             latest.current.aff.stop();
             latest.current.neg.stop();
@@ -292,6 +290,8 @@ export default function Timer({
           }
         } else {
           voicedSince = 0;
+          // Track ambient/background level from non-speech frames to adapt to room noise.
+          ambientRms = ambientRms * 0.97 + rms * 0.03;
         }
       };
       const track = stream.getAudioTracks()[0];
@@ -500,7 +500,7 @@ export default function Timer({
             value={threshold}
             disabled={armed}
             onChange={(event) =>
-              updateThreshold(Math.min(30, Math.max(1, Number(event.target.value) || 1)))
+              setThreshold(Math.min(30, Math.max(1, Number(event.target.value) || 1)))
             }
           />
         </label>
@@ -509,7 +509,7 @@ export default function Timer({
             micStatus === 'requesting'
               ? 'Connecting to the microphone…'
               : micStatus === 'listening'
-                ? 'Listening once for sustained speech-like sound; background voices may trigger the timer.'
+                ? 'Listening once for sustained speech; adapts to ambient noise, but background voices may still trigger.'
                 : 'Automatic start listens only when armed and turns off after starting.'
           )}
         </p>
