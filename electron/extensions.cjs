@@ -5,6 +5,7 @@ const { validateSettingValue } = require('./extensionSettings.mjs');
 const { createHash, randomUUID } = require('node:crypto');
 const { validateLimits } = require('./customization.mjs');
 const { requestExtensionNetwork, downloadExtensionNetwork } = require('./extensionNetwork.cjs');
+const { beginExtensionAuthorization, MAX_TIMEOUT_MS } = require('./extensions/oauth.cjs');
 const {
   validateManifest,
   reviewSignature,
@@ -31,6 +32,8 @@ function registerExtensions({
 }) {
   const installTokens = new Map();
   const networkRequestTimes = new Map();
+  const pendingAuthorizations = new Map();
+  const cancelAuthorization = (id) => pendingAuthorizations.get(id)?.cancel();
   const limits = () => validateLimits(readConfig().customizationLimits);
   ipcMain.handle('customization:get', () => limits());
   ipcMain.handle('customization:set', (_event, value) => {
@@ -105,7 +108,7 @@ function registerExtensions({
       }
       clean[key] = validateSettingValue(setting, value);
     }
-    if (JSON.stringify(clean).length > limits().extensionStorageCharacters) {
+    if (Buffer.byteLength(JSON.stringify(clean)) > limits().extensionStorageCharacters) {
       throw new Error('Extension settings exceed the configured storage limit.');
     }
     const result = await dialog.showSaveDialog(getWindow(), {
@@ -221,6 +224,7 @@ function registerExtensions({
     }
     if (!enabled) {
       networkRequestTimes.delete(id);
+      cancelAuthorization(id);
     }
     if (enabled) {
       next.push(id);
@@ -255,6 +259,9 @@ function registerExtensions({
     }
     const extensionPermissions = { ...readConfig().extensionPermissions };
     extensionPermissions[id] = [...permissions];
+    if (!permissions.includes('network')) {
+      cancelAuthorization(id);
+    }
     writeConfig({ extensionPermissions });
     return true;
   });
@@ -274,6 +281,7 @@ function registerExtensions({
     if (item.id) {
       installTokens.delete(item.id);
       networkRequestTimes.delete(item.id);
+      cancelAuthorization(item.id);
       delete extensionReviews[item.id];
       delete extensionPermissions[item.id];
     }
@@ -335,8 +343,8 @@ function registerExtensions({
   function rateLimitNetwork(id) {
     const now = Date.now();
     const recent = (networkRequestTimes.get(id) || []).filter((time) => now - time < 1000);
-    if (recent.length >= 10) {
-      throw new Error('Extensions are limited to 10 network requests per second.');
+    if (recent.length >= 20) {
+      throw new Error('Extensions are limited to 20 network requests per second.');
     }
     recent.push(now);
     networkRequestTimes.set(id, recent);
@@ -442,6 +450,43 @@ function registerExtensions({
         await fs.rm(temporary, { force: true });
       }
     }
+  });
+
+  ipcMain.handle('extensions:oauthAuthorize', async (event, id, address, options = {}) => {
+    assertModelSender?.(event, 'Extension OAuth');
+    const item = await authorizeNetwork(id);
+    rateLimitNetwork(id);
+    if (pendingAuthorizations.has(id)) {
+      throw new Error('This extension already has an authorization flow in progress.');
+    }
+    if (!options || typeof options !== 'object' || Array.isArray(options) || Object.keys(options).some((key) => key !== 'timeoutMs')) {
+      throw new Error('Invalid OAuth options.');
+    }
+    const flow = beginExtensionAuthorization({
+      address,
+      networkHosts: item.networkHosts,
+      timeoutMs: options.timeoutMs ?? MAX_TIMEOUT_MS,
+      openExternal: (url) => shell.openExternal(url),
+    });
+    pendingAuthorizations.set(id, flow);
+    try {
+      const result = await flow.promise;
+      const current = await authorizeNetwork(id);
+      if (reviewSignature(current) !== reviewSignature(item)) {
+        throw new Error('Extension permissions or hosts changed during authorization.');
+      }
+      return result;
+    } finally {
+      if (pendingAuthorizations.get(id) === flow) {
+        pendingAuthorizations.delete(id);
+      }
+      flow.cancel();
+    }
+  });
+  ipcMain.handle('extensions:oauthCancel', async (event, id) => {
+    assertModelSender?.(event, 'Extension OAuth cancellation');
+    cancelAuthorization(id);
+    return true;
   });
 
   ipcMain.handle('extensions:chooseVaultPath', async (event, id, kind) => {

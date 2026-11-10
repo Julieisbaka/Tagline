@@ -17,10 +17,10 @@ export const LIMIT_DEFINITIONS = Object.freeze({
   extensionWatches: { label: 'Listeners per event type per extension', default: 32, min: 1, max: 256 },
   extensionPendingCalls: { label: 'Pending calls per extension', default: 32, min: 1, max: 256 },
   extensionMessagesPerSecond: { label: 'Messages per second per extension', default: 200, min: 10, max: 2000 },
-  extensionStorageCharacters: { label: 'Storage characters per extension store', default: 100000, min: 1000, max: 1000000 },
+  extensionStorageCharacters: { label: 'Extension database bytes per store', default: 131072, min: 1000, max: 1000000 },
   extensionStartupMs: { label: 'Extension startup timeout (ms)', default: 10000, min: 1000, max: 60000 },
   extensionHeartbeatMs: { label: 'Extension heartbeat timeout (ms)', default: 5000, min: 1000, max: 30000 },
-  extensionNetworkTimeoutMs: { label: 'Extension network timeout cap (ms)', default: 15000, min: 1000, max: 120000 },
+  extensionNetworkTimeoutMs: { label: 'Extension network timeout cap (ms)', default: 30000, min: 1000, max: 120000 },
   networkDownloadBytes: { label: 'Extension download bytes', default: 20000000, min: 1000, max: 100000000 },
 });
 

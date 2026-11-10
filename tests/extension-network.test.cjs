@@ -88,7 +88,7 @@ test('network request validation bounds destinations, methods, headers and bodie
     ['https://api.example.com/', { method: 'TRACE' }],
     ['https://api.example.com/', { method: 'GET', body: 'data' }],
     ['https://api.example.com/', { method: 'HEAD', body: 'data' }],
-    ['https://api.example.com/', { timeoutMs: 15001 }],
+    ['https://api.example.com/', { timeoutMs: 30001 }],
     ['https://api.example.com/', { timeoutMs: 0 }],
     ['https://api.example.com/', { responseType: 'binary' }],
     ['https://api.example.com/', { headers: { Cookie: 'session=secret' } }],
@@ -105,7 +105,8 @@ test('network request validation bounds destinations, methods, headers and bodie
       }),
     /may not exceed/
   );
-  assert.equal(MAX_RESPONSE_BYTES, 1_000_000);
+  assert.equal(MAX_REQUEST_BYTES, 5_000_000);
+  assert.equal(MAX_RESPONSE_BYTES, 5_000_000);
   for (const method of ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'HEAD']) {
     assert.equal(
       validateNetworkRequest(['api.example.com'], 'https://api.example.com', { method }).method,
@@ -121,6 +122,7 @@ test('network request validation bounds destinations, methods, headers and bodie
     ).body,
     'x'
   );
+  assert.equal(validateNetworkRequest(['api.example.com'], 'https://api.example.com').timeoutMs, 30000);
 });
 
 test('network requests use the public DNS guard and return bounded response data', async () => {

@@ -32,7 +32,7 @@ function ExtensionSettingsForm({ item, extensions }) {
       return;
     }
     try {
-      if (file.size > getRuntimeLimits().extensionStorageCharacters * 4 + 1000) {
+      if (file.size > getRuntimeLimits().extensionStorageCharacters + 1000) {
         throw new Error(t('Extension settings file is too large.'));
       }
       const data = JSON.parse(await file.text());

@@ -6,11 +6,11 @@ const { pipeline } = require('node:stream/promises');
 const { publicLookup } = require('./citationMetadata.cjs');
 
 const MAX_NETWORK_HOSTS = 20;
-const MAX_REQUEST_BYTES = 1_000_000;
-const MAX_RESPONSE_BYTES = 1_000_000;
+const MAX_REQUEST_BYTES = 5_000_000;
+const MAX_RESPONSE_BYTES = 5_000_000;
 const MAX_HEADER_COUNT = 32;
 const MAX_HEADER_BYTES = 16_384;
-const REQUEST_TIMEOUT_MS = 15_000;
+const REQUEST_TIMEOUT_MS = 30_000;
 const HOST_PATTERN =
   /^(?=.{1,253}$)(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/;
 const BLOCKED_SUFFIXES = [

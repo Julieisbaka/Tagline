@@ -284,18 +284,37 @@ export class ExtensionHost {
         if (command === 'toggleHeading') {
           if (
             !options ||
+            Object.keys(options).some((key) => key !== 'level') ||
             !Number.isInteger(options.level) ||
             options.level < 1 ||
             options.level > 6
           ) {
             throw new Error('Heading level must be an integer from 1 to 6.');
           }
+        } else if (command === 'insertTable') {
+          if (
+            !options ||
+            Object.keys(options).some((key) => !['rows', 'cols', 'withHeaderRow'].includes(key)) ||
+            !Number.isInteger(options.rows) ||
+            options.rows < 1 ||
+            options.rows > 20 ||
+            !Number.isInteger(options.cols) ||
+            options.cols < 1 ||
+            options.cols > 20 ||
+            typeof options.withHeaderRow !== 'boolean'
+          ) {
+            throw new Error('Table options require 1–20 rows and columns and a header-row boolean.');
+          }
         } else if (options !== undefined) {
           throw new Error('This command does not accept options.');
         }
         return b.runTiptapCommand(
           command,
-          command === 'toggleHeading' ? { level: options.level } : undefined
+          command === 'toggleHeading'
+            ? { level: options.level }
+            : command === 'insertTable'
+              ? { rows: options.rows, cols: options.cols, withHeaderRow: options.withHeaderRow }
+              : undefined
         );
       }
       case 'events.subscribe': {
@@ -557,21 +576,28 @@ export class ExtensionHost {
           [requireText(args[0], 'Setting id', 64)]: args[1],
         });
       case 'network.fetch':
-      case 'network.fetchToFile': {
+      case 'network.fetchToFile':
+      case 'network.authorize': {
         this.require('network');
         if (method === 'network.fetchToFile') {
           this.require('vault:write');
         }
         const now = Date.now();
         this.networkRequestTimes = this.networkRequestTimes.filter((time) => now - time < 1000);
-        if (this.networkRequestTimes.length >= 10) {
-          throw new Error('Extensions are limited to 10 network requests per second.');
+        if (this.networkRequestTimes.length >= 20) {
+          throw new Error('Extensions are limited to 20 network requests per second.');
         }
         this.networkRequestTimes.push(now);
+        if (method === 'network.authorize') {
+          return b.networkAuthorize(this.manifest.id, args[0], args[1]);
+        }
         return method === 'network.fetch'
           ? b.networkFetch(this.manifest.id, args[0], args[1])
           : b.networkFetchToFile(this.manifest.id, args[0], args[1], args[2]);
       }
+      case 'network.cancelAuthorization':
+        this.require('network');
+        return b.cancelAuthorization(this.manifest.id);
       case 'editor.watchActiveNote': {
         this.require('editor:active-note');
         if (this.activeNoteWatches.size >= this.limits.extensionWatches) {
@@ -671,7 +697,7 @@ export class ExtensionHost {
       case 'storage.set': {
         const key = requireText(args[0], 'Key', 200);
         const valueText = JSON.stringify(args[1]);
-        if (valueText !== undefined && valueText.length > this.limits.extensionStorageCharacters) {
+        if (valueText !== undefined && new TextEncoder().encode(valueText).byteLength > this.limits.extensionStorageCharacters) {
           throw new Error('Extension storage exceeds the configured limit.');
         }
         return (this.storageWrites = this.storageWrites
@@ -683,7 +709,7 @@ export class ExtensionHost {
               delete next[key];
             }
             const text = JSON.stringify(next);
-            if (text.length > this.limits.extensionStorageCharacters) {
+            if (new TextEncoder().encode(text).byteLength > this.limits.extensionStorageCharacters) {
               throw new Error('Extension storage exceeds the configured limit.');
             }
             await this.bridge.extensionStorage(this.manifest.id, 'set', key, args[1]);
@@ -711,7 +737,7 @@ export class ExtensionHost {
             const parsed = JSON.parse(legacy);
             if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
               const text = JSON.stringify(parsed);
-              if (text.length <= this.limits.extensionStorageCharacters) {
+              if (new TextEncoder().encode(text).byteLength <= this.limits.extensionStorageCharacters) {
                 await this.bridge.extensionStorage(this.manifest.id, 'replace', null, parsed);
                 data = parsed;
               }
@@ -908,6 +934,7 @@ export class ExtensionHost {
     this.surfaces.clear();
     this.surfaceTransports.clear();
     this.bridge.removeSurfaces?.(this);
+    this.bridge.cancelAuthorization?.(this.manifest.id);
     this.port?.close();
     this.port = null;
     this.frame?.remove();

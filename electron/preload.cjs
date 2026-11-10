@@ -145,6 +145,9 @@ contextBridge.exposeInMainWorld('api', {
     ipcRenderer.invoke('extensions:networkFetch', id, url, options),
   extensionNetworkFetchToFile: (id, url, destination, options) =>
     ipcRenderer.invoke('extensions:networkFetchToFile', id, url, destination, options),
+  extensionOAuthAuthorize: (id, url, options) =>
+    ipcRenderer.invoke('extensions:oauthAuthorize', id, url, options),
+  extensionOAuthCancel: (id) => ipcRenderer.invoke('extensions:oauthCancel', id),
   extensionChooseVaultPath: (id, kind) =>
     ipcRenderer.invoke('extensions:chooseVaultPath', id, kind),
   extensionSecret: (id, action, key, value) =>

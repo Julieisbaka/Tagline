@@ -11,11 +11,30 @@ export const EDITOR_COMMANDS = Object.freeze([
   'toggleUnderline',
   'toggleHighlight',
   'toggleStrike',
+  'toggleCode',
+  'toggleCodeBlock',
   'toggleHeading',
   'setParagraph',
+  'clearNodes',
+  'setHardBreak',
+  'setHorizontalRule',
   'toggleBulletList',
   'toggleOrderedList',
   'toggleBlockquote',
+  'toggleTaskList',
+  'insertTable',
+  'addColumnBefore',
+  'addColumnAfter',
+  'deleteColumn',
+  'addRowBefore',
+  'addRowAfter',
+  'deleteRow',
+  'toggleHeaderRow',
+  'toggleHeaderColumn',
+  'toggleHeaderCell',
+  'mergeCells',
+  'splitCell',
+  'deleteTable',
   'undo',
   'redo',
   'unsetAllMarks',
@@ -51,6 +70,7 @@ export function createEventBus() {
       };
     },
     emit(name, payload) {
+      requirePayload(payload);
       for (const listener of [...(listeners.get(name) || [])]) {
         listener(structuredClone(payload));
       }
@@ -90,8 +110,8 @@ export function requirePayload(value) {
   } catch {
     throw new Error('Payload must be JSON-serializable.');
   }
-  if (serialized === undefined || serialized.length > 65536) {
-    throw new Error('Payload must be JSON up to 65,536 characters.');
+  if (serialized === undefined || new TextEncoder().encode(serialized).byteLength > 131072) {
+    throw new Error('Payload must be JSON up to 131,072 bytes.');
   }
   return JSON.parse(serialized);
 }

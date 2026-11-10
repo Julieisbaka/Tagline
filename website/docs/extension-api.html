@@ -549,8 +549,8 @@
               process rechecks that the extension is enabled and its manifest still declares the
               permission and requested host. Requests reject local or private DNS results, embedded
               URL credentials, non-HTTPS schemes, non-default ports, cookies, automatic redirects,
-              and compressed responses. Requests are limited to 10 per second and request bodies of
-              1,000,000 bytes; see <a href="#network">Network API</a> for response and timeout limits. The extension worker and
+              and compressed responses. Requests are limited to 20 per second and request bodies of
+              5,000,000 bytes; see <a href="#network">Network API</a> for response and timeout limits. The extension worker and
               webviews have no direct network access. Extensions also have no direct Node.js,
               Electron API, application DOM, profile storage, or arbitrary filesystem access. See
               <a href="#review">Review before enabling</a> for the manifest approval required for
@@ -584,9 +584,9 @@
             <p>
               <code>tagline.network.fetch(url, options)</code> supports GET, POST, PUT, PATCH,
               DELETE, and HEAD. GET and HEAD cannot have a body; other bodies are text up to
-              1,000,000 UTF-8 bytes. The response has <code>status</code>, <code>statusText</code>,
+              5,000,000 UTF-8 bytes. The response has <code>status</code>, <code>statusText</code>,
               <code>ok</code>, <code>headers</code>, and <code>body</code>. Response bodies are
-              limited to 1,000,000 bytes. <code>responseType</code> can be <code>text</code>
+              limited to 5,000,000 bytes. <code>responseType</code> can be <code>text</code>
               (default), <code>json</code> (parsed JSON; invalid JSON rejects), or
               <code>base64</code> (binary bytes encoded as a string).
             </p>
@@ -596,8 +596,9 @@
 });</code></pre>
             <p>
               <code>timeoutMs</code> is a positive integer no greater than the configurable
-              <code>extensionNetworkTimeoutMs</code> cap (15,000 ms by default). Omitting it uses
-              15,000 ms or the cap, whichever is smaller. Customize the cap in Settings.
+              <code>extensionNetworkTimeoutMs</code> cap (30,000 ms by default). Omitting it uses
+              30,000 ms or the cap, whichever is smaller. Customize the cap in Settings. Requests
+              are limited to 20 per second per extension.
             </p>
             <p>
               <code>tagline.network.fetchToFile(url, vaultPath, options)</code> requires both
@@ -615,6 +616,28 @@
             <pre><code class="language-js">const saved = await tagline.network.fetchToFile(
   'https://api.example.com/evidence.pdf', 'Evidence/evidence.pdf', { timeoutMs: 12000 }
 );</code></pre>
+            <p>
+              <code>tagline.network.authorize(url, options)</code> supports desktop OAuth authorization
+              code flows. The HTTPS authorization host must be declared in <code>networkHosts</code>.
+              Tagline opens it in the system browser, creates a temporary listener bound only to
+              <code>127.0.0.1</code> on an ephemeral port, adds its loopback <code>redirect_uri</code>
+              and a random <code>state</code> plus an S256 PKCE challenge, and checks that state
+              before returning callback parameters and the <code>codeVerifier</code> needed for token
+              exchange. <code>options.timeoutMs</code> ranges from 1,000 to 300,000 ms and defaults
+              to five minutes. Call <code>tagline.network.cancelAuthorization()</code> to cancel a
+              pending flow; disabling the extension also closes its listener. Use the returned code with
+              <code>tagline.network.fetch()</code> for the token exchange. This does not enable
+              arbitrary localhost requests or fixed-port callbacks; OAuth providers must support
+              loopback redirects with a dynamic port.
+            </p>
+            <pre><code class="language-js">const result = await tagline.network.authorize(
+  'https://login.example.com/authorize?client_id=client&amp;response_type=code&amp;scope=profile'
+);
+const code = result.parameters.code;
+const redirectUri = result.redirectUri;
+const codeVerifier = result.codeVerifier;
+// From another command if the user cancels:
+await tagline.network.cancelAuthorization();</code></pre>
           </section>
 
           <section id="commands-editor">
@@ -654,12 +677,29 @@ await tagline.editor.tiptap.runCommand('toggleBold');</code></pre>
               and source fallback reject.
             </p>
             <p>
-              Approved Tiptap commands are <code>toggleBold</code>, <code>toggleItalic</code>,
-              <code>toggleUnderline</code>, <code>toggleHighlight</code>, <code>toggleStrike</code>,
-              <code>toggleHeading</code>, <code>setParagraph</code>, <code>toggleBulletList</code>,
-              <code>toggleOrderedList</code>, <code>toggleBlockquote</code>, <code>undo</code>,
-              <code>redo</code>, and <code>unsetAllMarks</code>. Only
-              <code>toggleHeading</code> accepts options: <code>{ level: 1..6 }</code>.
+              Approved Tiptap commands include formatting (<code>toggleBold</code>,
+              <code>toggleItalic</code>, <code>toggleUnderline</code>, <code>toggleHighlight</code>,
+              <code>toggleStrike</code>, <code>toggleCode</code>, <code>toggleHeading</code>,
+              <code>setParagraph</code>, <code>clearNodes</code>), blocks and lists
+              (<code>toggleCodeBlock</code>, <code>setHardBreak</code>, <code>setHorizontalRule</code>,
+              <code>toggleBulletList</code>, <code>toggleOrderedList</code>, <code>toggleBlockquote</code>,
+              <code>toggleTaskList</code>), tables
+              (<code>insertTable</code>, <code>addColumnBefore</code>, <code>addColumnAfter</code>,
+              <code>deleteColumn</code>, <code>addRowBefore</code>, <code>addRowAfter</code>,
+              <code>deleteRow</code>, <code>toggleHeaderRow</code>, <code>toggleHeaderColumn</code>,
+              <code>toggleHeaderCell</code>, <code>mergeCells</code>, <code>splitCell</code>,
+              <code>deleteTable</code>), and history (<code>undo</code>, <code>redo</code>,
+              <code>unsetAllMarks</code>). Only <code>toggleHeading</code> accepts
+              <code>{ level: 1..6 }</code>; <code>insertTable</code> accepts
+              <code>{ rows: 1..20, cols: 1..20, withHeaderRow: boolean }</code>.
+            </p>
+            <p>
+              Extensions cannot register arbitrary Tiptap, CodeMirror, or Marked JavaScript plugins:
+              extension code stays in the worker sandbox and is never executed in the editor or app
+              renderer. The restricted editor surface is the approved Tiptap command list,
+              host-validated editor diagnostics (rendered in the source and visual editors), and
+              permission-free Markdown parsing helpers. Use these APIs for editor integration without
+              injecting executable code into Tagline's editors.
             </p>
             <p>
               Use <code>tagline.editor.onActiveNoteChanged(callback)</code> with the separate
@@ -731,7 +771,7 @@ await stop();</code></pre>
               Custom event names follow <code>ext.&lt;extension-id&gt;.&lt;event-name&gt;</code>.
               Extensions may listen to other namespaces but can emit only in their own. Names are
               limited to 128 characters; custom event and UI-message payloads must be
-              JSON-serializable and no larger than 65,536 characters. Treat payloads from other
+              JSON-serializable and no larger than 131,072 UTF-8 bytes (128 KiB). Treat payloads from other
               extensions as untrusted.
             </p>
           </section>
@@ -1261,7 +1301,7 @@ await tagline.storage.set('key', null); // delete the key</code></pre>
             <p>
               No permission is required. Keys are strings up to 200 characters; values should be
               JSON-compatible. Setting <code>null</code> or <code>undefined</code> removes a key.
-              The total serialized object is limited to 100,000 characters. Storage is scoped by
+              The total serialized object is limited to 131,072 UTF-8 bytes (128 KiB). Storage is scoped by
               extension ID in the local app profile and survives host reloads; it is not encrypted,
               synced, or a vault file.
             </p>

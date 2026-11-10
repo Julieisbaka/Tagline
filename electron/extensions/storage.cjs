@@ -80,7 +80,7 @@ function registerStorageHandlers(context) {
         }
         next = value;
       }
-      if (JSON.stringify(next).length > limits().extensionStorageCharacters) {
+      if (Buffer.byteLength(JSON.stringify(next)) > limits().extensionStorageCharacters) {
         throw new Error('Extension storage exceeds the configured limit.');
       }
       await writeExtensionStorage(id, next);

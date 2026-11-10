@@ -19,8 +19,12 @@ const BUILTIN_EVENTS = [
 ];
 const TIPTAP_COMMANDS = [
   'toggleBold', 'toggleItalic', 'toggleUnderline', 'toggleHighlight', 'toggleStrike',
-  'toggleHeading', 'setParagraph', 'toggleBulletList', 'toggleOrderedList',
-  'toggleBlockquote', 'undo', 'redo', 'unsetAllMarks',
+  'toggleCode', 'toggleCodeBlock', 'toggleHeading', 'setParagraph', 'clearNodes',
+  'setHardBreak', 'setHorizontalRule', 'toggleBulletList', 'toggleOrderedList',
+  'toggleBlockquote', 'toggleTaskList', 'insertTable',
+  'addColumnBefore', 'addColumnAfter', 'deleteColumn', 'addRowBefore', 'addRowAfter',
+  'deleteRow', 'toggleHeaderRow', 'toggleHeaderColumn', 'toggleHeaderCell',
+  'mergeCells', 'splitCell', 'deleteTable', 'undo', 'redo', 'unsetAllMarks',
 ];
 const LEAF_NODES = new Set(['hardBreak', 'image', 'horizontalRule']);
 

@@ -194,7 +194,7 @@ test('extension capabilities validate selection, command, helper, event and UI c
   const manifest = {
     id: 'capabilities',
     name: 'Capabilities',
-    permissions: ['editor', 'events', 'ui', 'vault:read', 'editor:active-note'],
+    permissions: ['editor', 'events', 'network', 'ui', 'vault:read', 'editor:active-note'],
     contributes: { commands: [], panels: [{ id: 'status', title: 'Status' }], webviews: [] },
   };
   const host = new ExtensionHost(manifest, '', {
@@ -207,6 +207,10 @@ test('extension capabilities validate selection, command, helper, event and UI c
       calls.push(args);
       return true;
     },
+    cancelAuthorization: (id) => {
+      calls.push(id);
+      return true;
+    },
     updateSurface: (...args) => calls.push(args.slice(1)),
   });
   host.frame = { contentWindow: {} };
@@ -217,6 +221,16 @@ test('extension capabilities validate selection, command, helper, event and UI c
   }
   assert.equal((await host.handle('editor.getTiptapSnapshot', [])).doc.type, 'doc');
   await host.handle('editor.runTiptapCommand', ['toggleHeading', { level: 4 }]);
+  await host.handle('editor.runTiptapCommand', [
+    'insertTable',
+    { rows: 3, cols: 2, withHeaderRow: true },
+  ]);
+  assert.deepEqual(calls.at(-1), [
+    'insertTable',
+    { rows: 3, cols: 2, withHeaderRow: true },
+  ]);
+  assert.equal(await host.handle('network.cancelAuthorization', []), true);
+  assert.equal(calls.at(-1), manifest.id);
   await assert.rejects(host.handle('editor.runTiptapCommand', ['setContent']), /Unsupported/);
   await assert.rejects(
     host.handle('editor.runTiptapCommand', ['toggleHeading', { level: 9 }]),
@@ -225,6 +239,20 @@ test('extension capabilities validate selection, command, helper, event and UI c
   await assert.rejects(
     host.handle('editor.runTiptapCommand', ['toggleBold', { arbitrary: true }]),
     /options/
+  );
+  await assert.rejects(
+    host.handle('editor.runTiptapCommand', [
+      'insertTable',
+      { rows: 3, cols: 2, withHeaderRow: true, extra: true },
+    ]),
+    /Table options/
+  );
+  await assert.rejects(
+    host.handle('editor.runTiptapCommand', [
+      'insertTable',
+      { rows: 21, cols: 2, withHeaderRow: true },
+    ]),
+    /Table options/
   );
   const watch = await host.handle('events.subscribe', ['ext.capabilities.ready']);
   await host.handle('events.emit', ['ext.capabilities.ready', { count: 1 }]);
@@ -259,7 +287,9 @@ test('extension capabilities validate selection, command, helper, event and UI c
     markdownToText('# Heading\n\n**Evidence** [source](https://example.com)'),
     'Heading\nEvidence source'
   );
-  assert.throws(() => requirePayload('x'.repeat(65537)), /65,536/);
+  assert.doesNotThrow(() => requirePayload('x'.repeat(131070)));
+  assert.throws(() => requirePayload('x'.repeat(131071)), /131,072 bytes/);
+  assert.throws(() => requirePayload('🙂'.repeat(32768)), /131,072 bytes/);
   const bus = createEventBus();
   const payload = { nested: { value: 1 } };
   const stop = bus.on('test', (value) => {
@@ -267,6 +297,7 @@ test('extension capabilities validate selection, command, helper, event and UI c
   });
   bus.emit('test', payload);
   assert.equal(payload.nested.value, 1);
+  assert.throws(() => bus.emit('test', 'x'.repeat(131071)), /131,072 bytes/);
   stop();
   await host.handle('events.subscribe', ['ext.capabilities.disposal']);
   const originalWindow = global.window;

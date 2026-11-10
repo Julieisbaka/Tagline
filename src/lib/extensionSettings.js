@@ -60,7 +60,7 @@ export function setExtensionSettings(manifest, values) {
     data[key] = validateSettingValue(setting, value);
   }
   const text = JSON.stringify(data);
-  if (text.length > getRuntimeLimits().extensionStorageCharacters) {
+  if (new TextEncoder().encode(text).byteLength > getRuntimeLimits().extensionStorageCharacters) {
     throw new Error('Extension settings exceed the configured storage limit.');
   }
   localStorage.setItem(`tagline-extension-settings:${manifest.id}`, text);

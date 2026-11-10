@@ -166,6 +166,8 @@ export function useExtensions({ bridgeRef, notify }) {
       chooseVaultPath: (id, kind) => window.api.extensionChooseVaultPath(id, kind),
       write: (path, content) => bridgeRef.current.write(path, content),
       networkFetch: (id, url, options) => window.api.extensionNetworkFetch(id, url, options),
+      networkAuthorize: (id, url, options) => window.api.extensionOAuthAuthorize(id, url, options),
+      cancelAuthorization: (id) => window.api.extensionOAuthCancel(id),
       networkFetchToFile: async (id, url, destination, options) => {
         const root = bridgeRef.current.root;
         const result = await window.api.extensionNetworkFetchToFile(id, url, destination, options);
