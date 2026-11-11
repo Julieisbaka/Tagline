@@ -105,7 +105,11 @@ BrowserWindow.prototype.loadFile = function (file, ...args) {
   );
 };
 if (first) {
-  fs.mkdirSync(vault, { recursive: true });
+  fs.mkdirSync(path.join(vault, '.tagline'), { recursive: true });
+  fs.writeFileSync(
+    path.join(vault, '.tagline', 'vault.json'),
+    JSON.stringify({ version: require('../electron/vaultMigrations.cjs').migrations.length })
+  );
   fs.mkdirSync(profile, { recursive: true });
   fs.writeFileSync(path.join(vault, 'Card.md'), '# Saved evidence\n\nKeep this note.\n');
   fs.writeFileSync(
@@ -277,6 +281,10 @@ app.on('browser-window-created', (_event, win) => {
         assert.match(
           fs.readFileSync(path.join(vault, 'Card.md'), 'utf8'),
           /Updated before upgrade/
+        );
+        assert.equal(
+          JSON.parse(fs.readFileSync(path.join(vault, '.tagline', 'vault.json'), 'utf8')).version,
+          require('../electron/vaultMigrations.cjs').migrations.length
         );
         assert.deepEqual(await js("window.api.listHistory('Card.md')"), expected.history);
         assert.ok(expected.history.length > 0);
