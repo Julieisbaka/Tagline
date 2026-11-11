@@ -44,33 +44,47 @@
       <aside class="docs-sidebar">
         <h2>Versions</h2>
         <nav aria-label="Changelog versions">
-          <a href="#v0-1-0" aria-current="location">0.1.0 · In development</a>
+          <a href="#v0-1-0" aria-current="location">0.1.0</a>
         </nav>
       </aside>
 
       <article class="docs-article">
         <section id="v0-1-0">
-          <p class="article-kicker">Unreleased</p>
-          <h2>0.1.0 <span class="feature-status">In development</span></h2>
-          <p>This release is still in development, so these notes may change before it is published.</p>
+          <p class="article-kicker">Released</p>
+          <h2>0.1.0</h2>
 
           <h3>Added</h3>
           <ul>
             <li><strong>Settings &gt; Extensions &gt; Browse extensions</strong> lists community extensions from the
               <a href="https://github.com/Julieisbaka/Tagline/blob/main/extensions/registry.json">extension registry</a>
               and installs or updates them from GitHub with per-file integrity checks. Authors
-              <a href="docs/extension-api.html#registry">submit extensions</a> by pull request.</li>
-            <li>Extension manifests can declare <code>authors</code> and a <code>sourceUrl</code>, shown on the extension
+              <a href="docs/extension-api.html#registry">submit extensions</a> by pull request.
+            </li>
+            <li>Extension manifests can declare <code>authors</code> and a <code>sourceUrl</code>, shown on the
+              extension
               card with a <strong>View source</strong> button.</li>
-            <li>Extension settings add encrypted secret fields, bounded array/object values, linked descriptions, and vault-relative path values.</li>
-            <li>Extensions can publish bounded source- and visual-editor diagnostics with severity styling and hover messages.</li>
+            <li>Extension settings add encrypted secret fields, bounded array/object values, linked descriptions, and
+              vault-relative path values.</li>
+            <li>Extensions can publish bounded source- and visual-editor diagnostics with severity styling and hover
+              messages.</li>
             <li>Accessibility settings add opt-in interaction sounds for opening notes, tabs, saving, and errors.</li>
+            <li>Search scholarly works through Crossref and turn reviewed source metadata into evidence cards.</li>
+            <li>Delivery analytics estimate filler words and speaking rates in practice transcripts, with saved
+              statistics for comparing speeches over a season.</li>
+            <li>Timers can start automatically when speech is detected, with adjustable microphone sensitivity and an
+              optional floating timer.</li>
+            <li>Extensions can contribute reusable templates and package fonts and translations as declarative assets.
+            </li>
+            <li>Older vaults can be upgraded through a guided migration wizard with validation and recovery support.
+            </li>
           </ul>
 
           <h3>Improved</h3>
           <ul>
             <li>Card detection removes incomplete HTML delimiters from card titles, keeping malformed markup out of the
               displayed title.</li>
+            <li>Smart paste recognizes common evidence-card leads and preserves supported rich-text formatting from
+              other editors.</li>
           </ul>
         </section>
 
