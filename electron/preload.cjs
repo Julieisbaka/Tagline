@@ -151,6 +151,8 @@ contextBridge.exposeInMainWorld('api', {
   extensionOAuthCancel: (id) => ipcRenderer.invoke('extensions:oauthCancel', id),
   extensionChooseVaultPath: (id, kind) =>
     ipcRenderer.invoke('extensions:chooseVaultPath', id, kind),
+  extensionReadFile: (id, relPath, encoding) =>
+    ipcRenderer.invoke('extensions:readFile', id, relPath, encoding),
   extensionSecret: (id, action, key, value) =>
     ipcRenderer.invoke('extensions:secret', id, action, key, value),
   extensionStorage: (id, action, key, value) =>
@@ -206,6 +208,7 @@ contextBridge.exposeInMainWorld('api', {
   openRecentVault: (root) => ipcRenderer.invoke('vault:openRecent', root),
   forgetRecentVault: (root) => ipcRenderer.invoke('vault:forgetRecent', root),
   revealRecentVault: (root) => ipcRenderer.invoke('vault:revealRecent', root),
+  cleanupVaultMigrationBackups: (root) => ipcRenderer.invoke('vault:cleanupMigrationBackups', root),
   createSampleVault: () => ipcRenderer.invoke('vault:createSample'),
   list: () => ipcRenderer.invoke('fs:list'),
   readSnapshot: () => ipcRenderer.invoke('fs:snapshot'),

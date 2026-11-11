@@ -39,7 +39,8 @@ function registerInstallHandlers(context) {
     const manifest = validateManifest(
       JSON.parse(await fs.readFile(path.join(root, 'manifest.json'), 'utf8')),
       root,
-      limits()
+      limits(),
+      { appVersion: app.getVersion?.() || '' }
     );
     if (manifest.main) {
       await containedFile(root, manifest.main, '.js');

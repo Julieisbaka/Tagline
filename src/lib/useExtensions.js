@@ -178,6 +178,7 @@ export function useExtensions({ bridgeRef, notify }) {
       networkFetch: (id, url, options) => window.api.extensionNetworkFetch(id, url, options),
       networkAuthorize: (id, url, options) => window.api.extensionOAuthAuthorize(id, url, options),
       cancelAuthorization: (id) => window.api.extensionOAuthCancel(id),
+      readExtensionFile: (id, path, encoding) => window.api.extensionReadFile(id, path, encoding),
       networkFetchToFile: async (id, url, destination, options) => {
         const root = bridgeRef.current.root;
         const result = await window.api.extensionNetworkFetchToFile(id, url, destination, options);
@@ -345,6 +346,31 @@ export function useExtensions({ bridgeRef, notify }) {
     if (current !== generation.current) {
       return;
     }
+    const broken = loaded.filter(
+      (item) => item?.id && item.enabled && item.error && !item.reviewRequired
+    );
+    let finalLoaded = loaded;
+    if (broken.length) {
+      await Promise.all(
+        broken.map((item) =>
+          window.api
+            .setExtensionEnabled(item.id, false, item.reviewToken)
+            .catch(() => {})
+        )
+      );
+      if (current !== generation.current) {
+        return;
+      }
+      try {
+        const refreshed = await window.api.listExtensions();
+        const byId = new Map(refreshed.map((item) => [item.id || item.folder, item]));
+        finalLoaded = loaded.map((item) => byId.get(item.id || item.folder) || item);
+      } catch {
+        finalLoaded = loaded.map((item) =>
+          broken.some((brokenItem) => brokenItem.id === item.id) ? { ...item, enabled: false } : item
+        );
+      }
+    }
     registerExtensionTranslations(extensionTranslations);
     await registerExtensionFonts(extensionFonts);
     if (current !== generation.current) {
@@ -352,7 +378,7 @@ export function useExtensions({ bridgeRef, notify }) {
     }
     registerExtensionThemes(themes);
     setTemplates(extensionTemplates);
-    setExtensions(loaded);
+    setExtensions(finalLoaded);
     setCommands(nextCommands);
   }, [bridgeRef, notify]);
 

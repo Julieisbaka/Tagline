@@ -72,9 +72,37 @@ async function copyFilter(source) {
   return !SKIPPED_NAMES.has(path.basename(source)) && !(await fs.lstat(source)).isSymbolicLink();
 }
 
+function safeRelativePath(value) {
+  if (
+    typeof value !== 'string' ||
+    !value ||
+    path.posix.isAbsolute(value) ||
+    path.win32.isAbsolute(value) ||
+    /^[a-z]:/i.test(value)
+  ) {
+    throw new Error('Expected a relative file path inside the extension folder.');
+  }
+  const normalized = value.replace(/\\/g, '/');
+  if (normalized.split('/').some((part) => !part || part === '.' || part === '..')) {
+    throw new Error(`Invalid extension file path: ${value}`);
+  }
+  return normalized;
+}
+
 // Resolves symlinks so a link inside the extension folder cannot read files elsewhere.
 async function containedFile(root, value, ext) {
   const file = await fs.realpath(relativeFile(root, value, ext));
+  const rel = path.relative(await fs.realpath(root), file);
+  if (rel.startsWith('..') || path.isAbsolute(rel)) {
+    throw new Error(`File escapes the extension folder: ${value}`);
+  }
+  return file;
+}
+
+async function containedFileAny(root, value) {
+  const relative = safeRelativePath(value);
+  const full = path.resolve(root, relative);
+  const file = await fs.realpath(full);
   const rel = path.relative(await fs.realpath(root), file);
   if (rel.startsWith('..') || path.isAbsolute(rel)) {
     throw new Error(`File escapes the extension folder: ${value}`);
@@ -118,6 +146,7 @@ async function copyExtension(app, source, target) {
 module.exports = {
   findManifestRoot,
   containedFile,
+  containedFileAny,
   copyExtension,
   MAX_INSTALL_FILES,
   MAX_INSTALL_BYTES,

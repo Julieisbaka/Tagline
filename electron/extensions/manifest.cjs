@@ -1,4 +1,5 @@
 const path = require('node:path');
+const semver = require('semver');
 const { validateSettingDefinitions } = require('../extensionSettings.mjs');
 const { DEFAULT_LIMITS } = require('../customization.mjs');
 const { validateNetworkHosts } = require('../extensionNetwork.cjs');
@@ -49,7 +50,7 @@ function relativeFile(root, value, ext) {
   return full;
 }
 
-function validateManifest(value, root, limits = DEFAULT_LIMITS) {
+function validateManifest(value, root, limits = DEFAULT_LIMITS, options = {}) {
   const fail = (message) => {
     throw new Error(`Invalid manifest: ${message}`);
   };
@@ -58,6 +59,33 @@ function validateManifest(value, root, limits = DEFAULT_LIMITS) {
   }
   if (value.manifestVersion !== 1) {
     fail('manifestVersion must be 1.');
+  }
+  let enginesTagline = '';
+  if (value.engines !== undefined) {
+    if (!value.engines || typeof value.engines !== 'object' || Array.isArray(value.engines)) {
+      fail('engines must be an object.');
+    }
+    if (value.engines.tagline !== undefined) {
+      if (
+        typeof value.engines.tagline !== 'string' ||
+        !value.engines.tagline.trim() ||
+        value.engines.tagline.length > 120 ||
+        !semver.validRange(value.engines.tagline)
+      ) {
+        fail('engines.tagline must be a valid semver range.');
+      }
+      enginesTagline = value.engines.tagline.trim();
+      const appVersion = options.appVersion || options.taglineVersion;
+      if (appVersion) {
+        const coerced = semver.coerce(appVersion) || semver.valid(appVersion);
+        const version = coerced ? String(coerced.version || coerced) : null;
+        if (!version || !semver.satisfies(version, enginesTagline, { includePrerelease: true })) {
+          fail(
+            `requires Tagline ${enginesTagline}, but this app is ${String(appVersion)}.`
+          );
+        }
+      }
+    }
   }
   if (typeof value.id !== 'string' || !ID.test(value.id)) {
     fail('id must be 2-64 lowercase letters, digits or dashes.');
@@ -490,6 +518,7 @@ function validateManifest(value, root, limits = DEFAULT_LIMITS) {
     author: value.author || '',
     authors,
     sourceUrl,
+    engines: enginesTagline ? { tagline: enginesTagline } : undefined,
     main: value.main || null,
     permissions: [...new Set(permissions)],
     networkHosts,

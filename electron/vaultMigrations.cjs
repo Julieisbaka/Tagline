@@ -92,6 +92,105 @@ async function writeManifest(root, manifest) {
   await fs.writeFile(path.join(root, MANIFEST), JSON.stringify(manifest, null, 2) + '\n');
 }
 
+function backupPath(root, id, attempt = 0) {
+  return attempt ? `${root}.tagline-backup-${id}-${attempt}` : `${root}.tagline-backup-${id}`;
+}
+function stagePath(root, id, attempt = 0) {
+  return attempt ? `${root}.tagline-stage-${id}-${attempt}` : `${root}.tagline-stage-${id}`;
+}
+async function uniqueMigrationPaths(root) {
+  for (;;) {
+    const id = randomUUID();
+    let attempt = 0;
+    for (;;) {
+      const stage = stagePath(root, id, attempt);
+      const backup = backupPath(root, id, attempt);
+      if (!(await exists(stage)) && !(await exists(backup)) && !(await exists(journalPath(root)))) {
+        return { id, stage, backup, journal: journalPath(root) };
+      }
+      attempt += 1;
+      if (attempt > 1000) {
+        break;
+      }
+    }
+  }
+}
+
+async function listMigrationArtifacts(root) {
+  const parent = path.dirname(root);
+  const base = path.basename(root);
+  let entries = [];
+  try {
+    entries = await fs.readdir(parent, { withFileTypes: true });
+  } catch (error) {
+    if (error.code === 'ENOENT') {
+      return [];
+    }
+    throw error;
+  }
+  const artifacts = [];
+  for (const entry of entries) {
+    const name = entry.name;
+    const full = path.join(parent, name);
+    if (name === `${base}.tagline-migration.json` && entry.isFile()) {
+      artifacts.push({ path: full, kind: 'journal' });
+    } else if (name.startsWith(`${base}.tagline-backup-`) && entry.isDirectory()) {
+      artifacts.push({ path: full, kind: 'backup' });
+    } else if (name.startsWith(`${base}.tagline-stage-`) && entry.isDirectory()) {
+      artifacts.push({ path: full, kind: 'stage' });
+    }
+  }
+  return artifacts;
+}
+
+async function cleanupMigrationArtifacts(root, { removeBackups = true, removeStages = true } = {}) {
+  root = path.resolve(root);
+  const journal = journalPath(root);
+  let active = null;
+  if (await exists(journal)) {
+    try {
+      const parsed = JSON.parse(await fs.readFile(journal, 'utf8'));
+      if (parsed && typeof parsed.id === 'string') {
+        active = parsed;
+      }
+    } catch {
+      active = null;
+    }
+  }
+  const keep = new Set();
+  if (active) {
+    keep.add(path.resolve(journal));
+    if (active.backup) {
+      keep.add(path.resolve(active.backup));
+    }
+    if (active.stage) {
+      keep.add(path.resolve(active.stage));
+    }
+    // legacy record without explicit paths
+    keep.add(path.resolve(`${root}.tagline-backup-${active.id}`));
+    keep.add(path.resolve(`${root}.tagline-stage-${active.id}`));
+  }
+  const removed = [];
+  for (const item of await listMigrationArtifacts(root)) {
+    const resolved = path.resolve(item.path);
+    if (keep.has(resolved)) {
+      continue;
+    }
+    if (item.kind === 'backup' && !removeBackups) {
+      continue;
+    }
+    if (item.kind === 'stage' && !removeStages) {
+      continue;
+    }
+    if (item.kind === 'journal' && active) {
+      continue;
+    }
+    await fs.rm(item.path, { recursive: item.kind !== 'journal', force: true });
+    removed.push(item.path);
+  }
+  return removed;
+}
+
 // A process can stop between the two directory renames. Restore the original
 // before any caller creates a missing vault directory or exposes it to writers.
 async function recoverMigration(root) {
@@ -100,11 +199,15 @@ async function recoverMigration(root) {
     return;
   }
   await regularPath(journal);
-  const { id } = JSON.parse(await fs.readFile(journal, 'utf8'));
+  const record = JSON.parse(await fs.readFile(journal, 'utf8'));
+  const { id, backup: recordedBackup } = record || {};
   if (typeof id !== 'string' || !/^[a-f0-9-]{36}$/.test(id)) {
     throw new Error(`Invalid migration recovery record: ${journal}`);
   }
-  const backup = `${root}.tagline-backup-${id}`;
+  const backup =
+    typeof recordedBackup === 'string' && recordedBackup
+      ? recordedBackup
+      : `${root}.tagline-backup-${id}`;
   if (!(await exists(root))) {
     await regularPath(backup, true);
     await fs.rename(backup, root);
@@ -120,15 +223,12 @@ async function migrateVault(root, steps = migrations) {
     return null;
   }
   await assertTree(root);
-  const id = randomUUID();
-  const stage = `${root}.tagline-stage-${id}`;
-  const backup = `${root}.tagline-backup-${id}`;
-  const journal = journalPath(root);
+  const { id, stage, backup, journal } = await uniqueMigrationPaths(root);
   const record = await fs.open(journal, 'wx');
   let moved = false;
   try {
     try {
-      await record.writeFile(JSON.stringify({ id }));
+      await record.writeFile(JSON.stringify({ id, backup, stage }));
       await record.sync();
     } finally {
       await record.close();
@@ -231,4 +331,6 @@ module.exports = {
   recoverMigration,
   prepareVault,
   journalPath,
+  listMigrationArtifacts,
+  cleanupMigrationArtifacts,
 };

@@ -35,18 +35,40 @@ export default function FlowGrid({
     });
   }, [sheet.rows.length, sheet.columns.length]);
   const markdownCache = useRef(new Map());
+  const cacheKey = [
+    settings?.theme,
+    settings?.themeId,
+    settings?.customTheme,
+    settings?.fontFamily,
+    settings?.fontSize,
+    settings?.lineHeight,
+    settings?.customCss,
+    settings?.flowSpellcheck,
+  ]
+    .map((value) => (value && typeof value === 'object' ? JSON.stringify(value) : String(value ?? '')))
+    .join('|');
+  useEffect(() => {
+    markdownCache.current.clear();
+  }, [cacheKey]);
   const previewHtml = (text) => {
     if (!text) {
       return '';
     }
-    if (markdownCache.current.has(text)) {
-      return markdownCache.current.get(text);
+    const cache = markdownCache.current;
+    if (cache.has(text)) {
+      const hit = cache.get(text);
+      cache.delete(text);
+      cache.set(text, hit);
+      return hit;
     }
     const html = renderMarkdown(text);
-    if (markdownCache.current.size > 500) {
-      markdownCache.current.clear();
+    if (cache.size >= 200) {
+      const oldest = cache.keys().next().value;
+      if (oldest !== undefined) {
+        cache.delete(oldest);
+      }
     }
-    markdownCache.current.set(text, html);
+    cache.set(text, html);
     return html;
   };
   useEffect(() => {

@@ -408,6 +408,12 @@ export class ExtensionHost {
         }
         return b.callExtensionApi(this, id, version, method, requireApiPayload(args[3]));
       }
+      case 'extension.readFile':
+        return b.readExtensionFile(
+          this.manifest.id,
+          requireText(args[0], 'Path', 1000),
+          args[1] === undefined ? 'utf8' : requireText(args[1], 'Encoding', 16)
+        );
       case 'helpers.path':
         return pathHelper(args[0], args.slice(1));
       case 'helpers.countdown.remainingAt':

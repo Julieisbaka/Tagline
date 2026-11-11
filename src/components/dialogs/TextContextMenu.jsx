@@ -6,8 +6,16 @@ export default function TextContextMenu({ extensions, activePath }) {
   const extensionContext = useRef(null);
   extensionContext.current = { extensions, activePath };
   useEffect(() => {
-    const pendingSpell = [];
-    const offSpell = window.api.spellcheck?.onContext((info) => pendingSpell.shift()?.(info));
+    const spellWaiters = new Map();
+    const offSpell = window.api.spellcheck?.onContext((info) => {
+      const first = spellWaiters.keys().next().value;
+      if (first === undefined) {
+        return;
+      }
+      const waiter = spellWaiters.get(first);
+      spellWaiters.delete(first);
+      waiter(info);
+    });
     let activeMenu = 0;
     const open = (event) => {
       if (event.defaultPrevented || event.target.closest('.context-menu')) {
@@ -64,23 +72,35 @@ export default function TextContextMenu({ extensions, activePath }) {
       const keyboard = event.clientX === 0 && event.clientY === 0;
       const spellItems = (spell) => {
         const word = spell?.word || '';
-        return word
-          ? [
-              ...((spell.suggestions || []).length
-                ? spell.suggestions.map((suggestion) => ({
-                    label: suggestion,
-                    translate: false,
-                    run: run(null, () => window.api.spellcheck.replace(suggestion)),
-                  }))
-                : [{ label: 'No spelling suggestions', disabled: true, run: () => {} }]),
-              {
-                label: 'Add to dictionary',
-                run: run(null, () => window.api.spellcheck.addWord(word)),
-              },
-            ]
-          : [];
+        if (!word) {
+          return [];
+        }
+        return [
+          ...((spell.suggestions || []).length
+            ? spell.suggestions.map((suggestion) => ({
+                label: suggestion,
+                translate: false,
+                run: run(null, () => window.api.spellcheck.replace(suggestion)),
+              }))
+            : [{ label: 'No spelling suggestions', disabled: true, run: () => {} }]),
+          {
+            label: 'Add to dictionary',
+            run: run(null, () => window.api.spellcheck.addWord(word)),
+          },
+        ];
       };
       const id = ++activeMenu;
+      const requestSpell = tracksSpell
+        ? new Promise((resolve) => {
+            spellWaiters.set(id, resolve);
+            setTimeout(() => {
+              if (spellWaiters.get(id) === resolve) {
+                spellWaiters.delete(id);
+                resolve(null);
+              }
+            }, 1500);
+          })
+        : null;
       const actions = [
         ...(editable
           ? [
@@ -102,9 +122,9 @@ export default function TextContextMenu({ extensions, activePath }) {
           detail: { phase: 'open', sourceEvent: event, target, pending: wantsSpell },
         });
         if (!window.dispatchEvent(flowMenuEvent)) {
-          if (tracksSpell) {
-            pendingSpell.push((info) => {
-              if (!wantsSpell || activeMenu !== id) {
+          if (requestSpell && wantsSpell) {
+            requestSpell.then((info) => {
+              if (!info || activeMenu !== id) {
                 return;
               }
               window.dispatchEvent(
@@ -119,6 +139,8 @@ export default function TextContextMenu({ extensions, activePath }) {
                 })
               );
             });
+          } else {
+            spellWaiters.delete(id);
           }
           return;
         }
@@ -143,9 +165,9 @@ export default function TextContextMenu({ extensions, activePath }) {
         items: menuItems,
         spellcheck: wantsSpell,
       });
-      if (tracksSpell) {
-        pendingSpell.push((info) => {
-          if (!wantsSpell || activeMenu !== id) {
+      if (requestSpell && wantsSpell) {
+        requestSpell.then((info) => {
+          if (!info || activeMenu !== id) {
             return;
           }
           const suggestions = spellItems(info);
@@ -157,12 +179,15 @@ export default function TextContextMenu({ extensions, activePath }) {
             );
           }
         });
+      } else {
+        spellWaiters.delete(id);
       }
     };
     document.addEventListener('contextmenu', open);
     return () => {
       document.removeEventListener('contextmenu', open);
       offSpell?.();
+      spellWaiters.clear();
     };
   }, []);
   return menu && <ContextMenu {...menu} forceApp={menu.spellcheck} onClose={() => setMenu(null)} />;

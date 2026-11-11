@@ -14,7 +14,7 @@ const {
   ID,
   REVIEW_PERMISSIONS,
 } = require('./extensions/manifest.cjs');
-const { containedFile } = require('./extensions/files.cjs');
+const { containedFile, containedFileAny } = require('./extensions/files.cjs');
 const { registerStorageHandlers } = require('./extensions/storage.cjs');
 const { registerInstallHandlers } = require('./extensions/install.cjs');
 
@@ -105,7 +105,8 @@ function registerExtensions({
         const manifest = validateManifest(
           JSON.parse(await fs.readFile(path.join(root, 'manifest.json'), 'utf8')),
           root,
-          limits()
+          limits(),
+          { appVersion: app.getVersion?.() || '' }
         );
         if (ids.has(manifest.id)) {
           throw new Error(`Duplicate extension id: ${manifest.id}`);
@@ -591,6 +592,30 @@ function registerExtensions({
     assertModelSender?.(event, 'Extension OAuth cancellation');
     cancelAuthorization(id);
     return true;
+  });
+
+  ipcMain.handle('extensions:readFile', async (_event, id, relPath, encoding = 'utf8') => {
+    const item = (await scan()).find((extension) => extension.id === id && !extension.error);
+    if (!item) {
+      throw new Error('Extension not found.');
+    }
+    if (!item.enabled) {
+      throw new Error('Extension is disabled.');
+    }
+    if (encoding !== 'utf8' && encoding !== 'base64') {
+      throw new Error('Invalid encoding.');
+    }
+    const file = await containedFileAny(item.root, relPath);
+    const stat = await fs.stat(file);
+    if (!stat.isFile()) {
+      throw new Error('Not a file.');
+    }
+    const max = 2 * 1024 * 1024;
+    if (stat.size > max) {
+      throw new Error(`Extension file exceeds ${max} bytes.`);
+    }
+    const data = await fs.readFile(file);
+    return encoding === 'base64' ? data.toString('base64') : data.toString('utf8');
   });
 
   ipcMain.handle('extensions:chooseVaultPath', async (event, id, kind) => {

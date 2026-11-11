@@ -80,6 +80,22 @@ export default function VaultManagerDialog({ onOpen, onChoose, onSample, onClose
                     disabled={busy}
                     onClick={async () => {
                       try {
+                        const removed = await window.api.cleanupVaultMigrationBackups(vault.root);
+                        if (removed?.length) {
+                          setError('');
+                        }
+                        await refresh();
+                      } catch (e) {
+                        setError(e.message);
+                      }
+                    }}
+                  >
+                    {t('Clean up migration backups')}
+                  </button>
+                  <button
+                    disabled={busy}
+                    onClick={async () => {
+                      try {
                         await window.api.forgetRecentVault(vault.root);
                         await refresh();
                       } catch (e) {

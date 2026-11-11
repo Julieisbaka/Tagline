@@ -1,3 +1,5 @@
+const { cleanupMigrationArtifacts } = require('../vaultMigrations.cjs');
+
 function registerVaultIpc(
   {
     app,
@@ -88,6 +90,13 @@ function registerVaultIpc(
     if (error) {
       throw new Error(error);
     }
+  });
+  ipcMain.handle('vault:cleanupMigrationBackups', async (event, root) => {
+    assertModelSender(event, 'Vault access');
+    if (typeof root !== 'string' || !path.isAbsolute(root)) {
+      throw new Error('Invalid saved vault path.');
+    }
+    return cleanupMigrationArtifacts(root);
   });
 
   ipcMain.handle('vault:choose', async (event) => {
