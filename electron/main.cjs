@@ -46,6 +46,15 @@ const { registerMcp } = require('./mcp.cjs');
 const { registerSpellcheck } = require('./spellcheck.cjs');
 
 const isDev = process.argv.includes('--dev');
+const safeMode =
+  process.argv.includes('--safe-mode') || process.env.TAGLINE_SAFE_MODE === '1';
+if (safeMode) {
+  process.env.TAGLINE_DISABLE_AUTO_UPDATE = '1';
+}
+const disableExtensions =
+  safeMode ||
+  process.argv.includes('--disable-extensions') ||
+  process.env.TAGLINE_DISABLE_EXTENSIONS === '1';
 // Surface stray rejections/exceptions in logs instead of failing silently.
 process.on('unhandledRejection', (reason) => {
   console.error('[main] unhandledRejection', reason);
@@ -220,18 +229,20 @@ if (primary) {
       assertModelSender,
     });
     registerScholarlySearch({ ipcMain, assertModelSender });
-    registerExtensions({
-      app,
-      ipcMain,
-      shell,
-      readConfig,
-      writeConfig,
-      dialog,
-      getWindow: () => state.win,
-      safeStorage,
-      getVaultRoot: () => state.vaultRoot,
-      assertModelSender,
-    });
+    if (!disableExtensions) {
+      registerExtensions({
+        app,
+        ipcMain,
+        shell,
+        readConfig,
+        writeConfig,
+        dialog,
+        getWindow: () => state.win,
+        safeStorage,
+        getVaultRoot: () => state.vaultRoot,
+        assertModelSender,
+      });
+    }
     const embeddings = registerEmbeddings({
       app,
       ipcMain,
@@ -256,9 +267,17 @@ if (primary) {
     createWindow();
     // Quietly check for and download an update shortly after startup. Never
     // fails startup and never installs without the user choosing Install.
-    setTimeout(() => {
-      state.prepareUpdateInBackground().catch(() => {});
-    }, 8000).unref?.();
+    // Safe mode (and the explicit disable flag) skip this background check.
+    if (!safeMode && process.env.TAGLINE_DISABLE_AUTO_UPDATE !== '1') {
+      const updateCheckTimeout = Number(process.env.TAGLINE_UPDATE_CHECK_TIMEOUT);
+      const delay =
+        Number.isFinite(updateCheckTimeout) && updateCheckTimeout >= 0
+          ? updateCheckTimeout
+          : 8000;
+      setTimeout(() => {
+        state.prepareUpdateInBackground().catch(() => {});
+      }, delay).unref?.();
+    }
     app.on('activate', () => {
       if (BrowserWindow.getAllWindows().length === 0) {
         createWindow();
