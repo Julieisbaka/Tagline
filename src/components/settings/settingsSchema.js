@@ -35,6 +35,28 @@ export const SETTING_GROUPS = [
         max: 100_000_000,
       },
       {
+        key: 'disposeCodeMirrorViews',
+        type: 'checkbox',
+        label: 'Dispose inactive CodeMirror views',
+        description: 'Release editor views that are no longer visible to save memory.',
+      },
+      {
+        key: 'markdownCacheEntries',
+        type: 'number',
+        label: 'Maximum markdown cache entries (0 disables)',
+        description: 'Rendered Markdown documents kept in memory for faster reopening.',
+        min: 0,
+        max: 256,
+      },
+      {
+        key: 'undoHistoryLimit',
+        type: 'number',
+        label: 'Maximum undo history entries',
+        description: 'Older undo steps are pruned above this limit.',
+        min: 0,
+        max: 10000,
+      },
+      {
         key: 'searchMaxResults',
         type: 'number',
         label: 'Maximum search results',
