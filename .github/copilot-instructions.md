@@ -10,12 +10,14 @@ Extensions run in a sandboxed worker and use the `tagline` API, not the applicat
 
 ## Build and test
 
+If build, lint, or unit tests fail because a tool or module listed in `package-lock.json` is missing, run `npm ci` from the repository root and retry the affected check.
+
 - `npm run dev` — start Vite and Electron for development.
 - `npm run build` — build the renderer.
 - `npm test` — run the Node.js unit tests.
 - `node --test tests/<file>.test.cjs` — run one unit-test file; add `--test-name-pattern="<pattern>"` to filter its tests.
 - `npm run test:<name>` — run a focused smoke suite, such as `npm run test:canvas`.
-- `npm run test:all` — run the complete unit and smoke-test suite sequentially.
+- `npm run test:all` — run the configured unit and smoke-test suite sequentially.
 
 ## Project conventions
 
