@@ -82,15 +82,18 @@ function AppContextMenu({ x, y, items, onClose }) {
         onClose();
       }
     };
+    const closeOnScroll = () => onClose();
     window.addEventListener('pointerdown', outside, true);
     window.addEventListener('keydown', escape);
     window.addEventListener('blur', onClose);
     window.addEventListener('resize', onClose);
+    window.addEventListener('scroll', closeOnScroll, true);
     return () => {
       window.removeEventListener('pointerdown', outside, true);
       window.removeEventListener('keydown', escape);
       window.removeEventListener('blur', onClose);
       window.removeEventListener('resize', onClose);
+      window.removeEventListener('scroll', closeOnScroll, true);
     };
   }, [onClose]);
   return createPortal(
