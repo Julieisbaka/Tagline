@@ -34,7 +34,7 @@ Tagline uses Node's built-in test runner (`node --test`) plus Electron smoke sui
 
 ```sh
 npm test              # all unit tests
-npm run test:all      # unit + every smoke suite, sequentially
+npm run test:all      # unit + configured smoke suites, sequentially
 npm run test:<name>   # individual smoke suite, e.g. test:a11y
 ```
 
