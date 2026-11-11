@@ -611,6 +611,10 @@
             };
           },
         }),
+        extension: Object.freeze({
+          /** Read a file from this extension's installed folder. The path is relative to the extension root and cannot escape it. @param {string} path Relative file path. @param {'utf8'|'base64'} [encoding='utf8'] Text or base64 output. @returns {Promise<string>} */
+          readFile: (path, encoding = 'utf8') => call('extension.readFile', path, encoding),
+        }),
         storage: Object.freeze({
           /** Read this extension's private JSON value, or null. No permission required. @returns {Promise<*>} */
           get: (key) => call('storage.get', key),

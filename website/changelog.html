@@ -54,11 +54,19 @@
           <p class="article-kicker">Unreleased</p>
           <h2>0.1.1 <span class="feature-status">In development</span></h2>
           <p>This release is still in development, so these notes may change before it is published.</p>
+          <h3>Added</h3>
+          <ul>
+            <li>Vault migration backups avoid name collisions and migration artifacts can be cleaned up from the vault manager.</li>
+            <li>Extensions can read files from their own installed folder in the sandbox via <code>tagline.extension.readFile()</code>, and manifests can declare <code>engines.tagline</code> for version compatibility checks.</li>
+          </ul>
           <h3>Fixed</h3>
           <ul>
             <li>Timer microphone auto-start debounces threshold changes, persists the threshold per profile, and avoids false starts during microphone permission prompts.</li>
             <li>Scholarly search retries failed metadata requests and normalizes DOI/URL extraction edge cases.</li>
-            <li>Spanish localization completes flow, speech, and template terms and avoids untranslated tooltip fallbacks.</li>
+            <li>Broken enabled extensions are automatically disabled after load failures instead of repeatedly crashing startup flows.</li>
+            <li>Flow Markdown preview cache invalidates on theme/font changes, caps memory, and avoids stale rendered output.</li>
+            <li>Spellcheck context menus are handled more reliably for editable targets and avoid flow spellcheck suggestion races.</li>
+            <li>Spanish localization adds more flow, speech, and template translations; additional terms remain pending.</li>
           </ul>
         </section>
 

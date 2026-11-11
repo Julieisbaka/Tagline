@@ -392,6 +392,13 @@
                     </td>
                   </tr>
                   <tr>
+                    <td><code>engines.tagline</code></td>
+                    <td>
+                      Optional semver range declaring compatible Tagline versions. Incompatible
+                      extensions are reported as invalid and cannot be enabled until updated.
+                    </td>
+                  </tr>
+                  <tr>
                     <td><code>main</code></td>
                     <td>
                       Relative path to a <code>.js</code> file when commands or script contributions
@@ -949,6 +956,16 @@ await tagline.webviews.show('source-details');</code></pre>
               use <code>textContent</code>. Webview scripts have DOM access and can still block
               renderer responsiveness if they do expensive synchronous work.
             </p>
+            <h3>Extension bundle files</h3>
+            <p>
+              Sandboxed extension scripts can read files shipped inside their own installed folder
+              with <code>tagline.extension.readFile(path, encoding = 'utf8')</code>. The path is
+              relative to the extension root, cannot escape it, and reads are limited to regular
+              files (up to 2 MiB). Use <code>'utf8'</code> for text or <code>'base64'</code> for
+              binary data.
+            </p>
+            <pre><code class="language-js">const template = await tagline.extension.readFile('assets/prompt.txt');
+const image = await tagline.extension.readFile('assets/icon.png', 'base64');</code></pre>
             <h3>Theme-aware UI kit</h3>
             <p>
               Panels and webviews receive app colors, fonts, selection colors, and a shared control

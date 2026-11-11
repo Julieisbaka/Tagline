@@ -45,6 +45,17 @@
       "maxLength": 2048,
       "description": "Optional HTTPS URL for the extension source or project page. Embedded credentials are not allowed."
     },
+    "engines": {
+      "type": "object",
+      "properties": {
+        "tagline": {
+          "type": "string",
+          "maxLength": 120,
+          "description": "Optional semver range of Tagline versions this extension supports."
+        }
+      },
+      "additionalProperties": false
+    },
     "main": {
       "type": "string",
       "pattern": "^(?![/\\\\]|[a-zA-Z]:).+\\.[jJ][sS]$",
