@@ -32,17 +32,58 @@ function validateLimit(maxResults) {
 }
 
 /**
- * Parse free-text search terms, quoted phrases, and tag filters.
- * This function extracts individual search terms, quoted phrases, and tag filters from a user query string.
+ * Parse free-text search terms, quoted phrases, tag filters, and exclusions.
+ * Supports quoted phrases and `-exclude` / `-"exclude phrase"` tokens.
  * @param {string} query - The raw search query input by the user.
- * @returns {object} - An object containing arrays of tags, terms, phrases, and the remaining text.
+ * @returns {object}
  */
 export function parseQuery(query) {
-  const tags = [...query.matchAll(/tag:#?([\w/-]+)/gi)].map((m) => m[1].toLowerCase());
-  const text = query.replace(/tag:#?[\w/-]+/gi, '').trim();
-  const terms = [...new Set([...text.matchAll(/"([^"]+)"|(\S+)/g)].map((m) => fold(m[1] || m[2])))];
-  const phrases = [...text.matchAll(/"([^"]+)"/g)].map((m) => fold(m[1]));
-  return { tags, terms, phrases, text };
+  const tags = [];
+  const excludeTags = [];
+  let text = String(query || '').replace(/(^|\s)(-?)tag:#?([\w/-]+)/gi, (_, lead, neg, tag) => {
+    (neg ? excludeTags : tags).push(tag.toLowerCase());
+    return lead;
+  });
+  const terms = [];
+  const phrases = [];
+  const excludes = [];
+  const excludePhrases = [];
+  const token = /(-?)"([^"]*)"|(-?)(\S+)/g;
+  let match;
+  while ((match = token.exec(text))) {
+    const quoted = match[2];
+    if (quoted !== undefined) {
+      const value = fold(quoted).trim();
+      if (!value) {
+        continue;
+      }
+      if (match[1]) {
+        excludePhrases.push(value);
+      } else {
+        phrases.push(value);
+        terms.push(value);
+      }
+      continue;
+    }
+    const value = fold(match[4] || '').trim();
+    if (!value) {
+      continue;
+    }
+    if (match[3]) {
+      excludes.push(value);
+    } else {
+      terms.push(value);
+    }
+  }
+  return {
+    tags,
+    excludeTags,
+    terms: [...new Set(terms)],
+    phrases,
+    excludes: [...new Set(excludes)],
+    excludePhrases,
+    text: text.trim(),
+  };
 }
 
 /**
@@ -64,10 +105,20 @@ export function filterSearchDocuments(contents, index, query) {
   );
 }
 
-function matchesConstraints(path, title, body, index, { tags, phrases }) {
+function matchesConstraints(
+  path,
+  title,
+  body,
+  index,
+  { tags = [], phrases = [], excludeTags = [], excludePhrases = [], excludes = [] }
+) {
+  const haystack = `${title} ${body}`;
   return (
     tags.every((tag) => (index.tags[tag] || []).includes(path)) &&
-    phrases.every((phrase) => `${title} ${body}`.includes(phrase))
+    phrases.every((phrase) => haystack.includes(phrase)) &&
+    excludeTags.every((tag) => !(index.tags[tag] || []).includes(path)) &&
+    excludePhrases.every((phrase) => !haystack.includes(phrase)) &&
+    excludes.every((term) => !haystack.includes(term))
   );
 }
 

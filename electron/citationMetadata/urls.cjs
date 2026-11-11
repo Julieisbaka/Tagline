@@ -146,6 +146,11 @@ function cleanUrl(value, base) {
       }
     }
     url.hash = '';
+    if (/^(?:dx\.)?doi\.org$/i.test(url.hostname)) {
+      url.protocol = 'https:';
+      url.hostname = 'doi.org';
+      url.pathname = url.pathname.replace(/\/+$/, '');
+    }
     return url.href;
   } catch {
     return typeof value === 'string' ? value : '';
@@ -165,9 +170,20 @@ function canonicalPageUrl(value, base) {
 }
 
 function doiFromUrl(address) {
-  const url = validateUrl(address);
-  if (!/^(?:dx\.)?doi\.org$/i.test(url.hostname)) {
+  let url;
+  try {
+    url = validateUrl(address);
+  } catch {
     return '';
+  }
+  if (!/^(?:dx\.)?doi\.org$/i.test(url.hostname)) {
+    const raw = String(address || '').trim();
+    const match = raw.match(/^(?:doi:\s*)?(10\.\d{4,9}\/\S+)$/i);
+    if (!match) {
+      return '';
+    }
+    const doi = match[1].replace(/[),.;:!?]+$/, '');
+    return /^10\.\d{4,9}\/[-._;()/:+A-Z0-9]+$/i.test(doi) ? doi : '';
   }
   let doi;
   try {
@@ -175,6 +191,7 @@ function doiFromUrl(address) {
   } catch {
     return '';
   }
+  doi = doi.replace(/[),.;:!?]+$/, '');
   if (
     !/^10\.\d{4,9}\/[-._;()/:+A-Z0-9]+$/i.test(doi) ||
     doi.split('/').some((part) => !part || part === '.' || part === '..')

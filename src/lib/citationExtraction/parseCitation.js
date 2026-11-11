@@ -19,6 +19,37 @@ import {
 } from './recognition.js';
 import { sliceText, joinText, spanOf, matchIndices } from './sourceText.js';
 
+function trimTrailingPunct(value) {
+  let text = String(value || '');
+  while (/[.,;:!?]+$/.test(text)) {
+    if (/[)\]]$/.test(text)) {
+      break;
+    }
+    text = text.slice(0, -1);
+  }
+  return text;
+}
+
+function balanceClosing(value) {
+  let text = String(value || '');
+  for (;;) {
+    const opens = (text.match(/\(/g) || []).length;
+    const closes = (text.match(/\)/g) || []).length;
+    if (closes <= opens || !/[).,;:!?]+$/.test(text)) {
+      break;
+    }
+    if (/\)$/.test(text) && closes > opens) {
+      text = text.slice(0, -1);
+      continue;
+    }
+    text = trimTrailingPunct(text);
+    if (!/\)$/.test(text)) {
+      break;
+    }
+  }
+  return trimTrailingPunct(text);
+}
+
 export function parseCitation(leadText, suffixText, previous) {
   const lead = leadText.text;
   const citation = {
@@ -172,11 +203,14 @@ export function parseCitation(leadText, suffixText, previous) {
   if (link || bareUrl) {
     const found = link || bareUrl;
     const bounds = found.indices[link ? 1 : 0];
-    const value = (link ? link[1] : bareUrl[0]).replace(/[.,;]+$/, '');
+    const raw = link ? link[1] : bareUrl[0];
+    const value = balanceClosing(raw);
     note('url', value, 0.95, detailsText, [bounds[0], bounds[0] + value.length]);
   } else if (doi) {
-    const value = doi[1].replace(/[.,;]+$/, '');
-    note('url', `https://doi.org/${value}`, 0.95, detailsText, [
+    const raw = doi[1];
+    const value = balanceClosing(raw);
+    const doiUrl = /^https?:\/\/(?:dx\.)?doi\.org\//i.test(doi[0]) ? balanceClosing(doi[0]) : `https://doi.org/${value}`;
+    note('url', doiUrl.replace(/^https?:\/\/dx\.doi\.org\//i, 'https://doi.org/'), 0.95, detailsText, [
       doi.indices[1][0],
       doi.indices[1][0] + value.length,
     ]);

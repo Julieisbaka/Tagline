@@ -12,9 +12,11 @@ const BCE_LEAD = /^(.+?)[,\s.\u2013\u2014-]+(\d{1,4})\s*(?:BCE|BC)\b/iu;
 const RANGE_LEAD =
   /^(.+?)[,\s.\u2013\u2014-]+(\d{2}|\d{4})[–-](\d{2}|\d{4})(?=$|[ \t]*[,.;:\u2013\u2014"'\u201c\u201d()\-])/u;
 export const FULL_YEAR = /\b(?:1[0-9]{3}|20\d{2})\b/;
-export const URL = /https?:\/\/[^\s<>()]+(?:\([^\s()]*\)[^\s<>()]*)*/i;
-export const MARKDOWN_LINK = /\[[^\]]*\]\((https?:\/\/(?:[^()\s]|\([^()\s]*\))+)\)/i;
-export const DOI = /\bdoi:\s*(10\.\d{4,9}\/[-._;()/:+a-z0-9]+)/i;
+const URL_BODY = "[^\\s<>\"'`]*";
+export const URL = new RegExp(`https?:\\/\\/${URL_BODY}`, 'i');
+export const MARKDOWN_LINK = /\[[^\]]*\]\((https?:\/\/[^)\s]+(?:\)[^)\s]*)*)\)/i;
+export const DOI =
+  /\b(?:doi\s*:\s*|(?:https?:\/\/)?(?:dx\.)?doi\.org\/)?(10\.\d{4,9}\/[^\s"'`<>]*)/i;
 export const ARXIV = /\barxiv:?\s*(\d{4}\.\d{4,5}(?:v\d+)?|[a-z][a-z.-]*\/\d{7}(?:v\d+)?)/i;
 export const ISBN =
   /\b(?:ISBN(?:-1[03])?:?\s*[0-9][0-9Xx\-\s]{8,22}[0-9Xx]|97[89](?:[-\s]?\d){10})\b/i;

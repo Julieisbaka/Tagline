@@ -63,6 +63,8 @@
           <ul>
             <li>Timer microphone auto-start debounces threshold changes, persists the threshold per profile, and avoids false starts during microphone permission prompts.</li>
             <li>Scholarly search retries failed metadata requests and normalizes DOI/URL extraction edge cases.</li>
+            <li>Citation extraction and metadata handling better recognize DOI variants, normalize URLs, and preserve balanced nested parentheses in extracted links and identifiers.</li>
+            <li>Search query parsing supports quoted phrases and <code>-exclude</code> terms/phrases while keeping plain-text matching safe.</li>
             <li>Broken enabled extensions are automatically disabled after load failures instead of repeatedly crashing startup flows.</li>
             <li>Flow Markdown preview cache invalidates on theme/font changes, caps memory, and avoids stale rendered output.</li>
             <li>Spellcheck context menus are handled more reliably for editable targets and avoid flow spellcheck suggestion races.</li>

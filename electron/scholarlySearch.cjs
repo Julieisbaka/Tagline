@@ -42,12 +42,15 @@ async function searchScholarly(query, fetch = download) {
     .slice(0, 20)
     .filter((item) => item && typeof item === 'object' && !Array.isArray(item))
     .map((item) => {
-      const doi =
-        typeof item?.DOI === 'string' &&
-        /^10\.\d{4,9}\/\S+$/i.test(item.DOI) &&
-        item.DOI.length <= 500
-          ? item.DOI
-          : '';
+      const rawDoi = typeof item?.DOI === 'string' ? item.DOI.trim() : '';
+      let doi = '';
+      if (rawDoi && /^10\.\d{4,9}\/[^\s]+$/i.test(rawDoi) && rawDoi.length <= 500) {
+        doi = rawDoi.replace(/[.,;:]+$/, '');
+        while ((doi.match(/\)/g) || []).length > (doi.match(/\(/g) || []).length && doi.endsWith(')')) {
+          doi = doi.slice(0, -1);
+        }
+        doi = doi.replace(/[.,;:]+$/, '');
+      }
       const year = Number(
         (item.published || item['published-online'] || item['published-print'] || item.issued)?.[
           'date-parts'
@@ -58,7 +61,7 @@ async function searchScholarly(query, fetch = download) {
         year: Number.isInteger(year) && year >= 1000 && year <= 9999 ? String(year) : '',
         title: names(item.title),
         publication: names(item['container-title']) || text(item.publisher),
-        url: doi ? `https://doi.org/${doi.split('/').map(encodeURIComponent).join('/')}` : '',
+        url: doi ? `https://doi.org/${doi}` : '',
       };
     })
     .filter((item) => item.title);

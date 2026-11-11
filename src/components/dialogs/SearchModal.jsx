@@ -173,7 +173,7 @@ export default function SearchModal({
           placeholder={t(
             mode === 'scholarly'
               ? 'Search scholarly works…'
-              : 'Search vault…  (try: tag:neg "political capital")'
+              : 'Search vault…  (try: tag:neg "political capital" -draft)'
           )}
           value={query}
           onChange={(e) => setQuery(e.target.value)}
@@ -257,7 +257,7 @@ export default function SearchModal({
                 ` — ${t('No exact matches. Showing close spelling matches.')}`}
             </div>
             <div className='search-count'>
-              {t('Arrow keys to choose a file; Enter to open. Quoted phrases match exactly.')}
+              {t('Arrow keys to choose a file; Enter to open. Quoted phrases match exactly; prefix terms with - to exclude.')}
             </div>
             {query.trim() &&
               !displayed.length &&
