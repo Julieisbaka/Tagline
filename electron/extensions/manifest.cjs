@@ -52,7 +52,9 @@ function relativeFile(root, value, ext) {
 
 function validateManifest(value, root, limits = DEFAULT_LIMITS, options = {}) {
   const fail = (message) => {
-    throw new Error(`Invalid manifest: ${message}`);
+    const error = new Error(`Invalid manifest: ${message}`);
+    error.manifestValidation = true;
+    throw error;
   };
   if (!value || typeof value !== 'object' || Array.isArray(value)) {
     fail('expected a JSON object.');
@@ -61,6 +63,7 @@ function validateManifest(value, root, limits = DEFAULT_LIMITS, options = {}) {
     fail('manifestVersion must be 1.');
   }
   let enginesTagline = '';
+  let engineIncompatible = null;
   if (value.engines !== undefined) {
     if (!value.engines || typeof value.engines !== 'object' || Array.isArray(value.engines)) {
       fail('engines must be an object.');
@@ -80,9 +83,15 @@ function validateManifest(value, root, limits = DEFAULT_LIMITS, options = {}) {
         const coerced = semver.coerce(appVersion) || semver.valid(appVersion);
         const version = coerced ? String(coerced.version || coerced) : null;
         if (!version || !semver.satisfies(version, enginesTagline, { includePrerelease: true })) {
-          fail(
-            `requires Tagline ${enginesTagline}, but this app is ${String(appVersion)}.`
-          );
+          engineIncompatible = {
+            required: enginesTagline,
+            appVersion: String(appVersion),
+          };
+          if (!options.ignoreEngineCompatibility) {
+            fail(
+              `requires Tagline ${enginesTagline}, but this app is ${String(appVersion)}.`
+            );
+          }
         }
       }
     }
@@ -519,6 +528,7 @@ function validateManifest(value, root, limits = DEFAULT_LIMITS, options = {}) {
     authors,
     sourceUrl,
     engines: enginesTagline ? { tagline: enginesTagline } : undefined,
+    engineIncompatible,
     main: value.main || null,
     permissions: [...new Set(permissions)],
     networkHosts,

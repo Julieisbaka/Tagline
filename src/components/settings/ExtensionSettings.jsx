@@ -304,7 +304,27 @@ export default function ExtensionSettings({ extensions }) {
                       type='checkbox'
                       checked={!!item.enabled}
                       disabled={busy}
-                      onChange={(e) => act(() => extensions.setEnabled(item.id, e.target.checked))}
+                      onChange={(e) =>
+                        act(async () => {
+                          if (e.target.checked && item.incompatible && !item.forceEnabled) {
+                            const ok = await confirm(
+                              t(
+                                'This extension requires a different Tagline version ({required}, current {current}). It may not work correctly or could cause problems. Enable it anyway?',
+                                {
+                                  required: item.engineIncompatible?.required || item.engines?.tagline || '',
+                                  current: item.engineIncompatible?.appVersion || '',
+                                }
+                              )
+                            );
+                            if (!ok) {
+                              return;
+                            }
+                            await extensions.setEnabled(item.id, true, { forceIncompatible: true });
+                            return;
+                          }
+                          await extensions.setEnabled(item.id, e.target.checked);
+                        })
+                      }
                     />
                   </label>
                 )}
@@ -371,7 +391,16 @@ export default function ExtensionSettings({ extensions }) {
               {item.contributes?.settings?.length > 0 && (
                 <ExtensionSettingsForm item={item} extensions={extensions} />
               )}
-              {item.error && (
+              {item.incompatible && (
+                <p role='alert' className='error-text'>
+                  {item.incompatibleMessage ||
+                    t('This extension is incompatible with this version of Tagline.')}
+                  {!item.forceEnabled && (
+                    <> {t('You can enable it anyway, but it may not work correctly.')}</>
+                  )}
+                </p>
+              )}
+              {item.error && !item.incompatible && (
                 <p role='alert' className='error-text'>
                   {item.error}
                 </p>

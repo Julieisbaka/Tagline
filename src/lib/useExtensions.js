@@ -412,9 +412,9 @@ export function useExtensions({ bridgeRef, notify }) {
   );
 
   const setEnabled = useCallback(
-    async (id, enabled) => {
+    async (id, enabled, options) => {
       const item = extensions.find((extension) => extension.id === id);
-      await window.api.setExtensionEnabled(id, enabled, item?.reviewToken);
+      await window.api.setExtensionEnabled(id, enabled, item?.reviewToken, options);
       await reload();
     },
     [reload, extensions]

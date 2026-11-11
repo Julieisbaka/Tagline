@@ -58,6 +58,7 @@
           <ul>
             <li>Vault migration backups avoid name collisions and migration artifacts can be cleaned up from the vault manager.</li>
             <li>Extensions can read files from their own installed folder in the sandbox via <code>tagline.extension.readFile()</code>, and manifests can declare <code>engines.tagline</code> for version compatibility checks.</li>
+            <li>Version-incompatible extensions can be force-enabled from Settings after a warning confirmation.</li>
           </ul>
           <h3>Fixed</h3>
           <ul>
@@ -68,7 +69,7 @@
             <li>Broken enabled extensions are automatically disabled after load failures instead of repeatedly crashing startup flows.</li>
             <li>Flow Markdown preview cache invalidates on theme/font changes, caps memory, and avoids stale rendered output.</li>
             <li>Spellcheck context menus are handled more reliably for editable targets and avoid flow spellcheck suggestion races.</li>
-            <li>Spanish localization adds more flow, speech, and template translations; additional terms remain pending.</li>
+            <li>Spanish localization is completed for currently used interface strings.</li>
           </ul>
         </section>
 

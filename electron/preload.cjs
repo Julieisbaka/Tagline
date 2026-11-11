@@ -160,8 +160,8 @@ contextBridge.exposeInMainWorld('api', {
   clearExtensionSecrets: (id) => ipcRenderer.invoke('extensions:clearSecrets', id),
   completeExtensionInstall: (id, token) =>
     ipcRenderer.invoke('extensions:completeInstall', id, token),
-  setExtensionEnabled: (id, enabled, reviewToken) =>
-    ipcRenderer.invoke('extensions:setEnabled', id, enabled, reviewToken),
+  setExtensionEnabled: (id, enabled, reviewToken, options) =>
+    ipcRenderer.invoke('extensions:setEnabled', id, enabled, reviewToken, options),
   setExtensionPermissions: (id, permissions, reviewToken) =>
     ipcRenderer.invoke('extensions:setPermissions', id, permissions, reviewToken),
   uninstallExtension: (id) => ipcRenderer.invoke('extensions:uninstall', id),

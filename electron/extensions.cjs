@@ -95,6 +95,7 @@ function registerExtensions({
       }
     }
     const enabled = Array.isArray(config.enabledExtensions) ? config.enabledExtensions : [];
+    const forced = Array.isArray(config.engineCompatibilityOverrides) ? config.engineCompatibilityOverrides : [];
     const found = [];
     const ids = new Set();
     for (const entry of entries
@@ -102,16 +103,32 @@ function registerExtensions({
       .sort((a, b) => a.name.localeCompare(b.name))) {
       const root = path.join(folder(), entry.name);
       try {
-        const manifest = validateManifest(
-          JSON.parse(await fs.readFile(path.join(root, 'manifest.json'), 'utf8')),
-          root,
-          limits(),
-          { appVersion: app.getVersion?.() || '' }
-        );
+        const raw = JSON.parse(await fs.readFile(path.join(root, 'manifest.json'), 'utf8'));
+        const appVersion = app.getVersion?.() || '';
+        let manifest;
+        let incompatible = null;
+        try {
+          manifest = validateManifest(raw, root, limits(), { appVersion });
+        } catch (error) {
+          const msg = String(error?.message || '');
+          if (/Invalid manifest: requires Tagline /.test(msg)) {
+            manifest = validateManifest(raw, root, limits(), {
+              appVersion,
+              ignoreEngineCompatibility: true,
+            });
+            incompatible = manifest.engineIncompatible || {
+              required: manifest.engines?.tagline,
+              appVersion,
+            };
+          } else {
+            throw error;
+          }
+        }
         if (ids.has(manifest.id)) {
           throw new Error(`Duplicate extension id: ${manifest.id}`);
         }
         ids.add(manifest.id);
+        const incompatibleForced = !!incompatible && forced.includes(manifest.id);
         const reviewRequired = enabled.includes(manifest.id) && needsReview(manifest, config);
         const reviewToken = createHash('sha256').update(reviewSignature(manifest)).digest('hex');
         found.push({
@@ -125,7 +142,13 @@ function registerExtensions({
             : [...manifest.permissions],
           reviewRequired,
           reviewToken,
-          enabled: enabled.includes(manifest.id) && !reviewRequired,
+          incompatible: !!incompatible,
+          incompatibleMessage: incompatible
+            ? `Requires Tagline ${incompatible.required}, but this app is ${incompatible.appVersion}.`
+            : '',
+          forceEnabled: incompatibleForced,
+          error: incompatible && !incompatibleForced ? `Requires Tagline ${incompatible.required}, but this app is ${incompatible.appVersion}.` : undefined,
+          enabled: enabled.includes(manifest.id) && !reviewRequired && (!incompatible || incompatibleForced),
         });
       } catch (error) {
         found.push({ id: null, folder: entry.name, root, error: error.message, enabled: false });
@@ -136,8 +159,8 @@ function registerExtensions({
 
   ipcMain.handle('extensions:list', async () => (await scan()).map(({ root, ...item }) => item));
   ipcMain.handle('extensions:exportSettings', async (_event, id, values) => {
-    const item = (await scan()).find((extension) => extension.id === id && !extension.error);
-    if (!item || !values || typeof values !== 'object' || Array.isArray(values)) {
+    const item = (await scan()).find((extension) => extension.id === id);
+    if (!item || item.error || !values || typeof values !== 'object' || Array.isArray(values)) {
       throw new Error('Invalid extension settings export.');
     }
     const clean = {};
@@ -300,16 +323,21 @@ function registerExtensions({
     return true;
   });
 
-  ipcMain.handle('extensions:setEnabled', async (_e, id, enabled, reviewToken) => {
+  ipcMain.handle('extensions:setEnabled', async (_e, id, enabled, reviewToken, options = {}) => {
     if (typeof id !== 'string' || !ID.test(id) || typeof enabled !== 'boolean') {
       throw new Error('Invalid extension request.');
     }
-    const item = (await scan()).find((extension) => extension.id === id && !extension.error);
+    const forceIncompatible = !!(options && options.forceIncompatible);
+    const item = (await scan()).find((extension) => extension.id === id && (!extension.error || extension.incompatible));
     if (enabled && !item) {
       throw new Error('Extension not found.');
     }
+    if (enabled && item?.incompatible && !item.forceEnabled && !forceIncompatible) {
+      throw new Error(item.incompatibleMessage || 'Extension is incompatible with this version of Tagline.');
+    }
     if (
       enabled &&
+      (!item?.incompatible || item.forceEnabled || forceIncompatible) &&
       ((reviewToken !== undefined && reviewToken !== item.reviewToken) ||
         (item.permissions.some((permission) => REVIEW_PERMISSIONS.includes(permission)) &&
           reviewToken !== item.reviewToken))
@@ -318,7 +346,7 @@ function registerExtensions({
         'Extension permissions or settings changed. Reload and review before enabling.'
       );
     }
-    const next = enabledIds().filter((item) => item !== id);
+    const next = enabledIds().filter((value) => value !== id);
     if (!enabled) {
       installTokens.delete(id);
     }
@@ -329,11 +357,21 @@ function registerExtensions({
     if (enabled) {
       next.push(id);
     }
-    const extensionReviews = { ...readConfig().extensionReviews };
+    const config = readConfig();
+    const extensionReviews = { ...config.extensionReviews };
     if (enabled) {
       extensionReviews[id] = reviewSignature(item);
     }
-    writeConfig({ enabledExtensions: next, extensionReviews });
+    let engineCompatibilityOverrides = Array.isArray(config.engineCompatibilityOverrides)
+      ? config.engineCompatibilityOverrides.filter((value) => value !== id)
+      : [];
+    if (enabled && item?.incompatible && (forceIncompatible || item.forceEnabled)) {
+      engineCompatibilityOverrides.push(id);
+    }
+    if (!enabled && item?.incompatible) {
+      engineCompatibilityOverrides = engineCompatibilityOverrides.filter((value) => value !== id);
+    }
+    writeConfig({ enabledExtensions: next, extensionReviews, engineCompatibilityOverrides });
     return next;
   });
 
@@ -347,8 +385,8 @@ function registerExtensions({
     ) {
       throw new Error('Invalid extension permission request.');
     }
-    const item = (await scan()).find((extension) => extension.id === id && !extension.error);
-    if (!item) {
+    const item = (await scan()).find((extension) => extension.id === id);
+    if (!item || item.error) {
       throw new Error('Extension not found.');
     }
     if (
@@ -393,6 +431,10 @@ function registerExtensions({
         ? config.initializedExtensions
         : []
       ).filter((initializedId) => initializedId !== item.id),
+      engineCompatibilityOverrides: (Array.isArray(config.engineCompatibilityOverrides)
+        ? config.engineCompatibilityOverrides
+        : []
+      ).filter((overrideId) => overrideId !== item.id),
     });
     if (item.id) {
       await context.serialize(item.id, async () => {
