@@ -259,8 +259,8 @@ export default function FlowEditor({
   }
 
   const { data } = parsed;
-  const idx = Math.min(active, data.sheets.length - 1);
-  const sheet = data.sheets[idx];
+  const idx = useMemo(() => Math.min(active, data.sheets.length - 1), [active, data.sheets.length]);
+  const sheet = useMemo(() => data.sheets[idx], [data.sheets, idx]);
   const save = (sheets) => saveFlowContent(JSON.stringify({ ...data, sheets }, null, 2));
   const updateSheet = (patch) =>
     save(data.sheets.map((s, i) => (i === idx ? { ...s, ...patch } : s)));
