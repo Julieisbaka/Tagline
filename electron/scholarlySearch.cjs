@@ -12,7 +12,22 @@ async function searchScholarly(query, fetch = download) {
     'select',
     'DOI,title,author,published,published-online,published-print,issued,container-title,publisher'
   );
-  const response = await fetch(validateUrl(url.href), 0, 'json');
+  let response;
+  let lastError;
+  for (let attempt = 0; attempt < 3; attempt++) {
+    try {
+      response = await fetch(validateUrl(url.href), 0, 'json');
+      break;
+    } catch (error) {
+      lastError = error;
+      if (attempt === 2) {
+        throw error;
+      }
+    }
+  }
+  if (!response) {
+    throw lastError || new Error('Scholarly search failed.');
+  }
   let items;
   try {
     const data = JSON.parse(response.json);

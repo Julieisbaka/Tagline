@@ -144,6 +144,8 @@ export default function Timer({
   timerSoundEnabled = false,
   timerSoundName = '',
   timerAutoStartUseSpeechRecognition = false,
+  timerAutoStartThreshold = 4,
+  onThresholdChange,
   timerFloatingWindow = false,
   recognitionLanguage = 'en',
   interactionSounds = false,
@@ -198,13 +200,16 @@ export default function Timer({
   const neg = useCountdown(fmt ? Math.round(fmt.prep * 60) : 0, playEndSound);
   const [armed, setArmed] = useState(false);
   const [micStatus, setMicStatus] = useState('idle');
-  const [threshold, setThreshold] = useState(4);
+  const [threshold, setThreshold] = useState(timerAutoStartThreshold);
   const [micError, setMicError] = useState('');
   const [micIssue, setMicIssue] = useState(false);
   const [level, setLevel] = useState(0);
   const microphone = useRef(null);
   const thresholdValue = useRef(threshold);
   thresholdValue.current = threshold;
+  useEffect(() => {
+    setThreshold(timerAutoStartThreshold);
+  }, [timerAutoStartThreshold]);
   const latest = useRef(null);
   latest.current = { main, aff, neg };
 
@@ -237,6 +242,13 @@ export default function Timer({
   useEffect(() => {
     onArmedChange?.(armed);
   }, [armed, onArmedChange]);
+  useEffect(() => {
+    if (!onThresholdChange) {
+      return undefined;
+    }
+    const id = setTimeout(() => onThresholdChange(threshold), 300);
+    return () => clearTimeout(id);
+  }, [threshold, onThresholdChange]);
 
   useEffect(() => {
     const active = armed || main.running || aff.running || neg.running;
@@ -307,13 +319,13 @@ export default function Timer({
         if (recognitionLanguage) {
           recognition.lang = recognitionLanguage;
         }
-        const listeningSince = performance.now();
+        let listeningSince = 0;
         let triggered = false;
         const heardSpeech = () => {
           if (triggered || microphone.current !== session) {
             return;
           }
-          if (performance.now() - listeningSince < ARM_GRACE_MS) {
+          if (!listeningSince || performance.now() - listeningSince < ARM_GRACE_MS) {
             return;
           }
           triggered = true;
@@ -350,6 +362,9 @@ export default function Timer({
             setMicIssue(true);
             setMicError(t('Speech recognition error: {error}', { error: code }));
           }
+        };
+        recognition.onstart = () => {
+          listeningSince = performance.now();
         };
         recognition.onend = () => {
           if (microphone.current !== session || triggered) {

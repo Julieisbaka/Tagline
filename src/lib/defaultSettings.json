@@ -11,6 +11,7 @@
   "timerSoundName": "",
   "timerSoundEnabled": false,
   "timerAutoStartUseSpeechRecognition": false,
+  "timerAutoStartThreshold": 4,
   "timerFloatingWindow": false,
   "interactionSounds": false,
   "readableWidth": true,
