@@ -171,14 +171,37 @@ function registerVaultIpc(
       }
     }
     const temporary = path.join(path.dirname(full), `.tagline-save-${randomUUID()}.tmp`);
-    try {
-      await fs.writeFile(temporary, content, { encoding: 'utf8', flag: 'wx', mode });
-      await fs.rename(temporary, full);
-    } catch (error) {
-      if (error.code !== 'EEXIST') {
-        await fs.rm(temporary, { force: true });
+    const retryable = (error) => error && (error.code === 'EBUSY' || error.code === 'EPERM');
+    let lastError;
+    for (let attempt = 0; attempt < 5; attempt++) {
+      try {
+        await fs.writeFile(temporary, content, { encoding: 'utf8', flag: 'wx', mode });
+        let handle;
+        try {
+          handle = await fs.open(temporary, 'r+');
+          await handle.sync();
+        } finally {
+          if (handle) {
+            await handle.close();
+          }
+        }
+        await fs.rename(temporary, full);
+        lastError = null;
+        break;
+      } catch (error) {
+        if (error.code !== 'EEXIST') {
+          await fs.rm(temporary, { force: true }).catch(() => {});
+        }
+        lastError = error;
+        if (retryable(error) && attempt < 4) {
+          await new Promise((resolve) => setTimeout(resolve, 25 * (attempt + 1)));
+          continue;
+        }
+        throw error;
       }
-      throw error;
+    }
+    if (lastError) {
+      throw lastError;
     }
     return true;
   }

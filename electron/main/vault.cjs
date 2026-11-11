@@ -22,14 +22,36 @@ function createVault({ app, path, fs, fssync, randomUUID, process, dialog }, sta
     const configPathFn = configPath();
     fssync.mkdirSync(path.dirname(configPathFn), { recursive: true });
     const temporary = path.join(path.dirname(configPathFn), `.tagline-config-${randomUUID()}.tmp`);
-    try {
-      fssync.writeFileSync(temporary, JSON.stringify(next, null, 2));
-      fssync.renameSync(temporary, configPathFn);
-    } catch (error) {
+    const retryable = (error) => error && (error.code === 'EBUSY' || error.code === 'EPERM');
+    let lastError;
+    for (let attempt = 0; attempt < 5; attempt++) {
       try {
-        fssync.rmSync(temporary, { force: true });
-      } catch {}
-      throw error;
+        fssync.writeFileSync(temporary, JSON.stringify(next, null, 2));
+        const fd = fssync.openSync(temporary, 'r+');
+        try {
+          fssync.fsyncSync(fd);
+        } finally {
+          fssync.closeSync(fd);
+        }
+        fssync.renameSync(temporary, configPathFn);
+        lastError = null;
+        break;
+      } catch (error) {
+        try {
+          fssync.rmSync(temporary, { force: true });
+        } catch {}
+        lastError = error;
+        if (retryable(error) && attempt < 4) {
+          const wait = 25 * (attempt + 1);
+          const start = Date.now();
+          while (Date.now() - start < wait) {}
+          continue;
+        }
+        throw error;
+      }
+    }
+    if (lastError) {
+      throw lastError;
     }
     return next;
   }
