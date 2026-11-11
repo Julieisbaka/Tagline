@@ -38,6 +38,22 @@ test('packaging unpacks the Pandoc Lua filter for external document conversion',
   assert.ok(build.asarUnpack.includes('electron/highlightRoundTrip.lua'));
 });
 
+test('packaging excludes tests, documentation, and source maps', () => {
+  const { FileMatcher } = require('app-builder-lib/out/fileMatcher');
+  const { build } = require('../package.json');
+  const root = path.resolve(__dirname, '..');
+  const accepts = new FileMatcher(root, 'app', (value) => value, build.files).createFilter();
+  const fileStat = { isDirectory: () => false };
+  for (const relative of [
+    'tests/release.test.cjs',
+    'electron/tests/fixture.test.cjs',
+    'electron/docs/reference.html',
+    'dist/assets/index.js.map',
+  ]) {
+    assert.equal(accepts(path.join(root, relative), fileStat), false, relative);
+  }
+});
+
 test('macOS packaging explains microphone access for timer auto-start', () => {
   const { build } = require('../package.json');
   assert.match(build.mac.extendInfo.NSMicrophoneUsageDescription, /timer/i);
