@@ -353,13 +353,18 @@ export function annotateEvidence(files, cards, issues, categories, describe) {
   return updated;
 }
 
-const stripMarkdown = (text) =>
-  text
-    .replace(/<!--[\s\S]*?-->/g, '')
+const stripMarkdown = (text) => {
+  let previous;
+  do {
+    previous = text;
+    text = text.replace(/<!--[\s\S]*?(?:-->|$)/g, '');
+  } while (text !== previous);
+  return text
     .replace(/!?\[([^\]]*)\]\([^)]*\)/g, '$1')
     .replace(/[*_=~`>#]+/g, '')
     .replace(/\s+/g, ' ')
     .trim();
+};
 
 /**
  * Build a Markdown vault health report listing dead links found by a link check.
