@@ -32,5 +32,10 @@ export default defineConfig({
   },
   base: './',
   server: { port: 5173, strictPort: true },
-  build: { outDir: 'dist', emptyOutDir: true, chunkSizeWarningLimit: 2000 },
+  build: {
+    outDir: 'dist',
+    emptyOutDir: true,
+    chunkSizeWarningLimit: 2000,
+    sourcemap: false,
+  },
 });
