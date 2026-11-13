@@ -510,7 +510,7 @@ test('platform: macOS desktop wiring provides native window controls, menus and 
     app,
     BrowserWindow,
     ipcMain,
-    dialog: {},
+    dialog: { showMessageBox: async () => ({ response: 0 }) },
     shell: {},
     safeStorage: {},
     Menu: {
@@ -705,6 +705,14 @@ test('platform: macOS desktop wiring provides native window controls, menus and 
   assert.equal(win.sent.channel, 'app:prepareClose', 'a later close retries the save');
   win.webContents.isCrashed = () => true;
   win.webContents.emit('render-process-gone');
+  assert.equal(quit, false, 'renderer crash aborts the pending quit');
+  win.webContents.isCrashed = () => false;
+  electron.dialog.showMessageBox = undefined;
+  win.close();
+  app.emit('before-quit');
+  win.webContents.isCrashed = () => true;
+  assert.doesNotThrow(() => win.webContents.emit('render-process-gone'));
+  assert.equal(quit, false, 'missing crash dialog still aborts the pending quit');
   win.close();
   assert.equal(win.destroyed, true, 'a crashed renderer may close without saving');
 });

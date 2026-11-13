@@ -83,6 +83,7 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
       );
     });
   dialog.showSaveDialog = async () => ({ canceled: false, filePath: path.join(temp, 'note.html') });
+  dialog.showMessageBox = async () => ({ response: 0 });
   const original = path.join(temp, 'Source.docx');
   await fs.writeFile(original, 'untouched source');
   dialog.showOpenDialog = async () => ({ canceled: false, filePaths: [original] });

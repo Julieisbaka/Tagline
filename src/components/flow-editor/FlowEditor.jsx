@@ -47,6 +47,19 @@ export default function FlowEditor({
     flowHistory.current = { path, undo: [], redo: [], expected: content };
   }
   currentContent.current = content;
+  const parsed = useMemo(() => {
+    try {
+      const data = parseFlow(content || '{}');
+      return { data };
+    } catch (e) {
+      return { error: e.message };
+    }
+  }, [content]);
+  const idx = useMemo(
+    () => Math.min(active, (parsed.data?.sheets.length ?? 1) - 1),
+    [active, parsed.data?.sheets.length]
+  );
+  const sheet = useMemo(() => parsed.data?.sheets[idx], [parsed.data?.sheets, idx]);
   useEffect(() => {
     const history = flowHistory.current;
     if (history.expected === content) {
@@ -206,14 +219,6 @@ export default function FlowEditor({
     }
   };
 
-  const parsed = useMemo(() => {
-    try {
-      const data = parseFlow(content || '{}');
-      return { data };
-    } catch (e) {
-      return { error: e.message };
-    }
-  }, [content]);
   liveActions.current = {};
 
   if (mode === 'edit') {
@@ -259,8 +264,6 @@ export default function FlowEditor({
   }
 
   const { data } = parsed;
-  const idx = useMemo(() => Math.min(active, data.sheets.length - 1), [active, data.sheets.length]);
-  const sheet = useMemo(() => data.sheets[idx], [data.sheets, idx]);
   const save = (sheets) => saveFlowContent(JSON.stringify({ ...data, sheets }, null, 2));
   const updateSheet = (patch) =>
     save(data.sheets.map((s, i) => (i === idx ? { ...s, ...patch } : s)));
