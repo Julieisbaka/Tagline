@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef } from 'react';
 import { EditorSelection } from '@codemirror/state';
-import { buildCommands, fillTemplate } from '../lib/commands.js';
+import { buildCommands, commandScore, fillTemplate } from '../lib/commands.js';
 import { templateBody, extractCursor } from '../lib/template.js';
 import { folderPaths } from '../lib/folderPaths.js';
 import { getSectionAt } from '../lib/card.js';
@@ -487,6 +487,7 @@ export function useAppCommandContext({
       type: 'palette',
       placeholder: t('Type a command…'),
       items: commands,
+      scorer: commandScore,
       onSelect: (cmd) => cmd.run(),
     });
   return { ctx, keybindingContext };

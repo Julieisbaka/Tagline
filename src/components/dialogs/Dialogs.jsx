@@ -4,8 +4,8 @@ import { fuzzyScore } from '../../lib/vault.js';
 import ModalBackdrop from './ModalBackdrop.jsx';
 export { SettingsDialog } from './Dialogs/SettingsDialog.jsx';
 
-// Generic fuzzy-filtered list modal used for quick switcher, commands, templates.
-export function Palette({ items, placeholder, onSelect, onClose, onCreate, createLabel }) {
+// Scored list modal used for quick switcher, commands, templates and choices.
+export function Palette({ items, placeholder, onSelect, onClose, onCreate, createLabel, scorer }) {
   const { t } = useI18n();
   const listId = useId();
   const [query, setQuery] = useState('');
@@ -15,12 +15,17 @@ export function Palette({ items, placeholder, onSelect, onClose, onCreate, creat
   const filtered = useMemo(
     () =>
       items
-        .map((it) => ({ it, s: fuzzyScore(query, it.label + ' ' + (it.detail || '')) }))
+        .map((it) => ({
+          it,
+          s: scorer
+            ? scorer(query, it)
+            : fuzzyScore(query, it.label + ' ' + (it.detail || '') + ' ' + (it.hotkey || '')),
+        }))
         .filter((x) => x.s >= 0)
         .sort((a, b) => b.s - a.s)
         .slice(0, 100)
         .map((x) => x.it),
-    [items, query]
+    [items, query, scorer]
   );
 
   useEffect(() => setSel(0), [query]);

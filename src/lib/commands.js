@@ -2,6 +2,66 @@ import { translate } from './i18n.js';
 import { binding, displayBinding, KEYBINDINGS } from './keybindings.js';
 export { fillTemplate } from './template.js';
 
+const SEPARATOR = /[\s\-–—_:/.·]/u;
+const NON_WORD = /[\s\p{P}\p{S}]+/gu;
+
+function matchScore(query, source) {
+  const direct = source.indexOf(query);
+  if (direct !== -1) {
+    const boundary = direct === 0 || SEPARATOR.test(source[direct - 1]);
+    return 1_000_000 + (boundary ? 100_000 : 0) - direct * 100 - source.length;
+  }
+  const compactQuery = query.replace(NON_WORD, '');
+  const compactSource = source.replace(NON_WORD, '');
+  if (!compactQuery) {
+    return 1;
+  }
+  const compactIndex = compactSource.indexOf(compactQuery);
+  if (compactIndex !== -1) {
+    return 500_000 - compactIndex * 50 - compactSource.length;
+  }
+  let cursor = 0;
+  let previous = -2;
+  let score = 0;
+  for (const char of compactQuery) {
+    const at = source.indexOf(char, cursor);
+    if (at === -1) {
+      return -1;
+    }
+    score += 10;
+    if (at === 0 || SEPARATOR.test(source[at - 1])) {
+      score += 30;
+    }
+    if (at === previous + 1) {
+      score += 20;
+    }
+    score -= Math.min(at - cursor, 20);
+    previous = at;
+    cursor = at + 1;
+  }
+  return score - source.length;
+}
+
+/**
+ * Score a command against a query, preferring word starts, contiguous runs and prefixes.
+ * Also matches the command detail and displayed shortcut, ignoring punctuation.
+ * @param {string} query
+ * @param {{label?: string, detail?: string, hotkey?: string}} item
+ * @returns {number} Higher is better; -1 means no match.
+ */
+export function commandScore(query, item) {
+  const q = String(query || '')
+    .trim()
+    .toLowerCase();
+  if (!q) {
+    return 1;
+  }
+  const sources = [item?.label, item?.detail, item?.hotkey]
+    .filter(Boolean)
+    .map((value) => String(value).toLowerCase());
+  return sources.reduce((best, source) => Math.max(best, matchScore(q, source)), -1);
+}
+
 /**
  * Build translated command-palette entries from app actions and keybinding overrides.
  * @param {object} ctx

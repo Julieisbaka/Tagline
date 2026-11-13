@@ -531,6 +531,7 @@ export default function AppLayout({ app }) {
         <Palette
           placeholder={modal.placeholder}
           items={modal.items}
+          scorer={modal.scorer}
           onSelect={modal.onSelect}
           onClose={() => setModal(null)}
         />

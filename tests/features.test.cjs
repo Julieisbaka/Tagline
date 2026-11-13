@@ -72,7 +72,7 @@ test('palette exposes configured workspace actions only in the matching editor',
   });
   global.window = { api: { platform: 'win32' } };
   try {
-    const { buildCommands } = await server.ssrLoadModule('/src/lib/commands.js');
+    const { buildCommands, commandScore } = await server.ssrLoadModule('/src/lib/commands.js');
     const { KEYBINDINGS } = await server.ssrLoadModule('/src/lib/keybindings.js');
     const calls = [];
     const ctx = {
@@ -112,6 +112,17 @@ test('palette exposes configured workspace actions only in the matching editor',
     analysis.find((item) => item.id === 'quote-verification').run();
     analysis.find((item) => item.id === 'delivery-analytics').run();
     assert.deepEqual(triggered, ['quote', 'delivery']);
+    assert.ok(commandScore('opst', { label: 'Open settings' }) > 0);
+    assert.equal(commandScore('zzzz', { label: 'Open settings' }), -1);
+    assert.ok(
+      commandScore('open', { label: 'Open graph view' }) >
+        commandScore('open', { label: 'Reopen last note' })
+    );
+    assert.ok(
+      commandScore('set', { label: 'Open settings' }) >
+        commandScore('set', { label: 'Send card under cursor to speech doc' })
+    );
+    assert.ok(commandScore('ctrl shift s', { label: 'Send card', hotkey: 'Ctrl+Shift+S' }) > 0);
   } finally {
     delete global.window;
     await server.close();
