@@ -209,11 +209,16 @@ export function parseCitation(leadText, suffixText, previous) {
   } else if (doi) {
     const raw = doi[1];
     const value = balanceClosing(raw);
-    const doiUrl = /^https?:\/\/(?:dx\.)?doi\.org\//i.test(doi[0]) ? balanceClosing(doi[0]) : `https://doi.org/${value}`;
-    note('url', doiUrl.replace(/^https?:\/\/dx\.doi\.org\//i, 'https://doi.org/'), 0.95, detailsText, [
-      doi.indices[1][0],
-      doi.indices[1][0] + value.length,
-    ]);
+    const doiUrl = /^https?:\/\/(?:dx\.)?doi\.org\//i.test(doi[0])
+      ? balanceClosing(doi[0])
+      : `https://doi.org/${value}`;
+    note(
+      'url',
+      doiUrl.replace(/^https?:\/\/dx\.doi\.org\//i, 'https://doi.org/'),
+      0.95,
+      detailsText,
+      [doi.indices[1][0], doi.indices[1][0] + value.length]
+    );
   } else if (arxiv) {
     noteMatch('url', `https://arxiv.org/abs/${arxiv[1]}`, 0.95, detailsText, arxiv, 1);
   } else if (isbn) {

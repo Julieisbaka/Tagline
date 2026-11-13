@@ -1,6 +1,12 @@
 const path = require('node:path');
 
-function registerFloatingTimer({ ipcMain, BrowserWindow, screen, getWindow, assertMainFrameSender }) {
+function registerFloatingTimer({
+  ipcMain,
+  BrowserWindow,
+  screen,
+  getWindow,
+  assertMainFrameSender,
+}) {
   let overlay = null;
   let latest = null;
   let position = null;

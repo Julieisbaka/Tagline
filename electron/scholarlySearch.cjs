@@ -46,7 +46,10 @@ async function searchScholarly(query, fetch = download) {
       let doi = '';
       if (rawDoi && /^10\.\d{4,9}\/[^\s]+$/i.test(rawDoi) && rawDoi.length <= 500) {
         doi = rawDoi.replace(/[.,;:]+$/, '');
-        while ((doi.match(/\)/g) || []).length > (doi.match(/\(/g) || []).length && doi.endsWith(')')) {
+        while (
+          (doi.match(/\)/g) || []).length > (doi.match(/\(/g) || []).length &&
+          doi.endsWith(')')
+        ) {
           doi = doi.slice(0, -1);
         }
         doi = doi.replace(/[.,;:]+$/, '');

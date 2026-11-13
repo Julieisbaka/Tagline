@@ -95,7 +95,9 @@ function registerExtensions({
       }
     }
     const enabled = Array.isArray(config.enabledExtensions) ? config.enabledExtensions : [];
-    const forced = Array.isArray(config.engineCompatibilityOverrides) ? config.engineCompatibilityOverrides : [];
+    const forced = Array.isArray(config.engineCompatibilityOverrides)
+      ? config.engineCompatibilityOverrides
+      : [];
     const found = [];
     const ids = new Set();
     for (const entry of entries
@@ -147,8 +149,14 @@ function registerExtensions({
             ? `Requires Tagline ${incompatible.required}, but this app is ${incompatible.appVersion}.`
             : '',
           forceEnabled: incompatibleForced,
-          error: incompatible && !incompatibleForced ? `Requires Tagline ${incompatible.required}, but this app is ${incompatible.appVersion}.` : undefined,
-          enabled: enabled.includes(manifest.id) && !reviewRequired && (!incompatible || incompatibleForced),
+          error:
+            incompatible && !incompatibleForced
+              ? `Requires Tagline ${incompatible.required}, but this app is ${incompatible.appVersion}.`
+              : undefined,
+          enabled:
+            enabled.includes(manifest.id) &&
+            !reviewRequired &&
+            (!incompatible || incompatibleForced),
         });
       } catch (error) {
         found.push({ id: null, folder: entry.name, root, error: error.message, enabled: false });
@@ -328,12 +336,16 @@ function registerExtensions({
       throw new Error('Invalid extension request.');
     }
     const forceIncompatible = !!(options && options.forceIncompatible);
-    const item = (await scan()).find((extension) => extension.id === id && (!extension.error || extension.incompatible));
+    const item = (await scan()).find(
+      (extension) => extension.id === id && (!extension.error || extension.incompatible)
+    );
     if (enabled && !item) {
       throw new Error('Extension not found.');
     }
     if (enabled && item?.incompatible && !item.forceEnabled && !forceIncompatible) {
-      throw new Error(item.incompatibleMessage || 'Extension is incompatible with this version of Tagline.');
+      throw new Error(
+        item.incompatibleMessage || 'Extension is incompatible with this version of Tagline.'
+      );
     }
     if (
       enabled &&

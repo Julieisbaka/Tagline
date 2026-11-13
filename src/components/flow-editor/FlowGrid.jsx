@@ -45,7 +45,9 @@ export default function FlowGrid({
     settings?.customCss,
     settings?.flowSpellcheck,
   ]
-    .map((value) => (value && typeof value === 'object' ? JSON.stringify(value) : String(value ?? '')))
+    .map((value) =>
+      value && typeof value === 'object' ? JSON.stringify(value) : String(value ?? '')
+    )
     .join('|');
   useEffect(() => {
     markdownCache.current.clear();

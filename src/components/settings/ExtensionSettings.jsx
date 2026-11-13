@@ -311,7 +311,10 @@ export default function ExtensionSettings({ extensions }) {
                               t(
                                 'This extension requires a different Tagline version ({required}, current {current}). It may not work correctly or could cause problems. Enable it anyway?',
                                 {
-                                  required: item.engineIncompatible?.required || item.engines?.tagline || '',
+                                  required:
+                                    item.engineIncompatible?.required ||
+                                    item.engines?.tagline ||
+                                    '',
                                   current: item.engineIncompatible?.appVersion || '',
                                 }
                               )

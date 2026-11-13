@@ -257,7 +257,9 @@ export default function SearchModal({
                 ` — ${t('No exact matches. Showing close spelling matches.')}`}
             </div>
             <div className='search-count'>
-              {t('Arrow keys to choose a file; Enter to open. Quoted phrases match exactly; prefix terms with - to exclude.')}
+              {t(
+                'Arrow keys to choose a file; Enter to open. Quoted phrases match exactly; prefix terms with - to exclude.'
+              )}
             </div>
             {query.trim() &&
               !displayed.length &&

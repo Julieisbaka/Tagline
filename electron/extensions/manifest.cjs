@@ -88,9 +88,7 @@ function validateManifest(value, root, limits = DEFAULT_LIMITS, options = {}) {
             appVersion: String(appVersion),
           };
           if (!options.ignoreEngineCompatibility) {
-            fail(
-              `requires Tagline ${enginesTagline}, but this app is ${String(appVersion)}.`
-            );
+            fail(`requires Tagline ${enginesTagline}, but this app is ${String(appVersion)}.`);
           }
         }
       }

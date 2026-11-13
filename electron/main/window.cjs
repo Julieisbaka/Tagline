@@ -158,7 +158,8 @@ function createWindowManager(
                 .showMessageBox(state.win, {
                   type: 'warning',
                   title: 'Save not confirmed',
-                  message: 'Tagline could not confirm the pending edits were saved, so close was cancelled.',
+                  message:
+                    'Tagline could not confirm the pending edits were saved, so close was cancelled.',
                   buttons: ['OK'],
                 })
                 .catch(() => {});
@@ -176,11 +177,7 @@ function createWindowManager(
       if (preparingClose) {
         console.warn('The window stopped responding while saving; quit cancelled.');
         console.info('[event] close_handshake_renderer_gone');
-        if (
-          state.win &&
-          !state.win.isDestroyed() &&
-          typeof dialog?.showMessageBox === 'function'
-        ) {
+        if (state.win && !state.win.isDestroyed() && typeof dialog?.showMessageBox === 'function') {
           dialog
             .showMessageBox(state.win, {
               type: 'error',

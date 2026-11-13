@@ -353,9 +353,7 @@ export function useExtensions({ bridgeRef, notify }) {
     if (broken.length) {
       await Promise.all(
         broken.map((item) =>
-          window.api
-            .setExtensionEnabled(item.id, false, item.reviewToken)
-            .catch(() => {})
+          window.api.setExtensionEnabled(item.id, false, item.reviewToken).catch(() => {})
         )
       );
       if (current !== generation.current) {
@@ -367,7 +365,9 @@ export function useExtensions({ bridgeRef, notify }) {
         finalLoaded = loaded.map((item) => byId.get(item.id || item.folder) || item);
       } catch {
         finalLoaded = loaded.map((item) =>
-          broken.some((brokenItem) => brokenItem.id === item.id) ? { ...item, enabled: false } : item
+          broken.some((brokenItem) => brokenItem.id === item.id)
+            ? { ...item, enabled: false }
+            : item
         );
       }
     }
