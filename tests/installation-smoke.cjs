@@ -249,6 +249,10 @@ app.on('browser-window-created', (_event, win) => {
               activeId: 'saved-card',
             })
           )});`);
+        assert.deepEqual(
+          await js("JSON.parse(localStorage.getItem('tagline-settings'))"),
+          settings
+        );
         session.defaultSession.flushStorageData();
       } else {
         const expected = JSON.parse(fs.readFileSync(path.join(root, 'expected.json'), 'utf8'));
@@ -391,7 +395,7 @@ app.on('browser-window-created', (_event, win) => {
           app.quit = originalQuit;
         }
       }
-      app.exit(0);
+      app.quit();
     } catch (error) {
       console.error(error);
       app.exit(1);
