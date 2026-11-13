@@ -207,14 +207,6 @@ app.on('browser-window-created', (_event, win) => {
           keybindings: { settings: 'Mod+,' },
           themeSettings: { dark: { customOption: 'saved' } },
         };
-        await js(`localStorage.setItem('tagline-settings', ${JSON.stringify(JSON.stringify(settings))});
-          localStorage.setItem('tagline-extension:upgrade-test', '{"saved":"extension data"}');
-          localStorage.setItem(${JSON.stringify(`tabs:${vault}`)}, ${JSON.stringify(
-            JSON.stringify({
-              tabs: [{ id: 'saved-card', kind: 'file', path: 'Card.md' }],
-              activeId: 'saved-card',
-            })
-          )});`);
         const retained = {
           'extensions/upgrade-test/manifest.json': JSON.stringify({
             manifestVersion: 1,
@@ -248,6 +240,15 @@ app.on('browser-window-created', (_event, win) => {
             history: await js("window.api.listHistory('Card.md')"),
           })
         );
+        // Seed storage last so startup persistence effects cannot overwrite the upgrade fixture.
+        await js(`localStorage.setItem('tagline-settings', ${JSON.stringify(JSON.stringify(settings))});
+          localStorage.setItem('tagline-extension:upgrade-test', '{"saved":"extension data"}');
+          localStorage.setItem(${JSON.stringify(`tabs:${vault}`)}, ${JSON.stringify(
+            JSON.stringify({
+              tabs: [{ id: 'saved-card', kind: 'file', path: 'Card.md' }],
+              activeId: 'saved-card',
+            })
+          )});`);
       } else {
         const expected = JSON.parse(fs.readFileSync(path.join(root, 'expected.json'), 'utf8'));
         await wait("!!document.querySelector('.note-title')");
