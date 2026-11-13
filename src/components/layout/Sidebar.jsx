@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useI18n } from '../../lib/i18n.js';
+import { folderPaths } from '../../lib/folderPaths.js';
 import { dirName, displayName, isMarkdown, joinPath } from '../../lib/vault.js';
 import { FILE_ACTIONS } from '../../lib/workspaceItems.js';
 import Menu from '../dialogs/ContextMenu.jsx';
@@ -20,6 +21,10 @@ function ContextMenu({ menu, onClose, actions, favorites, extensions }) {
         ['New folder', () => actions.newFolder(node.path), 'new-folder'],
         ...(node.path
           ? [
+              [
+                favorites.paths.includes(node.path) ? 'Unpin folder' : 'Pin folder',
+                () => favorites.toggle(node.path),
+              ],
               ['Rename…', () => actions.rename(node)],
               ['Reveal in file explorer', () => actions.reveal(node.path)],
               ['Delete', () => actions.remove(node)],
@@ -86,7 +91,15 @@ export default function Sidebar({
 }) {
   const { t } = useI18n();
   const [menu, setMenu] = useState(null);
+  const [revealPath, setRevealPath] = useState(null);
   const activeDir = activePath ? dirName(activePath) : '';
+  const folders = useMemo(() => new Set(folderPaths(tree)), [tree]);
+  const available = useMemo(() => new Set([...paths, ...folders]), [paths, folders]);
+  const pinned = favorites.paths.filter((path) => available.has(path));
+  const folderLabel = (path) => {
+    const name = path.split('/').pop();
+    return spacedFolders ? name.replace(/_/g, ' ') : name;
+  };
 
   const onDropMove = (from, toDir) => {
     const name = from.split('/').pop();
@@ -122,33 +135,42 @@ export default function Sidebar({
           );
         }}
       />
-      {favorites.paths.some((path) => paths.includes(path)) && (
-        <section className='pinned-notes' aria-label={t('Pinned notes')}>
-          <div className='pinned-notes-heading'>{t('Pinned notes')}</div>
-          {favorites.paths
-            .filter((path) => paths.includes(path))
-            .map((path) => (
+      {pinned.length > 0 && (
+        <section className='pinned-notes' aria-label={t('Pinned items')}>
+          <div className='pinned-notes-heading'>{t('Pinned items')}</div>
+          {pinned.map((path) => {
+            const isFolder = folders.has(path);
+            return (
               <div className='pinned-note' key={path}>
                 <button
                   type='button'
                   className={`pinned-note-open${path === activePath ? ' active' : ''}`}
-                  title={path}
-                  onClick={(event) => actions.open(path, event.ctrlKey || event.metaKey)}
+                  title={isFolder ? `${path} — ${t('Show in file tree')}` : path}
+                  onClick={(event) =>
+                    isFolder
+                      ? setRevealPath({ path })
+                      : actions.open(path, event.ctrlKey || event.metaKey)
+                  }
                 >
-                  <Icon name='pin' size={12} />
-                  <span>{displayName(path, hideFlowExtension, showMarkdownExtension)}</span>
+                  <Icon name={isFolder ? 'folder' : 'pin'} size={12} />
+                  <span>
+                    {isFolder
+                      ? folderLabel(path)
+                      : displayName(path, hideFlowExtension, showMarkdownExtension)}
+                  </span>
                 </button>
                 <button
                   type='button'
                   className='pinned-note-remove'
-                  title={t('Unpin note')}
+                  title={t(isFolder ? 'Unpin folder' : 'Unpin note')}
                   aria-label={t('Unpin {name}', { name: path })}
                   onClick={() => favorites.toggle(path)}
                 >
                   <Icon name='x' size={12} />
                 </button>
               </div>
-            ))}
+            );
+          })}
         </section>
       )}
       <FileTree
@@ -157,6 +179,7 @@ export default function Sidebar({
         onOpen={actions.open}
         onContext={(e, node) => setMenu({ x: e.clientX, y: e.clientY, node })}
         onDropMove={onDropMove}
+        revealPath={revealPath}
         spaced={spacedFolders}
         hideFlowExtension={hideFlowExtension}
         showMarkdownExtension={showMarkdownExtension}

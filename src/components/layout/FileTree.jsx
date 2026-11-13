@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useI18n } from '../../lib/i18n.js';
 import { readStoredJson } from '../../lib/storedJson.js';
 import { displayName, isCanvas, isFlow } from '../../lib/vault.js';
@@ -47,6 +47,7 @@ function TreeNode({
       <div
         className={`tree-item${activePath === node.path ? ' active' : ''}${dragOver ? ' drag-over' : ''}`}
         style={{ paddingLeft: 8 + depth * 14 }}
+        data-tree-path={node.path}
         draggable
         onDragStart={(e) => e.dataTransfer.setData('text/vault-path', node.path)}
         onClick={(e) => (isFolder ? toggle(node.path) : onOpen(node.path, e.ctrlKey || e.metaKey))}
@@ -102,11 +103,13 @@ export default function FileTree({
   onOpen,
   onContext,
   onDropMove,
+  revealPath,
   spaced = false,
   hideFlowExtension = true,
   showMarkdownExtension = false,
 }) {
   const { t } = useI18n();
+  const treeRef = useRef(null);
   const [expanded, setExpanded] = useState(
     () =>
       new Set(
@@ -126,8 +129,34 @@ export default function FileTree({
     });
   };
 
+  useEffect(() => {
+    if (!revealPath?.path) {
+      return;
+    }
+    const parts = revealPath.path.split('/');
+    setExpanded((previous) => {
+      const next = new Set(previous);
+      for (let i = 1; i <= parts.length; i++) {
+        next.add(parts.slice(0, i).join('/'));
+      }
+      if (next.size === previous.size) {
+        return previous;
+      }
+      localStorage.setItem('expanded', JSON.stringify([...next]));
+      return next;
+    });
+    const frame = requestAnimationFrame(() => {
+      const target = [...(treeRef.current?.querySelectorAll('.tree-item') || [])].find(
+        (element) => element.dataset.treePath === revealPath.path
+      );
+      target?.scrollIntoView({ block: 'nearest' });
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [revealPath]);
+
   return (
     <div
+      ref={treeRef}
       className='file-tree'
       onContextMenu={(e) => {
         if (e.target === e.currentTarget) {
