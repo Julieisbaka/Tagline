@@ -52,8 +52,12 @@ function registerBrowser({ ipcMain, shell, getWindow }) {
     if (!view || view.webContents.isDestroyed()) {
       return;
     }
+    const win = getWindow();
+    if (!win || win.isDestroyed()) {
+      return;
+    }
     const wc = view.webContents;
-    getWindow()?.webContents.send('browser:state', {
+    win.webContents.send('browser:state', {
       url: wc.getURL(),
       loading: wc.isLoading(),
       error,
@@ -77,8 +81,12 @@ function registerBrowser({ ipcMain, shell, getWindow }) {
     if (!value || !['x', 'y', 'width', 'height'].every((key) => Number.isFinite(value[key]))) {
       throw new Error('Invalid website view bounds.');
     }
-    const [width, height] = getWindow().getContentSize();
-    const scale = getWindow().webContents.getZoomFactor();
+    const win = getWindow();
+    if (!win || win.isDestroyed()) {
+      throw new Error('Website view is unavailable.');
+    }
+    const [width, height] = win.getContentSize();
+    const scale = win.webContents.getZoomFactor();
     const x = Math.max(0, Math.min(width - 1, Math.round(value.x * scale)));
     const y = Math.max(0, Math.min(height - 1, Math.round(value.y * scale)));
     return {
@@ -90,8 +98,11 @@ function registerBrowser({ ipcMain, shell, getWindow }) {
   };
   const handle = (channel, action) =>
     ipcMain.handle(channel, (event, ...args) => {
+      const win = getWindow();
       if (
-        event.sender !== getWindow()?.webContents ||
+        !win ||
+        win.isDestroyed() ||
+        event.sender !== win.webContents ||
         event.senderFrame !== event.sender.mainFrame
       ) {
         throw new Error('Website controls are only available to the application.');
@@ -166,12 +177,16 @@ function registerBrowser({ ipcMain, shell, getWindow }) {
       error = `Website renderer stopped: ${details.reason}`;
       state();
     });
-    getWindow().contentView.addChildView(view);
+    const win = getWindow();
+    if (!win || win.isDestroyed()) {
+      close();
+      throw new Error('Website view is unavailable.');
+    }
+    win.contentView.addChildView(view);
     view.setBounds(box);
     // Request fresh layout even when native content throttles ResizeObserver.
-    resizeHandler = () => getWindow()?.webContents.send('browser:resize');
-    getWindow().on('resize', resizeHandler);
-    await navigate(target);
+    resizeHandler = () => getWindow()?.webContents?.send('browser:resize');
+    win.on('resize', resizeHandler);
   });
   handle('browser:bounds', (rectangle) => {
     if (!view) {

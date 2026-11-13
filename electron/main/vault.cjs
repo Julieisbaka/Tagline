@@ -6,10 +6,27 @@ function createVault({ app, path, fs, fssync, randomUUID, process, dialog }, sta
   let configRecoveryHandled = false;
 
   function writeConfigRecovery(info) {
+    const recoveryPath = configRecoveryPath();
+    const payload = { schemaVersion: 1, ...info };
+    const temporary = recoveryPath + '.tmp.' + randomUUID();
     try {
-      fssync.writeFileSync(configRecoveryPath(), JSON.stringify(info, null, 2), 'utf8');
+      fssync.writeFileSync(temporary, JSON.stringify(payload, null, 2), 'utf8');
+      const fd = fssync.openSync(temporary, 'r+');
+      try {
+        fssync.fsyncSync(fd);
+      } finally {
+        fssync.closeSync(fd);
+      }
+      fssync.renameSync(temporary, recoveryPath);
     } catch (writeErr) {
-      console.warn('[config] failed to persist recovery notice', writeErr.message);
+      try {
+        fssync.rmSync(temporary, { force: true });
+      } catch {}
+      console.error(
+        '[config] CRITICAL: failed to persist recovery notice; backup may be at',
+        info && info.backupPath,
+        writeErr.message
+      );
     }
   }
 
@@ -33,7 +50,7 @@ function createVault({ app, path, fs, fssync, randomUUID, process, dialog }, sta
         } catch (renameErr) {
           console.warn('[config] failed to back up unreadable config', corruptPath, renameErr.message);
         }
-        const recovery = { at: Date.now(), backupPath, error: String(err.message || err) };
+        const recovery = { at: Date.now(), source: 'read', backupPath, error: String(err.message || err) };
         console.warn('[config] recovered from unreadable config', recovery);
         writeConfigRecovery(recovery);
       }
@@ -53,7 +70,7 @@ function createVault({ app, path, fs, fssync, randomUUID, process, dialog }, sta
         } catch (renameErr) {
           console.warn('[config] failed to back up corrupt config', corruptPath, renameErr.message);
         }
-        const recovery = { at: Date.now(), backupPath, error: String(err.message || err) };
+        const recovery = { at: Date.now(), source: 'parse', backupPath, error: String(err.message || err) };
         console.warn('[config] recovered from corruption', recovery);
         writeConfigRecovery(recovery);
       }

@@ -148,6 +148,16 @@ function createWindowManager(
               return;
             }
             console.warn('Timed out waiting for pending edits to save; keeping the window open.');
+            if (state.win && !state.win.isDestroyed() && dialog) {
+              dialog
+                .showMessageBox(state.win, {
+                  type: 'warning',
+                  title: 'Save not confirmed',
+                  message: 'Tagline could not confirm the pending edits were saved, so close was cancelled.',
+                  buttons: ['OK'],
+                })
+                .catch(() => {});
+            }
             finishClose(false);
           }, 30000);
           closeTimer.unref?.();
@@ -160,6 +170,22 @@ function createWindowManager(
     state.win.webContents.on('render-process-gone', () => {
       if (preparingClose) {
         console.warn('The window stopped responding while saving; quit cancelled.');
+        if (state.win && !state.win.isDestroyed() && dialog) {
+          dialog
+            .showMessageBox(state.win, {
+              type: 'error',
+              title: 'Renderer stopped',
+              message:
+                'The window stopped responding while saving, so close was cancelled. Reload to recover unsaved work.',
+              buttons: ['Reload', 'Cancel'],
+            })
+            .then((result) => {
+              if (result.response === 0 && state.win && !state.win.isDestroyed()) {
+                state.win.reload();
+              }
+            })
+            .catch(() => {});
+        }
         finishClose(false);
       }
       state.closeWebsiteView();
