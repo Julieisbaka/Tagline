@@ -235,6 +235,9 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
           await key('Enter', [primary]);
         };
         await addKey(0, 1);
+        await wait(
+          "document.activeElement?.dataset?.row === '1' && document.activeElement?.dataset?.column === '1'"
+        );
         assert.deepEqual(
           await js(
             '({ row: document.activeElement.dataset.row, column: document.activeElement.dataset.column })'

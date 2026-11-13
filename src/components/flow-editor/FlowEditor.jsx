@@ -69,7 +69,7 @@ export default function FlowEditor({
     const { row, column } = focusTarget.current;
     gridRef.current?.querySelector(`[data-row="${row}"][data-column="${column}"]`)?.focus();
     focusTarget.current = null;
-  }, [content]);
+  }, [sheet]);
   const context = (e, items) => {
     const allowSpellcheck = e.target.matches('input, textarea');
     if (!allowSpellcheck) {
