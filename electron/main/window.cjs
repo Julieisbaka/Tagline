@@ -40,6 +40,22 @@ function createWindowManager(
     let readyToClose = false;
     let preparingClose = false;
     let hasSaveHandler = false;
+    let closeTimer;
+    // Close handshake policy: a saved workspace closes (or resumes a pending quit),
+    // while a failed save, timeout, or renderer crash cancels both window close and
+    // any app.quit() that was waiting on it, leaving the window open.
+    const finishClose = (saved) => {
+      if (!preparingClose) {
+        return false;
+      }
+      preparingClose = false;
+      clearTimeout(closeTimer);
+      closeTimer = undefined;
+      if (!saved) {
+        state.quitRequested = false;
+      }
+      return true;
+    };
     state.saveBeforeUpdate = () =>
       new Promise((resolve, reject) => {
         if (
@@ -93,24 +109,26 @@ function createWindowManager(
       }
     };
     const closeReady = (event, success) => {
-      if (event.sender !== state.win?.webContents || !preparingClose) {
+      const saved = success === true;
+      if (event.sender !== state.win?.webContents || !finishClose(saved)) {
         return;
       }
-      preparingClose = false;
-      if (success === true) {
-        readyToClose = true;
-        if (state.quitRequested) {
-          app.quit();
-        } else {
-          state.win.close();
-        }
+      if (!saved) {
+        return;
+      }
+      readyToClose = true;
+      if (state.quitRequested) {
+        app.quit();
       } else {
-        state.quitRequested = false;
+        state.win.close();
       }
     };
     ipcMain.on('app:closeReady', closeReady);
     ipcMain.on('app:saveHandlerReady', saveHandlerReady);
     state.win.once('closed', () => {
+      clearTimeout(closeTimer);
+      closeTimer = undefined;
+      preparingClose = false;
       ipcMain.removeListener('app:closeReady', closeReady);
       ipcMain.removeListener('app:saveHandlerReady', saveHandlerReady);
     });
@@ -125,13 +143,27 @@ function createWindowManager(
         event.preventDefault();
         if (!preparingClose) {
           preparingClose = true;
+          closeTimer = setTimeout(() => {
+            if (!preparingClose) {
+              return;
+            }
+            console.warn('Timed out waiting for pending edits to save; keeping the window open.');
+            finishClose(false);
+          }, 30000);
+          closeTimer.unref?.();
           state.win.webContents.send('app:prepareClose');
         }
         return;
       }
       state.closeWebsiteView();
     });
-    state.win.webContents.on('render-process-gone', () => state.closeWebsiteView());
+    state.win.webContents.on('render-process-gone', () => {
+      if (preparingClose) {
+        console.warn('The window stopped responding while saving; quit cancelled.');
+        finishClose(false);
+      }
+      state.closeWebsiteView();
+    });
     state.win.webContents.on('did-start-navigation', (_event, _url, isInPlace, isMainFrame) => {
       if (isMainFrame && !isInPlace) {
         state.closeWebsiteView();
@@ -156,7 +188,14 @@ function createWindowManager(
       if (event.isMainFrame) {
         return;
       }
-      const destination = new URL(event.url);
+      let destination;
+      try {
+        destination = new URL(event.url);
+      } catch {
+        console.warn('Blocked navigation to a malformed URL:', event.url);
+        event.preventDefault();
+        return;
+      }
       if (destination.protocol === 'about:' && ['srcdoc', 'blank'].includes(destination.pathname)) {
         return;
       }
@@ -170,8 +209,16 @@ function createWindowManager(
       }
     });
     state.win.webContents.on('will-navigate', (e, url) => {
-      const destination = new URL(url);
-      const current = new URL(state.win.webContents.getURL());
+      let destination;
+      let current;
+      try {
+        destination = new URL(url);
+        current = new URL(state.win.webContents.getURL());
+      } catch {
+        console.warn('Blocked navigation to a malformed URL:', url);
+        e.preventDefault();
+        return;
+      }
       if (destination.origin === current.origin && destination.pathname === current.pathname) {
         return;
       }

@@ -670,6 +670,43 @@ test('platform: macOS desktop wiring provides native window controls, menus and 
   windows[2].close();
   ipcMain.emit('app:closeReady', { sender: windows[2].webContents }, true);
   assert.equal(quit, true, 'app quit resumes after pending edits save, including on macOS');
+
+  // A quit requested mid-handshake waits, then aborts on save failure so a later
+  // close retries the save instead of silently quitting with lost edits.
+  windows[2].close();
+  app.emit('activate');
+  const win = windows[3];
+  let prevented = false;
+  win.webContents.emit(
+    'will-navigate',
+    { preventDefault: () => (prevented = true) },
+    'http://[malformed'
+  );
+  assert.equal(prevented, true, 'malformed navigation URLs are denied');
+  prevented = false;
+  win.webContents.emit('will-frame-navigate', {
+    isMainFrame: false,
+    url: 'http://[malformed',
+    preventDefault: () => (prevented = true),
+  });
+  assert.equal(prevented, true, 'malformed frame navigation URLs are denied');
+  ipcMain.emit('app:saveHandlerReady', { sender: win.webContents }, true);
+  win.close();
+  assert.equal(win.sent.channel, 'app:prepareClose');
+  quit = false;
+  app.emit('before-quit');
+  win.close();
+  assert.equal(win.destroyed, undefined, 'quit waits for the save handshake');
+  ipcMain.emit('app:closeReady', { sender: win.webContents }, false);
+  assert.equal(win.destroyed, undefined, 'failed save aborts the pending quit');
+  assert.equal(quit, false, 'aborted quit does not terminate the app');
+  win.sent = undefined;
+  win.close();
+  assert.equal(win.sent.channel, 'app:prepareClose', 'a later close retries the save');
+  win.webContents.isCrashed = () => true;
+  win.webContents.emit('render-process-gone');
+  win.close();
+  assert.equal(win.destroyed, true, 'a crashed renderer may close without saving');
 });
 
 test('Pandoc detection supports Apple Silicon and Intel Homebrew without relying on shell PATH', async () => {
