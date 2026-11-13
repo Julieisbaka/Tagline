@@ -43,8 +43,8 @@ function createVault({ app, path, fs, fssync, randomUUID, process, dialog }, sta
         lastError = error;
         if (retryable(error) && attempt < 4) {
           const wait = 25 * (attempt + 1);
-          const start = Date.now();
-          while (Date.now() - start < wait) {}
+          // Block without busy-spinning the main thread.
+          Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, wait);
           continue;
         }
         throw error;
