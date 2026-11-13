@@ -35,7 +35,7 @@ if (!process.versions.electron) {
   return;
 }
 
-const { app, BrowserWindow, safeStorage, shell } = require('electron');
+const { app, BrowserWindow, safeStorage, session, shell } = require('electron');
 const root = process.env.TAGLINE_INSTALLATION_ROOT;
 assert.ok(root, 'Run through npm run test:installation after building.');
 const version = process.env.TAGLINE_INSTALLATION_VERSION;
@@ -249,6 +249,7 @@ app.on('browser-window-created', (_event, win) => {
               activeId: 'saved-card',
             })
           )});`);
+        session.defaultSession.flushStorageData();
       } else {
         const expected = JSON.parse(fs.readFileSync(path.join(root, 'expected.json'), 'utf8'));
         await wait("!!document.querySelector('.note-title')");
