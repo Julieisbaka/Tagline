@@ -1,13 +1,24 @@
 const fs = require('node:fs/promises');
+const fssync = require('node:fs');
 const path = require('node:path');
+const ignore = require('ignore');
 
 const NOTE_EXTS = ['.md', '.flow', '.canvas', '.json'];
+
+function loadIgnoreRules(dir) {
+  try {
+    return ignore().add(fssync.readFileSync(path.join(dir, '.taglineignore'), 'utf8'));
+  } catch {
+    return null;
+  }
+}
 const FILE_CONCURRENCY = 16;
 
 async function loadVault(dir, base, includeContents) {
   const tree = [];
   const directories = [{ dir, base, nodes: tree }];
   const files = [];
+  const ignorer = loadIgnoreRules(dir);
   for (const directory of directories) {
     const entries = await fs.readdir(directory.dir, { withFileTypes: true });
     for (const entry of entries) {
@@ -15,6 +26,9 @@ async function loadVault(dir, base, includeContents) {
         continue;
       }
       const rel = directory.base ? `${directory.base}/${entry.name}` : entry.name;
+      if (ignorer && ignorer.ignores(rel)) {
+        continue;
+      }
       const full = path.join(directory.dir, entry.name);
       if (entry.isDirectory()) {
         const children = [];
