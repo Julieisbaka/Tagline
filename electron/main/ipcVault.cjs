@@ -34,10 +34,7 @@ function registerVaultIpc(
   ipcMain.handle('vault:getLast', async (event) => {
     assertMainFrameSender(event, 'Vault access');
     const { lastVault } = readConfig();
-    if (
-      lastVault &&
-      (fssync.existsSync(lastVault) || fssync.existsSync(`${lastVault}.tagline-migration.json`))
-    ) {
+    if (lastVault && (await validateRecentVault(lastVault))) {
       return openVault(lastVault);
     }
     return null;
@@ -226,7 +223,7 @@ function registerVaultIpc(
       throw new Error('Invalid file content.');
     }
     await fs.mkdir(path.dirname(resolveInVault(rel)), { recursive: true });
-    while (true) {
+    for (let attempt = 0; attempt < 10; attempt++) {
       const finalRel = uniquePath(rel);
       try {
         await fs.writeFile(resolveInVault(finalRel), content, { encoding: 'utf8', flag: 'wx' });
@@ -235,8 +232,12 @@ function registerVaultIpc(
         if (error.code !== 'EEXIST') {
           throw error;
         }
+        if (attempt === 9) {
+          throw new Error('Could not create a unique file after 10 attempts.', { cause: error });
+        }
       }
     }
+    throw new Error('Could not create a unique file after 10 attempts.');
   });
 
   ipcMain.handle('fs:mkdir', async (event, rel, underscoreFolders) => {
@@ -245,7 +246,7 @@ function registerVaultIpc(
       throw new Error('Invalid folder path preference.');
     }
     await fs.mkdir(path.dirname(resolveInVault(rel)), { recursive: true });
-    while (true) {
+    for (let attempt = 0; attempt < 10; attempt++) {
       const finalRel = uniquePath(rel, true, underscoreFolders);
       try {
         await fs.mkdir(resolveInVault(finalRel));
@@ -254,8 +255,12 @@ function registerVaultIpc(
         if (error.code !== 'EEXIST') {
           throw error;
         }
+        if (attempt === 9) {
+          throw new Error('Could not create a unique folder after 10 attempts.', { cause: error });
+        }
       }
     }
+    throw new Error('Could not create a unique folder after 10 attempts.');
   });
 
   async function renameVaultPath(from, to) {

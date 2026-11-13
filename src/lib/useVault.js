@@ -29,6 +29,7 @@ export function useVault(
   const [error, setError] = useState(null);
   const [ready, setReady] = useState(false);
   const [initialized, setInitialized] = useState(false);
+  const [closePending, setClosePending] = useState(false);
   const [saveStatuses, setSaveStatuses] = useState({});
   const timers = useRef({});
   const pending = useRef({});
@@ -248,6 +249,7 @@ export function useVault(
         .catch(report);
     };
     const unsubscribe = api.onPrepareClose(async () => {
+      setClosePending(true);
       try {
         let saved;
         do {
@@ -257,6 +259,8 @@ export function useVault(
       } catch (error) {
         report(error);
         api.closeReady(false);
+      } finally {
+        setClosePending(false);
       }
     });
     window.addEventListener('beforeunload', onUnload);
@@ -457,6 +461,7 @@ export function useVault(
     vault,
     ready,
     initialized,
+    closePending,
     openFlowFile,
     tree,
     contents,

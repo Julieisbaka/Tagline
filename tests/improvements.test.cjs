@@ -461,6 +461,7 @@ test('platform: macOS desktop wiring provides native window controls, menus and 
   const handlers = new Map();
   ipcMain.handle = (name, callback) => handlers.set(name, callback);
   app.whenReady = () => Promise.resolve();
+  app.getPath = () => path.join(require('node:os').tmpdir(), `tagline-mac-test-${process.pid}`);
   app.getPreferredSystemLanguages = () => ['fr-CA', 'en-US'];
   app.dock = {
     setIcon: (icon) => {

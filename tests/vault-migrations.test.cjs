@@ -25,6 +25,79 @@ async function fixture(t) {
   return { root, parent };
 }
 
+test('config reads return copies and refresh after stat failures', async (t) => {
+  const { parent } = await fixture(t);
+  const profile = path.join(parent, 'Profile');
+  await fs.mkdir(profile);
+  const configPath = path.join(profile, 'config.json');
+  await fs.writeFile(configPath, JSON.stringify({ value: 'cached' }));
+  let denyStat = false;
+  const injectedFssync = {
+    statSync: (file) => {
+      if (denyStat && file === configPath) {
+        throw Object.assign(new Error('denied'), { code: 'EACCES' });
+      }
+      const { size } = fssync.statSync(file);
+      return { mtimeMs: 1, size, ctimeMs: 1 };
+    },
+    readFileSync: fssync.readFileSync.bind(fssync),
+  };
+  const vault = createVault(
+    { app: { getPath: () => profile }, path, fs, fssync: injectedFssync, randomUUID, process },
+    {}
+  );
+  const copy = vault.readConfig();
+  copy.value = 'mutated';
+  assert.equal(vault.readConfig().value, 'cached');
+
+  await fs.writeFile(configPath, JSON.stringify({ value: 'different size, same timestamp' }));
+  assert.equal(vault.readConfig().value, 'different size, same timestamp');
+
+  await fs.writeFile(configPath, JSON.stringify({ value: 'refreshed after stat failure' }));
+  denyStat = true;
+  assert.equal(vault.readConfig().value, 'refreshed after stat failure');
+});
+
+test('config startup cleanup removes only temporary files older than one minute', async (t) => {
+  const { parent } = await fixture(t);
+  const profile = path.join(parent, 'Profile');
+  await fs.mkdir(profile);
+  const oldTemp = path.join(profile, '.tagline-config-old.tmp');
+  const freshTemp = path.join(profile, '.tagline-config-fresh.tmp');
+  const unrelated = path.join(profile, 'config-old.tmp');
+  for (const file of [oldTemp, freshTemp, unrelated]) {
+    await fs.writeFile(file, 'temporary');
+  }
+  const oldTime = new Date(Date.now() - 120_000);
+  await fs.utimes(oldTemp, oldTime, oldTime);
+  await fs.utimes(unrelated, oldTime, oldTime);
+  const vault = createVault(
+    { app: { getPath: () => profile }, path, fs, fssync, randomUUID, process },
+    {}
+  );
+
+  vault.cleanupConfigTemps();
+  await assert.rejects(fs.stat(oldTemp), { code: 'ENOENT' });
+  await fs.stat(freshTemp);
+  await fs.stat(unrelated);
+});
+
+test('uniquePath stops after ten occupied candidates', async (t) => {
+  const { root, parent } = await fixture(t);
+  const profile = path.join(parent, 'Profile');
+  await fs.mkdir(profile);
+  for (let i = 0; i < 10; i++) {
+    await fs.writeFile(path.join(root, `Note${i ? ` ${i}` : ''}.md`), '');
+  }
+  const vault = createVault(
+    { app: { getPath: () => profile }, path, fs, fssync, randomUUID, process },
+    { vaultRoot: root }
+  );
+  assert.throws(() => vault.uniquePath('Note.md'), /after 10 attempts/);
+  fssync.unlinkSync(path.join(root, 'Note 4.md'));
+  assert.equal(vault.uniquePath('Note.md'), 'Note 4.md');
+});
+
 async function seed(root, version) {
   await fs.writeFile(path.join(root, 'Note.md'), '# Original\n');
   await fs.writeFile(path.join(root, 'Round.flow'), '{"version":1,"sheets":[]}');
@@ -387,6 +460,64 @@ test('active vault changes only after the migration wizard completes', async (t)
   assert.equal(info.root, root);
   assert.equal(state.vaultRoot, root);
   assert.equal(vault.readConfig().lastVault, root);
+});
+
+test('vault:getLast refuses a path not accepted by recent-vault validation', async () => {
+  const handlers = {};
+  let opened = false;
+  registerVaultIpc(
+    {
+      ipcMain: { handle: (name, handler) => (handlers[name] = handler) },
+      path,
+      readConfig: () => ({ lastVault: path.resolve('existing-vault') }),
+      validateRecentVault: async () => false,
+      openVault: async () => {
+        opened = true;
+      },
+      registerMcp: () => ({}),
+      assertMainFrameSender() {},
+    },
+    {},
+    {}
+  );
+  assert.equal(await handlers['vault:getLast']({}), null);
+  assert.equal(opened, false);
+});
+
+test('fs:create and fs:mkdir stop after ten EEXIST collisions', async () => {
+  const handlers = {};
+  let fileAttempts = 0;
+  let folderAttempts = 0;
+  const collision = () => Object.assign(new Error('collision'), { code: 'EEXIST' });
+  registerVaultIpc(
+    {
+      ipcMain: { handle: (name, handler) => (handlers[name] = handler) },
+      path,
+      fs: {
+        mkdir: async (_dir, options) => {
+          if (!options?.recursive) {
+            folderAttempts++;
+            throw collision();
+          }
+        },
+        writeFile: async () => {
+          fileAttempts++;
+          throw collision();
+        },
+      },
+      resolveInVault: (rel) => path.resolve(rel),
+      uniquePath: (rel) => rel,
+      toPosix: (rel) => rel,
+      registerMcp: () => ({}),
+      assertMainFrameSender() {},
+    },
+    {},
+    {}
+  );
+  await assert.rejects(handlers['fs:create']({}, 'Note.md'), /after 10 attempts/);
+  await assert.rejects(handlers['fs:mkdir']({}, 'Folder', false), /after 10 attempts/);
+  assert.equal(fileAttempts, 10);
+  assert.equal(folderAttempts, 10);
 });
 
 test('startup and recent vaults can recover a missing root; cancelling sample creation never writes files', async (t) => {

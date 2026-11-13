@@ -174,15 +174,22 @@ export default function AppLayout({ app }) {
         </div>
       </ModalBackdrop>
     ));
-  const onboarding = v.initialized && !settings.internalFlags?.hasSeenOnboarding && !modal && (
-    <Onboarding
-      onFinish={() =>
-        updateSettings({ internalFlags: { ...settings.internalFlags, hasSeenOnboarding: true } })
-      }
-      onOpenVault={v.chooseVault}
-      onCreateSample={v.createSample}
-      showStartActions={!v.vault}
-    />
+  const onboarding = (v.initialized || !v.vault) &&
+    !settings.internalFlags?.hasSeenOnboarding &&
+    !modal && (
+      <Onboarding
+        onFinish={() =>
+          updateSettings({ internalFlags: { ...settings.internalFlags, hasSeenOnboarding: true } })
+        }
+        onOpenVault={v.chooseVault}
+        onCreateSample={v.createSample}
+        showStartActions={!v.vault}
+      />
+    );
+  const closePendingStatus = v.closePending && (
+    <div className='toast' role='status' aria-live='polite'>
+      {t('Saving changes')}
+    </div>
   );
   const toastStatus = (
     <div className='sr-only' role='status' aria-live='polite' aria-atomic='true'>
@@ -196,6 +203,7 @@ export default function AppLayout({ app }) {
         {toastStatus}
         <TextContextMenu extensions={ext} activePath={activePath} />
         {window.api.platform === 'darwin' && <div className='mac-titlebar'>Tagline</div>}
+        {closePendingStatus}
         <Welcome
           onOpen={v.chooseVault}
           onSample={v.createSample}
@@ -624,6 +632,7 @@ export default function AppLayout({ app }) {
       )}
       {extensionWebviews}
       {onboarding}
+      {closePendingStatus}
     </div>
   );
 }

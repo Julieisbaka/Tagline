@@ -5,7 +5,18 @@ function createVault({ app, path, fs, fssync, randomUUID, process, dialog }, sta
   const configRecoveryPath = () => path.join(app.getPath('userData'), 'config.recovery.json');
   let configRecoveryHandled = false;
   let configCache = null;
-  let configCacheMtime = null;
+  let configCacheKey = null;
+
+  function configStatKey(configPathFn) {
+    try {
+      const stat = fssync.statSync(configPathFn);
+      return `${stat.mtimeMs}:${stat.size}:${stat.ctimeMs}`;
+    } catch {
+      configCache = null;
+      configCacheKey = null;
+      return null;
+    }
+  }
 
   function writeConfigRecovery(info) {
     const recoveryPath = configRecoveryPath();
@@ -34,16 +45,9 @@ function createVault({ app, path, fs, fssync, randomUUID, process, dialog }, sta
 
   function readConfig() {
     const configPathFn = configPath();
-    let mtime = null;
-    try {
-      mtime = fssync.statSync(configPathFn).mtimeMs;
-    } catch (err) {
-      if (err && err.code !== 'ENOENT') {
-        // fall through to read attempt
-      }
-    }
-    if (configCache && mtime === configCacheMtime) {
-      return configCache;
+    const statKey = configStatKey(configPathFn);
+    if (configCache && statKey !== null && statKey === configCacheKey) {
+      return { ...configCache };
     }
     let raw;
     try {
@@ -51,8 +55,8 @@ function createVault({ app, path, fs, fssync, randomUUID, process, dialog }, sta
     } catch (err) {
       if (err && err.code === 'ENOENT') {
         configCache = {};
-        configCacheMtime = null;
-        return configCache;
+        configCacheKey = null;
+        return {};
       }
       console.warn('[config] failed to read', configPathFn, err.message);
       if (!configRecoveryHandled) {
@@ -63,22 +67,31 @@ function createVault({ app, path, fs, fssync, randomUUID, process, dialog }, sta
           fssync.renameSync(configPathFn, corruptPath);
           backupPath = corruptPath;
         } catch (renameErr) {
-          console.warn('[config] failed to back up unreadable config', corruptPath, renameErr.message);
+          console.warn(
+            '[config] failed to back up unreadable config',
+            corruptPath,
+            renameErr.message
+          );
         }
-        const recovery = { at: Date.now(), source: 'read', backupPath, error: String(err.message || err) };
+        const recovery = {
+          at: Date.now(),
+          source: 'read',
+          backupPath,
+          error: String(err.message || err),
+        };
         console.warn('[config] recovered from unreadable config', recovery);
         console.info('[event] config_recovered', recovery.source);
         writeConfigRecovery(recovery);
       }
       configCache = null;
-      configCacheMtime = null;
+      configCacheKey = null;
       return {};
     }
     try {
       const parsed = JSON.parse(raw);
       configCache = parsed;
-      configCacheMtime = mtime;
-      return configCache;
+      configCacheKey = statKey;
+      return { ...parsed };
     } catch (err) {
       console.warn('[config] failed to parse', configPathFn, err.message);
       if (!configRecoveryHandled) {
@@ -91,13 +104,18 @@ function createVault({ app, path, fs, fssync, randomUUID, process, dialog }, sta
         } catch (renameErr) {
           console.warn('[config] failed to back up corrupt config', corruptPath, renameErr.message);
         }
-        const recovery = { at: Date.now(), source: 'parse', backupPath, error: String(err.message || err) };
+        const recovery = {
+          at: Date.now(),
+          source: 'parse',
+          backupPath,
+          error: String(err.message || err),
+        };
         console.warn('[config] recovered from corruption', recovery);
         console.info('[event] config_recovered', recovery.source);
         writeConfigRecovery(recovery);
       }
       configCache = null;
-      configCacheMtime = null;
+      configCacheKey = null;
       return {};
     }
   }
@@ -153,8 +171,7 @@ function createVault({ app, path, fs, fssync, randomUUID, process, dialog }, sta
         if (retryable(error) && attempt < 4) {
           console.info('[event] config_write_retry', attempt + 1);
           const wait = 25 * (attempt + 1);
-          const start = Date.now();
-          while (Date.now() - start < wait) {}
+          Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, wait);
           continue;
         }
         throw error;
@@ -163,13 +180,39 @@ function createVault({ app, path, fs, fssync, randomUUID, process, dialog }, sta
     if (lastError) {
       throw lastError;
     }
-    try {
-      configCacheMtime = fssync.statSync(configPathFn).mtimeMs;
-    } catch {
-      configCacheMtime = null;
-    }
     configCache = next;
-    return next;
+    configCacheKey = configStatKey(configPathFn);
+    return { ...next };
+  }
+
+  function cleanupConfigTemps() {
+    const directory = path.dirname(configPath());
+    let entries;
+    try {
+      entries = fssync.readdirSync(directory);
+    } catch (error) {
+      if (error.code !== 'ENOENT') {
+        console.warn('[config] failed to scan temporary files', error.message);
+      }
+      return;
+    }
+    const cutoff = Date.now() - 60_000;
+    for (const name of entries) {
+      if (!/^\.tagline-config-.+\.tmp$/.test(name)) {
+        continue;
+      }
+      const temporary = path.join(directory, name);
+      try {
+        const stat = fssync.statSync(temporary);
+        if (stat.isFile() && stat.mtimeMs < cutoff) {
+          fssync.unlinkSync(temporary);
+        }
+      } catch (error) {
+        if (error.code !== 'ENOENT') {
+          console.warn('[config] failed to remove stale temporary file', temporary, error.message);
+        }
+      }
+    }
   }
 
   // Resolve a vault-relative path and refuse anything that escapes the vault.
@@ -193,12 +236,13 @@ function createVault({ app, path, fs, fssync, randomUUID, process, dialog }, sta
   function uniquePath(rel, folder = false, underscoreFolders = false) {
     const ext = folder ? '' : path.extname(rel);
     const stem = rel.slice(0, rel.length - ext.length);
-    let candidate = rel;
-    let i = 1;
-    while (fssync.existsSync(resolveInVault(candidate))) {
-      candidate = `${stem}${underscoreFolders ? '_' : ' '}${i++}${ext}`;
+    for (let i = 0; i < 10; i++) {
+      const candidate = i === 0 ? rel : `${stem}${underscoreFolders ? '_' : ' '}${i}${ext}`;
+      if (!fssync.existsSync(resolveInVault(candidate))) {
+        return candidate;
+      }
     }
-    return candidate;
+    throw new Error(`Could not find an available path for "${rel}" after 10 attempts.`);
   }
 
   async function openVault(dir) {
@@ -270,6 +314,7 @@ function createVault({ app, path, fs, fssync, randomUUID, process, dialog }, sta
   return {
     readConfig,
     writeConfig,
+    cleanupConfigTemps,
     getConfigRecovery,
     consumeConfigRecovery,
     resolveInVault,

@@ -99,7 +99,7 @@ const { createWindowManager } = require(path.join(__dirname, 'main', 'window.cjs
 const { registerAppIpc } = require(path.join(__dirname, 'main', 'ipcApp.cjs'));
 const { registerVaultIpc } = require(path.join(__dirname, 'main', 'ipcVault.cjs'));
 const vault = createVault({ app, path, fs, fssync, randomUUID, process, dialog }, state);
-const { readConfig, writeConfig, resolveInVault, openVault } = vault;
+const { readConfig, writeConfig, resolveInVault, openVault, cleanupConfigTemps } = vault;
 const { createWindow, buildMenu } = createWindowManager(
   {
     app,
@@ -195,6 +195,7 @@ const primary = registerFlowFiles({
 if (primary) {
   registerUriHandler({ app, ipcMain, getWindow: () => state.win, createWindow });
   app.whenReady().then(() => {
+    cleanupConfigTemps();
     if (process.platform === 'darwin') {
       app.dock.setIcon(path.join(__dirname, '..', 'build', 'icon.png'));
     }
