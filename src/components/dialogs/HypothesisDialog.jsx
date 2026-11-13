@@ -28,6 +28,7 @@ export default function HypothesisDialog({ sources, onClose }) {
   const [result, setResult] = useState(null);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
+  const running = useRef(false);
   const dialog = useRef(null);
   const premise = scopes.find(([id]) => id === scope)?.[1] || '';
   const hypotheses = buildHypotheses(template, lines);
@@ -57,6 +58,10 @@ export default function HypothesisDialog({ sources, onClose }) {
   }, []);
 
   const run = async (action) => {
+    if (running.current) {
+      return;
+    }
+    running.current = true;
     setBusy(true);
     setError('');
     try {
@@ -64,6 +69,7 @@ export default function HypothesisDialog({ sources, onClose }) {
     } catch (e) {
       setError(e.message);
     } finally {
+      running.current = false;
       setBusy(false);
       window.api
         .nliStatus()

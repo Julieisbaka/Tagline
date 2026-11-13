@@ -105,6 +105,7 @@ export default function GraphView({ index, activePath, onOpen, showMarkdownExten
     let drag = null;
     let alpha = 1;
     let raf = 0;
+    let running = false;
     let w = 0;
     let h = 0;
 
@@ -119,7 +120,10 @@ export default function GraphView({ index, activePath, onOpen, showMarkdownExten
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     };
     resize();
-    const ro = new ResizeObserver(resize);
+    const ro = new ResizeObserver(() => {
+      resize();
+      kick();
+    });
     ro.observe(wrap);
 
     const toWorld = (cx, cy) => ({
@@ -192,7 +196,11 @@ export default function GraphView({ index, activePath, onOpen, showMarkdownExten
       );
     };
     readColors();
-    window.addEventListener('themechange', readColors);
+    const onThemeChange = () => {
+      readColors();
+      kick();
+    };
+    window.addEventListener('themechange', onThemeChange);
     const motionPreference = window.matchMedia('(prefers-reduced-motion: reduce)');
     let reducedMotion = false;
     const updateMotion = () => {
@@ -200,10 +208,15 @@ export default function GraphView({ index, activePath, onOpen, showMarkdownExten
         motionPreference.matches || document.documentElement.classList.contains('reduce-motion');
     };
     updateMotion();
-    motionPreference.addEventListener('change', updateMotion);
-    window.addEventListener('accessibilitychange', updateMotion);
+    const onMotionChange = () => {
+      updateMotion();
+      kick();
+    };
+    motionPreference.addEventListener('change', onMotionChange);
+    window.addEventListener('accessibilitychange', onMotionChange);
 
     const draw = () => {
+      running = false;
       if (!reducedMotion) {
         step();
       }
@@ -241,9 +254,22 @@ export default function GraphView({ index, activePath, onOpen, showMarkdownExten
       }
       ctx.restore();
       ctx.globalAlpha = 1;
-      raf = requestAnimationFrame(draw);
+      if (!reducedMotion && (drag || alpha > 0.021)) {
+        running = true;
+        raf = requestAnimationFrame(draw);
+      }
     };
+    running = true;
     raf = requestAnimationFrame(draw);
+    const kick = (heat = 0) => {
+      if (heat > 0) {
+        alpha = Math.max(alpha, heat);
+      }
+      if (!running) {
+        running = true;
+        raf = requestAnimationFrame(draw);
+      }
+    };
 
     const rect = () => canvas.getBoundingClientRect();
     const onDown = (e) => {
@@ -253,6 +279,7 @@ export default function GraphView({ index, activePath, onOpen, showMarkdownExten
       const r = rect();
       const n = nodeAt(e.clientX - r.left, e.clientY - r.top);
       drag = { node: n, sx: e.clientX, sy: e.clientY, vx: view.x, vy: view.y, moved: false };
+      kick();
     };
     const onMove = (e) => {
       const r = rect();
@@ -270,12 +297,18 @@ export default function GraphView({ index, activePath, onOpen, showMarkdownExten
           p.vx = 0;
           p.vy = 0;
           alpha = Math.max(alpha, 0.3);
+          kick();
         } else if (!drag.node) {
           view.x = drag.vx + (e.clientX - drag.sx);
           view.y = drag.vy + (e.clientY - drag.sy);
+          kick();
         }
       } else {
-        hover = nodeAt(cx, cy) || null;
+        const next = nodeAt(cx, cy) || null;
+        if (next !== hover) {
+          hover = next;
+          kick();
+        }
         canvas.style.cursor = hover ? 'pointer' : 'grab';
       }
     };
@@ -290,6 +323,7 @@ export default function GraphView({ index, activePath, onOpen, showMarkdownExten
         alpha = Math.max(alpha, 0.15);
       }
       drag = null;
+      kick();
     };
     const onWheel = (e) => {
       e.preventDefault();
@@ -308,6 +342,7 @@ export default function GraphView({ index, activePath, onOpen, showMarkdownExten
         x: cx - ((cx - view.x) * k) / view.k,
         y: cy - ((cy - view.y) * k) / view.k,
       });
+      kick();
     };
 
     canvas.addEventListener('mousedown', onDown);
@@ -315,10 +350,11 @@ export default function GraphView({ index, activePath, onOpen, showMarkdownExten
     window.addEventListener('mouseup', onUp);
     canvas.addEventListener('wheel', onWheel, { passive: false });
     return () => {
+      running = false;
       cancelAnimationFrame(raf);
-      window.removeEventListener('themechange', readColors);
-      motionPreference.removeEventListener('change', updateMotion);
-      window.removeEventListener('accessibilitychange', updateMotion);
+      window.removeEventListener('themechange', onThemeChange);
+      motionPreference.removeEventListener('change', onMotionChange);
+      window.removeEventListener('accessibilitychange', onMotionChange);
       ro.disconnect();
       canvas.removeEventListener('mousedown', onDown);
       window.removeEventListener('mousemove', onMove);

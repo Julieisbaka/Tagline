@@ -593,6 +593,8 @@ function reviewSignature(manifest) {
       ? { panels: manifest.contributes.panels, webviews: manifest.contributes.webviews }
       : {}),
     ...(manifest.networkHosts?.length ? { networkHosts: [...manifest.networkHosts].sort() } : {}),
+    // A version bump can ship new code without changing any review-gated surface.
+    version: manifest.version,
   });
 }
 

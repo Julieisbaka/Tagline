@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { cardStats, formatDuration, getSectionAt } from '../lib/card.js';
 import { readFrontmatter } from '../lib/frontmatter.js';
 import { useI18n } from '../lib/i18n.js';
@@ -151,8 +151,9 @@ export default function NoteView({
     }
     onCursorStats(parts);
   }, [docStats, sectionStats, section, settings.syllablesPerMinute, calibration, onCursorStats, t]);
-  useLayoutEffect(() => {
-    publishCursorStats();
+  useEffect(() => {
+    const timer = setTimeout(publishCursorStats, 200);
+    return () => clearTimeout(timer);
   }, [publishCursorStats]);
 
   const commitTitle = () => {

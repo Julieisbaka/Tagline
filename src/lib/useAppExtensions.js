@@ -197,6 +197,9 @@ export function useAppExtensions({
         }
         if (v.getContent(path) !== undefined) {
           v.updateContent(path, content);
+          if (!(await v.flush())) {
+            throw new Error(`Could not save ${path}.`);
+          }
           return path;
         }
         const created = await v.createFile(path, content);
@@ -206,12 +209,15 @@ export function useAppExtensions({
         return created;
       }),
     append: (path, text) =>
-      enqueueVault(() => {
+      enqueueVault(async () => {
         const content = requireNote(path) + text;
         if (content.length > 5_000_000) {
           throw new Error('Content must be text up to 5000000 characters.');
         }
         v.updateContent(path, content);
+        if (!(await v.flush())) {
+          throw new Error(`Could not save ${path}.`);
+        }
         return path;
       }),
     compareAndSwap: (path, expected, content) =>

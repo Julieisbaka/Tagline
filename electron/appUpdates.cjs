@@ -96,7 +96,9 @@ function createUpdateManager({
     try {
       const release = await checkForUpdates(currentVersion, fetchImpl, platform, arch);
       if (downloaded && downloaded.version !== release.latestVersion) {
-        await fs.rm(path.dirname(downloaded.file), { recursive: true, force: true });
+        await fs
+          .rm(path.dirname(downloaded.file), { recursive: true, force: true })
+          .catch(() => {});
         downloaded = null;
       }
       setState({ status: downloaded ? 'ready' : 'idle', release, received: 0, total: 0 });
@@ -231,7 +233,9 @@ function createUpdateManager({
         throw new Error('Downloaded installer is missing. Download the update again.');
       }
       if (checksum !== downloaded.expectedHash) {
-        await fs.rm(path.dirname(downloaded.file), { recursive: true, force: true });
+        await fs
+          .rm(path.dirname(downloaded.file), { recursive: true, force: true })
+          .catch(() => {});
         downloaded = null;
         throw new Error('Downloaded installer changed. Download the update again.');
       }

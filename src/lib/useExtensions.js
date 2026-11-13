@@ -86,6 +86,7 @@ export function useExtensions({ bridgeRef, notify }) {
     registerExtensionTranslations([]);
     void registerExtensionFonts([]);
     setStatusBarItems([]);
+    setSurfaces([]);
     const bridge = {
       notify: (message) => notify(message),
       getActiveNote: () => bridgeRef.current.getActiveNote(),

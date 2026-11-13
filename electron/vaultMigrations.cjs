@@ -88,8 +88,34 @@ function migrationPlan(version, steps = migrations) {
 }
 
 async function writeManifest(root, manifest) {
-  await fs.mkdir(path.join(root, '.tagline'), { recursive: true });
-  await fs.writeFile(path.join(root, MANIFEST), JSON.stringify(manifest, null, 2) + '\n');
+  const directory = path.join(root, '.tagline');
+  await fs.mkdir(directory, { recursive: true });
+  const file = path.join(root, MANIFEST);
+  const temporary = path.join(directory, `.vault-${randomUUID()}.tmp`);
+  try {
+    await fs.writeFile(temporary, JSON.stringify(manifest, null, 2) + '\n', { flag: 'wx' });
+    const handle = await fs.open(temporary, 'r+');
+    try {
+      await handle.sync();
+    } finally {
+      await handle.close();
+    }
+    await fs.rename(temporary, file);
+  } catch (error) {
+    await fs.rm(temporary, { force: true }).catch(() => {});
+    throw error;
+  }
+  // Persist the rename itself where the platform supports syncing a directory.
+  try {
+    const handle = await fs.open(directory, 'r');
+    try {
+      await handle.sync();
+    } finally {
+      await handle.close();
+    }
+  } catch {
+    // Windows cannot fsync a directory; the manifest file itself was synced above.
+  }
 }
 
 function backupPath(root, id, attempt = 0) {
@@ -199,21 +225,55 @@ async function recoverMigration(root) {
     return;
   }
   await regularPath(journal);
-  const record = JSON.parse(await fs.readFile(journal, 'utf8'));
-  const { id, backup: recordedBackup } = record || {};
-  if (typeof id !== 'string' || !/^[a-f0-9-]{36}$/.test(id)) {
-    throw new Error(`Invalid migration recovery record: ${journal}`);
+  let record;
+  try {
+    record = JSON.parse(await fs.readFile(journal, 'utf8'));
+  } catch {
+    // Keep the unreadable journal for inspection instead of blocking the vault forever.
+    await fs.rename(journal, `${journal}.corrupt-${randomUUID()}`).catch(() => {});
+    record = null;
   }
-  const backup =
-    typeof recordedBackup === 'string' && recordedBackup
-      ? recordedBackup
-      : `${root}.tagline-backup-${id}`;
+  let backup = null;
+  if (record !== null) {
+    const { id, backup: recordedBackup } = record || {};
+    if (typeof id !== 'string' || !/^[a-f0-9-]{36}$/.test(id)) {
+      throw new Error(`Invalid migration recovery record: ${journal}`);
+    }
+    backup =
+      typeof recordedBackup === 'string' && recordedBackup
+        ? recordedBackup
+        : `${root}.tagline-backup-${id}`;
+  }
   if (!(await exists(root))) {
+    if (!backup || !(await exists(backup))) {
+      // The journal is unusable: restore the most recent backup beside the vault.
+      const backups = [];
+      for (const item of await listMigrationArtifacts(root)) {
+        if (item.kind !== 'backup') {
+          continue;
+        }
+        const stat = await fs.stat(item.path).catch(() => null);
+        if (stat?.isDirectory()) {
+          backups.push({ path: item.path, mtime: stat.mtimeMs });
+        }
+      }
+      backups.sort((left, right) => right.mtime - left.mtime);
+      backup = backups[0]?.path || null;
+    }
+    if (!backup) {
+      throw new Error(
+        `The vault folder is missing and no migration backup was found next to it: ${root}`
+      );
+    }
     await regularPath(backup, true);
     await fs.rename(backup, root);
   }
   // Keep interrupted staging folders for inspection rather than deleting data.
-  await fs.unlink(journal);
+  await fs.unlink(journal).catch((error) => {
+    if (error.code !== 'ENOENT') {
+      throw error;
+    }
+  });
 }
 
 async function migrateVault(root, steps = migrations) {

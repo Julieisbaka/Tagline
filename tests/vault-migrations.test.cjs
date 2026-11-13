@@ -254,12 +254,12 @@ test('copy failures preserve original data and leave no partial upgrade', async 
 test('manifest write failure cannot commit partially upgraded documents', async (t) => {
   const { root } = await fixture(t);
   await seed(root);
-  const writeFile = fs.writeFile;
-  t.mock.method(fs, 'writeFile', async (file, ...args) => {
-    if (file.includes('.tagline-stage-') && file.endsWith('vault.json')) {
+  const rename = fs.rename;
+  t.mock.method(fs, 'rename', async (source, destination) => {
+    if (destination.endsWith('vault.json')) {
       throw new Error('metadata write denied');
     }
-    return writeFile(file, ...args);
+    return rename(source, destination);
   });
   await assert.rejects(migrateVault(root), /original data is unchanged.*metadata write denied/);
   assert.equal((await readManifest(root)).version, 0);
@@ -370,6 +370,80 @@ test('linked directories cannot redirect migrations outside the vault', async (t
   );
   await assert.rejects(migrateVault(root), /regular file/);
   assert.equal(await fs.readFile(path.join(outside, 'secret'), 'utf8'), 'untouched');
+});
+
+test('vault paths reject symlinks that escape the root', async (t) => {
+  const { root, parent } = await fixture(t);
+  const profile = path.join(parent, 'Profile');
+  await fs.mkdir(profile);
+  const outside = path.join(parent, 'Outside');
+  await fs.mkdir(outside);
+  await fs.writeFile(path.join(outside, 'secret'), 'secret');
+  await fs.symlink(
+    outside,
+    path.join(root, 'linked'),
+    process.platform === 'win32' ? 'junction' : 'dir'
+  );
+  const vault = createVault(
+    { app: { getPath: () => profile }, path, fs, fssync, randomUUID, process },
+    { vaultRoot: root }
+  );
+  assert.equal(vault.resolveInVault('Note.md'), path.join(root, 'Note.md'));
+  assert.throws(() => vault.resolveInVault('linked/secret'), /Path escapes vault/);
+});
+
+test('vault paths reject dangling symlinks that point outside the root', async (t) => {
+  if (process.platform === 'win32') {
+    t.skip('creating a dangling file symlink needs elevated Windows privileges');
+    return;
+  }
+  const { root, parent } = await fixture(t);
+  const profile = path.join(parent, 'Profile');
+  await fs.mkdir(profile);
+  const outside = path.join(parent, 'Outside');
+  await fs.mkdir(outside);
+  await fs.symlink(path.join(outside, 'created-later'), path.join(root, 'dangling'));
+  const vault = createVault(
+    { app: { getPath: () => profile }, path, fs, fssync, randomUUID, process },
+    { vaultRoot: root }
+  );
+  assert.throws(() => vault.resolveInVault('dangling'), /Path escapes vault/);
+});
+
+test('an unreadable recent vault is listed as absent instead of failing', async (t) => {
+  const { root, parent } = await fixture(t);
+  const profile = path.join(parent, 'Profile');
+  await fs.mkdir(profile);
+  await fs.writeFile(
+    path.join(profile, 'config.json'),
+    JSON.stringify({ recentVaults: [root], lastVault: root })
+  );
+  const injected = Object.create(fs);
+  injected.stat = async () => {
+    throw Object.assign(new Error('denied'), { code: 'EACCES' });
+  };
+  const vault = createVault(
+    { app: { getPath: () => profile }, path, fs: injected, fssync, randomUUID, process },
+    {}
+  );
+  assert.deepEqual(
+    (await vault.listRecentVaults()).map((item) => item.exists),
+    [false]
+  );
+});
+
+test('a corrupt migration journal falls back to the newest backup', async (t) => {
+  const { root, parent } = await fixture(t);
+  await seed(root);
+  const backup = `${root}.tagline-backup-${randomUUID()}`;
+  await fs.rename(root, backup);
+  await fs.writeFile(journalPath(root), '{"id":');
+  await recoverMigration(root);
+  assert.equal(await fs.readFile(path.join(root, 'Note.md'), 'utf8'), '# Original\n');
+  assert.ok(
+    (await fs.readdir(parent)).some((name) => name.includes('.tagline-migration.json.corrupt-')),
+    'the unreadable journal is kept aside for inspection'
+  );
 });
 
 test('invalid recovery paths are refused', async (t) => {

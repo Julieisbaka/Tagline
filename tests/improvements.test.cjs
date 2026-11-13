@@ -625,14 +625,22 @@ test('platform: macOS desktop wiring provides native window controls, menus and 
     sender: windows[0].webContents,
     senderFrame: windows[0].webContents.mainFrame,
   };
-  ipcMain.emit('app:saveHandlerReady', { sender: windows[0].webContents }, true);
+  ipcMain.emit('app:saveHandlerReady', updateEvent, true);
   const rejectedUpdate = handlers.get('app:installUpdate')(updateEvent);
   assert.equal(windows[0].sent.channel, 'app:prepareClose');
-  ipcMain.emit('app:closeReady', { sender: windows[0].webContents }, false);
+  ipcMain.emit(
+    'app:closeReady',
+    { sender: windows[0].webContents, senderFrame: windows[0].webContents.mainFrame },
+    false
+  );
   await assert.rejects(rejectedUpdate, /Pending edits could not be saved/);
   assert.equal(windows[0].destroyed, undefined);
   const installedUpdate = handlers.get('app:installUpdate')(updateEvent);
-  ipcMain.emit('app:closeReady', { sender: windows[0].webContents }, true);
+  ipcMain.emit(
+    'app:closeReady',
+    { sender: windows[0].webContents, senderFrame: windows[0].webContents.mainFrame },
+    true
+  );
   await installedUpdate;
   assert.equal(
     windows[0].destroyed,
@@ -642,12 +650,22 @@ test('platform: macOS desktop wiring provides native window controls, menus and 
   windows[0].close();
   assert.equal(windows[0].sent.channel, 'app:prepareClose');
   assert.equal(windows[0].destroyed, undefined, 'close waits for pending writes');
-  ipcMain.emit('app:closeReady', { sender: windows[0].webContents }, false);
+  ipcMain.emit(
+    'app:closeReady',
+    { sender: windows[0].webContents, senderFrame: windows[0].webContents.mainFrame },
+    false
+  );
   assert.equal(windows[0].destroyed, undefined, 'failed save leaves the window open');
   windows[0].close();
   ipcMain.emit('app:closeReady', { sender: {} }, true);
   assert.equal(windows[0].destroyed, undefined, 'foreign IPC cannot acknowledge another window');
-  ipcMain.emit('app:closeReady', { sender: windows[0].webContents }, true);
+  ipcMain.emit('app:closeReady', { sender: windows[0].webContents, senderFrame: {} }, true);
+  assert.equal(windows[0].destroyed, undefined, 'subframe IPC cannot acknowledge a close');
+  ipcMain.emit(
+    'app:closeReady',
+    { sender: windows[0].webContents, senderFrame: windows[0].webContents.mainFrame },
+    true
+  );
   assert.equal(windows[0].destroyed, true);
   assert.equal(
     ipcMain.listenerCount('app:closeReady'),
@@ -666,10 +684,18 @@ test('platform: macOS desktop wiring provides native window controls, menus and 
     'closing before the editor mounts needs no save acknowledgement'
   );
   app.emit('activate');
-  ipcMain.emit('app:saveHandlerReady', { sender: windows[2].webContents }, true);
+  ipcMain.emit(
+    'app:saveHandlerReady',
+    { sender: windows[2].webContents, senderFrame: windows[2].webContents.mainFrame },
+    true
+  );
   app.emit('before-quit');
   windows[2].close();
-  ipcMain.emit('app:closeReady', { sender: windows[2].webContents }, true);
+  ipcMain.emit(
+    'app:closeReady',
+    { sender: windows[2].webContents, senderFrame: windows[2].webContents.mainFrame },
+    true
+  );
   assert.equal(quit, true, 'app quit resumes after pending edits save, including on macOS');
 
   // A quit requested mid-handshake waits, then aborts on save failure so a later
@@ -691,14 +717,22 @@ test('platform: macOS desktop wiring provides native window controls, menus and 
     preventDefault: () => (prevented = true),
   });
   assert.equal(prevented, true, 'malformed frame navigation URLs are denied');
-  ipcMain.emit('app:saveHandlerReady', { sender: win.webContents }, true);
+  ipcMain.emit(
+    'app:saveHandlerReady',
+    { sender: win.webContents, senderFrame: win.webContents.mainFrame },
+    true
+  );
   win.close();
   assert.equal(win.sent.channel, 'app:prepareClose');
   quit = false;
   app.emit('before-quit');
   win.close();
   assert.equal(win.destroyed, undefined, 'quit waits for the save handshake');
-  ipcMain.emit('app:closeReady', { sender: win.webContents }, false);
+  ipcMain.emit(
+    'app:closeReady',
+    { sender: win.webContents, senderFrame: win.webContents.mainFrame },
+    false
+  );
   assert.equal(win.destroyed, undefined, 'failed save aborts the pending quit');
   assert.equal(quit, false, 'aborted quit does not terminate the app');
   win.sent = undefined;

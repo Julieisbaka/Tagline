@@ -90,6 +90,11 @@ test('manifest validates extension contributions and includes them in explicit r
   assert.deepEqual(assetOnly.permissions, []);
   assert.equal(manifest.contributes.fileHandlers[0].priority, 12);
   assert.notEqual(
+    reviewSignature({ ...manifest, version: '9.9.9' }),
+    reviewSignature(manifest),
+    'a version bump can ship new code, so it requires re-review'
+  );
+  assert.notEqual(
     reviewSignature(manifest),
     reviewSignature(
       validateManifest(

@@ -97,7 +97,11 @@ function registerVaultIpc(
     if (typeof root !== 'string' || !path.isAbsolute(root)) {
       throw new Error('Invalid saved vault path.');
     }
-    return cleanupMigrationArtifacts(root);
+    const resolvedRoot = path.resolve(root);
+    if (!(await validateRecentVault(resolvedRoot))) {
+      throw new Error('That saved vault is unavailable.');
+    }
+    return cleanupMigrationArtifacts(resolvedRoot);
   });
 
   ipcMain.handle('vault:choose', async (event) => {

@@ -323,9 +323,17 @@ export default function Editor({
               Object.entries(SOURCE_ACTIONS).map(([id, action]) => [id, run(action)])
             ),
             link: () => setLinkOpen((open) => !open),
-            find: () => openSearchPanel(ownViewRef.current),
+            find: () => {
+              const view = ownViewRef.current;
+              if (view && !view.destroyed) {
+                openSearchPanel(view);
+              }
+            },
             'send-card': () => {
               const view = ownViewRef.current;
+              if (!view || view.destroyed) {
+                return;
+              }
               const { from, to, head } = view.state.selection.main;
               onSendCard(head, view.state.sliceDoc(from, to));
             },

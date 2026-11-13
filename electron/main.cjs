@@ -193,93 +193,102 @@ const primary = registerFlowFiles({
 
 if (primary) {
   registerUriHandler({ app, ipcMain, getWindow: () => state.win, createWindow });
-  app.whenReady().then(() => {
-    cleanupConfigTemps();
-    if (process.platform === 'darwin') {
-      app.dock.setIcon(path.join(__dirname, '..', 'build', 'icon.png'));
-    }
-    app.setAboutPanelOptions({
-      applicationName: 'Tagline',
-      applicationVersion: installationInfo(app).version,
-    });
-    buildMenu();
-    registerIpc();
-    registerOpenCaselist({
-      ipcMain,
-      session,
-      BrowserWindow,
-      dialog,
-      getWindow: () => state.win,
-      getVaultRoot: () => state.vaultRoot,
-      readConfig,
-      writeConfig,
-    });
-    registerTabroom({ ipcMain, session, BrowserWindow, dialog, getWindow: () => state.win });
-    state.closeWebsiteView = registerBrowser({ ipcMain, shell, getWindow: () => state.win });
-    registerPandoc({ ipcMain, dialog, getWindow: () => state.win, readConfig, writeConfig });
-    registerDocuments({ ipcMain, dialog, getWindow: () => state.win, readConfig });
-    registerGoogleDocs({ app, ipcMain, safeStorage, dialog, shell, getWindow: () => state.win });
-    registerFonts({ app, ipcMain, dialog, getWindow: () => state.win });
-    registerTimerSound({ app, ipcMain, dialog, getWindow: () => state.win });
-    registerFloatingTimer({
-      ipcMain,
-      BrowserWindow,
-      screen,
-      getWindow: () => state.win,
-      assertMainFrameSender,
-    });
-    registerScholarlySearch({ ipcMain, assertMainFrameSender });
-    if (!disableExtensions) {
-      registerExtensions({
-        app,
+  app
+    .whenReady()
+    .then(() => {
+      cleanupConfigTemps();
+      if (process.platform === 'darwin') {
+        app.dock.setIcon(path.join(__dirname, '..', 'build', 'icon.png'));
+      }
+      app.setAboutPanelOptions({
+        applicationName: 'Tagline',
+        applicationVersion: installationInfo(app).version,
+      });
+      buildMenu();
+      registerIpc();
+      registerOpenCaselist({
         ipcMain,
-        shell,
-        readConfig,
-        writeConfig,
+        session,
+        BrowserWindow,
         dialog,
         getWindow: () => state.win,
-        safeStorage,
         getVaultRoot: () => state.vaultRoot,
+        readConfig,
+        writeConfig,
+      });
+      registerTabroom({ ipcMain, session, BrowserWindow, dialog, getWindow: () => state.win });
+      state.closeWebsiteView = registerBrowser({ ipcMain, shell, getWindow: () => state.win });
+      registerPandoc({ ipcMain, dialog, getWindow: () => state.win, readConfig, writeConfig });
+      registerDocuments({ ipcMain, dialog, getWindow: () => state.win, readConfig });
+      registerGoogleDocs({ app, ipcMain, safeStorage, dialog, shell, getWindow: () => state.win });
+      registerFonts({ app, ipcMain, dialog, getWindow: () => state.win });
+      registerTimerSound({ app, ipcMain, dialog, getWindow: () => state.win });
+      registerFloatingTimer({
+        ipcMain,
+        BrowserWindow,
+        screen,
+        getWindow: () => state.win,
         assertMainFrameSender,
       });
-    }
-    const embeddings = registerEmbeddings({
-      app,
-      ipcMain,
-      safeStorage,
-      getVaultRoot: () => state.vaultRoot,
-      readConfig,
-      writeConfig,
-      assertMainFrameSender,
-    });
-    const nli = registerNli({
-      app,
-      ipcMain,
-      dialog,
-      getWindow: () => state.win,
-      readConfig,
-      writeConfig,
-      readToken: embeddings.readToken,
-      assertMainFrameSender,
-    });
-    const summary = registerSummarization({ app, ipcMain, readConfig, assertMainFrameSender });
-    state.localModels = { embeddings, nli, summary };
-    createWindow();
-    // Quietly check for and download an update shortly after startup. Never
-    // fails startup and never installs without the user choosing Install.
-    // Safe mode (and the explicit disable flag) skip this background check.
-    if (!safeMode && process.env.TAGLINE_DISABLE_AUTO_UPDATE !== '1') {
-      const delay = updateCheckDelayMs;
-      setTimeout(() => {
-        state.prepareUpdateInBackground().catch(() => {});
-      }, delay).unref?.();
-    }
-    app.on('activate', () => {
-      if (BrowserWindow.getAllWindows().length === 0) {
-        createWindow();
+      registerScholarlySearch({ ipcMain, assertMainFrameSender });
+      if (!disableExtensions) {
+        registerExtensions({
+          app,
+          ipcMain,
+          shell,
+          readConfig,
+          writeConfig,
+          dialog,
+          getWindow: () => state.win,
+          safeStorage,
+          getVaultRoot: () => state.vaultRoot,
+          assertMainFrameSender,
+        });
       }
+      const embeddings = registerEmbeddings({
+        app,
+        ipcMain,
+        safeStorage,
+        getVaultRoot: () => state.vaultRoot,
+        readConfig,
+        writeConfig,
+        assertMainFrameSender,
+      });
+      const nli = registerNli({
+        app,
+        ipcMain,
+        dialog,
+        getWindow: () => state.win,
+        readConfig,
+        writeConfig,
+        readToken: embeddings.readToken,
+        assertMainFrameSender,
+      });
+      const summary = registerSummarization({ app, ipcMain, readConfig, assertMainFrameSender });
+      state.localModels = { embeddings, nli, summary };
+      createWindow();
+      // Quietly check for and download an update shortly after startup. Never
+      // fails startup and never installs without the user choosing Install.
+      // Safe mode (and the explicit disable flag) skip this background check.
+      if (!safeMode && process.env.TAGLINE_DISABLE_AUTO_UPDATE !== '1') {
+        const delay = updateCheckDelayMs;
+        setTimeout(() => {
+          state.prepareUpdateInBackground().catch(() => {});
+        }, delay).unref?.();
+      }
+      app.on('activate', () => {
+        if (BrowserWindow.getAllWindows().length === 0) {
+          createWindow();
+        }
+      });
+    })
+    .catch((error) => {
+      console.error('[main] startup failed', error);
+      try {
+        dialog.showErrorBox('Tagline could not start', String(error?.stack || error));
+      } catch {}
+      app.exit(1);
     });
-  });
 }
 
 app.on('before-quit', () => {

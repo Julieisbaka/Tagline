@@ -41,6 +41,8 @@ function createWindowManager(
     let preparingClose = false;
     let hasSaveHandler = false;
     let closeTimer;
+    const fromMainFrame = (event, contents) =>
+      !!contents && event.sender === contents && event.senderFrame === event.sender.mainFrame;
     // Close handshake policy: a saved workspace closes (or resumes a pending quit),
     // while a failed save, timeout, or renderer crash cancels both window close and
     // any app.quit() that was waiting on it, leaving the window open.
@@ -83,7 +85,7 @@ function createWindowManager(
           }
         };
         const saved = (event, success) => {
-          if (event.sender === target.webContents) {
+          if (fromMainFrame(event, target.webContents)) {
             finish(
               success === true
                 ? null
@@ -104,13 +106,13 @@ function createWindowManager(
         target.webContents.send('app:prepareClose');
       });
     const saveHandlerReady = (event, ready) => {
-      if (event.sender === state.win?.webContents) {
+      if (fromMainFrame(event, state.win?.webContents)) {
         hasSaveHandler = ready === true;
       }
     };
     const closeReady = (event, success) => {
       const saved = success === true;
-      if (event.sender !== state.win?.webContents || !finishClose(saved)) {
+      if (!fromMainFrame(event, state.win?.webContents) || !finishClose(saved)) {
         return;
       }
       if (!saved) {
@@ -133,6 +135,11 @@ function createWindowManager(
       ipcMain.removeListener('app:saveHandlerReady', saveHandlerReady);
     });
     state.win.on('close', (event) => {
+      if (!state.updateQuit && !readyToClose && !hasSaveHandler) {
+        console.warn(
+          '[window] closing without a save handler; falling back to renderer beforeunload'
+        );
+      }
       if (
         !state.updateQuit &&
         !readyToClose &&

@@ -217,6 +217,9 @@ export function useVault(
       })
     );
     const completed = await inflight;
+    if (!entries.length) {
+      return completed.every((result) => result.status === 'fulfilled');
+    }
     if (saved.every(Boolean) && completed.every((result) => result.status === 'fulfilled')) {
       playUiSound('save');
       return true;
@@ -236,17 +239,8 @@ export function useVault(
       }
       event.preventDefault();
       event.returnValue = false;
-      flush()
-        .then((saved) => {
-          if (saved) {
-            window.dispatchEvent(
-              new CustomEvent('app-error', {
-                detail: 'Pending edits have been saved. Retry closing or reloading.',
-              })
-            );
-          }
-        })
-        .catch(report);
+      // A completed flush is not an error: the next close or reload attempt proceeds.
+      flush().catch(report);
     };
     const unsubscribe = api.onPrepareClose(async () => {
       setClosePending(true);

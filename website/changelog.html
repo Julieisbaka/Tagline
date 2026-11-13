@@ -54,7 +54,30 @@
         <section id="v0-1-2">
           <p class="article-kicker">In development</p>
           <h2>0.1.2 <span class="feature-status">In development</span></h2>
-          <p>Release notes will be added as changes are finalized.</p>
+
+          <h3>Improved</h3>
+          <ul>
+            <li>Vault path checks follow symbolic links and reject targets outside the vault, including dangling links.</li>
+            <li>Vault migrations write the manifest atomically and recover the newest backup when a migration journal is corrupt.</li>
+            <li>Window close and update-save handshakes ignore messages from subframes, and startup failures show an error dialog instead of exiting silently.</li>
+            <li>Extension permission reviews include the extension version, so version updates require a fresh review.</li>
+            <li>Migration backup cleanup now validates the vault the same way as other recent-vault operations.</li>
+            <li>Extension <code>write</code> and <code>append</code> operations wait for pending edits to reach disk before resolving.</li>
+          </ul>
+
+          <h3>Fixed</h3>
+          <ul>
+            <li>The embedded browser opens the requested URL when the view is first created.</li>
+            <li>Update checks no longer fail when a locked installer folder cannot be cleaned up.</li>
+            <li>Saving no longer plays the save sound when there was nothing to save, and a successful unload flush no longer reports an error.</li>
+            <li>Editor toolbar find and send-card actions handle a missing editor view without throwing.</li>
+            <li>Opening and closing tabs in the same tick no longer drops or restores stale tabs.</li>
+            <li>Reloading extensions clears surfaces left behind by disposed extension hosts.</li>
+            <li>Hypothesis and summary dialogs ignore repeated runs while one is already in progress.</li>
+            <li>Cursor statistics are debounced instead of updating app state on every keystroke.</li>
+            <li>The graph simulation stops rendering once it settles and resumes on interaction or content changes.</li>
+            <li>Closing without a registered save handler logs a diagnostic warning before falling back to the renderer unload handler.</li>
+          </ul>
         </section>
 
         <section id="v0-1-1">

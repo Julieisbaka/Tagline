@@ -160,11 +160,11 @@ export function useTabs(vaultRoot, persist = true) {
       }
       const current = tabs.find((t) => t.id === activeId);
       if (!newTab && current && current.kind === 'file') {
-        setTabs(tabs.map((t) => (t.id === current.id ? { ...t, path } : t)));
+        setTabs((prev) => prev.map((t) => (t.id === current.id ? { ...t, path } : t)));
         return undefined;
       }
       const tab = { id: newId(), kind: 'file', path };
-      setTabs([...tabs, tab]);
+      setTabs((prev) => [...prev, tab]);
       setActiveId(tab.id);
       return undefined;
     },
@@ -177,7 +177,7 @@ export function useTabs(vaultRoot, persist = true) {
       return setActiveId(existing.id);
     }
     const tab = { id: newId(), kind: 'graph' };
-    setTabs([...tabs, tab]);
+    setTabs((prev) => [...prev, tab]);
     setActiveId(tab.id);
     return undefined;
   }, [tabs]);
@@ -186,7 +186,7 @@ export function useTabs(vaultRoot, persist = true) {
     (id) => {
       const i = tabs.findIndex((t) => t.id === id);
       const next = tabs.filter((t) => t.id !== id);
-      setTabs(next);
+      setTabs((prev) => prev.filter((t) => t.id !== id));
       playUiSound('close');
       if (id === activeId) {
         setActiveId(next[Math.min(i, next.length - 1)]?.id || null);

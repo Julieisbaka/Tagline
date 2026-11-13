@@ -215,7 +215,40 @@ function createVault({ app, path, fs, fssync, randomUUID, process, dialog }, sta
     }
   }
 
-  // Resolve a vault-relative path and refuse anything that escapes the vault.
+  // Resolve symlinks in the longest existing prefix so paths that do not exist yet
+  // can still be checked for containment.
+  function nearestRealpath(target, depth = 0) {
+    const resolved = path.resolve(target);
+    const root = path.parse(resolved).root;
+    let current = root;
+    const parts = resolved.slice(root.length).split(path.sep).filter(Boolean);
+    for (let index = 0; index < parts.length; index += 1) {
+      const next = path.join(current, parts[index]);
+      let stat;
+      try {
+        stat = fssync.lstatSync(next);
+      } catch (error) {
+        if (error.code === 'ENOENT' || error.code === 'ENOTDIR') {
+          return path.join(current, ...parts.slice(index));
+        }
+        throw error;
+      }
+      if (!stat.isSymbolicLink()) {
+        current = next;
+        continue;
+      }
+      if (depth >= 40) {
+        throw new Error('Too many symbolic links in path.');
+      }
+      // Follow the link even when its target does not exist yet.
+      const link = path.resolve(path.dirname(next), fssync.readlinkSync(next));
+      return nearestRealpath(path.join(link, ...parts.slice(index + 1)), depth + 1);
+    }
+    return current;
+  }
+
+  // Resolve a vault-relative path and refuse anything that escapes the vault,
+  // including through symlinks or junctions inside it.
   function resolveInVault(rel = '') {
     if (typeof rel !== 'string') {
       throw new Error('Invalid file path.');
@@ -223,9 +256,14 @@ function createVault({ app, path, fs, fssync, randomUUID, process, dialog }, sta
     if (!state.vaultRoot) {
       throw new Error('No vault open');
     }
-    const full = path.resolve(state.vaultRoot, rel);
-    const relCheck = path.relative(state.vaultRoot, full);
+    const root = path.resolve(state.vaultRoot);
+    const full = path.resolve(root, rel);
+    const relCheck = path.relative(root, full);
     if (relCheck.startsWith('..') || path.isAbsolute(relCheck)) {
+      throw new Error('Path escapes vault: ' + rel);
+    }
+    const realCheck = path.relative(nearestRealpath(root), nearestRealpath(full));
+    if (realCheck.startsWith('..') || path.isAbsolute(realCheck)) {
       throw new Error('Path escapes vault: ' + rel);
     }
     return full;
@@ -301,8 +339,9 @@ function createVault({ app, path, fs, fssync, randomUUID, process, dialog }, sta
         try {
           exists = (await fs.stat(root)).isDirectory();
         } catch (error) {
+          // Best-effort listing: an unreadable or offline vault is simply absent.
           if (error.code !== 'ENOENT' && error.code !== 'ENOTDIR') {
-            throw error;
+            console.warn('[vault] could not inspect recent vault', root, error.message);
           }
           exists = fssync.existsSync(`${root}.tagline-migration.json`);
         }

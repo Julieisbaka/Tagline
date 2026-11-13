@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useI18n } from '../../lib/i18n.js';
 
 import ModalBackdrop from './ModalBackdrop.jsx';
@@ -11,6 +11,7 @@ export default function SummaryDialog({ content, title, onClose }) {
   const [summary, setSummary] = useState('');
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
+  const running = useRef(false);
 
   useEffect(() => {
     let disposed = false;
@@ -36,6 +37,10 @@ export default function SummaryDialog({ content, title, onClose }) {
   }, []);
 
   const run = async (action) => {
+    if (running.current) {
+      return;
+    }
+    running.current = true;
     setBusy(true);
     setError('');
     try {
@@ -51,6 +56,7 @@ export default function SummaryDialog({ content, title, onClose }) {
         .then(setStatus)
         .catch(() => {});
     } finally {
+      running.current = false;
       setBusy(false);
     }
   };
