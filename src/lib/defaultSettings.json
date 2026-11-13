@@ -100,5 +100,6 @@
   "internalFlags": {
     "hasSeenOnboarding": false,
     "visualNoticeDismissed": false
-  }
+  },
+  "developerMode": false
 }

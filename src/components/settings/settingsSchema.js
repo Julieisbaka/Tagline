@@ -183,6 +183,12 @@ export const SETTING_GROUPS = [
 // Curated metadata for keys that are not rendered as standalone rows above.
 const EXTRA_META = [
   { key: 'importedFont', type: 'checkbox', label: 'Imported custom font is active' },
+  {
+    key: 'developerMode',
+    type: 'checkbox',
+    label: 'Developer mode',
+    description: 'Enables developer tools and diagnostics. For now, does nothing.',
+  },
 ];
 
 export const SETTING_META = Object.freeze(

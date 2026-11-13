@@ -310,7 +310,14 @@ export default function SettingsPanels({
         hidden={section !== 'advanced'}
         className='settings-panel'
       >
-        <CustomizationLimits settings={settings} />
+        <SettingsGroup title={t('Developer mode')}>
+           <AutoSetting
+             def={settingDefinition('developerMode', false)}
+             settings={settings}
+             update={update}
+           />
+         </SettingsGroup>
+         <CustomizationLimits settings={settings} />
         <SettingsGroup title={t('Internal flags')}>
           <section className='internal-flags'>
             <p>{t('These flags record workspace state and dismissed notices.')}</p>
