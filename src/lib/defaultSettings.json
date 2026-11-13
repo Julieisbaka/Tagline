@@ -101,5 +101,9 @@
     "hasSeenOnboarding": false,
     "visualNoticeDismissed": false
   },
-  "developerMode": false
+  "developerMode": false,
+  "safeMode": false,
+  "disabledExtensions": false,
+  "updateCheckDelayMs": 8000,
+  "updateCheckTimeoutMs": 8000
 }

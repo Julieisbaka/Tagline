@@ -45,16 +45,16 @@ const { registerNativeUi } = require('./nativeUi.cjs');
 const { registerMcp } = require('./mcp.cjs');
 const { registerSpellcheck } = require('./spellcheck.cjs');
 
-const isDev = process.argv.includes('--dev');
-const safeMode =
-  process.argv.includes('--safe-mode') || process.env.TAGLINE_SAFE_MODE === '1';
+const { parseCli } = require(path.join(__dirname, 'cli.cjs'));
+const cli = parseCli(process.argv, process.env);
+const isDev = cli.isDev;
+const safeMode = cli.safeMode;
 if (safeMode) {
   process.env.TAGLINE_DISABLE_AUTO_UPDATE = '1';
 }
-const disableExtensions =
-  safeMode ||
-  process.argv.includes('--disable-extensions') ||
-  process.env.TAGLINE_DISABLE_EXTENSIONS === '1';
+const disableExtensions = cli.disableExtensions;
+const updateCheckDelayMs = cli.updateCheckDelayMs;
+const updateCheckTimeoutMs = cli.updateCheckTimeoutMs;
 // Surface stray rejections/exceptions in logs instead of failing silently.
 process.on('unhandledRejection', (reason) => {
   console.error('[main] unhandledRejection', reason);
@@ -269,11 +269,7 @@ if (primary) {
     // fails startup and never installs without the user choosing Install.
     // Safe mode (and the explicit disable flag) skip this background check.
     if (!safeMode && process.env.TAGLINE_DISABLE_AUTO_UPDATE !== '1') {
-      const updateCheckTimeout = Number(process.env.TAGLINE_UPDATE_CHECK_TIMEOUT);
-      const delay =
-        Number.isFinite(updateCheckTimeout) && updateCheckTimeout >= 0
-          ? updateCheckTimeout
-          : 8000;
+      const delay = updateCheckDelayMs;
       setTimeout(() => {
         state.prepareUpdateInBackground().catch(() => {});
       }, delay).unref?.();

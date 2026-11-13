@@ -189,6 +189,10 @@ const EXTRA_META = [
     label: 'Developer mode',
     description: 'Enables developer tools and diagnostics. For now, does nothing.',
   },
+  { key: 'safeMode', type: 'checkbox', label: 'Safe mode' },
+  { key: 'disabledExtensions', type: 'checkbox', label: 'Disable extensions' },
+  { key: 'updateCheckDelayMs', type: 'number', label: 'Update check delay (ms)', min: 0, max: 600000 },
+  { key: 'updateCheckTimeoutMs', type: 'number', label: 'Update check timeout (ms)', min: 0, max: 600000 },
 ];
 
 export const SETTING_META = Object.freeze(
