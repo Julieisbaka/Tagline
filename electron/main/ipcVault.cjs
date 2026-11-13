@@ -22,6 +22,7 @@ function registerVaultIpc(
     resolveInVault,
     openVault,
     listRecentVaults,
+    validateRecentVault,
     uniquePath,
     toPosix,
     assertMainFrameSender,
@@ -56,10 +57,7 @@ function registerVaultIpc(
       throw new Error('Invalid saved vault path.');
     }
     const resolvedRoot = path.resolve(root);
-    const key = (value) => (process.platform === 'win32' ? value.toLowerCase() : value);
-    const keyRoot = key(resolvedRoot);
-    const recent = await listRecentVaults();
-    if (!recent?.some((item) => item.exists && key(item.root) === keyRoot)) {
+    if (!(await validateRecentVault(resolvedRoot))) {
       throw new Error('That saved vault is unavailable. Choose its folder to add it again.');
     }
     return openVault(resolvedRoot);
@@ -89,10 +87,7 @@ function registerVaultIpc(
       throw new Error('Invalid saved vault path.');
     }
     const resolvedRoot = path.resolve(root);
-    const key = (value) => (process.platform === 'win32' ? value.toLowerCase() : value);
-    const keyRoot = key(resolvedRoot);
-    const recent = await listRecentVaults();
-    if (!recent?.some((item) => item.exists && key(item.root) === keyRoot)) {
+    if (!(await validateRecentVault(resolvedRoot))) {
       throw new Error('That saved vault is unavailable.');
     }
     const error = await shell.openPath(resolvedRoot);

@@ -4,6 +4,8 @@ function createVault({ app, path, fs, fssync, randomUUID, process, dialog }, sta
   const configPath = () => path.join(app.getPath('userData'), 'config.json');
   const configRecoveryPath = () => path.join(app.getPath('userData'), 'config.recovery.json');
   let configRecoveryHandled = false;
+  let configCache = null;
+  let configCacheMtime = null;
 
   function writeConfigRecovery(info) {
     const recoveryPath = configRecoveryPath();
@@ -32,12 +34,25 @@ function createVault({ app, path, fs, fssync, randomUUID, process, dialog }, sta
 
   function readConfig() {
     const configPathFn = configPath();
+    let mtime = null;
+    try {
+      mtime = fssync.statSync(configPathFn).mtimeMs;
+    } catch (err) {
+      if (err && err.code !== 'ENOENT') {
+        // fall through to read attempt
+      }
+    }
+    if (configCache && mtime === configCacheMtime) {
+      return configCache;
+    }
     let raw;
     try {
       raw = fssync.readFileSync(configPathFn, 'utf8');
     } catch (err) {
       if (err && err.code === 'ENOENT') {
-        return {};
+        configCache = {};
+        configCacheMtime = null;
+        return configCache;
       }
       console.warn('[config] failed to read', configPathFn, err.message);
       if (!configRecoveryHandled) {
@@ -52,12 +67,18 @@ function createVault({ app, path, fs, fssync, randomUUID, process, dialog }, sta
         }
         const recovery = { at: Date.now(), source: 'read', backupPath, error: String(err.message || err) };
         console.warn('[config] recovered from unreadable config', recovery);
+        console.info('[event] config_recovered', recovery.source);
         writeConfigRecovery(recovery);
       }
+      configCache = null;
+      configCacheMtime = null;
       return {};
     }
     try {
-      return JSON.parse(raw);
+      const parsed = JSON.parse(raw);
+      configCache = parsed;
+      configCacheMtime = mtime;
+      return configCache;
     } catch (err) {
       console.warn('[config] failed to parse', configPathFn, err.message);
       if (!configRecoveryHandled) {
@@ -72,8 +93,11 @@ function createVault({ app, path, fs, fssync, randomUUID, process, dialog }, sta
         }
         const recovery = { at: Date.now(), source: 'parse', backupPath, error: String(err.message || err) };
         console.warn('[config] recovered from corruption', recovery);
+        console.info('[event] config_recovered', recovery.source);
         writeConfigRecovery(recovery);
       }
+      configCache = null;
+      configCacheMtime = null;
       return {};
     }
   }
@@ -127,6 +151,7 @@ function createVault({ app, path, fs, fssync, randomUUID, process, dialog }, sta
         } catch {}
         lastError = error;
         if (retryable(error) && attempt < 4) {
+          console.info('[event] config_write_retry', attempt + 1);
           const wait = 25 * (attempt + 1);
           const start = Date.now();
           while (Date.now() - start < wait) {}
@@ -138,6 +163,12 @@ function createVault({ app, path, fs, fssync, randomUUID, process, dialog }, sta
     if (lastError) {
       throw lastError;
     }
+    try {
+      configCacheMtime = fssync.statSync(configPathFn).mtimeMs;
+    } catch {
+      configCacheMtime = null;
+    }
+    configCache = next;
     return next;
   }
 
@@ -195,6 +226,17 @@ function createVault({ app, path, fs, fssync, randomUUID, process, dialog }, sta
     return { root: state.vaultRoot, name: path.basename(state.vaultRoot) };
   }
 
+  async function validateRecentVault(root) {
+    if (typeof root !== 'string' || !path.isAbsolute(root)) {
+      return false;
+    }
+    const resolved = path.resolve(root);
+    const key = (value) => (process.platform === 'win32' ? value.toLowerCase() : value);
+    const keyRoot = key(resolved);
+    const recent = await listRecentVaults();
+    return recent.some((item) => item.exists && key(item.root) === keyRoot);
+  }
+
   async function listRecentVaults() {
     const config = readConfig();
     const candidates = [
@@ -233,6 +275,7 @@ function createVault({ app, path, fs, fssync, randomUUID, process, dialog }, sta
     resolveInVault,
     openVault,
     listRecentVaults,
+    validateRecentVault,
     uniquePath,
     toPosix,
   };

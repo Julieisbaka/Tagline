@@ -148,6 +148,7 @@ function createWindowManager(
               return;
             }
             console.warn('Timed out waiting for pending edits to save; keeping the window open.');
+            console.info('[event] close_handshake_timeout');
             if (state.win && !state.win.isDestroyed() && dialog) {
               dialog
                 .showMessageBox(state.win, {
@@ -170,6 +171,7 @@ function createWindowManager(
     state.win.webContents.on('render-process-gone', () => {
       if (preparingClose) {
         console.warn('The window stopped responding while saving; quit cancelled.');
+        console.info('[event] close_handshake_renderer_gone');
         if (state.win && !state.win.isDestroyed() && dialog) {
           dialog
             .showMessageBox(state.win, {
