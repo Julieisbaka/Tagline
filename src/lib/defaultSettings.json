@@ -50,6 +50,7 @@
   "separateNegativeBlock": false,
   "language": "en",
   "customTheme": null,
+  "verboseLogging": false,
   "visualCacheEntries": 16,
   "visualCacheCharacters": 4000000,
   "disposeCodeMirrorViews": true,

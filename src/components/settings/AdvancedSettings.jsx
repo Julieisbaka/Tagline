@@ -54,9 +54,11 @@ export default function AdvancedSettings({ settings, update, section = 'all' }) 
             title={t(group.title)}
             collapsible={group.collapsibleWhenAll ? section === 'all' : true}
           >
-            {group.items.map((def) => (
-              <AutoSetting key={def.key} def={def} settings={settings} update={update} />
-            ))}
+            {group.items
+              .filter((def) => !def.devOnly || import.meta.env.DEV)
+              .map((def) => (
+                <AutoSetting key={def.key} def={def} settings={settings} update={update} />
+              ))}
             {group.actions === 'fonts' && fontActions}
             {group.notes?.map((note) => (
               <p key={note}>{t(note)}</p>

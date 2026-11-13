@@ -64,6 +64,13 @@ export const SETTING_GROUPS = [
         min: 1,
         max: 1000,
       },
+      {
+        key: 'verboseLogging',
+        type: 'checkbox',
+        label: 'Verbose logging',
+        description: 'Enable detailed console logging (development only).',
+        devOnly: true,
+      },
     ],
   },
   {
