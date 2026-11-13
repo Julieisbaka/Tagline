@@ -6,6 +6,7 @@ import { playUiSound } from './uiSounds.js';
 
 const api = window.api;
 const SAVE_DELAY = 400;
+const SAVED_STATUS_MS = 1400;
 
 /**
  * React hook that loads a vault and provides indexed, persisted vault operations.
@@ -32,6 +33,7 @@ export function useVault(
   const [closePending, setClosePending] = useState(false);
   const [saveStatuses, setSaveStatuses] = useState({});
   const timers = useRef({});
+  const savedTimers = useRef({});
   const pending = useRef({});
   const writes = useRef(new Map());
   const watchers = useRef(new Set());
@@ -68,21 +70,34 @@ export function useVault(
       String(e?.message || e).replace(/^Error invoking remote method '[^']*': (?:\w*Error: )?/, '')
     );
 
-  const setSaveStatus = useCallback(
-    (path, status) =>
-      setSaveStatuses((previous) => {
-        if (!status) {
-          if (!(path in previous)) {
+  const setSaveStatus = useCallback((path, status) => {
+    clearTimeout(savedTimers.current[path]);
+    delete savedTimers.current[path];
+    setSaveStatuses((previous) => {
+      if (!status) {
+        if (!(path in previous)) {
+          return previous;
+        }
+        const next = { ...previous };
+        delete next[path];
+        return next;
+      }
+      return previous[path] === status ? previous : { ...previous, [path]: status };
+    });
+    if (status === 'saved') {
+      savedTimers.current[path] = setTimeout(() => {
+        delete savedTimers.current[path];
+        setSaveStatuses((previous) => {
+          if (previous[path] !== 'saved') {
             return previous;
           }
           const next = { ...previous };
           delete next[path];
           return next;
-        }
-        return previous[path] === status ? previous : { ...previous, [path]: status };
-      }),
-    []
-  );
+        });
+      }, SAVED_STATUS_MS);
+    }
+  }, []);
 
   const writeDisk = useCallback(
     (path, text) => {
@@ -114,7 +129,7 @@ export function useVault(
             setSaveStatus(path, 'error');
           }
         } else if (pending.current[path] === undefined && contentsRef.current[path] === text) {
-          setSaveStatus(path, null);
+          setSaveStatus(path, 'saved');
         }
       };
       task.then(
@@ -177,6 +192,8 @@ export function useVault(
       if (!info) {
         return;
       }
+      Object.values(savedTimers.current).forEach(clearTimeout);
+      savedTimers.current = {};
       setReady(false);
       setTree([]);
       setContents({});

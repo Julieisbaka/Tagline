@@ -263,6 +263,18 @@ body.resizing-panels * {
   background: var(--danger, #e06c75);
 }
 
+.tab-save-status.saved {
+  background: var(--success, #98c379);
+  animation: tab-save-flash 1400ms ease-out forwards;
+}
+
+@keyframes tab-save-flash {
+  to {
+    opacity: 0;
+    transform: scale(0.6);
+  }
+}
+
 @keyframes tab-save-pulse {
   to {
     opacity: 0.35;

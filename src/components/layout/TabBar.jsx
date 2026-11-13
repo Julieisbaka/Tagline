@@ -137,6 +137,7 @@ export default function TabBar({
                 {
                   unsaved: 'Unsaved changes',
                   saving: 'Saving changes',
+                  saved: 'Saved',
                   error: 'Could not save changes',
                 }[saveStatuses[t.path]]
               )}
@@ -144,6 +145,7 @@ export default function TabBar({
                 {
                   unsaved: 'Unsaved changes',
                   saving: 'Saving changes',
+                  saved: 'Saved',
                   error: 'Could not save changes',
                 }[saveStatuses[t.path]]
               )}

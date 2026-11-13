@@ -749,6 +749,7 @@
   "Timer": "Minuteur",
   "Unsaved changes": "Modifications non enregistrées",
   "Saving changes": "Enregistrement des modifications",
+  "Saved": "Enregistré",
   "Could not save changes": "Échec de l'enregistrement des modifications",
   "Timer sound": "Son du minuteur",
   "Supported formats: MP3, WAV, OGG, M4A, and FLAC. Maximum file size: 10 MB.": "Formats pris en charge : MP3, WAV, OGG, M4A et FLAC. Taille maximale : 10 Mo.",
