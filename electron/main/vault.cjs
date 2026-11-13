@@ -2,19 +2,87 @@ const { prepareVault } = require('../vaultMigrations.cjs');
 
 function createVault({ app, path, fs, fssync, randomUUID, process, dialog }, state) {
   const configPath = () => path.join(app.getPath('userData'), 'config.json');
+  const configRecoveryPath = () => path.join(app.getPath('userData'), 'config.recovery.json');
+  let configRecoveryHandled = false;
+
+  function writeConfigRecovery(info) {
+    try {
+      fssync.writeFileSync(configRecoveryPath(), JSON.stringify(info, null, 2), 'utf8');
+    } catch (writeErr) {
+      console.warn('[config] failed to persist recovery notice', writeErr.message);
+    }
+  }
 
   function readConfig() {
+    const configPathFn = configPath();
+    let raw;
     try {
-      return JSON.parse(fssync.readFileSync(configPath(), 'utf8'));
+      raw = fssync.readFileSync(configPathFn, 'utf8');
     } catch (err) {
-      const configPathFn = configPath();
-      console.warn('[config] failed to read/parse', configPathFn, err.message);
-      const corruptPath = configPathFn + '.corrupt.' + Date.now();
-      try {
-        fssync.renameSync(configPathFn, corruptPath);
-      } catch {}
+      if (err && err.code === 'ENOENT') {
+        return {};
+      }
+      console.warn('[config] failed to read', configPathFn, err.message);
+      if (!configRecoveryHandled) {
+        configRecoveryHandled = true;
+        const corruptPath = configPathFn + '.corrupt.' + Date.now();
+        let backupPath = null;
+        try {
+          fssync.renameSync(configPathFn, corruptPath);
+          backupPath = corruptPath;
+        } catch (renameErr) {
+          console.warn('[config] failed to back up unreadable config', corruptPath, renameErr.message);
+        }
+        const recovery = { at: Date.now(), backupPath, error: String(err.message || err) };
+        console.warn('[config] recovered from unreadable config', recovery);
+        writeConfigRecovery(recovery);
+      }
       return {};
     }
+    try {
+      return JSON.parse(raw);
+    } catch (err) {
+      console.warn('[config] failed to parse', configPathFn, err.message);
+      if (!configRecoveryHandled) {
+        configRecoveryHandled = true;
+        const corruptPath = configPathFn + '.corrupt.' + Date.now();
+        let backupPath = null;
+        try {
+          fssync.renameSync(configPathFn, corruptPath);
+          backupPath = corruptPath;
+        } catch (renameErr) {
+          console.warn('[config] failed to back up corrupt config', corruptPath, renameErr.message);
+        }
+        const recovery = { at: Date.now(), backupPath, error: String(err.message || err) };
+        console.warn('[config] recovered from corruption', recovery);
+        writeConfigRecovery(recovery);
+      }
+      return {};
+    }
+  }
+
+  function getConfigRecovery() {
+    try {
+      const raw = fssync.readFileSync(configRecoveryPath(), 'utf8');
+      const data = JSON.parse(raw);
+      return data && typeof data === 'object' ? data : null;
+    } catch (err) {
+      if (err && err.code === 'ENOENT') {
+        return null;
+      }
+      console.warn('[config] failed to read recovery notice', err.message);
+      return null;
+    }
+  }
+
+  function consumeConfigRecovery() {
+    const recovery = getConfigRecovery();
+    try {
+      fssync.rmSync(configRecoveryPath(), { force: true });
+    } catch (err) {
+      console.warn('[config] failed to clear recovery notice', err.message);
+    }
+    return recovery;
   }
 
   function writeConfig(patch) {
@@ -143,6 +211,8 @@ function createVault({ app, path, fs, fssync, randomUUID, process, dialog }, sta
   return {
     readConfig,
     writeConfig,
+    getConfigRecovery,
+    consumeConfigRecovery,
     resolveInVault,
     openVault,
     listRecentVaults,

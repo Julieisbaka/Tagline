@@ -27,6 +27,7 @@ contextBridge.exposeInMainWorld('api', {
     }
   })(),
   getInstallationInfo: () => ipcRenderer.invoke('app:installation'),
+  getConfigRecovery: () => ipcRenderer.invoke('config:getRecovery'),
   checkForUpdates: () => ipcRenderer.invoke('app:checkUpdates'),
   getUpdateState: () => ipcRenderer.invoke('app:getUpdateState'),
   downloadUpdate: () => ipcRenderer.invoke('app:downloadUpdate'),

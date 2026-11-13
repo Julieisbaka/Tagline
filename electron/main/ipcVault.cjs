@@ -18,6 +18,7 @@ function registerVaultIpc(
     registerMcp,
     readConfig,
     writeConfig,
+    consumeConfigRecovery,
     resolveInVault,
     openVault,
     listRecentVaults,
@@ -45,17 +46,23 @@ function registerVaultIpc(
     assertModelSender(event, 'Vault access');
     return listRecentVaults();
   });
+  ipcMain.handle('config:getRecovery', (event) => {
+    assertModelSender(event, 'Configuration access');
+    return consumeConfigRecovery();
+  });
   ipcMain.handle('vault:openRecent', async (event, root) => {
     assertModelSender(event, 'Vault access');
     if (typeof root !== 'string' || !path.isAbsolute(root)) {
       throw new Error('Invalid saved vault path.');
     }
-    const recent = await listRecentVaults();
+    const resolvedRoot = path.resolve(root);
     const key = (value) => (process.platform === 'win32' ? value.toLowerCase() : value);
-    if (!recent?.some((item) => item.exists && key(item.root) === key(path.resolve(root)))) {
+    const keyRoot = key(resolvedRoot);
+    const recent = await listRecentVaults();
+    if (!recent?.some((item) => item.exists && key(item.root) === keyRoot)) {
       throw new Error('That saved vault is unavailable. Choose its folder to add it again.');
     }
-    return openVault(root);
+    return openVault(resolvedRoot);
   });
   ipcMain.handle('vault:forgetRecent', (event, root) => {
     assertModelSender(event, 'Vault access');
@@ -63,11 +70,11 @@ function registerVaultIpc(
       throw new Error('Invalid saved vault path.');
     }
     const key = (value) => (process.platform === 'win32' ? value.toLowerCase() : value);
-    const recent = readConfig().recentVaults;
+    const config = readConfig();
+    const recent = config.recentVaults;
     const recentVaults = (Array.isArray(recent) ? recent : []).filter(
       (item) => typeof item === 'string' && key(path.resolve(item)) !== key(path.resolve(root))
     );
-    const config = readConfig();
     const lastVault =
       typeof config.lastVault === 'string' &&
       key(path.resolve(config.lastVault)) === key(path.resolve(root))
@@ -81,12 +88,14 @@ function registerVaultIpc(
     if (typeof root !== 'string' || !path.isAbsolute(root)) {
       throw new Error('Invalid saved vault path.');
     }
-    const recent = await listRecentVaults();
+    const resolvedRoot = path.resolve(root);
     const key = (value) => (process.platform === 'win32' ? value.toLowerCase() : value);
-    if (!recent?.some((item) => item.exists && key(item.root) === key(path.resolve(root)))) {
+    const keyRoot = key(resolvedRoot);
+    const recent = await listRecentVaults();
+    if (!recent?.some((item) => item.exists && key(item.root) === keyRoot)) {
       throw new Error('That saved vault is unavailable.');
     }
-    const error = await shell.openPath(root);
+    const error = await shell.openPath(resolvedRoot);
     if (error) {
       throw new Error(error);
     }

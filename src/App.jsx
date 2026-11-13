@@ -177,6 +177,29 @@ export default function App() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps -- v.clearError stable; avoid v object identity churn
   }, [v.error, v.clearError, notify, t]);
+  useEffect(() => {
+    if (!v.initialized) {
+      return;
+    }
+    api
+      .getConfigRecovery?.()
+      .then((recovery) => {
+        if (!recovery) {
+          return;
+        }
+        if (recovery.backupPath) {
+          notify(
+            t('Settings were reset after a config error. Backup saved to {path}', {
+              path: recovery.backupPath,
+            })
+          );
+        } else {
+          notify(t('Settings were reset after a config error.'));
+        }
+      })
+      .catch(() => {});
+  }, [v.initialized, notify, t]);
+
   const flowVaultRef = useRef(v);
   flowVaultRef.current = v;
   const [externalFlow, setExternalFlow] = useState(null);
