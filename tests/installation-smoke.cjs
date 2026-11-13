@@ -256,8 +256,7 @@ app.on('browser-window-created', (_event, win) => {
         await wait("!!document.querySelector('.note-title')");
         await wait("document.documentElement.dataset.theme === 'high-contrast-dark'");
         const savedSettings = await js("JSON.parse(localStorage.getItem('tagline-settings'))");
-        for (const [key, value] of Object.entries(settings)) {
-          assert.deepEqual(savedSettings[key], value, key);
+assert.deepEqual(savedSettings, settings);
         }
         assert.equal(await js("document.querySelector('.note-title').value"), 'Card');
         session.defaultSession.flushStorageData();
