@@ -54,7 +54,6 @@ if (safeMode) {
 }
 const disableExtensions = cli.disableExtensions;
 const updateCheckDelayMs = cli.updateCheckDelayMs;
-const updateCheckTimeoutMs = cli.updateCheckTimeoutMs;
 // Surface stray rejections/exceptions in logs instead of failing silently.
 process.on('unhandledRejection', (reason) => {
   console.error('[main] unhandledRejection', reason);

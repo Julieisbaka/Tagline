@@ -187,6 +187,7 @@ function registerBrowser({ ipcMain, shell, getWindow }) {
     // Request fresh layout even when native content throttles ResizeObserver.
     resizeHandler = () => getWindow()?.webContents?.send('browser:resize');
     win.on('resize', resizeHandler);
+    await navigate(target);
   });
   handle('browser:bounds', (rectangle) => {
     if (!view) {
