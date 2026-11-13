@@ -240,7 +240,7 @@ app.on('browser-window-created', (_event, win) => {
             history: await js("window.api.listHistory('Card.md')"),
           })
         );
-        // Seed storage last so startup persistence effects cannot overwrite the upgrade fixture.
+        // Reload after seeding so the running app owns the same settings and tabs as the fixture.
         await js(`localStorage.setItem('tagline-settings', ${JSON.stringify(JSON.stringify(settings))});
           localStorage.setItem('tagline-extension:upgrade-test', '{"saved":"extension data"}');
           localStorage.setItem(${JSON.stringify(`tabs:${vault}`)}, ${JSON.stringify(
@@ -249,6 +249,15 @@ app.on('browser-window-created', (_event, win) => {
               activeId: 'saved-card',
             })
           )});`);
+        await new Promise((resolve) => {
+          win.webContents.once('did-finish-load', resolve);
+          win.webContents.reload();
+        });
+        await wait("!!document.querySelector('.note-title')");
+        await wait("document.documentElement.dataset.theme === 'high-contrast-dark'");
+        const savedSettings = await js("JSON.parse(localStorage.getItem('tagline-settings'))");
+        assert.deepEqual(savedSettings, settings);
+        assert.equal(await js("document.querySelector('.note-title').value"), 'Card');
         session.defaultSession.flushStorageData();
       } else {
         const expected = JSON.parse(fs.readFileSync(path.join(root, 'expected.json'), 'utf8'));
@@ -391,7 +400,7 @@ app.on('browser-window-created', (_event, win) => {
           app.quit = originalQuit;
         }
       }
-      app.exit(0);
+      app.quit();
     } catch (error) {
       console.error(error);
       app.exit(1);
