@@ -129,6 +129,7 @@ export default function App() {
     clearTimeout(toastTimer.current);
     toastTimer.current = setTimeout(() => setToast(null), 2500);
   }, []);
+  useEffect(() => () => clearTimeout(toastTimer.current), []);
   useEffect(() => {
     if (!tabs.error) {
       return;
