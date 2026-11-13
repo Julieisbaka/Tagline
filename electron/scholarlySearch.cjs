@@ -67,9 +67,9 @@ async function searchScholarly(query, fetch = download) {
     .filter((item) => item.title);
 }
 
-function registerScholarlySearch({ ipcMain, assertModelSender }) {
+function registerScholarlySearch({ ipcMain, assertMainFrameSender }) {
   ipcMain.handle('scholarly:search', (event, query) => {
-    assertModelSender(event, 'Scholarly search');
+    assertMainFrameSender(event, 'Scholarly search');
     return searchScholarly(query);
   });
 }

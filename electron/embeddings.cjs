@@ -19,7 +19,7 @@ function registerEmbeddings({
   getVaultRoot,
   readConfig,
   writeConfig,
-  assertModelSender,
+  assertMainFrameSender,
 }) {
   const storage = path.join(app.getPath('userData'), 'semantic-search');
   const tokenFile = path.join(storage, 'huggingface-token.bin');
@@ -164,11 +164,11 @@ function registerEmbeddings({
     return { autoload: enabled };
   });
   ipcMain.handle('embeddings:lowResource:get', (event) => {
-    assertModelSender(event);
+    assertMainFrameSender(event);
     return readConfig().lowResourceMode === true;
   });
   ipcMain.handle('embeddings:lowResource:set', (_e, enabled) => {
-    assertModelSender(_e);
+    assertMainFrameSender(_e);
     if (typeof enabled !== 'boolean') {
       throw new Error('Invalid low-resource preference.');
     }
@@ -176,11 +176,11 @@ function registerEmbeddings({
     return enabled;
   });
   ipcMain.handle('embeddings:cacheSize', (event) => {
-    assertModelSender(event);
+    assertMainFrameSender(event);
     return cache.size();
   });
   ipcMain.handle('embeddings:manage', async (_e, remove) => {
-    assertModelSender(_e);
+    assertMainFrameSender(_e);
     if (typeof remove !== 'boolean') {
       throw new Error('Invalid model operation.');
     }

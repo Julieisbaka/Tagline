@@ -117,7 +117,7 @@ const { createWindow, buildMenu } = createWindowManager(
 );
 
 // Sensitive IPC handlers only accept calls from the app's own main frame.
-function assertModelSender(event, action = 'Model management') {
+function assertMainFrameSender(event, action = 'Main frame access') {
   if (
     !state.win ||
     event.sender !== state.win.webContents ||
@@ -152,7 +152,7 @@ function registerIpc() {
       readConfig,
       writeConfig,
       resolveInVault,
-      assertModelSender,
+      assertMainFrameSender,
       buildMenu,
       process,
     },
@@ -175,7 +175,7 @@ function registerIpc() {
       readVaultSnapshot,
       registerMcp,
       ...vault,
-      assertModelSender,
+      assertMainFrameSender,
       process,
     },
     state,
@@ -226,9 +226,9 @@ if (primary) {
       BrowserWindow,
       screen,
       getWindow: () => state.win,
-      assertModelSender,
+      assertMainFrameSender,
     });
-    registerScholarlySearch({ ipcMain, assertModelSender });
+    registerScholarlySearch({ ipcMain, assertMainFrameSender });
     if (!disableExtensions) {
       registerExtensions({
         app,
@@ -240,7 +240,7 @@ if (primary) {
         getWindow: () => state.win,
         safeStorage,
         getVaultRoot: () => state.vaultRoot,
-        assertModelSender,
+        assertMainFrameSender,
       });
     }
     const embeddings = registerEmbeddings({
@@ -250,7 +250,7 @@ if (primary) {
       getVaultRoot: () => state.vaultRoot,
       readConfig,
       writeConfig,
-      assertModelSender,
+      assertMainFrameSender,
     });
     const nli = registerNli({
       app,
@@ -260,9 +260,9 @@ if (primary) {
       readConfig,
       writeConfig,
       readToken: embeddings.readToken,
-      assertModelSender,
+      assertMainFrameSender,
     });
-    const summary = registerSummarization({ app, ipcMain, readConfig, assertModelSender });
+    const summary = registerSummarization({ app, ipcMain, readConfig, assertMainFrameSender });
     state.localModels = { embeddings, nli, summary };
     createWindow();
     // Quietly check for and download an update shortly after startup. Never

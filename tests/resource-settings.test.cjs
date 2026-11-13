@@ -112,7 +112,7 @@ test('low-resource mode suppresses startup autoload but permits manual models an
     writeConfig: (patch) => {
       config = { ...config, ...patch };
     },
-    assertModelSender: (event) => {
+    assertMainFrameSender: (event) => {
       if (event !== 'trusted') {
         throw new Error('untrusted');
       }
@@ -189,7 +189,7 @@ test('MCP inference uses loaded app workers and respects shared busy and input c
     writeConfig: () => {},
     safeStorage: { isAsyncEncryptionAvailable: async () => true },
     readToken: async () => '',
-    assertModelSender: () => {},
+    assertMainFrameSender: () => {},
   };
   const models = {
     embeddings: (await load('embeddings.cjs')).registerEmbeddings(opts),

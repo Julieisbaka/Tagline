@@ -5,7 +5,7 @@ const { modelCache } = require('./modelCache.cjs');
 
 const MODEL = 'Xenova/long-t5-tglobal-base-16384-book-summary';
 
-function registerSummarization({ app, ipcMain, readConfig, assertModelSender }) {
+function registerSummarization({ app, ipcMain, readConfig, assertMainFrameSender }) {
   const storage = path.join(app.getPath('userData'), 'summarization');
   const cache = modelCache(app.getPath('userData'), 'summarization');
   let worker = null;
@@ -95,11 +95,11 @@ function registerSummarization({ app, ipcMain, readConfig, assertModelSender }) 
     return { ...state, downloaded: state.ready || downloaded, model: MODEL };
   });
   ipcMain.handle('summary:cacheSize', (event) => {
-    assertModelSender(event);
+    assertMainFrameSender(event);
     return cache.size();
   });
   ipcMain.handle('summary:manage', async (_e, remove) => {
-    assertModelSender(_e);
+    assertMainFrameSender(_e);
     if (typeof remove !== 'boolean') {
       throw new Error('Invalid model operation.');
     }

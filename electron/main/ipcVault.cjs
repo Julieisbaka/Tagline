@@ -24,14 +24,14 @@ function registerVaultIpc(
     listRecentVaults,
     uniquePath,
     toPosix,
-    assertModelSender,
+    assertMainFrameSender,
     process,
   },
   state,
   history
 ) {
   ipcMain.handle('vault:getLast', async (event) => {
-    assertModelSender(event, 'Vault access');
+    assertMainFrameSender(event, 'Vault access');
     const { lastVault } = readConfig();
     if (
       lastVault &&
@@ -43,15 +43,15 @@ function registerVaultIpc(
   });
 
   ipcMain.handle('vault:listRecent', (event) => {
-    assertModelSender(event, 'Vault access');
+    assertMainFrameSender(event, 'Vault access');
     return listRecentVaults();
   });
   ipcMain.handle('config:getRecovery', (event) => {
-    assertModelSender(event, 'Configuration access');
+    assertMainFrameSender(event, 'Configuration access');
     return consumeConfigRecovery();
   });
   ipcMain.handle('vault:openRecent', async (event, root) => {
-    assertModelSender(event, 'Vault access');
+    assertMainFrameSender(event, 'Vault access');
     if (typeof root !== 'string' || !path.isAbsolute(root)) {
       throw new Error('Invalid saved vault path.');
     }
@@ -65,7 +65,7 @@ function registerVaultIpc(
     return openVault(resolvedRoot);
   });
   ipcMain.handle('vault:forgetRecent', (event, root) => {
-    assertModelSender(event, 'Vault access');
+    assertMainFrameSender(event, 'Vault access');
     if (typeof root !== 'string' || !path.isAbsolute(root)) {
       throw new Error('Invalid saved vault path.');
     }
@@ -84,7 +84,7 @@ function registerVaultIpc(
     return true;
   });
   ipcMain.handle('vault:revealRecent', async (event, root) => {
-    assertModelSender(event, 'Vault access');
+    assertMainFrameSender(event, 'Vault access');
     if (typeof root !== 'string' || !path.isAbsolute(root)) {
       throw new Error('Invalid saved vault path.');
     }
@@ -101,7 +101,7 @@ function registerVaultIpc(
     }
   });
   ipcMain.handle('vault:cleanupMigrationBackups', async (event, root) => {
-    assertModelSender(event, 'Vault access');
+    assertMainFrameSender(event, 'Vault access');
     if (typeof root !== 'string' || !path.isAbsolute(root)) {
       throw new Error('Invalid saved vault path.');
     }
@@ -109,7 +109,7 @@ function registerVaultIpc(
   });
 
   ipcMain.handle('vault:choose', async (event) => {
-    assertModelSender(event, 'Vault access');
+    assertMainFrameSender(event, 'Vault access');
     const res = await dialog.showOpenDialog(state.win, {
       title: 'Open or create a vault folder',
       properties: ['openDirectory', 'createDirectory'],
@@ -121,7 +121,7 @@ function registerVaultIpc(
   });
 
   ipcMain.handle('vault:createSample', async (event) => {
-    assertModelSender(event, 'Vault access');
+    assertMainFrameSender(event, 'Vault access');
     const res = await dialog.showOpenDialog(state.win, {
       title: 'Choose a folder for the sample vault',
       properties: ['openDirectory', 'createDirectory'],
@@ -144,20 +144,20 @@ function registerVaultIpc(
   });
 
   ipcMain.handle('fs:list', async (event) => {
-    assertModelSender(event, 'Vault file access');
+    assertMainFrameSender(event, 'Vault file access');
     return walk(resolveInVault(''));
   });
   ipcMain.handle('fs:snapshot', async (event) => {
-    assertModelSender(event, 'Vault file access');
+    assertMainFrameSender(event, 'Vault file access');
     return readVaultSnapshot(resolveInVault(''));
   });
   ipcMain.handle('fs:readAll', async (event) => {
-    assertModelSender(event, 'Vault file access');
+    assertMainFrameSender(event, 'Vault file access');
     return (await readVaultSnapshot(resolveInVault(''))).contents;
   });
 
   ipcMain.handle('fs:read', async (event, rel) => {
-    assertModelSender(event, 'Vault file access');
+    assertMainFrameSender(event, 'Vault file access');
     return fs.readFile(resolveInVault(rel), 'utf8');
   });
 
@@ -217,7 +217,7 @@ function registerVaultIpc(
   ipcMain.handle(
     'fs:write',
     (event, rel, content, retention, canvasMode, experimentalHistoryDeltas) => {
-      assertModelSender(event, 'Vault file access');
+      assertMainFrameSender(event, 'Vault file access');
       if (typeof content !== 'string') {
         throw new Error('Invalid file content.');
       }
@@ -226,7 +226,7 @@ function registerVaultIpc(
   );
 
   ipcMain.handle('fs:create', async (event, rel, content = '') => {
-    assertModelSender(event, 'Vault file access');
+    assertMainFrameSender(event, 'Vault file access');
     if (typeof content !== 'string') {
       throw new Error('Invalid file content.');
     }
@@ -245,7 +245,7 @@ function registerVaultIpc(
   });
 
   ipcMain.handle('fs:mkdir', async (event, rel, underscoreFolders) => {
-    assertModelSender(event, 'Vault file access');
+    assertMainFrameSender(event, 'Vault file access');
     if (typeof underscoreFolders !== 'boolean') {
       throw new Error('Invalid folder path preference.');
     }
@@ -361,7 +361,7 @@ function registerVaultIpc(
     return { ok: true, path: toPosix(to) };
   }
   ipcMain.handle('fs:rename', (event, from, to) => {
-    assertModelSender(event, 'Vault file access');
+    assertMainFrameSender(event, 'Vault file access');
     return renameVaultPath(from, to);
   });
 
@@ -379,7 +379,7 @@ function registerVaultIpc(
   });
 
   ipcMain.handle('fs:delete', async (event, rel) => {
-    assertModelSender(event, 'Vault file access');
+    assertMainFrameSender(event, 'Vault file access');
     const full = resolveInVault(rel);
     if (full === state.vaultRoot) {
       throw new Error('Refusing to delete vault root');
@@ -398,25 +398,25 @@ function registerVaultIpc(
   });
 
   ipcMain.handle('shell:reveal', async (event, rel) => {
-    assertModelSender(event, 'Revealing vault files');
+    assertMainFrameSender(event, 'Revealing vault files');
     shell.showItemInFolder(resolveInVault(rel));
   });
   ipcMain.handle('history:list', (event, rel) => {
-    assertModelSender(event, 'Revision history');
+    assertMainFrameSender(event, 'Revision history');
     if (typeof rel !== 'string') {
       throw new Error('Invalid file path.');
     }
     return history.list(rel);
   });
   ipcMain.handle('history:read', (event, rel, id) => {
-    assertModelSender(event, 'Revision history');
+    assertMainFrameSender(event, 'Revision history');
     if (typeof rel !== 'string' || typeof id !== 'string') {
       throw new Error('Invalid file path.');
     }
     return history.read(rel, id);
   });
   ipcMain.handle('history:latest-working', (event, rel) => {
-    assertModelSender(event, 'Revision history');
+    assertMainFrameSender(event, 'Revision history');
     if (typeof rel !== 'string') {
       throw new Error('Invalid file path.');
     }

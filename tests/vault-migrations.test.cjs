@@ -425,7 +425,7 @@ test('startup and recent vaults can recover a missing root; cancelling sample cr
       ...vault,
       SAMPLE_VAULT: { 'Sample.md': 'sample' },
       registerMcp: () => ({}),
-      assertModelSender() {},
+      assertMainFrameSender() {},
     },
     state,
     {}

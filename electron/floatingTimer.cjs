@@ -1,6 +1,6 @@
 const path = require('node:path');
 
-function registerFloatingTimer({ ipcMain, BrowserWindow, screen, getWindow, assertModelSender }) {
+function registerFloatingTimer({ ipcMain, BrowserWindow, screen, getWindow, assertMainFrameSender }) {
   let overlay = null;
   let latest = null;
   let position = null;
@@ -13,7 +13,7 @@ function registerFloatingTimer({ ipcMain, BrowserWindow, screen, getWindow, asse
   };
   ipcMain.on('timer:overlay', (event, data) => {
     try {
-      assertModelSender(event, 'Floating timer');
+      assertMainFrameSender(event, 'Floating timer');
     } catch {
       return;
     }

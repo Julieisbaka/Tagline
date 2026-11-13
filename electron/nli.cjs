@@ -62,7 +62,7 @@ function registerNli({
   readConfig,
   writeConfig,
   readToken,
-  assertModelSender,
+  assertMainFrameSender,
 }) {
   const storage = path.join(app.getPath('userData'), 'political-debate');
   const cache = modelCache(app.getPath('userData'), 'political-debate');
@@ -250,11 +250,11 @@ function registerNli({
     return { ready: false };
   });
   ipcMain.handle('nli:cacheSize', (event) => {
-    assertModelSender(event);
+    assertMainFrameSender(event);
     return cache.size();
   });
   ipcMain.handle('nli:removeCache', async (event) => {
-    assertModelSender(event);
+    assertMainFrameSender(event);
     if (state.busy) {
       throw new Error('Wait for the current model task to finish.');
     }

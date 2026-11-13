@@ -67,7 +67,7 @@ function registerExtensions({
   getWindow,
   safeStorage,
   getVaultRoot,
-  assertModelSender,
+  assertMainFrameSender,
 }) {
   const installTokens = new Map();
   const networkRequestTimes = new Map();
@@ -493,7 +493,7 @@ function registerExtensions({
   }
 
   ipcMain.handle('extensions:networkFetch', async (event, id, url, options) => {
-    assertModelSender?.(event, 'Extension network access');
+    assertMainFrameSender?.(event, 'Extension network access');
     const item = await authorizeNetwork(id);
     rateLimitNetwork(id);
     return requestExtensionNetwork(
@@ -542,7 +542,7 @@ function registerExtensions({
   }
 
   ipcMain.handle('extensions:networkFetchToFile', async (event, id, url, rel, options) => {
-    assertModelSender?.(event, 'Extension network access');
+    assertMainFrameSender?.(event, 'Extension network access');
     const item = await authorizeNetwork(id, true);
     const root = getVaultRoot?.();
     if (!root) {
@@ -595,7 +595,7 @@ function registerExtensions({
   });
 
   ipcMain.handle('extensions:oauthAuthorize', async (event, id, address, options = {}) => {
-    assertModelSender?.(event, 'Extension OAuth');
+    assertMainFrameSender?.(event, 'Extension OAuth');
     const item = await authorizeNetwork(id);
     rateLimitNetwork(id);
     if (pendingAuthorizations.has(id)) {
@@ -631,7 +631,7 @@ function registerExtensions({
     }
   });
   ipcMain.handle('extensions:oauthCancel', async (event, id) => {
-    assertModelSender?.(event, 'Extension OAuth cancellation');
+    assertMainFrameSender?.(event, 'Extension OAuth cancellation');
     cancelAuthorization(id);
     return true;
   });
@@ -661,7 +661,7 @@ function registerExtensions({
   });
 
   ipcMain.handle('extensions:chooseVaultPath', async (event, id, kind) => {
-    assertModelSender?.(event, 'Extension vault path access');
+    assertMainFrameSender?.(event, 'Extension vault path access');
     const item = (await scan()).find((extension) => extension.id === id && !extension.error);
     if (!item || !item.enabled) {
       throw new Error('Extension is no longer enabled.');

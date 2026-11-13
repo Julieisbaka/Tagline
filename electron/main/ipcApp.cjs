@@ -22,23 +22,23 @@ function registerAppIpc(
     readConfig,
     writeConfig,
     resolveInVault,
-    assertModelSender,
+    assertMainFrameSender,
     buildMenu,
     process,
   },
   state
 ) {
   registerNativeUi({ ipcMain, nativeTheme, Menu, dialog, getWindow: () => state.win });
-  registerSpellcheck({ ipcMain, assertMainFrame: assertModelSender });
+  registerSpellcheck({ ipcMain, assertMainFrame: assertMainFrameSender });
   ipcMain.handle('app:editText', (event, action) => {
-    assertModelSender(event, 'Text editing');
+    assertMainFrameSender(event, 'Text editing');
     if (!['undo', 'redo', 'cut', 'copy', 'paste', 'selectAll'].includes(action)) {
       throw new Error('Invalid text editing action.');
     }
     return event.sender[action]();
   });
   ipcMain.handle('app:clipboardWrite', (event, text) => {
-    assertModelSender(event, 'Clipboard access');
+    assertMainFrameSender(event, 'Clipboard access');
     if (typeof text !== 'string' || text.length > 1_000_000) {
       throw new Error('Invalid clipboard text.');
     }
@@ -67,9 +67,9 @@ function registerAppIpc(
     }
     return release;
   };
-  const requireMainFrame = (event) => assertModelSender(event, 'Update actions');
+  const requireMainFrame = (event) => assertMainFrameSender(event, 'Update actions');
   ipcMain.handle('app:installation', (event) => {
-    assertModelSender(event, 'Installation details');
+    assertMainFrameSender(event, 'Installation details');
     return installationInfo(app);
   });
   ipcMain.handle('app:checkUpdates', (event) => {
@@ -118,14 +118,14 @@ function registerAppIpc(
     return enabled;
   });
   ipcMain.handle('app:openProjectPage', (event, page) => {
-    assertModelSender(event, 'Opening project pages');
+    assertMainFrameSender(event, 'Opening project pages');
     if (!['repository', 'releases'].includes(page)) {
       throw new Error('Unknown project page.');
     }
     return shell.openExternal(page === 'repository' ? REPOSITORY_URL : RELEASES_URL);
   });
   ipcMain.handle('app:openMicrophoneSettings', (event) => {
-    assertModelSender(event, 'Opening microphone settings');
+    assertMainFrameSender(event, 'Opening microphone settings');
     const url = {
       win32: 'ms-settings:privacy-microphone',
       darwin: 'x-apple.systempreferences:com.apple.preference.security?Privacy_Microphone',
@@ -136,7 +136,7 @@ function registerAppIpc(
     return shell.openExternal(url).then(() => true);
   });
   ipcMain.handle('app:uninstall', async (event, removeProfile) => {
-    assertModelSender(event, 'Uninstalling');
+    assertMainFrameSender(event, 'Uninstalling');
     const result = await uninstallApplication({ app, shell, removeProfile });
     if (!result.manual) {
       app.quit();
@@ -148,27 +148,27 @@ function registerAppIpc(
     resolveInVault,
   });
   ipcMain.handle('pandoc:install', (event) => {
-    assertModelSender(event, 'Installing Pandoc');
+    assertMainFrameSender(event, 'Installing Pandoc');
     return shell.openExternal('https://pandoc.org/installing.html');
   });
   ipcMain.handle('citation:extract', (event, url) => {
-    assertModelSender(event, 'Citation lookup');
+    assertMainFrameSender(event, 'Citation lookup');
     return extractCitation(url);
   });
   ipcMain.handle('citation:sourceMetadata', (event, url) => {
-    assertModelSender(event, 'Citation lookup');
+    assertMainFrameSender(event, 'Citation lookup');
     return extractCitation(url, { sourceOnly: true });
   });
   ipcMain.handle('evidence:checkLinks', (event, urls, options) => {
-    assertModelSender(event, 'Link checking');
+    assertMainFrameSender(event, 'Link checking');
     return checkLinks(urls, options);
   });
   ipcMain.handle('evidence:quoteSource', (event, url) => {
-    assertModelSender(event, 'Quote verification');
+    assertMainFrameSender(event, 'Quote verification');
     return fetchQuoteSource(url);
   });
   ipcMain.handle('keybindings:set', (event, overrides) => {
-    assertModelSender(event, 'Keyboard shortcut settings');
+    assertMainFrameSender(event, 'Keyboard shortcut settings');
     if (
       !overrides ||
       typeof overrides !== 'object' ||

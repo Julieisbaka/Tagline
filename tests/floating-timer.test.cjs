@@ -45,7 +45,7 @@ test('floating timer is authorized, synchronized, and closed with its owner', ()
     BrowserWindow: Window,
     screen,
     getWindow: () => owner,
-    assertModelSender: (event) => {
+    assertMainFrameSender: (event) => {
       if (!event.allowed) {
         throw Error('Unauthorized');
       }
