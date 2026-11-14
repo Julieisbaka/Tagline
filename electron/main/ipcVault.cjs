@@ -1,4 +1,7 @@
 const { cleanupMigrationArtifacts } = require('../vaultMigrations.cjs');
+const { parsePins, serializePins } = require('../pinsFile.cjs');
+
+const PINS_PATH = '.tagline/pins.json';
 
 function registerVaultIpc(
   {
@@ -47,6 +50,79 @@ function registerVaultIpc(
   ipcMain.handle('config:getRecovery', (event) => {
     assertMainFrameSender(event, 'Configuration access');
     return consumeConfigRecovery();
+  });
+
+  let pinsWriteQueue = Promise.resolve();
+  async function readPins() {
+    const full = resolveInVault(PINS_PATH);
+    let raw;
+    try {
+      raw = await fs.readFile(full, 'utf8');
+    } catch (error) {
+      if (error.code === 'ENOENT') {
+        return null;
+      }
+      throw error;
+    }
+    const pins = parsePins(raw);
+    if (pins) {
+      return pins;
+    }
+    const corrupt = `${full}.corrupt-${randomUUID()}`;
+    try {
+      await fs.rename(full, corrupt);
+      console.warn('[pins] moved invalid pins file to', corrupt);
+    } catch (error) {
+      console.warn('[pins] failed to move invalid pins file', error.message);
+    }
+    return null;
+  }
+
+  function writePinsAtomic(value) {
+    const serialized = serializePins(value);
+    const task = pinsWriteQueue
+      .catch(() => {})
+      .then(async () => {
+        const full = resolveInVault(PINS_PATH);
+        const directory = path.dirname(full);
+        const temporary = path.join(directory, `.tagline-pins-${randomUUID()}.tmp`);
+        await fs.mkdir(directory, { recursive: true });
+        try {
+          await fs.writeFile(temporary, serialized, { encoding: 'utf8', flag: 'wx' });
+          const handle = await fs.open(temporary, 'r+');
+          try {
+            await handle.sync();
+          } finally {
+            await handle.close();
+          }
+          await fs.rename(temporary, full);
+        } catch (error) {
+          try {
+            await fs.rm(temporary, { force: true });
+          } catch {}
+          throw error;
+        }
+        try {
+          const directoryHandle = await fs.open(directory, 'r');
+          try {
+            await directoryHandle.sync();
+          } finally {
+            await directoryHandle.close();
+          }
+        } catch {}
+        return true;
+      });
+    pinsWriteQueue = task;
+    return task;
+  }
+
+  ipcMain.handle('vault:readPins', (event) => {
+    assertMainFrameSender(event, 'Pinned items');
+    return readPins();
+  });
+  ipcMain.handle('vault:writePins', (event, value) => {
+    assertMainFrameSender(event, 'Pinned items');
+    return writePinsAtomic(value);
   });
   ipcMain.handle('vault:openRecent', async (event, root) => {
     assertMainFrameSender(event, 'Vault access');

@@ -1,6 +1,15 @@
+import { useMemo } from 'react';
 import { binding, displayBinding } from '../../lib/keybindings.js';
 import { resourceLimits } from '../../lib/resourceLimits.js';
-import { baseName, dirName, displayName, isCanvas, isJson, isMarkdown } from '../../lib/vault.js';
+import {
+  baseName,
+  dirName,
+  displayName,
+  fuzzyScore,
+  isCanvas,
+  isJson,
+  isMarkdown,
+} from '../../lib/vault.js';
 import { useLinkRotMonitor } from '../../lib/useLinkRotMonitor.js';
 import { STATUS_ITEMS } from '../../lib/workspaceItems.js';
 import { deferred } from '../Deferred.jsx';
@@ -104,6 +113,16 @@ export default function AppLayout({ app }) {
     speechDocuments,
     favorites,
   } = app;
+  const switcherScorer = useMemo(() => {
+    if (!settings.boostPinnedInSwitcher) {
+      return undefined;
+    }
+    const pinned = new Set(favorites.paths);
+    return (query, item) => {
+      const score = fuzzyScore(query, item.label + ' ' + (item.detail || ''));
+      return score >= 0 && item.path && pinned.has(item.path) ? score + 500 : score;
+    };
+  }, [settings.boostPinnedInSwitcher, favorites.paths]);
   useLinkRotMonitor({
     contents: v.contents,
     createFile: v.createFile,
@@ -410,6 +429,20 @@ export default function AppLayout({ app }) {
           onCloseOthers={tabs.closeOthers}
           onReorder={tabs.reorder}
           saveStatuses={v.saveStatuses}
+          pinnedPaths={favorites.pinnedTabs}
+          onTogglePin={(id) => {
+            const tab = tabs.tabs.find((item) => item.id === id);
+            if (!tab?.path) {
+              return;
+            }
+            const pinned = favorites.pinnedTabs.includes(tab.path);
+            if (pinned) {
+              favorites.unpinTab(tab.path);
+            } else {
+              favorites.pinTab(tab.path);
+            }
+            tabs.setPinned(id, !pinned);
+          }}
           hideFlowExtension={settings.hideFlowExtension}
           showMarkdownExtension={settings.showMarkdownExtension}
           onFileAction={(action, path) =>
@@ -524,6 +557,7 @@ export default function AppLayout({ app }) {
             createAndOpen(`${name.replace(/[\\:*?"<>|]/g, '-')}.md`, `# ${baseName(name)}\n\n`)
           }
           createLabel={t('Create note')}
+          scorer={switcherScorer}
           onClose={() => setModal(null)}
         />
       )}

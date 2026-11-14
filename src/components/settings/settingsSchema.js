@@ -147,6 +147,12 @@ export const SETTING_GROUPS = [
         label: 'Save workspace tabs',
         notes: ['When disabled, open tabs are not saved. Saved workspaces return when re-enabled.'],
       },
+      {
+        key: 'boostPinnedInSwitcher',
+        type: 'checkbox',
+        label: 'Rank pinned items first in quick switcher',
+        notes: ['Off by default. Pinned notes and folders receive a ranking bonus.'],
+      },
     ],
   },
   {

@@ -66,10 +66,15 @@
             <li>Command palette search now ranks word starts, prefixes and contiguous matches higher, matches punctuation-insensitive queries, and finds commands by their shortcut.</li>
             <li>File tabs show a dirty dot, a pulsing saving indicator, a brief saved flash, and a persistent error marker.</li>
             <li>Folders can be pinned from the file explorer; pinned folders sit alongside pinned notes and jump to their place in the tree.</li>
+            <li>Pinned notes, folders and file tabs are saved inside the vault in <code>.tagline/pins.json</code>, so they survive profile loss and travel with the vault.</li>
+            <li>Tabs can be pinned from their context menu; pinned tabs reopen with the vault, even when workspace tab saving is disabled.</li>
+            <li>An optional setting ranks pinned notes and folders first in the quick switcher. It is off by default.</li>
+            <li>Timer preset dialogs can copy a preset as JSON and paste one back.</li>
           </ul>
 
           <h3>Fixed</h3>
           <ul>
+            <li>Deleting a file or folder now confirms that it was moved to the trash.</li>
             <li>The embedded browser opens the requested URL when the view is first created.</li>
             <li>Update checks no longer fail when a locked installer folder cannot be cleaned up.</li>
             <li>Saving no longer plays the save sound when there was nothing to save, and a successful unload flush no longer reports an error.</li>

@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { formatDuration } from '../../lib/card.js';
 import { useI18n } from '../../lib/i18n.js';
+import { presetFromJson, presetToJson } from '../../lib/timerPresets.js';
 import ModalBackdrop from './ModalBackdrop.jsx';
 
 function parseDuration(value) {
@@ -18,6 +19,7 @@ export default function TimerPresetDialog({ initial, onSave, onClose }) {
   );
   const addedSpeech = useRef(false);
   const lastSpeech = useRef(null);
+  const [status, setStatus] = useState('');
   useEffect(() => {
     if (addedSpeech.current) {
       lastSpeech.current?.focus();
@@ -28,6 +30,40 @@ export default function TimerPresetDialog({ initial, onSave, onClose }) {
     name.trim() &&
     parseDuration(prep) !== null &&
     speeches.every((speech) => speech.label.trim() && parseDuration(speech.duration) > 0);
+
+  const copyPreset = async () => {
+    try {
+      const preset = {
+        label: name.trim(),
+        prep: parseDuration(prep) / 60,
+        speeches: speeches.map((speech) => [
+          speech.label.trim(),
+          parseDuration(speech.duration) / 60,
+        ]),
+      };
+      await navigator.clipboard.writeText(presetToJson(preset));
+      setStatus(t('Preset copied as JSON.'));
+    } catch (error) {
+      setStatus(t('Could not copy preset: {error}', { error: error.message }));
+    }
+  };
+
+  const pastePreset = async () => {
+    try {
+      const preset = presetFromJson(await navigator.clipboard.readText());
+      setName(preset.label);
+      setPrep(formatDuration(preset.prep * 60));
+      setSpeeches(
+        preset.speeches.map(([label, minutes]) => ({
+          label,
+          duration: formatDuration(minutes * 60),
+        }))
+      );
+      setStatus(t('Preset pasted.'));
+    } catch (error) {
+      setStatus(t('Could not paste preset: {error}', { error: error.message }));
+    }
+  };
 
   const updateSpeech = (index, patch) =>
     setSpeeches((current) =>
@@ -116,6 +152,17 @@ export default function TimerPresetDialog({ initial, onSave, onClose }) {
         >
           {t('Add speech')}
         </button>
+        <div className='timer-preset-transfer'>
+          <button type='button' disabled={!valid} onClick={copyPreset}>
+            {t('Copy preset as JSON')}
+          </button>
+          <button type='button' onClick={pastePreset}>
+            {t('Paste preset')}
+          </button>
+          <span role='status' aria-live='polite'>
+            {status}
+          </span>
+        </div>
         <div className='dialog-buttons'>
           <button type='button' onClick={onClose}>
             {t('Cancel')}

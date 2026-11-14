@@ -1454,5 +1454,17 @@
   "{ratio}:1, needs {min}:1": "{ratio}:1, nécessite {min}:1",
   "This extension requires a different Tagline version ({required}, current {current}). It may not work correctly or could cause problems. Enable it anyway?": "Cette extension nécessite une autre version de Tagline ({required}, version actuelle {current}). Elle risque de mal fonctionner ou de causer des problèmes. L'activer quand même ?",
   "This extension is incompatible with this version of Tagline.": "Cette extension est incompatible avec cette version de Tagline.",
-  "You can enable it anyway, but it may not work correctly.": "Vous pouvez tout de même l'activer, mais elle risque de mal fonctionner."
+  "You can enable it anyway, but it may not work correctly.": "Vous pouvez tout de même l'activer, mais elle risque de mal fonctionner.",
+  "Moved “{name}” to trash": "« {name} » déplacé vers la corbeille",
+  "Pin tab": "Épingler l'onglet",
+  "Unpin tab": "Désépingler l'onglet",
+  "Pinned tab": "Onglet épinglé",
+  "Rank pinned items first in quick switcher": "Placer les éléments épinglés en premier dans le sélecteur rapide",
+  "Off by default. Pinned notes and folders receive a ranking bonus.": "Désactivé par défaut. Les notes et dossiers épinglés reçoivent un bonus de classement.",
+  "Copy preset as JSON": "Copier le préréglage en JSON",
+  "Preset copied as JSON.": "Préréglage copié en JSON.",
+  "Could not copy preset: {error}": "Impossible de copier le préréglage : {error}",
+  "Paste preset": "Coller le préréglage",
+  "Preset pasted.": "Préréglage collé.",
+  "Could not paste preset: {error}": "Impossible de coller le préréglage : {error}"
 }

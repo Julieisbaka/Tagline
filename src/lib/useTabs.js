@@ -49,7 +49,12 @@ export function restoreTabs(saved) {
       throw new Error('Saved file tabs must have unique vault-relative paths.');
     }
     paths.add(tab.path);
-    return { id: tab.id, kind: 'file', path: tab.path };
+    return {
+      id: tab.id,
+      kind: 'file',
+      path: tab.path,
+      ...(tab.pinned === true ? { pinned: true } : {}),
+    };
   });
   const hasSavedActive =
     typeof saved.activeId === 'string' && tabs.some((tab) => tab.id === saved.activeId);
@@ -93,7 +98,7 @@ export function reorderTabs(tabs, id, targetIndex) {
  * @param {boolean} [persist=true] - Whether to persist tabs in localStorage.
  * @returns {object} - An object containing the current tabs, active tab, and tab management functions.
  */
-export function useTabs(vaultRoot, persist = true) {
+export function useTabs(vaultRoot, persist = true, onCloseFile = null) {
   const storageKey = vaultRoot ? `tabs:${vaultRoot}` : null;
   const loadKey = `${storageKey}:${persist}`;
   const previousVault = useRef(null);
@@ -153,19 +158,28 @@ export function useTabs(vaultRoot, persist = true) {
   const activeTab = tabs.find((t) => t.id === activeId) || null;
 
   const openPath = useCallback(
-    (path, newTab = false) => {
+    (path, newTab = false, pinned = false, activate = true) => {
       const existing = tabs.find((t) => t.path === path);
       if (existing) {
-        return setActiveId(existing.id);
+        if (activate) {
+          setActiveId(existing.id);
+        }
+        return undefined;
       }
       const current = tabs.find((t) => t.id === activeId);
       if (!newTab && current && current.kind === 'file') {
-        setTabs((prev) => prev.map((t) => (t.id === current.id ? { ...t, path } : t)));
+        setTabs((prev) =>
+          prev.map((t) =>
+            t.id === current.id ? { ...t, path, ...(pinned ? { pinned: true } : {}) } : t
+          )
+        );
         return undefined;
       }
-      const tab = { id: newId(), kind: 'file', path };
+      const tab = { id: newId(), kind: 'file', path, ...(pinned ? { pinned: true } : {}) };
       setTabs((prev) => [...prev, tab]);
-      setActiveId(tab.id);
+      if (activate) {
+        setActiveId(tab.id);
+      }
       return undefined;
     },
     [tabs, activeId]
@@ -185,6 +199,10 @@ export function useTabs(vaultRoot, persist = true) {
   const close = useCallback(
     (id) => {
       const i = tabs.findIndex((t) => t.id === id);
+      const closing = tabs[i];
+      if (closing?.kind === 'file') {
+        onCloseFile?.(closing.path);
+      }
       const next = tabs.filter((t) => t.id !== id);
       setTabs((prev) => prev.filter((t) => t.id !== id));
       playUiSound('close');
@@ -192,7 +210,7 @@ export function useTabs(vaultRoot, persist = true) {
         setActiveId(next[Math.min(i, next.length - 1)]?.id || null);
       }
     },
-    [tabs, activeId]
+    [tabs, activeId, onCloseFile]
   );
 
   const renamePath = useCallback((from, to) => {
@@ -211,6 +229,22 @@ export function useTabs(vaultRoot, persist = true) {
     );
   }, []);
 
+  const setPinned = useCallback((id, pinned) => {
+    setTabs((prev) =>
+      prev.map((tab) => {
+        if (tab.id !== id || tab.kind !== 'file' || !!tab.pinned === pinned) {
+          return tab;
+        }
+        if (pinned) {
+          return { ...tab, pinned: true };
+        }
+        const rest = { ...tab };
+        delete rest.pinned;
+        return rest;
+      })
+    );
+  }, []);
+
   // Drop tabs whose files vanished (e.g. deleted outside the app).
   const prune = useCallback((existing) => {
     setTabs((prev) => {
@@ -225,6 +259,11 @@ export function useTabs(vaultRoot, persist = true) {
    * @returns {void}
    */
   const closeOthers = (id) => {
+    for (const tab of tabs) {
+      if (tab.id !== id && tab.kind === 'file') {
+        onCloseFile?.(tab.path);
+      }
+    }
     setTabs((prev) => prev.filter((t) => t.id === id));
     setActiveId(id);
   };
@@ -243,6 +282,7 @@ export function useTabs(vaultRoot, persist = true) {
     closeOthers,
     renamePath,
     removePath,
+    setPinned,
     prune,
     reorder,
     error,

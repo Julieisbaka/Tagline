@@ -13,6 +13,8 @@ export default function TabBar({
   onCloseOthers,
   onReorder,
   saveStatuses = {},
+  pinnedPaths = [],
+  onTogglePin,
   onFileAction,
   hideFlowExtension = true,
   showMarkdownExtension = false,
@@ -96,6 +98,14 @@ export default function TabBar({
               x: e.clientX,
               y: e.clientY,
               items: [
+                ...(t.kind === 'file'
+                  ? [
+                      {
+                        label: pinnedPaths.includes(t.path) ? 'Unpin tab' : 'Pin tab',
+                        run: () => onTogglePin?.(t.id),
+                      },
+                    ]
+                  : []),
                 { label: 'Close tab', command: 'close-tab', run: () => onClose(t.id) },
                 { label: 'Close other tabs', run: () => onCloseOthers(t.id) },
                 ...(t.kind === 'file'
@@ -130,6 +140,16 @@ export default function TabBar({
               ? tr('Graph view')
               : displayName(t.path, hideFlowExtension, showMarkdownExtension)}
           </span>
+          {t.kind === 'file' && pinnedPaths.includes(t.path) && (
+            <span
+              className='tab-pin'
+              title={tr('Pinned tab')}
+              aria-label={tr('Pinned tab')}
+              role='img'
+            >
+              <Icon name='pin' size={10} />
+            </span>
+          )}
           {t.kind === 'file' && saveStatuses[t.path] && (
             <span
               className={`tab-save-status ${saveStatuses[t.path]}`}

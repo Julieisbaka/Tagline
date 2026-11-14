@@ -29,8 +29,8 @@ export default function App() {
     settings.canvasHistoryMode,
     settings.experimentalHistoryDeltas
   );
-  const tabs = useTabs(v.vault?.root, settings.persistWorkspaceTabs);
   const favorites = useFavorites(v.vault?.root);
+  const tabs = useTabs(v.vault?.root, settings.persistWorkspaceTabs, favorites.unpinTab);
   const [modes, setModes] = useState({});
   const [highlightOnly, setHighlightOnly] = useState(false);
   const [modal, setModal] = useState(null);
@@ -92,6 +92,29 @@ export default function App() {
   const cursorRef = useRef(0);
 
   const paths = useMemo(() => flattenTree(v.tree), [v.tree]);
+
+  useEffect(() => {
+    if (!v.ready || !favorites.loaded) {
+      return;
+    }
+    const available = new Set(paths);
+    const open = new Map(
+      tabs.tabs.filter((tab) => tab.kind === 'file').map((tab) => [tab.path, tab])
+    );
+    for (const path of favorites.pinnedTabs) {
+      if (!available.has(path)) {
+        continue;
+      }
+      const tab = open.get(path);
+      if (tab) {
+        if (!tab.pinned) {
+          tabs.setPinned(tab.id, true);
+        }
+      } else {
+        tabs.openPath(path, true, true, false);
+      }
+    }
+  }, [v.ready, favorites.loaded, favorites.pinnedTabs, paths, tabs]);
   const noteNames = useMemo(() => paths.filter(isMarkdown).map(baseName), [paths]);
   const resolve = useCallback((t) => resolveLink(t, paths), [paths]);
   const activePath = tabs.activeTab?.kind === 'file' ? tabs.activeTab.path : null;

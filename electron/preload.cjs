@@ -210,6 +210,8 @@ contextBridge.exposeInMainWorld('api', {
   forgetRecentVault: (root) => ipcRenderer.invoke('vault:forgetRecent', root),
   revealRecentVault: (root) => ipcRenderer.invoke('vault:revealRecent', root),
   cleanupVaultMigrationBackups: (root) => ipcRenderer.invoke('vault:cleanupMigrationBackups', root),
+  readPins: () => ipcRenderer.invoke('vault:readPins'),
+  writePins: (pins) => ipcRenderer.invoke('vault:writePins', pins),
   createSampleVault: () => ipcRenderer.invoke('vault:createSample'),
   list: () => ipcRenderer.invoke('fs:list'),
   readSnapshot: () => ipcRenderer.invoke('fs:snapshot'),

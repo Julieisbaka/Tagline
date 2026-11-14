@@ -114,6 +114,7 @@ test('JSON defaults define settings and independent file-extension labels', asyn
   assert.equal(defaults.autoRelink, true);
   assert.equal(defaults.closeMissingTabs, true);
   assert.equal(defaults.persistWorkspaceTabs, true);
+  assert.equal(defaults.boostPinnedInSwitcher, false);
   assert.equal(defaults.customCssEnabled, false);
   assert.equal(defaults.customCss, '');
   for (const hideFlow of [false, true]) {

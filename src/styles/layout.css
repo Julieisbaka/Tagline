@@ -246,6 +246,12 @@ body.resizing-panels * {
   white-space: nowrap;
 }
 
+.tab-pin {
+  display: inline-flex;
+  flex: 0 0 auto;
+  color: var(--accent);
+}
+
 .tab-save-status {
   width: 7px;
   height: 7px;

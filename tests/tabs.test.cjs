@@ -66,6 +66,23 @@ test('workspace tabs recover when the saved active ID no longer exists', async (
   );
 });
 
+test('workspace tabs restore pinned file tabs', async () => {
+  const { restoreTabs } = await import('../src/lib/useTabs.js');
+  assert.deepEqual(
+    restoreTabs({
+      tabs: [
+        { id: 'one', kind: 'file', path: 'Note.md', pinned: true },
+        { id: 'two', kind: 'file', path: 'Other.md', pinned: false },
+      ],
+      activeId: 'one',
+    }).tabs,
+    [
+      { id: 'one', kind: 'file', path: 'Note.md', pinned: true },
+      { id: 'two', kind: 'file', path: 'Other.md' },
+    ]
+  );
+});
+
 test('tabs reorder by destination index without mutating the existing order', async () => {
   const { reorderTabs } = await import('../src/lib/useTabs.js');
   const tabs = [{ id: 'one' }, { id: 'two' }, { id: 'three' }];

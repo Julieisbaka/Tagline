@@ -207,6 +207,7 @@ export function useAppOperations({
       if (await v.remove(node.path)) {
         tabs.removePath(node.path);
         favorites.remove(node.path);
+        notify(t('Moved “{name}” to trash', { name: node.name }));
       }
     },
     setSpeechDoc: async (path) => {

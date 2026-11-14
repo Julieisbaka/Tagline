@@ -66,6 +66,7 @@
   "autoRelink": true,
   "closeMissingTabs": true,
   "persistWorkspaceTabs": true,
+  "boostPinnedInSwitcher": false,
   "customCssEnabled": false,
   "customCss": "",
   "fontFamily": "",

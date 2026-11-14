@@ -1454,5 +1454,17 @@
   "{ratio}:1, needs {min}:1": "{ratio}:1, se necesita {min}:1",
   "This extension requires a different Tagline version ({required}, current {current}). It may not work correctly or could cause problems. Enable it anyway?": "Esta extensión requiere una versión diferente de Tagline ({required}, actual {current}). Puede que no funcione correctamente o que cause problemas. ¿Habilitarla de todos modos?",
   "This extension is incompatible with this version of Tagline.": "Esta extensión es incompatible con esta versión de Tagline.",
-  "You can enable it anyway, but it may not work correctly.": "Puedes habilitarla de todos modos, pero puede que no funcione correctamente."
+  "You can enable it anyway, but it may not work correctly.": "Puedes habilitarla de todos modos, pero puede que no funcione correctamente.",
+  "Moved “{name}” to trash": "« {name} » movido a la papelera",
+  "Pin tab": "Anclar pestaña",
+  "Unpin tab": "Desanclar pestaña",
+  "Pinned tab": "Pestaña anclada",
+  "Rank pinned items first in quick switcher": "Clasificar primero los elementos anclados en el selector rápido",
+  "Off by default. Pinned notes and folders receive a ranking bonus.": "Desactivado de forma predeterminada. Las notas y carpetas ancladas reciben una bonificación de clasificación.",
+  "Copy preset as JSON": "Copiar preajuste como JSON",
+  "Preset copied as JSON.": "Preajuste copiado como JSON.",
+  "Could not copy preset: {error}": "No se pudo copiar el preajuste: {error}",
+  "Paste preset": "Pegar preajuste",
+  "Preset pasted.": "Preajuste pegado.",
+  "Could not paste preset: {error}": "No se pudo pegar el preajuste: {error}"
 }
