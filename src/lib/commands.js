@@ -14,7 +14,8 @@ function matchScore(query, source) {
   const compactQuery = query.replace(NON_WORD, '');
   const compactSource = source.replace(NON_WORD, '');
   if (!compactQuery) {
-    return 1;
+    // Punctuation-only query: nothing left to match.
+    return -1;
   }
   const compactIndex = compactSource.indexOf(compactQuery);
   if (compactIndex !== -1) {
@@ -83,15 +84,15 @@ export function buildCommands(ctx, overrides = {}) {
     hotkey: displayBinding(binding(id, overrides)),
   });
   const list = [
-    c('switcher', 'Quick switcher: open file', ctx.openSwitcher, 'Ctrl+O'),
-    c('search', 'Search vault', ctx.openSearch, 'Ctrl+Shift+F'),
-    c('new-note', 'Create new note', ctx.newNote, 'Ctrl+N'),
+    c('switcher', 'Quick switcher: open file', ctx.openSwitcher),
+    c('search', 'Search vault', ctx.openSearch),
+    c('new-note', 'Create new note', ctx.newNote),
     c('new-flow', 'Create new flow', ctx.newFlow),
     c('new-canvas', 'Create new canvas', ctx.newCanvas),
     c('new-folder', 'Create new folder', ctx.newFolder),
     c('from-template', 'Create new note from template', ctx.newFromTemplate),
-    c('graph', 'Open graph view', ctx.openGraph, 'Ctrl+G'),
-    c('settings', 'Open settings', ctx.openSettings, 'Ctrl+,'),
+    c('graph', 'Open graph view', ctx.openGraph),
+    c('settings', 'Open settings', ctx.openSettings),
     c('toggle-left', 'Toggle left sidebar', ctx.toggleLeft),
     c('toggle-right', 'Toggle right sidebar', ctx.toggleRight),
     c('close-unpinned-tabs', 'Close unpinned tabs', ctx.closeUnpinnedTabs),
@@ -118,7 +119,7 @@ export function buildCommands(ctx, overrides = {}) {
   ];
   if (ctx.hasNote) {
     list.push(
-      c('toggle-mode', 'Toggle reading / editing view', ctx.toggleMode, 'Ctrl+E'),
+      c('toggle-mode', 'Toggle reading / editing view', ctx.toggleMode),
       c('source-mode', 'Editor: source mode (CodeMirror)', ctx.sourceMode),
       c('visual-mode', 'Editor: visual mode (Tiptap)', ctx.visualMode),
       c('export-note', 'Export note', ctx.exportNote),
@@ -127,20 +128,15 @@ export function buildCommands(ctx, overrides = {}) {
         'Test a hypothesis against this note (Political DEBATE)',
         ctx.testHypothesis
       ),
-      c(
-        'highlight-only',
-        'Toggle highlighted-only reading',
-        ctx.toggleHighlightOnly,
-        'Ctrl+Shift+H'
-      ),
-      c('send-card', 'Send card under cursor to speech doc', ctx.sendCard, 'Ctrl+Shift+S'),
+      c('highlight-only', 'Toggle highlighted-only reading', ctx.toggleHighlightOnly),
+      c('send-card', 'Send card under cursor to speech doc', ctx.sendCard),
       c('insert-template', 'Insert template at cursor', ctx.insertTemplate),
       c('apply-template', 'Apply template to current note', ctx.applyTemplate),
       c('set-speech', 'Speech doc: use current file as speech doc', ctx.setCurrentAsSpeechDoc),
       c('rename', 'Rename current file', ctx.renameCurrent),
       c('delete', 'Delete current file', ctx.deleteCurrent),
       c('reveal', 'Reveal current file in file explorer', ctx.revealCurrent),
-      c('close-tab', 'Close current tab', ctx.closeTab, 'Ctrl+W'),
+      c('close-tab', 'Close current tab', ctx.closeTab),
       c('pin-tab', ctx.pinnedTab ? 'Unpin current tab' : 'Pin current tab', ctx.togglePinTab)
     );
   }

@@ -3,6 +3,37 @@ import { translate } from './i18n.js';
 import { readStoredJson } from './storedJson.js';
 
 const STORAGE_KEY = 'tagline-favorites';
+// Mirrors MAX_PINS in electron/pinsFile.cjs: the writer rejects anything longer.
+const MAX_PINS = 10_000;
+
+/**
+ * Drop entries the pins writer would reject and cap the list to its limit.
+ * @param {string[]} paths
+ * @param {number} [limit]
+ * @returns {string[]}
+ */
+export function sanitizePinPaths(paths, limit = MAX_PINS) {
+  const seen = new Set();
+  const kept = [];
+  for (const path of paths) {
+    if (typeof path !== 'string') {
+      continue;
+    }
+    const value = path.trim();
+    if (!value || value.includes('\\') || value.startsWith('/') || /^[a-z]:/i.test(value)) {
+      continue;
+    }
+    if (value.split('/').some((part) => !part || part === '.' || part === '..')) {
+      continue;
+    }
+    if (seen.has(value)) {
+      continue;
+    }
+    seen.add(value);
+    kept.push(value);
+  }
+  return kept.slice(-limit);
+}
 
 const PIN_ERROR_KEYS = {
   load: 'Could not load pinned items: {error}',
@@ -136,8 +167,8 @@ export function useFavorites(root) {
           }
           return;
         }
-        const favorites = vaultsRef.current[root] || [];
-        const pinnedTabs = tabPinsRef.current[root] || [];
+        const favorites = sanitizePinPaths(vaultsRef.current[root] || []);
+        const pinnedTabs = sanitizePinPaths(tabPinsRef.current[root] || []);
         const migrate =
           favorites.length || pinnedTabs.length
             ? window.api.writePins({ favorites, pinnedTabs })
@@ -168,7 +199,10 @@ export function useFavorites(root) {
       return;
     }
     window.api
-      .writePins({ favorites: vaults[root] || [], pinnedTabs: tabPins[root] || [] })
+      .writePins({
+        favorites: sanitizePinPaths(vaults[root] || []),
+        pinnedTabs: sanitizePinPaths(tabPins[root] || []),
+      })
       .then(() => {
         setPinStatus((previous) => (previous?.level === 'save' ? null : previous));
         lastError.current = '';

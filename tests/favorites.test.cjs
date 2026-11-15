@@ -50,3 +50,22 @@ test('pin failures report read and write errors separately', async () => {
   assert.equal(pinErrorDetail('load', error), 'Could not load pinned items: disk gone');
   assert.equal(pinErrorDetail('save', error), 'Could not save pinned items: disk gone');
 });
+
+test('pin writes drop entries the writer rejects and cap the list', async () => {
+  const { sanitizePinPaths } = await import('../src/lib/useFavorites.js');
+  assert.deepEqual(
+    sanitizePinPaths([
+      'a.md',
+      '',
+      '  ',
+      '/abs.md',
+      'C:/win.md',
+      'a\\b.md',
+      '../up.md',
+      'a/../b.md',
+    ]),
+    ['a.md']
+  );
+  assert.deepEqual(sanitizePinPaths(['a.md', 'a.md', ' b.md ']), ['a.md', 'b.md']);
+  assert.deepEqual(sanitizePinPaths(['a.md', 'b.md', 'c.md'], 2), ['b.md', 'c.md']);
+});
