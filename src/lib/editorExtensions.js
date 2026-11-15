@@ -230,6 +230,9 @@ export const editorTheme = [
       '&.cm-focused .cm-selectionBackground, .cm-selectionBackground, ::selection': {
         backgroundColor: 'var(--selection) !important',
       },
+      '.cm-content ::selection': {
+        color: 'var(--selection-text)',
+      },
       '.cm-activeLine': { backgroundColor: 'transparent' },
       '.cm-gutters': {
         backgroundColor: 'var(--bg-secondary)',
