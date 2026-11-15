@@ -74,7 +74,7 @@ export default function ScholarlySearch({ query, onCreateCard, onClose, searchBu
     }
   };
   return (
-    <>
+    <div className='scholarly-search'>
       <p className='search-count'>
         {t(
           'Search sends your query to Crossref. Results are scholarly metadata, not a direct JSTOR search. Full text may require access.'
@@ -121,7 +121,7 @@ export default function ScholarlySearch({ query, onCreateCard, onClose, searchBu
             <span>{t('Card tag')}</span>
             <input maxLength={200} value={tag} onChange={(e) => setTag(e.target.value)} />
           </label>
-          <label>
+          <label className='source-excerpt'>
             {t('Source excerpt')}
             <textarea
               rows={7}
@@ -164,6 +164,6 @@ export default function ScholarlySearch({ query, onCreateCard, onClose, searchBu
           ))}
         </div>
       )}
-    </>
+    </div>
   );
 }

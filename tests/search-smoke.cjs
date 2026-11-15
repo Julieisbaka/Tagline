@@ -356,6 +356,22 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
           ),
           'Ada Smith'
         );
+        const excerptLayout = await js(`(() => {
+            const dialog = document.querySelector('.search').getBoundingClientRect();
+            const excerpt = document.querySelector('.search section textarea').getBoundingClientRect();
+            return {
+              dialogLeft: dialog.left,
+              dialogRight: dialog.right,
+              excerptLeft: excerpt.left,
+              excerptRight: excerpt.right,
+              excerptWidth: excerpt.width,
+              contentPadding: getComputedStyle(document.querySelector('.scholarly-search')).paddingLeft
+            };
+          })()`);
+        assert.ok(excerptLayout.excerptLeft >= excerptLayout.dialogLeft);
+        assert.ok(excerptLayout.excerptRight <= excerptLayout.dialogRight);
+        assert.ok(excerptLayout.excerptWidth > 300);
+        assert.equal(excerptLayout.contentPadding, '14px');
         await js(`(() => {
           const el = document.querySelector('.search section textarea');
           Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, 'value').set.call(el, 'Evidence from the source.');
