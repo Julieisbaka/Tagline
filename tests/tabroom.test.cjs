@@ -136,14 +136,14 @@ test('Tabroom loads public data through the isolated cookie jar and returns page
   assert.throws(() => mock.service.page('456', 0), /again/);
 });
 
-test('Tabroom opens local tournament JSON through the same snapshot table normalization without network access', () => {
+test('Tabroom opens local tournament JSON through the same snapshot table normalization without network access', async () => {
   const data = {
     ...tournament,
     schools: [{ id: 10, name: 'Example School', code: 'EX' }],
     events: [{ id: 20, name: 'Policy', entries: [{ id: 30, name: 'Example AB', school: 10 }] }],
   };
   const mock = setup();
-  const opened = mock.service.openJson(JSON.stringify(data));
+  const opened = await mock.service.openJson(JSON.stringify(data));
   assert.equal(opened.id, '123');
   assert.equal(opened.name, 'Test Tournament');
   assert.equal(opened.collections.teams.count, 1);
@@ -171,8 +171,11 @@ test('Tabroom opens local tournament JSON through the same snapshot table normal
     ],
   });
   assert.equal(mock.requests.length, 0);
-  assert.throws(() => mock.service.openJson('{'), /valid JSON/);
-  assert.throws(() => mock.service.openJson(JSON.stringify({ id: 123 })), /tournament collections/);
+  await assert.rejects(mock.service.openJson('{'), /valid JSON/);
+  await assert.rejects(
+    mock.service.openJson(JSON.stringify({ id: 123 })),
+    /tournament collections/
+  );
   assert.throws(() => mock.service.snapshotRecordsForJson('expired', 'teams', 0, ''), /expired/);
 });
 

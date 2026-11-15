@@ -756,6 +756,99 @@ test('platform: settings and event permission changes require a fresh manifest r
   }
 });
 
+test('extension scans cache manifests by modification time and size', async () => {
+  const fsAsync = require('node:fs/promises');
+  const { registerExtensions } = require('../electron/extensions.cjs');
+  const root = await fsAsync.mkdtemp(
+    path.join(require('node:os').tmpdir(), 'tagline-manifest-cache-')
+  );
+  const originalReadFile = fsAsync.readFile;
+  const manifestReads = new Map();
+  let configReads = 0;
+  let config = {};
+  try {
+    const files = ['first', 'second'].map((name) =>
+      path.join(root, 'extensions', name, 'manifest.json')
+    );
+    for (const [index, file] of files.entries()) {
+      await fsAsync.mkdir(path.dirname(file), { recursive: true });
+      await fsAsync.writeFile(
+        file,
+        JSON.stringify({
+          manifestVersion: 1,
+          id: `cache-${index}`,
+          name: 'Review',
+          version: '1',
+        })
+      );
+    }
+    fsAsync.readFile = function (file, ...args) {
+      const full = path.resolve(String(file));
+      if (files.includes(full)) {
+        manifestReads.set(full, (manifestReads.get(full) || 0) + 1);
+      }
+      return originalReadFile.call(this, file, ...args);
+    };
+    const handlers = {};
+    registerExtensions({
+      app: { getPath: () => root },
+      shell: {},
+      ipcMain: { handle: (name, handler) => (handlers[name] = handler) },
+      readConfig: () => {
+        configReads++;
+        return config;
+      },
+      writeConfig: (patch) => {
+        config = { ...config, ...patch };
+      },
+    });
+
+    await handlers['extensions:list']();
+    assert.deepEqual([...manifestReads.values()], [1, 1]);
+    assert.equal(configReads, 1, 'scan reads configuration once for all entries');
+    await handlers['extensions:list']();
+    assert.deepEqual([...manifestReads.values()], [1, 1], 'unchanged manifests use the cache');
+    assert.equal(configReads, 2);
+
+    const first = files[0];
+    const firstStat = await fsAsync.stat(first);
+    const fixedTime = new Date(firstStat.mtimeMs + 10_000);
+    await fsAsync.writeFile(
+      first,
+      JSON.stringify({
+        manifestVersion: 1,
+        id: 'cache-0',
+        name: 'Rivals',
+        version: '1',
+      })
+    );
+    await fsAsync.utimes(first, fixedTime, fixedTime);
+    assert.equal((await handlers['extensions:list']())[0].name, 'Rivals');
+    assert.deepEqual([...manifestReads.values()], [2, 1], 'mtime changes invalidate the entry');
+
+    const changedStat = await fsAsync.stat(first);
+    await fsAsync.writeFile(
+      first,
+      JSON.stringify({
+        manifestVersion: 1,
+        id: 'cache-0',
+        name: 'Changed',
+        version: '1',
+      })
+    );
+    await fsAsync.utimes(first, changedStat.mtime, changedStat.mtime);
+    assert.equal((await handlers['extensions:list']())[0].name, 'Changed');
+    assert.deepEqual([...manifestReads.values()], [3, 1], 'size changes invalidate the entry');
+
+    await handlers['customization:set'](null, { extensionCommands: 49 });
+    await handlers['extensions:list']();
+    assert.deepEqual([...manifestReads.values()], [4, 2], 'limit changes clear validation results');
+  } finally {
+    fsAsync.readFile = originalReadFile;
+    await fsAsync.rm(root, { recursive: true, force: true });
+  }
+});
+
 test('platform: extensions can be uninstalled and their saved grants are cleared', async () => {
   const fsAsync = require('node:fs/promises');
   const { registerExtensions } = require('../electron/extensions.cjs');

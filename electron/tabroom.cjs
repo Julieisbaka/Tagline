@@ -1,40 +1,45 @@
 const fs = require('node:fs/promises');
 const { randomUUID } = require('node:crypto');
-const { normalizeSnapshot, snapshotRecords } = require('./tabroomData.cjs');
+const path = require('node:path');
+const { Worker } = require('node:worker_threads');
+const { snapshotRecords } = require('./tabroomData.cjs');
+const { ORIGIN, tournamentId } = require('./tabroomId.cjs');
 
-const ORIGIN = 'https://www.tabroom.com';
 const PARTITION = 'persist:tabroom';
 const MAX_JSON = 32 * 1024 * 1024;
 const PAGE_SIZE = 20000;
 const JSON_SNAPSHOT_LIMIT = 4;
 
-function tournamentId(value) {
-  let id = typeof value === 'number' ? String(value) : value;
-  if (typeof id !== 'string' || id.length > 2048) {
-    throw new Error('Enter a valid Tabroom tournament ID or URL.');
-  }
-  id = id.trim();
-  if (!/^\d+$/.test(id)) {
-    let url;
-    try {
-      url = new URL(id);
-    } catch {
-      throw new Error('Enter a valid Tabroom tournament ID or URL.');
-    }
-    if (
-      url.origin !== ORIGIN ||
-      url.username ||
-      url.password ||
-      url.searchParams.getAll('tourn_id').length !== 1
-    ) {
-      throw new Error('Use an https://www.tabroom.com URL with one tourn_id.');
-    }
-    id = url.searchParams.get('tourn_id');
-  }
-  if (!/^\d+$/.test(id) || !Number.isSafeInteger(Number(id)) || Number(id) < 1) {
-    throw new Error('Enter a valid Tabroom tournament ID.');
-  }
-  return String(Number(id));
+function transferableBuffer(buffer) {
+  return buffer.byteOffset === 0 && buffer.byteLength === buffer.buffer.byteLength
+    ? buffer.buffer
+    : Uint8Array.from(buffer).buffer;
+}
+
+function parseInWorker(mode, input, id) {
+  const worker = new Worker(path.join(__dirname, 'tabroomWorker.cjs'));
+  return new Promise((resolve, reject) => {
+    let settled = false;
+    const finish = (callback, value) => {
+      if (settled) {
+        return;
+      }
+      settled = true;
+      worker.off('message', onMessage);
+      worker.off('error', onError);
+      worker.off('exit', onExit);
+      callback(value);
+    };
+    const onMessage = (result) =>
+      result.error ? finish(reject, new Error(result.error)) : finish(resolve, result);
+    const onError = (error) => finish(reject, error);
+    const onExit = (code) =>
+      finish(reject, new Error(`Tabroom worker exited before responding (${code}).`));
+    worker.once('message', onMessage);
+    worker.once('error', onError);
+    worker.once('exit', onExit);
+    worker.postMessage({ mode, input, id }, [input]);
+  }).finally(() => worker.terminate().catch(() => {}));
 }
 
 function createTabroom({ session, BrowserWindow, dialog, getWindow }) {
@@ -163,41 +168,19 @@ function createTabroom({ session, BrowserWindow, dialog, getWindow }) {
       chunks.push(Buffer.from(chunk));
     }
     unchanged(started);
-    const bytes = Buffer.concat(chunks);
-    let data;
-    try {
-      data = JSON.parse(bytes.toString('utf8').replace(/^\uFEFF/, ''));
-    } catch {
-      throw new Error(
-        'Tabroom did not return valid JSON. Check the tournament ID or sign in again.'
-      );
-    }
-    if (!data || typeof data !== 'object' || Array.isArray(data) || String(data.id) !== id) {
-      throw new Error('Tabroom returned unexpected tournament data.');
-    }
-    const formatted = JSON.stringify(data, null, 2);
-    const snapshot = normalizeSnapshot(data);
-    cached = { id, bytes, formatted, snapshot };
-    return {
+    let bytes = Buffer.concat(chunks);
+    chunks.length = 0;
+    const input = transferableBuffer(bytes);
+    bytes = null;
+    const result = await parseInWorker('network', input, id);
+    unchanged(started);
+    cached = {
       id,
-      name: typeof data.name === 'string' ? data.name : '',
-      start: typeof data.start === 'string' ? data.start : '',
-      end: typeof data.end === 'string' ? data.end : '',
-      bytes: size,
-      pages: Math.ceil(formatted.length / PAGE_SIZE),
-      sections: Object.entries(data)
-        .filter(([, item]) => Array.isArray(item))
-        .map(([name, items]) => ({ name, count: items.length })),
-      preview: formatted.slice(0, PAGE_SIZE),
-      metadata: snapshot.metadata,
-      warnings: snapshot.warnings,
-      collections: Object.fromEntries(
-        Object.entries(snapshot.collections).map(([kind, collection]) => [
-          kind,
-          { available: collection.available, count: collection.rows.length },
-        ])
-      ),
+      bytes: Buffer.from(result.raw),
+      formatted: result.formatted,
+      snapshot: result.snapshot,
     };
+    return result.summary;
   };
   const records = (id, kind, index, query) => {
     if (!cached || tournamentId(id) !== cached.id) {
@@ -205,56 +188,24 @@ function createTabroom({ session, BrowserWindow, dialog, getWindow }) {
     }
     return snapshotRecords(cached.snapshot, kind, index, query);
   };
-  const openJson = (source) => {
-    if (typeof source !== 'string' || Buffer.byteLength(source, 'utf8') > MAX_JSON) {
+  const openJson = async (source) => {
+    if (typeof source !== 'string') {
       throw new Error('Tournament JSON must be a string no larger than 32 MiB.');
     }
-    let data;
-    try {
-      data = JSON.parse(source.replace(/^\uFEFF/, ''));
-    } catch {
-      throw new Error('The JSON file is not valid JSON.');
+    let bytes = Buffer.from(source, 'utf8');
+    source = '';
+    if (bytes.byteLength > MAX_JSON) {
+      throw new Error('Tournament JSON must be a string no larger than 32 MiB.');
     }
-    if (!data || typeof data !== 'object' || Array.isArray(data)) {
-      throw new Error('This JSON does not contain a Tabroom tournament snapshot.');
-    }
-    if (!['categories', 'events', 'judges', 'schools'].some((key) => Array.isArray(data[key]))) {
-      throw new Error('This JSON does not contain Tabroom tournament collections.');
-    }
-    let id;
-    try {
-      id = tournamentId(data.id);
-    } catch {
-      throw new Error('This JSON does not contain a valid Tabroom tournament ID.');
-    }
-    const snapshot = normalizeSnapshot(data);
+    const input = transferableBuffer(bytes);
+    bytes = null;
+    const { summary, snapshot } = await parseInWorker('file', input);
     const token = randomUUID();
-    jsonSnapshots.set(token, { id, snapshot });
+    jsonSnapshots.set(token, { id: summary.id, snapshot });
     while (jsonSnapshots.size > JSON_SNAPSHOT_LIMIT) {
       jsonSnapshots.delete(jsonSnapshots.keys().next().value);
     }
-    const formatted = JSON.stringify(data, null, 2);
-    return {
-      token,
-      id,
-      name: typeof data.name === 'string' ? data.name : '',
-      start: typeof data.start === 'string' ? data.start : '',
-      end: typeof data.end === 'string' ? data.end : '',
-      bytes: Buffer.byteLength(source, 'utf8'),
-      pages: Math.ceil(formatted.length / PAGE_SIZE),
-      sections: Object.entries(data)
-        .filter(([, item]) => Array.isArray(item))
-        .map(([name, items]) => ({ name, count: items.length })),
-      preview: formatted.slice(0, PAGE_SIZE),
-      metadata: snapshot.metadata,
-      warnings: snapshot.warnings,
-      collections: Object.fromEntries(
-        Object.entries(snapshot.collections).map(([kind, collection]) => [
-          kind,
-          { available: collection.available, count: collection.rows.length },
-        ])
-      ),
-    };
+    return { ...summary, token };
   };
   const snapshotRecordsForJson = (token, kind, index, query) => {
     const entry = jsonSnapshots.get(token);

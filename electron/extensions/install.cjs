@@ -26,6 +26,7 @@ function registerInstallHandlers(context) {
     getWindow,
     limits,
     folder,
+    invalidateManifest,
     enabledIds,
     scan,
   } = context;
@@ -60,6 +61,7 @@ function registerInstallHandlers(context) {
     if (!inPlace) {
       await copyExtension(app, root, target);
     }
+    invalidateManifest(target);
     const gated = manifest.permissions.some((permission) =>
       REVIEW_PERMISSIONS.includes(permission)
     );

@@ -72,23 +72,93 @@ function registerExtensions({
   const installTokens = new Map();
   const networkRequestTimes = new Map();
   const pendingAuthorizations = new Map();
+  const manifestCache = new Map();
   const cancelAuthorization = (id) => pendingAuthorizations.get(id)?.cancel();
+  const invalidateManifest = (root) => manifestCache.delete(path.resolve(root, 'manifest.json'));
   const limits = () => validateLimits(readConfig().customizationLimits);
   ipcMain.handle('customization:get', () => limits());
   ipcMain.handle('customization:set', async (_event, value) => {
     const next = validateLimits(value);
     await writeConfig({ customizationLimits: next });
+    manifestCache.clear();
     return next;
   });
   const folder = () => path.join(app.getPath('userData'), 'extensions');
   const enabledIds = () =>
     Array.isArray(readConfig().enabledExtensions) ? readConfig().enabledExtensions : [];
 
+  async function readManifest(root, currentLimits, appVersion) {
+    const manifestPath = path.resolve(root, 'manifest.json');
+    let stat;
+    try {
+      stat = await fs.stat(manifestPath);
+    } catch (error) {
+      manifestCache.delete(manifestPath);
+      throw error;
+    }
+    const cached = manifestCache.get(manifestPath);
+    if (cached && cached.mtimeMs === stat.mtimeMs && cached.size === stat.size) {
+      if (cached.error) {
+        throw new Error(cached.error);
+      }
+      return cached;
+    }
+    manifestCache.delete(manifestPath);
+    const source = await fs.readFile(manifestPath, 'utf8');
+    let raw;
+    try {
+      raw = JSON.parse(source);
+    } catch (error) {
+      manifestCache.set(manifestPath, {
+        mtimeMs: stat.mtimeMs,
+        size: stat.size,
+        error: error.message,
+      });
+      throw error;
+    }
+    try {
+      let manifest;
+      let incompatible = null;
+      try {
+        manifest = validateManifest(raw, root, currentLimits, { appVersion });
+      } catch (error) {
+        if (!/Invalid manifest: requires Tagline /.test(String(error?.message || ''))) {
+          throw error;
+        }
+        manifest = validateManifest(raw, root, currentLimits, {
+          appVersion,
+          ignoreEngineCompatibility: true,
+        });
+        incompatible = manifest.engineIncompatible || {
+          required: manifest.engines?.tagline,
+          appVersion,
+        };
+      }
+      const result = {
+        mtimeMs: stat.mtimeMs,
+        size: stat.size,
+        manifest,
+        incompatible,
+        reviewToken: createHash('sha256').update(reviewSignature(manifest)).digest('hex'),
+      };
+      manifestCache.set(manifestPath, result);
+      return result;
+    } catch (error) {
+      manifestCache.set(manifestPath, {
+        mtimeMs: stat.mtimeMs,
+        size: stat.size,
+        error: error.message,
+      });
+      throw error;
+    }
+  }
+
   async function scan() {
     const config = readConfig();
+    const extensionsFolder = folder();
     let entries = [];
     try {
-      entries = await fs.readdir(folder(), { withFileTypes: true });
+      entries = await fs.readdir(extensionsFolder, { withFileTypes: true });
     } catch (e) {
       if (e.code !== 'ENOENT') {
         throw e;
@@ -98,41 +168,29 @@ function registerExtensions({
     const forced = Array.isArray(config.engineCompatibilityOverrides)
       ? config.engineCompatibilityOverrides
       : [];
+    const currentLimits = validateLimits(config.customizationLimits);
+    const appVersion = app.getVersion?.() || '';
     const found = [];
     const ids = new Set();
+    const manifests = new Set();
     for (const entry of entries
       .filter((e) => e.isDirectory())
       .sort((a, b) => a.name.localeCompare(b.name))) {
-      const root = path.join(folder(), entry.name);
+      const root = path.join(extensionsFolder, entry.name);
+      const manifestPath = path.resolve(root, 'manifest.json');
+      manifests.add(manifestPath);
       try {
-        const raw = JSON.parse(await fs.readFile(path.join(root, 'manifest.json'), 'utf8'));
-        const appVersion = app.getVersion?.() || '';
-        let manifest;
-        let incompatible = null;
-        try {
-          manifest = validateManifest(raw, root, limits(), { appVersion });
-        } catch (error) {
-          const msg = String(error?.message || '');
-          if (/Invalid manifest: requires Tagline /.test(msg)) {
-            manifest = validateManifest(raw, root, limits(), {
-              appVersion,
-              ignoreEngineCompatibility: true,
-            });
-            incompatible = manifest.engineIncompatible || {
-              required: manifest.engines?.tagline,
-              appVersion,
-            };
-          } else {
-            throw error;
-          }
-        }
+        const { manifest, incompatible, reviewToken } = await readManifest(
+          root,
+          currentLimits,
+          appVersion
+        );
         if (ids.has(manifest.id)) {
           throw new Error(`Duplicate extension id: ${manifest.id}`);
         }
         ids.add(manifest.id);
         const incompatibleForced = !!incompatible && forced.includes(manifest.id);
         const reviewRequired = enabled.includes(manifest.id) && needsReview(manifest, config);
-        const reviewToken = createHash('sha256').update(reviewSignature(manifest)).digest('hex');
         found.push({
           ...manifest,
           folder: entry.name,
@@ -160,6 +218,11 @@ function registerExtensions({
         });
       } catch (error) {
         found.push({ id: null, folder: entry.name, root, error: error.message, enabled: false });
+      }
+    }
+    for (const manifestPath of manifestCache.keys()) {
+      if (!manifests.has(manifestPath)) {
+        manifestCache.delete(manifestPath);
       }
     }
     return found;
@@ -425,6 +488,7 @@ function registerExtensions({
       throw new Error('Extension not found.');
     }
     await fs.rm(item.root, { recursive: true });
+    invalidateManifest(item.root);
     const config = readConfig();
     const extensionReviews = { ...config.extensionReviews };
     const extensionPermissions = { ...config.extensionPermissions };
@@ -473,6 +537,7 @@ function registerExtensions({
     scan,
     limits,
     folder,
+    invalidateManifest,
     enabledIds,
   };
   registerStorageHandlers(context);

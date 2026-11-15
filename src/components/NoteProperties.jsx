@@ -215,6 +215,7 @@ export default function NoteProperties({ content, onChange, editable, notify, on
   const { t } = useI18n();
   const metadata = useMemo(() => readFrontmatter(content), [content]);
   const [newKey, setNewKey] = useState('');
+  const [newType, setNewType] = useState('text');
   const properties = Object.entries(metadata.data).filter(([key]) => key !== 'tags');
   const hasTags = Object.hasOwn(metadata.data, 'tags');
 
@@ -238,7 +239,7 @@ export default function NoteProperties({ content, onChange, editable, notify, on
     if (!key || Object.hasOwn(metadata.data, key)) {
       return;
     }
-    save(key, '');
+    save(key, newType === 'boolean' ? false : '');
     setNewKey('');
   };
 
@@ -313,6 +314,14 @@ export default function NoteProperties({ content, onChange, editable, notify, on
               value={newKey}
               onChange={(event) => setNewKey(event.target.value)}
             />
+            <select
+              aria-label={t('Property type')}
+              value={newType}
+              onChange={(event) => setNewType(event.target.value)}
+            >
+              <option value='text'>{t('Text')}</option>
+              <option value='boolean'>{t('Boolean')}</option>
+            </select>
             <button
               type='submit'
               disabled={!newKey.trim() || Object.hasOwn(metadata.data, newKey.trim())}

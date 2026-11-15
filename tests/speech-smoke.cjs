@@ -264,6 +264,26 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
           legacy.endsWith('# Existing speech\n'),
           'designation preserves the existing body'
         );
+        await open('Legacy.md');
+        await change('.note-property-add select', 'boolean');
+        await js(`(() => { const input = document.querySelector('.note-property-add input');
+          Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set.call(input, 'verified');
+          input.dispatchEvent(new Event('input', { bubbles: true })); })()`);
+        await js("document.querySelector('.note-property-add button').click()");
+        await wait(
+          '!!document.querySelector(\'.note-property-list [aria-label="Value for verified"]\')'
+        );
+        assert.equal(
+          await js(
+            'document.querySelector(\'.note-property-list [aria-label="Value for verified"]\').checked'
+          ),
+          false,
+          'new boolean properties default to false'
+        );
+        await js(
+          'document.querySelector(\'.note-property-list [aria-label="Value for verified"]\').click()'
+        );
+        await wait("window.api.read('Legacy.md').then(text => text.includes('verified: true'))");
         await mark('Broken.md');
         await wait(
           "document.querySelector('.toast')?.textContent.includes('Invalid YAML frontmatter')"
