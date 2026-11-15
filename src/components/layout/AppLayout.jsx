@@ -441,7 +441,6 @@ export default function AppLayout({ app }) {
             } else {
               favorites.pinTab(tab.path);
             }
-            tabs.setPinned(id, !pinned);
           }}
           hideFlowExtension={settings.hideFlowExtension}
           showMarkdownExtension={settings.showMarkdownExtension}

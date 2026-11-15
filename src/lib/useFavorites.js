@@ -19,6 +19,30 @@ function reportSave(error) {
   );
 }
 
+// .tagline/pins.json is the single source of truth for pins and favorites. The legacy
+// localStorage map is kept only as the one-way migration source; purged per vault once read.
+// Remove STORAGE_KEY and this helper after one release.
+function purgeLegacyRoot(root) {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) {
+      return;
+    }
+    const map = JSON.parse(raw);
+    if (!map || typeof map !== 'object' || !(root in map)) {
+      return;
+    }
+    delete map[root];
+    if (Object.keys(map).length === 0) {
+      localStorage.removeItem(STORAGE_KEY);
+    } else {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(map));
+    }
+  } catch {
+    // best effort; stale legacy data is harmless if it lingers
+  }
+}
+
 export function useFavorites(root) {
   const [vaults, setVaults] = useState(() =>
     readStoredJson(
@@ -61,18 +85,24 @@ export function useFavorites(root) {
           setVaults((previous) => ({ ...previous, [root]: saved.favorites }));
           setTabPins((previous) => ({ ...previous, [root]: saved.pinnedTabs }));
           setLoadedRoot(root);
-        } else {
-          const favorites = vaultsRef.current[root] || [];
-          const pinnedTabs = tabPinsRef.current[root] || [];
-          const migrate =
-            favorites.length || pinnedTabs.length
-              ? window.api.writePins({ favorites, pinnedTabs })
-              : Promise.resolve();
-          migrate.then(
-            () => !cancelled && setLoadedRoot(root),
-            (error) => !cancelled && reportSave(error)
-          );
+          purgeLegacyRoot(root);
+          return;
         }
+        const favorites = vaultsRef.current[root] || [];
+        const pinnedTabs = tabPinsRef.current[root] || [];
+        const migrate =
+          favorites.length || pinnedTabs.length
+            ? window.api.writePins({ favorites, pinnedTabs })
+            : Promise.resolve();
+        migrate.then(
+          () => {
+            if (!cancelled) {
+              setLoadedRoot(root);
+              purgeLegacyRoot(root);
+            }
+          },
+          (error) => !cancelled && reportSave(error)
+        );
       })
       .catch((error) => {
         if (!cancelled) {
@@ -83,14 +113,6 @@ export function useFavorites(root) {
       cancelled = true;
     };
   }, [root]);
-
-  useEffect(() => {
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(vaults));
-    } catch (error) {
-      reportSave(error);
-    }
-  }, [vaults]);
 
   useEffect(() => {
     if (!root || loadedRoot !== root || !window.api?.writePins) {
@@ -137,7 +159,13 @@ export function useFavorites(root) {
       updateFavorites((paths) => removeFavorites(paths, path));
       updateTabPins((paths) => removeFavorites(paths, path));
     },
-    pinTab: (path) => updateTabPins((paths) => (paths.includes(path) ? paths : [...paths, path])),
-    unpinTab: (path) => updateTabPins((paths) => paths.filter((item) => item !== path)),
+    pinTab: useCallback(
+      (path) => updateTabPins((paths) => (paths.includes(path) ? paths : [...paths, path])),
+      [updateTabPins]
+    ),
+    unpinTab: useCallback(
+      (path) => updateTabPins((paths) => paths.filter((item) => item !== path)),
+      [updateTabPins]
+    ),
   };
 }

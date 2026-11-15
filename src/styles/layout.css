@@ -167,6 +167,13 @@ body.resizing-panels * {
   text-overflow: ellipsis;
 }
 
+.tree-pin {
+  display: inline-flex;
+  flex: 0 0 auto;
+  margin-left: auto;
+  color: var(--accent);
+}
+
 .sidebar-footer {
   display: flex;
   align-items: center;

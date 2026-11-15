@@ -183,6 +183,7 @@ export default function Sidebar({
         spaced={spacedFolders}
         hideFlowExtension={hideFlowExtension}
         showMarkdownExtension={showMarkdownExtension}
+        pinnedPaths={favorites.paths}
       />
       <ExtensionPanelList
         extensions={extensions}

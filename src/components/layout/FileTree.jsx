@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useI18n } from '../../lib/i18n.js';
 import { readStoredJson } from '../../lib/storedJson.js';
 import { displayName, isCanvas, isFlow } from '../../lib/vault.js';
@@ -16,7 +16,9 @@ function TreeNode({
   spaced,
   hideFlowExtension,
   showMarkdownExtension,
+  pinnedPaths,
 }) {
+  const { t } = useI18n();
   // Folder underscores are an on-disk detail; show them as spaces only when the setting creates them.
   const show = (name) => (spaced ? name.replace(/_/g, ' ') : name);
   const isFolder = node.type === 'folder';
@@ -74,6 +76,11 @@ function TreeNode({
             ? show(node.name)
             : displayName(node.path, hideFlowExtension, showMarkdownExtension)}
         </span>
+        {pinnedPaths.has(node.path) && (
+          <span className='tree-pin' title={t('Pinned')} aria-label={t('Pinned')} role='img'>
+            <Icon name='pin' size={10} />
+          </span>
+        )}
       </div>
       {isFolder &&
         open &&
@@ -91,6 +98,7 @@ function TreeNode({
             spaced={spaced}
             hideFlowExtension={hideFlowExtension}
             showMarkdownExtension={showMarkdownExtension}
+            pinnedPaths={pinnedPaths}
           />
         ))}
     </div>
@@ -107,9 +115,11 @@ export default function FileTree({
   spaced = false,
   hideFlowExtension = true,
   showMarkdownExtension = false,
+  pinnedPaths = [],
 }) {
   const { t } = useI18n();
   const treeRef = useRef(null);
+  const pinnedSet = useMemo(() => new Set(pinnedPaths), [pinnedPaths]);
   const [expanded, setExpanded] = useState(
     () =>
       new Set(
@@ -186,6 +196,7 @@ export default function FileTree({
           spaced={spaced}
           hideFlowExtension={hideFlowExtension}
           showMarkdownExtension={showMarkdownExtension}
+          pinnedPaths={pinnedSet}
         />
       ))}
       {tree.length === 0 && (

@@ -93,28 +93,25 @@ export default function App() {
 
   const paths = useMemo(() => flattenTree(v.tree), [v.tree]);
 
+  const { unpinTab } = favorites;
   useEffect(() => {
     if (!v.ready || !favorites.loaded) {
       return;
     }
     const available = new Set(paths);
-    const open = new Map(
-      tabs.tabs.filter((tab) => tab.kind === 'file').map((tab) => [tab.path, tab])
+    const open = new Set(
+      tabs.tabs.filter((tab) => tab.kind === 'file').map((tab) => tab.path)
     );
     for (const path of favorites.pinnedTabs) {
       if (!available.has(path)) {
+        unpinTab(path);
         continue;
       }
-      const tab = open.get(path);
-      if (tab) {
-        if (!tab.pinned) {
-          tabs.setPinned(tab.id, true);
-        }
-      } else {
-        tabs.openPath(path, true, true, false);
+      if (!open.has(path)) {
+        tabs.openPath(path, true, false);
       }
     }
-  }, [v.ready, favorites.loaded, favorites.pinnedTabs, paths, tabs]);
+  }, [v.ready, favorites.loaded, favorites.pinnedTabs, paths, tabs, unpinTab]);
   const noteNames = useMemo(() => paths.filter(isMarkdown).map(baseName), [paths]);
   const resolve = useCallback((t) => resolveLink(t, paths), [paths]);
   const activePath = tabs.activeTab?.kind === 'file' ? tabs.activeTab.path : null;
