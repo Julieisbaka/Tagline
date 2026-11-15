@@ -65,7 +65,8 @@ const assert = require('node:assert/strict');
     path.join(stage, 'src', 'lib', 'citationExtraction'),
     { recursive: true }
   );
-  for (const dep of ['marked', 'yaml']) {
+  for (const dep of ['marked', 'yaml', 'ignore']) {
+    assert.ok(config.dependencies[dep], `Missing packaged dependency: ${dep}`);
     await fs.cp(path.join(root, 'node_modules', dep), path.join(stage, 'node_modules', dep), {
       recursive: true,
     });

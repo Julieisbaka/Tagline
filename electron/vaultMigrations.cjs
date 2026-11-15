@@ -4,12 +4,16 @@ const { randomUUID } = require('node:crypto');
 
 const MANIFEST = path.join('.tagline', 'vault.json');
 // Append one step for every persisted format change. Never edit released steps.
+// A step marked `adopt` only records metadata (it never rewrites user documents),
+// so it is applied in place, without the wizard and without copying the vault.
+// Steps without `adopt` transform data and always run through the wizard.
 const migrations = [
   {
     version: 1,
     title: 'Enable vault format tracking',
     description:
       'Record the vault format so future upgrades can migrate all vault data safely. Existing documents stay unchanged.',
+    adopt: true,
     async up() {},
     async validate() {},
   },
@@ -67,6 +71,7 @@ async function readManifest(root) {
 }
 
 function migrationPlan(version, steps = migrations) {
+  let transforming = false;
   for (const [index, step] of steps.entries()) {
     if (
       step.version !== index + 1 ||
@@ -76,6 +81,15 @@ function migrationPlan(version, steps = migrations) {
       throw new Error(
         'Vault migration registry must contain consecutive versions with upgrade and validation functions.'
       );
+    }
+    if (step.adopt) {
+      if (transforming) {
+        throw new Error(
+          'Vault migration registry must list adopt steps before any step that transforms data.'
+        );
+      }
+    } else {
+      transforming = true;
     }
   }
   if (!Number.isSafeInteger(version) || version < 0) {
@@ -330,6 +344,16 @@ async function migrateVault(root, steps = migrations) {
   return { backup, version: steps.length };
 }
 
+// Metadata-only steps record the vault format without touching user documents,
+// so they are adopted in place: no prompt, no copy, no backup.
+async function adoptSteps(root, steps) {
+  for (const step of steps) {
+    await step.up(root);
+    await step.validate(root);
+    await writeManifest(root, { ...(await readManifest(root)), version: step.version });
+  }
+}
+
 async function prepareVault(root, { showMessageBox, steps = migrations } = {}) {
   root = path.resolve(root);
   const key = process.platform === 'win32' ? root.toLowerCase() : root;
@@ -341,12 +365,21 @@ async function prepareVault(root, { showMessageBox, steps = migrations } = {}) {
     await recoverMigration(root);
     await fs.mkdir(root, { recursive: true });
     const manifest = await readManifest(root);
-    const plan = migrationPlan(manifest.version, steps);
+    const fromVersion = manifest.version;
+    const plan = migrationPlan(fromVersion, steps);
     if (!plan.length) {
       return true;
     }
     if (!(await fs.readdir(root)).length) {
       await writeManifest(root, { version: steps.length });
+      return true;
+    }
+    const adopting = plan.filter((step) => step.adopt);
+    if (adopting.length) {
+      await adoptSteps(root, adopting);
+    }
+    const remaining = migrationPlan((await readManifest(root)).version, steps);
+    if (!remaining.length) {
       return true;
     }
     if (!showMessageBox) {
@@ -357,10 +390,12 @@ async function prepareVault(root, { showMessageBox, steps = migrations } = {}) {
     const { response } = await showMessageBox({
       type: 'question',
       title: 'Vault migration wizard',
-      message: `Upgrade ${path.basename(root)} from format ${manifest.version} to ${steps.length}?`,
+      message: `Upgrade ${path.basename(root)} from format ${fromVersion} to ${steps.length}?`,
       detail:
-        plan.map((step) => `${step.version}. ${step.title}\n${step.description}`).join('\n\n') +
-        '\n\nAll required upgrades run in order on a separate copy. The original vault is retained as a backup beside this folder. Close other apps editing this vault and pause cloud sync before continuing. Cancel leaves this vault unopened and unchanged.',
+        remaining
+          .map((step) => `${step.version}. ${step.title}\n${step.description}`)
+          .join('\n\n') +
+        '\n\nAll required upgrades run in order on a separate copy. The original vault is retained as a backup beside this folder. Close other apps editing this vault and pause cloud sync before continuing. Cancel leaves this vault unopened and your documents unchanged.',
       buttons: ['Back up and upgrade', 'Cancel'],
       defaultId: 1,
       cancelId: 1,

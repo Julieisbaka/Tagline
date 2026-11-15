@@ -296,8 +296,9 @@ function createVault({ app, path, fs, fssync, randomUUID, process, dialog }, sta
     throw new Error(`Could not find an available path for "${rel}" after 10 attempts.`);
   }
 
-  async function openVault(dir) {
+  async function openVault(dir, { steps } = {}) {
     const accepted = await prepareVault(dir, {
+      steps,
       showMessageBox:
         dialog &&
         ((options) =>

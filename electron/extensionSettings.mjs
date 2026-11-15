@@ -5,40 +5,40 @@ const ID = /^[a-z0-9][a-z0-9-]{1,63}$/;
 export function validateSettingValue(setting, value) {
   const fail = () => { throw new Error(`Invalid value for extension setting "${setting.id}".`); };
   if (setting.type === 'boolean') {
-    if (typeof value !== 'boolean') fail();
+    if (typeof value !== 'boolean') {fail();}
   } else if (setting.type === 'number') {
     if (typeof value !== 'number' || !Number.isFinite(value) ||
       (setting.min !== undefined && value < setting.min) ||
-      (setting.max !== undefined && value > setting.max)) fail();
+      (setting.max !== undefined && value > setting.max)) {fail();}
   } else if (setting.type === 'string') {
     if (typeof value !== 'string' || value.length > (setting.maxLength ?? 1000) ||
-      (setting.enum && !setting.enum.includes(value))) fail();
+      (setting.enum && !setting.enum.includes(value))) {fail();}
   } else if (setting.type === 'array' || setting.type === 'object') {
     let text;
     try { text = JSON.stringify(value); } catch { fail(); }
-    if (text.length > (setting.maxLength ?? 10000)) fail();
-    if (setting.type === 'array' ? !Array.isArray(value) : !value || typeof value !== 'object' || Array.isArray(value)) fail();
-    if (setting.schema && !validateJsonSchema(value, setting.schema)) fail();
+    if (text.length > (setting.maxLength ?? 10000)) {fail();}
+    if (setting.type === 'array' ? !Array.isArray(value) : !value || typeof value !== 'object' || Array.isArray(value)) {fail();}
+    if (setting.schema && !validateJsonSchema(value, setting.schema)) {fail();}
   } else if (setting.type === 'secret') {
-    if (typeof value !== 'string' || value.length > 10000) fail();
+    if (typeof value !== 'string' || value.length > 10000) {fail();}
   } else if (setting.type === 'path') {
-    if (typeof value !== 'string' || value.length > 1000 || value.startsWith('/') || value.includes('\\') || value.includes('..')) fail();
-  } else fail();
+    if (typeof value !== 'string' || value.length > 1000 || value.startsWith('/') || value.includes('\\') || value.includes('..')) {fail();}
+  } else {fail();}
   return value;
 }
 
 function validateJsonSchema(value, schema) {
   if (schema.type === 'object') {
-    if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
-    if (Object.keys(value).some((key) => schema.additionalProperties === false && !Object.hasOwn(schema.properties || {}, key))) return false;
+    if (!value || typeof value !== 'object' || Array.isArray(value)) {return false;}
+    if (Object.keys(value).some((key) => schema.additionalProperties === false && !Object.hasOwn(schema.properties || {}, key))) {return false;}
     return Object.entries(schema.properties || {}).every(([key, child]) =>
       (value[key] === undefined && !(schema.required || []).includes(key)) || validateJsonSchema(value[key], child));
   }
-  if (schema.type === 'array') return Array.isArray(value) && value.length <= (schema.maxItems ?? 100) && value.every((item) => validateJsonSchema(item, schema.items || {}));
-  if (schema.type === 'string') return typeof value === 'string' && value.length <= (schema.maxLength ?? 1000);
-  if (schema.type === 'number') return typeof value === 'number' && Number.isFinite(value) && (schema.minimum === undefined || value >= schema.minimum) && (schema.maximum === undefined || value <= schema.maximum);
-  if (schema.type === 'integer') return Number.isInteger(value) && (schema.minimum === undefined || value >= schema.minimum) && (schema.maximum === undefined || value <= schema.maximum);
-  if (schema.type === 'boolean') return typeof value === 'boolean';
+  if (schema.type === 'array') {return Array.isArray(value) && value.length <= (schema.maxItems ?? 100) && value.every((item) => validateJsonSchema(item, schema.items || {}));}
+  if (schema.type === 'string') {return typeof value === 'string' && value.length <= (schema.maxLength ?? 1000);}
+  if (schema.type === 'number') {return typeof value === 'number' && Number.isFinite(value) && (schema.minimum === undefined || value >= schema.minimum) && (schema.maximum === undefined || value <= schema.maximum);}
+  if (schema.type === 'integer') {return Number.isInteger(value) && (schema.minimum === undefined || value >= schema.minimum) && (schema.maximum === undefined || value <= schema.maximum);}
+  if (schema.type === 'boolean') {return typeof value === 'boolean';}
   return false;
 }
 
@@ -88,9 +88,9 @@ export function validateSettingDefinitions(definitions = [], limits = getRuntime
         throw new Error('Array/object settings require a matching JSON schema up to 4,096 characters.');
       }
     }
-    if (setting.type === 'secret' && !setting.default) setting.default = '';
-    if (setting.pathKind !== undefined && !['file', 'folder'].includes(setting.pathKind)) throw new Error('pathKind must be file or folder.');
-    if (setting.type === 'path' && setting.default === undefined) setting.default = '';
+    if (setting.type === 'secret' && !setting.default) {setting.default = '';}
+    if (setting.pathKind !== undefined && !['file', 'folder'].includes(setting.pathKind)) {throw new Error('pathKind must be file or folder.');}
+    if (setting.type === 'path' && setting.default === undefined) {setting.default = '';}
     validateSettingValue(setting, setting.default);
     return { ...setting, title: setting.title.trim() };
   });

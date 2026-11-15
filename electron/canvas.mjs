@@ -15,11 +15,11 @@ function isRecord(value) {
 }
 
 function requireString(value, label) {
-  if (typeof value !== 'string') throw new Error(`${label} must be a string.`);
+  if (typeof value !== 'string') {throw new Error(`${label} must be a string.`);}
 }
 
 function validateColor(value, label) {
-  if (value === undefined) return;
+  if (value === undefined) {return;}
   requireString(value, label);
   if (!/^(?:[1-6]|#[\da-f]{3,4}|#[\da-f]{6}|#[\da-f]{8})$/i.test(value)) {
     throw new Error(`${label} must be a preset color (1–6) or a hex color.`);
@@ -28,14 +28,14 @@ function validateColor(value, label) {
 
 /** Parse and validate JSON Canvas 1.0 text while retaining unknown fields. @returns {object} */
 export function parseCanvas(content) {
-  if (typeof content !== 'string') throw new Error('Canvas content must be JSON text.');
+  if (typeof content !== 'string') {throw new Error('Canvas content must be JSON text.');}
   let canvas;
   try {
     canvas = JSON.parse(content);
   } catch (error) {
     throw new Error(`Invalid Canvas JSON: ${error.message}`);
   }
-  if (!isRecord(canvas)) throw new Error('Canvas JSON must be an object.');
+  if (!isRecord(canvas)) {throw new Error('Canvas JSON must be an object.');}
   const nodes = canvas.nodes === undefined ? [] : canvas.nodes;
   const edges = canvas.edges === undefined ? [] : canvas.edges;
   if (!Array.isArray(nodes) || !Array.isArray(edges)) {
@@ -46,28 +46,28 @@ export function parseCanvas(content) {
   const nodeIds = new Set();
   for (const [index, node] of nodes.entries()) {
     const label = `Node ${index + 1}`;
-    if (!isRecord(node)) throw new Error(`${label} must be an object.`);
+    if (!isRecord(node)) {throw new Error(`${label} must be an object.`);}
     requireString(node.id, `${label} id`);
-    if (!node.id.trim() || ids.has(node.id)) throw new Error(`${label} id must be unique and non-empty.`);
+    if (!node.id.trim() || ids.has(node.id)) {throw new Error(`${label} id must be unique and non-empty.`);}
     ids.add(node.id);
     nodeIds.add(node.id);
-    if (!NODE_TYPES.has(node.type)) throw new Error(`${label} has an unsupported type.`);
+    if (!NODE_TYPES.has(node.type)) {throw new Error(`${label} has an unsupported type.`);}
     for (const key of ['x', 'y', 'width', 'height']) {
-      if (!Number.isSafeInteger(node[key])) throw new Error(`${label} ${key} must be an integer.`);
+      if (!Number.isSafeInteger(node[key])) {throw new Error(`${label} ${key} must be an integer.`);}
     }
-    if (node.width <= 0 || node.height <= 0) throw new Error(`${label} dimensions must be positive.`);
+    if (node.width <= 0 || node.height <= 0) {throw new Error(`${label} dimensions must be positive.`);}
     validateColor(node.color, `${label} color`);
-    if (node.type === 'text') requireString(node.text, `${label} text`);
+    if (node.type === 'text') {requireString(node.text, `${label} text`);}
     if (node.type === 'file') {
       requireString(node.file, `${label} file`);
       if (node.subpath !== undefined && (typeof node.subpath !== 'string' || !node.subpath.startsWith('#'))) {
         throw new Error(`${label} subpath must start with #.`);
       }
     }
-    if (node.type === 'link') requireString(node.url, `${label} url`);
+    if (node.type === 'link') {requireString(node.url, `${label} url`);}
     if (node.type === 'group') {
-      if (node.label !== undefined) requireString(node.label, `${label} label`);
-      if (node.background !== undefined) requireString(node.background, `${label} background`);
+      if (node.label !== undefined) {requireString(node.label, `${label} label`);}
+      if (node.background !== undefined) {requireString(node.background, `${label} background`);}
       if (node.backgroundStyle !== undefined &&
         (typeof node.backgroundStyle !== 'string' || !BACKGROUND_STYLES.has(node.backgroundStyle))) {
         throw new Error(`${label} backgroundStyle is invalid.`);
@@ -77,9 +77,9 @@ export function parseCanvas(content) {
 
   for (const [index, edge] of edges.entries()) {
     const label = `Edge ${index + 1}`;
-    if (!isRecord(edge)) throw new Error(`${label} must be an object.`);
+    if (!isRecord(edge)) {throw new Error(`${label} must be an object.`);}
     requireString(edge.id, `${label} id`);
-    if (!edge.id.trim() || ids.has(edge.id)) throw new Error(`${label} id must be unique and non-empty.`);
+    if (!edge.id.trim() || ids.has(edge.id)) {throw new Error(`${label} id must be unique and non-empty.`);}
     ids.add(edge.id);
     requireString(edge.fromNode, `${label} fromNode`);
     requireString(edge.toNode, `${label} toNode`);
@@ -97,7 +97,7 @@ export function parseCanvas(content) {
       }
     }
     validateColor(edge.color, `${label} color`);
-    if (edge.label !== undefined) requireString(edge.label, `${label} label`);
+    if (edge.label !== undefined) {requireString(edge.label, `${label} label`);}
   }
   return { ...canvas, nodes, edges };
 }
@@ -109,7 +109,7 @@ export function serializeCanvas(canvas) {
 
 /** Create a text/file/link/group node at a default grid position. @returns {object} */
 export function createCanvasNode(type, index, id = createCanvasId()) {
-  if (!NODE_TYPES.has(type)) throw new Error(`Unsupported Canvas node type: ${type}`);
+  if (!NODE_TYPES.has(type)) {throw new Error(`Unsupported Canvas node type: ${type}`);}
   const node = {
     id,
     type,
@@ -118,10 +118,10 @@ export function createCanvasNode(type, index, id = createCanvasId()) {
     width: type === 'group' ? 360 : 280,
     height: type === 'group' ? 240 : 180,
   };
-  if (type === 'text') node.text = '';
-  if (type === 'file') node.file = '';
-  if (type === 'link') node.url = '';
-  if (type === 'group') node.label = 'Group';
+  if (type === 'text') {node.text = '';}
+  if (type === 'file') {node.file = '';}
+  if (type === 'link') {node.url = '';}
+  if (type === 'group') {node.label = 'Group';}
   return node;
 }
 
@@ -132,7 +132,7 @@ export function createArgumentEdge(fromNode, toNode, relation, id = createCanvas
     answers: { label: 'Answers', color: '2' },
     contradicts: { label: 'Contradicts', color: '1' },
   };
-  if (!Object.hasOwn(relations, relation)) throw new Error(`Unsupported argument relation: ${relation}`);
+  if (!Object.hasOwn(relations, relation)) {throw new Error(`Unsupported argument relation: ${relation}`);}
   const details = relations[relation];
   return {
     id,
@@ -148,7 +148,7 @@ export function createArgumentEdge(fromNode, toNode, relation, id = createCanvas
 /** Return IDs of nodes fully contained in the specified group's bounds. @returns {string[]} */
 export function canvasGroupMembers(nodes, groupId) {
   const group = nodes.find((node) => node.id === groupId && node.type === 'group');
-  if (!group) return [];
+  if (!group) {return [];}
   return nodes.filter((node) => node.id !== groupId &&
     node.x >= group.x && node.y >= group.y &&
     node.x + node.width <= group.x + group.width &&

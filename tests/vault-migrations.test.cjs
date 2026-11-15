@@ -157,6 +157,16 @@ function step(version, up = async () => {}, validate = async () => {}) {
   };
 }
 
+function transformingStep(version) {
+  return {
+    ...step(version, async (stage) => {
+      await fs.writeFile(path.join(stage, 'Converted.md'), '# Converted\n');
+    }),
+    title: 'Rewrite card format',
+    description: 'Rewrite every card in the new format.',
+  };
+}
+
 test('registry covers consecutive versions and refuses invalid or future versions', () => {
   assert.equal(migrationPlan(0).length, migrations.length);
   assert.deepEqual(migrationPlan(migrations.length), []);
@@ -164,14 +174,38 @@ test('registry covers consecutive versions and refuses invalid or future version
   assert.throws(() => migrationPlan(-1), /Invalid/);
   assert.throws(() => migrationPlan(0, [step(2)]), /consecutive/);
   assert.throws(() => migrationPlan(0, [{ version: 1, up() {} }]), /validation/);
+  assert.throws(
+    () => migrationPlan(0, [step(1), { ...step(2), adopt: true }]),
+    /adopt steps before any step that transforms data/
+  );
+});
+
+test('a vault without a manifest is adopted without a wizard or a backup', async (t) => {
+  const { root, parent } = await fixture(t);
+  await seed(root);
+  assert.equal(
+    await prepareVault(root, {
+      showMessageBox: () => assert.fail('Unexpected prompt'),
+    }),
+    true
+  );
+  assert.equal((await readManifest(root)).version, migrations.length);
+  assert.deepEqual(await fs.readdir(parent), ['Vault']);
+  assert.equal(await fs.readFile(path.join(root, 'Note.md'), 'utf8'), '# Original\n');
+  assert.equal(
+    await prepareVault(root, { showMessageBox: () => assert.fail('Unexpected prompt') }),
+    true
+  );
 });
 
 test('wizard cancellation leaves every file untouched and creates no backup', async (t) => {
   const { root, parent } = await fixture(t);
   await seed(root);
+  const steps = [transformingStep(1)];
   let prompt;
   assert.equal(
     await prepareVault(root, {
+      steps,
       showMessageBox: async (options) => {
         prompt = options;
         return { response: 1 };
@@ -180,7 +214,7 @@ test('wizard cancellation leaves every file untouched and creates no backup', as
     false
   );
   assert.equal(prompt.cancelId, 1);
-  assert.match(prompt.detail, /Enable vault format tracking/);
+  assert.match(prompt.detail, /Rewrite card format/);
   assert.equal((await readManifest(root)).version, 0);
   assert.deepEqual(await fs.readdir(parent), ['Vault']);
   assert.equal(await fs.readFile(path.join(root, 'Note.md'), 'utf8'), '# Original\n');
@@ -189,8 +223,10 @@ test('wizard cancellation leaves every file untouched and creates no backup', as
 test('wizard backs up the whole vault, including binary data and hidden history; current vault does not prompt again', async (t) => {
   const { root } = await fixture(t);
   await seed(root);
+  const steps = [transformingStep(1), step(2)];
   const prompts = [];
   await prepareVault(root, {
+    steps,
     showMessageBox: async (options) => {
       prompts.push(options);
       return { response: 0 };
@@ -204,10 +240,13 @@ test('wizard backs up the whole vault, including binary data and hidden history;
       await fs.readFile(path.join(backup, file))
     );
   }
-  assert.equal((await readManifest(root)).version, migrations.length);
+  assert.equal((await readManifest(root)).version, steps.length);
   assert.equal((await readManifest(backup)).version, 0);
   assert.equal(
-    await prepareVault(root, { showMessageBox: () => assert.fail('Unexpected prompt') }),
+    await prepareVault(root, {
+      steps,
+      showMessageBox: () => assert.fail('Unexpected prompt'),
+    }),
     true
   );
 });
@@ -367,6 +406,7 @@ test('interrupted directory swap is recovered before opening', async (t) => {
   await fs.rename(root, `${root}.tagline-backup-${id}`);
   await prepareVault(root, { showMessageBox: async () => ({ response: 1 }) });
   assert.equal(await fs.readFile(path.join(root, 'Note.md'), 'utf8'), '# Original\n');
+  assert.equal((await readManifest(root)).version, migrations.length);
   await assert.rejects(fs.stat(journalPath(root)), { code: 'ENOENT' });
 });
 
@@ -496,6 +536,7 @@ test('overlapping opens cannot launch two migrations', async (t) => {
     entered = resolve;
   });
   const opening = prepareVault(root, {
+    steps: [transformingStep(1)],
     showMessageBox: () => {
       entered();
       return new Promise((resolve) => {
@@ -529,9 +570,35 @@ test('cancelled open preserves the active vault and saved recent vaults', async 
     },
     state
   );
-  assert.equal(await vault.openVault(root), null);
+  assert.equal(await vault.openVault(root, { steps: [transformingStep(1)] }), null);
   assert.equal(state.vaultRoot, 'previous');
   assert.deepEqual(vault.readConfig(), config);
+});
+
+test('a vault that only needs an adoption opens without any dialog', async (t) => {
+  const { root } = await fixture(t);
+  await seed(root);
+  const profile = path.join(root, '..', 'Profile');
+  await fs.mkdir(profile);
+  const state = { vaultRoot: 'previous' };
+  const vault = createVault(
+    {
+      app: { getPath: () => profile },
+      path,
+      fs,
+      fssync,
+      randomUUID,
+      process,
+      dialog: {
+        showMessageBox: async () => assert.fail('Unexpected dialog'),
+      },
+    },
+    state
+  );
+  const info = await vault.openVault(root);
+  assert.equal(info.root, root);
+  assert.equal(state.vaultRoot, root);
+  assert.equal((await readManifest(root)).version, migrations.length);
 });
 
 test('active vault changes only after the migration wizard completes', async (t) => {
@@ -541,6 +608,7 @@ test('active vault changes only after the migration wizard completes', async (t)
   await fs.mkdir(profile);
   const state = { vaultRoot: 'previous', win: {} };
   await fs.writeFile(path.join(profile, 'config.json'), '{}');
+  const steps = [transformingStep(1)];
   let dialogs = 0;
   const vault = createVault(
     {
@@ -556,7 +624,7 @@ test('active vault changes only after the migration wizard completes', async (t)
           assert.equal(state.vaultRoot, 'previous');
           dialogs++;
           if (options.type === 'info') {
-            assert.equal((await readManifest(root)).version, migrations.length);
+            assert.equal((await readManifest(root)).version, steps.length);
           }
           return { response: 0 };
         },
@@ -564,7 +632,7 @@ test('active vault changes only after the migration wizard completes', async (t)
     },
     state
   );
-  const info = await vault.openVault(root);
+  const info = await vault.openVault(root, { steps });
   assert.equal(dialogs, 2);
   assert.equal(info.root, root);
   assert.equal(state.vaultRoot, root);
@@ -670,13 +738,15 @@ test('startup and recent vaults can recover a missing root; cancelling sample cr
     state,
     {}
   );
-  assert.equal(await handlers['vault:getLast']({}), null);
+  // The interrupted swap is recovered and the vault is adopted without a wizard.
+  assert.equal((await handlers['vault:getLast']({})).root, root);
   assert.equal(await fs.readFile(path.join(root, 'Note.md'), 'utf8'), '# Original\n');
-  assert.equal(await handlers['vault:openRecent']({}, root), null);
-  const sample = path.join(parent, 'Tagline Sample Vault');
-  await fs.mkdir(sample);
-  await seed(sample);
+  assert.equal((await handlers['vault:openRecent']({}, root)).root, root);
+  // Cancelling the folder picker leaves the sample vault unwritten.
+  dialog.showOpenDialog = async () => ({ canceled: true });
   assert.equal(await handlers['vault:createSample']({}), null);
-  await assert.rejects(fs.stat(path.join(sample, 'Sample.md')), { code: 'ENOENT' });
-  assert.equal(state.vaultRoot, 'previous');
+  await assert.rejects(fs.stat(path.join(parent, 'Tagline Sample Vault', 'Sample.md')), {
+    code: 'ENOENT',
+  });
+  assert.equal(state.vaultRoot, root);
 });

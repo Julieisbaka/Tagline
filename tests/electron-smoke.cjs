@@ -35,11 +35,6 @@ const delay = (ms) => new Promise((r) => setTimeout(r, ms));
   const temp = await fs.mkdtemp(path.join(os.tmpdir(), 'debate-electron-test-'));
   const vault = path.join(temp, 'vault');
   await fs.mkdir(vault);
-  await fs.mkdir(path.join(vault, '.tagline'));
-  await fs.writeFile(
-    path.join(vault, '.tagline', 'vault.json'),
-    JSON.stringify({ version: require('../electron/vaultMigrations.cjs').migrations.length })
-  );
   await fs.writeFile(path.join(vault, 'Cards.md'), fixture);
   await fs.writeFile(path.join(vault, 'Other.md'), '# Other\n\n## Section\n\nOther evidence.');
   await fs.writeFile(path.join(vault, 'Plain.md'), '# Plain\n\nStart.');
@@ -107,6 +102,11 @@ const delay = (ms) => new Promise((r) => setTimeout(r, ms));
         await waitFor("!!document.querySelector('.onboarding-skip')");
         await js("document.querySelector('.onboarding-skip').click()");
         await waitFor("document.querySelectorAll('.tree-item').length === 6");
+        assert.equal(
+          JSON.parse(await fs.readFile(path.join(vault, '.tagline', 'vault.json'), 'utf8')).version,
+          require('../electron/vaultMigrations.cjs').migrations.length,
+          'a vault without a manifest must be adopted instead of prompting for a migration'
+        );
         await click('.tree-item', 'Cards');
         await waitFor("!!document.querySelector('.visual-document')");
         assert.equal(

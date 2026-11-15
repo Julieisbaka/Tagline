@@ -29,7 +29,7 @@ export const DEFAULT_LIMITS = Object.freeze(Object.fromEntries(
 ));
 
 export function validateLimits(value = {}) {
-  if (!value || typeof value !== 'object' || Array.isArray(value)) throw new Error('Invalid customization limits.');
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {throw new Error('Invalid customization limits.');}
   const limits = { ...DEFAULT_LIMITS };
   for (const [key, number] of Object.entries(value)) {
     const definition = LIMIT_DEFINITIONS[key];
