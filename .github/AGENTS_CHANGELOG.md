@@ -1,116 +1,34 @@
-# Agent Changelog & Website Documentation Guidelines
+# Changelog and website documentation instructions
 
-When updating release notes, pinned tabs, or any user-facing documentation, follow these conventions so the changelog and website remain consistent.
+Follow these rules whenever a change affects Tagline's release notes or product documentation.
 
-## Version numbering
+## Version and release status
 
-- Repo uses [SemVer](https://semver.org/): `MAJOR.MINOR.PATCH` (currently `0.1.3`).
-- New releases always start as "In development" under `v0.1.3` (or whatever the version is at the time) until a release tag is cut.
-- When the user requests a new release, move the current "In development" section to a released version (e.g., `v0.1.2`) and add a new `v0.1.3` section.
+- The version in `website/changelog.html` is the release version without a suffix, such as `0.1.3`.
+- While that version is in development, show it as **In development** in the changelog and set `package.json`'s `version`, `package-lock.json`'s top-level `version`, and `package-lock.json`'s `packages[""].version` to the same version with `-dev` appended, such as `0.1.3-dev`.
+- When preparing that version for release, remove `-dev` from both package files and remove the in-development status from its changelog entry. In `website/changelog.html`, change the section's article kicker to `Released`, remove the `In development` badge from its heading, and remove `· In development` from its sidebar link. Keep the version number and section anchor consistent.
+- Do not create a new development version, guess a version bump, publish a release, or create a tag unless explicitly requested. Do not modify previous released entries as part of a new release.
+- When a new development version is explicitly requested, use the requested version consistently in the package files and add its in-development section and sidebar link above older versions.
 
-## Updating CHANGELOG.md (root)
+## Updating `website/changelog.html`
 
-### Adding a new fix/feature
+- This file is the public release changelog. Add relevant user-visible changes to the newest **In development** section, not to an older release.
+- Group entries under the existing `Added`, `Improved`, `Fixed`, `Removed`, or `Deprecated` headings as appropriate. Add a heading only when needed.
+- Write concise, plain-language entries describing the user-visible result. Use one `<li>` per change, match the surrounding HTML style, and use `<code>` for literal filenames or commands where helpful.
+- Avoid duplicate entries and implementation-only details. Preserve the content of already released entries.
 
-1. Place the entry under the **latest** `v0.x.y` "In development" section.
-2. Use the appropriate heading:
-   - **Added** — New features, capabilities, or significant enhancements.
-   - **Improved** — UX, performance, polish, refactors that don't change surface behavior.
-   - **Fixed** — Bug fixes, crash repairs, data-loss prevention.
-   - **Removed** — Features, capabilities, or elements that have been intentionally removed.
-   - **Deprecated** — Features or capabilities that are planned for removal in future releases.
-3. Each entry is a single `<li>` item. Keep it concise but descriptive.
-4. Group related changes under the same heading if there are multiple.
+## Product and developer documentation
 
-### Example entry
+- The `website/` is the authoritative home for Tagline's user-facing and developer documentation. Do not create duplicate product guides or API documentation elsewhere in the repository.
+- For every change, check whether it changes documented behavior, workflows, settings, installation or update steps, file formats, or APIs. Update the relevant existing page under `website/` when needed; create a new `website/docs/*.html` page when no existing page covers a substantial new topic.
+- When creating a documentation page, follow the structure, shared styles, navigation, and accessibility patterns of the existing pages in `website/docs/`. Add the page to the documentation navigation in `website/docs/index.html` and link to it from related pages where useful.
+- Keep documentation accurate to the implementation and explain behavior from the user's perspective. The changelog is not a substitute for documentation.
+- A change that does not affect documented user-facing behavior does not need a documentation edit.
 
-```markdown
-- Fixed: pins writes now retry on EBUSY/EPERM (Windows file-lock hazard).
-```
+## Completion check
 
-## Updating website/changelog.html
-
-The website changelog lives in `<section id="v0-x-y">` blocks keyed by version. Follow these rules:
-
-### Adding a new entry
-
-1. **Find the latest `v0.x.y` "In development" section** (the one with `aria-current="location"`).
-2. Inside that section, add your entry:
-   - Under `<h3>Improved</h3>` → `<ul><li>...</li></ul>`
-   - Under `<h3>Fixed</h3>` → `<ul><li>...</li></ul>`
-3. Use the same formatting as existing entries (no markdown bold inside `<li>` unless the original uses it; prefer plain text or `<code>` for file paths).
-4. If the change was already documented in `CHANGELOG.md`, copy the same text (or a concise variant) into the HTML `<li>`.
-
-### Example: Adding a fixed bug
-
-```html
-<h3>Fixed</h3>
-<ul>
-  <!-- existing entries -->
-  <li>Fixed: pins.json no longer rewrites on every tab close when the path wasn't pinned.</li>
-  <li>Fixed: read failure no longer blocks tab restoration and write persistence.</li>
-  <li>Fixed: pins writes now retry on EBUSY/EPERM (Windows file-lock hazard).</li>
-</ul>
-```
-
-### Adding a new version section
-
-When releasing, duplicate the latest section, increment the version number, and update the heading:
-
-```html
-<section id="v0-1-2">
-  <p class="article-kicker">Released</p>
-  <h2>0.1.2</h2>
-  ...
-  <a href="#main" aria-current="location">0.1.2 · In development</a>   <!-- keep this for the next version -->
-</section>
-```
-
-## Workflow checklist
-
-Before marking a changelog update complete:
-
-- [ ] Entry is under the correct version section (`v0.x.y` "In development").
-- [ ] Entry uses the right heading (`Improved` vs `Fixed`).
-- [ ] `CHANGELOG.md` and `website/changelog.html` both contain the entry (or the HTML entry references the markdown).
-- [ ] Version number is correct and consistent between both files.
-- [ ] No duplicate entries for the same change.
-
-## Conventions from this project
-
-- File paths in notes are referenced as `.tagline/pins.json`, not `src/lib/useFavorites.js`.
-- Bug descriptions focus on user-visible behavior, not internal implementation.
-- Keep `<li>` items on a single line when possible; avoid nested lists inside changelog entries.
-
-## Updating website/docs/ (general documentation)
-
-The `website/docs/` folder contains Markdown-filed HTML pages that describe Tagline's features, workflows, and API. Follow these guidelines when changes affect user-visible behavior:
-
-### When a fix changes user-facing behavior
-
-1. **Check if the change affects any documented feature** — search `website/docs/` for keywords related to the change (e.g., "pin", "pinned tab", "favorites", "save", "persist").
-2. **If documentation needs updating**:
-   - Edit the relevant `.html` file in `website/docs/`.
-   - Keep the existing formatting (same CSS classes, heading hierarchy, link patterns).
-   - If adding or revising a feature description, follow the style of the existing entries: concise paragraphs, `<code>` for file paths, no nested lists inside feature bullets.
-3. **If the change is internal/or does not affect UX**, no doc update is needed — note this in the changelog entry with a brief "internal" note.
-
-### Example: Documenting a pin-related fix
-
-If a fix changes how pinned tabs behave, you might add or modify a sentence in `website/docs/notes-and-evidence.html` or another relevant doc, keeping the same structure:
-
-```html
-<li>Fixed: pinned tabs now persist correctly after a read error, instead of going inert.</li>
-```
-
-### Workflow checklist (updated)
-
-Before marking a changelog update complete:
-
-- [ ] Entry is under the correct version section (`v0.x.y` "In development").
-- [ ] Entry uses the right heading (`Improved` vs `Fixed`).
-- [ ] `CHANGELOG.md` and `website/changelog.html` both contain the entry.
-- [ ] Version number is correct and consistent between both files.
-- [ ] **No duplicate entries for the same change.**
-- [ ] If the fix affects user-visible behavior, check `website/docs/` for related topics and update if needed (search for keywords like "pin", "pinned", "favorites", "persist", "save").
-- [ ] All three files are in sync: `CHANGELOG.md`, `website/changelog.html`, and any affected `website/docs/*.html`.
+- [ ] Development versions match across the changelog section, `package.json`, and both `package-lock.json` version fields (`X.Y.Z` in the changelog and `X.Y.Z-dev` in package metadata).
+- [ ] For a release-preparation change, both package files use `X.Y.Z` and the matching changelog section no longer says `In development`.
+- [ ] Relevant website documentation is updated or created when the change affects documented behavior.
+- [ ] New documentation pages are linked from the documentation index and related pages as appropriate.
+- [ ] No duplicate changelog entries or unrelated edits to released notes were introduced.
