@@ -1,7 +1,43 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { translate } from './i18n.js';
 import { readStoredJson } from './storedJson.js';
 
 const STORAGE_KEY = 'tagline-favorites';
+
+const PIN_ERROR_KEYS = {
+  load: 'Could not load pinned items: {error}',
+  save: 'Could not save pinned items: {error}',
+};
+
+/**
+ * Build the toast text for a pin failure, keeping read and write failures distinct.
+ * @param {'load'|'save'} kind
+ * @param {unknown} error
+ * @returns {string}
+ */
+export function pinErrorDetail(kind, error) {
+  const key = PIN_ERROR_KEYS[kind] || PIN_ERROR_KEYS.save;
+  return translate(key, { error: error?.message || String(error || '') });
+}
+
+/**
+ * Interpret the value returned by the pins reader.
+ * @param {*} saved
+ * @returns {{favorites: string[]|null, pinnedTabs: string[]|null, corrupted: boolean}}
+ */
+export function parsePinsResult(saved) {
+  if (!saved || typeof saved !== 'object' || Array.isArray(saved)) {
+    return { favorites: null, pinnedTabs: null, corrupted: false };
+  }
+  if (saved.corrupted === true) {
+    return { favorites: [], pinnedTabs: [], corrupted: true };
+  }
+  return {
+    favorites: Array.isArray(saved.favorites) ? saved.favorites : null,
+    pinnedTabs: Array.isArray(saved.pinnedTabs) ? saved.pinnedTabs : null,
+    corrupted: false,
+  };
+}
 
 export function renameFavorites(paths, from, to) {
   return paths.map((path) =>
@@ -11,12 +47,6 @@ export function renameFavorites(paths, from, to) {
 
 export function removeFavorites(paths, removed) {
   return paths.filter((path) => path !== removed && !path.startsWith(removed + '/'));
-}
-
-function reportSave(error) {
-  window.dispatchEvent(
-    new CustomEvent('app-error', { detail: `Could not save pinned items: ${error.message}` })
-  );
 }
 
 // .tagline/pins.json is the single source of truth for pins and favorites. The legacy
@@ -59,13 +89,27 @@ export function useFavorites(root) {
   );
   const [tabPins, setTabPins] = useState({});
   const [loadedRoot, setLoadedRoot] = useState(null);
+  const [pinStatus, setPinStatus] = useState(null);
+  const lastError = useRef('');
   const vaultsRef = useRef(vaults);
   vaultsRef.current = vaults;
   const tabPinsRef = useRef(tabPins);
   tabPinsRef.current = tabPins;
 
+  // Report a pin failure once per distinct message and keep it visible as a status.
+  const reportPinError = useCallback((level, message) => {
+    if (lastError.current === message) {
+      return;
+    }
+    lastError.current = message;
+    setPinStatus({ level, message });
+    window.dispatchEvent(new CustomEvent('app-error', { detail: message }));
+  }, []);
+
   useEffect(() => {
     let cancelled = false;
+    lastError.current = '';
+    setPinStatus(null);
     if (!root) {
       setLoadedRoot(null);
       return undefined;
@@ -81,11 +125,15 @@ export function useFavorites(root) {
         if (cancelled) {
           return;
         }
-        if (saved) {
-          setVaults((previous) => ({ ...previous, [root]: saved.favorites }));
-          setTabPins((previous) => ({ ...previous, [root]: saved.pinnedTabs }));
+        const result = parsePinsResult(saved);
+        if (result.favorites) {
+          setVaults((previous) => ({ ...previous, [root]: result.favorites }));
+          setTabPins((previous) => ({ ...previous, [root]: result.pinnedTabs }));
           setLoadedRoot(root);
           purgeLegacyRoot(root);
+          if (result.corrupted) {
+            reportPinError('warning', translate('Pinned items could not be read and were reset'));
+          }
           return;
         }
         const favorites = vaultsRef.current[root] || [];
@@ -101,19 +149,19 @@ export function useFavorites(root) {
               purgeLegacyRoot(root);
             }
           },
-          (error) => !cancelled && reportSave(error)
+          (error) => !cancelled && reportPinError('warning', pinErrorDetail('save', error))
         );
       })
       .catch((error) => {
         if (!cancelled) {
-          reportSave(error);
-          setLoadedRoot(root);
+          // Keep the file untouched: writing here would overwrite pins we could not read.
+          reportPinError('error', pinErrorDetail('load', error));
         }
       });
     return () => {
       cancelled = true;
     };
-  }, [root]);
+  }, [root, reportPinError]);
 
   useEffect(() => {
     if (!root || loadedRoot !== root || !window.api?.writePins) {
@@ -121,8 +169,12 @@ export function useFavorites(root) {
     }
     window.api
       .writePins({ favorites: vaults[root] || [], pinnedTabs: tabPins[root] || [] })
-      .catch(reportSave);
-  }, [vaults, tabPins, root, loadedRoot]);
+      .then(() => {
+        setPinStatus((previous) => (previous?.level === 'save' ? null : previous));
+        lastError.current = '';
+      })
+      .catch((error) => reportPinError('warning', pinErrorDetail('save', error)));
+  }, [vaults, tabPins, root, loadedRoot, reportPinError]);
 
   const updateFavorites = useCallback(
     (change) => {
@@ -148,6 +200,8 @@ export function useFavorites(root) {
     paths: vaults[root] || [],
     pinnedTabs: tabPins[root] || [],
     loaded: loadedRoot === root,
+    pinStatus,
+    pinsAvailable: !pinStatus || pinStatus.level !== 'error',
     toggle: (path) =>
       updateFavorites((paths) =>
         paths.includes(path) ? paths.filter((item) => item !== path) : [...paths, path]

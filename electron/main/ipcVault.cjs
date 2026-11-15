@@ -80,7 +80,8 @@ function registerVaultIpc(
     } catch (error) {
       console.warn('[pins] failed to move invalid pins file', error.message);
     }
-    return null;
+    // Tell the renderer the file was invalid so it can say why pins did not restore.
+    return { favorites: [], pinnedTabs: [], corrupted: true };
   }
 
   function writePinsAtomic(value) {

@@ -192,6 +192,16 @@ export default function Sidebar({
         mode={mode}
       />
       <div className='sidebar-footer' title={vault.root}>
+        {favorites.pinStatus && (
+          <span
+            className={`pin-status ${favorites.pinStatus.level}`}
+            title={favorites.pinStatus.message}
+            aria-label={favorites.pinStatus.message}
+            role='img'
+          >
+            <Icon name='warning' size={12} />
+          </span>
+        )}
         <button className='vault-switch' onClick={actions.switchVault}>
           <Icon name='vault' size={14} /> {vault.name}
         </button>

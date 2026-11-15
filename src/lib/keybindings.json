@@ -102,7 +102,7 @@
     "label": "Pin current tab",
     "action": "togglePinTab",
     "scope": "app",
-    "key": "",
+    "key": "Mod+Shift+P",
     "note": true
   },
   {

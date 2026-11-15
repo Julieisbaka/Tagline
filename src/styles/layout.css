@@ -181,6 +181,17 @@ body.resizing-panels * {
   border-top: 1px solid var(--border);
 }
 
+.pin-status {
+  display: inline-flex;
+  flex: 0 0 auto;
+  margin-right: 6px;
+  color: var(--warning);
+}
+
+.pin-status.error {
+  color: var(--danger);
+}
+
 .vault-switch {
   flex: 1;
   display: flex;

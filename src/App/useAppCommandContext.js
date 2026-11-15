@@ -351,6 +351,9 @@ export function useAppCommandContext({
       if (!activePath) {
         return;
       }
+      if (!favorites.pinsAvailable) {
+        return notify(t('Pinned items are unavailable, so pin changes will not be saved'));
+      }
       const name = baseName(activePath);
       favorites.toggleTabPin(activePath);
       notify(
@@ -360,6 +363,9 @@ export function useAppCommandContext({
       );
     },
     closeUnpinnedTabs: () => {
+      if (!favorites.pinsAvailable) {
+        return notify(t('Pinned items are unavailable, so unpinned tabs cannot be identified'));
+      }
       const pinned = new Set(favorites.pinnedTabs);
       const closable = tabs.tabs
         .filter((tab) => tab.kind === 'file' && !pinned.has(tab.path))

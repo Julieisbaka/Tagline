@@ -24,3 +24,29 @@ test('pinned note and folder paths follow file and folder renames without changi
     'Folder2/Note.md',
   ]);
 });
+
+test('pins read results tell missing, saved and corrupted files apart', async () => {
+  const { parsePinsResult } = await import('../src/lib/useFavorites.js');
+  assert.deepEqual(parsePinsResult(null), {
+    favorites: null,
+    pinnedTabs: null,
+    corrupted: false,
+  });
+  assert.deepEqual(parsePinsResult({ favorites: ['a.md'], pinnedTabs: ['b.md'] }), {
+    favorites: ['a.md'],
+    pinnedTabs: ['b.md'],
+    corrupted: false,
+  });
+  assert.deepEqual(parsePinsResult({ favorites: [], pinnedTabs: [], corrupted: true }), {
+    favorites: [],
+    pinnedTabs: [],
+    corrupted: true,
+  });
+});
+
+test('pin failures report read and write errors separately', async () => {
+  const { pinErrorDetail } = await import('../src/lib/useFavorites.js');
+  const error = new Error('disk gone');
+  assert.equal(pinErrorDetail('load', error), 'Could not load pinned items: disk gone');
+  assert.equal(pinErrorDetail('save', error), 'Could not save pinned items: disk gone');
+});

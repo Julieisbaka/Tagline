@@ -102,6 +102,7 @@ export default function TabBar({
                   ? [
                       {
                         label: pinnedPaths.includes(t.path) ? 'Unpin tab' : 'Pin tab',
+                        command: 'pin-tab',
                         run: () => onTogglePin?.(t.id),
                       },
                     ]
