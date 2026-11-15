@@ -444,6 +444,77 @@ const delay = (ms) => new Promise((r) => setTimeout(r, ms));
         win.setContentSize(1280, 800);
         win.show({ focus: false });
         await delay(800);
+        await js(`(() => {
+          const tab = document.querySelector('.tab[title="Doc.md"]');
+          if (tab) tab.click();
+          const mode = document.querySelector('[aria-label="Editor mode"]');
+          if (mode.value === 'read') {
+            mode.value = 'edit';
+            mode.dispatchEvent(new Event('change', { bubbles: true }));
+          }
+          [...document.querySelectorAll('.note-actions button')]
+            .find(button => button.textContent === 'Split view').click();
+        })()`);
+        await delay(400);
+        const noteBefore = await rect('.note-edit-pane');
+        const noteHandle = await rect('.note-splitter');
+        const nx = Math.round(noteHandle.x + noteHandle.w / 2),
+          ny = Math.round(noteHandle.y + noteHandle.h / 2);
+        win.webContents.sendInputEvent({ type: 'mouseMove', x: nx, y: ny });
+        await delay(50);
+        win.webContents.sendInputEvent({
+          type: 'mouseDown',
+          x: nx,
+          y: ny,
+          button: 'left',
+          clickCount: 1,
+        });
+        await delay(50);
+        for (let dx = 20; dx <= 80; dx += 20) {
+          win.webContents.sendInputEvent({
+            type: 'mouseMove',
+            x: nx + dx,
+            y: ny,
+            button: 'left',
+            modifiers: ['leftButtonDown'],
+          });
+          await delay(30);
+        }
+        win.webContents.sendInputEvent({
+          type: 'mouseUp',
+          x: nx + 80,
+          y: ny,
+          button: 'left',
+          clickCount: 1,
+        });
+        await delay(300);
+        const noteAfter = await rect('.note-edit-pane');
+        assert.ok(
+          Math.abs(noteAfter.w - noteBefore.w - 80) <= 2,
+          'split divider resizes the editor'
+        );
+        await js("document.querySelector('.note-splitter').focus()");
+        const splitBeforeKey = await js(
+          "Number(document.querySelector('.note-splitter').getAttribute('aria-valuenow'))"
+        );
+        win.webContents.sendInputEvent({ type: 'keyDown', keyCode: 'Left' });
+        await delay(100);
+        assert.equal(
+          await js(
+            "Number(document.querySelector('.note-splitter').getAttribute('aria-valuenow'))"
+          ),
+          splitBeforeKey - 2,
+          'ArrowLeft shrinks the editor'
+        );
+        win.webContents.sendInputEvent({ type: 'keyDown', keyCode: 'Return' });
+        await delay(100);
+        assert.equal(
+          await js(
+            "Number(document.querySelector('.note-splitter').getAttribute('aria-valuenow'))"
+          ),
+          50,
+          'Enter resets the split'
+        );
         // Real mouse drag of the left splitter by +120px.
         const before = (await rect('.sidebar')).w;
         const s = await rect('.panel-splitter-left');

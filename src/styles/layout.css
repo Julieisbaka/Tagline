@@ -46,7 +46,8 @@
 }
 
 /* Drag handles between the side panels and the note column */
-.panel-splitter {
+.panel-splitter,
+.note-splitter {
   width: 6px;
   margin: 0 -3px;
   flex-shrink: 0;
@@ -60,8 +61,19 @@
 
 .panel-splitter:hover,
 .panel-splitter:focus-visible,
-body.resizing-panels .panel-splitter:active {
+.note-splitter:hover,
+.note-splitter:focus-visible,
+body.resizing-panels .panel-splitter:active,
+body.resizing-panels .note-splitter:active {
   background: var(--accent);
+}
+
+.note-splitter::before {
+  content: '';
+  position: absolute;
+  inset: 0 auto 0 2.5px;
+  width: 1px;
+  background: var(--border);
 }
 
 body.resizing-panels,
@@ -458,14 +470,17 @@ body.resizing-panels * {
 
 .split-view .note-edit-pane,
 .split-view .note-preview-pane {
-  flex: 1 1 0;
   min-width: 0;
   height: 100%;
   overflow: auto;
 }
 
+.split-view .note-edit-pane {
+  flex: 0 0 var(--note-split, 50%);
+}
+
 .split-view .note-preview-pane {
-  border-left: 1px solid var(--border);
+  flex: 1 1 0;
 }
 
 .note-body .editor {

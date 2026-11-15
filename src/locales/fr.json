@@ -1216,6 +1216,7 @@
   "Current source: {source}": "Source actuelle : {source}",
   "Resize file explorer": "Redimensionner l'explorateur de fichiers",
   "Resize side panel": "Redimensionner le panneau lat?ral",
+  "Resize editor and preview": "Redimensionner l'éditeur et l'aperçu",
   "Drag to resize; double-click to reset": "Faites glisser pour redimensionner ; double-cliquez pour r?initialiser",
   "About {setting}": "À propos de {setting}",
   "Show formatting buttons above the visual editor.": "Afficher les boutons de mise en forme au-dessus de l'éditeur visuel.",

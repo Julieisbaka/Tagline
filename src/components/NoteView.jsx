@@ -51,6 +51,8 @@ export default function NoteView({
   const previousMode = useRef({ path, mode });
   const [modeAnnouncement, setModeAnnouncement] = useState('');
   const [split, setSplit] = useState(false);
+  const [splitPosition, setSplitPosition] = useState(50);
+  const splitDrag = useRef(false);
   useEffect(() => {
     const previous = previousMode.current;
     previousMode.current = { path, mode };
@@ -314,6 +316,7 @@ export default function NoteView({
       )}
       <div
         className={`note-body${split && mode !== 'read' ? ' split-view' : ''}${settings.readableWidth ? ' readable' : ''}${settings.editorFocusOutline ? ' editor-focus-outline' : ''}`}
+        style={split && mode !== 'read' ? { '--note-split': `${splitPosition}%` } : undefined}
       >
         <div className='note-edit-pane'>
           {sourceMode ? (
@@ -360,15 +363,87 @@ export default function NoteView({
           )}
         </div>
         {split && mode !== 'read' && (
-          <div className='note-preview-pane' role='region' aria-label={t('Live preview')}>
-            <Preview
-              content={content}
-              resolve={resolve}
-              onOpenLink={onOpenLink}
-              onTagClick={onTagClick}
-              highlightOnly={false}
+          <>
+            <div
+              className='note-splitter'
+              role='separator'
+              aria-orientation='vertical'
+              aria-label={t('Resize editor and preview')}
+              aria-valuemin={20}
+              aria-valuemax={80}
+              aria-valuenow={Math.round(splitPosition)}
+              tabIndex={0}
+              title={t('Drag to resize; double-click to reset')}
+              onPointerDown={(event) => {
+                if (event.button !== 0) {
+                  return;
+                }
+                event.preventDefault();
+                event.currentTarget.setPointerCapture(event.pointerId);
+                splitDrag.current = true;
+                document.body.classList.add('resizing-panels');
+              }}
+              onPointerMove={(event) => {
+                if (!splitDrag.current) {
+                  return;
+                }
+                const bounds = event.currentTarget.parentElement.getBoundingClientRect();
+                const position = ((event.clientX - bounds.left) / bounds.width) * 100;
+                setSplitPosition(Math.round(Math.max(20, Math.min(80, position))));
+              }}
+              onPointerUp={(event) => {
+                if (!splitDrag.current) {
+                  return;
+                }
+                splitDrag.current = false;
+                document.body.classList.remove('resizing-panels');
+                if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+                  event.currentTarget.releasePointerCapture(event.pointerId);
+                }
+              }}
+              onPointerCancel={(event) => {
+                if (!splitDrag.current) {
+                  return;
+                }
+                splitDrag.current = false;
+                document.body.classList.remove('resizing-panels');
+                if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+                  event.currentTarget.releasePointerCapture(event.pointerId);
+                }
+              }}
+              onLostPointerCapture={() => {
+                splitDrag.current = false;
+                document.body.classList.remove('resizing-panels');
+              }}
+              onDoubleClick={() => setSplitPosition(50)}
+              onKeyDown={(event) => {
+                const amount = event.shiftKey ? 8 : 2;
+                if (event.key === 'ArrowRight') {
+                  setSplitPosition((value) => Math.min(80, value + amount));
+                } else if (event.key === 'ArrowLeft') {
+                  setSplitPosition((value) => Math.max(20, value - amount));
+                } else if (event.key === 'Home') {
+                  setSplitPosition(20);
+                } else if (event.key === 'End') {
+                  setSplitPosition(80);
+                } else if (event.key === 'Enter') {
+                  setSplitPosition(50);
+                } else {
+                  return;
+                }
+                event.preventDefault();
+              }}
             />
-          </div>
+            <div className='note-preview-pane' role='region' aria-label={t('Live preview')}>
+              <Preview
+                content={content}
+                resolve={resolve}
+                onOpenLink={onOpenLink}
+                onTagClick={onTagClick}
+                highlightOnly={false}
+              />
+            </div>
+          </>
         )}
       </div>
     </div>
