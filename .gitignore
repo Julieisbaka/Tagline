@@ -21,6 +21,7 @@ coverage/
 *.code-profile
 
 # Local env overrides
+.env
 .env.local
 .env.*.local
 

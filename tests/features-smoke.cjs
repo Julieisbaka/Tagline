@@ -205,6 +205,29 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
           'true'
         );
         await js("document.querySelector('.flow-grid textarea').focus()");
+        const previewPoint = await js(`(() => {
+          const rect = document.querySelector('[data-row="0"][data-column="2"]').getBoundingClientRect();
+          return { x: Math.floor(rect.left + rect.width / 2), y: Math.floor(rect.top + rect.height / 2) };
+        })()`);
+        wc.sendInputEvent({
+          type: 'mouseDown',
+          x: previewPoint.x,
+          y: previewPoint.y,
+          button: 'left',
+          clickCount: 1,
+        });
+        wc.sendInputEvent({
+          type: 'mouseUp',
+          x: previewPoint.x,
+          y: previewPoint.y,
+          button: 'left',
+          clickCount: 1,
+        });
+        await wait(
+          "document.activeElement?.matches('.flow-grid textarea') && document.activeElement.dataset.column === '2'"
+        );
+        await wc.insertText('editable');
+        await wait("document.activeElement?.value === 'editable'");
         assert.equal(
           await js(
             "!![...document.querySelectorAll('.flow-footer button')].find(button => button.textContent.includes('Copy cells'))"
