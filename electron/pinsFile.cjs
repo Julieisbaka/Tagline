@@ -1,6 +1,8 @@
 const VERSION = 1;
 const MAX_PINS = 10_000;
 const MAX_PATH_LENGTH = 4_096;
+const CORRUPT_PREFIX = 'pins.json.corrupt-';
+const KEEP_CORRUPT_BACKUPS = 3;
 
 function validRelativePath(value) {
   if (typeof value !== 'string' || !value.trim() || value.length > MAX_PATH_LENGTH) {
@@ -18,10 +20,11 @@ function normalizePaths(value) {
   }
   const seen = new Set();
   for (const item of value) {
-    if (!validRelativePath(item)) {
+    const path = typeof item === 'string' ? item.trim() : item;
+    if (!validRelativePath(path)) {
       return null;
     }
-    seen.add(item);
+    seen.add(path);
     if (seen.size > MAX_PINS) {
       return null;
     }
@@ -61,4 +64,9 @@ function serializePins(value) {
   return JSON.stringify({ version: VERSION, ...pins }, null, 2);
 }
 
-module.exports = { parsePins, serializePins, validRelativePath, VERSION };
+function staleCorruptBackups(names, keep = KEEP_CORRUPT_BACKUPS) {
+  const backups = names.filter((name) => name.startsWith(CORRUPT_PREFIX)).sort();
+  return backups.slice(0, Math.max(0, backups.length - keep));
+}
+
+module.exports = { parsePins, serializePins, staleCorruptBackups, validRelativePath, VERSION };

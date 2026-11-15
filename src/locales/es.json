@@ -1460,7 +1460,7 @@
   "Pin tab": "Anclar pestaña",
   "Unpin tab": "Desanclar pestaña",
   "Pinned tab": "Pestaña anclada",
-  "Rank pinned items first in quick switcher": "Clasificar primero los elementos anclados en el selector rápido",
+  "Boost pinned items in quick switcher": "Destacar los elementos anclados en el selector rápido",
   "Off by default. Pinned notes and folders receive a ranking bonus.": "Desactivado de forma predeterminada. Las notas y carpetas ancladas reciben una bonificación de clasificación.",
   "Copy preset as JSON": "Copiar preajuste como JSON",
   "Preset copied as JSON.": "Preajuste copiado como JSON.",

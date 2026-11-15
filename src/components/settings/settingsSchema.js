@@ -150,7 +150,7 @@ export const SETTING_GROUPS = [
       {
         key: 'boostPinnedInSwitcher',
         type: 'checkbox',
-        label: 'Rank pinned items first in quick switcher',
+        label: 'Boost pinned items in quick switcher',
         notes: ['Off by default. Pinned notes and folders receive a ranking bonus.'],
       },
     ],

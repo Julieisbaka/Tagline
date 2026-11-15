@@ -1,5 +1,5 @@
 const { cleanupMigrationArtifacts } = require('../vaultMigrations.cjs');
-const { parsePins, serializePins } = require('../pinsFile.cjs');
+const { parsePins, serializePins, staleCorruptBackups } = require('../pinsFile.cjs');
 
 const PINS_PATH = '.tagline/pins.json';
 
@@ -68,10 +68,15 @@ function registerVaultIpc(
     if (pins) {
       return pins;
     }
-    const corrupt = `${full}.corrupt-${randomUUID()}`;
+    const corrupt = `${full}.corrupt-${Date.now()}-${randomUUID()}`;
     try {
       await fs.rename(full, corrupt);
       console.warn('[pins] moved invalid pins file to', corrupt);
+      const directory = path.dirname(full);
+      const stale = staleCorruptBackups(await fs.readdir(directory)).map((name) =>
+        path.join(directory, name)
+      );
+      await Promise.all(stale.map((name) => fs.rm(name, { force: true })));
     } catch (error) {
       console.warn('[pins] failed to move invalid pins file', error.message);
     }

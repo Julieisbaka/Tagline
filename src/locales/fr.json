@@ -1460,7 +1460,7 @@
   "Pin tab": "Épingler l'onglet",
   "Unpin tab": "Désépingler l'onglet",
   "Pinned tab": "Onglet épinglé",
-  "Rank pinned items first in quick switcher": "Placer les éléments épinglés en premier dans le sélecteur rapide",
+  "Boost pinned items in quick switcher": "Mettre en avant les éléments épinglés dans le sélecteur rapide",
   "Off by default. Pinned notes and folders receive a ranking bonus.": "Désactivé par défaut. Les notes et dossiers épinglés reçoivent un bonus de classement.",
   "Copy preset as JSON": "Copier le préréglage en JSON",
   "Preset copied as JSON.": "Préréglage copié en JSON.",

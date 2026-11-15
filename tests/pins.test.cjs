@@ -1,6 +1,6 @@
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
-const { parsePins, serializePins } = require('../electron/pinsFile.cjs');
+const { parsePins, serializePins, staleCorruptBackups } = require('../electron/pinsFile.cjs');
 
 test('pins files round-trip favorites and pinned tabs', () => {
   const value = { favorites: ['Case', 'Case/Aff.md'], pinnedTabs: ['Case/Aff.md'] };
@@ -14,6 +14,31 @@ test('pins files round-trip favorites and pinned tabs', () => {
     favorites: ['A.md'],
     pinnedTabs: ['B.md'],
   });
+  assert.deepEqual(parsePins(JSON.stringify({ favorites: [' Case/Aff.md '], pinnedTabs: [] })), {
+    favorites: ['Case/Aff.md'],
+    pinnedTabs: [],
+  });
+  assert.equal(
+    JSON.parse(serializePins({ favorites: [' Case/Aff.md '], pinnedTabs: [] })).favorites[0],
+    'Case/Aff.md'
+  );
+});
+
+test('corrupt pins backups keep only the newest copies', () => {
+  assert.deepEqual(
+    staleCorruptBackups(
+      [
+        'pins.json',
+        'pins.json.corrupt-1',
+        'pins.json.corrupt-2',
+        'pins.json.corrupt-3',
+        'pins.json.corrupt-4',
+      ],
+      2
+    ),
+    ['pins.json.corrupt-1', 'pins.json.corrupt-2']
+  );
+  assert.deepEqual(staleCorruptBackups(['pins.json.corrupt-1'], 3), []);
 });
 
 test('pins files reject unsafe paths and malformed documents', () => {
