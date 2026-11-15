@@ -240,7 +240,10 @@ app.on('browser-window-created', (_event, win) => {
             history: await js("window.api.listHistory('Card.md')"),
           })
         );
-        // Reload after seeding so the running app owns the same settings and tabs as the fixture.
+        // Stop the running app from overwriting the fixture with its in-memory state.
+        const fixturePage = path.join(root, version, 'dist', 'installation-fixture.html');
+        fs.writeFileSync(fixturePage, '<!doctype html><title>Installation fixture</title>');
+        await win.loadFile(fixturePage);
         await js(`localStorage.setItem('tagline-settings', ${JSON.stringify(JSON.stringify(settings))});
           localStorage.setItem('tagline-extension:upgrade-test', '{"saved":"extension data"}');
           localStorage.setItem(${JSON.stringify(`tabs:${vault}`)}, ${JSON.stringify(
@@ -249,10 +252,7 @@ app.on('browser-window-created', (_event, win) => {
               activeId: 'saved-card',
             })
           )});`);
-        await new Promise((resolve) => {
-          win.webContents.once('did-finish-load', resolve);
-          win.webContents.reload();
-        });
+        await win.loadFile(path.join(root, version, 'dist', 'index.html'));
         await wait("!!document.querySelector('.note-title')");
         await wait("document.documentElement.dataset.theme === 'high-contrast-dark'");
         const savedSettings = await js("JSON.parse(localStorage.getItem('tagline-settings'))");
