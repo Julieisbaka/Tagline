@@ -66,6 +66,9 @@
           <ul>
             <li>Pin state is stored only in <code>.tagline/pins.json</code>; the legacy localStorage copy is migrated once and then purged, so stale entries no longer reappear after clearing pins.</li>
             <li>Pinned tabs and pinned notes share a single bookkeeping path; closing a pinned tab unpins it.</li>
+            <li>Fixed: pins.json no longer rewrites on every tab close when the path wasn't pinned.</li>
+            <li>Fixed: read failure no longer blocks tab restoration and write persistence.</li>
+            <li>Fixed: pins writes now retry on EBUSY/EPERM (Windows file-lock hazard).</li>
           </ul>
         </section>
 
