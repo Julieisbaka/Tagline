@@ -38,6 +38,8 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
   const vault = path.join(root, 'vault');
   await fs.mkdir(profile, { recursive: true });
   await fs.mkdir(vault);
+  await fs.mkdir(path.join(vault, '.tagline'), { recursive: true });
+  await fs.writeFile(path.join(vault, '.tagline', 'vault.json'), JSON.stringify({ version: require('../electron/vaultMigrations.cjs').migrations.length }));
   await fs.writeFile(
     path.join(vault, 'Wage.md'),
     '# Minimum wage aff\n\n**Smith 24**\n\n' +

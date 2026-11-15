@@ -268,6 +268,8 @@ tagline.commands.register('save-checks', async () => {
   await fs.mkdir(path.join(ext('demo'), 'themes'), { recursive: true });
   await fs.mkdir(ext('nosy'), { recursive: true });
   await fs.mkdir(vault, { recursive: true });
+  await fs.mkdir(path.join(vault, '.tagline'), { recursive: true });
+  await fs.writeFile(path.join(vault, '.tagline', 'vault.json'), JSON.stringify({ version: require('../electron/vaultMigrations.cjs').migrations.length }));
   shell.trashItem = async (file) => fs.rm(file);
   let failSave = false;
   let slowSave = false;

@@ -28,6 +28,8 @@ assert.ok(root, 'Run this test through Node.');
 const vault = path.join(root, 'vault'),
   profile = path.join(root, 'profile');
 fs.mkdirSync(vault);
+fs.mkdirSync(path.join(vault, '.tagline'), { recursive: true });
+fs.writeFileSync(path.join(vault, '.tagline', 'vault.json'), JSON.stringify({ version: require('../electron/vaultMigrations.cjs').migrations.length }));
 fs.mkdirSync(profile);
 const nodes = Array.from({ length: 300 }, (_, index) => ({
   id: `node-${index}`,

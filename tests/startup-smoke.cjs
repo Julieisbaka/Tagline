@@ -18,6 +18,8 @@ if (!process.versions.electron) {
       const vault = path.join(root, 'vault');
       fs.mkdirSync(profile, { recursive: true });
       fs.mkdirSync(vault, { recursive: true });
+      fs.mkdirSync(path.join(vault, '.tagline'), { recursive: true });
+      fs.writeFileSync(path.join(vault, '.tagline', 'vault.json'), JSON.stringify({ version: require('../electron/vaultMigrations.cjs').migrations.length }));
       for (let i = 0; i < 200; i++) {
         fs.writeFileSync(
           path.join(vault, `Note ${i}.md`),

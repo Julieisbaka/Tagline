@@ -22,7 +22,6 @@ export default function FlowGrid({
   const [editing, setEditing] = useState(() =>
     sheet.rows.length && sheet.columns.length ? { row: 0, column: 0 } : null
   );
-  const pendingEdit = useRef(false);
   useEffect(() => {
     if (!sheet.rows.length || !sheet.columns.length) {
       setEditing(null);
@@ -262,10 +261,7 @@ export default function FlowGrid({
                       spellCheck={settings.flowSpellcheck !== false}
                       value={cell}
                       onBlur={(event) => {
-                        if (
-                          !pendingEdit.current &&
-                          !event.relatedTarget?.closest?.('.flow-grid-wrap, .context-menu')
-                        ) {
+                        if (!event.relatedTarget?.closest?.('.flow-grid-wrap, .context-menu')) {
                           setEditing(null);
                         }
                       }}
@@ -281,7 +277,6 @@ export default function FlowGrid({
                         }
                       }}
                       onFocus={() => {
-                        pendingEdit.current = false;
                         if (keepSelection.current) {
                           keepSelection.current = false;
                           return;
@@ -471,15 +466,14 @@ export default function FlowGrid({
                         if (event.button !== 0) {
                           return;
                         }
-                        pendingEdit.current = true;
                         if (event.shiftKey) {
                           event.preventDefault();
                           choose(r, c, true);
                         } else {
                           choose(r, c);
                         }
-                        setEditing({ row: r, column: c });
                       }}
+                      onClick={() => setEditing({ row: r, column: c })}
                       dangerouslySetInnerHTML={{
                         __html: cell ? previewHtml(cell) : '…',
                       }}

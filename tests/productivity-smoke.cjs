@@ -41,6 +41,8 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
   const otherVault = path.join(root, 'Second vault');
   await fs.mkdir(profile, { recursive: true });
   await fs.mkdir(vault);
+  await fs.mkdir(path.join(vault, '.tagline'), { recursive: true });
+  await fs.writeFile(path.join(vault, '.tagline', 'vault.json'), JSON.stringify({ version: require('../electron/vaultMigrations.cjs').migrations.length }));
   await fs.mkdir(otherVault);
   await fs.writeFile(path.join(otherVault, 'Other.md'), '# Second vault note\n');
   dialog.showOpenDialog = async () => ({ canceled: false, filePaths: [otherVault] });

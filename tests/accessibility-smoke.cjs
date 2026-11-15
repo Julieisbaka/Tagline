@@ -32,6 +32,8 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
     vault = path.join(root, 'vault');
   await fs.mkdir(profile, { recursive: true });
   await fs.mkdir(vault);
+  await fs.mkdir(path.join(vault, '.tagline'), { recursive: true });
+  await fs.writeFile(path.join(vault, '.tagline', 'vault.json'), JSON.stringify({ version: require('../electron/vaultMigrations.cjs').migrations.length }));
   await fs.writeFile(path.join(vault, 'Card.md'), '#### Claim\n\nEvidence to find and replace.\n');
   await fs.writeFile(
     path.join(profile, 'config.json'),

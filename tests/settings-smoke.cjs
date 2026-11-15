@@ -42,6 +42,8 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
   );
   await fs.writeFile(path.join(profile, 'summarization', 'keep'), 'safe');
   await fs.mkdir(vault);
+  await fs.mkdir(path.join(vault, '.tagline'), { recursive: true });
+  await fs.writeFile(path.join(vault, '.tagline', 'vault.json'), JSON.stringify({ version: require('../electron/vaultMigrations.cjs').migrations.length }));
   await fs.mkdir(otherVault);
   await fs.writeFile(path.join(otherVault, 'Other.md'), '# Other\n');
   await fs.writeFile(path.join(vault, 'Alpha.md'), '# Alpha\n\n[[Beta]]\n');

@@ -33,6 +33,11 @@ const profile = path.join(root, 'profile'),
   vault = path.join(root, 'vault');
 fs.mkdirSync(profile, { recursive: true });
 fs.mkdirSync(vault, { recursive: true });
+fs.mkdirSync(path.join(vault, '.tagline'), { recursive: true });
+fs.writeFileSync(
+  path.join(vault, '.tagline', 'vault.json'),
+  JSON.stringify({ version: require('../electron/vaultMigrations.cjs').migrations.length })
+);
 fs.writeFileSync(path.join(vault, 'Keep.md'), '# Local evidence');
 if (first) {
   fs.writeFileSync(

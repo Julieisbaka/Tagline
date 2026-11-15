@@ -30,6 +30,8 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
   const vault = path.join(root, 'vault');
   const profile = path.join(root, 'profile');
   await fs.mkdir(vault);
+  await fs.mkdir(path.join(vault, '.tagline'), { recursive: true });
+  await fs.writeFile(path.join(vault, '.tagline', 'vault.json'), JSON.stringify({ version: require('../electron/vaultMigrations.cjs').migrations.length }));
   await fs.mkdir(profile);
   await fs.writeFile(path.join(vault, 'Note.md'), '# Note\n');
   await fs.writeFile(

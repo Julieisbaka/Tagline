@@ -35,6 +35,8 @@ const nativeFetch = global.fetch;
   const vault = path.join(root, 'vault');
   await fs.mkdir(profile);
   await fs.mkdir(vault);
+  await fs.mkdir(path.join(vault, '.tagline'), { recursive: true });
+  await fs.writeFile(path.join(vault, '.tagline', 'vault.json'), JSON.stringify({ version: require('../electron/vaultMigrations.cjs').migrations.length }));
   await fs.writeFile(
     path.join(vault, 'Evidence.md'),
     '# Evidence\n\n**Bold text** and ==highlighted evidence==.\n'

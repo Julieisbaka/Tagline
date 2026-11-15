@@ -31,6 +31,8 @@ const profile = path.join(root, 'profile');
 const vault = path.join(root, 'vault');
 fs.mkdirSync(profile);
 fs.mkdirSync(vault);
+fs.mkdirSync(path.join(vault, '.tagline'), { recursive: true });
+fs.writeFileSync(path.join(vault, '.tagline', 'vault.json'), JSON.stringify({ version: require('../electron/vaultMigrations.cjs').migrations.length }));
 fs.writeFileSync(path.join(vault, 'Keep.md'), '# Test');
 fs.writeFileSync(
   path.join(profile, 'config.json'),

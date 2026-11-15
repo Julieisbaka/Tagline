@@ -12,6 +12,8 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
   const vault = path.join(temp, 'vault');
   const userData = path.join(temp, 'userData');
   await fs.mkdir(vault);
+  await fs.mkdir(path.join(vault, '.tagline'), { recursive: true });
+  await fs.writeFile(path.join(vault, '.tagline', 'vault.json'), JSON.stringify({ version: require('../electron/vaultMigrations.cjs').migrations.length }));
   await fs.mkdir(userData);
   const source =
     '# Cards\n\n#### Evidence\n**Author**\n++Warrant++ and ==read this==.\n\n[[Other]]\n';
