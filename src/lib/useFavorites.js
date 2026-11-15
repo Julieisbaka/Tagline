@@ -165,11 +165,15 @@ export function useFavorites(root) {
       [updateTabPins]
     ),
     unpinTab: useCallback(
-      (path) => {
-        const next = (tabPins[root] || []).filter((item) => item !== path);
-        return next.length === (tabPins[root] || []).length ? (tabPins[root] || []) : next;
-      },
-      [root, tabPins]
+      (path) => updateTabPins((paths) => paths.filter((item) => item !== path)),
+      [updateTabPins]
+    ),
+    toggleTabPin: useCallback(
+      (path) =>
+        updateTabPins((paths) =>
+          paths.includes(path) ? paths.filter((item) => item !== path) : [...paths, path]
+        ),
+      [updateTabPins]
     ),
   };
 }

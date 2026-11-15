@@ -25,6 +25,7 @@ export function useAppCommandContext({
   v,
   tabs,
   actions,
+  favorites,
   pickTemplate,
   prompt,
   createAndOpen,
@@ -345,6 +346,30 @@ export function useAppCommandContext({
       actions.remove({ type: 'file', path: activePath, name: activePath.split('/').pop() }),
     revealCurrent: () => activePath && v.reveal(activePath),
     closeTab: () => tabs.activeId && tabs.close(tabs.activeId),
+    pinnedTab: !!activePath && favorites.pinnedTabs.includes(activePath),
+    togglePinTab: () => {
+      if (!activePath) {
+        return;
+      }
+      const name = baseName(activePath);
+      favorites.toggleTabPin(activePath);
+      notify(
+        t(favorites.pinnedTabs.includes(activePath) ? 'Unpinned {name}' : 'Pinned {name}', {
+          name,
+        })
+      );
+    },
+    closeUnpinnedTabs: () => {
+      const pinned = new Set(favorites.pinnedTabs);
+      const closable = tabs.tabs
+        .filter((tab) => tab.kind === 'file' && !pinned.has(tab.path))
+        .map((tab) => tab.id);
+      if (!closable.length) {
+        return notify(t('No unpinned tabs to close'));
+      }
+      tabs.closeMany(closable);
+      return undefined;
+    },
   };
   const ctxRef = useRef(ctx);
   ctxRef.current = ctx;

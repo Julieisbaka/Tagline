@@ -98,6 +98,21 @@
     "key": "Mod+W"
   },
   {
+    "id": "pin-tab",
+    "label": "Pin current tab",
+    "action": "togglePinTab",
+    "scope": "app",
+    "key": "",
+    "note": true
+  },
+  {
+    "id": "close-unpinned-tabs",
+    "label": "Close unpinned tabs",
+    "action": "closeUnpinnedTabs",
+    "scope": "app",
+    "key": ""
+  },
+  {
     "id": "next-tab",
     "label": "Next tab",
     "action": "nextTab",

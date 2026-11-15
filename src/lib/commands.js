@@ -94,6 +94,7 @@ export function buildCommands(ctx, overrides = {}) {
     c('settings', 'Open settings', ctx.openSettings, 'Ctrl+,'),
     c('toggle-left', 'Toggle left sidebar', ctx.toggleLeft),
     c('toggle-right', 'Toggle right sidebar', ctx.toggleRight),
+    c('close-unpinned-tabs', 'Close unpinned tabs', ctx.closeUnpinnedTabs),
     c('speech-open', 'Speech doc: open current speech doc', ctx.openSpeechDoc),
     c('speech-new', 'Speech doc: start a new speech doc', ctx.newSpeechDoc),
     c('vault-open', 'Open another vault', ctx.switchVault),
@@ -139,7 +140,8 @@ export function buildCommands(ctx, overrides = {}) {
       c('rename', 'Rename current file', ctx.renameCurrent),
       c('delete', 'Delete current file', ctx.deleteCurrent),
       c('reveal', 'Reveal current file in file explorer', ctx.revealCurrent),
-      c('close-tab', 'Close current tab', ctx.closeTab, 'Ctrl+W')
+      c('close-tab', 'Close current tab', ctx.closeTab, 'Ctrl+W'),
+      c('pin-tab', ctx.pinnedTab ? 'Unpin current tab' : 'Pin current tab', ctx.togglePinTab)
     );
   }
   const markdownOnly = [

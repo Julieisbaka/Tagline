@@ -412,6 +412,7 @@ export default function App() {
     v,
     tabs,
     actions,
+    favorites,
     pickTemplate,
     prompt,
     createAndOpen,

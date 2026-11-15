@@ -249,6 +249,32 @@ export function useTabs(vaultRoot, persist = true, onCloseFile = null) {
     setTabs((prev) => prev.filter((t) => t.id === id));
     setActiveId(id);
   };
+
+  /**
+   * Close several tabs at once.
+   * @param {string[]} ids - IDs of the tabs to close.
+   * @returns {void}
+   */
+  const closeMany = useCallback(
+    (ids) => {
+      const closing = new Set(ids);
+      if (!closing.size) {
+        return;
+      }
+      for (const tab of tabs) {
+        if (closing.has(tab.id) && tab.kind === 'file') {
+          onCloseFile?.(tab.path);
+        }
+      }
+      const next = tabs.filter((tab) => !closing.has(tab.id));
+      setTabs(next);
+      playUiSound('close');
+      if (closing.has(activeId)) {
+        setActiveId(next[0]?.id || null);
+      }
+    },
+    [tabs, activeId, onCloseFile]
+  );
   const reorder = useCallback((id, targetIndex) => {
     setTabs((previous) => reorderTabs(previous, id, targetIndex));
   }, []);
@@ -262,6 +288,7 @@ export function useTabs(vaultRoot, persist = true, onCloseFile = null) {
     openGraph,
     close,
     closeOthers,
+    closeMany,
     renamePath,
     removePath,
     prune,
