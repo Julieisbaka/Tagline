@@ -174,7 +174,7 @@ function registerNli({
     state = { ...state, busy: true };
     try {
       await withModelPathsLock(async () => {
-        writeConfig({ nliModel: { repo: clean } });
+        await writeConfig({ nliModel: { repo: clean } });
         await stop('Model not loaded.', true);
       });
     } finally {
@@ -202,7 +202,7 @@ function registerNli({
             `That folder must contain ${MODEL_FILES.join(', ')}. Run scripts/convert-political-debate.py to create it.`
           );
         }
-        writeConfig({ nliModel: { folder } });
+        await writeConfig({ nliModel: { folder } });
         await stop('Model not loaded.', true);
         return source();
       });

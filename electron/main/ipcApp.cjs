@@ -106,12 +106,12 @@ function registerAppIpc(
     requireMainFrame(event);
     return readConfig().autoUpdate !== false;
   });
-  ipcMain.handle('app:setAutoUpdate', (event, enabled) => {
+  ipcMain.handle('app:setAutoUpdate', async (event, enabled) => {
     requireMainFrame(event);
     if (typeof enabled !== 'boolean') {
       throw new Error('Invalid auto-update choice.');
     }
-    writeConfig({ autoUpdate: enabled });
+    await writeConfig({ autoUpdate: enabled });
     if (enabled) {
       state.prepareUpdateInBackground().catch(() => {});
     }

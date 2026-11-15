@@ -66,7 +66,7 @@ function registerInstallHandlers(context) {
     const wasEnabled = enabledIds().includes(manifest.id);
     let enabled = wasEnabled;
     if (!gated && !wasEnabled) {
-      writeConfig({
+      await writeConfig({
         enabledExtensions: [...enabledIds(), manifest.id],
         extensionReviews: {
           ...readConfig().extensionReviews,
@@ -75,7 +75,7 @@ function registerInstallHandlers(context) {
       });
       enabled = true;
     } else if (!gated) {
-      writeConfig({
+      await writeConfig({
         extensionReviews: {
           ...readConfig().extensionReviews,
           [manifest.id]: reviewSignature(manifest),

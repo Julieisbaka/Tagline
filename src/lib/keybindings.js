@@ -1,9 +1,10 @@
 import definitions from './keybindings.json' with { type: 'json' };
 
 export const KEYBINDINGS = definitions;
+const DEFAULT_KEYS = new Map(definitions.map((item) => [item.id, item.key]));
 /** Resolve a command's configured binding or its built-in default. @param {string} id @param {object} [overrides] @param {object[]} [extra] @returns {string} */
 export const binding = (id, overrides = {}, extra = []) =>
-  overrides[id] ?? [...definitions, ...extra].find((item) => item.id === id)?.key ?? '';
+  overrides[id] ?? DEFAULT_KEYS.get(id) ?? extra.find((item) => item.id === id)?.key ?? '';
 /** Format a Mod shortcut for the selected operating system. @param {string} key @param {string} [platform] @returns {string} */
 export const displayBinding = (key, platform = window.api.platform) =>
   key.replace(/\bMod\b/g, platform === 'darwin' ? 'Cmd' : 'Ctrl');

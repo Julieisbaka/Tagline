@@ -6,6 +6,7 @@ function createVault({ app, path, fs, fssync, randomUUID, process, dialog }, sta
   let configRecoveryHandled = false;
   let configCache = null;
   let configCacheKey = null;
+  let configWriteQueue = Promise.resolve();
 
   function configStatKey(configPathFn) {
     try {
@@ -145,44 +146,56 @@ function createVault({ app, path, fs, fssync, randomUUID, process, dialog }, sta
   }
 
   function writeConfig(patch) {
-    const next = { ...readConfig(), ...patch };
-    const configPathFn = configPath();
-    fssync.mkdirSync(path.dirname(configPathFn), { recursive: true });
-    const temporary = path.join(path.dirname(configPathFn), `.tagline-config-${randomUUID()}.tmp`);
-    const retryable = (error) => error && (error.code === 'EBUSY' || error.code === 'EPERM');
-    let lastError;
-    for (let attempt = 0; attempt < 5; attempt++) {
-      try {
-        fssync.writeFileSync(temporary, JSON.stringify(next, null, 2));
-        const fd = fssync.openSync(temporary, 'r+');
+    const task = configWriteQueue
+      .catch(() => {})
+      .then(async () => {
+        const next = { ...readConfig(), ...patch };
+        const configPathFn = configPath();
+        await fs.mkdir(path.dirname(configPathFn), { recursive: true });
+        const temporary = path.join(
+          path.dirname(configPathFn),
+          `.tagline-config-${randomUUID()}.tmp`
+        );
+        const retryable = (error) => error && (error.code === 'EBUSY' || error.code === 'EPERM');
         try {
-          fssync.fsyncSync(fd);
-        } finally {
-          fssync.closeSync(fd);
+          await fs.writeFile(temporary, JSON.stringify(next, null, 2), {
+            encoding: 'utf8',
+            flag: 'wx',
+          });
+          const handle = await fs.open(temporary, 'r+');
+          try {
+            await handle.sync();
+          } finally {
+            await handle.close();
+          }
+          let lastError;
+          for (let attempt = 0; attempt < 5; attempt++) {
+            try {
+              await fs.rename(temporary, configPathFn);
+              lastError = null;
+              break;
+            } catch (error) {
+              lastError = error;
+              if (!retryable(error) || attempt === 4) {
+                throw error;
+              }
+              console.info('[event] config_write_retry', attempt + 1);
+              await new Promise((resolve) => setTimeout(resolve, 25 * (attempt + 1)));
+            }
+          }
+          if (lastError) {
+            throw lastError;
+          }
+        } catch (error) {
+          await fs.rm(temporary, { force: true }).catch(() => {});
+          throw error;
         }
-        fssync.renameSync(temporary, configPathFn);
-        lastError = null;
-        break;
-      } catch (error) {
-        try {
-          fssync.rmSync(temporary, { force: true });
-        } catch {}
-        lastError = error;
-        if (retryable(error) && attempt < 4) {
-          console.info('[event] config_write_retry', attempt + 1);
-          const wait = 25 * (attempt + 1);
-          Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, wait);
-          continue;
-        }
-        throw error;
-      }
-    }
-    if (lastError) {
-      throw lastError;
-    }
-    configCache = next;
-    configCacheKey = configStatKey(configPathFn);
-    return { ...next };
+        configCache = next;
+        configCacheKey = configStatKey(configPathFn);
+        return { ...next };
+      });
+    configWriteQueue = task;
+    return task;
   }
 
   function cleanupConfigTemps() {
@@ -304,7 +317,7 @@ function createVault({ app, path, fs, fssync, randomUUID, process, dialog }, sta
           )
         : []),
     ].slice(0, 20);
-    writeConfig({ lastVault: state.vaultRoot, recentVaults });
+    await writeConfig({ lastVault: state.vaultRoot, recentVaults });
     return { root: state.vaultRoot, name: path.basename(state.vaultRoot) };
   }
 

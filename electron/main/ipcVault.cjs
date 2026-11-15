@@ -164,7 +164,7 @@ function registerVaultIpc(
     }
     return openVault(resolvedRoot);
   });
-  ipcMain.handle('vault:forgetRecent', (event, root) => {
+  ipcMain.handle('vault:forgetRecent', async (event, root) => {
     assertMainFrameSender(event, 'Vault access');
     if (typeof root !== 'string' || !path.isAbsolute(root)) {
       throw new Error('Invalid saved vault path.');
@@ -180,7 +180,7 @@ function registerVaultIpc(
       key(path.resolve(config.lastVault)) === key(path.resolve(root))
         ? null
         : config.lastVault;
-    writeConfig({ recentVaults, lastVault });
+    await writeConfig({ recentVaults, lastVault });
     return true;
   });
   ipcMain.handle('vault:revealRecent', async (event, root) => {

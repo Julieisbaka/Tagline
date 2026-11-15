@@ -58,6 +58,41 @@ test('config reads return copies and refresh after stat failures', async (t) => 
   assert.equal(vault.readConfig().value, 'refreshed after stat failure');
 });
 
+test('config writes are atomic, asynchronous and serialized', async (t) => {
+  const { parent } = await fixture(t);
+  const profile = path.join(parent, 'Profile');
+  await fs.mkdir(profile);
+  let renameAttempts = 0;
+  const injectedFs = {
+    ...fs,
+    rename: async (...args) => {
+      renameAttempts++;
+      if (renameAttempts === 1) {
+        throw Object.assign(new Error('locked'), { code: 'EBUSY' });
+      }
+      return fs.rename(...args);
+    },
+  };
+  const vault = createVault(
+    { app: { getPath: () => profile }, path, fs: injectedFs, fssync, randomUUID, process },
+    {}
+  );
+  let timerRan = false;
+  setTimeout(() => {
+    timerRan = true;
+  }, 0);
+
+  await Promise.all([vault.writeConfig({ first: true }), vault.writeConfig({ second: true })]);
+
+  assert.equal(timerRan, true, 'the retry delay yields to the main event loop');
+  assert.deepEqual(vault.readConfig(), { first: true, second: true });
+  assert.deepEqual(JSON.parse(await fs.readFile(path.join(profile, 'config.json'), 'utf8')), {
+    first: true,
+    second: true,
+  });
+  assert.equal(renameAttempts, 3);
+});
+
 test('config startup cleanup removes only temporary files older than one minute', async (t) => {
   const { parent } = await fixture(t);
   const profile = path.join(parent, 'Profile');
@@ -609,7 +644,7 @@ test('startup and recent vaults can recover a missing root; cancelling sample cr
     { app: { getPath: () => profile }, path, fs, fssync, randomUUID, process, dialog },
     state
   );
-  vault.writeConfig({ lastVault: root, recentVaults: [root] });
+  await vault.writeConfig({ lastVault: root, recentVaults: [root] });
   const id = randomUUID();
   await fs.writeFile(journalPath(root), JSON.stringify({ id }));
   await fs.rename(root, `${root}.tagline-backup-${id}`);

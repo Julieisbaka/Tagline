@@ -110,8 +110,43 @@ test('platform: snapshot scans once, reads each file once, and bounds parallel f
   assert.equal(reads, 65);
   assert.equal(stats, 65);
   assert.ok(peak > 1 && peak <= 16, `Expected 2–16 concurrent operations, got ${peak}`);
+  await readVaultSnapshot(dir);
+  assert.equal(reads, 65, 'Unchanged note contents are reused from the snapshot cache');
   await listVault(dir);
   assert.equal(reads, 65, 'Listing files never reads their content');
+});
+
+test('snapshot content cache invalidates on mtime or size changes', async (t) => {
+  const dir = await fixture(t);
+  const file = path.join(dir, 'Note.md');
+  await fs.writeFile(file, 'initial');
+  await readVaultSnapshot(dir);
+  const originalReadFile = fs.readFile;
+  let reads = 0;
+  t.mock.method(fs, 'readFile', async (target, ...args) => {
+    if (target === file) {
+      reads++;
+    }
+    return originalReadFile(target, ...args);
+  });
+
+  await readVaultSnapshot(dir);
+  assert.equal(reads, 0);
+
+  await fs.writeFile(file, 'changed');
+  const changedMtime = new Date(Date.now() + 5000);
+  await fs.utimes(file, changedMtime, changedMtime);
+  assert.equal((await readVaultSnapshot(dir)).contents['Note.md'], 'changed');
+  assert.equal(reads, 1);
+
+  const mtime = (await fs.stat(file)).mtime;
+  await fs.writeFile(file, 'different size, same mtime');
+  await fs.utimes(file, mtime, mtime);
+  assert.equal(
+    (await readVaultSnapshot(dir)).contents['Note.md'],
+    'different size, same mtime'
+  );
+  assert.equal(reads, 2);
 });
 
 test('vault lists JSON files and includes their contents in snapshots', async (t) => {

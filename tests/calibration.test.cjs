@@ -312,20 +312,22 @@ test('platform: main process persists limit changes, enforces script size and ex
   });
   const [item] = await handlers['extensions:list']();
   await handlers['extensions:setEnabled'](null, 'limited', true, item.reviewToken);
-  handlers['customization:set'](null, { themePreviewBytes: 1024 });
+  await handlers['customization:set'](null, { themePreviewBytes: 1024 });
   await assert.rejects(
     handlers['extensions:load'](null, 'limited'),
     /theme previews exceed 1024 bytes/
   );
-  handlers['customization:set'](null, { themePreviewBytes: 2048 });
+  await handlers['customization:set'](null, { themePreviewBytes: 2048 });
   const loaded = await handlers['extensions:load'](null, 'limited');
   assert.equal(loaded.source.length, 1200);
   assert.equal(loaded.themes.length, 1);
-  handlers['customization:set'](null, { extensionSourceBytes: 1024 });
+  await handlers['customization:set'](null, { extensionSourceBytes: 1024 });
   await assert.rejects(handlers['extensions:load'](null, 'limited'), /exceeds 1024 bytes/);
   assert.equal(handlers['customization:get']().extensionSourceBytes, 1024);
   assert.equal(config.customizationLimits.extensionSourceBytes, 1024);
-  assert.throws(() => handlers['customization:set'](null, { extensionMessagesPerSecond: 100000 }));
+  await assert.rejects(
+    handlers['customization:set'](null, { extensionMessagesPerSecond: 100000 })
+  );
   await assert.rejects(
     handlers['extensions:exportSettings'](null, 'limited', { label: 3 }),
     /Invalid value/

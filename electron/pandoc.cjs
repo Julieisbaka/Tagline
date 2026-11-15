@@ -199,7 +199,7 @@ function registerPandoc({ ipcMain, dialog, getWindow, readConfig, writeConfig })
       return null;
     }
     const info = await detectPandoc(result.filePaths[0]);
-    writeConfig({ pandocPath: result.filePaths[0] });
+    await writeConfig({ pandocPath: result.filePaths[0] });
     return info;
   });
   ipcMain.handle('pandoc:chooseReference', async (_event, format) => {

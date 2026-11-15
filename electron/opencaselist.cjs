@@ -180,7 +180,7 @@ function createOpenCaselist({
       throw new Error('Set a password before enabling OpenCaselist write protection.');
     }
     unchanged(before, started);
-    writeConfig({
+    await writeConfig({
       opencaselistRequirePasswordForWrites: enabled,
       opencaselistWritePassword: stored,
     });

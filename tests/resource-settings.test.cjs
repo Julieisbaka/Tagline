@@ -123,8 +123,8 @@ test('low-resource mode suppresses startup autoload but permits manual models an
   await new Promise((resolve) => setImmediate(resolve));
   assert.equal(instances.length, 0);
   assert.equal(handlers['embeddings:lowResource:get']('trusted'), true);
-  assert.throws(() => handlers['embeddings:lowResource:set']('untrusted', false), /untrusted/);
-  assert.throws(() => handlers['embeddings:lowResource:set']('trusted', 'false'), /Invalid/);
+  await assert.rejects(handlers['embeddings:lowResource:set']('untrusted', false), /untrusted/);
+  await assert.rejects(handlers['embeddings:lowResource:set']('trusted', 'false'), /Invalid/);
   await handlers['embeddings:download']();
   await handlers['summary:load']();
   assert.equal(instances.length, 2);
@@ -137,7 +137,7 @@ test('low-resource mode suppresses startup autoload but permits manual models an
   await removal;
   await assert.rejects(fs.stat(dir), { code: 'ENOENT' });
   assert.equal((await handlers['embeddings:status']()).ready, false);
-  assert.equal(handlers['embeddings:lowResource:set']('trusted', false), false);
+  assert.equal(await handlers['embeddings:lowResource:set']('trusted', false), false);
   assert.equal(config.modelAutoload, true);
 });
 

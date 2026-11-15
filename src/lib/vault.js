@@ -207,6 +207,20 @@ function createLinkResolver(paths) {
   };
 }
 
+const fileCache = new Map();
+
+function parsedFile(content) {
+  let hit = fileCache.get(content);
+  if (hit) {
+    return hit;
+  }
+  const targets = extractLinks(content);
+  const tags = [...new Set([...extractMetadataTags(content), ...extractTags(content)])];
+  hit = { targets, tags };
+  fileCache.set(content, hit);
+  return hit;
+}
+
 /**
  * Build paths, links, backlinks, tags and unresolved-link maps from Markdown contents.
  * @param {object} contents - An object mapping vault-relative paths to their Markdown content.
@@ -224,13 +238,22 @@ export function buildIndex(contents) {
   const backlinks = {};
   const tags = {};
   const unresolved = {};
+  if (fileCache.size > paths.length * 4) {
+    const live = new Set(Object.values(contents));
+    for (const key of fileCache.keys()) {
+      if (!live.has(key)) {
+        fileCache.delete(key);
+      }
+    }
+  }
   for (const p of paths) {
     if (!isMarkdown(p)) {
       continue;
     }
     const content = contents[p] || '';
     links[p] = [];
-    for (const target of extractLinks(content)) {
+    const parsed = parsedFile(content);
+    for (const target of parsed.targets) {
       const resolved = resolve(target);
       if (resolved) {
         if (!links[p].includes(resolved)) {
@@ -241,7 +264,7 @@ export function buildIndex(contents) {
         (unresolved[target] ||= new Set()).add(p);
       }
     }
-    for (const tag of new Set([...extractMetadataTags(content), ...extractTags(content)])) {
+    for (const tag of parsed.tags) {
       (tags[tag] ||= []).push(p);
     }
   }

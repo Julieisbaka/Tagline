@@ -75,9 +75,9 @@ function registerExtensions({
   const cancelAuthorization = (id) => pendingAuthorizations.get(id)?.cancel();
   const limits = () => validateLimits(readConfig().customizationLimits);
   ipcMain.handle('customization:get', () => limits());
-  ipcMain.handle('customization:set', (_event, value) => {
+  ipcMain.handle('customization:set', async (_event, value) => {
     const next = validateLimits(value);
-    writeConfig({ customizationLimits: next });
+    await writeConfig({ customizationLimits: next });
     return next;
   });
   const folder = () => path.join(app.getPath('userData'), 'extensions');
@@ -324,7 +324,7 @@ function registerExtensions({
       throw new Error('Extension is no longer enabled.');
     }
     const initialized = readConfig().initializedExtensions;
-    writeConfig({
+    await writeConfig({
       initializedExtensions: [...new Set([...(Array.isArray(initialized) ? initialized : []), id])],
     });
     installTokens.delete(id);
@@ -383,7 +383,7 @@ function registerExtensions({
     if (!enabled && item?.incompatible) {
       engineCompatibilityOverrides = engineCompatibilityOverrides.filter((value) => value !== id);
     }
-    writeConfig({ enabledExtensions: next, extensionReviews, engineCompatibilityOverrides });
+    await writeConfig({ enabledExtensions: next, extensionReviews, engineCompatibilityOverrides });
     return next;
   });
 
@@ -412,7 +412,7 @@ function registerExtensions({
     if (!permissions.includes('network')) {
       cancelAuthorization(id);
     }
-    writeConfig({ extensionPermissions });
+    await writeConfig({ extensionPermissions });
     return true;
   });
 
@@ -435,7 +435,7 @@ function registerExtensions({
       delete extensionReviews[item.id];
       delete extensionPermissions[item.id];
     }
-    writeConfig({
+    await writeConfig({
       enabledExtensions: enabledIds().filter((enabledId) => enabledId !== item.id),
       extensionReviews,
       extensionPermissions,

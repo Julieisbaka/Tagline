@@ -356,7 +356,7 @@ test('MCP model permission is opt-in, validated, persisted and restricted to the
     writeConfig: (patch) => (config = { ...config, ...patch }),
   });
   try {
-    assert.equal(handlers['mcp:status'](event).allowModels, false);
+    assert.equal((await handlers['mcp:status'](event)).allowModels, false);
     await assert.rejects(handlers['mcp:configure'](event, { allowModels: 'true' }), /Invalid/);
     await assert.rejects(
       handlers['mcp:configure']({ ...event, senderFrame: {} }, { allowModels: true }),
@@ -364,7 +364,7 @@ test('MCP model permission is opt-in, validated, persisted and restricted to the
     );
     assert.equal((await handlers['mcp:configure'](event, { allowModels: true })).allowModels, true);
     assert.equal(config.mcp.allowModels, true);
-    assert.equal(handlers['mcp:status'](event).allowModels, true);
+    assert.equal((await handlers['mcp:status'](event)).allowModels, true);
     assert.equal(
       (await handlers['mcp:configure'](event, { allowModels: false })).allowModels,
       false

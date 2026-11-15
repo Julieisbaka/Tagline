@@ -32,14 +32,21 @@ function registerMcp({
   ...operations
 }) {
   const config = () => normalizeConfig(readConfig().mcp);
+  let saveQueue = Promise.resolve();
   const save = (patch) => {
-    const current = config();
-    const next = { ...current, ...patch };
-    if (!next.token) {
-      next.token = crypto.randomBytes(32).toString('hex');
-    }
-    writeConfig({ mcp: next });
-    return next;
+    const task = saveQueue
+      .catch(() => {})
+      .then(async () => {
+        const current = config();
+        const next = { ...current, ...patch };
+        if (!next.token) {
+          next.token = crypto.randomBytes(32).toString('hex');
+        }
+        await writeConfig({ mcp: next });
+        return next;
+      });
+    saveQueue = task;
+    return task;
   };
   const send = (channel, ...args) => {
     const win = getWindow();
@@ -104,9 +111,9 @@ function registerMcp({
     }
   };
 
-  ipcMain.handle('mcp:status', (event) => {
+  ipcMain.handle('mcp:status', async (event) => {
     authorize(event);
-    save({});
+    await save({});
     return status();
   });
   ipcMain.handle('mcp:configure', async (event, options) => {
@@ -143,7 +150,7 @@ function registerMcp({
       patch.port = options.port;
     }
     const previous = config();
-    save(patch);
+    await save(patch);
     if (
       (patch.enabled !== undefined && patch.enabled !== previous.enabled) ||
       (patch.port !== undefined && patch.port !== previous.port)
@@ -167,9 +174,9 @@ function registerMcp({
     });
     return true;
   });
-  ipcMain.handle('mcp:regenerateToken', (event) => {
+  ipcMain.handle('mcp:regenerateToken', async (event) => {
     authorize(event);
-    save({ token: crypto.randomBytes(32).toString('hex') });
+    await save({ token: crypto.randomBytes(32).toString('hex') });
     return status();
   });
 

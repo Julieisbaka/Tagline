@@ -157,7 +157,7 @@ function registerEmbeddings({
     if (typeof enabled !== 'boolean') {
       throw new Error('Invalid model autoload preference.');
     }
-    writeConfig({ modelAutoload: enabled });
+    await writeConfig({ modelAutoload: enabled });
     if (enabled && !readConfig().lowResourceMode && !state.ready && !state.busy) {
       await loadDownloaded();
     }
@@ -167,12 +167,12 @@ function registerEmbeddings({
     assertMainFrameSender(event);
     return readConfig().lowResourceMode === true;
   });
-  ipcMain.handle('embeddings:lowResource:set', (_e, enabled) => {
+  ipcMain.handle('embeddings:lowResource:set', async (_e, enabled) => {
     assertMainFrameSender(_e);
     if (typeof enabled !== 'boolean') {
       throw new Error('Invalid low-resource preference.');
     }
-    writeConfig({ lowResourceMode: enabled });
+    await writeConfig({ lowResourceMode: enabled });
     return enabled;
   });
   ipcMain.handle('embeddings:cacheSize', (event) => {

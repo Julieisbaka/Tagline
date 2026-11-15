@@ -4,6 +4,7 @@ const path = require('node:path');
 const ignore = require('ignore');
 
 const NOTE_EXTS = ['.md', '.flow', '.canvas', '.json'];
+const contentsCache = new Map();
 
 function loadIgnoreRules(dir) {
   try {
@@ -16,8 +17,18 @@ const FILE_CONCURRENCY = 16;
 
 async function loadVault(dir, base, includeContents) {
   const tree = [];
+  const root = path.resolve(dir);
+  let cachedContents;
+  if (includeContents) {
+    cachedContents = contentsCache.get(root);
+    if (!cachedContents) {
+      cachedContents = new Map();
+      contentsCache.set(root, cachedContents);
+    }
+  }
   const directories = [{ dir, base, nodes: tree }];
   const files = [];
+  const seen = includeContents ? new Set() : null;
   const ignorer = loadIgnoreRules(dir);
   for (const directory of directories) {
     const entries = await fs.readdir(directory.dir, { withFileTypes: true });
@@ -50,9 +61,17 @@ async function loadVault(dir, base, includeContents) {
     Array.from({ length: Math.min(FILE_CONCURRENCY, files.length) }, async () => {
       while (next < files.length) {
         const { full, node } = files[next++];
-        node.mtime = (await fs.stat(full)).mtimeMs;
+        const stat = await fs.stat(full);
+        node.mtime = stat.mtimeMs;
         if (includeContents) {
-          texts.set(node.path, await fs.readFile(full, 'utf8'));
+          seen.add(node.path);
+          const cached = cachedContents.get(node.path);
+          const text =
+            cached && cached.mtimeMs === stat.mtimeMs && cached.size === stat.size
+              ? cached.text
+              : await fs.readFile(full, 'utf8');
+          cachedContents.set(node.path, { mtimeMs: stat.mtimeMs, size: stat.size, text });
+          texts.set(node.path, text);
         }
       }
     })
@@ -73,6 +92,11 @@ async function loadVault(dir, base, includeContents) {
   };
   if (includeContents) {
     collect(tree);
+    for (const rel of cachedContents.keys()) {
+      if (!seen.has(rel)) {
+        cachedContents.delete(rel);
+      }
+    }
   }
   return { tree, contents };
 }
