@@ -107,6 +107,7 @@ export function useFavorites(root) {
       .catch((error) => {
         if (!cancelled) {
           reportSave(error);
+          setLoadedRoot(root);
         }
       });
     return () => {
@@ -164,8 +165,11 @@ export function useFavorites(root) {
       [updateTabPins]
     ),
     unpinTab: useCallback(
-      (path) => updateTabPins((paths) => paths.filter((item) => item !== path)),
-      [updateTabPins]
+      (path) => {
+        const next = (tabPins[root] || []).filter((item) => item !== path);
+        return next.length === (tabPins[root] || []).length ? (tabPins[root] || []) : next;
+      },
+      [root, tabPins]
     ),
   };
 }

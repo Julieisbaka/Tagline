@@ -95,7 +95,30 @@ function registerVaultIpc(
           } finally {
             await handle.close();
           }
-          await fs.rename(temporary, full);
+          // Retry rename on EBUSY/EPERM (Windows file-lock hazard), up to 5 attempts
+          let lastError;
+          for (let attempt = 0; attempt < 5; attempt++) {
+            try {
+              await fs.rename(temporary, full);
+              lastError = null;
+              break;
+            } catch (error) {
+              try {
+                await fs.rm(temporary, { force: true });
+              } catch {}
+              lastError = error;
+              if (error.code === 'EBUSY' || error.code === 'EPERM') {
+                if (attempt < 4) {
+                  await new Promise((resolve) => setTimeout(resolve, 25 * (attempt + 1)));
+                  continue;
+                }
+              }
+              throw error;
+            }
+          }
+          if (lastError) {
+            throw lastError;
+          }
         } catch (error) {
           try {
             await fs.rm(temporary, { force: true });
