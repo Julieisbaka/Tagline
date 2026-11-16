@@ -113,8 +113,12 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
         });
       const wait = async (s) => {
         for (let i = 0; i < 100; i++) {
-          if (await js(s)) {
-            return;
+          try {
+            if (await js(s)) {
+              return;
+            }
+          } catch {
+            // The renderer can throw while it is still settling; keep retrying.
           }
           await delay(100);
         }
@@ -157,8 +161,12 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
           .dispatchEvent(new MouseEvent('contextmenu', { bubbles: true }))`);
         await click('[role=menuitem]', 'Pin note');
         await wait("document.querySelector('.pinned-note-open')?.textContent.trim() === 'Cards'");
-        await wait(
-          "Object.values(JSON.parse(localStorage.getItem('tagline-favorites'))).some(paths => paths.includes('Cards.md'))"
+        await wait("window.api.readPins().then(pins => pins.favorites.includes('Cards.md'))");
+        assert.deepEqual(
+          JSON.parse(await fs.readFile(path.join(vault, '.tagline', 'pins.json'), 'utf8'))
+            .favorites,
+          ['Cards.md'],
+          'Pinned notes are stored in the vault pins file'
         );
         await js("document.querySelector('.pinned-note-remove').click()");
         await wait("!document.querySelector('.pinned-note-open')");

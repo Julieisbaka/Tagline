@@ -354,9 +354,13 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
         await wait(
           "[...document.querySelectorAll('.vault-manager-list li strong')].some(item => item.textContent === 'Second vault')"
         );
-        await js(`(() => [...document.querySelectorAll('.vault-manager-list li')]
-          .find(item => item.querySelector('strong')?.textContent === 'Second vault')
-          .querySelectorAll('button')[2].click())()`);
+        await js(`(() => {
+          const row = [...document.querySelectorAll('.vault-manager-list li')]
+            .find(item => item.querySelector('strong')?.textContent === 'Second vault');
+          [...row.querySelectorAll('button')]
+            .find(button => button.textContent.trim() === 'Remove from list')
+            .click();
+        })()`);
         await wait('window.api.listRecentVaults().then(items => items.length === 1)');
         assert.equal(await fs.stat(otherVault).then((info) => info.isDirectory()), true);
         await js(
