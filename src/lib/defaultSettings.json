@@ -23,6 +23,7 @@
   "editorMode": "visual",
   "flowEditorMode": "visual",
   "canvasEditorMode": "visual",
+  "canvasMinimap": false,
   "visualToolbar": true,
   "visualLineHeight": 1.65,
   "sourceLineNumbers": false,

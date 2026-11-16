@@ -5,6 +5,7 @@ import { nodeColor, sidePoint } from './canvasUtils.js';
 const CanvasEdges = memo(function CanvasEdges({
   edges,
   nodes,
+  view,
   selectedEdge,
   onSelect,
   onContextMenu,
@@ -36,6 +37,15 @@ const CanvasEdges = memo(function CanvasEdges({
         }
         const a = sidePoint(from, item.fromSide || 'right');
         const b = sidePoint(to, item.toSide || 'left');
+        if (
+          view &&
+          (Math.max(a.x, b.x) < view.left ||
+            Math.min(a.x, b.x) > view.right ||
+            Math.max(a.y, b.y) < view.top ||
+            Math.min(a.y, b.y) > view.bottom)
+        ) {
+          return null;
+        }
         return (
           <g
             key={item.id}

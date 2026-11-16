@@ -168,6 +168,11 @@ export default function EditorSettings({ settings, update }) {
             <option value='edit'>{t('JSON source')}</option>
           </select>
         </SettingRow>
+        {checkbox(
+          'Show canvas minimap',
+          'canvasMinimap',
+          'Show an overview of all nodes with the current viewport highlighted.'
+        )}
       </SettingsGroup>
       <SettingsGroup title={t('Source editor (CodeMirror)')}>
         {checkbox(

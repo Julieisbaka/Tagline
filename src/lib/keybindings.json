@@ -410,6 +410,18 @@
     "key": ""
   },
   {
+    "id": "canvas-select-next",
+    "label": "Canvas: select next node or connection",
+    "scope": "canvas",
+    "key": ""
+  },
+  {
+    "id": "canvas-select-previous",
+    "label": "Canvas: select previous node or connection",
+    "scope": "canvas",
+    "key": ""
+  },
+  {
     "id": "flow-add-column",
     "label": "Add column",
     "scope": "flow",

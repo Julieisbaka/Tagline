@@ -18,6 +18,7 @@ export default function CanvasControls({
   connectionStart,
   node,
   updateNode,
+  invalidCount,
   t,
 }) {
   return (
@@ -70,6 +71,11 @@ export default function CanvasControls({
         {connecting && (
           <span className='canvas-hint' role='status'>
             {t(connectionStart ? 'Select the target node.' : 'Select a starting node.')}
+          </span>
+        )}
+        {invalidCount > 0 && (
+          <span className='canvas-hint canvas-invalid-count' role='status'>
+            {t('{count} broken link(s)', { count: invalidCount })}
           </span>
         )}
       </div>

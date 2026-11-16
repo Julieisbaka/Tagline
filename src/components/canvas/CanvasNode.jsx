@@ -10,6 +10,7 @@ import { nodeColor } from './canvasUtils.js';
 const CanvasNode = memo(function CanvasNode({
   node,
   selected,
+  invalid,
   order,
   onSelect,
   onUpdate,
@@ -28,6 +29,14 @@ const CanvasNode = memo(function CanvasNode({
   const [editingText, setEditingText] = useState(node.type === 'text' && !node.text);
   const resolve = useCallback((target) => resolveLink(target, paths), [paths]);
   const link = node.type === 'link' ? resolveCanvasLink(node.url, paths) : null;
+  const linkIssue =
+    node.type === 'link' && node.url && !link
+      ? /^https?:\/\//i.test(node.url.trim())
+        ? t('Invalid web URL.')
+        : t('Vault file not found.')
+      : node.type === 'file' && node.file && !resolveLink(node.file, paths)
+        ? t('Vault file not found.')
+        : null;
   const openLinkNode = () => {
     if (link?.type === 'file') {
       onOpenFile(link.path, link.heading ? `#${link.heading}` : undefined);
@@ -37,7 +46,7 @@ const CanvasNode = memo(function CanvasNode({
   };
   return (
     <article
-      className={`canvas-node canvas-node-${node.type}${selected ? ' selected' : ''}`}
+      className={`canvas-node canvas-node-${node.type}${selected ? ' selected' : ''}${invalid ? ' invalid' : ''}`}
       data-node-id={node.id}
       tabIndex={0}
       aria-label={t('Canvas node: {type}', { type: t(node.type) })}
@@ -179,11 +188,6 @@ const CanvasNode = memo(function CanvasNode({
             <button className='link-btn canvas-open-file' disabled={!link} onClick={openLinkNode}>
               {link?.label || node.url || t('Open link')}
             </button>
-            {!!node.url && !link && (
-              <span className='error-text' role='status'>
-                {t('Link target not found or unsupported.')}
-              </span>
-            )}
           </>
         )}
         {node.type === 'group' && (
@@ -198,6 +202,11 @@ const CanvasNode = memo(function CanvasNode({
               {t('Place other nodes over this group to organize them.')}
             </span>
           </>
+        )}
+        {linkIssue && (
+          <span className='error-text canvas-node-issue' role='status'>
+            {linkIssue}
+          </span>
         )}
       </div>
       {selected && (

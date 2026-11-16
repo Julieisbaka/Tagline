@@ -319,6 +319,63 @@
   padding: 12px;
 }
 
+.canvas-node.invalid {
+  border-top-color: var(--danger);
+}
+
+.canvas-node-issue {
+  margin-top: 0;
+  font-size: 11px;
+}
+
+.canvas-toolbar .canvas-invalid-count {
+  color: var(--danger);
+}
+
+.canvas-minimap {
+  position: absolute;
+  right: 10px;
+  bottom: 10px;
+  z-index: 5;
+  padding: 3px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  box-shadow: 0 4px 16px #0003;
+  cursor: crosshair;
+  line-height: 0;
+  touch-action: none;
+}
+
+.canvas-minimap:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.canvas-minimap svg {
+  display: block;
+  border-radius: 3px;
+  background: var(--bg);
+}
+
+.canvas-minimap-viewport {
+  fill: color-mix(in srgb, var(--accent) 12%, transparent);
+  stroke: var(--accent);
+  stroke-width: 1.5px;
+}
+
+.canvas-minimap-label {
+  position: absolute;
+  right: 4px;
+  bottom: 2px;
+  padding: 0 3px;
+  background: var(--bg-secondary);
+  border-radius: 2px;
+  color: var(--text-muted);
+  font-size: 9px;
+  line-height: 1.3;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .canvas-node {
     scroll-behavior: auto;

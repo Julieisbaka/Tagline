@@ -1,10 +1,13 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   canvasGroupMembers,
+  canvasInvalidLinks,
+  canvasVisibleNodes,
   createArgumentEdge,
   createCanvasId,
   createCanvasNode,
   moveCanvasNodes,
+  resolveCanvasLink,
   serializeCanvas,
 } from '../../lib/canvas.js';
 import { binding, KEYBINDINGS, matchesBinding } from '../../lib/keybindings.js';
@@ -15,6 +18,7 @@ import openCanvasContextMenu from './CanvasEditor/canvasContextMenu.js';
 export default function CanvasEditor({
   canvas,
   path,
+  minimap,
   extensions,
   onChange,
   paths,
@@ -29,6 +33,7 @@ export default function CanvasEditor({
   const gestureRef = useRef(null);
   const gestureFrame = useRef(0);
   const viewportRef = useRef(null);
+  const nudgeRef = useRef(null);
   const [gesture, setGesture] = useState(null);
   const [camera, setCamera] = useState(() => ({
     x: 240 - Math.min(0, ...canvas.nodes.map((item) => item.x)),
@@ -37,6 +42,19 @@ export default function CanvasEditor({
   }));
   const cameraRef = useRef(camera);
   cameraRef.current = camera;
+  const [viewportSize, setViewportSize] = useState({ width: 800, height: 600 });
+  useEffect(() => {
+    const viewport = viewportRef.current;
+    if (!viewport) {
+      return;
+    }
+    const measure = () =>
+      setViewportSize({ width: viewport.clientWidth, height: viewport.clientHeight });
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(viewport);
+    return () => observer.disconnect();
+  }, []);
   const [selectedNode, setSelectedNode] = useState(null);
   const [selectedEdge, setSelectedEdge] = useState(null);
   const [connecting, setConnecting] = useState(false);
@@ -67,6 +85,24 @@ export default function CanvasEditor({
         liveActions.current['canvas-delete']();
         return;
       }
+      if (['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(event.key)) {
+        const state = nudgeRef.current;
+        if (state?.selectedNode) {
+          event.preventDefault();
+          const step = Math.max(1, Math.round((event.shiftKey ? 10 : 1) / state.camera.k));
+          const dx = event.key === 'ArrowLeft' ? -step : event.key === 'ArrowRight' ? step : 0;
+          const dy = event.key === 'ArrowUp' ? -step : event.key === 'ArrowDown' ? step : 0;
+          state.update(
+            moveCanvasNodes(
+              state.canvas,
+              [state.selectedNode, ...canvasGroupMembers(state.canvas.nodes, state.selectedNode)],
+              dx,
+              dy
+            )
+          );
+          return;
+        }
+      }
       const command = KEYBINDINGS.find(
         (item) => item.scope === 'canvas' && matchesBinding(event, binding(item.id, keybindings))
       );
@@ -84,6 +120,22 @@ export default function CanvasEditor({
   }, [keybindings]);
   const node = canvas.nodes.find((item) => item.id === selectedNode);
   const edge = canvas.edges.find((item) => item.id === selectedEdge);
+  const view = useMemo(() => {
+    const { x, y, k } = camera;
+    const pad = 120;
+    return {
+      left: (-x - pad) / k,
+      top: (-y - pad) / k,
+      right: (viewportSize.width - x + pad) / k,
+      bottom: (viewportSize.height - y + pad) / k,
+    };
+  }, [camera, viewportSize]);
+  const centerOn = (worldX, worldY) =>
+    setCamera((current) => ({
+      ...current,
+      x: viewportSize.width / 2 - worldX * current.k,
+      y: viewportSize.height / 2 - worldY * current.k,
+    }));
   const zoom = (factor, point) => {
     const viewport = viewportRef.current;
     if (!viewport) {
@@ -156,20 +208,35 @@ export default function CanvasEditor({
     () => new Map(renderedNodes.map((item) => [item.id, item])),
     [renderedNodes]
   );
+  const visibleNodes = useMemo(() => {
+    const shown = canvasVisibleNodes(renderedNodes, view, 200);
+    const pinned = new Set([selectedNode, connectionStart].filter(Boolean));
+    if (!pinned.size) {
+      return shown;
+    }
+    const ids = new Set(shown.map((item) => item.id));
+    return [...shown, ...renderedNodes.filter((item) => pinned.has(item.id) && !ids.has(item.id))];
+  }, [renderedNodes, view, selectedNode, connectionStart]);
   const layers = useMemo(
     () => [
       {
         name: 'canvas-groups',
-        nodes: renderedNodes
+        nodes: visibleNodes
           .filter((item) => item.type === 'group')
           .sort((a, b) => b.width * b.height - a.width * a.height),
       },
-      { name: 'canvas-nodes', nodes: renderedNodes.filter((item) => item.type !== 'group') },
+      { name: 'canvas-nodes', nodes: visibleNodes.filter((item) => item.type !== 'group') },
     ],
-    [renderedNodes]
+    [visibleNodes]
   );
+  const invalidLinks = useMemo(
+    () => canvasInvalidLinks(canvas, (value) => resolveCanvasLink(value, paths)),
+    [canvas, paths]
+  );
+  const invalidIds = useMemo(() => new Set(invalidLinks.map((item) => item.id)), [invalidLinks]);
 
   const update = useCallback((next) => onChange(serializeCanvas(next)), [onChange]);
+  nudgeRef.current = { canvas, selectedNode, camera, update };
   const updateNode = useCallback(
     (id, changes) =>
       update({
@@ -403,12 +470,48 @@ export default function CanvasEditor({
       y: viewport.clientHeight / 2 - ((top + bottom) / 2) * k,
     });
   };
+  const cycleSelection = (direction) => {
+    const items = [
+      ...canvas.nodes.map((item) => ({ id: item.id, type: 'node' })),
+      ...canvas.edges.map((item) => ({ id: item.id, type: 'edge' })),
+    ];
+    if (!items.length) {
+      return;
+    }
+    const index = items.findIndex((item) => item.id === (selectedNode || selectedEdge));
+    const next = items[(index + direction + items.length) % items.length];
+    if (next.type === 'node') {
+      selectNode(next.id);
+      const target = canvas.nodes.find((item) => item.id === next.id);
+      const screenX = target.x * camera.k + camera.x;
+      const screenY = target.y * camera.k + camera.y;
+      const offscreen =
+        screenX < 0 ||
+        screenY < 0 ||
+        screenX + target.width * camera.k > viewportSize.width ||
+        screenY + target.height * camera.k > viewportSize.height;
+      if (offscreen) {
+        centerOn(target.x + target.width / 2, target.y + target.height / 2);
+      }
+    } else {
+      selectEdge(next.id);
+    }
+    const selector =
+      next.type === 'node' ? `[data-node-id="${next.id}"]` : `[data-edge-id="${next.id}"]`;
+    const element = viewportRef.current?.querySelector(selector);
+    if (element) {
+      element.focus({ preventScroll: true });
+      element.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+    }
+  };
   liveActions.current = {
     ...Object.fromEntries(
       ['text', 'file', 'link', 'group'].map((type) => [`canvas-add-${type}`, () => addNode(type)])
     ),
     'canvas-connect': connect,
     'canvas-cancel': cancelConnection,
+    'canvas-select-next': () => cycleSelection(1),
+    'canvas-select-previous': () => cycleSelection(-1),
     'canvas-fit': fit,
     'canvas-zoom-in': () => zoom(1.2),
     'canvas-zoom-out': () => zoom(1 / 1.2),
@@ -451,6 +554,7 @@ export default function CanvasEditor({
         connectionStart={connectionStart}
         node={node}
         updateNode={updateNode}
+        invalidCount={invalidLinks.length}
         t={t}
       />
       <CanvasBoard
@@ -467,6 +571,10 @@ export default function CanvasEditor({
         setMenu={setMenu}
         canvas={canvas}
         nodesById={nodesById}
+        view={view}
+        minimap={minimap}
+        centerOn={centerOn}
+        invalidIds={invalidIds}
         selectedEdge={selectedEdge}
         selectEdge={selectEdge}
         layers={layers}

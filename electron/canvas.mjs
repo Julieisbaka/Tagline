@@ -83,8 +83,11 @@ export function parseCanvas(content) {
     ids.add(edge.id);
     requireString(edge.fromNode, `${label} fromNode`);
     requireString(edge.toNode, `${label} toNode`);
-    if (!nodeIds.has(edge.fromNode) || !nodeIds.has(edge.toNode)) {
-      throw new Error(`${label} must reference existing nodes.`);
+    if (!nodeIds.has(edge.fromNode)) {
+      throw new Error(`${label} references an unknown fromNode "${edge.fromNode}".`);
+    }
+    if (!nodeIds.has(edge.toNode)) {
+      throw new Error(`${label} references an unknown toNode "${edge.toNode}".`);
     }
     for (const key of ['fromSide', 'toSide']) {
       if (edge[key] !== undefined && (typeof edge[key] !== 'string' || !SIDES.has(edge[key]))) {
@@ -162,6 +165,30 @@ export function moveCanvasNodes(canvas, ids, dx, dy) {
     ...canvas, nodes: canvas.nodes.map((node) => moving.has(node.id)
       ? { ...node, x: node.x + dx, y: node.y + dy } : node)
   };
+}
+
+/** Return nodes whose bounds intersect a world-space view. @returns {object[]} */
+export function canvasVisibleNodes(nodes, view, padding = 0) {
+  const left = view.left - padding;
+  const top = view.top - padding;
+  const right = view.right + padding;
+  const bottom = view.bottom + padding;
+  return nodes.filter((node) =>
+    node.x <= right && node.x + node.width >= left &&
+    node.y <= bottom && node.y + node.height >= top);
+}
+
+/** Return link/file nodes whose target the resolver cannot resolve. @returns {{id:string,type:string,value:string}[]} */
+export function canvasInvalidLinks(canvas, resolve) {
+  if (typeof resolve !== 'function') {throw new Error('Link resolver must be a function.');}
+  const issues = [];
+  for (const node of canvas.nodes) {
+    const value = node.type === 'link' ? node.url : node.type === 'file' ? node.file : null;
+    if (value && !resolve(value)) {
+      issues.push({ id: node.id, type: node.type, value });
+    }
+  }
+  return issues;
 }
 
 /** Match filenames case-insensitively, prefix-first, bounded by limit. @returns {string[]} */

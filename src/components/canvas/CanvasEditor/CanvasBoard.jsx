@@ -1,6 +1,7 @@
 import ContextMenu from '../../dialogs/ContextMenu.jsx';
 import CanvasEdges from '../CanvasEdges.jsx';
 import CanvasNode from '../CanvasNode.jsx';
+import CanvasMinimap from './CanvasMinimap.jsx';
 
 export default function CanvasBoard({
   viewportRef,
@@ -16,6 +17,10 @@ export default function CanvasBoard({
   setMenu,
   canvas,
   nodesById,
+  view,
+  minimap,
+  centerOn,
+  invalidIds,
   selectedEdge,
   selectEdge,
   layers,
@@ -122,6 +127,7 @@ export default function CanvasBoard({
         <CanvasEdges
           edges={canvas.edges}
           nodes={nodesById}
+          view={view}
           selectedEdge={selectedEdge}
           onSelect={selectEdge}
           onContextMenu={contextMenu}
@@ -133,6 +139,7 @@ export default function CanvasBoard({
                 key={item.id}
                 node={item}
                 selected={item.id === selectedNode || (connecting && item.id === connectionStart)}
+                invalid={invalidIds.has(item.id)}
                 order={index}
                 onStartGesture={startGesture}
                 onContextMenu={contextMenu}
@@ -149,6 +156,9 @@ export default function CanvasBoard({
           </div>
         ))}
       </div>
+      {minimap && (
+        <CanvasMinimap canvas={canvas} camera={camera} view={view} onNavigate={centerOn} />
+      )}
       {menu && <ContextMenu {...menu} onClose={() => setMenu(null)} />}
     </div>
   );

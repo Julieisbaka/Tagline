@@ -93,6 +93,7 @@ export default function CanvasView({
         <CanvasEditor
           canvas={parsed.canvas}
           path={path}
+          minimap={settings.canvasMinimap === true}
           extensions={extensions}
           onChange={onChange}
           paths={paths}

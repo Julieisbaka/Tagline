@@ -22,12 +22,21 @@ export default function FlowGrid({
   const [editing, setEditing] = useState(() =>
     sheet.rows.length && sheet.columns.length ? { row: 0, column: 0 } : null
   );
+  // Single tab stop for the grid. Follows focus/editing so Tab enters the grid once.
+  const [tabStop, setTabStop] = useState(editing);
   useEffect(() => {
     if (!sheet.rows.length || !sheet.columns.length) {
       setEditing(null);
+      setTabStop(null);
       return;
     }
     setEditing((current) => {
+      if (current && current.row < sheet.rows.length && current.column < sheet.columns.length) {
+        return current;
+      }
+      return { row: 0, column: 0 };
+    });
+    setTabStop((current) => {
       if (current && current.row < sheet.rows.length && current.column < sheet.columns.length) {
         return current;
       }
@@ -100,6 +109,126 @@ export default function FlowGrid({
     clipboardError,
     selectAll,
   } = actions;
+
+  const goToCell = (row, column, edit = true) => {
+    setTabStop({ row, column });
+    if (edit) {
+      setEditing({ row, column });
+    }
+    const target = gridRef.current?.querySelector(
+      `[data-row="${row}"][data-column="${column}"]`
+    );
+    if (target && target !== document.activeElement) {
+      target.focus({ preventScroll: true });
+      target.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+    }
+  };
+  const onCellKeyDown = (e, r, c, isEditing) => {
+    if (!isEditing && (e.key === 'Enter' || e.key === 'F2')) {
+      e.preventDefault();
+      goToCell(r, c);
+      return;
+    }
+    const extend = [
+      ['flow-extend-up', -1, 0],
+      ['flow-extend-down', 1, 0],
+      ['flow-extend-left', 0, -1],
+      ['flow-extend-right', 0, 1],
+    ].find(([id]) => matchesBinding(e, binding(id, keybindings)));
+    if (extend) {
+      e.preventDefault();
+      const head = selected?.head || { row: r, column: c };
+      const targetRow = Math.max(0, Math.min(sheet.rows.length - 1, head.row + extend[1]));
+      const targetColumn = Math.max(
+        0,
+        Math.min(sheet.columns.length - 1, head.column + extend[2])
+      );
+      choose(targetRow, targetColumn, true);
+      const target = gridRef.current?.querySelector(
+        `[data-row="${targetRow}"][data-column="${targetColumn}"]`
+      );
+      if (target && target !== document.activeElement) {
+        keepSelection.current = true;
+        goToCell(targetRow, targetColumn);
+      }
+      return;
+    }
+    if (matchesBinding(e, binding('flow-deselect', keybindings))) {
+      e.preventDefault();
+      setSelection(null);
+      return;
+    }
+    if (multi && ['Delete', 'Backspace'].includes(e.key)) {
+      e.preventDefault();
+      clear();
+      return;
+    }
+    if (matchesBinding(e, binding('flow-select-all', keybindings))) {
+      e.preventDefault();
+      selectAll();
+      return;
+    }
+    if (matchesBinding(e, binding('flow-clear-selection', keybindings))) {
+      e.preventDefault();
+      clear();
+      return;
+    }
+    if (matchesBinding(e, binding('flow-add-column', keybindings))) {
+      e.preventDefault();
+      addColumn();
+      return;
+    }
+    const cellDown = matchesBinding(e, binding('flow-cell-down', keybindings));
+    const cellUp = matchesBinding(e, binding('flow-cell-up', keybindings));
+    if (cellDown || cellUp) {
+      const nextRow = r + (cellDown ? 1 : -1);
+      if (nextRow < 0 || nextRow >= sheet.rows.length) {
+        return;
+      }
+      const target = gridRef.current?.querySelector(
+        `[data-row="${nextRow}"][data-column="${c}"]`
+      );
+      if (!target) {
+        return;
+      }
+      e.preventDefault();
+      choose(nextRow, c);
+      goToCell(nextRow, c);
+      return;
+    }
+    const nextCell = matchesBinding(e, binding('flow-next-cell', keybindings));
+    const previousCell = matchesBinding(e, binding('flow-previous-cell', keybindings));
+    if (nextCell || previousCell) {
+      const direction = previousCell ? -1 : 1;
+      let nextRow = r;
+      let nextColumn = c + direction;
+      if (nextColumn < 0) {
+        nextRow -= 1;
+        nextColumn = sheet.columns.length - 1;
+      } else if (nextColumn >= sheet.columns.length) {
+        nextRow += 1;
+        nextColumn = 0;
+      }
+      const nextCellEl = gridRef.current?.querySelector(
+        `[data-row="${nextRow}"][data-column="${nextColumn}"]`
+      );
+      if (nextCellEl) {
+        e.preventDefault();
+        choose(nextRow, nextColumn);
+        goToCell(nextRow, nextColumn);
+      }
+      return;
+    }
+    if (matchesBinding(e, binding('flow-row-above', keybindings))) {
+      e.preventDefault();
+      insertRowAbove(r, c);
+      return;
+    }
+    if (matchesBinding(e, binding('flow-row', keybindings))) {
+      e.preventDefault();
+      addRow(r, c);
+    }
+  };
 
   useLayoutEffect(() => {
     const table = gridRef.current?.querySelector('table');
@@ -254,6 +383,7 @@ export default function FlowGrid({
                     <textarea
                       data-row={r}
                       data-column={c}
+                      tabIndex={tabStop?.row === r && tabStop?.column === c ? 0 : -1}
                       aria-label={t('Row {row}, {column}', {
                         row: r + 1,
                         column: sheet.columns[c],
@@ -277,6 +407,7 @@ export default function FlowGrid({
                         }
                       }}
                       onFocus={() => {
+                        setTabStop({ row: r, column: c });
                         if (keepSelection.current) {
                           keepSelection.current = false;
                           return;
@@ -333,135 +464,30 @@ export default function FlowGrid({
                         choose(r, c);
                         setCell(r, c, e.target.value);
                       }}
-                      onKeyDown={(e) => {
-                        const extend = [
-                          ['flow-extend-up', -1, 0],
-                          ['flow-extend-down', 1, 0],
-                          ['flow-extend-left', 0, -1],
-                          ['flow-extend-right', 0, 1],
-                        ].find(([id]) => matchesBinding(e, binding(id, keybindings)));
-                        if (extend) {
-                          e.preventDefault();
-                          const head = selected?.head || { row: r, column: c };
-                          const row = Math.max(
-                            0,
-                            Math.min(sheet.rows.length - 1, head.row + extend[1])
-                          );
-                          const column = Math.max(
-                            0,
-                            Math.min(sheet.columns.length - 1, head.column + extend[2])
-                          );
-                          choose(row, column, true);
-                          const target = gridRef.current.querySelector(
-                            `[data-row="${row}"][data-column="${column}"]`
-                          );
-                          if (target && target !== document.activeElement) {
-                            keepSelection.current = true;
-                            target.focus();
-                            target.scrollIntoView({ block: 'nearest', inline: 'nearest' });
-                          }
-                          return;
-                        }
-                        if (matchesBinding(e, binding('flow-deselect', keybindings))) {
-                          e.preventDefault();
-                          setSelection(null);
-                          return;
-                        }
-                        if (multi && ['Delete', 'Backspace'].includes(e.key)) {
-                          e.preventDefault();
-                          clear();
-                          return;
-                        }
-                        if (matchesBinding(e, binding('flow-select-all', keybindings))) {
-                          e.preventDefault();
-                          selectAll();
-                          return;
-                        }
-                        if (matchesBinding(e, binding('flow-clear-selection', keybindings))) {
-                          e.preventDefault();
-                          clear();
-                          return;
-                        }
-                        if (matchesBinding(e, binding('flow-add-column', keybindings))) {
-                          e.preventDefault();
-                          addColumn();
-                          return;
-                        }
-                        const cellDown = matchesBinding(e, binding('flow-cell-down', keybindings));
-                        const cellUp = matchesBinding(e, binding('flow-cell-up', keybindings));
-                        if (cellDown || cellUp) {
-                          const nextRow = r + (cellDown ? 1 : -1);
-                          if (nextRow < 0 || nextRow >= sheet.rows.length) {
-                            return;
-                          }
-                          const target = gridRef.current?.querySelector(
-                            `[data-row="${nextRow}"][data-column="${c}"]`
-                          );
-                          if (!target) {
-                            return;
-                          }
-                          e.preventDefault();
-                          choose(nextRow, c);
-                          target.focus();
-                          target.scrollIntoView({ block: 'nearest', inline: 'nearest' });
-                          return;
-                        }
-                        const nextCell = matchesBinding(e, binding('flow-next-cell', keybindings));
-                        const previousCell = matchesBinding(
-                          e,
-                          binding('flow-previous-cell', keybindings)
-                        );
-                        if (nextCell || previousCell) {
-                          const direction = previousCell ? -1 : 1;
-                          let nextRow = r;
-                          let nextColumn = c + direction;
-                          if (nextColumn < 0) {
-                            nextRow -= 1;
-                            nextColumn = sheet.columns.length - 1;
-                          } else if (nextColumn >= sheet.columns.length) {
-                            nextRow += 1;
-                            nextColumn = 0;
-                          }
-                          const nextCell = gridRef.current?.querySelector(
-                            `[data-row="${nextRow}"][data-column="${nextColumn}"]`
-                          );
-                          if (nextCell) {
-                            e.preventDefault();
-                            choose(nextRow, nextColumn);
-                            nextCell.focus();
-                            nextCell.scrollIntoView({ block: 'nearest', inline: 'nearest' });
-                          }
-                          return;
-                        }
-                        if (matchesBinding(e, binding('flow-row-above', keybindings))) {
-                          e.preventDefault();
-                          insertRowAbove(r, c);
-                          return;
-                        }
-                        if (matchesBinding(e, binding('flow-row', keybindings))) {
-                          e.preventDefault();
-                          addRow(r, c);
-                        }
-                      }}
+                      onKeyDown={(e) => onCellKeyDown(e, r, c, true)}
                     />
                   ) : (
                     <div
                       className='flow-cell-preview markdown-body'
                       data-row={r}
                       data-column={c}
-                      tabIndex={-1}
+                      tabIndex={tabStop?.row === r && tabStop?.column === c ? 0 : -1}
                       aria-label={t('Row {row}, {column}', {
                         row: r + 1,
                         column: sheet.columns[c],
                       })}
+                      aria-keyshortcuts='Enter F2'
+                      title={t('Press Enter to edit this cell')}
+                      data-edit-hint={t('Enter to edit')}
                       onFocus={() => {
+                        setTabStop({ row: r, column: c });
                         if (keepSelection.current) {
                           keepSelection.current = false;
                         } else if (!inside(r, c)) {
                           choose(r, c);
                         }
-                        setEditing({ row: r, column: c });
                       }}
+                      onKeyDown={(e) => onCellKeyDown(e, r, c, false)}
                       onPointerDown={(event) => {
                         if (event.button !== 0) {
                           return;
@@ -473,7 +499,7 @@ export default function FlowGrid({
                           choose(r, c);
                         }
                       }}
-                      onClick={() => setEditing({ row: r, column: c })}
+                      onClick={() => goToCell(r, c)}
                       dangerouslySetInnerHTML={{
                         __html: cell ? previewHtml(cell) : '…',
                       }}
