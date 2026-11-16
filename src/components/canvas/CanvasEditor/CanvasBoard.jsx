@@ -35,6 +35,7 @@ export default function CanvasBoard({
   onOpenUrl,
   onOpenLink,
   paths,
+  path,
   contents,
   menu,
   t,
@@ -150,6 +151,7 @@ export default function CanvasBoard({
                 onOpenUrl={onOpenUrl}
                 onOpenLink={onOpenLink}
                 paths={paths}
+                path={path}
                 contents={contents}
               />
             ))}

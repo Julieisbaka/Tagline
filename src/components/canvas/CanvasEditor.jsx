@@ -230,8 +230,8 @@ export default function CanvasEditor({
     [visibleNodes]
   );
   const invalidLinks = useMemo(
-    () => canvasInvalidLinks(canvas, (value) => resolveCanvasLink(value, paths)),
-    [canvas, paths]
+    () => canvasInvalidLinks(canvas, (value) => resolveCanvasLink(value, paths, path)),
+    [canvas, paths, path]
   );
   const invalidIds = useMemo(() => new Set(invalidLinks.map((item) => item.id)), [invalidLinks]);
 
@@ -589,6 +589,7 @@ export default function CanvasEditor({
         onOpenUrl={onOpenUrl}
         onOpenLink={onOpenLink}
         paths={paths}
+        path={path}
         contents={contents}
         menu={menu}
         t={t}

@@ -67,6 +67,16 @@ test('Canvas links open vault files, wiki headings and web URLs without allowing
   });
   assert.equal(resolveCanvasLink('Map.canvas', paths).path, 'Map.canvas');
   assert.equal(resolveCanvasLink('http://example.com', paths).url, 'http://example.com/');
+  assert.deepEqual(resolveCanvasLink('[[#Heading]]', paths, 'Map.canvas'), {
+    type: 'file',
+    path: 'Map.canvas',
+    heading: 'Heading',
+    label: undefined,
+  });
+  assert.equal(resolveCanvasLink('[[#Heading|Jump]]', paths, 'Map.canvas').label, 'Jump');
+  assert.equal(resolveCanvasLink('[[#Heading]]', paths), null);
+  assert.equal(resolveCanvasLink('Odd|Name.md', ['Odd|Name.md']).path, 'Odd|Name.md');
+  assert.equal(resolveCanvasLink('Folder/Note.md#A#B', paths).heading, 'A#B');
   for (const value of [
     '',
     'missing.md',

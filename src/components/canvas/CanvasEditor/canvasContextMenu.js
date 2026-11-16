@@ -54,9 +54,9 @@ export default function openCanvasContextMenu(
           ? [
               {
                 label: 'Open link',
-                disabled: !resolveCanvasLink(targetNode.url, paths),
+                disabled: !resolveCanvasLink(targetNode.url, paths, path),
                 run: () => {
-                  const link = resolveCanvasLink(targetNode.url, paths);
+                  const link = resolveCanvasLink(targetNode.url, paths, path);
                   if (link.type === 'file') {
                     onOpenFile(link.path, link.heading ? `#${link.heading}` : undefined);
                   } else {

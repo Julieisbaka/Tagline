@@ -21,6 +21,7 @@ const CanvasNode = memo(function CanvasNode({
   onStartGesture,
   onContextMenu,
   paths,
+  path,
   contents,
 }) {
   const { t } = useI18n();
@@ -28,7 +29,7 @@ const CanvasNode = memo(function CanvasNode({
   const fileListId = useId();
   const [editingText, setEditingText] = useState(node.type === 'text' && !node.text);
   const resolve = useCallback((target) => resolveLink(target, paths), [paths]);
-  const link = node.type === 'link' ? resolveCanvasLink(node.url, paths) : null;
+  const link = node.type === 'link' ? resolveCanvasLink(node.url, paths, path) : null;
   const linkIssue =
     node.type === 'link' && node.url && !link
       ? /^https?:\/\//i.test(node.url.trim())

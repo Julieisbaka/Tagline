@@ -61,6 +61,8 @@
             <li>Pinned notes and folders show a pin marker in the file explorer tree.</li>
             <li>Opening a vault drops pinned entries whose files no longer exist, instead of keeping them in <code>.tagline/pins.json</code> forever.</li>
             <li>Keyboard shortcut lookups use a precomputed map instead of copying and scanning all built-in bindings on every lookup.</li>
+            <li>Canvas editor adds an optional minimap, viewport culling for large canvases, keyboard node/edge selection, and arrow-key nudging of selected nodes (hold Shift for larger steps).</li>
+            <li>Flow grid cells use a single roving tab stop, so Tab reaches preview cells directly; focus rings match edit mode and an “Enter to edit” hint marks the focused cell.</li>
           </ul>
 
           <h3>Fixed</h3>
@@ -71,6 +73,8 @@
             <li>Fixed: read failure no longer blocks tab restoration and write persistence.</li>
             <li>Fixed: pins writes now retry on EBUSY/EPERM (Windows file-lock hazard).</li>
             <li>Fixed: flow cells can be opened and edited with a primary click in Visual mode.</li>
+            <li>Fixed: canvas <code>[[#Heading]]</code> links resolve to the canvas file instead of being dropped, and plain link paths containing <code>|</code> are no longer split into destination and label.</li>
+            <li>Fixed: canvas nodes and connections with broken links show a clear in-node message and a toolbar count.</li>
           </ul>
         </section>
 
