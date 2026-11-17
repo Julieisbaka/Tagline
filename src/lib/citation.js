@@ -29,7 +29,12 @@ export function createCitation({
   }
   let link = '';
   if (url.trim()) {
-    const parsed = new URL(url.trim());
+    let parsed;
+    try {
+      parsed = new URL(url.trim());
+    } catch {
+      throw new Error('Enter a valid citation URL.');
+    }
     if (!['http:', 'https:'].includes(parsed.protocol)) {
       throw new Error('Use an HTTP or HTTPS citation URL.');
     }
