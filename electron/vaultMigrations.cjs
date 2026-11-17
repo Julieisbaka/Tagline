@@ -347,8 +347,10 @@ async function migrateVault(root, steps = migrations) {
 // Metadata-only steps record the vault format without touching user documents,
 // so they are adopted in place: no prompt, no copy, no backup.
 async function adoptSteps(root, steps) {
+  await assertTree(root);
   for (const step of steps) {
     await step.up(root);
+    await assertTree(root);
     await step.validate(root);
     await writeManifest(root, { ...(await readManifest(root)), version: step.version });
   }

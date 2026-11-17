@@ -88,10 +88,13 @@ export function validateSettingDefinitions(definitions = [], limits = getRuntime
         throw new Error('Array/object settings require a matching JSON schema up to 4,096 characters.');
       }
     }
-    if (setting.type === 'secret' && !setting.default) {setting.default = '';}
+    const clean = { ...setting,
+      ...(setting.type === 'secret' && !setting.default ? { default: '' } : {}),
+      ...(setting.type === 'path' && setting.default === undefined ? { default: '' } : {}),
+      title: setting.title.trim(),
+    };
     if (setting.pathKind !== undefined && !['file', 'folder'].includes(setting.pathKind)) {throw new Error('pathKind must be file or folder.');}
-    if (setting.type === 'path' && setting.default === undefined) {setting.default = '';}
-    validateSettingValue(setting, setting.default);
-    return { ...setting, title: setting.title.trim() };
+    validateSettingValue(clean, clean.default);
+    return clean;
   });
 }
