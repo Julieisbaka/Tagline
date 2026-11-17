@@ -32,7 +32,10 @@ const vault = path.join(root, 'vault');
 const sampleParent = path.join(root, 'sample-parent');
 fs.mkdirSync(vault, { recursive: true });
 fs.mkdirSync(path.join(vault, '.tagline'), { recursive: true });
-fs.writeFileSync(path.join(vault, '.tagline', 'vault.json'), JSON.stringify({ version: require('../electron/vaultMigrations.cjs').migrations.length }));
+fs.writeFileSync(
+  path.join(vault, '.tagline', 'vault.json'),
+  JSON.stringify({ version: require('../electron/vaultMigrations.cjs').migrations.length })
+);
 fs.mkdirSync(sampleParent, { recursive: true });
 dialog.showOpenDialog = async () => ({ canceled: false, filePaths: [sampleParent] });
 fs.mkdirSync(path.join(legacy, 'semantic-search'), { recursive: true });

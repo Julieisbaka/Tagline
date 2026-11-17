@@ -104,16 +104,18 @@ export function useVault(
     (path, text) => {
       const epoch = saveEpoch.current;
       const previous = writes.current.get(path)?.task || Promise.resolve();
-      const task = previous.catch(() => {}).then(() => {
-        if (saveEpoch.current !== epoch) return;
-        return api.write(
-          path,
-          text,
-          historyRetentionRef.current,
-          canvasHistoryModeRef.current,
-          experimentalHistoryDeltasRef.current
-        );
-      });
+      const task = previous
+        .catch(() => {})
+        .then(() => {
+          if (saveEpoch.current !== epoch) return;
+          return api.write(
+            path,
+            text,
+            historyRetentionRef.current,
+            canvasHistoryModeRef.current,
+            experimentalHistoryDeltasRef.current
+          );
+        });
       writes.current.set(path, { task, text });
       /**
        * Remove this completed write only if no newer write replaced it.

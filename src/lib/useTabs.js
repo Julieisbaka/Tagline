@@ -168,9 +168,7 @@ export function useTabs(vaultRoot, persist = true, onCloseFile = null) {
       }
       const current = tabs.find((t) => t.id === activeId);
       if (!newTab && current && current.kind === 'file') {
-        setTabs((prev) =>
-          prev.map((t) => (t.id === current.id ? { ...t, path } : t))
-        );
+        setTabs((prev) => prev.map((t) => (t.id === current.id ? { ...t, path } : t)));
         return undefined;
       }
       const tab = { id: newId(), kind: 'file', path };

@@ -115,9 +115,7 @@ export default function FlowGrid({
     if (edit) {
       setEditing({ row, column });
     }
-    const target = gridRef.current?.querySelector(
-      `[data-row="${row}"][data-column="${column}"]`
-    );
+    const target = gridRef.current?.querySelector(`[data-row="${row}"][data-column="${column}"]`);
     if (target && target !== document.activeElement) {
       target.focus({ preventScroll: true });
       target.scrollIntoView({ block: 'nearest', inline: 'nearest' });
@@ -139,10 +137,7 @@ export default function FlowGrid({
       e.preventDefault();
       const head = selected?.head || { row: r, column: c };
       const targetRow = Math.max(0, Math.min(sheet.rows.length - 1, head.row + extend[1]));
-      const targetColumn = Math.max(
-        0,
-        Math.min(sheet.columns.length - 1, head.column + extend[2])
-      );
+      const targetColumn = Math.max(0, Math.min(sheet.columns.length - 1, head.column + extend[2]));
       choose(targetRow, targetColumn, true);
       const target = gridRef.current?.querySelector(
         `[data-row="${targetRow}"][data-column="${targetColumn}"]`
@@ -185,9 +180,7 @@ export default function FlowGrid({
       if (nextRow < 0 || nextRow >= sheet.rows.length) {
         return;
       }
-      const target = gridRef.current?.querySelector(
-        `[data-row="${nextRow}"][data-column="${c}"]`
-      );
+      const target = gridRef.current?.querySelector(`[data-row="${nextRow}"][data-column="${c}"]`);
       if (!target) {
         return;
       }

@@ -39,7 +39,10 @@ const assert = require('node:assert/strict');
   await fs.mkdir(path.join(stage, 'node_modules'), { recursive: true });
   await fs.mkdir(vault);
   await fs.mkdir(path.join(vault, '.tagline'), { recursive: true });
-  await fs.writeFile(path.join(vault, '.tagline', 'vault.json'), JSON.stringify({ version: require('../electron/vaultMigrations.cjs').migrations.length }));
+  await fs.writeFile(
+    path.join(vault, '.tagline', 'vault.json'),
+    JSON.stringify({ version: require('../electron/vaultMigrations.cjs').migrations.length })
+  );
   await fs.writeFile(path.join(vault, 'Card.md'), '#### Impact\n**Smith 2001** — "Example"\n');
   await fs.writeFile(path.join(stage, 'package.json'), JSON.stringify({ type: 'module' }));
   for (const file of ['mcp.cjs', 'vaultFiles.cjs']) {

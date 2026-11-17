@@ -11,12 +11,8 @@ export default function CanvasMinimap({ canvas, camera, view, onNavigate }) {
   const map = useMemo(() => {
     const left = canvas.nodes.length ? Math.min(...canvas.nodes.map((n) => n.x)) : 0;
     const top = canvas.nodes.length ? Math.min(...canvas.nodes.map((n) => n.y)) : 0;
-    const right = canvas.nodes.length
-      ? Math.max(...canvas.nodes.map((n) => n.x + n.width))
-      : 800;
-    const bottom = canvas.nodes.length
-      ? Math.max(...canvas.nodes.map((n) => n.y + n.height))
-      : 600;
+    const right = canvas.nodes.length ? Math.max(...canvas.nodes.map((n) => n.x + n.width)) : 800;
+    const bottom = canvas.nodes.length ? Math.max(...canvas.nodes.map((n) => n.y + n.height)) : 600;
     const scale = Math.min((WIDTH - PAD * 2) / (right - left), (HEIGHT - PAD * 2) / (bottom - top));
     return {
       scale,

@@ -34,7 +34,10 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
   const profile = path.join(root, 'profile');
   await fs.mkdir(vault);
   await fs.mkdir(path.join(vault, '.tagline'), { recursive: true });
-  await fs.writeFile(path.join(vault, '.tagline', 'vault.json'), JSON.stringify({ version: require('../electron/vaultMigrations.cjs').migrations.length }));
+  await fs.writeFile(
+    path.join(vault, '.tagline', 'vault.json'),
+    JSON.stringify({ version: require('../electron/vaultMigrations.cjs').migrations.length })
+  );
   await fs.mkdir(profile);
   const original = {
     nodes: [
@@ -319,7 +322,9 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
           `document.querySelector('[data-edge-id="edge"]').dispatchEvent(new KeyboardEvent('keydown',{key:'Enter',bubbles:true}))`
         );
         assert.ok(
-          await js("document.querySelector('[data-edge-id=\"edge\"]').classList.contains('selected')"),
+          await js(
+            "document.querySelector('[data-edge-id=\"edge\"]').classList.contains('selected')"
+          ),
           'Enter selects the edge'
         );
         await js(

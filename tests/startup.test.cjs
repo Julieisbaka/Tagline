@@ -142,10 +142,7 @@ test('snapshot content cache invalidates on mtime or size changes', async (t) =>
   const mtime = (await fs.stat(file)).mtime;
   await fs.writeFile(file, 'different size, same mtime');
   await fs.utimes(file, mtime, mtime);
-  assert.equal(
-    (await readVaultSnapshot(dir)).contents['Note.md'],
-    'different size, same mtime'
-  );
+  assert.equal((await readVaultSnapshot(dir)).contents['Note.md'], 'different size, same mtime');
   assert.equal(reads, 2);
 });
 

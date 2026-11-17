@@ -325,9 +325,7 @@ test('platform: main process persists limit changes, enforces script size and ex
   await assert.rejects(handlers['extensions:load'](null, 'limited'), /exceeds 1024 bytes/);
   assert.equal(handlers['customization:get']().extensionSourceBytes, 1024);
   assert.equal(config.customizationLimits.extensionSourceBytes, 1024);
-  await assert.rejects(
-    handlers['customization:set'](null, { extensionMessagesPerSecond: 100000 })
-  );
+  await assert.rejects(handlers['customization:set'](null, { extensionMessagesPerSecond: 100000 }));
   await assert.rejects(
     handlers['extensions:exportSettings'](null, 'limited', { label: 3 }),
     /Invalid value/
