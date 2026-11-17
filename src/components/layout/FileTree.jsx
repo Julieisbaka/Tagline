@@ -200,7 +200,7 @@ export default function FileTree({
         />
       ))}
       {tree.length === 0 && (
-        <div className='empty-hint'>{t('No notes yet. Create one with the buttons above.')}</div>
+        <div className='empty-hint'>{t('No files yet')}</div>
       )}
     </div>
   );

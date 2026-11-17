@@ -28,6 +28,7 @@
 .visual-toolbar button {
   font-size: 12px;
   padding: 3px 7px;
+  cursor: pointer;
 }
 
 .visual-toolbar button.active {

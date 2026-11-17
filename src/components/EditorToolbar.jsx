@@ -48,6 +48,7 @@ export default function EditorToolbar({ actions, active = {}, keybindings }) {
           type='button'
           data-editor-action={id}
           title={`${t(label)} ${displayBinding(binding(id, keybindings))}`.trim()}
+          aria-label={t(label)}
           className={active[id] ? 'active' : ''}
           aria-pressed={active[id]}
           tabIndex={focused === index ? 0 : -1}

@@ -21,6 +21,10 @@
   background: var(--bg-secondary);
 }
 
+.canvas-toolbar button {
+  cursor: pointer;
+}
+
 .canvas-mode-control {
   display: flex;
   align-items: center;
