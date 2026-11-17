@@ -271,7 +271,7 @@ export default function FlowGrid({
       observer.disconnect();
       cancelAnimationFrame(frame);
     };
-  }, [gridRef, sheet.rows, sheet.columns, settings]);
+  }, [gridRef, sheet.rows.length, sheet.columns.length, settings]);
 
   return (
     <div className='flow-grid-wrap' ref={gridRef}>

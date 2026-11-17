@@ -115,18 +115,35 @@ export const createMarkdownParser = (resolver) => {
 };
 
 /**
+ * Stable 32-bit hash of a string, used as a fallback slug when the heading text
+ * yields no usable characters (e.g. headings that are entirely non-Latin).
+ * @param {string} text - The string to hash.
+ * @returns {string} - A short stable hex-ish hash prefixed with 'h'.
+ */
+const hashSlug = (text) => {
+  let hash = 0;
+  for (let i = 0; i < text.length; i++) {
+    const char = text.charCodeAt(i);
+    hash = (hash << 5) - hash + char;
+    hash = hash & hash;
+  }
+  return `h${Math.abs(hash).toString(36)}`;
+};
+
+/**
  * Create a stable lowercase Markdown heading anchor slug.
  * This function generates a URL-friendly slug from the given heading text by converting it to lowercase, removing HTML entities and non-word characters, trimming whitespace, and replacing spaces with hyphens. It is used to assign consistent IDs to Markdown headings for linking and navigation purposes.
  * @param {string} text - The heading text to convert into a slug.
  * @returns {string} - The generated slug suitable for use as an HTML ID.
  */
 export function slugify(text) {
-  return text
+  const slug = text
     .toLowerCase()
     .replace(/&[a-z]+;/g, '')
-    .replace(/[^\w\s-]/g, '')
+    .replace(/[^\p{L}\p{N}\s-]/gu, '')
     .trim()
     .replace(/\s+/g, '-');
+  return slug || hashSlug(text);
 }
 
 /**

@@ -210,7 +210,8 @@ function writeLog() {
       (result) => `Failed suite: ${result.suite} (${formatDuration(result.durationMs)})`
     ),
     ...(interrupted ? ['Run interrupted before all suites completed.'] : []),
-    ...(!failed.length && !interrupted ? ['No failing tests.'] : []),
+    ...(runnerError ? [`Runner error: ${runnerError}`] : []),
+    ...(!failed.length && !interrupted && !runnerError ? ['No failing tests.'] : []),
   ];
   for (const result of failed) {
     lines.push(

@@ -491,7 +491,7 @@
     },
     "settingBase": {
       "type": "object",
-      "required": ["id", "title", "type", "default"],
+      "required": ["id", "title", "type"],
       "properties": {
         "id": {
           "$ref": "#/definitions/id"
@@ -520,6 +520,19 @@
         }
       },
       "allOf": [
+        {
+          "if": {
+            "properties": {
+              "type": {
+                "enum": ["boolean", "number", "string", "array", "object"]
+              }
+            },
+            "required": ["type"]
+          },
+          "then": {
+            "required": ["default"]
+          }
+        },
         {
           "if": {
             "properties": {
@@ -554,6 +567,23 @@
               },
               "max": {
                 "type": "number"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "type": {
+                "enum": ["secret", "path"]
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "default": {
+                "type": "string",
+                "maxLength": 10000
               }
             }
           }

@@ -17,6 +17,12 @@ export function useLinkRotMonitor({ contents, createFile, vaultKey }) {
     if (!key || !state.enabled || Date.now() - (state.last?.[key] || 0) < WEEK) {
       return undefined;
     }
+    const now = Date.now();
+    const fresh = readStoredJson(LINK_ROT_KEY, {}, isState);
+    localStorage.setItem(
+      LINK_ROT_KEY,
+      JSON.stringify({ ...fresh, last: { ...fresh.last, [key]: now } })
+    );
     const timer = setTimeout(async () => {
       try {
         const cards = scanCards(latest.current.contents);
@@ -29,15 +35,9 @@ export function useLinkRotMonitor({ contents, createFile, vaultKey }) {
           timeoutSeconds: settings.linkTimeoutSeconds,
           archiveFallback: settings.archiveFallback,
         });
-        const now = new Date();
         await latest.current.createFile(
-          `Vault health report ${now.toISOString().slice(0, 10)}.md`,
-          vaultHealthReport(cards, results, now)
-        );
-        const fresh = readStoredJson(LINK_ROT_KEY, {}, isState);
-        localStorage.setItem(
-          LINK_ROT_KEY,
-          JSON.stringify({ ...fresh, last: { ...fresh.last, [key]: now.getTime() } })
+          `Vault health report ${new Date(now).toISOString().slice(0, 10)}.md`,
+          vaultHealthReport(cards, results, new Date(now))
         );
       } catch {
         // Background check; retry next launch.

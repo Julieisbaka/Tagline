@@ -156,7 +156,7 @@ export default function App() {
     }
     notify(tabs.error);
     tabs.clearError();
-  }, [tabs, notify]);
+  }, [tabs.error, tabs.clearError, notify]); // eslint-disable-line react-hooks/exhaustive-deps -- tabs is recreated each render; subscribe to stable members instead
   useEffect(
     () =>
       window.api.onWebsiteLink((url) => {
@@ -266,7 +266,7 @@ export default function App() {
       tabs.openPath(externalFlow.path, true);
       setExternalFlow(null);
     }
-  }, [externalFlow, v.ready, v.vault, v.contents, tabs]);
+  }, [externalFlow, v.ready, v.vault?.root, v.contents, tabs.openPath]); // eslint-disable-line react-hooks/exhaustive-deps -- tabs is recreated each render; use stable tabs.openPath instead
 
   const {
     setMode,

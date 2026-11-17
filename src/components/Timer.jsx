@@ -205,6 +205,8 @@ export default function Timer({
   const [micIssue, setMicIssue] = useState(false);
   const [level, setLevel] = useState(0);
   const microphone = useRef(null);
+  const meterRef = useRef(0);
+  const meterTimerRef = useRef(null);
   const thresholdValue = useRef(threshold);
   thresholdValue.current = threshold;
   useEffect(() => {
@@ -220,6 +222,8 @@ export default function Timer({
       return;
     }
     clearInterval(session.interval);
+    clearTimeout(meterTimerRef.current);
+    meterTimerRef.current = null;
     if (session.recognition) {
       session.recognition.onresult = null;
       session.recognition.onspeechstart = null;
@@ -425,7 +429,13 @@ export default function Timer({
         const rms = Math.sqrt(
           waveform.reduce((sum, value) => sum + value * value, 0) / waveform.length
         );
-        setLevel(rms);
+        meterRef.current = rms;
+        if (!meterTimerRef.current) {
+          meterTimerRef.current = setTimeout(() => {
+            meterTimerRef.current = null;
+            setLevel(meterRef.current);
+          }, 100);
+        }
         if (now - listeningSince < ARM_GRACE_MS) {
           ambientRms = ambientRms * 0.85 + rms * 0.15;
           voicedSince = 0;
