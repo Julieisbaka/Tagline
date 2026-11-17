@@ -10,21 +10,21 @@
   min-height: 150px;
   padding: 21px;
   border: 1px solid var(--line);
-  border-radius: 4px;
-  background: #fff;
+  border-radius: 10px;
+  background: #fcfbff;
   transition: background-color 140ms ease, border-color 140ms ease;
 }
 
 .docs-card:hover {
   border-color: #b7b7b7;
-  background: #f6f6f6;
+  background: #f4f1fc;
 }
 
 .docs-card .docs-card-label {
   display: block;
   margin-bottom: 12px;
-  color: #7163b0;
-  font-size: 9px;
+  color: #59429f;
+  font-size: 12px;
   font-weight: 750;
   letter-spacing: 0.8px;
   text-transform: uppercase;
@@ -32,13 +32,13 @@
 
 .docs-card h2 {
   margin: 0 0 7px;
-  font-size: 16px;
+  font-size: 18px;
 }
 
 .docs-card p {
   margin: 0;
   color: var(--muted);
-  font-size: 10px;
+  font-size: 15px;
   line-height: 1.7;
 }
 
@@ -62,7 +62,7 @@
 .task-guides-heading>p:last-child {
   margin-bottom: 0;
   color: var(--muted);
-  font-size: 12px;
+  font-size: 15px;
   line-height: 1.75;
 }
 
@@ -112,8 +112,8 @@
 }
 
 .task-guide small {
-  color: #6b6f75;
-  font-size: 12px;
+  color: var(--muted);
+  font-size: 14px;
   line-height: 1.5;
 }
 
@@ -143,7 +143,4 @@
     padding: 12px;
   }
 
-  .task-guide small {
-    font-size: 9px;
-  }
 }

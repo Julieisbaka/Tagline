@@ -23,6 +23,7 @@
       <a href="../index.html#features">Features</a>
       <a href="../pricing.html">Pricing</a>
       <a href="index.html" aria-current="location">Docs</a>
+      <a href="../changelog.html">Changelog</a>
       <a href="https://github.com/Julieisbaka/Tagline">GitHub</a>
     </nav>
     <a class="button button-small button-outline" href="https://github.com/Julieisbaka/Tagline/releases/latest">
@@ -75,7 +76,26 @@
           Tagline’s welcome screen. Your Markdown notes, <code>.flow</code> speech grids, and <code>.canvas</code>
           argument maps stay in that folder.</p>
         <p>Settings and downloaded local models are kept in the application profile rather than in the vault. Keep
-          backups of both your vault and important app-profile data.</p>
+          backups of both your vault and important app-profile data. Find the profile folder under <strong>Settings &gt;
+            Installation</strong>.</p>
+
+        <h2 id="backups-and-migrations">Back up and upgrade a vault</h2>
+        <p>Keep independent copies of your vault and important profile data in a safe location. The vault’s revision
+          history is useful for recovering individual files, but it is not a substitute for a separate backup.</p>
+        <p>When an older vault format needs upgrading, Tagline opens a migration wizard before loading it:</p>
+        <ol>
+          <li>Review the required upgrades. Pause cloud sync and close other editors using the vault.</li>
+          <li>Choose <strong>Back up and upgrade</strong>. Tagline upgrades a separate copy and keeps the original beside
+            the vault in a <code>.tagline-backup-&lt;id&gt;</code> folder, adding a suffix if needed.</li>
+          <li>Check your data in the upgraded vault before resuming sync. Keep the backup until you are satisfied with
+            the result. Choosing <strong>Cancel</strong> leaves the vault unchanged.</li>
+        </ol>
+        <p>To restore a migration backup, close Tagline and replace the upgraded vault folder with the backup. Preserve
+          a copy of the upgraded folder first if it contains work you need. Tagline refuses to open newer unsupported
+          vault formats rather than rewriting them; use a compatible version of Tagline instead.</p>
+        <p>Once you no longer need old migration backups or stages, <strong>Manage vaults &gt; Clean up migration
+            backups</strong> can remove them. Check what you are deleting first and keep any independent backups you
+          still need.</p>
 
         <h2>Keep Tagline up to date</h2>
         <ol>
@@ -104,7 +124,7 @@ npm run package  # package for this operating system</code></pre>
         </div>
 
         <p class="docs-source">Source: <a href="https://github.com/Julieisbaka/Tagline/blob/main/README.md">Tagline
-            README — Run and Releases</a>.</p>
+            README — Run and Releases</a>; <a href="../changelog.html">changelog</a>.</p>
       </article>
     </div>
   </main>

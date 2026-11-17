@@ -48,7 +48,7 @@
         <aside class="docs-sidebar">
           <h2>Versions</h2>
           <nav aria-label="Changelog versions">
-            <a href="#v0-1-4" aria-current="location">0.1.4 · In development</a>
+            <a href="#v0-1-4">0.1.4 · In development</a>
             <a href="#v0-1-3">0.1.3</a>
             <a href="#v0-1-2">0.1.2</a>
             <a href="#v0-1-1">0.1.1</a>
@@ -83,12 +83,20 @@
               <li>Case-only note renames preserve revision history instead of deleting it.</li>
               <li>Invalid citation URLs show a friendly error instead of a raw TypeError.</li>
               <li>
+                Concurrent extension installs no longer overwrite each other's install tokens;
+                either load can complete the installation.
+              </li>
+              <li>
+                Extension settings reset clears secrets before non-secret settings, so a failed
+                secret clear cannot leave a partial reset.
+              </li>
+              <li>
                 MCP agent access to the vault now follows and validates the same symbolic-link
                 containment rules as the rest of the app.
               </li>
               <li>
-                Tab effects subscribe to stable tab members (`error`, `clearError`, `openPath`)
-                instead of the recreated `tabs` object.
+                Tab effects subscribe to stable tab members (<code>error</code>, <code>clearError</code>,
+                <code>openPath</code>) instead of the recreated <code>tabs</code> object.
               </li>
             </ul>
           </section>

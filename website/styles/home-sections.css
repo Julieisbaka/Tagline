@@ -9,7 +9,7 @@
   border-block: 1px solid var(--line);
   background: #f3f1f8;
   color: #666173;
-  font-size: 11px;
+  font-size: 14px;
 }
 
 .proof-strip>div {
@@ -58,7 +58,7 @@ h2 {
   max-width: 460px;
   margin: 0 auto;
   color: var(--muted);
-  font-size: 12px;
+  font-size: 16px;
   line-height: 1.8;
 }
 
@@ -69,26 +69,19 @@ h2 {
 }
 
 .feature-card {
-  min-height: 206px;
-  padding: 22px 21px;
+  display: flex;
+  flex-direction: column;
+  min-height: 240px;
+  padding: 26px;
   border: 1px solid var(--line);
-  border-radius: 4px;
-  background: #fff;
+  border-radius: 10px;
+  background: #fcfbff;
   transition: background-color 140ms ease, border-color 140ms ease;
 }
 
 .feature-card:hover {
   border-color: #b7b7b7;
-  background: #f6f6f6;
-}
-
-.card-lavender,
-.card-yellow,
-.card-blue,
-.card-green,
-.card-peach,
-.card-rose {
-  background: #fff;
+  background: #f4f1fc;
 }
 
 .feature-icon {
@@ -107,22 +100,24 @@ h2 {
 .feature-card h3,
 .step h3 {
   margin-bottom: 7px;
-  font-size: 13px;
+  font-size: 18px;
   font-weight: 700;
 }
 
 .feature-card p {
-  min-height: 52px;
-  margin-bottom: 11px;
-  color: #6e697a;
-  font-size: 10px;
+  margin-bottom: 18px;
+  color: var(--muted);
+  font-size: 15px;
   line-height: 1.7;
 }
 
 .feature-card>a {
   color: #4e3aa9;
-  font-size: 9px;
+  margin-top: auto;
+  font-size: 14px;
   font-weight: 750;
+  text-decoration: underline;
+  text-underline-offset: 3px;
   transition: color 160ms ease;
 }
 
@@ -184,7 +179,7 @@ h2 {
   place-items: center;
   border-radius: 4px;
   background: var(--purple);
-  font-size: 11px;
+  font-size: 15px;
   font-weight: 800;
 }
 
@@ -235,7 +230,7 @@ h2 {
   max-width: 450px;
   margin-bottom: 11px;
   color: #4d5257;
-  font-size: 11px;
+  font-size: 15px;
   line-height: 1.8;
 }
 
@@ -271,7 +266,7 @@ h2 {
   display: block;
   margin-bottom: 18px;
   color: var(--purple);
-  font-size: 10px;
+  font-size: 14px;
   font-weight: 800;
   letter-spacing: 0.8px;
 }
@@ -279,7 +274,7 @@ h2 {
 .step p {
   margin-bottom: 0;
   color: var(--muted);
-  font-size: 10px;
+  font-size: 15px;
   line-height: 1.65;
 }
 
@@ -312,7 +307,7 @@ h2 {
 .download-inner>div:first-child>p:last-child {
   margin-bottom: 0;
   color: #6b6f75;
-  font-size: 11px;
+  font-size: 15px;
   line-height: 1.7;
 }
 
@@ -329,12 +324,12 @@ h2 {
 }
 
 .button-download:hover {
-  background: #5b3fc4;
+  background: var(--purple-dark);
 }
 
 .download-secondary {
   color: #5b3fc4;
-  font-size: 10px;
+  font-size: 14px;
   font-weight: 700;
 }
 
@@ -342,26 +337,6 @@ h2 {
   max-width: 310px;
   margin: 3px 0 0;
   color: #625d70;
-  font-size: 9px;
+  font-size: 13px;
   line-height: 1.65;
-}
-
-.site-footer {
-  min-height: 90px;
-  gap: 20px;
-  border-top: 1px solid var(--line);
-}
-
-.site-footer>p {
-  margin: 0;
-  color: var(--muted);
-  font-size: 10px;
-}
-
-.site-footer nav {
-  gap: 22px;
-}
-
-.site-footer nav a {
-  font-size: 10px;
 }

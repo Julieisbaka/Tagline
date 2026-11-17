@@ -106,7 +106,7 @@
   max-width: 420px;
   margin-bottom: 25px;
   color: var(--muted);
-  font-size: 14px;
+  font-size: 16px;
   line-height: 1.8;
 }
 
@@ -118,9 +118,11 @@
 }
 
 .error-secondary-link {
-  color: #514c61;
-  font-size: 11px;
+  color: var(--purple-dark);
+  font-size: 14px;
   font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 3px;
   transition: color 150ms ease;
 }
 
@@ -134,7 +136,7 @@
   gap: 9px;
   margin: 38px 0 0;
   color: #625e6f;
-  font-size: 8px;
+  font-size: 12px;
   font-weight: 700;
   letter-spacing: 1px;
 }
@@ -200,7 +202,7 @@
 
   .error-code {
     margin-top: 28px;
-    font-size: 7px;
+    font-size: 12px;
   }
 }
 

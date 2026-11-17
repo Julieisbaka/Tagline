@@ -359,9 +359,11 @@ function registerExtensions({
     }
     const initialized = readConfig().initializedExtensions;
     const firstInstall = !!source && !(Array.isArray(initialized) && initialized.includes(item.id));
-    const installToken = firstInstall ? randomUUID() : null;
+    let installToken = firstInstall ? randomUUID() : null;
     if (installToken) {
-      installTokens.set(item.id, installToken);
+      const tokens = installTokens.get(item.id) ?? new Set();
+      tokens.add(installToken);
+      installTokens.set(item.id, tokens);
     }
     return {
       source,
@@ -377,7 +379,7 @@ function registerExtensions({
   });
 
   ipcMain.handle('extensions:completeInstall', async (_event, id, token) => {
-    if (typeof token !== 'string' || installTokens.get(id) !== token) {
+    if (typeof token !== 'string' || !installTokens.get(id)?.has(token)) {
       throw new Error('Stale extension installation.');
     }
     const item = (await scan()).find(

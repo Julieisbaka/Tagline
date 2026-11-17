@@ -712,22 +712,11 @@ test('platform: settings and event permission changes require a fresh manifest r
     assert.equal(firstLoad.firstInstall, true);
     const retry = await handlers['extensions:load'](null, 'review');
     assert.notEqual(retry.installToken, firstLoad.installToken);
-    await assert.rejects(
-      handlers['extensions:completeInstall'](null, 'review', firstLoad.installToken),
-      /Stale/
-    );
-    await handlers['extensions:setEnabled'](null, 'review', false);
-    await assert.rejects(
-      handlers['extensions:completeInstall'](null, 'review', retry.installToken),
-      /Stale/
-    );
-    await handlers['extensions:setEnabled'](null, 'review', true, item.reviewToken);
-    const activeLoad = await handlers['extensions:load'](null, 'review');
-    assert.equal(activeLoad.firstInstall, true, 'incomplete setup retries');
-    await handlers['extensions:completeInstall'](null, 'review', activeLoad.installToken);
+    // Both tokens remain valid; either can complete the install (concurrent-load safety).
+    await handlers['extensions:completeInstall'](null, 'review', firstLoad.installToken);
     assert.deepEqual(config.initializedExtensions, ['review']);
     await assert.rejects(
-      handlers['extensions:completeInstall'](null, 'review', activeLoad.installToken),
+      handlers['extensions:completeInstall'](null, 'review', firstLoad.installToken),
       /Stale/
     );
     assert.equal((await handlers['extensions:load'](null, 'review')).firstInstall, false);

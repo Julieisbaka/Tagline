@@ -85,10 +85,10 @@ function ExtensionSettingsForm({ item, extensions }) {
   const apply = async (reset = false) => {
     try {
       if (reset) {
-        extensions.resetSettings(item);
         for (const setting of item.contributes.settings.filter(({ type }) => type === 'secret')) {
           await window.api.extensionSecret(item.id, 'set', setting.id, null);
         }
+        extensions.resetSettings(item);
       } else {
         const next = Object.fromEntries(
           item.contributes.settings
