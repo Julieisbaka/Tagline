@@ -185,17 +185,17 @@ export default function RightPanel(props) {
             format={props.settings.format}
             onFormatChange={(format) => props.updateSettings({ format })}
             presets={props.settings.timerPresets}
-            onAddPreset={(preset) =>
+            onAddPreset={(preset) => {
+              const presets = Array.isArray(props.settings.timerPresets)
+                ? props.settings.timerPresets
+                : [];
               props.updateSettings({
-                timerPresets: [
-                  ...(Array.isArray(props.settings.timerPresets)
-                    ? props.settings.timerPresets
-                    : []),
-                  preset,
-                ],
+                timerPresets: presets.some((p) => p?.id === preset.id)
+                  ? presets.map((p) => (p?.id === preset.id ? preset : p))
+                  : [...presets, preset],
                 format: preset.id,
-              })
-            }
+              });
+            }}
             timerSoundEnabled={props.settings.timerSoundEnabled}
             timerSoundName={props.settings.timerSoundName}
             timerAutoStartUseSpeechRecognition={props.settings.timerAutoStartUseSpeechRecognition}

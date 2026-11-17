@@ -10,7 +10,7 @@ function parseDuration(value) {
   return match ? Number(match[1]) * 60 + Number(match[2]) : null;
 }
 
-export default function TimerPresetDialog({ initial, onSave, onClose }) {
+export default function TimerPresetDialog({ initial, id, onSave, onClose }) {
   const { t } = useI18n();
   const [name, setName] = useState('');
   const [prep, setPrep] = useState(formatDuration(initial.prep * 60));
@@ -76,7 +76,7 @@ export default function TimerPresetDialog({ initial, onSave, onClose }) {
       return;
     }
     onSave({
-      id: `custom-${crypto.randomUUID()}`,
+      id: id || `custom-${crypto.randomUUID()}`,
       label: name.trim(),
       prep: parseDuration(prep) / 60,
       speeches: speeches.map((speech) => [

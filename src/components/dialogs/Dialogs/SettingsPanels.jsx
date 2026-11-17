@@ -38,6 +38,7 @@ export default function SettingsPanels({
   platform,
   onClose,
 }) {
+  const customPresets = Array.isArray(settings.timerPresets) ? settings.timerPresets : [];
   return (
     <div className='settings-content' ref={contentRef} hidden={terms.length > 0}>
       <section
@@ -67,6 +68,24 @@ export default function SettingsPanels({
         </SettingsGroup>
         <ReadingSettings settings={settings} update={update} contents={contents} />
         <TimerSoundSettings settings={settings} update={update} />
+        <SettingsGroup title={t('Custom timer presets')}>
+          {customPresets.length === 0 && (
+            <p className='settings-help'>{t('No custom presets. Add one from the Timer panel.')}</p>
+          )}
+          {customPresets.map((preset) => (
+            <div className='setting-row' key={preset.id}>
+              <span>{preset.label}</span>
+              <button
+                aria-label={t('Remove preset {label}', { label: preset.label })}
+                onClick={() =>
+                  update({ timerPresets: customPresets.filter((p) => p.id !== preset.id) })
+                }
+              >
+                {t('Remove')}
+              </button>
+            </div>
+          ))}
+        </SettingsGroup>
         <SettingsGroup title={t('Floating timer')}>
           <SettingRow
             label={t('Show timer above other windows')}

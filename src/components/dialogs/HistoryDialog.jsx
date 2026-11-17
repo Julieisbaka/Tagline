@@ -41,6 +41,15 @@ export default function HistoryDialog({ path, onRestore, onClose, settings }) {
   }, [path]);
 
   useEffect(() => {
+    if (!busy && revisions.length > 0) {
+      const select = document.querySelector('.history-dialog select');
+      if (select) {
+        select.focus();
+      }
+    }
+  }, [busy, revisions.length, path]);
+
+  useEffect(() => {
     if (!selected) {
       setContent('');
       return undefined;

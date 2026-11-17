@@ -578,6 +578,7 @@ export default function Timer({
   const dialog = addingPreset && (
     <TimerPresetDialog
       initial={fmt || FORMATS.highschool}
+      id={fmt?.id}
       onClose={() => setAddingPreset(false)}
       onSave={(preset) => {
         onAddPreset(preset);
