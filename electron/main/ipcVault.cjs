@@ -406,6 +406,10 @@ function registerVaultIpc(
           throw error;
         }
       }
+      // Cross-device (or rename-unsupported): copy then delete. Every failure
+      // path removes any partial or complete copy so history can be rolled
+      // back to the exact pre-move state; history and the filesystem never
+      // diverge.
       try {
         await fs.cp(src, dst, {
           recursive: true,
@@ -415,17 +419,15 @@ function registerVaultIpc(
           verbatimSymlinks: true,
         });
       } catch (error) {
-        if (error.code !== 'EEXIST') {
-          await fs.rm(dst, { recursive: true, force: true }).catch(() => {});
-        }
+        await fs.rm(dst, { recursive: true, force: true }).catch(() => {});
         throw error;
       }
       try {
         await fs.rm(src, { recursive: true, force: true });
       } catch (error) {
-        // Copy is complete; keep it rather than risk losing data, and skip the
-        // history rollback so revision history stays aligned with the copy.
-        error.revisionHistoryKept = true;
+        // Source remains after a successful copy. Undo the copy rather than
+        // leaving both copies with history pointing only at the new path.
+        await fs.rm(dst, { recursive: true, force: true }).catch(() => {});
         error.message = `Copied to "${dst}" but could not remove "${src}": ${error.message}`;
         throw error;
       }
@@ -457,9 +459,7 @@ function registerVaultIpc(
         await movePath(source, dest);
       }
     } catch (error) {
-      if (!error.revisionHistoryKept) {
-        await rollbackHistory();
-      }
+      await rollbackHistory();
       throw error;
     }
     return { ok: true, path: toPosix(to) };
