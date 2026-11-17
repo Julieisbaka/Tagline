@@ -79,3 +79,26 @@ test('website local links, assets, and fragments resolve', () => {
     }
   }
 });
+
+test('every documentation guide is linked from the documentation navigation', () => {
+  const guides = pages.filter((file) => path.dirname(file) === path.join(root, 'docs'));
+  const expected = guides.map((file) => path.basename(file)).sort();
+  for (const file of guides) {
+    const nav = documents
+      .get(file)
+      .find((node) => node.name === 'nav' && node.attribs?.['aria-label'] === 'Documentation');
+    assert.ok(nav, `${file}: missing documentation navigation`);
+    const links = elements(nav).filter((node) => node.name === 'a');
+    assert.deepEqual(
+      links.map((node) => node.attribs.href).sort(),
+      expected,
+      `${file}: inconsistent guide navigation`
+    );
+    assert.equal(
+      links.filter((node) => node.attribs['aria-current'] === 'page')[0]?.attribs.href,
+      path.basename(file),
+      `${file}: incorrect current guide`
+    );
+    assert.equal(links.filter((node) => node.attribs['aria-current'] === 'page').length, 1, file);
+  }
+});

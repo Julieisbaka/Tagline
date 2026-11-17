@@ -56,6 +56,11 @@
           <a href="theme-api.html">Theme format</a>
           <a href="extension-api.html">Extension API</a>
           <a href="json-formats.html">JSON formats</a>
+          <a href="vaults-and-backups.html">Vaults &amp; backups</a>
+          <a href="importing-and-exporting.html">Import &amp; export</a>
+          <a href="evidence-quality.html">Evidence quality</a>
+          <a href="flows-and-canvases.html">Flows &amp; canvases</a>
+          <a href="keyboard-shortcuts.html">Keyboard shortcuts</a>
         </nav>
       </aside>
 
@@ -78,8 +83,8 @@
           flow or canvas becomes invalid, restore the most recent valid save when recovery is offered. Recovery skips
           broken revisions, saves the current source to history, and persists the restored document.
         </p>
-        <p>For independent backups and vault format upgrades, see <a
-            href="getting-started.html#backups-and-migrations">Back up and upgrade a vault</a>.</p>
+        <p>For independent backups, file recovery, and vault format upgrades, see <a
+            href="vaults-and-backups.html">Vaults, backups &amp; recovery</a>.</p>
 
         <h2 id="notes">Write and organize notes</h2>
         <p>Choose <strong>Visual</strong>, <strong>Source</strong>, or <strong>Read</strong> in a note header to edit
@@ -115,6 +120,8 @@
         <p>Choose <strong>Create citation</strong> from a note, the command palette, or the File menu. Enter source
           details or paste a public URL/DOI to autofill, then copy the Markdown citation or insert it into the current
           note.</p>
+        <p>Use <a href="evidence-quality.html">evidence checkup and quote verification</a> to identify material that
+          needs review. Automated checks are aids, not substitutes for reading the original source.</p>
 
         <h2 id="speech-tools">Prepare speeches and flows</h2>
         <p>Send selected or highlighted evidence to the active speech document with <kbd>Ctrl+Shift+S</kbd> or
@@ -132,9 +139,11 @@ speech: true
           <kbd>Ctrl+Enter</kbd>/<kbd>Cmd+Enter</kbd> to add a row below, and add one above with
           <kbd>Ctrl+Shift+Enter</kbd>/<kbd>Cmd+Shift+Enter</kbd>. In a canvas, connect arguments as supporting,
           answering, or contradicting one another. Select nodes with the keyboard and use arrow keys to nudge them;
-          hold <kbd>Shift</kbd> for larger movements. Enable the optional minimap in <strong>Settings &gt; Editor &gt;
+          hold <kbd>Shift</kbd> for larger movements. Enable the optional minimap in <strong>Settings &gt; Editors &gt;
             Show canvas minimap</strong>.
         </p>
+        <p>For sheet management, grid navigation, and building a map, see <a href="flows-and-canvases.html">Flows &amp;
+            canvases</a>.</p>
         <p>The timer includes speech and affirmative/negative prep clocks for policy debate’s high-school 8-3-5 and
           college 9-3-6 presets. Enable the <a href="speech-workflows.html#floating-timer">floating timer</a> to keep
           it visible over other windows while running or armed.</p>
@@ -142,9 +151,10 @@ speech: true
           in pasted transcripts and compare saved speech statistics across a season.</p>
 
         <h2 id="export">Import and export</h2>
-        <p>Standalone HTML export is built in. Other formats use the separately installed Pandoc; PDF export also
-          requires a LaTeX engine. DOCX, ODT, RTF, HTML, and EPUB can be converted to Markdown for review before saving.
-          See the <a href="google-docs.html">Google Docs transfer guide</a> for account setup and upload details.</p>
+        <p>Standalone HTML export and Google Docs transfer do not require Pandoc. DOCX, ODT, RTF, EPUB, and PDF export
+          use Pandoc; PDF also requires a LaTeX engine. DOCX, ODT, RTF, HTML, and EPUB can be imported as Markdown.
+          See <a href="importing-and-exporting.html">Import &amp; export</a> for setup, limitations, and review steps,
+          or the <a href="google-docs.html">Google Docs transfer guide</a> for account setup.</p>
         <p>HTTP and HTTPS links open inside Tagline by default. Turn off <strong>Open websites inside Tagline</strong>
           in <strong>Settings &gt; Integrations</strong> to use your default browser. Embedded sites cannot access the
           vault or app APIs; use an external browser for downloads.</p>

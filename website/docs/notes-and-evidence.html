@@ -55,6 +55,11 @@
           <a href="theme-api.html">Theme format</a>
           <a href="extension-api.html">Extension API</a>
           <a href="json-formats.html">JSON formats</a>
+          <a href="vaults-and-backups.html">Vaults &amp; backups</a>
+          <a href="importing-and-exporting.html">Import &amp; export</a>
+          <a href="evidence-quality.html">Evidence quality</a>
+          <a href="flows-and-canvases.html">Flows &amp; canvases</a>
+          <a href="keyboard-shortcuts.html">Keyboard shortcuts</a>
         </nav>
       </aside>
 
@@ -64,6 +69,7 @@
           <a href="#create-note">Create a note</a>
           <a href="#edit-modes">Choose an editing mode</a>
           <a href="#evidence-card">Format an evidence card</a>
+          <a href="#research-workflow">Build a traceable research note</a>
           <a href="#link-notes">Connect your notes</a>
           <a href="#templates-history">Templates &amp; history</a>
         </nav>
@@ -146,8 +152,25 @@
           </p>
         </section>
 
+        <section id="research-workflow">
+          <p class="article-kicker">04 / From source to reusable card</p>
+          <h2>Build a traceable research note</h2>
+          <ol>
+            <li>Read the source and record enough information to find it again: author, title, publication, date, and
+              URL or page reference. Verify details suggested by autofill against the original.</li>
+            <li>Give the card a descriptive tag, keep the citation next to the excerpt, and include the surrounding
+              warrant rather than relying on an isolated sentence.</li>
+            <li>Highlight the portion you intend to read, then compare that reading with the full excerpt and source.
+              Keep qualifiers and context visible so the argument is not changed by selective highlighting.</li>
+            <li>Link related notes or add tags for retrieval. Use <a href="evidence-quality.html">evidence checkup and
+                quote verification</a> to find issues to review before sending the card to a speech.</li>
+          </ol>
+          <p>For an existing document, <a href="importing-and-exporting.html#import">import it into a new note</a>, then
+            inspect formatting and citation details before treating the conversion as ready-to-use evidence.</p>
+        </section>
+
         <section id="link-notes">
-          <p class="article-kicker">04 / Keep ideas connected</p>
+          <p class="article-kicker">05 / Keep ideas connected</p>
           <h2>Link notes and navigate your research</h2>
           <p>Wiki links connect notes in the same vault. Use <code>[[Note]]</code> for a note,
             <code>[[Note#Heading]]</code> for a section, or <code>[[Note|Label]]</code> to show custom link text.
@@ -170,7 +193,7 @@
         </section>
 
         <section id="templates-history">
-          <p class="article-kicker">05 / Reuse and protect your work</p>
+          <p class="article-kicker">06 / Reuse and protect your work</p>
           <h2>Use templates and revision history</h2>
           <p>Put reusable Markdown files in your template folder (<code>Templates/</code> by default; change it under
             <strong>Settings &gt; General &gt; Templates</strong>). Tagline can replace these placeholders:</p>
@@ -192,6 +215,9 @@
           <p>Revision history is available from the note header and stored in <code>.tagline/history</code> inside the
             vault. Adjust retention under <strong>Settings &gt; Files and folders</strong>. Back up the vault like any
             other important folder.</p>
+          <p>To recover a previous version, open <strong>History</strong>, select a saved version, inspect its preview,
+            and confirm <strong>Restore this version</strong>. See <a href="vaults-and-backups.html#history">file
+              recovery and independent backups</a> for the distinction between history and a backup.</p>
         </section>
 
         <p class="docs-source">Keyboard bindings can be customized in <strong>Settings &gt; Keyboard shortcuts</strong>.
