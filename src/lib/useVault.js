@@ -36,6 +36,7 @@ export function useVault(
   const savedTimers = useRef({});
   const pending = useRef({});
   const writes = useRef(new Map());
+  const saveEpoch = useRef(0);
   const watchers = useRef(new Set());
   const observed = useRef({ root: null, contents: {} });
   const contentsRef = useRef(contents);
@@ -101,18 +102,18 @@ export function useVault(
 
   const writeDisk = useCallback(
     (path, text) => {
+      const epoch = saveEpoch.current;
       const previous = writes.current.get(path)?.task || Promise.resolve();
-      const task = previous
-        .catch(() => {})
-        .then(() =>
-          api.write(
-            path,
-            text,
-            historyRetentionRef.current,
-            canvasHistoryModeRef.current,
-            experimentalHistoryDeltasRef.current
-          )
+      const task = previous.catch(() => {}).then(() => {
+        if (saveEpoch.current !== epoch) return;
+        return api.write(
+          path,
+          text,
+          historyRetentionRef.current,
+          canvasHistoryModeRef.current,
+          experimentalHistoryDeltasRef.current
         );
+      });
       writes.current.set(path, { task, text });
       /**
        * Remove this completed write only if no newer write replaced it.
@@ -120,7 +121,7 @@ export function useVault(
        * @returns {void}
        */
       const cleanup = (failed = false) => {
-        if (writes.current.get(path)?.task !== task) {
+        if (saveEpoch.current !== epoch || writes.current.get(path)?.task !== task) {
           return;
         }
         writes.current.delete(path);
@@ -171,8 +172,10 @@ export function useVault(
   }, []);
 
   const reload = useCallback(async () => {
+    const epoch = saveEpoch.current;
     try {
       const { tree, contents: all } = await api.readSnapshot();
+      if (saveEpoch.current !== epoch) return;
       setTree(tree);
       // Keep edits that haven't been flushed to disk yet.
       const saving = Object.fromEntries(
@@ -192,8 +195,14 @@ export function useVault(
       if (!info) {
         return;
       }
+      saveEpoch.current += 1;
+      Object.values(timers.current).forEach(clearTimeout);
       Object.values(savedTimers.current).forEach(clearTimeout);
+      timers.current = {};
       savedTimers.current = {};
+      pending.current = {};
+      writes.current = new Map();
+      contentsRef.current = {};
       setReady(false);
       setTree([]);
       setContents({});
@@ -283,19 +292,25 @@ export function useVault(
 
   const updateContent = useCallback(
     (path, text) => {
+      const epoch = saveEpoch.current;
       contentsRef.current[path] = text;
       pending.current[path] = text;
       setContents((c) => (c[path] === text ? c : { ...c, [path]: text }));
       setSaveStatus(path, 'unsaved');
       clearTimeout(timers.current[path]);
       timers.current[path] = setTimeout(() => {
+        if (saveEpoch.current !== epoch) return;
         const value = pending.current[path];
         delete pending.current[path];
         delete timers.current[path];
         if (value !== undefined) {
           setSaveStatus(path, 'saving');
           writeDisk(path, value).catch((error) => {
-            if (pending.current[path] === undefined && contentsRef.current[path] === value) {
+            if (
+              saveEpoch.current === epoch &&
+              pending.current[path] === undefined &&
+              contentsRef.current[path] === value
+            ) {
               pending.current[path] = value;
               setSaveStatus(path, 'error');
             }
