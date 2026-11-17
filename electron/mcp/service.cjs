@@ -12,6 +12,7 @@ function createMcpService({
   getAllowWrites = () => true,
   getAllowModels = () => false,
   getLocalModels = () => null,
+  resolveInVault,
   writeNote,
   renamePath,
   trashItem,
@@ -24,6 +25,7 @@ function createMcpService({
     getAllowWrites,
     getAllowModels,
     getLocalModels,
+    resolveInVault,
   });
   const { root, readNote } = context;
   const evidenceTools = createEvidenceTools(context);

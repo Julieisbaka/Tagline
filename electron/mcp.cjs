@@ -12,7 +12,7 @@ function normalizeConfig(value) {
   return {
     enabled: config.enabled === true,
     keepRunning: config.keepRunning === true,
-    allowWrites: config.allowWrites !== false,
+    allowWrites: config.allowWrites === true,
     allowModels: config.allowModels === true,
     port:
       Number.isInteger(config.port) && config.port >= 1024 && config.port <= 65535
@@ -56,6 +56,7 @@ function registerMcp({
   };
   const service = createMcpService({
     getVaultRoot,
+    resolveInVault: operations.resolveInVault,
     getAllowWrites: () => config().allowWrites,
     getAllowModels: () => config().allowModels,
     version: app.getVersion(),
@@ -80,12 +81,21 @@ function registerMcp({
     if (!config().enabled) {
       return;
     }
+    let current = config();
+    if (!current.token) {
+      current = await save({});
+      current = config();
+    }
+    if (!current.token) {
+      error = 'MCP bearer token could not be generated.';
+      return;
+    }
     try {
-      await server.listen(config().port);
+      await server.listen(current.port);
     } catch (listenError) {
       error =
         listenError.code === 'EADDRINUSE'
-          ? `Port ${config().port} is already in use. Choose another port.`
+          ? `Port ${current.port} is already in use. Choose another port.`
           : listenError.message;
     }
   }

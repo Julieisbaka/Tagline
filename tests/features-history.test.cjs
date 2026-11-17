@@ -4,6 +4,23 @@ const path = require('node:path');
 const fsAsync = require('node:fs/promises');
 const os = require('node:os');
 
+test('platform: case-only revision history rename preserves revisions', async (t) => {
+  const { createRevisionHistory } = require('../electron/revisionHistory.cjs');
+  const root = await fsAsync.mkdtemp(path.join(os.tmpdir(), 'tagline-case-history-'));
+  t.after(() => fsAsync.rm(root, { recursive: true, force: true }));
+  const resolveInVault = (rel) => path.join(root, rel);
+  const history = createRevisionHistory({ getVaultRoot: () => root, resolveInVault });
+  await fsAsync.writeFile(path.join(root, 'Note.md'), 'one');
+  await history.snapshot('Note.md', 'two', 2);
+  await fsAsync.writeFile(path.join(root, 'Note.md'), 'two');
+  await history.snapshot('Note.md', 'three', 2);
+  const revisions = await history.list('Note.md');
+  assert.equal(revisions.length, 2);
+  await history.rename('Note.md', 'note.md');
+  assert.deepEqual(await history.list('note.md'), revisions);
+  assert.equal(await history.read('note.md', revisions[1].id), 'one');
+});
+
 test('platform: experimental history deltas round-trip, checkpoint, prune safely and survive disabling', async (t) => {
   const { createRevisionHistory } = require('../electron/revisionHistory.cjs');
   assert.equal(require('../src/lib/defaultSettings.json').experimentalHistoryDeltas, false);

@@ -597,7 +597,7 @@ test('extension secret values use the encrypted storage bridge and legacy local 
   assert.deepEqual(persisted, { existing: 'legacy', token: 'private token' });
   assert.deepEqual(
     calls.map(([action]) => action),
-    ['get', 'replace', 'set']
+    ['get', 'replace', 'get', 'set']
   );
   await host.onMessage({
     data: { type: 'call', id: 1, method: 'secrets.get', args: ['token'] },

@@ -474,6 +474,7 @@ function registerVaultIpc(
     ipcMain,
     getWindow: () => state.win,
     getVaultRoot: () => state.vaultRoot,
+    resolveInVault,
     getLocalModels: () => state.localModels,
     readConfig,
     writeConfig,

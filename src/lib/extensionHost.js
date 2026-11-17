@@ -793,8 +793,8 @@ export class ExtensionHost {
               if (
                 new TextEncoder().encode(text).byteLength <= this.limits.extensionStorageCharacters
               ) {
-                await this.bridge.extensionStorage(this.manifest.id, 'replace', null, parsed);
-                data = parsed;
+                const replaced = await this.bridge.extensionStorage(this.manifest.id, 'replace', null, parsed);
+                data = replaced ? await this.bridge.extensionStorage(this.manifest.id, 'get') : null;
               }
             }
           } catch {
@@ -802,7 +802,16 @@ export class ExtensionHost {
           }
         }
         if (legacy !== null) {
-          localStorage.removeItem(key);
+          let equivalent = false;
+          if (data && typeof data === 'object' && !Array.isArray(data)) {
+            try {
+              const parsedLegacy = JSON.parse(legacy);
+              equivalent = JSON.stringify(data) === JSON.stringify(parsedLegacy);
+            } catch {}
+          }
+          if (equivalent) {
+            localStorage.removeItem(key);
+          }
         }
         this.storageCache = data && typeof data === 'object' && !Array.isArray(data) ? data : {};
         return this.storageCache;

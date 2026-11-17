@@ -32,7 +32,7 @@ function outline(text) {
   return headings;
 }
 
-function createVaultContext({ getVaultRoot, getAllowWrites, getAllowModels, getLocalModels }) {
+function createVaultContext({ getVaultRoot, resolveInVault, getAllowWrites, getAllowModels, getLocalModels }) {
   const root = () => {
     const value = getVaultRoot();
     if (!value) {
@@ -63,10 +63,19 @@ function createVaultContext({ getVaultRoot, getAllowWrites, getAllowModels, getL
       name += '.md';
     }
     const base = root();
-    const full = path.resolve(base, name);
-    const relative = path.relative(base, full);
-    if (relative.startsWith('..') || path.isAbsolute(relative)) {
-      throw new ToolError(`Path escapes the vault: ${rel}`);
+    let full;
+    if (typeof resolveInVault === 'function') {
+      try {
+        full = resolveInVault(name);
+      } catch (error) {
+        throw new ToolError(error.message || `Path escapes the vault: ${rel}`);
+      }
+    } else {
+      full = path.resolve(base, name);
+      const relative = path.relative(base, full);
+      if (relative.startsWith('..') || path.isAbsolute(relative)) {
+        throw new ToolError(`Path escapes the vault: ${rel}`);
+      }
     }
     return { rel: name, full };
   }

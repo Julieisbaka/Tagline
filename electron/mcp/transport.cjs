@@ -32,7 +32,13 @@ function createMcpHttpServer({ service, getToken }) {
       return reply(res, 404, { error: 'Not found. Use /mcp.' });
     }
     const authorization = String(req.headers.authorization || '');
-    if (!authorization.startsWith('Bearer ') || !tokensMatch(authorization.slice(7), getToken())) {
+    const expectedToken = getToken();
+    if (
+      typeof expectedToken !== 'string' ||
+      expectedToken.length < 32 ||
+      !authorization.startsWith('Bearer ') ||
+      !tokensMatch(authorization.slice(7), expectedToken)
+    ) {
       return reply(
         res,
         401,

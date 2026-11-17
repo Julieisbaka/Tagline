@@ -293,6 +293,16 @@ function createRevisionHistory({ getVaultRoot, resolveInVault }) {
       }
       throw error;
     }
+    try {
+      const [sourceStat, destinationStat] = await Promise.all([fs.stat(source), fs.stat(destination)]);
+      if (sourceStat.dev === destinationStat.dev && sourceStat.ino === destinationStat.ino) {
+        return;
+      }
+    } catch (error) {
+      if (error.code !== 'ENOENT') {
+        throw error;
+      }
+    }
     await fs.mkdir(destination, { recursive: true });
     const moved = [];
     try {
