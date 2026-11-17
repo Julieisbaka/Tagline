@@ -103,22 +103,16 @@ function registerVaultIpc(
             await handle.close();
           }
           // Retry rename on EBUSY/EPERM (Windows file-lock hazard), up to 5 attempts
-          let lastError;
           for (let attempt = 0; attempt < 5; attempt++) {
             try {
               await fs.rename(temporary, full);
-              lastError = null;
               break;
             } catch (error) {
-              lastError = error;
               if (!retryable(error) || attempt === 4) {
                 throw error;
               }
               await new Promise((resolve) => setTimeout(resolve, 25 * (attempt + 1)));
             }
-          }
-          if (lastError) {
-            throw lastError;
           }
         } catch (error) {
           try {
@@ -277,7 +271,6 @@ function registerVaultIpc(
     }
     const temporary = path.join(path.dirname(full), `.tagline-save-${randomUUID()}.tmp`);
     const retryable = (error) => error && (error.code === 'EBUSY' || error.code === 'EPERM');
-    let lastError;
     for (let attempt = 0; attempt < 5; attempt++) {
       try {
         await fs.writeFile(temporary, content, { encoding: 'utf8', flag: 'wx', mode });
@@ -291,22 +284,17 @@ function registerVaultIpc(
           }
         }
         await fs.rename(temporary, full);
-        lastError = null;
         break;
       } catch (error) {
         if (error.code !== 'EEXIST') {
           await fs.rm(temporary, { force: true }).catch(() => {});
         }
-        lastError = error;
         if (retryable(error) && attempt < 4) {
           await new Promise((resolve) => setTimeout(resolve, 25 * (attempt + 1)));
           continue;
         }
         throw error;
       }
-    }
-    if (lastError) {
-      throw lastError;
     }
     return true;
   }
