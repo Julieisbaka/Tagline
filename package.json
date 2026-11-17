@@ -146,7 +146,7 @@
     "@lezer/highlight": "^1.2.5",
     "@tiptap/core": "^3.33.0",
     "@tiptap/extension-find-and-replace": "^3.33.0",
-    "@tiptap/extension-highlight": "^3.33.0",
+    "@tiptap/extension-highlight": "^3.34.0",
     "@tiptap/extension-table": "^3.33.0",
     "@tiptap/extension-task-item": "^3.33.0",
     "@tiptap/extension-task-list": "^3.33.0",
