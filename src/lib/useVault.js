@@ -107,7 +107,7 @@ export function useVault(
       const task = previous
         .catch(() => {})
         .then(() => {
-          if (saveEpoch.current !== epoch) return;
+          if (saveEpoch.current !== epoch) {return;}
           return api.write(
             path,
             text,
@@ -177,7 +177,7 @@ export function useVault(
     const epoch = saveEpoch.current;
     try {
       const { tree, contents: all } = await api.readSnapshot();
-      if (saveEpoch.current !== epoch) return;
+      if (saveEpoch.current !== epoch) {return;}
       setTree(tree);
       // Keep edits that haven't been flushed to disk yet.
       const saving = Object.fromEntries(
@@ -301,7 +301,7 @@ export function useVault(
       setSaveStatus(path, 'unsaved');
       clearTimeout(timers.current[path]);
       timers.current[path] = setTimeout(() => {
-        if (saveEpoch.current !== epoch) return;
+        if (saveEpoch.current !== epoch) {return;}
         const value = pending.current[path];
         delete pending.current[path];
         delete timers.current[path];
