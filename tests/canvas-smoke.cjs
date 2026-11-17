@@ -318,6 +318,13 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
         await js(
           `document.querySelector('[data-edge-id="edge"]').dispatchEvent(new KeyboardEvent('keydown',{key:'Enter',bubbles:true}))`
         );
+        assert.ok(
+          await js("document.querySelector('[data-edge-id=\"edge\"]').classList.contains('selected')"),
+          'Enter selects the edge'
+        );
+        await js(
+          `document.querySelector('[data-edge-id="edge"]').dispatchEvent(new KeyboardEvent('keydown',{key:'ContextMenu',bubbles:true}))`
+        );
         await click('.context-menu button', 'Reverse connection');
         await delay(450);
         let edge = JSON.parse(await fs.readFile(path.join(vault, 'Map.canvas'), 'utf8')).edges[0];

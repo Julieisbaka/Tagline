@@ -55,10 +55,12 @@ const CanvasEdges = memo(function CanvasEdges({
             role='button'
             aria-label={item.label || t('Canvas connection')}
             onKeyDown={(event) => {
-              if (
-                ['ContextMenu', 'Enter', ' '].includes(event.key) ||
-                (event.key === 'F10' && event.shiftKey)
-              ) {
+              if (event.key === 'Enter' || event.key === ' ') {
+                event.preventDefault();
+                onSelect(item.id);
+                return;
+              }
+              if (event.key === 'ContextMenu' || (event.key === 'F10' && event.shiftKey)) {
                 event.preventDefault();
                 const rect = event.currentTarget.getBoundingClientRect();
                 onContextMenu(

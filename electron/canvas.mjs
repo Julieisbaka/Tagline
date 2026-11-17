@@ -26,15 +26,8 @@ function validateColor(value, label) {
   }
 }
 
-/** Parse and validate JSON Canvas 1.0 text while retaining unknown fields. @returns {object} */
-export function parseCanvas(content) {
-  if (typeof content !== 'string') {throw new Error('Canvas content must be JSON text.');}
-  let canvas;
-  try {
-    canvas = JSON.parse(content);
-  } catch (error) {
-    throw new Error(`Invalid Canvas JSON: ${error.message}`);
-  }
+/** Validate a Canvas object while retaining unknown fields. @returns {object} */
+function validateCanvasObject(canvas) {
   if (!isRecord(canvas)) {throw new Error('Canvas JSON must be an object.');}
   const nodes = canvas.nodes === undefined ? [] : canvas.nodes;
   const edges = canvas.edges === undefined ? [] : canvas.edges;
@@ -105,9 +98,21 @@ export function parseCanvas(content) {
   return { ...canvas, nodes, edges };
 }
 
+/** Parse and validate JSON Canvas 1.0 text while retaining unknown fields. @returns {object} */
+export function parseCanvas(content) {
+  if (typeof content !== 'string') {throw new Error('Canvas content must be JSON text.');}
+  let canvas;
+  try {
+    canvas = JSON.parse(content);
+  } catch (error) {
+    throw new Error(`Invalid Canvas JSON: ${error.message}`);
+  }
+  return validateCanvasObject(canvas);
+}
+
 /** Validate and pretty-print Canvas data, ending with a newline. @returns {string} */
 export function serializeCanvas(canvas) {
-  return `${JSON.stringify(parseCanvas(JSON.stringify(canvas)), null, 2)}\n`;
+  return `${JSON.stringify(validateCanvasObject(canvas), null, 2)}\n`;
 }
 
 /** Create a text/file/link/group node at a default grid position. @returns {object} */

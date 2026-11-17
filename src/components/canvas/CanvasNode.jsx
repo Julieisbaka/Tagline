@@ -27,9 +27,13 @@ const CanvasNode = memo(function CanvasNode({
   const { t } = useI18n();
   const accent = nodeColor(node.color);
   const fileListId = useId();
+  const linkListId = useId();
   const [editingText, setEditingText] = useState(node.type === 'text' && !node.text);
   const resolve = useCallback((target) => resolveLink(target, paths), [paths]);
   const link = node.type === 'link' ? resolveCanvasLink(node.url, paths, path) : null;
+  const rawUrl = node.url || '';
+  const wikiTarget = rawUrl.trim().match(/^\[\[([^\]]+)\]\]$/);
+  const linkQuery = (wikiTarget ? wikiTarget[1].split('|')[0] : rawUrl.trim()).split('#')[0];
   const linkIssue =
     node.type === 'link' && node.url && !link
       ? /^https?:\/\//i.test(node.url.trim())
@@ -184,8 +188,14 @@ const CanvasNode = memo(function CanvasNode({
               aria-label={t('URL')}
               placeholder={t('Web URL or vault file path')}
               value={node.url}
+              list={linkListId}
               onChange={(event) => onUpdate(node.id, { url: event.target.value })}
             />
+            <datalist id={linkListId}>
+              {suggestCanvasFiles(paths, linkQuery).map((path) => (
+                <option key={path} value={path} />
+              ))}
+            </datalist>
             <button className='link-btn canvas-open-file' disabled={!link} onClick={openLinkNode}>
               {link?.label || node.url || t('Open link')}
             </button>

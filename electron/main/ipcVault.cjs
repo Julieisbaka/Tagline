@@ -92,6 +92,7 @@ function registerVaultIpc(
         const full = resolveInVault(PINS_PATH);
         const directory = path.dirname(full);
         const temporary = path.join(directory, `.tagline-pins-${randomUUID()}.tmp`);
+        const retryable = (error) => error && (error.code === 'EBUSY' || error.code === 'EPERM');
         await fs.mkdir(directory, { recursive: true });
         try {
           await fs.writeFile(temporary, serialized, { encoding: 'utf8', flag: 'wx' });
@@ -109,17 +110,11 @@ function registerVaultIpc(
               lastError = null;
               break;
             } catch (error) {
-              try {
-                await fs.rm(temporary, { force: true });
-              } catch {}
               lastError = error;
-              if (error.code === 'EBUSY' || error.code === 'EPERM') {
-                if (attempt < 4) {
-                  await new Promise((resolve) => setTimeout(resolve, 25 * (attempt + 1)));
-                  continue;
-                }
+              if (!retryable(error) || attempt === 4) {
+                throw error;
               }
-              throw error;
+              await new Promise((resolve) => setTimeout(resolve, 25 * (attempt + 1)));
             }
           }
           if (lastError) {
