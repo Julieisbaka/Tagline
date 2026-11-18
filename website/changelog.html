@@ -64,6 +64,11 @@
             <h3>Improved</h3>
             <ul>
               <li>
+                Vault <code>.taglineignore</code> patterns now handle backslash escapes and
+                trailing whitespace more like Git: escaped characters are literal, and only
+                trailing spaces are trimmed.
+              </li>
+              <li>
                 Link-rot monitor persists the last-checked time before returning when there are no
                 cited URLs.
               </li>
