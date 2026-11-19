@@ -58,7 +58,8 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
       };
       const primary = process.platform === 'darwin' ? 'meta' : 'control';
       const checkTabLoop = async (selector) => {
-        const edge = (index) => js(`(() => {
+        const edge = (index) =>
+          js(`(() => {
           const root = document.querySelector(${JSON.stringify(selector)});
           const controls = [...root.querySelectorAll('button, input, select, textarea, [tabindex]')]
             .filter(el => !el.disabled && el.tabIndex >= 0 && el.getClientRects().length);
@@ -71,17 +72,9 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
           controls.at(-1).focus();
         })()`);
         await key('Tab');
-        assert.equal(
-          await edge(0),
-          true,
-          `${selector} wraps Tab`
-        );
+        assert.equal(await edge(0), true, `${selector} wraps Tab`);
         await key('Tab', ['shift']);
-        assert.equal(
-          await edge(-1),
-          true,
-          `${selector} wraps Shift+Tab`
-        );
+        assert.equal(await edge(-1), true, `${selector} wraps Shift+Tab`);
       };
       const checkAccessibleNames = async () => {
         const unnamed = await js(`(() => {

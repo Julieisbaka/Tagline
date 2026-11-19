@@ -51,10 +51,11 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
     main = win;
     win.webContents.once('did-finish-load', async () => {
       const js = (code) => win.webContents.executeJavaScript(code);
-      const wait = (condition) => require('./helpers/wait.cjs').waitFor(condition, {
-        timeout: 5000,
-        message: 'Timed out waiting for timer state',
-      });
+      const wait = (condition) =>
+        require('./helpers/wait.cjs').waitFor(condition, {
+          timeout: 5000,
+          message: 'Timed out waiting for timer state',
+        });
       const overlay = () =>
         BrowserWindow.getAllWindows().find((window) => window !== win && window.isVisible());
       try {

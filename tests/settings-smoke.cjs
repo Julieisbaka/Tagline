@@ -79,8 +79,12 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
         wc.executeJavaScript(code).catch((error) => {
           throw new Error(`${error.message}\nScript: ${code}`);
         });
-      const wait = require('./helpers/wait.cjs').rendererWait((code) => wc.executeJavaScript(code), {
-        details: async () => '\nCSS: ' + JSON.stringify(
+      const wait = require('./helpers/wait.cjs').rendererWait(
+        (code) => wc.executeJavaScript(code),
+        {
+          details: async () =>
+            '\nCSS: ' +
+            JSON.stringify(
               await js(`({
           saved: JSON.parse(localStorage.getItem('tagline-settings')),
           style: document.querySelector('#tagline-custom-css')?.textContent,
@@ -92,7 +96,8 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
           browserButtons: [...document.querySelectorAll('.website-toolbar button')].map(el => [el.textContent, el.disabled])
         })`)
             ),
-      });
+        }
+      );
       const click = (selector) => js(`document.querySelector(${JSON.stringify(selector)}).click()`);
       const button = (selector, text) =>
         js(`(() => {

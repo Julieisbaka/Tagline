@@ -89,9 +89,11 @@ const delay = (ms) => new Promise((r) => setTimeout(r, ms));
       });
       const wait = require('./helpers/wait.cjs').rendererWait(js, {
         timeout: 12000,
-        details: async () => '\nFonts: ' + JSON.stringify(
-          await js('[...document.fonts].map(f => ({ family: f.family, status: f.status }))')
-        ),
+        details: async () =>
+          '\nFonts: ' +
+          JSON.stringify(
+            await js('[...document.fonts].map(f => ({ family: f.family, status: f.status }))')
+          ),
       });
       const click = (selector, text) =>
         js(`(() => {

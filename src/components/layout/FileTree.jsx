@@ -199,9 +199,7 @@ export default function FileTree({
           pinnedPaths={pinnedSet}
         />
       ))}
-      {tree.length === 0 && (
-        <div className='empty-hint'>{t('No files yet')}</div>
-      )}
+      {tree.length === 0 && <div className='empty-hint'>{t('No files yet')}</div>}
     </div>
   );
 }

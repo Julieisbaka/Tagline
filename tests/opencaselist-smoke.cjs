@@ -241,7 +241,9 @@ app.on('browser-window-created', (_event, win) => {
       await wait("!document.querySelector('.opencaselist-password-settings fieldset').disabled");
       if (first) {
         const originalSize = win.getSize();
-        await js("window.__testResizeCount = 0; window.addEventListener('resize', () => window.__testResizeCount++)");
+        await js(
+          "window.__testResizeCount = 0; window.addEventListener('resize', () => window.__testResizeCount++)"
+        );
         for (const width of [1100, 700]) {
           const previousSize = win.getSize();
           const previousResize = await js('window.__testResizeCount');
@@ -274,7 +276,9 @@ app.on('browser-window-created', (_event, win) => {
           await js(
             "document.querySelector('.opencaselist-password-settings').scrollIntoView({block:'center'})"
           );
-          await js('new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))');
+          await js(
+            'new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))'
+          );
           fs.writeFileSync(
             process.env.TAGLINE_SETTINGS_SCREENSHOT,
             (await wc.capturePage()).toPNG()

@@ -61,10 +61,12 @@ const assert = require('node:assert/strict');
   app.on('browser-window-created', (_event, win) => {
     win.webContents.once('did-finish-load', async () => {
       const js = (code) => win.webContents.executeJavaScript(code);
-      const wait = (code, tries = 100) => require('./helpers/wait.cjs').rendererWait(js, {
-        timeout: tries * 100,
-        details: async () => `\n${await js("document.querySelector('.hypothesis-dialog')?.innerText")}`,
-      })(code);
+      const wait = (code, tries = 100) =>
+        require('./helpers/wait.cjs').rendererWait(js, {
+          timeout: tries * 100,
+          details: async () =>
+            `\n${await js("document.querySelector('.hypothesis-dialog')?.innerText")}`,
+        })(code);
       const button = (selector, text) =>
         js(`(() => {
         const item = [...document.querySelectorAll(${JSON.stringify(selector)})].find(el => el.textContent.trim().startsWith(${JSON.stringify(text)}));

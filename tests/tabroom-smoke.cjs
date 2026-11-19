@@ -344,7 +344,9 @@ app.on('browser-window-created', (_event, win) => {
       await click('Raw JSON', '.tabroom-views');
       await wait("!!document.querySelector('.tabroom-json')");
       const originalSize = win.getSize();
-      await js("window.__testResizeCount = 0; window.addEventListener('resize', () => window.__testResizeCount++)");
+      await js(
+        "window.__testResizeCount = 0; window.addEventListener('resize', () => window.__testResizeCount++)"
+      );
       for (const [width, height] of [
         [1100, 850],
         [700, 600],

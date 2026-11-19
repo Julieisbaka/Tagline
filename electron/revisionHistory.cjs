@@ -294,7 +294,10 @@ function createRevisionHistory({ getVaultRoot, resolveInVault }) {
       throw error;
     }
     try {
-      const [sourceStat, destinationStat] = await Promise.all([fs.stat(source), fs.stat(destination)]);
+      const [sourceStat, destinationStat] = await Promise.all([
+        fs.stat(source),
+        fs.stat(destination),
+      ]);
       if (sourceStat.dev === destinationStat.dev && sourceStat.ino === destinationStat.ino) {
         return;
       }

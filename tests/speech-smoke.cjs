@@ -312,7 +312,7 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
           '\n\nPATH={{path}}\nBODY={{content}}\nPROPERTIES={{properties}}\nEND\n'
         );
         await reload();
-        await wait("!!document.querySelector('.tree-item[data-tree-path=\\\"Templates\\\"]')");
+        await wait('!!document.querySelector(\'.tree-item[data-tree-path=\\"Templates\\"]\')');
         await open('Legacy.md');
         await wait("!!document.querySelector('.visual-document')");
         const beforeTemplate = await fs.readFile(path.join(vault, 'Legacy.md'), 'utf8');

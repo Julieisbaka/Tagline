@@ -32,7 +32,13 @@ function outline(text) {
   return headings;
 }
 
-function createVaultContext({ getVaultRoot, resolveInVault, getAllowWrites, getAllowModels, getLocalModels }) {
+function createVaultContext({
+  getVaultRoot,
+  resolveInVault,
+  getAllowWrites,
+  getAllowModels,
+  getLocalModels,
+}) {
   const root = () => {
     const value = getVaultRoot();
     if (!value) {

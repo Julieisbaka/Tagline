@@ -68,8 +68,10 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
       const js = (code) => wc.executeJavaScript(code);
       const wait = require('./helpers/wait.cjs').rendererWait(js, {
         timeout: 8000,
-        details: async () => '\n' + JSON.stringify(
-              await js(`({
+        details: async () =>
+          '\n' +
+          JSON.stringify(
+            await js(`({
           graph: window.graphPaint, tabs: [...document.querySelectorAll('.tab')].map(el => el.title),
           files: [...document.querySelectorAll('.tree-item')].map(el => el.title),
           confirmation: document.querySelector('.confirm-dialog')?.textContent,
@@ -77,7 +79,7 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
           graphCanvas: !!document.querySelector('.graph canvas'),
           activeTab: document.querySelector('.tab.active')?.title
         })`)
-            ),
+          ),
       });
       const click = (selector) => js(`document.querySelector(${JSON.stringify(selector)}).click()`);
       const button = (selector, text) =>

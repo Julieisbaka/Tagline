@@ -793,8 +793,15 @@ export class ExtensionHost {
               if (
                 new TextEncoder().encode(text).byteLength <= this.limits.extensionStorageCharacters
               ) {
-                const replaced = await this.bridge.extensionStorage(this.manifest.id, 'replace', null, parsed);
-                data = replaced ? await this.bridge.extensionStorage(this.manifest.id, 'get') : null;
+                const replaced = await this.bridge.extensionStorage(
+                  this.manifest.id,
+                  'replace',
+                  null,
+                  parsed
+                );
+                data = replaced
+                  ? await this.bridge.extensionStorage(this.manifest.id, 'get')
+                  : null;
               }
             }
           } catch {

@@ -350,7 +350,8 @@ export function useExtensions({ bridgeRef, notify }) {
       return;
     }
     const broken = loaded.filter(
-      (item) => item?.id && item.enabled && item.error && !item.reviewRequired && !item.installFailed
+      (item) =>
+        item?.id && item.enabled && item.error && !item.reviewRequired && !item.installFailed
     );
     let finalLoaded = loaded;
     if (broken.length) {
