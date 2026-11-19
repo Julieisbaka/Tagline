@@ -74,9 +74,11 @@ app.on('browser-window-created', (_event, win) => {
       await js("document.querySelector('.onboarding-skip').click()");
       await wait('!!document.querySelector(\'.tree-item[title="Large.canvas"]\')');
       await js('document.querySelector(\'.tree-item[title="Large.canvas"]\').click()');
-      await wait("!!document.querySelector('[data-node-id=\"node-0\"]')");
+      await wait('!!document.querySelector(\'[data-node-id="node-0"]\')');
       assert.deepEqual(
-        await js("window.api.read('Large.canvas').then(text => { const canvas = JSON.parse(text); return [canvas.nodes.length, canvas.edges.length]; })"),
+        await js(
+          "window.api.read('Large.canvas').then(text => { const canvas = JSON.parse(text); return [canvas.nodes.length, canvas.edges.length]; })"
+        ),
         [301, 300],
         'the complete canvas model is loaded while off-screen nodes remain virtualized'
       );
@@ -87,6 +89,8 @@ app.on('browser-window-created', (_event, win) => {
         let parses = 0;
         DOMParser.prototype.parseFromString = function (...args) { parses++; return original.apply(this, args); };
         const samples = [];
+        const mountedIds = () => new Set([...document.querySelectorAll('[data-node-id]')].map(node => node.dataset.nodeId));
+        const before = mountedIds();
         try {
           for (let index = 0; index < 24; index++) {
             const start = performance.now();
@@ -95,6 +99,7 @@ app.on('browser-window-created', (_event, win) => {
             samples.push(performance.now() - start);
           }
           const panParses = parses;
+          const panMounted = [...mountedIds()].filter(id => !before.has(id)).length;
           parses = 0;
           const header = document.querySelector('[data-node-id="node-0"] header');
           header.setPointerCapture = () => {};
@@ -106,11 +111,15 @@ app.on('browser-window-created', (_event, win) => {
           const dragParses = parses;
           board.dispatchEvent(new PointerEvent('pointerup', {pointerId: 1, bubbles: true}));
           await frame();
-          return {panParses, dragParses, meanFrameMs: samples.reduce((sum, value) => sum + value, 0) / samples.length};
+          return {panParses, panMounted, dragParses, meanFrameMs: samples.reduce((sum, value) => sum + value, 0) / samples.length};
         } finally { DOMParser.prototype.parseFromString = original; }
       })()`);
       console.log('Canvas performance (301 nodes/300 edges):', JSON.stringify(result));
-      assert.equal(result.panParses, 0, 'panning must not parse Markdown previews');
+      // Nodes that scroll into the virtualized viewport must render once; anything beyond that is a re-parse.
+      assert.ok(
+        result.panParses <= result.panMounted,
+        `panning must not re-parse Markdown previews (${result.panParses} parses for ${result.panMounted} newly mounted nodes)`
+      );
       assert.equal(result.dragParses, 0, 'dragging must not parse unchanged Markdown previews');
       await wait(
         "window.api.read('Large.canvas').then(text => JSON.parse(text).nodes[0].x === 48)"

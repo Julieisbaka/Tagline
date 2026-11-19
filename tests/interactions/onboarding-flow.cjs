@@ -13,7 +13,10 @@ module.exports = async function runScenario({
   saved,
 }) {
   win.show({ focus: false });
-  await wait("!!document.querySelector('.onboarding-dialog')");
+  // The dialog is briefly unmounted (resetting its step) while the vault initializes.
+  await wait(
+    "!!document.querySelector('.onboarding-dialog') && document.querySelectorAll('.tree-item').length === 4"
+  );
   assert.equal(
     await js("document.querySelector('.onboarding-dialog').getAttribute('aria-modal')"),
     'true'
@@ -25,8 +28,8 @@ module.exports = async function runScenario({
     false
   );
   for (let step = 1; step <= 3; step++) {
-    assert.ok(
-      (await js("document.querySelector('.onboarding-progress').textContent")).includes(`${step}`)
+    await wait(
+      `document.querySelector('.onboarding-progress')?.textContent.includes('Step ${step} of')`
     );
     await button('.onboarding-dialog .primary', step === 3 ? 'Get started' : 'Next');
   }

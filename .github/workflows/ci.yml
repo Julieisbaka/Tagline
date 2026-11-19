@@ -107,8 +107,12 @@ jobs:
         with:
           name: renderer-dist
           path: dist
+      - name: Configure Electron sandbox
+        run: |
+          sudo chown root:root node_modules/electron/dist/chrome-sandbox
+          sudo chmod 4755 node_modules/electron/dist/chrome-sandbox
       - name: Run smoke shard
-        run: xvfb-run -a npm run test:all -- --skip-unit --shard=${{ matrix.shard }}/4
+        run: xvfb-run -a -s "-screen 0 1920x1080x24" npm run test:all -- --skip-unit --shard=${{ matrix.shard }}/4
         env:
           TAGLINE_TEST_DIST_READY: '1'
       - name: Upload failure log

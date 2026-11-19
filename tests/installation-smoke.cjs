@@ -327,24 +327,38 @@ app.on('browser-window-created', (_event, win) => {
         await js(
           "[...document.querySelectorAll('.installation-settings button')].find(el => el.textContent === 'Check for updates').click()"
         );
-        await wait(
-          "!![...document.querySelectorAll('.installation-settings button')].find(el => el.textContent === 'Download update')"
-        );
-        await js(
-          "[...document.querySelectorAll('.installation-settings button')].find(el => el.textContent === 'Download update').click()"
-        );
-        await wait(
-          "document.querySelector('.installation-settings [role=alert]')?.textContent.includes('verification failed')"
-        );
-        assert.equal(installerOpened, false);
-        invalidChecksum = false;
-        await js(
-          "[...document.querySelectorAll('.installation-settings button')].find(el => el.textContent === 'Download update').click()"
-        );
-        await wait(
-          "!![...document.querySelectorAll('.installation-settings button')].find(el => /Install update and restart|Open installer/.test(el.textContent))"
-        );
-        assert.equal((await js('window.api.getUpdateState()')).status, 'ready');
+        const canInstallUpdates = ['win32', 'darwin'].includes(process.platform);
+        if (canInstallUpdates) {
+          await wait(
+            "!![...document.querySelectorAll('.installation-settings button')].find(el => el.textContent === 'Download update')"
+          );
+          await js(
+            "[...document.querySelectorAll('.installation-settings button')].find(el => el.textContent === 'Download update').click()"
+          );
+          await wait(
+            "document.querySelector('.installation-settings [role=alert]')?.textContent.includes('verification failed')"
+          );
+          assert.equal(installerOpened, false);
+          invalidChecksum = false;
+          await js(
+            "[...document.querySelectorAll('.installation-settings button')].find(el => el.textContent === 'Download update').click()"
+          );
+          await wait(
+            "!![...document.querySelectorAll('.installation-settings button')].find(el => /Install update and restart|Open installer/.test(el.textContent))"
+          );
+          assert.equal((await js('window.api.getUpdateState()')).status, 'ready');
+        } else {
+          await wait(
+            "document.querySelector('.installation-settings [role=status]')?.textContent.includes('v9.0.0')"
+          );
+          assert.equal(
+            await js(
+              "!![...document.querySelectorAll('.installation-settings button')].find(el => el.textContent === 'Download update')"
+            ),
+            false,
+            'Linux has no in-app installer download'
+          );
+        }
         await js(
           "[...document.querySelectorAll('.installation-settings button')].find(el => el.textContent === 'GitHub repository').click()"
         );
@@ -373,26 +387,28 @@ app.on('browser-window-created', (_event, win) => {
         );
         await js("document.querySelector('.uninstall-dialog button').click()");
         await wait("!document.querySelector('.uninstall-dialog')");
-        const originalQuit = app.quit;
-        let quitRequested = false;
-        app.quit = () => {
-          quitRequested = true;
-        };
-        try {
-          await js(
-            "[...document.querySelectorAll('.installation-settings button')].find(el => /Install update and restart|Open installer/.test(el.textContent)).click()"
-          );
-          await wait(
-            `window.api.getUpdateState().then(state => state.status === '${process.platform === 'darwin' ? 'ready' : 'installing'}')`
-          );
-          await require('./helpers/wait.cjs').waitFor(
-            () => installerOpened && (process.platform === 'darwin' || quitRequested),
-            { message: 'Installer launch did not finish' }
-          );
-          assert.equal(installerOpened, true);
-          assert.equal(quitRequested, process.platform !== 'darwin');
-        } finally {
-          app.quit = originalQuit;
+        if (canInstallUpdates) {
+          const originalQuit = app.quit;
+          let quitRequested = false;
+          app.quit = () => {
+            quitRequested = true;
+          };
+          try {
+            await js(
+              "[...document.querySelectorAll('.installation-settings button')].find(el => /Install update and restart|Open installer/.test(el.textContent)).click()"
+            );
+            await wait(
+              `window.api.getUpdateState().then(state => state.status === '${process.platform === 'darwin' ? 'ready' : 'installing'}')`
+            );
+            await require('./helpers/wait.cjs').waitFor(
+              () => installerOpened && (process.platform === 'darwin' || quitRequested),
+              { message: 'Installer launch did not finish' }
+            );
+            assert.equal(installerOpened, true);
+            assert.equal(quitRequested, process.platform !== 'darwin');
+          } finally {
+            app.quit = originalQuit;
+          }
         }
       }
       app.quit();
