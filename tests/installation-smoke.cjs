@@ -125,15 +125,7 @@ if (first) {
 app.on('browser-window-created', (_event, win) => {
   win.webContents.once('did-finish-load', async () => {
     const js = (code) => win.webContents.executeJavaScript(code);
-    const wait = async (code) => {
-      for (let i = 0; i < 150; i++) {
-        if (await js(code)) {
-          return;
-        }
-        await new Promise((resolve) => setTimeout(resolve, 50));
-      }
-      throw new Error(`Timed out: ${code}`);
-    };
+    const wait = require('./helpers/wait.cjs').rendererWait(js, { timeout: 7500 });
     try {
       await wait(
         "!!document.querySelector('.onboarding-skip') || JSON.parse(localStorage.getItem('tagline-settings'))?.internalFlags.hasSeenOnboarding"
@@ -393,7 +385,10 @@ app.on('browser-window-created', (_event, win) => {
           await wait(
             `window.api.getUpdateState().then(state => state.status === '${process.platform === 'darwin' ? 'ready' : 'installing'}')`
           );
-          await new Promise((resolve) => setTimeout(resolve, 50));
+          await require('./helpers/wait.cjs').waitFor(
+            () => installerOpened && (process.platform === 'darwin' || quitRequested),
+            { message: 'Installer launch did not finish' }
+          );
           assert.equal(installerOpened, true);
           assert.equal(quitRequested, process.platform !== 'darwin');
         } finally {

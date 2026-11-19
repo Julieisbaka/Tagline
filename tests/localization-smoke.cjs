@@ -8,6 +8,19 @@ if (!process.versions.electron) {
     for (const locale of ['es-MX', 'fr-CA', 'ja-JP', 'saved-en']) {
       const profile = path.join(root, locale);
       fs.mkdirSync(profile);
+      if (locale === 'saved-en') {
+        const vault = path.join(profile, 'vault');
+        fs.mkdirSync(path.join(vault, '.tagline'), { recursive: true });
+        fs.writeFileSync(
+          path.join(vault, '.tagline', 'vault.json'),
+          JSON.stringify({ version: require('../electron/vaultMigrations.cjs').migrations.length })
+        );
+        fs.writeFileSync(path.join(vault, 'Note.md'), '# Note');
+        fs.writeFileSync(
+          path.join(profile, 'config.json'),
+          JSON.stringify({ lastVault: vault, modelAutoload: false })
+        );
+      }
       const result = spawnSync(require('electron'), [__filename], {
         env: { ...process.env, TAGLINE_LOCALE_PROFILE: profile, TAGLINE_TEST_LOCALE: locale },
         stdio: 'inherit',
@@ -29,45 +42,53 @@ if (!process.versions.electron) {
 
 const { app } = require('electron');
 const assert = require('node:assert/strict');
-const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 const locale = process.env.TAGLINE_TEST_LOCALE;
 app.setPath('userData', process.env.TAGLINE_LOCALE_PROFILE);
 app.getPreferredSystemLanguages = () => [locale === 'saved-en' ? 'fr-FR' : locale];
 app.on('browser-window-created', (_event, win) => {
   win.webContents.once('did-finish-load', async () => {
     const js = (code) => win.webContents.executeJavaScript(code);
-    const wait = async (code) => {
-      for (let i = 0; i < 200; i++) {
-        if (await js(code)) {
-          return;
-        }
-        await delay(50);
-      }
-      throw new Error(`Timed out: ${code}`);
-    };
+    const wait = require('./helpers/wait.cjs').rendererWait(js);
     try {
       await wait("!!document.querySelector('.onboarding-dialog')");
       if (locale === 'saved-en') {
-        await js(
-          `localStorage.setItem('tagline-settings', JSON.stringify({language: 'en', format: 'policy'}))`
-        );
+        await js("document.querySelector('.onboarding-skip').click()");
+        await wait("!!document.querySelector('.ribbon-settings-button')");
+        await js("document.querySelector('.ribbon-settings-button').click()");
+        await wait("!!document.querySelector('.settings')");
+        await js("document.querySelector('[data-section=appearance]').click()");
+        await js(`(() => {
+          const language = document.querySelector('[data-setting=language]');
+          language.value = 'en'; language.dispatchEvent(new Event('change', {bubbles: true}));
+        })()`);
+        await wait("document.documentElement.lang === 'en'");
+        await js("document.querySelector('.settings-close').click()");
+        await wait("!document.querySelector('.settings')");
+        await js(`(() => {
+          const saved = JSON.parse(localStorage.getItem('tagline-settings'));
+          saved.format = 'policy';
+          localStorage.setItem('tagline-settings', JSON.stringify(saved));
+        })()`);
         await new Promise((resolve) => {
           win.webContents.once('did-finish-load', resolve);
           win.webContents.reload();
         });
-        await wait("!!document.querySelector('.onboarding-dialog')");
       }
       const expected = { 'es-MX': 'es', 'fr-CA': 'fr', 'ja-JP': 'en', 'saved-en': 'en' }[locale];
       await wait(`document.documentElement.lang === '${expected}'`);
-      const title = await js("document.querySelector('#onboarding-title').textContent");
-      assert.equal(
-        title,
-        {
-          es: 'Te damos la bienvenida a Tagline',
-          fr: 'Bienvenue dans Tagline',
-          en: 'Welcome to Tagline',
-        }[expected]
-      );
+      if (locale !== 'saved-en') {
+        const title = await js("document.querySelector('#onboarding-title').textContent");
+        assert.equal(
+          title,
+          {
+            es: 'Te damos la bienvenida a Tagline',
+            fr: 'Bienvenue dans Tagline',
+            en: 'Welcome to Tagline',
+          }[expected]
+        );
+      } else {
+        await wait("!!document.querySelector('.ribbon-settings-button')");
+      }
       assert.equal(
         await js("JSON.parse(localStorage.getItem('tagline-settings')).language"),
         expected

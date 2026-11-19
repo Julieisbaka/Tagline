@@ -69,8 +69,12 @@ module.exports = async function runScenario({
     'row growth preserves fixed column widths'
   );
   await setFirstCell('');
+  await wait(
+    `[...document.querySelectorAll('.flow-grid tbody tr:first-child textarea')].every((el, index) => el.offsetHeight === ${JSON.stringify(shortHeights)}[index])`
+  );
   assert.deepEqual(await rowHeights(), shortHeights, 'all cells shrink after removing long text');
   await setFirstCell('wrapped argument '.repeat(80));
+  await wait(`document.querySelector('.flow-grid textarea').offsetHeight > ${shortHeights[0]}`);
   const wideHeight = (await rowHeights())[0];
   await js("document.querySelector('.flow-grid-wrap').style.width = '360px'");
   await wait(`document.querySelector('.flow-grid textarea').offsetHeight > ${wideHeight}`);
@@ -82,6 +86,9 @@ module.exports = async function runScenario({
   await js("document.querySelector('.flow-grid-wrap').style.width = ''");
   await wait(`document.querySelector('.flow-grid textarea').offsetHeight === ${wideHeight}`);
   await setFirstCell('');
+  await wait(
+    `[...document.querySelectorAll('.flow-grid tbody tr:first-child textarea')].every((el, index) => el.offsetHeight === ${JSON.stringify(shortHeights)}[index])`
+  );
   const flowStyles = () =>
     js(`['.flow-grid textarea', '.flow-grid th input', '.flow-add-row', '.flow-grid .mini']
       .map(selector => {
@@ -101,6 +108,13 @@ module.exports = async function runScenario({
   );
   await js("document.documentElement.classList.remove('native-ui')");
   await delay(200);
+  await js("document.querySelector('.flow-grid textarea')?.blur()");
+  await wait("!document.querySelector('.flow-grid textarea')");
+  await js("document.querySelector('.flow-add-row').scrollIntoView({ block: 'center' })");
+  await wait(`(() => {
+    const r = document.querySelector('.flow-add-row').getBoundingClientRect();
+    return r.top >= 0 && r.bottom <= innerHeight;
+  })()`);
   for (const [fx, fy] of [
     [0.5, 0.001],
     [0.001, 0.5],
@@ -112,8 +126,8 @@ module.exports = async function runScenario({
     const pixel = await js(`(() => {
       const box = document.querySelector('.flow-add-row').getBoundingClientRect();
       return {
-        x: Math.min(Math.ceil(box.right) - 1, Math.max(Math.ceil(box.left), ${hit.x})),
-        y: Math.min(Math.ceil(box.bottom) - 1, Math.max(Math.ceil(box.top), ${hit.y}))
+        x: Math.min(Math.ceil(box.right) - 6, Math.max(Math.ceil(box.left) + 5, ${hit.x})),
+        y: Math.min(Math.ceil(box.bottom) - 6, Math.max(Math.ceil(box.top) + 5, ${hit.y}))
       };
     })()`);
     await press(pixel);

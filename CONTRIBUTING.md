@@ -34,9 +34,18 @@ Tagline uses Node's built-in test runner (`node --test`) plus Electron smoke sui
 
 ```sh
 npm test              # all unit tests
-npm run test:all      # unit + configured smoke suites, sequentially
+npm run test:all      # unit tests overlap the sequential smoke suites
 npm run test:<name>   # individual smoke suite, e.g. test:a11y
+npm run test:all -- --bail     # stop scheduling after the first failure
+npm run test:all -- --jobs=2   # opt into concurrent smoke suites
 ```
+
+Concurrent smoke suites share the desktop and can interfere with focus or clipboard tests.
+Use the default one smoke worker for reliable local runs. CI runs four isolated smoke shards;
+`--skip-unit --shard=1/4` selects the first shard without repeating the separate unit job.
+`--bail` lets already running suites finish. `test:all` builds the renderer once by default;
+set `TAGLINE_TEST_DIST_READY=1` only when `dist/` already contains a current build for the
+target platform. The same flag lets individual smoke scripts reuse that build.
 
 ## Vault format changes
 

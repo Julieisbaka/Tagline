@@ -92,15 +92,7 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
           console.error('Renderer:', event.message);
         }
       });
-      const wait = async (code) => {
-        for (let i = 0; i < 100; i++) {
-          if (await js(code)) {
-            return;
-          }
-          await delay(100);
-        }
-        throw new Error('Timed out: ' + code);
-      };
+      const wait = require('./helpers/wait.cjs').rendererWait(js);
       const click = async (selector, text) => {
         await wait(`[...document.querySelectorAll(${escapeUnsafeJsString(selector)})]
           .some(el => el.textContent.trim() === ${escapeUnsafeJsString(text)})`);

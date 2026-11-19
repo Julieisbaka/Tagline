@@ -193,15 +193,7 @@ app.on('browser-window-created', (_event, win) => {
   }
   win.webContents.once('did-finish-load', async () => {
     const js = (code) => win.webContents.executeJavaScript(code);
-    const wait = async (code) => {
-      for (let i = 0; i < 200; i++) {
-        if (await js(code)) {
-          return;
-        }
-        await new Promise((resolve) => setTimeout(resolve, 25));
-      }
-      throw new Error(`Timed out: ${code}`);
-    };
+    const wait = require('./helpers/wait.cjs').rendererWait(js, { timeout: 5000 });
     const click = async (label, scope = '.tabroom-dialog') => {
       const expression = `[...document.querySelectorAll(${JSON.stringify(`${scope} button`)})].find(b=>b.textContent.trim()===${JSON.stringify(label)}&&!b.disabled)`;
       await wait(`!!(${expression})`);
@@ -352,14 +344,19 @@ app.on('browser-window-created', (_event, win) => {
       await click('Raw JSON', '.tabroom-views');
       await wait("!!document.querySelector('.tabroom-json')");
       const originalSize = win.getSize();
+      await js("window.__testResizeCount = 0; window.addEventListener('resize', () => window.__testResizeCount++)");
       for (const [width, height] of [
         [1100, 850],
         [700, 600],
         [420, 650],
       ]) {
         win.setMinimumSize(320, 400);
+        const previousSize = win.getSize();
+        const previousResize = await js('window.__testResizeCount');
         win.setSize(width, height);
-        await new Promise((resolve) => setTimeout(resolve, 200));
+        if (previousSize[0] !== width || previousSize[1] !== height) {
+          await wait(`window.__testResizeCount > ${previousResize}`);
+        }
         for (const view of ['Overview', 'Teams', 'Raw JSON']) {
           await click(view, '.tabroom-views');
           if (view === 'Teams') {

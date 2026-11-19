@@ -47,17 +47,10 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
     win.webContents.once('did-finish-load', async () => {
       const wc = win.webContents;
       const js = (code) => wc.executeJavaScript(code);
-      const wait = async (code) => {
-        for (let i = 0; i < 100; i++) {
-          if (await js(code)) {
-            return;
-          }
-          await delay(50);
-        }
-        throw new Error(
-          `Timed out: ${code}\nFocus: ${await js('document.activeElement.outerHTML')}`
-        );
-      };
+      const wait = require('./helpers/wait.cjs').rendererWait(js, {
+        timeout: 5000,
+        details: async () => `\nFocus: ${await js('document.activeElement.outerHTML')}`,
+      });
       const key = async (keyCode, modifiers = []) => {
         wc.sendInputEvent({ type: 'keyDown', keyCode, modifiers });
         wc.sendInputEvent({ type: 'keyUp', keyCode, modifiers });
@@ -65,23 +58,27 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
       };
       const primary = process.platform === 'darwin' ? 'meta' : 'control';
       const checkTabLoop = async (selector) => {
+        const edge = (index) => js(`(() => {
+          const root = document.querySelector(${JSON.stringify(selector)});
+          const controls = [...root.querySelectorAll('button, input, select, textarea, [tabindex]')]
+            .filter(el => !el.disabled && el.tabIndex >= 0 && el.getClientRects().length);
+          return document.activeElement === controls.at(${index});
+        })()`);
         await js(`(() => {
           const root = document.querySelector(${JSON.stringify(selector)});
           const controls = [...root.querySelectorAll('button, input, select, textarea, [tabindex]')]
             .filter(el => !el.disabled && el.tabIndex >= 0 && el.getClientRects().length);
           controls.at(-1).focus();
-          window.expectedFirst = controls[0];
-          window.expectedLast = controls.at(-1);
         })()`);
         await key('Tab');
         assert.equal(
-          await js('document.activeElement === window.expectedFirst'),
+          await edge(0),
           true,
           `${selector} wraps Tab`
         );
         await key('Tab', ['shift']);
         assert.equal(
-          await js('document.activeElement === window.expectedLast'),
+          await edge(-1),
           true,
           `${selector} wraps Shift+Tab`
         );

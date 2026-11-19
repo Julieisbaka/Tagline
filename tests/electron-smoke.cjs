@@ -72,15 +72,7 @@ const delay = (ms) => new Promise((r) => setTimeout(r, ms));
         }
       });
       const js = (source) => wc.executeJavaScript(source);
-      const waitFor = async (source) => {
-        for (let i = 0; i < 100; i++) {
-          if (await js(source)) {
-            return;
-          }
-          await delay(100);
-        }
-        throw new Error('Timed out: ' + source);
-      };
+      const waitFor = require('./helpers/wait.cjs').rendererWait(js);
       const click = (selector, text) =>
         js(`(() => {
         const el = [...document.querySelectorAll(${JSON.stringify(selector)})]

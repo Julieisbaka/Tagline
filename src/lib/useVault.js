@@ -295,9 +295,10 @@ export function useVault(
   const updateContent = useCallback(
     (path, text) => {
       const epoch = saveEpoch.current;
-      contentsRef.current[path] = text;
+      const next = { ...contentsRef.current, [path]: text };
+      contentsRef.current = next;
       pending.current[path] = text;
-      setContents((c) => (c[path] === text ? c : { ...c, [path]: text }));
+      setContents(next);
       setSaveStatus(path, 'unsaved');
       clearTimeout(timers.current[path]);
       timers.current[path] = setTimeout(() => {

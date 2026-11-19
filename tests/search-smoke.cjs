@@ -72,15 +72,7 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
     win.webContents.once('did-finish-load', async () => {
       const wc = win.webContents;
       const js = (code) => wc.executeJavaScript(code);
-      const wait = async (code) => {
-        for (let i = 0; i < 100; i++) {
-          if (await js(code)) {
-            return;
-          }
-          await delay(100);
-        }
-        throw new Error(`Timed out: ${code}`);
-      };
+      const wait = require('./helpers/wait.cjs').rendererWait(js);
       const input = (value) =>
         js(`(() => {
         const el = document.querySelector('.search .palette-input');

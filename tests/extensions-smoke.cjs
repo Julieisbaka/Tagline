@@ -171,7 +171,13 @@ tagline.commands.register('vault-apis', async () => {
   if (renamed !== 'Renamed Operations.md') throw new Error('Rename returned wrong path');
   await tagline.vault.append(renamed, '-saved');
   await tagline.vault.flush();
-  await new Promise(resolve => setTimeout(resolve, 100));
+  const expectedEvents = [['create', 'Operations.md'], ['change', 'Operations.md'],
+    ['delete', 'Operations.md'], ['create', 'Renamed Operations.md']];
+  const deadline = Date.now() + 5000;
+  while (!expectedEvents.every(([type, path]) => events.some(event => event.type === type && event.path === path))) {
+    if (Date.now() >= deadline) throw new Error('Vault watch events did not arrive');
+    await new Promise(resolve => setTimeout(resolve, 20));
+  }
   await tagline.storage.set('watchEvents', events);
   await stop();
   const count = events.length;
@@ -184,14 +190,14 @@ tagline.commands.register('vault-apis', async () => {
 });
 tagline.commands.register('save-checks', async () => {
   const file = 'Renamed Operations.md';
-  await tagline.vault.write(file, 'retry');
   let rejected = false;
-  try { await tagline.vault.flush(); }
-  catch (error) {
+  try {
+    await tagline.vault.write(file, 'retry');
+  } catch (error) {
     if (!error.message.includes('Could not save')) throw error;
     rejected = true;
   }
-  if (!rejected) throw new Error('Flush hid a disk write failure');
+  if (!rejected) throw new Error('Vault write hid a disk write failure');
   await tagline.vault.flush();
   await tagline.vault.write(file, 'inflight-saved');
   await new Promise(resolve => setTimeout(resolve, 500));
@@ -399,14 +405,7 @@ tagline.commands.register('save-checks', async () => {
     JSON.parse(await fs.readFile(path.join(ext('demo'), 'manifest.json'), 'utf8')),
     ext('demo')
   );
-  const demoReview = JSON.stringify({
-    permissions: [...demoManifest.permissions].sort(),
-    settings: demoManifest.contributes.settings,
-    ribbonItems: demoManifest.contributes.ribbonItems,
-    panels: demoManifest.contributes.panels,
-    webviews: demoManifest.contributes.webviews,
-    networkHosts: demoManifest.networkHosts,
-  });
+  const demoReview = require('../electron/extensions/manifest.cjs').reviewSignature(demoManifest);
   await fs.writeFile(
     path.join(profile, 'config.json'),
     JSON.stringify({
@@ -448,15 +447,7 @@ tagline.commands.register('save-checks', async () => {
           console.error('Renderer:', event.message);
         }
       });
-      const wait = async (code, label = code) => {
-        for (let i = 0; i < 100; i++) {
-          if (await js(code)) {
-            return;
-          }
-          await delay(100);
-        }
-        throw new Error('Timed out: ' + label);
-      };
+      const wait = require('./helpers/wait.cjs').rendererWait(js);
       const toast = async (pattern) =>
         wait(
           `/${pattern}/.test(document.querySelector('.toast')?.textContent || '')`,
@@ -497,15 +488,13 @@ tagline.commands.register('save-checks', async () => {
         await js("document.querySelector('.ribbon-settings-button').click()");
         await wait("!!document.querySelector('.settings')");
         await js("document.querySelector('[data-section=extensions]').click()");
-        await wait(
-          "document.querySelector('[data-extension=nosy]')?.textContent.includes('Retry first install setup')"
-        );
         let installed = JSON.parse(await fs.readFile(path.join(profile, 'config.json'), 'utf8'));
         assert.equal(
-          installed.initializedExtensions.includes('nosy'),
+          installed.initializedExtensions?.includes('nosy') || false,
           false,
           'failed setup does not mark installation complete'
         );
+        assert.ok(installed.enabledExtensions.includes('nosy'), 'failed setup remains retryable');
         await js(
           "[...document.querySelectorAll('.settings button')].find(el => el.textContent === 'Reload extensions').click()"
         );

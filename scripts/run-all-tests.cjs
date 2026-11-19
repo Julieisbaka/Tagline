@@ -6,17 +6,47 @@ const root = path.resolve(__dirname, '..');
 const logPath = path.join(root, 'test-all.log');
 const { scripts } = JSON.parse(fs.readFileSync(path.join(root, 'package.json'), 'utf8'));
 const subsets = new Set(['test:all', 'test:shared', 'test:platform']);
-const suites = [
+const allSuites = [
   'test',
   ...Object.keys(scripts).filter((name) => name.startsWith('test:') && !subsets.has(name)),
 ];
+const args = process.argv.slice(2);
+const bail = args.includes('--bail');
+const skipUnit = args.includes('--skip-unit');
+const jobsArg = args.find((arg) => arg.startsWith('--jobs='));
+const shardArg = args.find((arg) => arg.startsWith('--shard='));
+const jobs = jobsArg ? Number(jobsArg.slice('--jobs='.length)) : 1;
+const shard = shardArg?.slice('--shard='.length).match(/^(\d+)\/(\d+)$/);
+if (
+  args.some(
+    (arg) =>
+      !['--bail', '--skip-unit'].includes(arg) &&
+      !arg.startsWith('--jobs=') &&
+      !arg.startsWith('--shard=')
+  ) ||
+  !Number.isSafeInteger(jobs) ||
+  jobs < 1 ||
+  (shardArg &&
+    (!shard ||
+      !Number.isSafeInteger(Number(shard[1])) ||
+      !Number.isSafeInteger(Number(shard[2])) ||
+      Number(shard[1]) < 1 ||
+      Number(shard[2]) < Number(shard[1])))
+) {
+  console.error('Usage: npm run test:all -- [--bail] [--jobs=N] [--shard=N/M] [--skip-unit]');
+  process.exit(2);
+}
+const suites = allSuites
+  .filter((name) => !skipUnit || name !== 'test')
+  .filter((_name, index) => !shard || index % Number(shard[2]) === Number(shard[1]) - 1);
 const npmCli = process.env.npm_execpath;
 const MAX_CAPTURED_OUTPUT = 10 * 1024 * 1024;
 const startedAt = Date.now();
 const results = [];
-let currentChild = null;
+const children = new Set();
 let interrupted = false;
 let runnerError = '';
+let bailed = false;
 
 function runSuite(name) {
   return new Promise((resolve) => {
@@ -30,9 +60,7 @@ function runSuite(name) {
         return;
       }
       settled = true;
-      if (currentChild === child) {
-        currentChild = null;
-      }
+      children.delete(child);
       resolve({
         suite: name,
         durationMs: Date.now() - suiteStartedAt,
@@ -55,7 +83,7 @@ function runSuite(name) {
       });
       return;
     }
-    currentChild = child;
+    children.add(child);
     const capture = (stream) =>
       stream.on('data', (chunk) => {
         if (output.length < MAX_CAPTURED_OUTPUT) {
@@ -210,6 +238,7 @@ function writeLog() {
       (result) => `Failed suite: ${result.suite} (${formatDuration(result.durationMs)})`
     ),
     ...(interrupted ? ['Run interrupted before all suites completed.'] : []),
+    ...(bailed ? ['Fail-fast stopped scheduling suites.'] : []),
     ...(runnerError ? [`Runner error: ${runnerError}`] : []),
     ...(!failed.length && !interrupted && !runnerError ? ['No failing tests.'] : []),
   ];
@@ -231,7 +260,7 @@ function writeLog() {
 
 function printSummary(logWriteError = '') {
   const count = totals();
-  const notRun = interrupted ? suites.length - results.length : 0;
+  const notRun = suites.length - results.length;
   const testsRan = count.passed + count.failed + count.cancelled;
   console.log('\n=== Test run summary ===');
   console.log(`Execution time: ${formatDuration(Date.now() - startedAt)}`);
@@ -240,9 +269,9 @@ function printSummary(logWriteError = '') {
   console.log(`Passed: ${count.passed}`);
   console.log(`Failed: ${count.failed}`);
   console.log(`Skipped: ${count.skipped}`);
-  console.log(`Canceled: ${count.cancelled + (interrupted && currentChild ? 1 : 0)}`);
+  console.log(`Canceled: ${count.cancelled}`);
   if (notRun) {
-    console.log(`Suites not run after interruption: ${notRun}`);
+    console.log(`Suites not run: ${notRun}`);
   }
   console.log(
     'Auth/password rejection scenarios are expected; they pass when the tests assert the errors.'
@@ -265,7 +294,9 @@ function requestInterrupt() {
     return;
   }
   interrupted = true;
-  currentChild?.kill('SIGINT');
+  for (const child of children) {
+    child.kill('SIGINT');
+  }
 }
 
 process.on('SIGINT', requestInterrupt);
@@ -275,7 +306,19 @@ async function main() {
   if (!npmCli) {
     runnerError = 'npm_execpath is missing; start this script with npm run test:all.';
   }
-  if (!runnerError) {
+  const record = (result) => {
+    results.push(result);
+    console.log(
+      `${result.status.toUpperCase()} ${result.suite} (${formatDuration(result.durationMs)})`
+    );
+    if (bail && result.status === 'failed') {
+      bailed = true;
+    }
+  };
+  const unit =
+    !runnerError && suites.includes('test') ? runSuite('test').then(record) : Promise.resolve();
+  const smokeSuites = suites.filter((name) => name !== 'test');
+  if (!runnerError && smokeSuites.length && process.env.TAGLINE_TEST_DIST_READY !== '1') {
     const rendererBuild = await runSuite('build');
     if (rendererBuild.status === 'passed') {
       process.env.TAGLINE_TEST_DIST_READY = '1';
@@ -284,14 +327,13 @@ async function main() {
       runnerError = `Initial renderer build failed (${rendererBuild.detail})${excerpt ? `\n${excerpt}` : ''}`;
     }
   }
-  if (!runnerError) {
-    for (const suite of suites) {
-      if (interrupted) {
-        break;
-      }
-      results.push(await runSuite(suite));
+  let next = 0;
+  const worker = async () => {
+    while (!runnerError && !interrupted && !bailed && next < smokeSuites.length) {
+      record(await runSuite(smokeSuites[next++]));
     }
-  }
+  };
+  await Promise.all([unit, ...Array.from({ length: Math.min(jobs, smokeSuites.length) }, worker)]);
 
   let logWriteError = '';
   try {

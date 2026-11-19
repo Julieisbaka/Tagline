@@ -138,10 +138,11 @@ export function PromptDialog({ title, initial = '', onSubmit, onClose }) {
   const { t } = useI18n();
   const [value, setValue] = useState(initial);
   const submit = () => {
-    if (value.trim()) {
-      onSubmit(value.trim());
-    }
+    const submitted = value.trim();
     onClose();
+    if (submitted) {
+      onSubmit(submitted);
+    }
   };
   return (
     <ModalBackdrop onMouseDown={onClose}>
