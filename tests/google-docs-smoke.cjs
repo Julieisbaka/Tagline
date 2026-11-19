@@ -153,15 +153,7 @@ const nativeFetch = global.fetch;
   app.on('browser-window-created', (_event, win) => {
     win.webContents.once('did-finish-load', async () => {
       const js = (code) => win.webContents.executeJavaScript(code);
-      const wait = async (code) => {
-        for (let i = 0; i < 120; i++) {
-          if (await js(code)) {
-            return;
-          }
-          await new Promise((resolve) => setTimeout(resolve, 50));
-        }
-        throw new Error(`Timed out: ${code}`);
-      };
+      const wait = require('./helpers/wait.cjs').rendererWait(js, { timeout: 6000 });
       const button = (selector, text) =>
         js(`(() => {
         const el = [...document.querySelectorAll(${JSON.stringify(selector)})].find(el => el.textContent.trim() === ${JSON.stringify(text)});

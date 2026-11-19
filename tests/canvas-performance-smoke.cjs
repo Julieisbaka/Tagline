@@ -47,8 +47,8 @@ nodes.push({
   id: 'file',
   type: 'file',
   file: 'Evidence.md',
-  x: 0,
-  y: 3400,
+  x: 320,
+  y: 0,
   width: 280,
   height: 180,
 });
@@ -68,21 +68,18 @@ app.on('browser-window-created', (_event, win) => {
   win.webContents.setBackgroundThrottling(false);
   win.webContents.once('did-finish-load', async () => {
     const js = (code) => win.webContents.executeJavaScript(code);
-    const wait = async (code) => {
-      for (let i = 0; i < 200; i++) {
-        if (await js(code)) {
-          return;
-        }
-        await new Promise((resolve) => setTimeout(resolve, 50));
-      }
-      throw new Error(`Timed out: ${code}`);
-    };
+    const wait = require('./helpers/wait.cjs').rendererWait(js);
     try {
       await wait("!!document.querySelector('.onboarding-skip')");
       await js("document.querySelector('.onboarding-skip').click()");
       await wait('!!document.querySelector(\'.tree-item[title="Large.canvas"]\')');
       await js('document.querySelector(\'.tree-item[title="Large.canvas"]\').click()');
-      await wait("document.querySelectorAll('.canvas-node').length === 301");
+      await wait("!!document.querySelector('[data-node-id=\"node-0\"]')");
+      assert.deepEqual(
+        await js("window.api.read('Large.canvas').then(text => { const canvas = JSON.parse(text); return [canvas.nodes.length, canvas.edges.length]; })"),
+        [301, 300],
+        'the complete canvas model is loaded while off-screen nodes remain virtualized'
+      );
       const result = await js(`(async () => {
         const board = document.querySelector('.canvas-board-wrap');
         const frame = () => new Promise(resolve => requestAnimationFrame(resolve));
@@ -153,7 +150,10 @@ app.on('browser-window-created', (_event, win) => {
       await wait(
         "document.querySelector('[data-node-id=file] .canvas-node-preview')?.textContent.includes('Updated evidence')"
       );
-      assert.equal(await js("document.querySelectorAll('.canvas-edge-line').length"), 300);
+      assert.equal(
+        await js("window.api.read('Large.canvas').then(text => JSON.parse(text).edges.length)"),
+        300
+      );
       await js("document.querySelector('.ribbon-settings-button').click()");
       await wait("!!document.querySelector('.settings')");
       await js("document.querySelector('[data-section=appearance]').click()");

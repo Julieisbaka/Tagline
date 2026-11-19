@@ -210,15 +210,7 @@ app.on('browser-window-created', (_event, win) => {
   win.webContents.once('did-finish-load', async () => {
     const wc = win.webContents;
     const js = (code) => wc.executeJavaScript(code);
-    const wait = async (code) => {
-      for (let i = 0; i < 200; i++) {
-        if (await js(code)) {
-          return;
-        }
-        await new Promise((resolve) => setTimeout(resolve, 25));
-      }
-      throw new Error(`Timed out: ${code}`);
-    };
+    const wait = require('./helpers/wait.cjs').rendererWait(js, { timeout: 5000 });
     const click = async (text, scope = '.opencaselist-dialog') => {
       const expression = `[...document.querySelectorAll(${JSON.stringify(`${scope} button`)})].find(button => button.textContent.trim() === ${JSON.stringify(text)} && !button.disabled)`;
       await wait(`!!(${expression})`);
@@ -249,9 +241,14 @@ app.on('browser-window-created', (_event, win) => {
       await wait("!document.querySelector('.opencaselist-password-settings fieldset').disabled");
       if (first) {
         const originalSize = win.getSize();
+        await js("window.__testResizeCount = 0; window.addEventListener('resize', () => window.__testResizeCount++)");
         for (const width of [1100, 700]) {
+          const previousSize = win.getSize();
+          const previousResize = await js('window.__testResizeCount');
           win.setSize(width, 850);
-          await new Promise((resolve) => setTimeout(resolve, 100));
+          if (previousSize[0] !== width || previousSize[1] !== 850) {
+            await wait(`window.__testResizeCount > ${previousResize}`);
+          }
           const layout = await js(`(() => {
             const form = document.querySelector('.opencaselist-password-settings');
             const fieldset = form.querySelector('fieldset');
@@ -277,7 +274,7 @@ app.on('browser-window-created', (_event, win) => {
           await js(
             "document.querySelector('.opencaselist-password-settings').scrollIntoView({block:'center'})"
           );
-          await new Promise((resolve) => setTimeout(resolve, 100));
+          await js('new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))');
           fs.writeFileSync(
             process.env.TAGLINE_SETTINGS_SCREENSHOT,
             (await wc.capturePage()).toPNG()

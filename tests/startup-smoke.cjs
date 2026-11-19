@@ -216,15 +216,11 @@ app.on('browser-window-created', (_event, win) => {
 async function verifyDeferredDialog(win) {
   const wc = win.webContents;
   const js = (code) => wc.executeJavaScript(code);
-  const wait = async (condition) => {
-    for (let i = 0; i < 200; i++) {
-      if (await condition()) {
-        return;
-      }
-      await new Promise((resolve) => setTimeout(resolve, 10));
-    }
-    throw new Error('Deferred dialog did not reach the expected state');
-  };
+  const wait = (condition) => require('./helpers/wait.cjs').waitFor(condition, {
+    timeout: 2000,
+    interval: 10,
+    message: 'Deferred dialog did not reach the expected state',
+  });
   let release;
   wc.session.webRequest.onBeforeRequest(({ url }, callback) => {
     if (/\/Dialogs-[^/]+\.js$/.test(url)) {

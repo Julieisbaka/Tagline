@@ -1,423 +1,417 @@
 <!doctype html>
 <html lang="en">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="description" content="Release notes for Tagline, starting with version 0.1.0." />
-    <meta name="theme-color" content="#ffffff" />
-    <title>Changelog — Tagline</title>
-    <link rel="icon" href="favicon.svg" type="image/svg+xml" />
-    <link rel="stylesheet" href="styles/base.css" />
-    <link rel="stylesheet" href="styles/docs.css" />
-    <link rel="stylesheet" href="styles/responsive.css" />
-  </head>
 
-  <body>
-    <a class="skip-link" href="#main">Skip to content</a>
-    <header class="site-header">
-      <a class="brand" href="index.html">
-        <img class="brand-mark" src="favicon.svg" alt="" aria-hidden="true" />
-        <span>Tagline</span>
-      </a>
-      <nav class="main-nav" aria-label="Main navigation">
-        <a href="index.html#features">Features</a>
-        <a href="docs/getting-started.html">Get started</a>
-        <a href="pricing.html">Pricing</a>
-        <a href="docs/index.html">Docs</a>
-        <a href="changelog.html" aria-current="page">Changelog</a>
-        <a href="https://github.com/Julieisbaka/Tagline">GitHub</a>
-      </nav>
-      <a
-        class="button button-small button-outline"
-        href="https://github.com/Julieisbaka/Tagline/releases/latest"
-      >
-        Get Tagline <span aria-hidden="true">↗</span>
-      </a>
-    </header>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="description" content="Release notes for Tagline, starting with version 0.1.0." />
+  <meta name="theme-color" content="#ffffff" />
+  <title>Changelog — Tagline</title>
+  <link rel="icon" href="favicon.svg" type="image/svg+xml" />
+  <link rel="stylesheet" href="styles/base.css" />
+  <link rel="stylesheet" href="styles/docs.css" />
+  <link rel="stylesheet" href="styles/responsive.css" />
+</head>
 
-    <main id="main" class="docs-page section-wrap">
-      <div class="docs-hero">
-        <p class="eyebrow">
-          <span class="eyebrow-mark" aria-hidden="true">✳</span> Product updates
-        </p>
-        <h1>Changelog</h1>
-        <p>Release notes for Tagline, with the newest version first.</p>
-      </div>
+<body>
+  <a class="skip-link" href="#main">Skip to content</a>
+  <header class="site-header">
+    <a class="brand" href="index.html">
+      <img class="brand-mark" src="favicon.svg" alt="" aria-hidden="true" />
+      <span>Tagline</span>
+    </a>
+    <nav class="main-nav" aria-label="Main navigation">
+      <a href="index.html#features">Features</a>
+      <a href="docs/getting-started.html">Get started</a>
+      <a href="pricing.html">Pricing</a>
+      <a href="docs/index.html">Docs</a>
+      <a href="changelog.html" aria-current="page">Changelog</a>
+      <a href="https://github.com/Julieisbaka/Tagline">GitHub</a>
+    </nav>
+    <a class="button button-small button-outline" href="https://github.com/Julieisbaka/Tagline/releases/latest">
+      Get Tagline <span aria-hidden="true">↗</span>
+    </a>
+  </header>
 
-      <div class="docs-shell">
-        <aside class="docs-sidebar">
-          <h2>Versions</h2>
-          <nav aria-label="Changelog versions">
-            <a href="#v0-1-4">0.1.4 · In development</a>
-            <a href="#v0-1-3">0.1.3</a>
-            <a href="#v0-1-2">0.1.2</a>
-            <a href="#v0-1-1">0.1.1</a>
-            <a href="#v0-1-0">0.1.0</a>
-          </nav>
-        </aside>
+  <main id="main" class="docs-page section-wrap">
+    <div class="docs-hero">
+      <p class="eyebrow">
+        <span class="eyebrow-mark" aria-hidden="true">✳</span> Product updates
+      </p>
+      <h1>Changelog</h1>
+      <p>Release notes for Tagline, with the newest version first.</p>
+    </div>
 
-        <article class="docs-article">
-          <section id="v0-1-4">
-            <p class="article-kicker">In development</p>
-            <h2>0.1.4 <span class="feature-status">In development</span></h2>
+    <div class="docs-shell">
+      <aside class="docs-sidebar">
+        <h2>Versions</h2>
+        <nav aria-label="Changelog versions">
+          <a href="#v0-1-4">0.1.4 · In development</a>
+          <a href="#v0-1-3">0.1.3</a>
+          <a href="#v0-1-2">0.1.2</a>
+          <a href="#v0-1-1">0.1.1</a>
+          <a href="#v0-1-0">0.1.0</a>
+        </nav>
+      </aside>
 
-            <h3>Improved</h3>
-            <ul>
-              <li>
-                Vault <code>.taglineignore</code> patterns now handle backslash escapes and
-                trailing whitespace more like Git: escaped characters are literal, and only
-                trailing spaces are trimmed.
-              </li>
-              <li>
-                Link-rot monitor persists the last-checked time before returning when there are no
-                cited URLs.
-              </li>
-              <li>Timer microphone meter state updates are throttled to about 10 fps.</li>
-              <li>
-                Non-Latin headings (e.g. Chinese, Japanese) now produce stable anchor slugs instead
-                of colliding on empty IDs, so [[Note#Heading]] links work.
-              </li>
-              <li>
-                Revision history now uses a <code><select></code> element so arrow keys can page
-                through saved versions without needing to click first.
-              </li>
-            </ul>
+      <article class="docs-article">
+        <section id="v0-1-4">
+          <p class="article-kicker">In development</p>
+          <h2>0.1.4 <span class="feature-status">In development</span></h2>
 
-            <h3>Fixed</h3>
-            <ul>
-              <li>
-                Flow grid no longer remeasures every cell on each edit; it resizes only when
-                row/column counts or relevant settings change.
-              </li>
-              <li>Case-only note renames preserve revision history instead of deleting it.</li>
-              <li>Invalid citation URLs show a friendly error instead of a raw TypeError.</li>
-              <li>
-                Concurrent extension installs no longer overwrite each other's install tokens;
-                either load can complete the installation.
-              </li>
-              <li>
-                Extension settings reset clears secrets before non-secret settings, so a failed
-                secret clear cannot leave a partial reset.
-              </li>
-              <li>
-                MCP agent access to the vault now follows and validates the same symbolic-link
-                containment rules as the rest of the app.
-              </li>
-              <li>
-                Tab effects subscribe to stable tab members (<code>error</code>, <code>clearError</code>,
-                <code>openPath</code>) instead of the recreated <code>tabs</code> object.
-              </li>
-            </ul>
-          </section>
+          <h3>Improved</h3>
+          <ul>
+            <li>
+              Vault <code>.taglineignore</code> patterns now handle backslash escapes and
+              trailing whitespace more like Git: escaped characters are literal, and only
+              trailing spaces are trimmed.
+            </li>
+            <li>
+              Link-rot monitor persists the last-checked time before returning when there are no
+              cited URLs.
+            </li>
+            <li>Timer microphone meter state updates are throttled to about 10 fps.</li>
+            <li>
+              Non-Latin headings (e.g. Chinese, Japanese) now produce stable anchor slugs instead
+              of colliding on empty IDs, so [[Note#Heading]] links work.
+            </li>
+            <li>
+              Revision history now uses a <code>&lt;select&gt;</code> element so arrow keys can page
+              through saved versions without needing to click first.
+            </li>
+          </ul>
 
-          <section id="v0-1-3">
-            <p class="article-kicker">Released</p>
-            <h2>0.1.3</h2>
+          <h3>Fixed</h3>
+          <ul>
+            <li>
+              Flow grid no longer remeasures every cell on each edit; it resizes only when
+              row/column counts or relevant settings change.
+            </li>
+            <li>Case-only note renames preserve revision history instead of deleting it.</li>
+            <li>Invalid citation URLs show a friendly error instead of a raw TypeError.</li>
+            <li>
+              Concurrent extension installs no longer overwrite each other's install tokens;
+              either load can complete the installation.
+            </li>
+            <li>
+              Extension settings reset clears secrets before non-secret settings, so a failed
+              secret clear cannot leave a partial reset.
+            </li>
+            <li>
+              MCP agent access to the vault now follows and validates the same symbolic-link
+              containment rules as the rest of the app.
+            </li>
+            <li>
+              Tab effects subscribe to stable tab members (<code>error</code>, <code>clearError</code>,
+              <code>openPath</code>) instead of the recreated <code>tabs</code> object.
+            </li>
+          </ul>
+        </section>
 
-            <h3>Improved</h3>
-            <ul>
-              <li>Pinned notes and folders show a pin marker in the file explorer tree.</li>
-              <li>
-                Opening a vault drops pinned entries whose files no longer exist, instead of keeping
-                them in <code>.tagline/pins.json</code> forever.
-              </li>
-              <li>
-                Keyboard shortcut lookups use a precomputed map instead of copying and scanning all
-                built-in bindings on every lookup.
-              </li>
-              <li>
-                Canvas editor adds an optional minimap, viewport culling for large canvases,
-                keyboard node/edge selection, and arrow-key nudging of selected nodes (hold Shift
-                for larger steps).
-              </li>
-              <li>
-                Flow grid cells use a single roving tab stop, so Tab reaches preview cells directly;
-                focus rings match edit mode and an “Enter to edit” hint marks the focused cell.
-              </li>
-            </ul>
+        <section id="v0-1-3">
+          <p class="article-kicker">Released</p>
+          <h2>0.1.3</h2>
 
-            <h3>Fixed</h3>
-            <ul>
-              <li>
-                Pin state is stored only in <code>.tagline/pins.json</code>; the legacy localStorage
-                copy is migrated once and then purged, so stale entries no longer reappear after
-                clearing pins.
-              </li>
-              <li>
-                Pinned tabs and pinned notes share a single bookkeeping path; closing a pinned tab
-                unpins it.
-              </li>
-              <li>
-                Fixed: pins.json no longer rewrites on every tab close when the path wasn't pinned.
-              </li>
-              <li>Fixed: read failure no longer blocks tab restoration and write persistence.</li>
-              <li>Fixed: pins writes now retry on EBUSY/EPERM (Windows file-lock hazard).</li>
-              <li>
-                Fixed: flow cells can be opened and edited with a primary click in Visual mode.
-              </li>
-              <li>
-                Fixed: canvas <code>[[#Heading]]</code> links resolve to the canvas file instead of
-                being dropped, and plain link paths containing <code>|</code> are no longer split
-                into destination and label.
-              </li>
-              <li>
-                Fixed: canvas nodes and connections with broken links show a clear in-node message
-                and a toolbar count.
-              </li>
-            </ul>
-          </section>
+          <h3>Improved</h3>
+          <ul>
+            <li>Pinned notes and folders show a pin marker in the file explorer tree.</li>
+            <li>
+              Opening a vault drops pinned entries whose files no longer exist, instead of keeping
+              them in <code>.tagline/pins.json</code> forever.
+            </li>
+            <li>
+              Keyboard shortcut lookups use a precomputed map instead of copying and scanning all
+              built-in bindings on every lookup.
+            </li>
+            <li>
+              Canvas editor adds an optional minimap, viewport culling for large canvases,
+              keyboard node/edge selection, and arrow-key nudging of selected nodes (hold Shift
+              for larger steps).
+            </li>
+            <li>
+              Flow grid cells use a single roving tab stop, so Tab reaches preview cells directly;
+              focus rings match edit mode and an “Enter to edit” hint marks the focused cell.
+            </li>
+          </ul>
 
-          <section id="v0-1-2">
-            <p class="article-kicker">Released</p>
-            <h2>0.1.2</h2>
+          <h3>Fixed</h3>
+          <ul>
+            <li>
+              Pin state is stored only in <code>.tagline/pins.json</code>; the legacy localStorage
+              copy is migrated once and then purged, so stale entries no longer reappear after
+              clearing pins.
+            </li>
+            <li>
+              Pinned tabs and pinned notes share a single bookkeeping path; closing a pinned tab
+              unpins it.
+            </li>
+            <li>
+              Fixed: pins.json no longer rewrites on every tab close when the path wasn't pinned.
+            </li>
+            <li>Fixed: read failure no longer blocks tab restoration and write persistence.</li>
+            <li>Fixed: pins writes now retry on EBUSY/EPERM (Windows file-lock hazard).</li>
+            <li>
+              Fixed: flow cells can be opened and edited with a primary click in Visual mode.
+            </li>
+            <li>
+              Fixed: canvas <code>[[#Heading]]</code> links resolve to the canvas file instead of
+              being dropped, and plain link paths containing <code>|</code> are no longer split
+              into destination and label.
+            </li>
+            <li>
+              Fixed: canvas nodes and connections with broken links show a clear in-node message
+              and a toolbar count.
+            </li>
+          </ul>
+        </section>
 
-            <h3>Improved</h3>
-            <ul>
-              <li>
-                Vault path checks follow symbolic links and reject targets outside the vault,
-                including dangling links.
-              </li>
-              <li>
-                Vault migrations write the manifest atomically and recover the newest backup when a
-                migration journal is corrupt.
-              </li>
-              <li>
-                Window close and update-save handshakes ignore messages from subframes, and startup
-                failures show an error dialog instead of exiting silently.
-              </li>
-              <li>
-                Extension permission reviews include the extension version, so version updates
-                require a fresh review.
-              </li>
-              <li>
-                Migration backup cleanup now validates the vault the same way as other recent-vault
-                operations.
-              </li>
-              <li>
-                Extension <code>write</code> and <code>append</code> operations wait for pending
-                edits to reach disk before resolving.
-              </li>
-              <li>
-                Command palette search now ranks word starts, prefixes and contiguous matches
-                higher, matches punctuation-insensitive queries, and finds commands by their
-                shortcut.
-              </li>
-              <li>
-                File tabs show a dirty dot, a pulsing saving indicator, a brief saved flash, and a
-                persistent error marker.
-              </li>
-              <li>
-                Folders can be pinned from the file explorer; pinned folders sit alongside pinned
-                notes and jump to their place in the tree.
-              </li>
-              <li>
-                Pinned notes, folders and file tabs are saved inside the vault in
-                <code>.tagline/pins.json</code>, so they survive profile loss and travel with the
-                vault.
-              </li>
-              <li>
-                Tabs can be pinned from their context menu; pinned tabs reopen with the vault, even
-                when workspace tab saving is disabled.
-              </li>
-              <li>
-                An optional setting boosts pinned notes and folders in the quick switcher. It is off
-                by default.
-              </li>
-              <li>Timer preset dialogs can copy a preset as JSON and paste one back.</li>
-            </ul>
+        <section id="v0-1-2">
+          <p class="article-kicker">Released</p>
+          <h2>0.1.2</h2>
 
-            <h3>Fixed</h3>
-            <ul>
-              <li>Deleting a file or folder now confirms that it was moved to the trash.</li>
-              <li>The embedded browser opens the requested URL when the view is first created.</li>
-              <li>
-                Update checks no longer fail when a locked installer folder cannot be cleaned up.
-              </li>
-              <li>
-                Saving no longer plays the save sound when there was nothing to save, and a
-                successful unload flush no longer reports an error.
-              </li>
-              <li>
-                Editor toolbar find and send-card actions handle a missing editor view without
-                throwing.
-              </li>
-              <li>
-                Opening and closing tabs in the same tick no longer drops or restores stale tabs.
-              </li>
-              <li>Reloading extensions clears surfaces left behind by disposed extension hosts.</li>
-              <li>
-                Hypothesis and summary dialogs ignore repeated runs while one is already in
-                progress.
-              </li>
-              <li>
-                Cursor statistics are debounced instead of updating app state on every keystroke.
-              </li>
-              <li>
-                The graph simulation stops rendering once it settles and resumes on interaction or
-                content changes.
-              </li>
-              <li>
-                Closing without a registered save handler logs a diagnostic warning before falling
-                back to the renderer unload handler.
-              </li>
-            </ul>
-          </section>
+          <h3>Improved</h3>
+          <ul>
+            <li>
+              Vault path checks follow symbolic links and reject targets outside the vault,
+              including dangling links.
+            </li>
+            <li>
+              Vault migrations write the manifest atomically and recover the newest backup when a
+              migration journal is corrupt.
+            </li>
+            <li>
+              Window close and update-save handshakes ignore messages from subframes, and startup
+              failures show an error dialog instead of exiting silently.
+            </li>
+            <li>
+              Extension permission reviews include the extension version, so version updates
+              require a fresh review.
+            </li>
+            <li>
+              Migration backup cleanup now validates the vault the same way as other recent-vault
+              operations.
+            </li>
+            <li>
+              Extension <code>write</code> and <code>append</code> operations wait for pending
+              edits to reach disk before resolving.
+            </li>
+            <li>
+              Command palette search now ranks word starts, prefixes and contiguous matches
+              higher, matches punctuation-insensitive queries, and finds commands by their
+              shortcut.
+            </li>
+            <li>
+              File tabs show a dirty dot, a pulsing saving indicator, a brief saved flash, and a
+              persistent error marker.
+            </li>
+            <li>
+              Folders can be pinned from the file explorer; pinned folders sit alongside pinned
+              notes and jump to their place in the tree.
+            </li>
+            <li>
+              Pinned notes, folders and file tabs are saved inside the vault in
+              <code>.tagline/pins.json</code>, so they survive profile loss and travel with the
+              vault.
+            </li>
+            <li>
+              Tabs can be pinned from their context menu; pinned tabs reopen with the vault, even
+              when workspace tab saving is disabled.
+            </li>
+            <li>
+              An optional setting boosts pinned notes and folders in the quick switcher. It is off
+              by default.
+            </li>
+            <li>Timer preset dialogs can copy a preset as JSON and paste one back.</li>
+          </ul>
 
-          <section id="v0-1-1">
-            <p class="article-kicker">Released</p>
-            <h2>0.1.1</h2>
-            <h3>Added</h3>
-            <ul>
-              <li>
-                Vault migration backups avoid name collisions and migration artifacts can be cleaned
-                up from the vault manager.
-              </li>
-              <li>Advanced settings include a (currently no-op) developer mode toggle.</li>
-              <li>
-                Extensions can read files from their own installed folder in the sandbox via
-                <code>tagline.extension.readFile()</code>, and manifests can declare
-                <code>engines.tagline</code> for version compatibility checks.
-              </li>
-              <li>
-                Version-incompatible extensions can be force-enabled from Settings after a warning
-                confirmation.
-              </li>
-            </ul>
-            <h3>Improved</h3>
-            <ul>
-              <li>Release builds no longer emit source maps.</li>
-              <li>Electron release packages exclude tests and documentation.</li>
-            </ul>
-            <h3>Fixed</h3>
-            <ul>
-              <li>
-                Timer microphone auto-start debounces threshold changes, persists the threshold per
-                profile, and avoids false starts during microphone permission prompts.
-              </li>
-              <li>
-                Scholarly search retries failed metadata requests and normalizes DOI/URL extraction
-                edge cases.
-              </li>
-              <li>
-                Citation extraction and metadata handling better recognize DOI variants, normalize
-                URLs, and preserve balanced nested parentheses in extracted links and identifiers.
-              </li>
-              <li>
-                Search query parsing supports quoted phrases and <code>-exclude</code> terms/phrases
-                while keeping plain-text matching safe.
-              </li>
-              <li>
-                Broken enabled extensions are automatically disabled after load failures instead of
-                repeatedly crashing startup flows.
-              </li>
-              <li>
-                Flow Markdown preview cache invalidates on theme/font changes, caps memory, and
-                avoids stale rendered output.
-              </li>
-              <li>
-                Spellcheck context menus are handled more reliably for editable targets and avoid
-                flow spellcheck suggestion races.
-              </li>
-              <li>Spanish localization is completed for currently used interface strings.</li>
-              <li>
-                Corrupt or unreadable settings files are backed up and surfaced with a one-time
-                startup warning instead of being reset silently.
-              </li>
-            </ul>
-          </section>
+          <h3>Fixed</h3>
+          <ul>
+            <li>Deleting a file or folder now confirms that it was moved to the trash.</li>
+            <li>The embedded browser opens the requested URL when the view is first created.</li>
+            <li>
+              Update checks no longer fail when a locked installer folder cannot be cleaned up.
+            </li>
+            <li>
+              Saving no longer plays the save sound when there was nothing to save, and a
+              successful unload flush no longer reports an error.
+            </li>
+            <li>
+              Editor toolbar find and send-card actions handle a missing editor view without
+              throwing.
+            </li>
+            <li>
+              Opening and closing tabs in the same tick no longer drops or restores stale tabs.
+            </li>
+            <li>Reloading extensions clears surfaces left behind by disposed extension hosts.</li>
+            <li>
+              Hypothesis and summary dialogs ignore repeated runs while one is already in
+              progress.
+            </li>
+            <li>
+              Cursor statistics are debounced instead of updating app state on every keystroke.
+            </li>
+            <li>
+              The graph simulation stops rendering once it settles and resumes on interaction or
+              content changes.
+            </li>
+            <li>
+              Closing without a registered save handler logs a diagnostic warning before falling
+              back to the renderer unload handler.
+            </li>
+          </ul>
+        </section>
 
-          <section id="v0-1-0">
-            <p class="article-kicker">Released</p>
-            <h2>0.1.0</h2>
+        <section id="v0-1-1">
+          <p class="article-kicker">Released</p>
+          <h2>0.1.1</h2>
+          <h3>Added</h3>
+          <ul>
+            <li>
+              Vault migration backups avoid name collisions and migration artifacts can be cleaned
+              up from the vault manager.
+            </li>
+            <li>Advanced settings include a (currently no-op) developer mode toggle.</li>
+            <li>
+              Extensions can read files from their own installed folder in the sandbox via
+              <code>tagline.extension.readFile()</code>, and manifests can declare
+              <code>engines.tagline</code> for version compatibility checks.
+            </li>
+            <li>
+              Version-incompatible extensions can be force-enabled from Settings after a warning
+              confirmation.
+            </li>
+          </ul>
+          <h3>Improved</h3>
+          <ul>
+            <li>Release builds no longer emit source maps.</li>
+            <li>Electron release packages exclude tests and documentation.</li>
+          </ul>
+          <h3>Fixed</h3>
+          <ul>
+            <li>
+              Timer microphone auto-start debounces threshold changes, persists the threshold per
+              profile, and avoids false starts during microphone permission prompts.
+            </li>
+            <li>
+              Scholarly search retries failed metadata requests and normalizes DOI/URL extraction
+              edge cases.
+            </li>
+            <li>
+              Citation extraction and metadata handling better recognize DOI variants, normalize
+              URLs, and preserve balanced nested parentheses in extracted links and identifiers.
+            </li>
+            <li>
+              Search query parsing supports quoted phrases and <code>-exclude</code> terms/phrases
+              while keeping plain-text matching safe.
+            </li>
+            <li>
+              Broken enabled extensions are automatically disabled after load failures instead of
+              repeatedly crashing startup flows.
+            </li>
+            <li>
+              Flow Markdown preview cache invalidates on theme/font changes, caps memory, and
+              avoids stale rendered output.
+            </li>
+            <li>
+              Spellcheck context menus are handled more reliably for editable targets and avoid
+              flow spellcheck suggestion races.
+            </li>
+            <li>Spanish localization is completed for currently used interface strings.</li>
+            <li>
+              Corrupt or unreadable settings files are backed up and surfaced with a one-time
+              startup warning instead of being reset silently.
+            </li>
+          </ul>
+        </section>
 
-            <h3>Added</h3>
-            <ul>
-              <li>
-                <strong>Settings &gt; Extensions &gt; Browse extensions</strong> lists community
-                extensions from the
-                <a href="https://github.com/Julieisbaka/Tagline/blob/main/extensions/registry.json"
-                  >extension registry</a
-                >
-                and installs or updates them from GitHub with per-file integrity checks. Authors
-                <a href="docs/extension-api.html#registry">submit extensions</a> by pull request.
-              </li>
-              <li>
-                Extension manifests can declare <code>authors</code> and a <code>sourceUrl</code>,
-                shown on the extension card with a <strong>View source</strong> button.
-              </li>
-              <li>
-                Extension settings add encrypted secret fields, bounded array/object values, linked
-                descriptions, and vault-relative path values.
-              </li>
-              <li>
-                Extensions can publish bounded source- and visual-editor diagnostics with severity
-                styling and hover messages.
-              </li>
-              <li>
-                Accessibility settings add opt-in interaction sounds for opening notes, tabs,
-                saving, and errors.
-              </li>
-              <li>
-                Search scholarly works through Crossref and turn reviewed source metadata into
-                evidence cards.
-              </li>
-              <li>
-                Delivery analytics estimate filler words and speaking rates in practice transcripts,
-                with saved statistics for comparing speeches over a season.
-              </li>
-              <li>
-                Timers can start automatically when speech is detected, with adjustable microphone
-                sensitivity and an optional floating timer.
-              </li>
-              <li>
-                Extensions can contribute reusable templates and package fonts and translations as
-                declarative assets.
-              </li>
-              <li>
-                Older vaults can be upgraded through a guided migration wizard with validation and
-                recovery support.
-              </li>
-            </ul>
+        <section id="v0-1-0">
+          <p class="article-kicker">Released</p>
+          <h2>0.1.0</h2>
 
-            <h3>Improved</h3>
-            <ul>
-              <li>
-                Card detection removes incomplete HTML delimiters from card titles, keeping
-                malformed markup out of the displayed title.
-              </li>
-              <li>
-                Smart paste recognizes common evidence-card leads and preserves supported rich-text
-                formatting from other editors.
-              </li>
-            </ul>
-          </section>
+          <h3>Added</h3>
+          <ul>
+            <li>
+              <strong>Settings &gt; Extensions &gt; Browse extensions</strong> lists community
+              extensions from the
+              <a href="https://github.com/Julieisbaka/Tagline/blob/main/extensions/registry.json">extension registry</a>
+              and installs or updates them from GitHub with per-file integrity checks. Authors
+              <a href="docs/extension-api.html#registry">submit extensions</a> by pull request.
+            </li>
+            <li>
+              Extension manifests can declare <code>authors</code> and a <code>sourceUrl</code>,
+              shown on the extension card with a <strong>View source</strong> button.
+            </li>
+            <li>
+              Extension settings add encrypted secret fields, bounded array/object values, linked
+              descriptions, and vault-relative path values.
+            </li>
+            <li>
+              Extensions can publish bounded source- and visual-editor diagnostics with severity
+              styling and hover messages.
+            </li>
+            <li>
+              Accessibility settings add opt-in interaction sounds for opening notes, tabs,
+              saving, and errors.
+            </li>
+            <li>
+              Search scholarly works through Crossref and turn reviewed source metadata into
+              evidence cards.
+            </li>
+            <li>
+              Delivery analytics estimate filler words and speaking rates in practice transcripts,
+              with saved statistics for comparing speeches over a season.
+            </li>
+            <li>
+              Timers can start automatically when speech is detected, with adjustable microphone
+              sensitivity and an optional floating timer.
+            </li>
+            <li>
+              Extensions can contribute reusable templates and package fonts and translations as
+              declarative assets.
+            </li>
+            <li>
+              Older vaults can be upgraded through a guided migration wizard with validation and
+              recovery support.
+            </li>
+          </ul>
 
-          <div class="docs-callout">
-            <p>
-              <strong>New to Tagline?</strong> Start with the
-              <a href="docs/getting-started.html">Getting started guide</a>, then explore the
-              <a href="docs/index.html">documentation</a>.
-            </p>
-          </div>
-        </article>
-      </div>
-    </main>
+          <h3>Improved</h3>
+          <ul>
+            <li>
+              Card detection removes incomplete HTML delimiters from card titles, keeping
+              malformed markup out of the displayed title.
+            </li>
+            <li>
+              Smart paste recognizes common evidence-card leads and preserves supported rich-text
+              formatting from other editors.
+            </li>
+          </ul>
+        </section>
 
-    <footer class="site-footer">
-      <a class="brand" href="index.html"
-        ><img class="brand-mark" src="favicon.svg" alt="" aria-hidden="true" /><span
-          >Tagline</span
-        ></a
-      >
-      <p>A local-first workspace for policy debate.</p>
-      <nav aria-label="Footer navigation">
-        <a href="index.html">Home</a>
-        <a href="docs/getting-started.html">Getting started</a>
-        <a href="docs/index.html">Documentation</a>
-        <a href="pricing.html">Pricing</a>
-        <a href="changelog.html">Changelog</a>
-        <a href="https://github.com/Julieisbaka/Tagline/releases">Releases</a>
-      </nav>
-    </footer>
-  </body>
+        <div class="docs-callout">
+          <p>
+            <strong>New to Tagline?</strong> Start with the
+            <a href="docs/getting-started.html">Getting started guide</a>, then explore the
+            <a href="docs/index.html">documentation</a>.
+          </p>
+        </div>
+      </article>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <a class="brand" href="index.html"><img class="brand-mark" src="favicon.svg" alt=""
+        aria-hidden="true" /><span>Tagline</span></a>
+    <p>A local-first workspace for policy debate.</p>
+    <nav aria-label="Footer navigation">
+      <a href="index.html">Home</a>
+      <a href="docs/getting-started.html">Getting started</a>
+      <a href="docs/index.html">Documentation</a>
+      <a href="pricing.html">Pricing</a>
+      <a href="changelog.html">Changelog</a>
+      <a href="https://github.com/Julieisbaka/Tagline/releases">Releases</a>
+    </nav>
+  </footer>
+</body>
+
 </html>

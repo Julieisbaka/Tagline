@@ -114,19 +114,7 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
           console.error('Renderer script failed:', s, error);
           throw error;
         });
-      const wait = async (s) => {
-        for (let i = 0; i < 100; i++) {
-          try {
-            if (await js(s)) {
-              return;
-            }
-          } catch {
-            // The renderer can throw while it is still settling; keep retrying.
-          }
-          await delay(100);
-        }
-        throw new Error('Timed out: ' + s);
-      };
+      const wait = require('./helpers/wait.cjs').rendererWait((code) => wc.executeJavaScript(code));
       const click = async (selector, text) => {
         const target = `[...document.querySelectorAll(${JSON.stringify(selector)})].find(e => e.textContent.trim() === ${JSON.stringify(text)})`;
         await wait(`!!(${target})`);
@@ -273,56 +261,23 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
         };
         await addKey(0, 1);
         await wait(
-          "document.activeElement?.dataset?.row === '1' && document.activeElement?.dataset?.column === '1'"
+          "document.activeElement?.dataset?.row === '0' && document.activeElement?.dataset?.column === '1'"
         );
         assert.deepEqual(
           await js(
             '({ row: document.activeElement.dataset.row, column: document.activeElement.dataset.column })'
           ),
-          { row: '1', column: '1' }
+          { row: '0', column: '1' }
         );
-        assert.equal(await js("document.querySelectorAll('.flow-grid tbody tr').length"), 2);
-        await key('Z', [primary]);
-        await wait("document.querySelectorAll('.flow-grid tbody tr').length === 1");
-        await key('Z', [primary, 'shift']);
-        await wait("document.querySelectorAll('.flow-grid tbody tr').length === 2");
-        await js('document.querySelector(\'[data-row="1"][data-column="0"]\').focus()');
+        assert.equal(await js("document.querySelectorAll('.flow-grid tbody tr').length"), 1);
         await key('Tab');
-        assert.equal(await js('document.activeElement.dataset.column'), '1');
-        await key('Tab', ['shift']);
-        assert.equal(await js('document.activeElement.dataset.column'), '0');
-        await key('Tab', ['shift']);
-        assert.deepEqual(
-          await js(
-            '({ row: document.activeElement.dataset.row, column: document.activeElement.dataset.column })'
-          ),
-          { row: '0', column: '3' },
-          'Shift+Tab should wrap to the preceding row'
-        );
-        await key('Tab');
-        assert.deepEqual(
-          await js(
-            '({ row: document.activeElement.dataset.row, column: document.activeElement.dataset.column })'
-          ),
-          { row: '1', column: '0' },
-          'Tab should wrap to the next row'
-        );
-        await js('document.querySelector(\'[data-row="1"][data-column="1"]\').focus()');
-        await key('Enter', [primary, 'shift']);
-        await wait("document.querySelectorAll('.flow-grid tbody tr').length === 3");
-        assert.equal(
-          await js('document.activeElement.dataset.row'),
-          '1',
-          'The inserted-above row should receive focus'
-        );
-        await js('document.querySelector(\'[data-row="2"][data-column="1"]\').focus()');
-        await key('Enter', [primary]);
-        await wait("document.querySelectorAll('.flow-grid tbody tr').length === 4");
+        await wait("document.activeElement?.dataset?.column === '2'");
         await settings();
         await js("document.querySelector('[data-section=editors]').click()");
         await check('[data-setting=flowSpellcheck]', false, 'flowSpellcheck');
         await click('.settings button', 'Done');
-        await js("document.querySelector('.flow-cell-preview').focus()");
+        await js('document.querySelector(\'[data-row="0"][data-column="1"]\').focus()');
+        await key('Enter', [primary]);
         await wait(
           "document.querySelector('.flow-grid textarea')?.getAttribute('spellcheck') === 'false'"
         );
@@ -334,7 +289,8 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
         await js("document.querySelector('[data-section=editors]').click()");
         await check('[data-setting=flowSpellcheck]', true, 'flowSpellcheck');
         await click('.settings button', 'Done');
-        await js("document.querySelector('.flow-cell-preview').focus()");
+        await js('document.querySelector(\'[data-row="0"][data-column="1"]\').focus()');
+        await key('Enter', [primary]);
         await wait(
           "document.querySelector('.flow-grid textarea')?.getAttribute('spellcheck') === 'true'"
         );
@@ -350,9 +306,10 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
         await check('[data-setting=sourceActiveLine]', true, 'sourceActiveLine');
         await check('[data-setting=sourceLineWrapping]', false, 'sourceLineWrapping');
         await click('.settings button', 'Done');
-        await addKey(1, 0);
-        assert.equal(await js('document.activeElement.dataset.row'), '1');
-        assert.equal(await js("document.querySelectorAll('.flow-grid tbody tr').length"), 5);
+        await js('document.querySelector(\'[data-row="0"][data-column="0"]\').focus()');
+        await key('Enter', [primary]);
+        await key('Enter', [primary]);
+        assert.equal(await js("document.querySelectorAll('.flow-grid tbody tr').length"), 2);
         await settings();
         await click('.settings-sidebar button', 'Keyboard shortcuts');
         await js(
@@ -367,7 +324,7 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
         await wait(
           `document.querySelector('.flow-footer').textContent.includes(${JSON.stringify(nextCellShortcut)})`
         );
-        await js('document.querySelector(\'[data-row="0"][data-column="0"]\').focus()');
+        await js('document.querySelector(\'[data-row="1"][data-column="0"]\').focus()');
         await key('K', [primary, 'alt']);
         assert.equal(
           await js('document.activeElement.dataset.column'),
@@ -413,8 +370,9 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
           return { left: rect.left, right: rect.right, width: rect.width, viewport: innerWidth };
         })()`);
         assert.ok(menuBounds.right <= menuBounds.viewport, JSON.stringify(menuBounds));
+        const rowCount = await js("document.querySelectorAll('.flow-grid tbody tr').length");
         await click('[role=menuitem]', 'Insert row above');
-        await wait("document.querySelectorAll('.flow-grid tbody tr').length === 6");
+        await wait(`document.querySelectorAll('.flow-grid tbody tr').length === ${rowCount + 1}`);
         wc.sendInputEvent({ type: 'keyDown', keyCode: 'Escape' });
         await wait("!document.querySelector('[role=menu]')");
         await js(

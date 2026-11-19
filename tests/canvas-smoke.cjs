@@ -102,15 +102,7 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
               return ch;
           }
         });
-      const wait = async (code) => {
-        for (let i = 0; i < 100; i++) {
-          if (await js(code)) {
-            return;
-          }
-          await delay(50);
-        }
-        throw new Error('Timed out: ' + code);
-      };
+      const wait = require('./helpers/wait.cjs').rendererWait(js, { timeout: 5000 });
       const click = (selector, text) =>
         js(`[...document.querySelectorAll(${escapeUnsafeJsString(selector)})]
         .find(el => el.textContent.trim() === ${escapeUnsafeJsString(text)}).click()`);
@@ -332,7 +324,7 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
         );
         await click('.context-menu button', 'Reverse connection');
         await delay(450);
-        let edge = JSON.parse(await fs.readFile(path.join(vault, 'Map.canvas'), 'utf8')).edges[0];
+        const edge = JSON.parse(await fs.readFile(path.join(vault, 'Map.canvas'), 'utf8')).edges[0];
         assert.equal(edge.fromNode, 'file');
         assert.equal(edge.fromEnd, 'arrow');
         assert.equal(edge.toEnd, 'none');

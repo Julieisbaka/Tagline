@@ -10,7 +10,7 @@ permissions:
   contents: read
 
 jobs:
-  lint-and-test:
+  prepare:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -22,7 +22,54 @@ jobs:
           node-version: 24
           cache: npm
 
+      - name: Cache installed dependencies
+        id: dependencies
+        uses: actions/cache@v4
+        with:
+          path: node_modules
+          key: node-modules-${{ runner.os }}-${{ runner.arch }}-node24-onnx-skip-${{ hashFiles('package.json', 'package-lock.json') }}
+
       - name: Install dependencies
+        if: steps.dependencies.outputs.cache-hit != 'true'
+        run: npm ci
+        env:
+          ONNXRUNTIME_NODE_INSTALL: skip
+
+      - name: Cache renderer build
+        id: renderer
+        uses: actions/cache@v4
+        with:
+          path: dist
+          key: renderer-${{ runner.os }}-${{ runner.arch }}-node24-${{ hashFiles('package.json', 'package-lock.json', 'index.html', 'vite.config.mjs', 'src/**', 'electron/**', 'public/**') }}
+
+      - name: Build renderer
+        if: steps.renderer.outputs.cache-hit != 'true'
+        run: npm run build
+
+      - name: Share renderer build
+        uses: actions/upload-artifact@v4
+        with:
+          name: renderer-dist
+          path: dist
+          if-no-files-found: error
+          retention-days: 1
+
+  lint-and-test:
+    needs: prepare
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - uses: actions/cache@v4
+        id: dependencies
+        with:
+          path: node_modules
+          key: node-modules-${{ runner.os }}-${{ runner.arch }}-node24-onnx-skip-${{ hashFiles('package.json', 'package-lock.json') }}
+      - name: Install dependencies on cache miss
+        if: steps.dependencies.outputs.cache-hit != 'true'
         run: npm ci
         env:
           ONNXRUNTIME_NODE_INSTALL: skip
@@ -32,3 +79,43 @@ jobs:
 
       - name: Run unit tests
         run: npm test
+
+  smoke:
+    needs: prepare
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3, 4]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - uses: actions/cache@v4
+        id: dependencies
+        with:
+          path: node_modules
+          key: node-modules-${{ runner.os }}-${{ runner.arch }}-node24-onnx-skip-${{ hashFiles('package.json', 'package-lock.json') }}
+      - name: Install dependencies on cache miss
+        if: steps.dependencies.outputs.cache-hit != 'true'
+        run: npm ci
+        env:
+          ONNXRUNTIME_NODE_INSTALL: skip
+      - uses: actions/download-artifact@v4
+        with:
+          name: renderer-dist
+          path: dist
+      - name: Run smoke shard
+        run: xvfb-run -a npm run test:all -- --skip-unit --shard=${{ matrix.shard }}/4
+        env:
+          TAGLINE_TEST_DIST_READY: '1'
+      - name: Upload failure log
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: smoke-log-${{ matrix.shard }}
+          path: test-all.log
+          if-no-files-found: warn
+          retention-days: 7

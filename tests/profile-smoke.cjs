@@ -48,15 +48,7 @@ app.setPath('userData', profile);
 app.on('browser-window-created', (_event, win) => {
   win.webContents.once('did-finish-load', async () => {
     const js = (code) => win.webContents.executeJavaScript(code);
-    const wait = async (code) => {
-      for (let i = 0; i < 100; i++) {
-        if (await js(code)) {
-          return;
-        }
-        await new Promise((resolve) => setTimeout(resolve, 100));
-      }
-      throw new Error('Timed out: ' + code);
-    };
+    const wait = require('./helpers/wait.cjs').rendererWait(js);
     try {
       assert.equal(await js('window.api.getLastVault()'), null);
       assert.equal(fs.existsSync(path.join(profile, 'config.json')), false);

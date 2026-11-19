@@ -64,15 +64,7 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
           throw new Error(`Renderer script failed: ${s}`, { cause: error });
         }
       };
-      const wait = async (s) => {
-        for (let i = 0; i < 100; i++) {
-          if (await js(s)) {
-            return;
-          }
-          await delay(100);
-        }
-        throw new Error('Timed out: ' + s);
-      };
+      const wait = require('./helpers/wait.cjs').rendererWait(js);
       const waitFile = async (test) => {
         for (let i = 0; i < 50; i++) {
           const c = await exists();
@@ -320,6 +312,7 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
           '\n\nPATH={{path}}\nBODY={{content}}\nPROPERTIES={{properties}}\nEND\n'
         );
         await reload();
+        await wait("!!document.querySelector('.tree-item[data-tree-path=\\\"Templates\\\"]')");
         await open('Legacy.md');
         await wait("!!document.querySelector('.visual-document')");
         const beforeTemplate = await fs.readFile(path.join(vault, 'Legacy.md'), 'utf8');
@@ -364,6 +357,7 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
         await js(
           "[...document.querySelectorAll('.dialog button')].find(b => b.textContent === 'OK').click()"
         );
+        await choosePalette('Vault root');
         await wait("document.querySelector('.note-title')?.value === 'Created Target'");
         const newNote = await fs.readFile(path.join(vault, 'Created Target.md'), 'utf8');
         assert.ok(newNote.includes('PATH=Created Target.md'));

@@ -87,22 +87,12 @@ const delay = (ms) => new Promise((r) => setTimeout(r, ms));
           console.error('Renderer:', event.message);
         }
       });
-      const wait = async (code) => {
-        for (let i = 0; i < 120; i++) {
-          if (await js(code)) {
-            return;
-          }
-          await delay(100);
-        }
-        throw new Error(
-          'Timed out: ' +
-            code +
-            '\nFonts: ' +
-            JSON.stringify(
-              await js('[...document.fonts].map(f => ({ family: f.family, status: f.status }))')
-            )
-        );
-      };
+      const wait = require('./helpers/wait.cjs').rendererWait(js, {
+        timeout: 12000,
+        details: async () => '\nFonts: ' + JSON.stringify(
+          await js('[...document.fonts].map(f => ({ family: f.family, status: f.status }))')
+        ),
+      });
       const click = (selector, text) =>
         js(`(() => {
         const el = [...document.querySelectorAll(${JSON.stringify(selector)})].find(e => e.textContent.trim() === ${JSON.stringify(text)});

@@ -234,6 +234,7 @@ export function useExtensions({ bridgeRef, notify }) {
           return item;
         }
         let extensionHost = null;
+        let firstInstall = false;
         try {
           const {
             source,
@@ -243,9 +244,10 @@ export function useExtensions({ bridgeRef, notify }) {
             fonts = [],
             templates: contributedTemplates = [],
             limits,
-            firstInstall,
+            firstInstall: isFirstInstall,
             installToken,
           } = await window.api.loadExtension(item.id);
+          firstInstall = isFirstInstall;
           if (current !== generation.current) {
             return item;
           }
@@ -340,7 +342,7 @@ export function useExtensions({ bridgeRef, notify }) {
           if (hosts.current.get(item.id) === extensionHost) {
             hosts.current.delete(item.id);
           }
-          return { ...item, error: error.message };
+          return { ...item, error: error.message, installFailed: firstInstall };
         }
       })
     );
@@ -348,7 +350,7 @@ export function useExtensions({ bridgeRef, notify }) {
       return;
     }
     const broken = loaded.filter(
-      (item) => item?.id && item.enabled && item.error && !item.reviewRequired
+      (item) => item?.id && item.enabled && item.error && !item.reviewRequired && !item.installFailed
     );
     let finalLoaded = loaded;
     if (broken.length) {

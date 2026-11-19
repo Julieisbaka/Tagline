@@ -26,7 +26,6 @@ const { app } = require('electron');
 const fs = require('node:fs/promises');
 const path = require('node:path');
 const assert = require('node:assert/strict');
-const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 (async () => {
   const root = process.env.TAGLINE_NLI_ROOT;
@@ -62,17 +61,10 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
   app.on('browser-window-created', (_event, win) => {
     win.webContents.once('did-finish-load', async () => {
       const js = (code) => win.webContents.executeJavaScript(code);
-      const wait = async (code, tries = 100) => {
-        for (let i = 0; i < tries; i++) {
-          if (await js(code)) {
-            return;
-          }
-          await delay(100);
-        }
-        throw new Error(
-          `Timed out: ${code}\n${await js("document.querySelector('.hypothesis-dialog')?.innerText")}`
-        );
-      };
+      const wait = (code, tries = 100) => require('./helpers/wait.cjs').rendererWait(js, {
+        timeout: tries * 100,
+        details: async () => `\n${await js("document.querySelector('.hypothesis-dialog')?.innerText")}`,
+      })(code);
       const button = (selector, text) =>
         js(`(() => {
         const item = [...document.querySelectorAll(${JSON.stringify(selector)})].find(el => el.textContent.trim().startsWith(${JSON.stringify(text)}));
