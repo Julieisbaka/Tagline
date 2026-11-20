@@ -95,25 +95,30 @@ async function loadVault(dir, base, includeContents) {
     Array.from({ length: Math.min(FILE_CONCURRENCY, files.length) }, async () => {
       while (next < files.length) {
         const { full, node } = files[next++];
-        const lstat = await fs.lstat(full);
-        if (!lstat.isFile()) {
-          continue;
-        }
-        const realFile = await fs.realpath(full);
-        if (!isContained(realFile)) {
-          continue;
-        }
-        const stat = await fs.stat(full);
-        node.mtime = stat.mtimeMs;
-        if (includeContents) {
-          seen.add(node.path);
-          const cached = cachedContents.get(node.path);
-          const text =
-            cached && cached.mtimeMs === stat.mtimeMs && cached.size === stat.size
-              ? cached.text
-              : await fs.readFile(full, 'utf8');
-          cachedContents.set(node.path, { mtimeMs: stat.mtimeMs, size: stat.size, text });
-          texts.set(node.path, text);
+        const flags = fssync.constants.O_RDONLY | (fssync.constants.O_NOFOLLOW || 0);
+        const fh = await fs.open(full, flags);
+        try {
+          const stat = await fh.stat();
+          if (!stat.isFile()) {
+            continue;
+          }
+          const realFile = await fs.realpath(full);
+          if (!isContained(realFile)) {
+            continue;
+          }
+          node.mtime = stat.mtimeMs;
+          if (includeContents) {
+            seen.add(node.path);
+            const cached = cachedContents.get(node.path);
+            const text =
+              cached && cached.mtimeMs === stat.mtimeMs && cached.size === stat.size
+                ? cached.text
+                : await fh.readFile('utf8');
+            cachedContents.set(node.path, { mtimeMs: stat.mtimeMs, size: stat.size, text });
+            texts.set(node.path, text);
+          }
+        } finally {
+          await fh.close();
         }
       }
     })
