@@ -14,10 +14,10 @@ const CanvasEdges = memo(function CanvasEdges({
   return (
     <svg className='canvas-edges' width='100%' height='100%' aria-label={t('Canvas connections')}>
       <defs>
-        {edges.map((item, index) => (
+        {edges.map((item) => (
           <marker
             key={item.id}
-            id={`canvas-arrow-${index}`}
+            id={`canvas-arrow-${item.id}`}
             markerWidth='8'
             markerHeight='8'
             refX='7'
@@ -29,7 +29,7 @@ const CanvasEdges = memo(function CanvasEdges({
           </marker>
         ))}
       </defs>
-      {edges.map((item, index) => {
+      {edges.map((item) => {
         const from = nodes.get(item.fromNode),
           to = nodes.get(item.toNode);
         if (!from || !to) {
@@ -83,9 +83,9 @@ const CanvasEdges = memo(function CanvasEdges({
               x2={b.x}
               y2={b.y}
               stroke={nodeColor(item.color)}
-              markerStart={item.fromEnd === 'arrow' ? `url(#canvas-arrow-${index})` : undefined}
+              markerStart={item.fromEnd === 'arrow' ? `url(#canvas-arrow-${item.id})` : undefined}
               markerEnd={
-                (item.toEnd || 'arrow') === 'arrow' ? `url(#canvas-arrow-${index})` : undefined
+                (item.toEnd || 'arrow') === 'arrow' ? `url(#canvas-arrow-${item.id})` : undefined
               }
             />
             {item.label && (
