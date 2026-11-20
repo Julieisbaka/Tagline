@@ -1,7 +1,8 @@
 ﻿import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { folderPaths, normalizeFolders } from './folderPaths.js';
 import { translate } from './i18n.js';
-import { buildIndex, isMarkdown, rewriteLinks } from './vault.js';
+import { buildIndex, isCanvas, isMarkdown, resolveLink, rewriteLinks } from './vault.js';
+import { parseCanvas, serializeCanvas } from './canvas.js';
 import { playUiSound } from './uiSounds.js';
 
 const api = window.api;
@@ -359,7 +360,7 @@ export function useVault(
     [reload, underscoreFolders, normalize]
   );
 
-  // Renames a file or folder and rewrites [[links]] to renamed markdown files.
+  // Renames a file or folder and rewrites [[links]] and Canvas file nodes to renamed paths.
   const rename = useCallback(
     async (from, to) => {
       to = normalize(to, directories.includes(from));
@@ -396,6 +397,36 @@ export function useVault(
             await api.write(
               destination,
               updated,
+              historyRetentionRef.current,
+              canvasHistoryModeRef.current,
+              experimentalHistoryDeltasRef.current
+            );
+          }
+        }
+        for (const p of autoRelink ? paths.filter(isCanvas) : []) {
+          let canvas;
+          try {
+            canvas = parseCanvas(all[p]);
+          } catch {
+            // Leave an unparseable canvas untouched rather than failing the rename.
+            continue;
+          }
+          let changed = false;
+          const nodes = canvas.nodes.map((node) => {
+            if (node.type !== 'file') {
+              return node;
+            }
+            const linked = resolveLink(node.file, paths);
+            if (!linked || !moved.includes(linked)) {
+              return node;
+            }
+            changed = true;
+            return { ...node, file: to + linked.slice(from.length) };
+          });
+          if (changed) {
+            await api.write(
+              moved.includes(p) ? to + p.slice(from.length) : p,
+              serializeCanvas({ ...canvas, nodes }),
               historyRetentionRef.current,
               canvasHistoryModeRef.current,
               experimentalHistoryDeltasRef.current

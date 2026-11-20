@@ -479,7 +479,10 @@ export default function CanvasEditor({
       return;
     }
     const index = items.findIndex((item) => item.id === (selectedNode || selectedEdge));
-    const next = items[(index + direction + items.length) % items.length];
+    const next =
+      index === -1
+        ? items[direction > 0 ? 0 : items.length - 1]
+        : items[(index + direction + items.length) % items.length];
     if (next.type === 'node') {
       selectNode(next.id);
       const target = canvas.nodes.find((item) => item.id === next.id);
