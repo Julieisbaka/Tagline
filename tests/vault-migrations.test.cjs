@@ -90,6 +90,8 @@ test('config writes are atomic, asynchronous and serialized', async (t) => {
     first: true,
     second: true,
   });
+  const configMode = (await fs.stat(path.join(profile, 'config.json'))).mode & 0o777;
+  assert.equal(configMode, 0o600);
   assert.equal(renameAttempts, 3);
 });
 
