@@ -261,7 +261,9 @@ test('MCP evidence scans reject oversized notes, excessive headings and links ou
           return;
         }
         assert.equal((await call('list_cards', { path: 'Outside.md' })).isError, true);
-        assert.equal((await call('audit_evidence', {})).isError, true);
+        const audit = await call('audit_evidence', {});
+        assert.equal(audit.isError, undefined);
+        assert.equal(JSON.parse(audit.content[0].text).cardsScanned, 0);
       } finally {
         await fs.unlink(outside);
       }

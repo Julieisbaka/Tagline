@@ -18,6 +18,14 @@ const FILE_CONCURRENCY = 16;
 async function loadVault(dir, base, includeContents) {
   const tree = [];
   const root = path.resolve(dir);
+  const realRoot = await fs.realpath(root);
+  const isContained = (full) => {
+    const relative = path.relative(realRoot, full);
+    return (
+      relative === '' ||
+      (!relative.startsWith(`..${path.sep}`) && !path.isAbsolute(relative))
+    );
+  };
   let cachedContents;
   if (includeContents) {
     cachedContents = contentsCache.get(root);
@@ -42,10 +50,36 @@ async function loadVault(dir, base, includeContents) {
       }
       const full = path.join(directory.dir, entry.name);
       if (entry.isDirectory()) {
+        if (entry.isSymbolicLink()) {
+          continue;
+        }
+        let realDirectory;
+        try {
+          realDirectory = await fs.realpath(full);
+        } catch {
+          continue;
+        }
+        if (!isContained(realDirectory)) {
+          continue;
+        }
         const children = [];
         directory.nodes.push({ type: 'folder', path: rel, name: entry.name, children });
         directories.push({ dir: full, base: rel, nodes: children });
       } else if (NOTE_EXTS.includes(path.extname(entry.name).toLowerCase())) {
+        if (entry.isSymbolicLink()) {
+          continue;
+        }
+        let lstat;
+        let realFile;
+        try {
+          lstat = await fs.lstat(full);
+          realFile = await fs.realpath(full);
+        } catch {
+          continue;
+        }
+        if (!lstat.isFile() || !isContained(realFile)) {
+          continue;
+        }
         const node = { type: 'file', path: rel, name: entry.name };
         directory.nodes.push(node);
         files.push({ full, node });
@@ -61,6 +95,14 @@ async function loadVault(dir, base, includeContents) {
     Array.from({ length: Math.min(FILE_CONCURRENCY, files.length) }, async () => {
       while (next < files.length) {
         const { full, node } = files[next++];
+        const lstat = await fs.lstat(full);
+        if (!lstat.isFile()) {
+          continue;
+        }
+        const realFile = await fs.realpath(full);
+        if (!isContained(realFile)) {
+          continue;
+        }
         const stat = await fs.stat(full);
         node.mtime = stat.mtimeMs;
         if (includeContents) {
@@ -86,7 +128,10 @@ async function loadVault(dir, base, includeContents) {
       if (node.type === 'folder') {
         collect(node.children);
       } else {
-        contents[node.path] = texts.get(node.path);
+        const text = texts.get(node.path);
+        if (text !== undefined) {
+          contents[node.path] = text;
+        }
       }
     }
   };

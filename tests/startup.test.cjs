@@ -158,6 +158,23 @@ test('vault lists JSON files and includes their contents in snapshots', async (t
   assert.equal(snapshot.contents['Tournament.JSON'], content);
 });
 
+test('vault snapshots exclude symbolic links and files outside the vault', async (t) => {
+  const dir = await fixture(t);
+  const outside = await fs.mkdtemp(path.join(os.tmpdir(), 'tagline-outside-vault-'));
+  t.after(() => fs.rm(outside, { recursive: true, force: true }));
+  await fs.writeFile(path.join(outside, 'secret.md'), 'OUTSIDE SECRET');
+  await fs.writeFile(path.join(dir, 'Safe.md'), 'SAFE');
+  await fs.symlink(path.join(outside, 'secret.md'), path.join(dir, 'Leak.md'));
+  await fs.symlink(outside, path.join(dir, 'Linked folder'));
+
+  const snapshot = await readVaultSnapshot(dir);
+  assert.deepEqual(snapshot.contents, { 'Safe.md': 'SAFE' });
+  assert.deepEqual(
+    snapshot.tree.map((node) => node.name),
+    ['Safe.md']
+  );
+});
+
 test('platform: snapshot propagates filesystem errors instead of returning a partial vault', async (t) => {
   const dir = await fixture(t);
   await assert.rejects(readVaultSnapshot(path.join(dir, 'missing')), { code: 'ENOENT' });
