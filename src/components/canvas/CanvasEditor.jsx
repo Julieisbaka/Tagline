@@ -256,6 +256,16 @@ export default function CanvasEditor({
     },
     [canvas, update]
   );
+  const removeEdge = useCallback(
+    (id) => {
+      update({
+        ...canvas,
+        edges: canvas.edges.filter((item) => item.id !== id),
+      });
+      setSelectedEdge(null);
+    },
+    [canvas, update]
+  );
   const addNode = useCallback(
     (type, position, wrapped = node) => {
       const nextNode = createCanvasNode(type, canvas.nodes.length);
@@ -295,6 +305,7 @@ export default function CanvasEditor({
           update,
           addNode,
           removeNode,
+          removeEdge,
           onEditSource,
           t,
           setConnectionStart,
@@ -318,6 +329,7 @@ export default function CanvasEditor({
       update,
       addNode,
       removeNode,
+      removeEdge,
       onEditSource,
       t,
     ]
@@ -522,8 +534,7 @@ export default function CanvasEditor({
       if (selectedNode) {
         removeNode(selectedNode);
       } else if (selectedEdge) {
-        update({ ...canvas, edges: canvas.edges.filter((item) => item.id !== selectedEdge) });
-        setSelectedEdge(null);
+        removeEdge(selectedEdge);
       }
     },
   };
@@ -545,6 +556,7 @@ export default function CanvasEditor({
         connect={connect}
         selectedNode={selectedNode}
         removeNode={removeNode}
+        removeEdge={removeEdge}
         edge={edge}
         update={update}
         canvas={canvas}

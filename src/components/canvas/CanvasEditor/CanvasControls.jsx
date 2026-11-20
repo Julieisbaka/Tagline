@@ -6,10 +6,10 @@ export default function CanvasControls({
   connect,
   selectedNode,
   removeNode,
+  removeEdge,
   edge,
   update,
   canvas,
-  setSelectedEdge,
   relationType,
   setRelationType,
   zoom,
@@ -36,14 +36,7 @@ export default function CanvasControls({
           <button onClick={() => removeNode(selectedNode)}>{t('Delete node')}</button>
         )}
         {edge && (
-          <button
-            onClick={() => {
-              update({ ...canvas, edges: canvas.edges.filter((item) => item.id !== edge.id) });
-              setSelectedEdge(null);
-            }}
-          >
-            {t('Delete connection')}
-          </button>
+          <button onClick={() => removeEdge(edge.id)}>{t('Delete connection')}</button>
         )}
         <label className='canvas-mode-control'>
           {t('Relation')}

@@ -12,6 +12,7 @@ export default function openCanvasContextMenu(
     update,
     addNode,
     removeNode,
+    removeEdge,
     onEditSource,
     t,
     setConnectionStart,
@@ -125,13 +126,7 @@ export default function openCanvasContextMenu(
             label: t('Delete connection'),
             command: 'canvas-delete',
             danger: true,
-            run: () => {
-              update({
-                ...canvas,
-                edges: canvas.edges.filter((item) => item.id !== targetEdge.id),
-              });
-              setSelectedEdge(null);
-            },
+            run: () => removeEdge(targetEdge.id),
           },
         ]
       : ['text', 'file', 'link', 'group'].map((type) => ({
