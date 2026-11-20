@@ -527,6 +527,22 @@ test('invalid recovery paths are refused', async (t) => {
   await assert.rejects(recoverMigration(root), /Invalid migration recovery record/);
 });
 
+test('journal backup paths outside the vault sibling directory are refused', async (t) => {
+  const { root, parent } = await fixture(t);
+  await seed(root);
+  const outside = path.join(parent, 'Private');
+  await fs.mkdir(outside);
+  await fs.writeFile(path.join(outside, 'secret'), 'untouched');
+  await fs.writeFile(
+    journalPath(root),
+    JSON.stringify({ id: randomUUID(), backup: outside })
+  );
+  await fs.rm(root, { recursive: true });
+  await assert.rejects(recoverMigration(root), /Invalid migration recovery record/);
+  assert.equal(await fs.readFile(path.join(outside, 'secret'), 'utf8'), 'untouched');
+  await assert.rejects(fs.stat(root), { code: 'ENOENT' });
+});
+
 test('overlapping opens cannot launch two migrations', async (t) => {
   const { root } = await fixture(t);
   await seed(root);

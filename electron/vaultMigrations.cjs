@@ -135,6 +135,27 @@ async function writeManifest(root, manifest) {
 function backupPath(root, id, attempt = 0) {
   return attempt ? `${root}.tagline-backup-${id}-${attempt}` : `${root}.tagline-backup-${id}`;
 }
+
+function isMigrationBackupPath(root, id, backup) {
+  if (typeof backup !== 'string') {
+    return false;
+  }
+  const resolvedRoot = path.resolve(root);
+  const resolvedBackup = path.resolve(backup);
+  if (path.dirname(resolvedBackup) !== path.dirname(resolvedRoot)) {
+    return false;
+  }
+  const prefix = `${path.basename(resolvedRoot)}.tagline-backup-${id}`;
+  const name = path.basename(resolvedBackup);
+  if (name === prefix) {
+    return true;
+  }
+  if (!name.startsWith(`${prefix}-`)) {
+    return false;
+  }
+  return /^\d+$/.test(name.slice(prefix.length + 1));
+}
+
 function stagePath(root, id, attempt = 0) {
   return attempt ? `${root}.tagline-stage-${id}-${attempt}` : `${root}.tagline-stage-${id}`;
 }
@@ -253,10 +274,14 @@ async function recoverMigration(root) {
     if (typeof id !== 'string' || !/^[a-f0-9-]{36}$/.test(id)) {
       throw new Error(`Invalid migration recovery record: ${journal}`);
     }
-    backup =
-      typeof recordedBackup === 'string' && recordedBackup
-        ? recordedBackup
-        : `${root}.tagline-backup-${id}`;
+    if (recordedBackup !== undefined) {
+      if (!isMigrationBackupPath(root, id, recordedBackup)) {
+        throw new Error(`Invalid migration recovery record: ${journal}`);
+      }
+      backup = path.resolve(recordedBackup);
+    } else {
+      backup = `${root}.tagline-backup-${id}`;
+    }
   }
   if (!(await exists(root))) {
     if (!backup || !(await exists(backup))) {
