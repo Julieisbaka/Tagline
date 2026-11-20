@@ -375,6 +375,7 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
         });
         await wait("document.querySelector('.note-title')?.value === 'Warm'");
         await exit;
+        await wait("!!document.querySelector('.flow-grid textarea')");
         await js("document.querySelector('.flow-grid textarea').focus()");
         await key('Enter', [primary, 'shift']);
         await wait("document.querySelectorAll('.flow-grid tbody tr').length === 2");
