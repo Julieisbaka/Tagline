@@ -107,6 +107,8 @@ jobs:
         with:
           name: renderer-dist
           path: dist
+      - name: Install Electron binary
+        run: npx --no install-electron
       - name: Configure Electron sandbox
         run: |
           sudo chown root:root node_modules/electron/dist/chrome-sandbox
