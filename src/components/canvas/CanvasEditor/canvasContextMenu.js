@@ -44,7 +44,7 @@ export default function openCanvasContextMenu(
         ...(targetNode.type === 'file'
           ? [
               {
-                label: 'Open file',
+                label: t('Open file'),
                 disabled: !resolveLink(targetNode.file, paths),
                 run: () => onOpenFile(resolveLink(targetNode.file, paths), targetNode.subpath),
               },
@@ -53,7 +53,7 @@ export default function openCanvasContextMenu(
         ...(targetNode.type === 'link'
           ? [
               {
-                label: 'Open link',
+                label: t('Open link'),
                 disabled: !resolveCanvasLink(targetNode.url, paths, path),
                 run: () => {
                   const link = resolveCanvasLink(targetNode.url, paths, path);
@@ -69,7 +69,7 @@ export default function openCanvasContextMenu(
         ...(targetNode.type !== 'group'
           ? [
               {
-                label: 'Duplicate node',
+                label: t('Duplicate node'),
                 run: () => {
                   const copy = {
                     ...targetNode,
@@ -81,11 +81,11 @@ export default function openCanvasContextMenu(
                   setSelectedNode(copy.id);
                 },
               },
-              { label: 'Group node', run: () => addNode('group', undefined, targetNode) },
+              { label: t('Group node'), run: () => addNode('group', undefined, targetNode) },
             ]
           : []),
         {
-          label: 'Connect nodes',
+          label: t('Connect nodes'),
           command: 'canvas-connect',
           run: () => {
             setConnectionStart(targetNode.id);
@@ -93,7 +93,7 @@ export default function openCanvasContextMenu(
           },
         },
         {
-          label: 'Delete node',
+          label: t('Delete node'),
           command: 'canvas-delete',
           danger: true,
           run: () => removeNode(targetNode.id),
@@ -102,7 +102,7 @@ export default function openCanvasContextMenu(
     : targetEdge
       ? [
           {
-            label: 'Reverse connection',
+            label: t('Reverse connection'),
             run: () =>
               update({
                 ...canvas,
@@ -122,7 +122,7 @@ export default function openCanvasContextMenu(
               }),
           },
           {
-            label: 'Delete connection',
+            label: t('Delete connection'),
             command: 'canvas-delete',
             danger: true,
             run: () => {
@@ -146,7 +146,7 @@ export default function openCanvasContextMenu(
     y: event.clientY,
     items: [
       ...items,
-      { label: 'Open JSON source', run: onEditSource },
+      { label: t('Open JSON source'), run: onEditSource },
       ...(contributed.length ? [{ separator: true }, ...contributed] : []),
     ],
   });

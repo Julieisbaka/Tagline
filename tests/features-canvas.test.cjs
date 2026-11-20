@@ -113,6 +113,16 @@ test('JSON Canvas validates spec fields and round-trips unknown properties', asy
           url: 'https://example.com',
           color: '6',
         },
+        {
+          id: 'c',
+          type: 'file',
+          x: 640,
+          y: 5,
+          width: 280,
+          height: 180,
+          file: 'Note.md',
+          subpath: '',
+        },
       ],
       edges: [
         {
@@ -130,12 +140,14 @@ test('JSON Canvas validates spec fields and round-trips unknown properties', asy
   const serialized = serializeCanvas(canvas);
   assert.equal(parseCanvas(serialized).nodes[0].pluginData.keep, true);
   assert.equal(parseCanvas(serialized).edges[0].label, 'supports');
+  assert.equal('subpath' in parseCanvas(serialized).nodes[2], false);
   assert.deepEqual(parseCanvas(EMPTY_CANVAS), { nodes: [], edges: [] });
   assert.equal(createCanvasNode('group', 0, 'group').type, 'group');
   for (const invalid of [
     '{"nodes":[{"id":"x","type":"text","x":0,"y":0,"width":0,"height":10,"text":""}]}',
     '{"nodes":[{"id":"x","type":"file","x":0,"y":0,"width":10,"height":10,"file":""}],"edges":[{"id":"e","fromNode":"x","toNode":"missing"}]}',
     '{"nodes":[{"id":"x","type":"other","x":0,"y":0,"width":10,"height":10}]}',
+    '{"nodes":[{"id":"x","type":"file","x":0,"y":0,"width":10,"height":10,"file":"Note.md","subpath":"bad"}]}',
   ]) {
     assert.throws(() => parseCanvas(invalid));
   }

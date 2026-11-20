@@ -7,7 +7,10 @@ export const EMPTY_CANVAS = `${JSON.stringify({ nodes: [], edges: [] }, null, 2)
 
 /** Generate a fresh node or edge identifier. @returns {string} */
 export function createCanvasId() {
-  return globalThis.crypto?.randomUUID?.() || `canvas-${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`;
+  return (
+    globalThis.crypto?.randomUUID?.() ||
+    `canvas-${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`
+  );
 }
 
 function isRecord(value) {
@@ -15,11 +18,15 @@ function isRecord(value) {
 }
 
 function requireString(value, label) {
-  if (typeof value !== 'string') {throw new Error(`${label} must be a string.`);}
+  if (typeof value !== 'string') {
+    throw new Error(`${label} must be a string.`);
+  }
 }
 
 function validateColor(value, label) {
-  if (value === undefined) {return;}
+  if (value === undefined) {
+    return;
+  }
   requireString(value, label);
   if (!/^(?:[1-6]|#[\da-f]{3,4}|#[\da-f]{6}|#[\da-f]{8})$/i.test(value)) {
     throw new Error(`${label} must be a preset color (1–6) or a hex color.`);
@@ -28,41 +35,72 @@ function validateColor(value, label) {
 
 /** Validate a Canvas object while retaining unknown fields. @returns {object} */
 function validateCanvasObject(canvas) {
-  if (!isRecord(canvas)) {throw new Error('Canvas JSON must be an object.');}
+  if (!isRecord(canvas)) {
+    throw new Error('Canvas JSON must be an object.');
+  }
   const nodes = canvas.nodes === undefined ? [] : canvas.nodes;
   const edges = canvas.edges === undefined ? [] : canvas.edges;
   if (!Array.isArray(nodes) || !Array.isArray(edges)) {
     throw new Error('Canvas nodes and edges must be arrays.');
   }
+  // An empty subpath means "no subpath"; drop it instead of rejecting the file node.
+  const normalizedNodes = nodes.map((node) =>
+    isRecord(node) && node.type === 'file' && node.subpath === ''
+      ? Object.fromEntries(Object.entries(node).filter(([key]) => key !== 'subpath'))
+      : node
+  );
 
   const ids = new Set();
   const nodeIds = new Set();
-  for (const [index, node] of nodes.entries()) {
+  for (const [index, node] of normalizedNodes.entries()) {
     const label = `Node ${index + 1}`;
-    if (!isRecord(node)) {throw new Error(`${label} must be an object.`);}
+    if (!isRecord(node)) {
+      throw new Error(`${label} must be an object.`);
+    }
     requireString(node.id, `${label} id`);
-    if (!node.id.trim() || ids.has(node.id)) {throw new Error(`${label} id must be unique and non-empty.`);}
+    if (!node.id.trim() || ids.has(node.id)) {
+      throw new Error(`${label} id must be unique and non-empty.`);
+    }
     ids.add(node.id);
     nodeIds.add(node.id);
-    if (!NODE_TYPES.has(node.type)) {throw new Error(`${label} has an unsupported type.`);}
-    for (const key of ['x', 'y', 'width', 'height']) {
-      if (!Number.isSafeInteger(node[key])) {throw new Error(`${label} ${key} must be an integer.`);}
+    if (!NODE_TYPES.has(node.type)) {
+      throw new Error(`${label} has an unsupported type.`);
     }
-    if (node.width <= 0 || node.height <= 0) {throw new Error(`${label} dimensions must be positive.`);}
+    for (const key of ['x', 'y', 'width', 'height']) {
+      if (!Number.isSafeInteger(node[key])) {
+        throw new Error(`${label} ${key} must be an integer.`);
+      }
+    }
+    if (node.width <= 0 || node.height <= 0) {
+      throw new Error(`${label} dimensions must be positive.`);
+    }
     validateColor(node.color, `${label} color`);
-    if (node.type === 'text') {requireString(node.text, `${label} text`);}
+    if (node.type === 'text') {
+      requireString(node.text, `${label} text`);
+    }
     if (node.type === 'file') {
       requireString(node.file, `${label} file`);
-      if (node.subpath !== undefined && (typeof node.subpath !== 'string' || !node.subpath.startsWith('#'))) {
+      if (
+        node.subpath !== undefined &&
+        (typeof node.subpath !== 'string' || !node.subpath.startsWith('#'))
+      ) {
         throw new Error(`${label} subpath must start with #.`);
       }
     }
-    if (node.type === 'link') {requireString(node.url, `${label} url`);}
+    if (node.type === 'link') {
+      requireString(node.url, `${label} url`);
+    }
     if (node.type === 'group') {
-      if (node.label !== undefined) {requireString(node.label, `${label} label`);}
-      if (node.background !== undefined) {requireString(node.background, `${label} background`);}
-      if (node.backgroundStyle !== undefined &&
-        (typeof node.backgroundStyle !== 'string' || !BACKGROUND_STYLES.has(node.backgroundStyle))) {
+      if (node.label !== undefined) {
+        requireString(node.label, `${label} label`);
+      }
+      if (node.background !== undefined) {
+        requireString(node.background, `${label} background`);
+      }
+      if (
+        node.backgroundStyle !== undefined &&
+        (typeof node.backgroundStyle !== 'string' || !BACKGROUND_STYLES.has(node.backgroundStyle))
+      ) {
         throw new Error(`${label} backgroundStyle is invalid.`);
       }
     }
@@ -70,9 +108,13 @@ function validateCanvasObject(canvas) {
 
   for (const [index, edge] of edges.entries()) {
     const label = `Edge ${index + 1}`;
-    if (!isRecord(edge)) {throw new Error(`${label} must be an object.`);}
+    if (!isRecord(edge)) {
+      throw new Error(`${label} must be an object.`);
+    }
     requireString(edge.id, `${label} id`);
-    if (!edge.id.trim() || ids.has(edge.id)) {throw new Error(`${label} id must be unique and non-empty.`);}
+    if (!edge.id.trim() || ids.has(edge.id)) {
+      throw new Error(`${label} id must be unique and non-empty.`);
+    }
     ids.add(edge.id);
     requireString(edge.fromNode, `${label} fromNode`);
     requireString(edge.toNode, `${label} toNode`);
@@ -93,14 +135,18 @@ function validateCanvasObject(canvas) {
       }
     }
     validateColor(edge.color, `${label} color`);
-    if (edge.label !== undefined) {requireString(edge.label, `${label} label`);}
+    if (edge.label !== undefined) {
+      requireString(edge.label, `${label} label`);
+    }
   }
-  return { ...canvas, nodes, edges };
+  return { ...canvas, nodes: normalizedNodes, edges };
 }
 
 /** Parse and validate JSON Canvas 1.0 text while retaining unknown fields. @returns {object} */
 export function parseCanvas(content) {
-  if (typeof content !== 'string') {throw new Error('Canvas content must be JSON text.');}
+  if (typeof content !== 'string') {
+    throw new Error('Canvas content must be JSON text.');
+  }
   let canvas;
   try {
     canvas = JSON.parse(content);
@@ -117,7 +163,9 @@ export function serializeCanvas(canvas) {
 
 /** Create a text/file/link/group node at a default grid position. @returns {object} */
 export function createCanvasNode(type, index, id = createCanvasId()) {
-  if (!NODE_TYPES.has(type)) {throw new Error(`Unsupported Canvas node type: ${type}`);}
+  if (!NODE_TYPES.has(type)) {
+    throw new Error(`Unsupported Canvas node type: ${type}`);
+  }
   const node = {
     id,
     type,
@@ -126,10 +174,18 @@ export function createCanvasNode(type, index, id = createCanvasId()) {
     width: type === 'group' ? 360 : 280,
     height: type === 'group' ? 240 : 180,
   };
-  if (type === 'text') {node.text = '';}
-  if (type === 'file') {node.file = '';}
-  if (type === 'link') {node.url = '';}
-  if (type === 'group') {node.label = 'Group';}
+  if (type === 'text') {
+    node.text = '';
+  }
+  if (type === 'file') {
+    node.file = '';
+  }
+  if (type === 'link') {
+    node.url = '';
+  }
+  if (type === 'group') {
+    node.label = 'Group';
+  }
   return node;
 }
 
@@ -140,7 +196,9 @@ export function createArgumentEdge(fromNode, toNode, relation, id = createCanvas
     answers: { label: 'Answers', color: '2' },
     contradicts: { label: 'Contradicts', color: '1' },
   };
-  if (!Object.hasOwn(relations, relation)) {throw new Error(`Unsupported argument relation: ${relation}`);}
+  if (!Object.hasOwn(relations, relation)) {
+    throw new Error(`Unsupported argument relation: ${relation}`);
+  }
   const details = relations[relation];
   return {
     id,
@@ -156,19 +214,29 @@ export function createArgumentEdge(fromNode, toNode, relation, id = createCanvas
 /** Return IDs of nodes fully contained in the specified group's bounds. @returns {string[]} */
 export function canvasGroupMembers(nodes, groupId) {
   const group = nodes.find((node) => node.id === groupId && node.type === 'group');
-  if (!group) {return [];}
-  return nodes.filter((node) => node.id !== groupId &&
-    node.x >= group.x && node.y >= group.y &&
-    node.x + node.width <= group.x + group.width &&
-    node.y + node.height <= group.y + group.height).map((node) => node.id);
+  if (!group) {
+    return [];
+  }
+  return nodes
+    .filter(
+      (node) =>
+        node.id !== groupId &&
+        node.x >= group.x &&
+        node.y >= group.y &&
+        node.x + node.width <= group.x + group.width &&
+        node.y + node.height <= group.y + group.height
+    )
+    .map((node) => node.id);
 }
 
 /** Return new Canvas data translating only the listed nodes; does not mutate input. @returns {object} */
 export function moveCanvasNodes(canvas, ids, dx, dy) {
   const moving = new Set(ids);
   return {
-    ...canvas, nodes: canvas.nodes.map((node) => moving.has(node.id)
-      ? { ...node, x: node.x + dx, y: node.y + dy } : node)
+    ...canvas,
+    nodes: canvas.nodes.map((node) =>
+      moving.has(node.id) ? { ...node, x: node.x + dx, y: node.y + dy } : node
+    ),
   };
 }
 
@@ -178,14 +246,20 @@ export function canvasVisibleNodes(nodes, view, padding = 0) {
   const top = view.top - padding;
   const right = view.right + padding;
   const bottom = view.bottom + padding;
-  return nodes.filter((node) =>
-    node.x <= right && node.x + node.width >= left &&
-    node.y <= bottom && node.y + node.height >= top);
+  return nodes.filter(
+    (node) =>
+      node.x <= right &&
+      node.x + node.width >= left &&
+      node.y <= bottom &&
+      node.y + node.height >= top
+  );
 }
 
 /** Return link/file nodes whose target the resolver cannot resolve. @returns {{id:string,type:string,value:string}[]} */
 export function canvasInvalidLinks(canvas, resolve) {
-  if (typeof resolve !== 'function') {throw new Error('Link resolver must be a function.');}
+  if (typeof resolve !== 'function') {
+    throw new Error('Link resolver must be a function.');
+  }
   const issues = [];
   for (const node of canvas.nodes) {
     const value = node.type === 'link' ? node.url : node.type === 'file' ? node.file : null;
@@ -199,9 +273,12 @@ export function canvasInvalidLinks(canvas, resolve) {
 /** Match filenames case-insensitively, prefix-first, bounded by limit. @returns {string[]} */
 export function suggestCanvasFiles(paths, query, limit = 20) {
   const text = query.trim().toLocaleLowerCase();
-  return paths.filter((path) => path.split(/[\\/]/).at(-1).toLocaleLowerCase().includes(text))
+  return paths
+    .filter((path) => path.split(/[\\/]/).at(-1).toLocaleLowerCase().includes(text))
     .sort((a, b) => {
-      const rank = (path) => path.split(/[\\/]/).at(-1).toLocaleLowerCase().startsWith(text) ? 0 : 1;
+      const rank = (path) =>
+        path.split(/[\\/]/).at(-1).toLocaleLowerCase().startsWith(text) ? 0 : 1;
       return rank(a) - rank(b) || a.localeCompare(b);
-    }).slice(0, limit);
+    })
+    .slice(0, limit);
 }

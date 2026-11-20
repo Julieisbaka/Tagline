@@ -158,7 +158,9 @@ const CanvasNode = memo(function CanvasNode({
               <input
                 aria-label={t('File subpath')}
                 value={node.subpath}
-                onChange={(event) => onUpdate(node.id, { subpath: event.target.value })}
+                onChange={(event) =>
+                  onUpdate(node.id, { subpath: event.target.value || undefined })
+                }
               />
             )}
             <button
