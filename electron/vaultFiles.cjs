@@ -23,7 +23,9 @@ async function loadVault(dir, base, includeContents) {
     const relative = path.relative(realRoot, full);
     return (
       relative === '' ||
-      (!relative.startsWith(`..${path.sep}`) && !path.isAbsolute(relative))
+      (relative !== '..' &&
+        !relative.startsWith(`..${path.sep}`) &&
+        !path.isAbsolute(relative))
     );
   };
   let cachedContents;
