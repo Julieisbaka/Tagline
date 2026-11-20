@@ -560,7 +560,6 @@ export default function CanvasEditor({
         edge={edge}
         update={update}
         canvas={canvas}
-        setSelectedEdge={setSelectedEdge}
         relationType={relationType}
         setRelationType={setRelationType}
         zoom={zoom}
