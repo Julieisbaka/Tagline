@@ -373,8 +373,15 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
         const rowCount = await js("document.querySelectorAll('.flow-grid tbody tr').length");
         await click('[role=menuitem]', 'Insert row above');
         await wait(`document.querySelectorAll('.flow-grid tbody tr').length === ${rowCount + 1}`);
+        await js(
+          `document.querySelector('.flow-sheet-tab').dispatchEvent(new MouseEvent('contextmenu', { bubbles: true }))`
+        );
+        await wait(
+          "!![...document.querySelectorAll('[role=menuitem]')].find(item => item.textContent.trim() === 'Rename sheet')"
+        );
         wc.sendInputEvent({ type: 'keyDown', keyCode: 'Escape' });
         await wait("!document.querySelector('[role=menu]')");
+        wc.sendInputEvent({ type: 'keyUp', keyCode: 'Escape' });
         await js(
           `document.querySelector('.flow-sheet-tab').dispatchEvent(new MouseEvent('contextmenu', { bubbles: true }))`
         );
