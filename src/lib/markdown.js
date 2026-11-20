@@ -158,7 +158,7 @@ export function renderMarkdown(src, resolve) {
   const html = parser.parse(splitFrontmatter(src || '').body);
   return DOMPurify.sanitize(html, {
     USE_PROFILES: { html: true },
-    FORBID_TAGS: ['style', 'form', 'input', 'button', 'textarea', 'select'],
+    FORBID_TAGS: ['style', 'form', 'input', 'button', 'textarea', 'select', 'img'],
     FORBID_ATTR: ['style', 'srcset'],
     ADD_ATTR: ['target'],
   });
