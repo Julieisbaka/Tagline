@@ -461,8 +461,12 @@ export default function CanvasEditor({
   };
   const fit = () => {
     const viewport = viewportRef.current;
+    if (!viewport) {
+      return;
+    }
     if (!canvas.nodes.length) {
-      return setCamera({ x: viewport.clientWidth / 2, y: viewport.clientHeight / 2, k: 1 });
+      setCamera({ x: viewport.clientWidth / 2, y: viewport.clientHeight / 2, k: 1 });
+      return;
     }
     const left = Math.min(...canvas.nodes.map((item) => item.x));
     const top = Math.min(...canvas.nodes.map((item) => item.y));

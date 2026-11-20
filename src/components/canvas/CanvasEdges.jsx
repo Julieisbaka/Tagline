@@ -11,10 +11,30 @@ const CanvasEdges = memo(function CanvasEdges({
   onContextMenu,
 }) {
   const { t } = useI18n();
+  const renderableEdges = edges.flatMap((item) => {
+    const from = nodes.get(item.fromNode);
+    const to = nodes.get(item.toNode);
+    if (!from || !to) {
+      return [];
+    }
+    const a = sidePoint(from, item.fromSide || 'right');
+    const b = sidePoint(to, item.toSide || 'left');
+    if (
+      view &&
+      (Math.max(a.x, b.x) < view.left ||
+        Math.min(a.x, b.x) > view.right ||
+        Math.max(a.y, b.y) < view.top ||
+        Math.min(a.y, b.y) > view.bottom)
+    ) {
+      return [];
+    }
+    return [{ item, a, b }];
+  });
+
   return (
     <svg className='canvas-edges' width='100%' height='100%' aria-label={t('Canvas connections')}>
       <defs>
-        {edges.map((item) => (
+        {renderableEdges.map(({ item }) => (
           <marker
             key={item.id}
             id={`canvas-arrow-${item.id}`}
@@ -29,73 +49,55 @@ const CanvasEdges = memo(function CanvasEdges({
           </marker>
         ))}
       </defs>
-      {edges.map((item) => {
-        const from = nodes.get(item.fromNode),
-          to = nodes.get(item.toNode);
-        if (!from || !to) {
-          return null;
-        }
-        const a = sidePoint(from, item.fromSide || 'right');
-        const b = sidePoint(to, item.toSide || 'left');
-        if (
-          view &&
-          (Math.max(a.x, b.x) < view.left ||
-            Math.min(a.x, b.x) > view.right ||
-            Math.max(a.y, b.y) < view.top ||
-            Math.min(a.y, b.y) > view.bottom)
-        ) {
-          return null;
-        }
-        return (
-          <g
-            key={item.id}
-            data-edge-id={item.id}
-            className={item.id === selectedEdge ? 'selected' : ''}
-            tabIndex={0}
-            role='button'
-            aria-label={item.label || t('Canvas connection')}
-            onKeyDown={(event) => {
-              if (event.key === 'Enter' || event.key === ' ') {
-                event.preventDefault();
-                onSelect(item.id);
-                return;
-              }
-              if (event.key === 'ContextMenu' || (event.key === 'F10' && event.shiftKey)) {
-                event.preventDefault();
-                const rect = event.currentTarget.getBoundingClientRect();
-                onContextMenu(
-                  { clientX: rect.left + rect.width / 2, clientY: rect.top + rect.height / 2 },
-                  null,
-                  item.id
-                );
-              }
-            }}
-            onClick={(event) => {
-              event.stopPropagation();
+      {renderableEdges.map(({ item, a, b }) => (
+        <g
+          key={item.id}
+          data-edge-id={item.id}
+          className={item.id === selectedEdge ? 'selected' : ''}
+          tabIndex={0}
+          role='button'
+          aria-label={item.label || t('Canvas connection')}
+          onKeyDown={(event) => {
+            if (event.key === 'Enter' || event.key === ' ') {
+              event.preventDefault();
               onSelect(item.id);
-            }}
-          >
-            <line className='canvas-edge-hit' x1={a.x} y1={a.y} x2={b.x} y2={b.y} />
-            <line
-              className='canvas-edge-line'
-              x1={a.x}
-              y1={a.y}
-              x2={b.x}
-              y2={b.y}
-              stroke={nodeColor(item.color)}
-              markerStart={item.fromEnd === 'arrow' ? `url(#canvas-arrow-${item.id})` : undefined}
-              markerEnd={
-                (item.toEnd || 'arrow') === 'arrow' ? `url(#canvas-arrow-${item.id})` : undefined
-              }
-            />
-            {item.label && (
-              <text className='canvas-edge-label' x={(a.x + b.x) / 2} y={(a.y + b.y) / 2 - 6}>
-                {item.label}
-              </text>
-            )}
-          </g>
-        );
-      })}
+              return;
+            }
+            if (event.key === 'ContextMenu' || (event.key === 'F10' && event.shiftKey)) {
+              event.preventDefault();
+              const rect = event.currentTarget.getBoundingClientRect();
+              onContextMenu(
+                { clientX: rect.left + rect.width / 2, clientY: rect.top + rect.height / 2 },
+                null,
+                item.id
+              );
+            }
+          }}
+          onClick={(event) => {
+            event.stopPropagation();
+            onSelect(item.id);
+          }}
+        >
+          <line className='canvas-edge-hit' x1={a.x} y1={a.y} x2={b.x} y2={b.y} />
+          <line
+            className='canvas-edge-line'
+            x1={a.x}
+            y1={a.y}
+            x2={b.x}
+            y2={b.y}
+            stroke={nodeColor(item.color)}
+            markerStart={item.fromEnd === 'arrow' ? `url(#canvas-arrow-${item.id})` : undefined}
+            markerEnd={
+              (item.toEnd || 'arrow') === 'arrow' ? `url(#canvas-arrow-${item.id})` : undefined
+            }
+          />
+          {item.label && (
+            <text className='canvas-edge-label' x={(a.x + b.x) / 2} y={(a.y + b.y) / 2 - 6}>
+              {item.label}
+            </text>
+          )}
+        </g>
+      ))}
     </svg>
   );
 });
