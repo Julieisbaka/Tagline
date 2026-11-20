@@ -15,10 +15,10 @@ export const validBinding = (key) =>
   );
 /** Return whether a shortcut is reserved for an editor or platform command. @param {string} key @returns {boolean} */
 export function reservedBinding(key, id = '') {
-  if (id === 'flow-undo' && key === 'Mod+Z') {
+  if (['flow-undo', 'canvas-undo'].includes(id) && key === 'Mod+Z') {
     return false;
   }
-  if (id === 'flow-redo' && ['Mod+Shift+Z', 'Mod+Y'].includes(key)) {
+  if (['flow-redo', 'canvas-redo'].includes(id) && ['Mod+Shift+Z', 'Mod+Y'].includes(key)) {
     return false;
   }
   return [

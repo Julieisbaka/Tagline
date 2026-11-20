@@ -1,11 +1,51 @@
-import { memo, useCallback, useId, useState } from 'react';
+import { memo, useCallback, useEffect, useId, useRef, useState } from 'react';
 import { resolveCanvasLink, suggestCanvasFiles } from '../../lib/canvas.js';
 import { useI18n } from '../../lib/i18n.js';
+import { registerPendingFlush } from '../../lib/pendingEdits.js';
 import { resolveLink } from '../../lib/vault.js';
 import CanvasFilePreview from '../CanvasFilePreview.jsx';
 import Icon from '../Icon.jsx';
 import Preview from '../Preview.jsx';
 import { nodeColor } from './canvasUtils.js';
+
+/**
+ * Text area that keeps a local draft and commits on blur/unmount. This avoids
+ * revalidating and serializing the whole canvas on every keystroke while still
+ * persisting the draft when the editor is closed or the app is quitting.
+ */
+function DraftTextarea({ value, onCommit, ...props }) {
+  const [draft, setDraft] = useState(value);
+  const draftRef = useRef(draft);
+  const valueRef = useRef(value);
+  draftRef.current = draft;
+  valueRef.current = value;
+  const dirty = draft !== value;
+  const commit = useCallback(() => {
+    if (draftRef.current !== valueRef.current) {
+      onCommit(draftRef.current);
+    }
+  }, [onCommit]);
+  const commitRef = useRef(commit);
+  commitRef.current = commit;
+  useEffect(() => {
+    setDraft(value);
+  }, [value]);
+  useEffect(() => () => commitRef.current(), []);
+  useEffect(() => {
+    if (!dirty) {
+      return undefined;
+    }
+    return registerPendingFlush(() => commitRef.current());
+  }, [dirty]);
+  return (
+    <textarea
+      {...props}
+      value={draft}
+      onChange={(event) => setDraft(event.target.value)}
+      onBlur={commit}
+    />
+  );
+}
 
 const CanvasNode = memo(function CanvasNode({
   node,
@@ -126,10 +166,10 @@ const CanvasNode = memo(function CanvasNode({
       <div className='canvas-node-content'>
         {node.type === 'text' &&
           (editingText ? (
-            <textarea
+            <DraftTextarea
               aria-label={t('Canvas text')}
               value={node.text}
-              onChange={(event) => onUpdate(node.id, { text: event.target.value })}
+              onCommit={(text) => onUpdate(node.id, { text })}
             />
           ) : (
             <Preview

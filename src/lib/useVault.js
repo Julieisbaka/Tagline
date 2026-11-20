@@ -3,6 +3,7 @@ import { folderPaths, normalizeFolders } from './folderPaths.js';
 import { translate } from './i18n.js';
 import { buildIndex, isCanvas, isMarkdown, resolveLink, rewriteLinks } from './vault.js';
 import { parseCanvas, serializeCanvas } from './canvas.js';
+import { flushPendingEdits } from './pendingEdits.js';
 import { playUiSound } from './uiSounds.js';
 
 const api = window.api;
@@ -229,6 +230,9 @@ export function useVault(
   }, [open]);
 
   const flush = useCallback(async () => {
+    // Commit in-editor drafts before capturing pending writes, so saving,
+    // history and close all persist the same content the user sees.
+    flushPendingEdits();
     const inflight = Promise.allSettled([...writes.current.values()].map((entry) => entry.task));
     const entries = Object.entries(pending.current);
     pending.current = {};

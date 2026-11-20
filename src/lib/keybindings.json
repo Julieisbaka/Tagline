@@ -422,6 +422,18 @@
     "key": ""
   },
   {
+    "id": "canvas-undo",
+    "label": "Canvas: undo edit",
+    "scope": "canvas",
+    "key": "Mod+Z"
+  },
+  {
+    "id": "canvas-redo",
+    "label": "Canvas: redo edit",
+    "scope": "canvas",
+    "key": "Mod+Shift+Z"
+  },
+  {
     "id": "flow-add-column",
     "label": "Add column",
     "scope": "flow",

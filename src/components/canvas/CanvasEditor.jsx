@@ -34,6 +34,12 @@ export default function CanvasEditor({
   const gestureFrame = useRef(0);
   const viewportRef = useRef(null);
   const nudgeRef = useRef(null);
+  // Refs let edit callbacks stay stable (so memoized nodes do not re-render on every edit)
+  // while still reading the latest canvas, selection and volatile props.
+  const canvasRef = useRef(canvas);
+  canvasRef.current = canvas;
+  const onChangeRef = useRef(onChange);
+  onChangeRef.current = onChange;
   const [gesture, setGesture] = useState(null);
   const [camera, setCamera] = useState(() => ({
     x: 240 - Math.min(0, ...canvas.nodes.map((item) => item.x)),
@@ -63,6 +69,12 @@ export default function CanvasEditor({
   const [menu, setMenu] = useState(null);
   const suppressClick = useRef(false);
   const liveActions = useRef({});
+  const canvasHistory = useRef({ path, undo: [], redo: [], expected: null });
+  if (canvasHistory.current.path !== path) {
+    canvasHistory.current = { path, undo: [], redo: [], expected: null };
+  }
+  const currentSnapshot = useMemo(() => serializeCanvas(canvas), [canvas]);
+  const currentSnapshotRef = useRef(currentSnapshot);
   useEffect(() => {
     const action = (event) => liveActions.current[event.detail]?.();
     const key = (event) => {
@@ -119,6 +131,12 @@ export default function CanvasEditor({
     };
   }, [keybindings]);
   const node = canvas.nodes.find((item) => item.id === selectedNode);
+  const nodeRef = useRef(node);
+  nodeRef.current = node;
+  const contextRef = useRef({});
+  contextRef.current = { path, extensions, paths, onOpenFile, onOpenUrl, onEditSource, t };
+  const connectionRef = useRef({});
+  connectionRef.current = { connecting, connectionStart, relationType };
   const edge = canvas.edges.find((item) => item.id === selectedEdge);
   const view = useMemo(() => {
     const { x, y, k } = camera;
@@ -235,40 +253,103 @@ export default function CanvasEditor({
   );
   const invalidIds = useMemo(() => new Set(invalidLinks.map((item) => item.id)), [invalidLinks]);
 
-  const update = useCallback((next) => onChange(serializeCanvas(next)), [onChange]);
+  // Discard history when the canvas changes outside this editor (file switch or JSON source edit).
+  useEffect(() => {
+    const history = canvasHistory.current;
+    currentSnapshotRef.current = currentSnapshot;
+    if (history.expected === currentSnapshot) {
+      history.expected = null;
+      return;
+    }
+    history.undo = [];
+    history.redo = [];
+    history.expected = null;
+  }, [path, currentSnapshot]);
+  const update = useCallback((next) => {
+    const nextSnapshot = serializeCanvas(next);
+    const history = canvasHistory.current;
+    const previous = currentSnapshotRef.current;
+    if (previous !== nextSnapshot) {
+      history.undo.push(previous);
+      if (history.undo.length > 100) {
+        history.undo.shift();
+      }
+      history.redo = [];
+    }
+    history.expected = nextSnapshot;
+    currentSnapshotRef.current = nextSnapshot;
+    onChangeRef.current(nextSnapshot);
+  }, []);
   nudgeRef.current = { canvas, selectedNode, camera, update };
+  const restoreCanvas = (snapshot) => {
+    const history = canvasHistory.current;
+    history.expected = snapshot;
+    currentSnapshotRef.current = snapshot;
+    setSelectedNode(null);
+    setSelectedEdge(null);
+    setConnecting(false);
+    setConnectionStart(null);
+    viewportRef.current?.focus({ preventScroll: true });
+    onChangeRef.current(snapshot);
+  };
+  const undoCanvas = () => {
+    const history = canvasHistory.current;
+    const previous = history.undo.pop();
+    if (previous === undefined) {
+      return;
+    }
+    history.redo.push(currentSnapshotRef.current);
+    restoreCanvas(previous);
+  };
+  const redoCanvas = () => {
+    const history = canvasHistory.current;
+    const next = history.redo.pop();
+    if (next === undefined) {
+      return;
+    }
+    history.undo.push(currentSnapshotRef.current);
+    if (history.undo.length > 100) {
+      history.undo.shift();
+    }
+    restoreCanvas(next);
+  };
   const updateNode = useCallback(
-    (id, changes) =>
+    (id, changes) => {
+      const current = canvasRef.current;
       update({
-        ...canvas,
-        nodes: canvas.nodes.map((item) => (item.id === id ? { ...item, ...changes } : item)),
-      }),
-    [canvas, update]
+        ...current,
+        nodes: current.nodes.map((item) => (item.id === id ? { ...item, ...changes } : item)),
+      });
+    },
+    [update]
   );
   const removeNode = useCallback(
     (id) => {
+      const current = canvasRef.current;
       update({
-        ...canvas,
-        nodes: canvas.nodes.filter((item) => item.id !== id),
-        edges: canvas.edges.filter((item) => item.fromNode !== id && item.toNode !== id),
+        ...current,
+        nodes: current.nodes.filter((item) => item.id !== id),
+        edges: current.edges.filter((item) => item.fromNode !== id && item.toNode !== id),
       });
       setSelectedNode(null);
     },
-    [canvas, update]
+    [update]
   );
   const removeEdge = useCallback(
     (id) => {
+      const current = canvasRef.current;
       update({
-        ...canvas,
-        edges: canvas.edges.filter((item) => item.id !== id),
+        ...current,
+        edges: current.edges.filter((item) => item.id !== id),
       });
       setSelectedEdge(null);
     },
-    [canvas, update]
+    [update]
   );
   const addNode = useCallback(
-    (type, position, wrapped = node) => {
-      const nextNode = createCanvasNode(type, canvas.nodes.length);
+    (type, position, wrapped = nodeRef.current) => {
+      const current = canvasRef.current;
+      const nextNode = createCanvasNode(type, current.nodes.length);
       const viewport = viewportRef.current;
       const camera = cameraRef.current;
       Object.assign(
@@ -286,28 +367,29 @@ export default function CanvasEditor({
           height: wrapped.height + 64,
         });
       }
-      update({ ...canvas, nodes: [...canvas.nodes, nextNode] });
+      update({ ...current, nodes: [...current.nodes, nextNode] });
       setSelectedNode(nextNode.id);
       setSelectedEdge(null);
     },
-    [canvas, node, update]
+    [update]
   );
   const contextMenu = useCallback(
-    (event, nodeId, edgeId, position) =>
-      openCanvasContextMenu(
+    (event, nodeId, edgeId, position) => {
+      const volatile = contextRef.current;
+      return openCanvasContextMenu(
         {
-          canvas,
-          path,
-          extensions,
-          paths,
-          onOpenFile,
-          onOpenUrl,
+          canvas: canvasRef.current,
+          path: volatile.path,
+          extensions: volatile.extensions,
+          paths: volatile.paths,
+          onOpenFile: volatile.onOpenFile,
+          onOpenUrl: volatile.onOpenUrl,
           update,
           addNode,
           removeNode,
           removeEdge,
-          onEditSource,
-          t,
+          onEditSource: volatile.onEditSource,
+          t: volatile.t,
           setConnectionStart,
           setConnecting,
           setSelectedNode,
@@ -318,21 +400,9 @@ export default function CanvasEditor({
         nodeId,
         edgeId,
         position
-      ),
-    [
-      canvas,
-      path,
-      extensions,
-      paths,
-      onOpenFile,
-      onOpenUrl,
-      update,
-      addNode,
-      removeNode,
-      removeEdge,
-      onEditSource,
-      t,
-    ]
+      );
+    },
+    [update, addNode, removeNode, removeEdge]
   );
   const selectEdge = useCallback((id) => {
     setSelectedEdge(id);
@@ -340,24 +410,30 @@ export default function CanvasEditor({
   }, []);
   const selectNode = useCallback(
     (id) => {
-      if (connecting) {
-        if (!connectionStart) {
+      const {
+        connecting: isConnecting,
+        connectionStart: start,
+        relationType: relation,
+      } = connectionRef.current;
+      if (isConnecting) {
+        if (!start) {
           setConnectionStart(id);
           return;
         }
-        if (connectionStart !== id) {
+        if (start !== id) {
           const next =
-            relationType !== 'connection'
-              ? createArgumentEdge(connectionStart, id, relationType)
+            relation !== 'connection'
+              ? createArgumentEdge(start, id, relation)
               : {
                   id: createCanvasId(),
-                  fromNode: connectionStart,
+                  fromNode: start,
                   toNode: id,
                   fromSide: 'right',
                   toSide: 'left',
                   toEnd: 'arrow',
                 };
-          update({ ...canvas, edges: [...canvas.edges, next] });
+          const current = canvasRef.current;
+          update({ ...current, edges: [...current.edges, next] });
           setSelectedEdge(next.id);
           setSelectedNode(null);
         }
@@ -368,11 +444,11 @@ export default function CanvasEditor({
       setSelectedNode(id);
       setSelectedEdge(null);
     },
-    [canvas, connecting, connectionStart, relationType, update]
+    [update]
   );
   const startGesture = useCallback(
     (event, data) => {
-      if (connecting && data.type === 'move') {
+      if (connectionRef.current.connecting && data.type === 'move') {
         selectNode(data.id);
         suppressClick.current = true;
         event.currentTarget.setPointerCapture(event.pointerId);
@@ -385,7 +461,7 @@ export default function CanvasEditor({
         type,
         clientX: event.clientX,
         clientY: event.clientY,
-        ids: [id, ...canvasGroupMembers(canvas.nodes, id)],
+        ids: [id, ...canvasGroupMembers(canvasRef.current.nodes, id)],
         width: nodeWidth,
         height: nodeHeight,
         dx: 0,
@@ -400,7 +476,7 @@ export default function CanvasEditor({
       event.currentTarget.closest('[data-node-id]')?.focus({ preventScroll: true });
       setGesture(next);
     },
-    [canvas.nodes, connecting, selectNode]
+    [selectNode]
   );
   const moveGesture = (event) => {
     const current = gestureRef.current;
@@ -531,6 +607,8 @@ export default function CanvasEditor({
     'canvas-cancel': cancelConnection,
     'canvas-select-next': () => cycleSelection(1),
     'canvas-select-previous': () => cycleSelection(-1),
+    'canvas-undo': undoCanvas,
+    'canvas-redo': redoCanvas,
     'canvas-fit': fit,
     'canvas-zoom-in': () => zoom(1.2),
     'canvas-zoom-out': () => zoom(1 / 1.2),

@@ -34,6 +34,8 @@ export default function CanvasMinimap({ canvas, camera, view, onNavigate }) {
       aria-label={t('Canvas minimap')}
       title={t('Click to pan the canvas')}
       onPointerDown={(event) => {
+        // Keep minimap drags from starting a pan on the enclosing board.
+        event.stopPropagation();
         if (event.button !== 0) {
           return;
         }
@@ -42,6 +44,7 @@ export default function CanvasMinimap({ canvas, camera, view, onNavigate }) {
       }}
       onPointerMove={(event) => {
         if (event.buttons === 1) {
+          event.stopPropagation();
           navigate(event);
         }
       }}
