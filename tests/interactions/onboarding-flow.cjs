@@ -56,12 +56,26 @@ module.exports = async function runScenario({
     "[...document.querySelectorAll('.flow-grid thead th')].map(el => el.offsetWidth)"
   );
   const shortHeights = await rowHeights();
-  const setFirstCell = (value) =>
-    js(`(() => {
+  await js(
+    "window.__taglineTestShortHeights = [...document.querySelectorAll('.flow-grid tbody tr:first-child textarea')].map(el => el.offsetHeight)"
+  );
+  const setFirstCell = (value) => {
+    let valueExpression;
+    if (value === '') {
+      valueExpression = "''";
+    } else if (value === Array(12).fill('A long argument').join('\n')) {
+      valueExpression = "Array(12).fill('A long argument').join('\\n')";
+    } else if (value === 'wrapped argument '.repeat(80)) {
+      valueExpression = "'wrapped argument '.repeat(80)";
+    } else {
+      throw new Error('Unsupported test cell value');
+    }
+    return js(`(() => {
       const cell = document.querySelector('.flow-grid textarea');
-      Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, 'value').set.call(cell, ${JSON.stringify(value)});
+      Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, 'value').set.call(cell, ${valueExpression});
       cell.dispatchEvent(new Event('input', { bubbles: true }));
     })()`);
+  };
   await setFirstCell(Array(12).fill('A long argument').join('\n'));
   await wait("document.querySelector('.flow-grid textarea').offsetHeight > 200");
   const tallHeights = await rowHeights();
@@ -73,7 +87,7 @@ module.exports = async function runScenario({
   );
   await setFirstCell('');
   await wait(
-    `[...document.querySelectorAll('.flow-grid tbody tr:first-child textarea')].every((el, index) => el.offsetHeight === ${JSON.stringify(shortHeights)}[index])`
+    "[...document.querySelectorAll('.flow-grid tbody tr:first-child textarea')].every((el, index) => el.offsetHeight === window.__taglineTestShortHeights[index])"
   );
   assert.deepEqual(await rowHeights(), shortHeights, 'all cells shrink after removing long text');
   await setFirstCell('wrapped argument '.repeat(80));
@@ -90,7 +104,7 @@ module.exports = async function runScenario({
   await wait(`document.querySelector('.flow-grid textarea').offsetHeight === ${wideHeight}`);
   await setFirstCell('');
   await wait(
-    `[...document.querySelectorAll('.flow-grid tbody tr:first-child textarea')].every((el, index) => el.offsetHeight === ${JSON.stringify(shortHeights)}[index])`
+    "[...document.querySelectorAll('.flow-grid tbody tr:first-child textarea')].every((el, index) => el.offsetHeight === window.__taglineTestShortHeights[index])"
   );
   const flowStyles = () =>
     js(`['.flow-grid textarea', '.flow-grid th input', '.flow-add-row', '.flow-grid .mini']
