@@ -14,32 +14,38 @@ module.exports = async function runScenario({
   const firstRow = '.flow-grid tbody tr:first-child';
   const blankCell = `${firstRow} [data-column="1"]`;
   const height = () =>
-    js(`document.querySelector(${JSON.stringify(firstRow)}).getBoundingClientRect().height`);
+    js("document.querySelector('.flow-grid tbody tr:first-child').getBoundingClientRect().height");
   const initialHeight = await height();
   await press(await point(blankCell));
-  await wait(`document.querySelector(${JSON.stringify(blankCell)}).tagName === 'TEXTAREA'`);
+  await wait(
+    "document.querySelector('.flow-grid tbody tr:first-child [data-column=\"1\"]').tagName === 'TEXTAREA'"
+  );
   await delay(200);
   assert.ok(Math.abs((await height()) - initialHeight) < 3, 'blank lines must not expand the row');
   assert.equal(
-    await js(`document.querySelector(${JSON.stringify(blankCell)}).value`),
+    await js('document.querySelector(\'.flow-grid tbody tr:first-child [data-column="1"]\').value'),
     '\n'.repeat(40)
   );
   assert.equal(
-    await js(`getComputedStyle(document.querySelector(${JSON.stringify(blankCell)})).outlineStyle`),
+    await js(
+      'getComputedStyle(document.querySelector(\'.flow-grid tbody tr:first-child [data-column="1"]\')).outlineStyle'
+    ),
     'none'
   );
   assert.notEqual(
     await js(
-      `getComputedStyle(document.querySelector(${JSON.stringify(blankCell)}).closest('td')).boxShadow`
+      "getComputedStyle(document.querySelector('.flow-grid tbody tr:first-child [data-column=\"1\"]').closest('td')).boxShadow"
     ),
     'none'
   );
 
   const longCell = '.flow-grid tbody tr:nth-child(2) [data-column="0"]';
   await press(await point(longCell));
-  await wait(`document.querySelector(${JSON.stringify(longCell)}).tagName === 'TEXTAREA'`);
+  await wait(
+    "document.querySelector('.flow-grid tbody tr:nth-child(2) [data-column=\"0\"]').tagName === 'TEXTAREA'"
+  );
   const metrics = await js(
-    `(() => { const el = document.querySelector(${JSON.stringify(longCell)}); return { height: el.getBoundingClientRect().height, scrollHeight: el.scrollHeight, value: el.value }; })()`
+    '(() => { const el = document.querySelector(\'.flow-grid tbody tr:nth-child(2) [data-column="0"]\'); return { height: el.getBoundingClientRect().height, scrollHeight: el.scrollHeight, value: el.value }; })()'
   );
   assert.ok(metrics.height <= 321, 'long cells must remain bounded');
   assert.ok(metrics.scrollHeight > metrics.height, 'long text must remain scrollable');
