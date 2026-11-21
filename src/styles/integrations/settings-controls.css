@@ -89,7 +89,7 @@
 
 .setting-tooltip {
   position: absolute;
-  z-index: 2;
+  z-index: 20;
   inset-inline-start: 0;
   top: 100%;
   width: max-content;
@@ -103,6 +103,12 @@
   font-size: 12px;
   font-weight: normal;
   line-height: 1.5;
+}
+
+.settings-group-content > .setting-row:last-child .setting-tooltip,
+.settings-group-content .setting-row:not(:has(~ .setting-row)) .setting-tooltip {
+  top: auto;
+  bottom: calc(100% + 4px);
 }
 
 .settings .setting-row input:not([type='checkbox']),

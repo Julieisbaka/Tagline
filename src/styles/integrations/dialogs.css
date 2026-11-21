@@ -606,6 +606,45 @@
   line-height: 1.5;
 }
 
+.evidence-checkup-dialog > .dialog-buttons {
+  justify-content: flex-start;
+}
+
+.evidence-utilities {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.evidence-utility {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 12px;
+  min-width: 0;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg-secondary);
+}
+
+.evidence-utility > button {
+  align-self: flex-start;
+}
+
+.evidence-extract-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+}
+
+@media (max-width: 600px) {
+  .evidence-utilities {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
 .evidence-results {
   margin-top: 12px;
   border: 1px solid var(--border);

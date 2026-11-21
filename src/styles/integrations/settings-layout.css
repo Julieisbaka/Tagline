@@ -158,7 +158,7 @@
   border: 1px solid color-mix(in srgb, var(--border) 72%, transparent);
   border-radius: 8px;
   background: color-mix(in srgb, var(--bg-secondary) 42%, transparent);
-  overflow: clip;
+  overflow: visible;
 }
 
 .settings-group > summary {
@@ -169,6 +169,7 @@
   cursor: pointer;
   list-style: none;
   transition: background-color 120ms ease;
+  border-radius: 7px;
 }
 
 .settings-group > summary:hover {

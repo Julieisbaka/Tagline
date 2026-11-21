@@ -449,51 +449,61 @@ export default function EvidenceCheckupDialog({
           <button disabled={!!busy || !scan || !linkCount} onClick={compareSources}>
             {t(busy === 'sources' ? 'Comparing sources...' : 'Compare sources')}
           </button>
-          <label className='evidence-toggle'>
-            <input
-              type='checkbox'
-              checked={monitor}
-              onChange={(e) => {
-                setMonitor(e.target.checked);
-                localStorage.setItem(
-                  LINK_ROT_KEY,
-                  JSON.stringify({
-                    ...readStoredJson(LINK_ROT_KEY, {}, isSettings),
-                    enabled: e.target.checked,
-                  })
-                );
-              }}
-            />
-            <span>{t('Weekly background link check (sends cited URLs to their sites)')}</span>
-          </label>
-          <button
-            disabled={!!busy || !scan || !links}
-            onClick={() => saveDoc('Vault health report', vaultHealthReport(scan.cards, links))}
-          >
-            {t('Save health report')}
-          </button>
-          <label className='evidence-toggle'>
-            <input
-              type='checkbox'
-              checked={extract.tagline}
-              onChange={(e) => setExtract({ ...extract, tagline: e.target.checked })}
-            />
-            <span>{t('Tagline')}</span>
-          </label>
-          <label className='evidence-toggle'>
-            <input
-              type='checkbox'
-              checked={extract.firstLast}
-              onChange={(e) => setExtract({ ...extract, firstLast: e.target.checked })}
-            />
-            <span>{t('First and last sentence')}</span>
-          </label>
-          <button
-            disabled={!!busy || !scan}
-            onClick={() => saveDoc('Cites extract', citesExtract(scan.files, scan.cards, extract))}
-          >
-            {t('Extract cites')}
-          </button>
+        </div>
+        <div className='evidence-utilities'>
+          <section className='evidence-utility'>
+            <label className='evidence-toggle'>
+              <input
+                type='checkbox'
+                checked={monitor}
+                onChange={(e) => {
+                  setMonitor(e.target.checked);
+                  localStorage.setItem(
+                    LINK_ROT_KEY,
+                    JSON.stringify({
+                      ...readStoredJson(LINK_ROT_KEY, {}, isSettings),
+                      enabled: e.target.checked,
+                    })
+                  );
+                }}
+              />
+              <span>{t('Weekly background link check (sends cited URLs to their sites)')}</span>
+            </label>
+            <button
+              disabled={!!busy || !scan || !links}
+              onClick={() => saveDoc('Vault health report', vaultHealthReport(scan.cards, links))}
+            >
+              {t('Save health report')}
+            </button>
+          </section>
+          <section className='evidence-utility'>
+            <div className='evidence-extract-options'>
+              <label className='evidence-toggle'>
+                <input
+                  type='checkbox'
+                  checked={extract.tagline}
+                  onChange={(e) => setExtract({ ...extract, tagline: e.target.checked })}
+                />
+                <span>{t('Tagline')}</span>
+              </label>
+              <label className='evidence-toggle'>
+                <input
+                  type='checkbox'
+                  checked={extract.firstLast}
+                  onChange={(e) => setExtract({ ...extract, firstLast: e.target.checked })}
+                />
+                <span>{t('First and last sentence')}</span>
+              </label>
+            </div>
+            <button
+              disabled={!!busy || !scan}
+              onClick={() =>
+                saveDoc('Cites extract', citesExtract(scan.files, scan.cards, extract))
+              }
+            >
+              {t('Extract cites')}
+            </button>
+          </section>
         </div>
         {error && (
           <p className='error-text' role='alert'>

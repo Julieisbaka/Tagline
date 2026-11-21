@@ -176,6 +176,27 @@ const delay = (ms) => new Promise((r) => setTimeout(r, ms));
         await js(
           'document.querySelector(\'.ribbon-settings input[data-ribbon-item="evidenceCheckup"]\').click()'
         );
+        await js('document.querySelector(\'[data-section="general"]\').click()');
+        await delay(100);
+        await js(`(() => {
+          const row = [...document.querySelectorAll('.setting-row')].find(
+            (item) => item.textContent.includes('Show timer above other windows')
+          );
+          row.querySelector('.setting-help-button').click();
+        })()`);
+        await delay(50);
+        const tooltipOverflow = await js(`(() => {
+          const row = [...document.querySelectorAll('.setting-row')].find(
+            (item) => item.textContent.includes('Show timer above other windows')
+          );
+          const group = row.closest('.settings-group');
+          return {
+            overflow: getComputedStyle(group).overflow,
+            tooltipVisible: !row.querySelector('.setting-tooltip').hidden,
+          };
+        })()`);
+        assert.equal(tooltipOverflow.overflow, 'visible', 'settings help can escape its group');
+        assert.equal(tooltipOverflow.tooltipVisible, true, 'settings help opens from its button');
         await js("document.querySelector('.settings-footer .primary').click()");
         await delay(100);
         assert.equal(
@@ -201,10 +222,17 @@ const delay = (ms) => new Promise((r) => setTimeout(r, ms));
           await delay(250);
           const layout = await js(`(() => {
             const dialog = document.querySelector('.evidence-checkup-dialog').getBoundingClientRect();
+            const dialogElement = document.querySelector('.evidence-checkup-dialog');
             const label = document.querySelector('.evidence-toggle');
             const input = label.querySelector('input').getBoundingClientRect();
             const text = label.querySelector('span').getBoundingClientRect();
-            return { top: dialog.top, bottom: dialog.bottom, height: innerHeight, gap: text.left - input.right };
+            return {
+              top: dialog.top,
+              bottom: dialog.bottom,
+              height: innerHeight,
+              gap: text.left - input.right,
+              horizontalOverflow: dialogElement.scrollWidth - dialogElement.clientWidth,
+            };
           })()`);
           assert.ok(
             layout.top >= 0 && layout.bottom <= layout.height,
@@ -213,6 +241,10 @@ const delay = (ms) => new Promise((r) => setTimeout(r, ms));
           assert.ok(
             layout.gap >= 0 && layout.gap <= 16,
             'checkbox label is aligned with its control'
+          );
+          assert.ok(
+            layout.horizontalOverflow <= 1,
+            'checkup dialog does not overflow horizontally'
           );
         }
         await js(`Array.from(document.querySelectorAll('.evidence-checkup-dialog label')).find(
