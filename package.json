@@ -71,6 +71,7 @@
       "src/lib/calendar.js",
       "src/lib/frontmatter.js",
       "src/lib/vault.js",
+      "src/lib/flowText.js",
       "build/icon.*",
       "package.json",
       "!**/tests/**/*",

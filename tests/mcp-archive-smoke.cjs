@@ -45,7 +45,7 @@ const assert = require('node:assert/strict');
   );
   await fs.writeFile(path.join(vault, 'Card.md'), '#### Impact\n**Smith 2001** — "Example"\n');
   await fs.writeFile(path.join(stage, 'package.json'), JSON.stringify({ type: 'module' }));
-  for (const file of ['mcp.cjs', 'vaultFiles.cjs']) {
+  for (const file of ['mcp.cjs', 'vaultFiles.cjs', 'flow.mjs']) {
     await fs.copyFile(path.join(root, 'electron', file), path.join(stage, 'electron', file));
   }
   await fs.cp(path.join(root, 'electron', 'mcp'), path.join(stage, 'electron', 'mcp'), {
@@ -58,6 +58,7 @@ const assert = require('node:assert/strict');
     'calendar.js',
     'frontmatter.js',
     'vault.js',
+    'flowText.js',
   ]) {
     assert.ok(config.build.files.includes(`src/lib/${file}`), `Missing packaged file: ${file}`);
     await fs.copyFile(path.join(root, 'src', 'lib', file), path.join(stage, 'src', 'lib', file));
