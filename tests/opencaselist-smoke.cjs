@@ -241,16 +241,26 @@ app.on('browser-window-created', (_event, win) => {
       await wait("!document.querySelector('.opencaselist-password-settings fieldset').disabled");
       if (first) {
         const originalSize = win.getSize();
-        await js(
-          "window.__testResizeCount = 0; window.addEventListener('resize', () => window.__testResizeCount++)"
-        );
+        const originalMinimumSize = win.getMinimumSize();
+        win.setMinimumSize(320, 400);
         for (const width of [1100, 700]) {
-          const previousSize = win.getSize();
-          const previousResize = await js('window.__testResizeCount');
           win.setSize(width, 850);
-          if (previousSize[0] !== width || previousSize[1] !== 850) {
-            await wait(`window.__testResizeCount > ${previousResize}`);
-          }
+          await require('./helpers/wait.cjs').waitFor(
+            async () => {
+              const [windowWidth, windowHeight] = win.getSize();
+              const [contentWidth, contentHeight] = win.getContentSize();
+              const viewport = await js(
+                '({ width: window.innerWidth, height: window.innerHeight })'
+              );
+              return (
+                windowWidth === width &&
+                windowHeight === 850 &&
+                viewport.width === contentWidth &&
+                viewport.height === contentHeight
+              );
+            },
+            { timeout: 5000, message: `Timed out resizing to ${width}x850` }
+          );
           const layout = await js(`(() => {
             const form = document.querySelector('.opencaselist-password-settings');
             const fieldset = form.querySelector('fieldset');
@@ -271,6 +281,7 @@ app.on('browser-window-created', (_event, win) => {
             `password layout at ${width}px`
           );
         }
+        win.setMinimumSize(...originalMinimumSize);
         win.setSize(...originalSize);
         if (process.env.TAGLINE_SETTINGS_SCREENSHOT) {
           await js(
