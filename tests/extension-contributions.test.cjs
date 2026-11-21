@@ -256,6 +256,22 @@ test('manifest schema covers UI and packaged asset contribution declarations', (
   assert.equal(validate(invalidFont), false);
 });
 
+test('quick-fix tokens authorize only current extension diagnostics', async () => {
+  const { createExtensionQuickFixRegistry } = await import('../src/lib/extensionQuickFixes.js');
+  const quickFixes = createExtensionQuickFixRegistry();
+  const [diagnostic] = quickFixes.update('alpha-one', [{ quickFix: { command: 'fix' } }]);
+  assert.equal(quickFixes.matches(undefined, 'alpha-one', 'fix'), false);
+  assert.equal(quickFixes.matches('attacker-controlled', 'alpha-one', 'fix'), false);
+  assert.equal(quickFixes.matches(diagnostic.quickFix.token, 'alpha-one', 'fix'), true);
+  assert.equal(quickFixes.matches(diagnostic.quickFix.token, 'beta-two', 'fix'), false);
+  assert.equal(quickFixes.matches(diagnostic.quickFix.token, 'alpha-one', 'other'), false);
+
+  quickFixes.update('beta-two', [{ quickFix: { command: 'other' } }]);
+  assert.equal(quickFixes.matches(diagnostic.quickFix.token, 'alpha-one', 'fix'), true);
+  quickFixes.update('alpha-one', []);
+  assert.equal(quickFixes.matches(diagnostic.quickFix.token, 'alpha-one', 'fix'), false);
+});
+
 test('status bar updates and command contexts stay within declared UI capabilities', async () => {
   const { ExtensionHost } = await import('../src/lib/extensions.js');
   const updates = [];

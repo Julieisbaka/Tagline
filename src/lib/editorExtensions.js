@@ -122,6 +122,7 @@ export const extensionDiagnostics = StateField.define({
                         ? {
                             'data-extension-id': extensionId,
                             'data-extension-command': quickFix.command,
+                            'data-extension-quick-fix-token': quickFix.token,
                             'data-diagnostic-from': String(from),
                             'data-diagnostic-to': String(to),
                           }
