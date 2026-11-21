@@ -85,8 +85,8 @@ function registerExtensions({
   const cancelAuthorization = (id) => pendingAuthorizations.get(id)?.cancel();
   const invalidateManifest = (root) => manifestCache.delete(path.resolve(root, 'manifest.json'));
   const limits = () => validateLimits(readConfig().customizationLimits);
-  ipcMain.handle('customization:get', () => limits());
-  ipcMain.handle('customization:set', async (_event, value) => {
+  handleExtension('customization:get', () => limits());
+  handleExtension('customization:set', async (value) => {
     const next = validateLimits(value);
     await writeConfig({ customizationLimits: next });
     manifestCache.clear();

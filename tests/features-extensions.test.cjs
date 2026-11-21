@@ -668,6 +668,14 @@ test('extension IPC rejects calls outside the application main frame before disp
   for (const [name, handler] of extensionHandlers) {
     await assert.rejects(handler({}), /Not the application main frame/, name);
   }
+  for (const name of ['customization:get', 'customization:set']) {
+    assert.ok(handlers.has(name));
+    await assert.rejects(
+      handlers.get(name)({}, { extensionCommands: 49 }),
+      /Not the application main frame/,
+      name
+    );
+  }
   assert.equal(await handlers.get('extensions:oauthCancel')(trustedEvent, 'example'), true);
 });
 
@@ -858,7 +866,9 @@ test('extension scans cache manifests by modification time and size', async () =
     assert.equal((await handlers['extensions:list']())[0].name, 'Changed');
     assert.deepEqual([...manifestReads.values()], [3, 1], 'size changes invalidate the entry');
 
-    await handlers['customization:set'](null, { extensionCommands: 49 });
+    const updatedLimits = await handlers['customization:set'](null, { extensionCommands: 49 });
+    assert.equal(updatedLimits.extensionCommands, 49);
+    assert.deepEqual(await handlers['customization:get'](), updatedLimits);
     await handlers['extensions:list']();
     assert.deepEqual([...manifestReads.values()], [4, 2], 'limit changes clear validation results');
   } finally {
