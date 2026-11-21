@@ -18,6 +18,9 @@ export default function FlowEditor({
   path,
   content,
   mode,
+  jump,
+  resolve,
+  onOpenLink,
   onChange,
   onRestore,
   focusNewFlowRow = true,
@@ -38,6 +41,7 @@ export default function FlowEditor({
   const gridRef = useRef(null);
   const sheetTabsRef = useRef(null);
   const focusTarget = useRef(null);
+  const [focusVersion, setFocusVersion] = useState(0);
   const [selection, setSelection] = useState(null);
   const keepSelection = useRef(false);
   const liveActions = useRef({});
@@ -83,7 +87,23 @@ export default function FlowEditor({
     const { row, column } = focusTarget.current;
     gridRef.current?.querySelector(`[data-row="${row}"][data-column="${column}"]`)?.focus();
     focusTarget.current = null;
-  }, [sheet]);
+  }, [sheet, focusVersion]);
+
+  // A search result points at a synthetic line of the flow text. Map it back
+  // to a real cell, switch to that sheet, and focus the cell once the grid
+  // has remounted.
+  useEffect(() => {
+    if (!jump || jump.path !== path || !jump.cellMap) {
+      return;
+    }
+    const cell = jump.cellMap[jump.line];
+    if (!cell) {
+      return;
+    }
+    setActive(cell.sheetIndex);
+    focusTarget.current = { row: cell.row, column: cell.column };
+    setFocusVersion((version) => version + 1);
+  }, [jump, path]);
   const context = (e, items) => {
     const allowSpellcheck = e.target.matches('input, textarea');
     if (!allowSpellcheck) {
@@ -504,6 +524,8 @@ export default function FlowEditor({
           paste,
           clipboardError,
           selectAll: liveActions.current['flow-select-all'],
+          resolve,
+          onOpenLink,
         }}
         t={t}
         context={context}

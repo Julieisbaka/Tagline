@@ -4,9 +4,13 @@ import { parseFlow } from '../../electron/flow.mjs';
  * Build the searchable representation of a .flow document.
  * Sheet and column names become Markdown-style headings so they receive the
  * same ranking bonus as headings in notes; each non-empty cell becomes a line.
- * Invalid flow JSON falls back to the raw text so the file stays findable.
+ * `cellMap` maps each synthetic line index that holds a cell to
+ * `{ sheetIndex, row, column }` so a search-result line can be opened back at
+ * that cell. Invalid flow JSON falls back to the raw text so the file stays
+ * findable.
  * @param {string} content - The raw .flow file content.
- * @returns {{text: string, cells: string}} - Index text and cell-only text.
+ * @returns {{text: string, cells: string, cellMap: Array<{sheetIndex:number,row:number,column:number}|undefined>}}
+ *   Index text, cell-only text, and the synthetic-line to cell map.
  */
 export function flowDocument(content) {
   const raw = typeof content === 'string' ? content : '';
@@ -14,23 +18,27 @@ export function flowDocument(content) {
   try {
     flow = parseFlow(raw);
   } catch {
-    return { text: raw, cells: raw };
+    return { text: raw, cells: raw, cellMap: [] };
   }
   const cells = [];
   const lines = [];
-  for (const sheet of flow.sheets) {
+  const cellMap = [];
+  for (const [sheetIndex, sheet] of flow.sheets.entries()) {
     lines.push(`# ${sheet.name}`);
-    for (const [index, column] of sheet.columns.entries()) {
+    cellMap.push(undefined);
+    for (const [columnIndex, column] of sheet.columns.entries()) {
       lines.push(`## ${column}`);
-      for (const row of sheet.rows) {
-        const cell = row[index] ?? '';
+      cellMap.push(undefined);
+      for (let row = 0; row < sheet.rows.length; row++) {
+        const cell = sheet.rows[row][columnIndex] ?? '';
         if (!cell.trim()) {
           continue;
         }
         cells.push(cell);
         lines.push(cell);
+        cellMap.push({ sheetIndex, row, column: columnIndex });
       }
     }
   }
-  return { text: lines.join('\n'), cells: cells.join('\n') };
+  return { text: lines.join('\n'), cells: cells.join('\n'), cellMap };
 }

@@ -23,7 +23,7 @@ test('flow documents expose sheet and column headings plus cell text', async () 
   assert.ok(text.includes('Neg block text'));
   assert.ok(!text.includes('"version"'));
   assert.equal(cells, 'Aff plan text\nNeg block text');
-  assert.deepEqual(flowDocument('not json'), { text: 'not json', cells: 'not json' });
+  assert.deepEqual(flowDocument('not json'), { text: 'not json', cells: 'not json', cellMap: [] });
 });
 
 test('keyword search finds flow cells and treats sheet and column names as headings', async () => {
@@ -64,4 +64,27 @@ test('flow cells contribute links, backlinks and tags to the vault index', async
   assert.deepEqual(index.backlinks['Round.flow'], ['Notes.md']);
   assert.ok(index.backlinks['Notes.md'].includes('Round.flow'));
   assert.ok(index.tags.neg.includes('Round.flow'));
+});
+
+test('flowDocument maps synthetic cell lines back to sheet, row and column', async () => {
+  const { flowDocument } = await import('../src/lib/flowText.js');
+  const content = flowFile([
+    {
+      name: 'Case',
+      columns: ['1AC', '1NC'],
+      rows: [
+        ['Aff plan text', ''],
+        ['', 'Neg block text'],
+      ],
+    },
+  ]);
+  const { text, cellMap } = flowDocument(content);
+  // Lines: 0 '# Case', 1 '## 1AC', 2 'Aff plan text', 3 '## 1NC', 4 'Neg block text'
+  assert.equal(cellMap[0], undefined);
+  assert.equal(cellMap[1], undefined);
+  assert.deepEqual(cellMap[2], { sheetIndex: 0, row: 0, column: 0 });
+  assert.equal(cellMap[3], undefined);
+  assert.deepEqual(cellMap[4], { sheetIndex: 0, row: 1, column: 1 });
+  assert.ok(text.includes('# Case'));
+  assert.ok(text.includes('Aff plan text'));
 });

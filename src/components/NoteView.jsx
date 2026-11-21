@@ -196,6 +196,9 @@ export default function NoteView({
           path={path}
           mode={mode}
           content={content}
+          jump={jump?.path === path ? jump : null}
+          resolve={resolve}
+          onOpenLink={onOpenLink}
           onChange={onChange}
           onRestore={onRestore}
           focusNewFlowRow={settings.focusNewFlowRow}

@@ -9,7 +9,8 @@ import {
   parseQuery,
   searchExcerpt,
 } from '../../lib/search.js';
-import { displayName } from '../../lib/vault.js';
+import { displayName, isFlow } from '../../lib/vault.js';
+import { flowDocument } from '../../lib/flowText.js';
 import ModalBackdrop from './ModalBackdrop.jsx';
 import ScholarlySearch from './ScholarlySearch.jsx';
 
@@ -134,7 +135,10 @@ export default function SearchModal({
   const terms = parseQuery(query).terms;
 
   const openResult = (event, path, line) => {
-    onOpen(path, event.ctrlKey || event.metaKey, line);
+    // For flow documents the synthetic search line maps back to a cell; pass
+    // that map so FlowEditor can focus the cell instead of just opening the file.
+    const cellMap = isFlow(path) ? flowDocument(contents[path] || '').cellMap : undefined;
+    onOpen(path, event.ctrlKey || event.metaKey, { line, cellMap });
     onClose();
   };
   const navigate = (event) => {

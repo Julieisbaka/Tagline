@@ -7,7 +7,7 @@ import { markSpeechDocument } from '../lib/frontmatter.js';
 import { slugify } from '../lib/markdown.js';
 import { playUiSound } from '../lib/uiSounds.js';
 import { useAppExtensions } from '../lib/useAppExtensions.js';
-import { baseName, dirName, isMarkdown, joinPath, outline, resolveLink } from '../lib/vault.js';
+import { baseName, dirName, isFlow, isMarkdown, joinPath, outline, resolveLink } from '../lib/vault.js';
 
 export function useAppOperations({
   settings,
@@ -39,7 +39,9 @@ export function useAppOperations({
       tabs.openPath(path, newTab);
       playUiSound('open');
       if (line != null) {
-        setModes((s) => ({ ...s, [path]: 'edit' }));
+        // Flow cells are focused in the visual grid; markdown jumps land in
+        // source mode so the line number can scroll to the right place.
+        setModes((s) => ({ ...s, [path]: isFlow(path) ? 'visual' : 'edit' }));
         setJump({ path, line, n: Date.now() });
       }
     },

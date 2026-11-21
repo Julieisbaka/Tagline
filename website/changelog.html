@@ -68,10 +68,17 @@
               column names rank as headings, and links and tags written in cells produce
               backlinks just like notes.
             </li>
+            <li>
+              Opening a flow from search now takes you to the matched cell, not just the file.
+            </li>
           </ul>
 
           <h3>Fixed</h3>
           <ul>
+            <li>
+              Wiki links (<code>[[Card]]</code>) inside flow cells are now clickable and resolve
+              to the linked note, so links found through search backlinks are no longer dead ends.
+            </li>
             <li>
               Right-click → Paste cells in the flow grid now reports clipboard and malformed
               cell-data errors the same way Ctrl+V does, instead of leaving a console rejection.

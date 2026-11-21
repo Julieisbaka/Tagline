@@ -124,7 +124,7 @@ export default function FlowGrid({
       cache.set(text, hit);
       return hit;
     }
-    const html = renderMarkdown(text);
+    const html = renderMarkdown(text, resolve);
     if (cache.size >= 200) {
       const oldest = cache.keys().next().value;
       if (oldest !== undefined) {
@@ -160,6 +160,8 @@ export default function FlowGrid({
     paste,
     clipboardError,
     selectAll,
+    resolve,
+    onOpenLink,
   } = actions;
 
   const goToCell = (row, column, edit = true) => {
@@ -549,7 +551,15 @@ export default function FlowGrid({
                           choose(r, c);
                         }
                       }}
-                      onClick={() => goToCell(r, c)}
+                      onClick={(event) => {
+                        const link = event.target.closest('a.internal-link');
+                        if (link) {
+                          event.preventDefault();
+                          onOpenLink(link.dataset.href, link.dataset.heading, event.ctrlKey || event.metaKey);
+                          return;
+                        }
+                        goToCell(r, c);
+                      }}
                       dangerouslySetInnerHTML={{
                         __html: cell ? previewHtml(cell) : '…',
                       }}
