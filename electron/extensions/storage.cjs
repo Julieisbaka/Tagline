@@ -8,7 +8,7 @@ const MAX_SECRET_VALUE = 10000;
 const MAX_SECRETS = 50;
 
 function registerStorageHandlers(context) {
-  const { app, ipcMain, safeStorage, scan, limits } = context;
+  const { app, handleExtension, safeStorage, scan, limits } = context;
   const secretsDir = () => path.join(app.getPath('userData'), 'extension-secrets');
   const secretQueues = new Map();
   const storageDir = () => path.join(app.getPath('userData'), 'extension-storage');
@@ -49,7 +49,7 @@ function registerStorageHandlers(context) {
     storageQueues.set(id, run);
     return run;
   };
-  ipcMain.handle('extensions:storage', async (_event, id, action, key, value) => {
+  handleExtension('extensions:storage', async (id, action, key, value) => {
     if (typeof id !== 'string' || !ID.test(id) || !['get', 'set', 'replace'].includes(action)) {
       throw new Error('Invalid extension request.');
     }
@@ -124,7 +124,7 @@ function registerStorageHandlers(context) {
     return run;
   };
 
-  ipcMain.handle('extensions:secret', async (_event, id, action, key, value) => {
+  handleExtension('extensions:secret', async (id, action, key, value) => {
     if (typeof id !== 'string' || !ID.test(id) || !['get', 'set', 'has'].includes(action)) {
       throw new Error('Invalid extension request.');
     }
@@ -166,7 +166,7 @@ function registerStorageHandlers(context) {
     });
   });
 
-  ipcMain.handle('extensions:clearSecrets', (_event, id) => {
+  handleExtension('extensions:clearSecrets', (id) => {
     if (typeof id !== 'string' || !ID.test(id)) {
       throw new Error('Invalid extension request.');
     }

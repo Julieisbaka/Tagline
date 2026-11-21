@@ -607,6 +607,7 @@ test('platform: extension manifests validate ids, permissions, commands and cont
   let config = {};
   const handlers = {};
   registerExtensions({
+    assertMainFrameSender: () => {},
     app: { getPath: () => userData },
     shell: { openPath: async () => '' },
     ipcMain: {

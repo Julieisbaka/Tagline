@@ -296,6 +296,7 @@ test('platform: main process persists limit changes, enforces script size and ex
   const exported = path.join(root, 'settings.json');
   let config = { enabledExtensions: ['limited'] };
   registerExtensions({
+    assertMainFrameSender: () => {},
     app: { getPath: () => root },
     ipcMain: {
       handle: (name, handler) => {

@@ -18,7 +18,7 @@ const {
 function registerInstallHandlers(context) {
   const {
     app,
-    ipcMain,
+    handleExtension,
     shell,
     readConfig,
     writeConfig,
@@ -105,11 +105,11 @@ function registerInstallHandlers(context) {
     maxFiles: MAX_INSTALL_FILES,
     maxBytes: MAX_INSTALL_BYTES,
   });
-  ipcMain.handle('extensions:registryList', (_event, refresh) => registry.list(refresh === true));
-  ipcMain.handle('extensions:registryInstall', (_event, url, id) => registry.install(url, id));
+  handleExtension('extensions:registryList', (refresh) => registry.list(refresh === true));
+  handleExtension('extensions:registryInstall', (url, id) => registry.install(url, id));
 
-  ipcMain.handle('extensions:installFolder', (_event, source) => installFromFolder(source));
-  ipcMain.handle('extensions:chooseAndInstall', async () => {
+  handleExtension('extensions:installFolder', (source) => installFromFolder(source));
+  handleExtension('extensions:chooseAndInstall', async () => {
     const result = await dialog.showOpenDialog(getWindow(), {
       title: 'Install extension from folder',
       properties: ['openDirectory'],
@@ -117,7 +117,7 @@ function registerInstallHandlers(context) {
     return result.canceled || !result.filePaths[0] ? null : installFromFolder(result.filePaths[0]);
   });
 
-  ipcMain.handle('extensions:openFolder', async () => {
+  handleExtension('extensions:openFolder', async () => {
     await fs.mkdir(folder(), { recursive: true });
     const error = await shell.openPath(folder());
     if (error) {
