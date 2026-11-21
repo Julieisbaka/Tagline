@@ -179,6 +179,14 @@ test('MCP tools refuse paths outside the vault and writes in read-only mode', as
   );
 });
 
+test('MCP delete refuses paths that normalize to the vault root', async () => {
+  await withMcp(async ({ vault, call }) => {
+    const result = await call('delete_path', { path: './' });
+    assert.equal(result.isError, true);
+    await fs.access(path.join(vault, 'Case', 'Plan.md'));
+  });
+});
+
 test('MCP evidence tools share the app parsers and work in read-only mode', async () => {
   await withMcp(
     async ({ vault, call, post }) => {
