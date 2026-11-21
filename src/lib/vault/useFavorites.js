@@ -83,7 +83,6 @@ export function removeFavorites(paths, removed) {
 // TODO: Remove migration support
 // .tagline/pins.json is the single source of truth for pins and favorites. The legacy
 // localStorage map is kept only as the one-way migration source; purged per vault once read.
-// Remove STORAGE_KEY and this helper after one release.
 function purgeLegacyRoot(root) {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
