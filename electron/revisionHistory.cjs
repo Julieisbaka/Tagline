@@ -157,12 +157,13 @@ function createRevisionHistory({ getVaultRoot, resolveInVault }) {
           ])
         );
         await fs.mkdir(directory, { recursive: true });
+        const temporary = `${layoutPath}.${randomUUID()}.tmp`;
         await fs.writeFile(
-          `${layoutPath}.tmp`,
+          temporary,
           JSON.stringify({ ...layout, ...positions }),
           'utf8'
         );
-        await fs.rename(`${layoutPath}.tmp`, layoutPath);
+        await fs.rename(temporary, layoutPath);
       }
       if (canvasMode === 'data' && before && after) {
         const dataOnly = (canvas) => ({
