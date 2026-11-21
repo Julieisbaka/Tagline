@@ -40,3 +40,11 @@ test('undo and redo commit pending cell drafts first', async () => {
   assert.match(source, /const undoFlow = \(\) => \{\s*flushPendingEdits\(\);/);
   assert.match(source, /const redoFlow = \(\) => \{\s*flushPendingEdits\(\);/);
 });
+
+test('removing the last flow row is guarded', async () => {
+  const source = await fs.readFile(
+    path.join(root, 'src', 'components', 'flow-editor', 'FlowEditor.jsx'),
+    'utf8'
+  );
+  assert.match(source, /const removeRow = \(r\) => \{\s*if \(sheet\.rows\.length === 1\) \{\s*return;\s*\}/);
+});

@@ -356,6 +356,9 @@ export default function FlowEditor({
   const insertRowAbove = (row, column) => addRow(row - 1, column);
 
   const removeRow = (r) => {
+    if (sheet.rows.length === 1) {
+      return;
+    }
     setSelection(null);
     updateSheet({ rows: sheet.rows.filter((_, i) => i !== r) });
   };
