@@ -2,11 +2,62 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { binding, displayBinding, matchesBinding } from '../../lib/keybindings.js';
 import { cellBounds, copyFlowCells } from '../../lib/flowCells.js';
 import { pasteClipboardCells } from '../../lib/pasteClipboardCells.js';
+import { registerPendingFlush } from '../../lib/pendingEdits.js';
 import { renderMarkdown } from '../../lib/markdown.js';
 import Icon from '../Icon.jsx';
 
 const AFF = new Set(['1AC', '2AC', '1AR', '2AR', 'AC', 'AR']);
-const sideOf = (col) => (AFF.has(col.split(' ')[0].toUpperCase()) ? 'aff' : 'neg');
+const sideOf = (col) => {
+  if (!col.trim()) {
+    return 'none';
+  }
+  return AFF.has(col.split(' ')[0].toUpperCase()) ? 'aff' : 'neg';
+};
+
+/**
+ * Cell textarea that keeps a local draft and commits on blur/unmount, so one
+ * typed passage becomes one save and one undo step instead of one per keystroke.
+ */
+function FlowCellEditor({ value, onCommit, onChange, onBlur, ...props }) {
+  const [draft, setDraft] = useState(value);
+  const draftRef = useRef(draft);
+  const valueRef = useRef(value);
+  draftRef.current = draft;
+  valueRef.current = value;
+  const dirty = draft !== value;
+  const commit = () => {
+    if (draftRef.current !== valueRef.current) {
+      valueRef.current = draftRef.current;
+      onCommit(draftRef.current);
+    }
+  };
+  const commitRef = useRef(commit);
+  commitRef.current = commit;
+  useEffect(() => {
+    setDraft(value);
+  }, [value]);
+  useEffect(() => () => commitRef.current(), []);
+  useEffect(() => {
+    if (!dirty) {
+      return undefined;
+    }
+    return registerPendingFlush(() => commitRef.current());
+  }, [dirty]);
+  return (
+    <textarea
+      {...props}
+      value={draft}
+      onChange={(event) => {
+        setDraft(event.target.value);
+        onChange?.(event);
+      }}
+      onBlur={(event) => {
+        commit();
+        onBlur?.(event);
+      }}
+    />
+  );
+}
 
 export default function FlowGrid({
   gridRef,
@@ -381,7 +432,7 @@ export default function FlowGrid({
                   }}
                 >
                   {editing?.row === r && editing?.column === c ? (
-                    <textarea
+                    <FlowCellEditor
                       data-row={r}
                       data-column={c}
                       tabIndex={tabStop?.row === r && tabStop?.column === c ? 0 : -1}
@@ -391,6 +442,7 @@ export default function FlowGrid({
                       })}
                       spellCheck={settings.flowSpellcheck !== false}
                       value={cell}
+                      onCommit={(text) => setCell(r, c, text)}
                       onBlur={(event) => {
                         if (!event.relatedTarget?.closest?.('.flow-grid-wrap, .context-menu')) {
                           setEditing(null);
@@ -461,10 +513,7 @@ export default function FlowGrid({
                         }
                       }}
                       placeholder='…'
-                      onChange={(e) => {
-                        choose(r, c);
-                        setCell(r, c, e.target.value);
-                      }}
+                      onChange={() => choose(r, c)}
                       onKeyDown={(e) => onCellKeyDown(e, r, c, true)}
                     />
                   ) : (

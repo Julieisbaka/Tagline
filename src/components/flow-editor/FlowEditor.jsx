@@ -4,6 +4,7 @@ import { EMPTY_FLOW, flowColumns, parseFlow } from '../../../electron/flow.mjs';
 import { cellBounds, copyFlowCells, parseFlowCells, pasteFlowCells } from '../../lib/flowCells.js';
 import { useI18n } from '../../lib/i18n.js';
 import { binding, displayBinding, matchesBinding } from '../../lib/keybindings.js';
+import { flushPendingEdits } from '../../lib/pendingEdits.js';
 import { useConfirm } from '../dialogs/ConfirmProvider.jsx';
 import ContextMenu from '../dialogs/ContextMenu.jsx';
 import FlowGrid from './FlowGrid.jsx';
@@ -169,6 +170,7 @@ export default function FlowEditor({
     };
   };
   const undoFlow = () => {
+    flushPendingEdits();
     const history = flowHistory.current;
     const previous = history.undo.pop();
     if (previous === undefined) {
@@ -181,6 +183,7 @@ export default function FlowEditor({
     applyFlowContent(previous.content);
   };
   const redoFlow = () => {
+    flushPendingEdits();
     const history = flowHistory.current;
     const next = history.redo.pop();
     if (next === undefined) {
@@ -482,6 +485,7 @@ export default function FlowEditor({
         context={context}
       />
       <FlowGrid
+        key={idx}
         gridRef={gridRef}
         sheet={sheet}
         settings={settings}
