@@ -1,7 +1,15 @@
 ﻿import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { folderPaths, normalizeFolders } from './folderPaths.js';
 import { translate } from './i18n.js';
-import { buildIndex, isCanvas, isFlow, isMarkdown, resolveLink, rewriteFlowLinks, rewriteLinks } from './vault.js';
+import {
+  buildIndex,
+  isCanvas,
+  isFlow,
+  isMarkdown,
+  resolveLink,
+  rewriteFlowLinks,
+  rewriteLinks,
+} from './vault.js';
 import { parseCanvas, serializeCanvas } from './canvas.js';
 import { flushPendingEdits } from './pendingEdits.js';
 import { playUiSound } from './uiSounds.js';

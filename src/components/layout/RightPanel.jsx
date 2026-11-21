@@ -33,7 +33,8 @@ function Backlinks({ activePath, index, contents, onOpen, settings }) {
     () => (activePath && isMarkdown(activePath) ? flowsUsingCard(index, activePath) : []),
     [activePath, index]
   );
-  const otherLinked = activePath && isMarkdown(activePath) ? linked.filter((p) => !isFlow(p)) : linked;
+  const otherLinked =
+    activePath && isMarkdown(activePath) ? linked.filter((p) => !isFlow(p)) : linked;
   const unlinked = useMemo(() => {
     if (!name || name.length < 3) {
       return [];
@@ -55,11 +56,20 @@ function Backlinks({ activePath, index, contents, onOpen, settings }) {
     <div>
       {isMarkdown(activePath) && (
         <>
-          <div className='panel-section-title'>{t('Used in flows ({count})', { count: usedInRounds.length })}</div>
-          {usedInRounds.length === 0 && <div className='empty-hint'>{t('No flows link to this note yet.')}</div>}
+          <div className='panel-section-title'>
+            {t('Used in flows ({count})', { count: usedInRounds.length })}
+          </div>
+          {usedInRounds.length === 0 && (
+            <div className='empty-hint'>{t('No flows link to this note yet.')}</div>
+          )}
           {usedInRounds.map((p) => (
-            <button type='button' key={p} className='backlink flow-backlink' title={p}
-              onClick={(e) => onOpen(p, e.ctrlKey || e.metaKey)}>
+            <button
+              type='button'
+              key={p}
+              className='backlink flow-backlink'
+              title={p}
+              onClick={(e) => onOpen(p, e.ctrlKey || e.metaKey)}
+            >
               {displayName(p, settings.hideFlowExtension, settings.showMarkdownExtension)}
             </button>
           ))}

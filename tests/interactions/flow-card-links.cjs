@@ -1,4 +1,16 @@
-module.exports = async function runScenario({ vault, fs, path, assert, delay, js, wait, open, context, button, click }) {
+module.exports = async function runScenario({
+  vault,
+  fs,
+  path,
+  assert,
+  delay,
+  js,
+  wait,
+  open,
+  context,
+  button,
+  click,
+}) {
   await open('Round.flow');
   await wait("!!document.querySelector('.flow-grid textarea')");
   await js(`(() => {
@@ -18,13 +30,29 @@ module.exports = async function runScenario({ vault, fs, path, assert, delay, js
     if (cell) { cell.focus(); cell.blur(); }
   })()`);
   await wait("!!document.querySelector('.flow-cell-preview a.internal-link')");
-  assert.equal(await js("document.querySelector('.flow-cell-preview a.internal-link').getAttribute('title')"), 'Nested/Beta.md');
-  assert.equal(await js("document.querySelector('.flow-cell-preview a.internal-link').textContent"), 'Beta');
+  assert.equal(
+    await js("document.querySelector('.flow-cell-preview a.internal-link').getAttribute('title')"),
+    'Nested/Beta.md'
+  );
+  assert.equal(
+    await js("document.querySelector('.flow-cell-preview a.internal-link').textContent"),
+    'Beta'
+  );
   for (let i = 0; i < 80; i++) {
     const flow = JSON.parse(await fs.readFile(path.join(vault, 'Round.flow'), 'utf8'));
-    if (flow.sheets.some((sheet) => sheet.rows.some((row) => row.some((cell) => cell.includes('[[Nested/Beta.md|Beta]]'))))) {
+    if (
+      flow.sheets.some((sheet) =>
+        sheet.rows.some((row) => row.some((cell) => cell.includes('[[Nested/Beta.md|Beta]]')))
+      )
+    ) {
       assert.equal(flow.version, 2);
-      assert.ok(flow.sheets.some((sheet) => sheet.rows.some((row) => row.some((cell) => cell.includes('Draft argument\n[[Nested/Beta.md|Beta]]')))));
+      assert.ok(
+        flow.sheets.some((sheet) =>
+          sheet.rows.some((row) =>
+            row.some((cell) => cell.includes('Draft argument\n[[Nested/Beta.md|Beta]]'))
+          )
+        )
+      );
       break;
     }
     if (i === 79) {
@@ -35,8 +63,10 @@ module.exports = async function runScenario({ vault, fs, path, assert, delay, js
   await click('.flow-cell-preview a.internal-link');
   await wait("document.querySelector('.tab.active')?.title === 'Nested/Beta.md'");
   await click('.right-panel [aria-label="Backlinks"]');
-  await wait("!!document.querySelector('.right-panel .flow-backlink[title=\"Round.flow\"]')");
-  assert.ok(await js("document.querySelector('.right-panel').textContent.includes('Used in flows (1)')"));
+  await wait('!!document.querySelector(\'.right-panel .flow-backlink[title="Round.flow"]\')');
+  assert.ok(
+    await js("document.querySelector('.right-panel').textContent.includes('Used in flows (1)')")
+  );
   await click('.right-panel .flow-backlink[title="Round.flow"]');
   await wait("document.querySelector('.tab.active')?.title === 'Round.flow'");
 };

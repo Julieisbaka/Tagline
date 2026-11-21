@@ -45,7 +45,9 @@ test('keyword search finds flow cells and treats sheet and column names as headi
   const found = searchVault(contents, index, 'Aff plan text');
   assert.equal(found[0].path, 'Round.flow');
   assert.ok(found[0].matches.some((match) => match.text.includes('Aff plan text')));
-  assert.ok(searchVault(contents, index, 'Case 1AC').some((result) => result.path === 'Round.flow'));
+  assert.ok(
+    searchVault(contents, index, 'Case 1AC').some((result) => result.path === 'Round.flow')
+  );
   const filtered = filterSearchDocuments(contents, index, '"Neg block"');
   assert.deepEqual(Object.keys(filtered), ['Round.flow']);
   assert.ok(filtered['Round.flow'].includes('Neg block text'));

@@ -35,9 +35,7 @@ export default function CanvasControls({
         {selectedNode && (
           <button onClick={() => removeNode(selectedNode)}>{t('Delete node')}</button>
         )}
-        {edge && (
-          <button onClick={() => removeEdge(edge.id)}>{t('Delete connection')}</button>
-        )}
+        {edge && <button onClick={() => removeEdge(edge.id)}>{t('Delete connection')}</button>}
         <label className='canvas-mode-control'>
           {t('Relation')}
           <select

@@ -160,10 +160,7 @@ test('platform: revision history rejects symlinks in document directories and Ca
     }
     throw error;
   }
-  await assert.rejects(
-    history.snapshot('Note.md', 'new'),
-    /symbolic links/
-  );
+  await assert.rejects(history.snapshot('Note.md', 'new'), /symbolic links/);
 
   await fsAsync.unlink(path.join(root, '.tagline', 'history', 'Note.md'));
   await fsAsync.mkdir(path.join(root, '.tagline', 'history', 'Map.canvas'), { recursive: true });
@@ -179,11 +176,17 @@ test('platform: revision history rejects symlinks in document directories and Ca
   );
   await fsAsync.writeFile(
     path.join(root, 'Map.canvas'),
-    JSON.stringify({ nodes: [{ id: 'n', type: 'text', x: 0, y: 0, width: 100, height: 100, text: 'old' }], edges: [] })
+    JSON.stringify({
+      nodes: [{ id: 'n', type: 'text', x: 0, y: 0, width: 100, height: 100, text: 'old' }],
+      edges: [],
+    })
   );
   await history.snapshot(
     'Map.canvas',
-    JSON.stringify({ nodes: [{ id: 'n', type: 'text', x: 1, y: 0, width: 100, height: 100, text: 'new' }], edges: [] }),
+    JSON.stringify({
+      nodes: [{ id: 'n', type: 'text', x: 1, y: 0, width: 100, height: 100, text: 'new' }],
+      edges: [],
+    }),
     50,
     'complete'
   );

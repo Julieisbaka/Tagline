@@ -47,7 +47,16 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
     path.join(vault, 'Sizing.flow'),
     JSON.stringify({
       version: 2,
-      sheets: [{ name: 'Case', columns: ['1AC', '1NC'], rows: [['Short', '\n'.repeat(40)], ['long\n'.repeat(80), '']] }],
+      sheets: [
+        {
+          name: 'Case',
+          columns: ['1AC', '1NC'],
+          rows: [
+            ['Short', '\n'.repeat(40)],
+            ['long\n'.repeat(80), ''],
+          ],
+        },
+      ],
     })
   );
   await fs.writeFile(path.join(vault, 'Map.canvas'), '{"nodes":[],"edges":[]}');

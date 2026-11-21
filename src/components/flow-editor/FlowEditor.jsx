@@ -621,7 +621,9 @@ export default function FlowEditor({
               onChange={(event) => setCardQuery(event.target.value)}
             />
             <div className='flow-card-results'>
-              {cardResults.length === 0 && <div className='empty-hint'>{t('No matching notes.')}</div>}
+              {cardResults.length === 0 && (
+                <div className='empty-hint'>{t('No matching notes.')}</div>
+              )}
               {cardResults.map((item) => (
                 <button key={item} title={item} onClick={() => linkCard(item)}>
                   {item}

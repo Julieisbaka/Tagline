@@ -313,11 +313,13 @@ export function rewriteFlowLinks(content, oldPath, newPath, allPaths) {
   let changed = false;
   const sheets = flow.sheets.map((sheet) => ({
     ...sheet,
-    rows: sheet.rows.map((row) => row.map((cell) => {
-      const next = rewriteLinks(cell, oldPath, newPath, allPaths, true);
-      changed ||= next !== cell;
-      return next;
-    })),
+    rows: sheet.rows.map((row) =>
+      row.map((cell) => {
+        const next = rewriteLinks(cell, oldPath, newPath, allPaths, true);
+        changed ||= next !== cell;
+        return next;
+      })
+    ),
   }));
   return changed ? JSON.stringify({ ...flow, sheets }, null, 2) : content;
 }

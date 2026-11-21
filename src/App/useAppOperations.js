@@ -8,7 +8,15 @@ import { makeJump } from '../lib/jump.js';
 import { slugify } from '../lib/markdown.js';
 import { playUiSound } from '../lib/uiSounds.js';
 import { useAppExtensions } from '../lib/useAppExtensions.js';
-import { baseName, dirName, isFlow, isMarkdown, joinPath, outline, resolveLink } from '../lib/vault.js';
+import {
+  baseName,
+  dirName,
+  isFlow,
+  isMarkdown,
+  joinPath,
+  outline,
+  resolveLink,
+} from '../lib/vault.js';
 
 export function useAppOperations({
   settings,

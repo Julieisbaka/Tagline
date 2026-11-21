@@ -243,7 +243,7 @@ const delay = (ms) => new Promise((r) => setTimeout(r, ms));
           }
         })()`);
         assert.equal(
-          await js("document.querySelector('.visual-find [aria-label=\"Find text\"]').value"),
+          await js('document.querySelector(\'.visual-find [aria-label="Find text"]\').value'),
           'find',
           'typing in the find field must append characters instead of replacing the query'
         );

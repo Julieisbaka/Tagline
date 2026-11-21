@@ -575,7 +575,11 @@ export default function FlowGrid({
                         const link = event.target.closest('a.internal-link');
                         if (link) {
                           event.preventDefault();
-                          onOpenLink(link.dataset.href, link.dataset.heading, event.ctrlKey || event.metaKey);
+                          onOpenLink(
+                            link.dataset.href,
+                            link.dataset.heading,
+                            event.ctrlKey || event.metaKey
+                          );
                           return;
                         }
                         goToCell(r, c);
