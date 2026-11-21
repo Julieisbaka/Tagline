@@ -1,6 +1,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { binding, displayBinding, matchesBinding } from '../../lib/keybindings.js';
 import { cellBounds, copyFlowCells } from '../../lib/flowCells.js';
+import { canRemoveRow } from '../../lib/flowRows.js';
 import { pasteClipboardCells } from '../../lib/pasteClipboardCells.js';
 import { registerPendingFlush } from '../../lib/pendingEdits.js';
 import { renderMarkdown } from '../../lib/markdown.js';
@@ -163,6 +164,13 @@ export default function FlowGrid({
     resolve,
     onOpenLink,
   } = actions;
+
+  // Preview HTML embeds resolved links. When the vault file set changes the
+  // resolver identity changes with it, so previously cached HTML may contain
+  // stale resolved/unresolved link markup even though the settings did not.
+  useEffect(() => {
+    markdownCache.current.clear();
+  }, [resolve]);
 
   const goToCell = (row, column, edit = true) => {
     setTabStop({ row, column });
@@ -429,7 +437,9 @@ export default function FlowGrid({
                       },
                       { label: 'Insert row below', command: 'flow-row', run: () => addRow(r, c) },
                       { label: 'Clear cell', run: () => setCell(r, c, '') },
-                      { label: 'Remove row', run: () => removeRow(r), danger: true },
+                      ...(canRemoveRow(sheet.rows.length)
+                        ? [{ label: 'Remove row', run: () => removeRow(r), danger: true }]
+                        : []),
                     ]);
                   }}
                 >
@@ -568,7 +578,12 @@ export default function FlowGrid({
                 </td>
               ))}
               <td className='flow-actions'>
-                <button className='mini' title={t('Remove row')} onClick={() => removeRow(r)}>
+                <button
+                  className='mini'
+                  title={t('Remove row')}
+                  disabled={!canRemoveRow(sheet.rows.length)}
+                  onClick={() => removeRow(r)}
+                >
                   <Icon name='x' size={10} />
                 </button>
               </td>

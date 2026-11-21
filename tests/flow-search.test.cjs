@@ -88,3 +88,36 @@ test('flowDocument maps synthetic cell lines back to sheet, row and column', asy
   assert.ok(text.includes('# Case'));
   assert.ok(text.includes('Aff plan text'));
 });
+
+test('multiline cells map every physical line to the same cell', async () => {
+  const { flowDocument } = await import('../src/lib/flowText.js');
+  const { searchVault } = await import('../src/lib/search.js');
+  const content = flowFile([
+    {
+      name: 'Case',
+      columns: ['1AC', '1NC'],
+      rows: [['line one\nline two', 'FIRST\nSECOND']],
+    },
+  ]);
+  const { text, cellMap } = flowDocument(content);
+  const lines = text.split('\n');
+  assert.deepEqual(lines, [
+    '# Case',
+    '## 1AC',
+    'line one',
+    'line two',
+    '## 1NC',
+    'FIRST',
+    'SECOND',
+  ]);
+  assert.equal(cellMap.length, lines.length, 'one map entry per synthetic search line');
+  assert.deepEqual(cellMap[2], { sheetIndex: 0, row: 0, column: 0 });
+  assert.deepEqual(cellMap[3], { sheetIndex: 0, row: 0, column: 0 });
+  assert.equal(cellMap[4], undefined);
+  assert.deepEqual(cellMap[5], { sheetIndex: 0, row: 0, column: 1 });
+  assert.deepEqual(cellMap[6], { sheetIndex: 0, row: 0, column: 1 });
+
+  const [result] = searchVault({ 'Round.flow': content }, { tags: {} }, 'SECOND');
+  assert.equal(result.matches[0].line, 6);
+  assert.deepEqual(cellMap[result.matches[0].line], { sheetIndex: 0, row: 0, column: 1 });
+});

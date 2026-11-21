@@ -2,6 +2,7 @@ import { redo as redoEditor, undo as undoEditor } from '@codemirror/commands';
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { EMPTY_FLOW, flowColumns, parseFlow } from '../../../electron/flow.mjs';
 import { cellBounds, copyFlowCells, parseFlowCells, pasteFlowCells } from '../../lib/flowCells.js';
+import { canRemoveRow } from '../../lib/flowRows.js';
 import { useI18n } from '../../lib/i18n.js';
 import { binding, displayBinding, matchesBinding } from '../../lib/keybindings.js';
 import { flushPendingEdits } from '../../lib/pendingEdits.js';
@@ -356,7 +357,7 @@ export default function FlowEditor({
   const insertRowAbove = (row, column) => addRow(row - 1, column);
 
   const removeRow = (r) => {
-    if (sheet.rows.length === 1) {
+    if (!canRemoveRow(sheet.rows.length)) {
       return;
     }
     setSelection(null);

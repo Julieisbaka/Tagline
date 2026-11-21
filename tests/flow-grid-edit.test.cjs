@@ -41,10 +41,22 @@ test('undo and redo commit pending cell drafts first', async () => {
   assert.match(source, /const redoFlow = \(\) => \{\s*flushPendingEdits\(\);/);
 });
 
-test('removing the last flow row is guarded', async () => {
-  const source = await fs.readFile(
+test('removing the last flow row is guarded and the controls show it', async () => {
+  const { canRemoveRow } = await import('../src/lib/flowRows.js');
+  assert.equal(canRemoveRow(0), false);
+  assert.equal(canRemoveRow(1), false, 'the only argument row must be kept');
+  assert.equal(canRemoveRow(2), true);
+  assert.equal(canRemoveRow(10), true);
+
+  const editor = await fs.readFile(
     path.join(root, 'src', 'components', 'flow-editor', 'FlowEditor.jsx'),
     'utf8'
   );
-  assert.match(source, /const removeRow = \(r\) => \{\s*if \(sheet\.rows\.length === 1\) \{\s*return;\s*\}/);
+  const grid = await fs.readFile(
+    path.join(root, 'src', 'components', 'flow-editor', 'FlowGrid.jsx'),
+    'utf8'
+  );
+  assert.match(editor, /if \(!canRemoveRow\(sheet\.rows\.length\)\)/);
+  assert.match(grid, /disabled=\{!canRemoveRow\(sheet\.rows\.length\)\}/);
+  assert.match(grid, /\.\.\.\(canRemoveRow\(sheet\.rows\.length\)/);
 });

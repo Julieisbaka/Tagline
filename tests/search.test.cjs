@@ -220,3 +220,27 @@ test('keyword-only and semantic-only fusion preserve rankings and deterministic 
     assert.throws(() => mergeHybridResults([], [], limit), /Maximum search results/);
   }
 });
+
+test('search opens produce a jump with a numeric line for markdown and a cell map for flows', async () => {
+  const { makeJump } = await import('../src/lib/jump.js');
+
+  // SearchModal always passes the object payload. For a note there is no
+  // cellMap, so the editor only receives a plain line number to scroll to.
+  const markdown = makeJump('Notes.md', { line: 5, cellMap: undefined }, 1000);
+  assert.deepEqual(markdown, { path: 'Notes.md', line: 5, cellMap: undefined, n: 1000 });
+  assert.equal(typeof markdown.line, 'number');
+
+  // A flow match carries the synthetic-line-to-cell map through to FlowEditor.
+  const cellMap = [undefined, { sheetIndex: 0, row: 1, column: 2 }];
+  const flow = makeJump('Round.flow', { line: 1, cellMap }, 2000);
+  assert.deepEqual(flow, { path: 'Round.flow', line: 1, cellMap, n: 2000 });
+  assert.deepEqual(flow.cellMap[flow.line], { sheetIndex: 0, row: 1, column: 2 });
+
+  // Other callers still open with a bare line number.
+  assert.deepEqual(makeJump('Legacy.md', 3, 3000), {
+    path: 'Legacy.md',
+    line: 3,
+    cellMap: undefined,
+    n: 3000,
+  });
+});

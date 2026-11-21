@@ -36,7 +36,13 @@ export function flowDocument(content) {
         }
         cells.push(cell);
         lines.push(cell);
-        cellMap.push({ sheetIndex, row, column: columnIndex });
+        // A textarea cell can contain newlines. The synthetic text is later
+        // split on '\n' for match line numbers, so the map needs one entry per
+        // physical line or every match after a multiline cell points nowhere.
+        const physicalLines = cell.split('\n').length;
+        for (let i = 0; i < physicalLines; i++) {
+          cellMap.push({ sheetIndex, row, column: columnIndex });
+        }
       }
     }
   }

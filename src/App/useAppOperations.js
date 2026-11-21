@@ -4,6 +4,7 @@ import { renameTarget, sanitizeName } from '../components/layout/Sidebar.jsx';
 import { EMPTY_CANVAS } from '../lib/canvas.js';
 import { defaultEditorMode } from '../lib/editorModes.js';
 import { markSpeechDocument } from '../lib/frontmatter.js';
+import { makeJump } from '../lib/jump.js';
 import { slugify } from '../lib/markdown.js';
 import { playUiSound } from '../lib/uiSounds.js';
 import { useAppExtensions } from '../lib/useAppExtensions.js';
@@ -42,7 +43,7 @@ export function useAppOperations({
         // Flow cells are focused in the visual grid; markdown jumps land in
         // source mode so the line number can scroll to the right place.
         setModes((s) => ({ ...s, [path]: isFlow(path) ? 'visual' : 'edit' }));
-        setJump({ path, line, n: Date.now() });
+        setJump(makeJump(path, line));
       }
     },
     [tabs, setWebsite, setModes, setJump]
