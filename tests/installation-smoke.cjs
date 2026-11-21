@@ -195,6 +195,13 @@ app.on('browser-window-created', (_event, win) => {
           syllablesPerMinute: 500,
           theme: 'high-contrast-dark',
           modelAutoload: false,
+          timerState: {
+            format: 'highschool',
+            speech: 1,
+            remaining: 120,
+            affRemaining: 99,
+            negRemaining: 240,
+          },
           customCss: '.note-title { font-weight: 600; }',
           keybindings: { settings: 'Mod+,' },
           themeSettings: { dark: { customOption: 'saved' } },

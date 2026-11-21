@@ -31,6 +31,7 @@ async function fixture(t) {
       if (name === 'test') console.log('# tests 1\\n# pass 1\\n# fail 0\\n# skipped 0\\n# cancelled 0');
       if (name === process.env.FAIL_SUITE) {
         if (process.env.SCENARIO_FAILURE) console.error('Error: Scenario failed: flow card links\\nCaused by: AssertionError: expected a link');
+        if (process.env.NESTED_FAILURE) console.error('AssertionError: original child failure\\nAssertionError: child process failed');
         process.exitCode = 1;
       }
     };
@@ -113,4 +114,17 @@ test('failure log retains the scenario description and its assertion cause', asy
   const log = await fs.readFile(path.join(f.root, 'test-all.log'), 'utf8');
   assert.match(log, /Scenario failed: flow card links/);
   assert.match(log, /AssertionError: expected a link/);
+});
+
+test('failure log retains child errors before the parent assertion', async (t) => {
+  const f = await fixture(t);
+  const result = f.run(['--skip-unit', '--bail'], {
+    TAGLINE_TEST_DIST_READY: '1',
+    FAIL_SUITE: 'test:a',
+    NESTED_FAILURE: '1',
+  });
+  assert.equal(result.status, 1);
+  const log = await fs.readFile(path.join(f.root, 'test-all.log'), 'utf8');
+  assert.match(log, /AssertionError: original child failure/);
+  assert.match(log, /AssertionError: child process failed/);
 });
