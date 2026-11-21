@@ -240,7 +240,7 @@
               rejected with
               <q>Extension permissions or settings changed. Reload and review before enabling.</q>
               After a successful enable, the approval signature is stored in
-              <code>extensionReviews</code> in the app’s <code>config.json</code>. On every launch
+              <code>extensionReviews</code> in the app's <code>config.json</code>. On every launch
               and reload, Tagline scans each manifest and checks its stored approval again.
             </p>
             <p>
@@ -359,7 +359,7 @@
                   <tr>
                     <td><code>id</code></td>
                     <td>
-                      Required, 2–64 characters; starts with a lowercase letter or digit and
+                      Required, 2 - 64 characters; starts with a lowercase letter or digit and
                       contains only lowercase letters, digits, or hyphens. Unique across valid
                       installed manifests.
                     </td>
@@ -385,7 +385,7 @@
                   <tr>
                     <td><code>authors</code></td>
                     <td>
-                      Optional list of 1–20 unique, nonblank author names, each at most 200
+                      Optional list of 1 - 20 unique, nonblank author names, each at most 200
                       characters. If omitted, the legacy <code>author</code> value is shown as the
                       sole author.
                     </td>
@@ -870,7 +870,7 @@ await stop();</code></pre>
               Both the provider and caller must declare the review-gated <code>api</code> permission
               and have it allowed in Settings. APIs are host-mediated; extensions never receive
               another extension's worker or privileges. Export one API during initialization with
-              a positive integer version and 1–64 lowercase method names:
+              a positive integer version and 1 - 64 lowercase method names:
             </p>
             <pre><code class="language-js">await tagline.extensions.export(1, {
   lookup: async ({ query }) =&gt; ({ matches: await searchMyIndex(query) }),
@@ -1166,7 +1166,7 @@ const templateText = await tagline.helpers.templates.read(templatePaths[0]);</co
               Additional bounds include 10,000 supplied paths for link resolution; 10,000 document
               paths and 1,000,000 total text characters; 1,000 entries for layout catalogs and ID
               arrays; 10,000 folder-tree nodes and 100 levels; and 100,000 flow cells. Speech
-              estimates accept 50–1,000 words per minute, and calibration accepts up to 100
+              estimates accept 50 - 1,000 words per minute, and calibration accepts up to 100
               validated samples.
             </p>
             <p>
