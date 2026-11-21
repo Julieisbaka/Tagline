@@ -100,11 +100,15 @@ app.on('browser-window-created', (_event, win) => {
         false,
         'dismissal persists without a vault'
       );
-      await js(`(() => {
-        const settings = JSON.parse(localStorage.getItem('tagline-settings'));
-        settings.internalFlags.hasSeenOnboarding = false;
-        localStorage.setItem('tagline-settings', JSON.stringify(settings));
-      })()`);
+      win.webContents.send('menu:command', 'openSettings');
+      await wait("!!document.querySelector('[data-section=advanced]')");
+      await js("document.querySelector('[data-section=advanced]').click()");
+      await js(
+        "[...document.querySelectorAll('.internal-flags button')].find(button => button.textContent.includes('Show onboarding again')).click()"
+      );
+      await wait(
+        "JSON.parse(localStorage.getItem('tagline-settings')).internalFlags.hasSeenOnboarding === false"
+      );
       await new Promise((resolve) => {
         win.webContents.once('did-finish-load', resolve);
         win.webContents.reload();
