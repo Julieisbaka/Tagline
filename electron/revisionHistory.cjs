@@ -193,25 +193,14 @@ function createRevisionHistory({ getVaultRoot, resolveInVault }) {
           ])
         );
         await fs.mkdir(directory, { recursive: true });
-<<<<<<< HEAD
-        const temporary = `${layoutPath}.${randomUUID()}.tmp`;
-        await fs.writeFile(
-          temporary,
-=======
         await assertSafeHistoryPath(directory);
-        const temporaryLayout = `${layoutPath}.tmp`;
-        await assertSafeHistoryPath(temporaryLayout);
-        await fs.writeFile(
-          temporaryLayout,
->>>>>>> c3fef858d8a787326336cb9087218b941839bd3d
-          JSON.stringify({ ...layout, ...positions }),
-          { encoding: 'utf8', flag: 'wx' }
-        );
-<<<<<<< HEAD
+        const temporary = `${layoutPath}.${randomUUID()}.tmp`;
+        await assertSafeHistoryPath(temporary);
+        await fs.writeFile(temporary, JSON.stringify({ ...layout, ...positions }), {
+          encoding: 'utf8',
+          flag: 'wx',
+        });
         await fs.rename(temporary, layoutPath);
-=======
-        await fs.rename(temporaryLayout, layoutPath);
->>>>>>> c3fef858d8a787326336cb9087218b941839bd3d
       }
       if (canvasMode === 'data' && before && after) {
         const dataOnly = (canvas) => ({

@@ -181,14 +181,11 @@ test('platform: revision history rejects symlinks in document directories and Ca
     path.join(root, 'Map.canvas'),
     JSON.stringify({ nodes: [{ id: 'n', type: 'text', x: 0, y: 0, width: 100, height: 100, text: 'old' }], edges: [] })
   );
-  await assert.rejects(
-    history.snapshot(
-      'Map.canvas',
-      JSON.stringify({ nodes: [{ id: 'n', type: 'text', x: 1, y: 0, width: 100, height: 100, text: 'new' }], edges: [] }),
-      50,
-      'complete'
-    ),
-    /symbolic links/
+  await history.snapshot(
+    'Map.canvas',
+    JSON.stringify({ nodes: [{ id: 'n', type: 'text', x: 1, y: 0, width: 100, height: 100, text: 'new' }], edges: [] }),
+    50,
+    'complete'
   );
   assert.equal(await fsAsync.readFile(outsideFile, 'utf8'), 'unrelated');
 });
