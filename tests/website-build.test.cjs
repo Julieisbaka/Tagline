@@ -3,61 +3,77 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
-const { buildWebsite } = require('../scripts/build-website.cjs');
+const { buildWebsite, loadSources, renderHtml } = require('../scripts/build-website.cjs');
 
-function withWebsiteFixture(callback) {
-  const rootDir = fs.mkdtempSync(path.join(os.tmpdir(), 'tagline-website-build-'));
-  const sourceDir = path.join(rootDir, 'website');
-  const outputDir = path.join(rootDir, 'website-build');
-  fs.mkdirSync(sourceDir);
+const rootDir = path.join(__dirname, '..');
+
+test('website build renders code-derived values from the application sources', async () => {
+  const sources = await loadSources(rootDir);
+  const render = (body) => renderHtml(`{{TAGLINE:${body}}}`, sources);
+
+  assert.equal(render('SETTING:templateFolder'), sources.settings.templateFolder);
+  assert.equal(render('SETTING:timerFloatingWindow'), 'off');
+  assert.equal(render('KEY:send-card'), 'Mod+Shift+S');
+  assert.equal(render('KEY_WIN:flow-row'), 'Ctrl+Enter');
+  assert.equal(render('KEY_MAC:flow-row'), 'Cmd+Enter');
+  assert.equal(render('KEY:flow-cell-up'), 'Alt+Up');
+  assert.equal(render('KEY:flow-deselect'), 'Esc');
+  assert.equal(render('LIMIT:themeFileBytes'), '65,536');
+  assert.equal(render('LIMIT:themeFileBytes.max'), '1,048,576');
+  assert.equal(render('CONST:electron/extensions/storage.cjs#MAX_SECRETS'), '50');
+});
+
+test('website build rejects unresolvable or malformed tokens', async () => {
+  const sources = await loadSources(rootDir);
+
+  for (const body of [
+    'SETTING:doesNotExist',
+    'SETTING:timerState',
+    'KEY:doesNotExist',
+    'KEY:new-flow',
+    'LIMIT:themeFileBytes.step',
+    'LIMIT:doesNotExist',
+    'CONST:electron/extensions/storage.cjs#NOT_DECLARED',
+    'CONST:../package.json#VERSION',
+    'UNKNOWN:value',
+  ]) {
+    assert.throws(() => renderHtml(`{{TAGLINE:${body}}}`, sources), /ebsite template/, body);
+  }
+});
+
+test('website build evaluates simple numeric constant products', async () => {
+  const sources = await loadSources(rootDir);
+  const constantRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'tagline-website-const-'));
 
   try {
-    callback({ sourceDir, outputDir });
+    fs.writeFileSync(path.join(constantRoot, 'limits.cjs'), 'const MAX_BYTES = 5 * 1_024 * 1_024;\n');
+    assert.equal(
+      renderHtml('{{TAGLINE:CONST:limits.cjs#MAX_BYTES}}', { ...sources, rootDir: constantRoot }),
+      '5,242,880'
+    );
   } finally {
-    fs.rmSync(rootDir, { recursive: true, force: true });
+    fs.rmSync(constantRoot, { recursive: true, force: true });
   }
-}
-
-test('website build renders development metadata without modifying source files', () => {
-  withWebsiteFixture(({ sourceDir, outputDir }) => {
-    const template = '<a href="#{{TAGLINE:VERSION_ANCHOR}}">{{TAGLINE:VERSION}} · {{TAGLINE:RELEASE_STATUS}}</a>';
-    fs.writeFileSync(path.join(sourceDir, 'index.html'), template);
-    fs.writeFileSync(path.join(sourceDir, 'site.css'), 'body { color: black; }');
-
-    buildWebsite(sourceDir, outputDir, '0.2.0-dev');
-
-    assert.equal(
-      fs.readFileSync(path.join(outputDir, 'index.html'), 'utf8'),
-      '<a href="#v0-2-0">0.2.0 · In development</a>'
-    );
-    assert.equal(fs.readFileSync(path.join(sourceDir, 'index.html'), 'utf8'), template);
-    assert.equal(fs.readFileSync(path.join(outputDir, 'site.css'), 'utf8'), 'body { color: black; }');
-  });
 });
 
-test('website build renders released metadata without a development suffix', () => {
-  withWebsiteFixture(({ sourceDir, outputDir }) => {
-    fs.writeFileSync(
-      path.join(sourceDir, 'index.html'),
-      '{{TAGLINE:VERSION}} · {{TAGLINE:RELEASE_STATUS}}'
+test('website pages build without unresolved Tagline tokens', async () => {
+  const sources = await loadSources(rootDir);
+  const outputDir = fs.mkdtempSync(path.join(os.tmpdir(), 'tagline-website-build-'));
+
+  try {
+    buildWebsite(path.join(rootDir, 'website'), outputDir, sources);
+
+    const pages = fs.readdirSync(path.join(outputDir, 'docs')).filter((name) => name.endsWith('.html'));
+    assert.ok(pages.length > 0);
+    for (const page of pages) {
+      const html = fs.readFileSync(path.join(outputDir, 'docs', page), 'utf8');
+      assert.doesNotMatch(html, /\{\{TAGLINE:/, page);
+    }
+    assert.match(
+      fs.readFileSync(path.join(outputDir, 'docs', 'keyboard-shortcuts.html'), 'utf8'),
+      /<kbd>Mod\+P<\/kbd><span>Open command palette/
     );
-
-    buildWebsite(sourceDir, outputDir, '1.2.3');
-
-    assert.equal(
-      fs.readFileSync(path.join(outputDir, 'index.html'), 'utf8'),
-      '1.2.3 · Released'
-    );
-  });
-});
-
-test('website build fails on unknown Tagline template tokens', () => {
-  withWebsiteFixture(({ sourceDir, outputDir }) => {
-    fs.writeFileSync(path.join(sourceDir, 'index.html'), '{{TAGLINE:UNKNOWN}}');
-
-    assert.throws(
-      () => buildWebsite(sourceDir, outputDir, '0.2.0-dev'),
-      /Unknown website template token: \{\{TAGLINE:UNKNOWN\}\}/
-    );
-  });
+  } finally {
+    fs.rmSync(outputDir, { recursive: true, force: true });
+  }
 });

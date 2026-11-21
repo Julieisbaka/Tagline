@@ -112,7 +112,7 @@
                 enable the extension.
               </li>
               <li>
-                Find contributed commands in the command palette (<kbd>Mod+P</kbd>) and themes in
+                Find contributed commands in the command palette (<kbd>{{TAGLINE:KEY:commands}}</kbd>) and themes in
                 <strong>Settings &gt; Appearance &gt; Theme</strong>.
               </li>
             </ol>
@@ -432,7 +432,7 @@
                   <tr>
                     <td><code>contributes.commands</code></td>
                     <td>
-                      Up to 50 declarations; each has a unique ID and nonblank title (up to 80
+                      Up to {{TAGLINE:LIMIT:extensionCommands}} declarations; each has a unique ID and nonblank title (up to 80
                       characters). Requires <code>main</code>.
                     </td>
                   </tr>
@@ -472,7 +472,7 @@
                   </tr>
                   <tr>
                     <td><code>contributes.settings</code></td>
-                    <td>Up to 32 typed settings; requires <code>settings</code> permission.</td>
+                    <td>Up to {{TAGLINE:LIMIT:extensionSettings}} typed settings; requires <code>settings</code> permission.</td>
                   </tr>
                   <tr>
                     <td><code>contributes.panels</code>, <code>contributes.webviews</code></td>
@@ -526,9 +526,9 @@
               Translation catalogs are limited to 256 KiB each; fonts to 10 MiB each and 20 MiB in
               total; templates to 1 MiB each and 4 MiB in total. These declarative assets need no
               permissions and are removed from the app when the extension is disabled.
-              The aggregate JSON size of theme files loaded from one extension is limited to 524,288
+              The aggregate JSON size of theme files loaded from one extension is               limited to {{TAGLINE:LIMIT:themePreviewBytes}}
               bytes by default; this <strong>Theme preview bytes</strong> limit can be adjusted from
-              1,024 to 4,194,304 bytes. Per-file limits apply independently. Limits are adjustable
+              {{TAGLINE:LIMIT:themePreviewBytes.min}} to {{TAGLINE:LIMIT:themePreviewBytes.max}} bytes. Per-file limits apply independently. Limits are adjustable
               within fixed bounds in
               <strong>Settings &gt; Advanced settings &gt; Theme and extension limits</strong>.
             </p>
@@ -650,8 +650,8 @@
                 deadline.
               </li>
               <li>
-                More than 200 messages in a rolling second stops an extension. At most 32 bridge
-                calls may be pending, and each extension may register up to 32 vault watches and 32
+                More than {{TAGLINE:LIMIT:extensionMessagesPerSecond}} messages in a rolling second stops an extension. At most {{TAGLINE:LIMIT:extensionPendingCalls}} bridge
+                calls may be pending, and each extension may register up to {{TAGLINE:LIMIT:extensionWatches}} vault watches and {{TAGLINE:LIMIT:extensionWatches}}
                 active-note listeners.
               </li>
               <li>
@@ -683,8 +683,8 @@
 });</code></pre>
             <p>
               <code>timeoutMs</code> is a positive integer no greater than the configurable
-              <code>extensionNetworkTimeoutMs</code> cap (30,000 ms by default). Omitting it uses
-              30,000 ms or the cap, whichever is smaller. Customize the cap in Settings. Requests
+              <code>extensionNetworkTimeoutMs</code>               cap ({{TAGLINE:LIMIT:extensionNetworkTimeoutMs}} ms by default). Omitting it uses
+              {{TAGLINE:LIMIT:extensionNetworkTimeoutMs}} ms or the cap, whichever is smaller. Customize the cap in Settings. Requests
               are limited to 20 per second per extension.
             </p>
             <p>
@@ -695,7 +695,7 @@
               symbolic links. Failures remove the temporary file. The result contains response
               metadata, <code>bytes</code>, and <code>path</code>. The same request options apply,
               except <code>responseType</code>. Downloads have a separate configurable
-              <code>networkDownloadBytes</code> limit (20,000,000 bytes by default).
+              <code>networkDownloadBytes</code> limit ({{TAGLINE:LIMIT:networkDownloadBytes}} bytes by default).
               The vault tree only displays non-hidden <code>.md</code>, <code>.flow</code>,
               <code>.canvas</code>, and <code>.json</code> files; other downloaded files remain
               on disk but do not appear in the tree.
@@ -1429,8 +1429,8 @@ const key = await tagline.secrets.get('api-key'); // string or null
 await tagline.secrets.has('api-key'); // Promise&lt;boolean&gt;
 await tagline.secrets.delete('api-key'); // Promise&lt;boolean&gt;; same as set(key, null)</code></pre>
             <p>
-              Keys are non-empty strings up to 200 characters. Values are strings up to 10,000
-              characters, and each extension can hold up to 50 secrets. <code>get</code> returns
+              Keys are non-empty strings up to {{TAGLINE:CONST:electron/extensions/storage.cjs#MAX_SECRET_KEY}} characters. Values are strings up to {{TAGLINE:CONST:electron/extensions/storage.cjs#MAX_SECRET_VALUE}}
+                            characters, and each extension can hold up to {{TAGLINE:CONST:electron/extensions/storage.cjs#MAX_SECRETS}} secrets. <code>get</code> returns
               <code>null</code> when the key is absent; <code>has</code> returns whether it exists.
               Setting <code>null</code> or <code>undefined</code> deletes the key, as does
               <code>delete</code>.

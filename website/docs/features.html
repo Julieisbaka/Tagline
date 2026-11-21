@@ -95,14 +95,14 @@
         <p>Use backlinks, mentions, tags, an outline, or graph view to navigate a vault. Reusable Markdown templates can
           include placeholders such as <code>{{date}}</code>, <code>{{title}}</code>, and <code>{{path}}</code>. Find
           and replace text in a note with <kbd>Ctrl+F</kbd> on Windows/Linux or <kbd>Cmd+F</kbd> on macOS.</p>
-        <p>Templates in <code>Templates/</code> can also use <code>{{time}}</code>, <code>{{content}}</code>, and
+        <p>Templates in <code>{{TAGLINE:SETTING:templateFolder}}/</code> can also use <code>{{time}}</code>, <code>{{content}}</code>, and
           <code>{{properties}}</code>. The path is the target note's vault-relative filename including <code>.md</code>;
           content is the Markdown body without frontmatter; properties are the raw YAML without delimiters, preserving
           comments and formatting. Placeholder values are inserted literally, not expanded recursively.
         </p>
         <p>Debate-card shortcuts are configurable in <strong>Settings &gt; Keyboard shortcuts</strong>:
-          <kbd>F4</kbd>-<kbd>F7</kbd> apply card headings, <kbd>F8</kbd> citation/bold, <kbd>F9</kbd> underline,
-          <kbd>F10</kbd> emphasis, <kbd>F11</kbd> highlight, and <kbd>F12</kbd> clears formatting. Mac keyboards may
+          <kbd>{{TAGLINE:KEY:pocket}}</kbd>-<kbd>{{TAGLINE:KEY:tag}}</kbd> apply card headings, <kbd>{{TAGLINE:KEY:cite}}</kbd> citation/bold, <kbd>{{TAGLINE:KEY:underline}}</kbd> underline,
+          <kbd>{{TAGLINE:KEY:emphasis}}</kbd> emphasis, <kbd>{{TAGLINE:KEY:highlight}}</kbd> highlight, and <kbd>{{TAGLINE:KEY:clear-format}}</kbd> clears formatting. Mac keyboards may
           need <kbd>Fn</kbd> with function keys.
         </p>
         <p>Sidebar shortcuts and file-explorer toolbar/status items can be reordered or hidden. Drag to reorder; use the

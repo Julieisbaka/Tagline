@@ -165,10 +165,10 @@
             and arbitrary CSS values are rejected. Unknown color tokens are rejected; an empty <code>colors</code>
             object is valid. Import errors are shown instead of partially applying a theme.</p>
           <p>The Appearance picker and extension loader enforce a configurable <strong>Theme file bytes</strong> limit
-            on each theme file: 65,536 bytes by default, adjustable from 1,024 to 1,048,576. The extension loader also
+            on each theme file: {{TAGLINE:LIMIT:themeFileBytes}} bytes by default, adjustable from {{TAGLINE:LIMIT:themeFileBytes.min}} to {{TAGLINE:LIMIT:themeFileBytes.max}}. The extension loader also
             enforces a configurable <strong>Theme preview bytes</strong> limit on the aggregate JSON size of all
-            contributed theme files loaded from one extension: 524,288 bytes by default, adjustable from 1,024 to
-            4,194,304. Both limits are in <strong>Settings &gt; Advanced settings &gt; Theme and extension
+            contributed theme files loaded from one extension:             {{TAGLINE:LIMIT:themePreviewBytes}} bytes by default, adjustable from {{TAGLINE:LIMIT:themePreviewBytes.min}} to
+            {{TAGLINE:LIMIT:themePreviewBytes.max}}. Both limits are in <strong>Settings &gt; Advanced settings &gt; Theme and extension
               limits</strong>, and the per-file limit applies independently of the aggregate limit. For portability,
             keep shared theme files within both limits.</p>
           <p>Use the <a href="https://github.com/Julieisbaka/Tagline/blob/main/schemas/theme.schema.json">theme JSON
@@ -323,8 +323,8 @@
             <code>editor-font-size</code>. Other names are accepted but only affect the interface if a stylesheet uses
             them.
           </p>
-          <p>By default, a theme can include up to 512 overrides; each name is at most 100 characters and each value at
-            most 2,048 characters. Names must begin with a lowercase letter and contain only lowercase letters, digits,
+          <p>By default, a theme can include           up to {{TAGLINE:LIMIT:themeVariables}} overrides; each name is at most 100 characters and each value at
+            most {{TAGLINE:LIMIT:themeValueLength}} characters. Names must begin with a lowercase letter and contain only lowercase letters, digits,
             or hyphens. Values cannot contain semicolons, braces, null bytes, <code>url(...)</code>, or
             <code>@import</code>. Limits can be adjusted in <strong>Settings &gt; Advanced settings &gt; Theme and
               extension limits</strong>.

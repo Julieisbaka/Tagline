@@ -5,8 +5,9 @@ on:
     branches: [main]
     paths:
       - .github/workflows/deploy-website.yml
-      - package.json
+      - electron/**
       - scripts/build-website.cjs
+      - src/lib/**
       - website/**
   workflow_dispatch:
 
