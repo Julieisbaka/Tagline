@@ -5,6 +5,7 @@ import { clampPanel, PANEL_LIMITS } from './components/layout/Splitter.jsx';
 import { useAppCommandContext } from './App/useAppCommandContext.js';
 import { useAppOperations } from './App/useAppOperations.js';
 import { containsEvidence, getSectionAt } from './lib/card.js';
+import { drainFlowFiles } from './lib/drainFlowFiles.js';
 import { defaultEditorMode } from './lib/editorModes.js';
 import { markSpeechDocument, speechDocumentPaths } from './lib/frontmatter.js';
 import { useI18n } from './lib/i18n.js';
@@ -236,15 +237,13 @@ export default function App() {
       }
       processing = true;
       try {
-        let file;
-        while (!disposed && (file = await window.api.nextFlowFile())) {
-          const result = await flowVaultRef.current.openFlowFile(file);
-          if (!disposed && result) {
-            setExternalFlow(result);
-          }
-        }
-      } catch (error) {
-        notify(error.message);
+        await drainFlowFiles({
+          nextFlowFile: () => window.api.nextFlowFile(),
+          openFlowFile: (file) => flowVaultRef.current.openFlowFile(file),
+          onOpened: (result) => setExternalFlow(result),
+          notify,
+          isDisposed: () => disposed,
+        });
       } finally {
         processing = false;
       }
