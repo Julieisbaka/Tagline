@@ -105,6 +105,7 @@ export function extractLinks(content) {
 }
 
 /**
+ * @deprecated Use `extractMetadataTags` for structured tag extraction instead, non metadata tags are considered legacy and may not be consistently recognized; they may also be removed in a future version.
  * Extract unique tag names outside code and Markdown heading markers.
  * @param {string} content - The content of the document to scan for tags.
  * @returns {string[]} - An array of unique tag names.
