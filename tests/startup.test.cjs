@@ -85,21 +85,30 @@ test('platform: snapshot scans once, reads each file once, and bounds parallel f
     stats = 0,
     active = 0,
     peak = 0;
-  for (const name of ['readdir', 'readFile', 'stat']) {
-    const original = fs[name];
-    t.mock.method(fs, name, async (...args) => {
-      if (name === 'readdir') {
-        directories++;
-      }
+  const fileHandle = await fs.open(path.join(dir, 'Folder', '0.md'), 'r');
+  const fileHandlePrototype = Object.getPrototypeOf(fileHandle);
+  await fileHandle.close();
+  const originalReaddir = fs.readdir;
+  t.mock.method(fs, 'readdir', async (...args) => {
+    directories++;
+    peak = Math.max(peak, ++active);
+    try {
+      return await originalReaddir(...args);
+    } finally {
+      active--;
+    }
+  });
+  for (const name of ['readFile', 'stat']) {
+    const original = fileHandlePrototype[name];
+    t.mock.method(fileHandlePrototype, name, async function (...args) {
       if (name === 'readFile') {
         reads++;
-      }
-      if (name === 'stat') {
+      } else {
         stats++;
       }
       peak = Math.max(peak, ++active);
       try {
-        return await original(...args);
+        return await original.apply(this, args);
       } finally {
         active--;
       }
@@ -108,7 +117,7 @@ test('platform: snapshot scans once, reads each file once, and bounds parallel f
   assert.equal(Object.keys((await readVaultSnapshot(dir)).contents).length, 65);
   assert.equal(directories, 2);
   assert.equal(reads, 65);
-  assert.equal(stats, 65);
+  assert.equal(stats, 66);
   assert.ok(peak > 1 && peak <= 16, `Expected 2–16 concurrent operations, got ${peak}`);
   await readVaultSnapshot(dir);
   assert.equal(reads, 65, 'Unchanged note contents are reused from the snapshot cache');
@@ -121,13 +130,14 @@ test('snapshot content cache invalidates on mtime or size changes', async (t) =>
   const file = path.join(dir, 'Note.md');
   await fs.writeFile(file, 'initial');
   await readVaultSnapshot(dir);
-  const originalReadFile = fs.readFile;
+  const fileHandle = await fs.open(file, 'r');
+  const fileHandlePrototype = Object.getPrototypeOf(fileHandle);
+  await fileHandle.close();
+  const originalReadFile = fileHandlePrototype.readFile;
   let reads = 0;
-  t.mock.method(fs, 'readFile', async (target, ...args) => {
-    if (target === file) {
-      reads++;
-    }
-    return originalReadFile(target, ...args);
+  t.mock.method(fileHandlePrototype, 'readFile', async function (...args) {
+    reads++;
+    return originalReadFile.apply(this, args);
   });
 
   await readVaultSnapshot(dir);
@@ -175,16 +185,75 @@ test('vault snapshots exclude symbolic links and files outside the vault', async
   );
 });
 
+test('platform: vault traversal stays on opened directories when paths are replaced with symlinks', async (t) => {
+  if (!['linux', 'darwin'].includes(process.platform)) {
+    t.skip('Descriptor-backed paths are unavailable on this platform');
+  }
+  const dir = await fixture(t);
+  const outside = await fs.mkdtemp(path.join(os.tmpdir(), 'tagline-outside-vault-'));
+  t.after(() => fs.rm(outside, { recursive: true, force: true }));
+  await fs.mkdir(path.join(dir, 'Folder'));
+  await fs.writeFile(path.join(dir, 'Folder', 'Safe.md'), 'SAFE');
+  await fs.writeFile(path.join(outside, 'Secret.md'), 'OUTSIDE SECRET');
+
+  const originalReaddir = fs.readdir;
+  let readdirCalls = 0;
+  let swapped = false;
+  t.mock.method(fs, 'readdir', async (target, ...args) => {
+    if (String(target).startsWith(process.platform === 'linux' ? '/proc/self/fd/' : '/dev/fd/')) {
+      readdirCalls++;
+      if (readdirCalls === 2) {
+        await fs.rename(path.join(dir, 'Folder'), path.join(dir, 'Moved'));
+        await fs.symlink(outside, path.join(dir, 'Folder'));
+        swapped = true;
+      }
+    }
+    return originalReaddir(target, ...args);
+  });
+
+  const snapshot = await readVaultSnapshot(dir);
+  assert.equal(swapped, true);
+  assert.deepEqual(snapshot.contents, { 'Folder/Safe.md': 'SAFE' });
+  assert.deepEqual(snapshot.tree[0].children.map((node) => node.name), ['Safe.md']);
+});
+
+test('platform: vault snapshot reads an opened file after its path is replaced with a symlink', async (t) => {
+  if (!['linux', 'darwin'].includes(process.platform)) {
+    t.skip('Descriptor-backed paths are unavailable on this platform');
+  }
+  const dir = await fixture(t);
+  const outside = await fs.mkdtemp(path.join(os.tmpdir(), 'tagline-outside-vault-'));
+  t.after(() => fs.rm(outside, { recursive: true, force: true }));
+  const file = path.join(dir, 'Note.md');
+  await fs.writeFile(file, 'SAFE');
+  await fs.writeFile(path.join(outside, 'Secret.md'), 'OUTSIDE SECRET');
+
+  const originalOpen = fs.open;
+  let swapped = false;
+  t.mock.method(fs, 'open', async (target, ...args) => {
+    const handle = await originalOpen(target, ...args);
+    if (!swapped && String(target).endsWith('/Note.md')) {
+      await fs.rename(file, `${file}.moved`);
+      await fs.symlink(path.join(outside, 'Secret.md'), file);
+      swapped = true;
+    }
+    return handle;
+  });
+
+  const snapshot = await readVaultSnapshot(dir);
+  assert.equal(swapped, true);
+  assert.deepEqual(snapshot.contents, { 'Note.md': 'SAFE' });
+});
+
 test('platform: snapshot propagates filesystem errors instead of returning a partial vault', async (t) => {
   const dir = await fixture(t);
   await assert.rejects(readVaultSnapshot(path.join(dir, 'missing')), { code: 'ENOENT' });
   await fs.writeFile(path.join(dir, 'Note.md'), 'Note');
-  const readFile = fs.readFile;
-  t.mock.method(fs, 'readFile', async (file, ...args) => {
-    if (file === path.join(dir, 'Note.md')) {
-      throw new Error('Cannot read note');
-    }
-    return readFile(file, ...args);
+  const fileHandle = await fs.open(path.join(dir, 'Note.md'), 'r');
+  const fileHandlePrototype = Object.getPrototypeOf(fileHandle);
+  await fileHandle.close();
+  t.mock.method(fileHandlePrototype, 'readFile', async () => {
+    throw new Error('Cannot read note');
   });
   await assert.rejects(readVaultSnapshot(dir), /Cannot read note/);
 });
