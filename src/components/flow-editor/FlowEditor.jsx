@@ -46,6 +46,7 @@ export default function FlowEditor({
   const [sheetDropIndex, setSheetDropIndex] = useState(null);
   const gridRef = useRef(null);
   const sheetTabsRef = useRef(null);
+  const pendingSheetFocus = useRef(null);
   const focusTarget = useRef(null);
   const [focusVersion, setFocusVersion] = useState(0);
   const [selection, setSelection] = useState(null);
@@ -71,6 +72,14 @@ export default function FlowEditor({
     [active, parsed.data?.sheets.length]
   );
   const sheet = useMemo(() => parsed.data?.sheets[idx], [parsed.data?.sheets, idx]);
+  // Restore tab focus after the remounted grid has run its own focus effect.
+  useEffect(() => {
+    const target = pendingSheetFocus.current;
+    if (target && parsed.data?.sheets[target.index]?.name === target.name) {
+      sheetTabsRef.current?.querySelectorAll('.flow-sheet-select')[target.index]?.focus();
+      pendingSheetFocus.current = null;
+    }
+  }, [parsed.data?.sheets]);
   useEffect(() => {
     const history = flowHistory.current;
     if (history.expected === content) {
@@ -534,6 +543,7 @@ export default function FlowEditor({
         setActive={setActive}
         setSelection={setSelection}
         sheetTabsRef={sheetTabsRef}
+        pendingSheetFocus={pendingSheetFocus}
         addSheet={addSheet}
         save={save}
         t={t}
