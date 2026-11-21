@@ -143,7 +143,15 @@ export function createCodeMirrorFindReplacePanel(view) {
       effects: setSearchQuery.of(query),
     });
     if (navigate && query.valid) {
-      findNext(view);
+      // findNext calls selectSearchInput, which selects the whole find field
+      // when it is focused and makes the next typed character replace the
+      // query. Hide the field from that lookup for this call only.
+      findInput.removeAttribute('main-field');
+      try {
+        findNext(view);
+      } finally {
+        findInput.setAttribute('main-field', 'true');
+      }
     }
   };
   /** Refresh result count, control state, and values from the editor's active query. @returns {void} */

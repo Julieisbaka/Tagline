@@ -230,6 +230,23 @@ const delay = (ms) => new Promise((r) => setTimeout(r, ms));
         wc.sendInputEvent({ type: 'keyUp', keyCode: 'F', modifiers: [primary] });
         await waitFor("!!document.querySelector('.visual-find')");
         await js('document.querySelector(\'[aria-label="Find text"]\').focus()');
+        // Typing one character at a time must build the query, not replace it.
+        await js(`(() => {
+          const input = document.querySelector('.visual-find [aria-label="Find text"]');
+          const set = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set;
+          for (const ch of 'find') {
+            const start = input.selectionStart;
+            const end = input.selectionEnd;
+            set.call(input, input.value.slice(0, start) + ch + input.value.slice(end));
+            input.setSelectionRange(start + 1, start + 1);
+            input.dispatchEvent(new Event('input', { bubbles: true }));
+          }
+        })()`);
+        assert.equal(
+          await js("document.querySelector('.visual-find [aria-label=\"Find text\"]').value"),
+          'find',
+          'typing in the find field must append characters instead of replacing the query'
+        );
         wc.sendInputEvent({ type: 'keyDown', keyCode: 'Escape' });
         wc.sendInputEvent({ type: 'keyUp', keyCode: 'Escape' });
         await waitFor("!document.querySelector('.visual-find')");
