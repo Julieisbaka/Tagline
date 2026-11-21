@@ -646,6 +646,39 @@ test('active-note events are path-only, separately permissioned, bounded and dis
   assert.equal(callbacks.size, 0);
 });
 
+test('extension IPC rejects calls outside the application main frame before dispatch', async () => {
+  const { registerExtensions } = require('../electron/extensions.cjs');
+  const handlers = new Map();
+  const trustedEvent = {};
+  registerExtensions({
+    ipcMain: { handle: (name, handler) => handlers.set(name, handler) },
+    assertMainFrameSender: (event) => {
+      if (event !== trustedEvent) {
+        throw new Error('Not the application main frame.');
+      }
+    },
+    app: { getPath: () => assert.fail('Unexpected filesystem access') },
+    readConfig: () => assert.fail('Unexpected configuration read'),
+    writeConfig: () => assert.fail('Unexpected configuration write'),
+  });
+  const extensionHandlers = [...handlers].filter(([name]) => name.startsWith('extensions:'));
+  for (const name of ['list', 'setEnabled', 'setPermissions', 'uninstall', 'readFile']) {
+    assert.ok(handlers.has(`extensions:${name}`));
+  }
+  for (const [name, handler] of extensionHandlers) {
+    await assert.rejects(handler({}), /Not the application main frame/, name);
+  }
+  for (const name of ['customization:get', 'customization:set']) {
+    assert.ok(handlers.has(name));
+    await assert.rejects(
+      handlers.get(name)({}, { extensionCommands: 49 }),
+      /Not the application main frame/,
+      name
+    );
+  }
+  assert.equal(await handlers.get('extensions:oauthCancel')(trustedEvent, 'example'), true);
+});
+
 test('platform: settings and event permission changes require a fresh manifest review', async () => {
   const fsAsync = require('node:fs/promises');
   const { registerExtensions, validateManifest } = require('../electron/extensions.cjs');
@@ -672,6 +705,7 @@ test('platform: settings and event permission changes require a fresh manifest r
     let config = { enabledExtensions: ['review'] };
     const handlers = {};
     registerExtensions({
+      assertMainFrameSender: () => {},
       app: { getPath: () => root },
       shell: {},
       ipcMain: {
@@ -685,6 +719,8 @@ test('platform: settings and event permission changes require a fresh manifest r
       },
     });
     const [item] = await handlers['extensions:list']();
+    assert.match(item.reviewToken, /^[a-f0-9]{64}$/);
+    assert.equal(Object.hasOwn(item, 'root'), false);
     assert.equal(item.enabled, false);
     assert.equal(item.reviewRequired, true);
     assert.deepEqual(item.allowedPermissions, manifest.permissions);
@@ -780,6 +816,7 @@ test('extension scans cache manifests by modification time and size', async () =
     };
     const handlers = {};
     registerExtensions({
+      assertMainFrameSender: () => {},
       app: { getPath: () => root },
       shell: {},
       ipcMain: { handle: (name, handler) => (handlers[name] = handler) },
@@ -829,7 +866,9 @@ test('extension scans cache manifests by modification time and size', async () =
     assert.equal((await handlers['extensions:list']())[0].name, 'Changed');
     assert.deepEqual([...manifestReads.values()], [3, 1], 'size changes invalidate the entry');
 
-    await handlers['customization:set'](null, { extensionCommands: 49 });
+    const updatedLimits = await handlers['customization:set'](null, { extensionCommands: 49 });
+    assert.equal(updatedLimits.extensionCommands, 49);
+    assert.deepEqual(await handlers['customization:get'](), updatedLimits);
     await handlers['extensions:list']();
     assert.deepEqual([...manifestReads.values()], [4, 2], 'limit changes clear validation results');
   } finally {
@@ -863,6 +902,7 @@ test('platform: extensions can be uninstalled and their saved grants are cleared
     };
     const handlers = {};
     registerExtensions({
+      assertMainFrameSender: () => {},
       app: { getPath: () => root },
       shell: {},
       ipcMain: {

@@ -235,6 +235,7 @@ test('fetchToFile streams binary data to a new vault path with authorization and
   };
   let currentVault = vault;
   registerExtensions({
+    assertMainFrameSender: () => {},
     app: { getPath: () => root },
     ipcMain: {
       handle: (name, handler) => {
@@ -444,6 +445,7 @@ test('main process requires an enabled reviewed extension and enforces host chan
   const handlers = {};
   let config = { enabledExtensions: [manifest.id] };
   registerExtensions({
+    assertMainFrameSender: () => {},
     app: { getPath: () => root },
     ipcMain: {
       handle: (name, handler) => {

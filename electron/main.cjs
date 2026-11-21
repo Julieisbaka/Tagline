@@ -119,6 +119,7 @@ const { createWindow, buildMenu } = createWindowManager(
 function assertMainFrameSender(event, action = 'Main frame access') {
   if (
     !state.win ||
+    !event?.senderFrame ||
     event.sender !== state.win.webContents ||
     event.senderFrame !== event.sender.mainFrame
   ) {

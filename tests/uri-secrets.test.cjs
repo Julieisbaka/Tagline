@@ -60,6 +60,7 @@ test('platform: extension secrets are encrypted, permission-gated and per extens
       }),
     };
     registerExtensions({
+      assertMainFrameSender: () => {},
       app: { getPath: () => root },
       shell: {},
       ipcMain: { handle: (name, handler) => (handlers[name] = handler) },

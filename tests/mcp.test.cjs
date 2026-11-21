@@ -394,6 +394,7 @@ test('platform: dropping an extension folder installs and enables it, gating rev
     let config = {};
     const handlers = {};
     registerExtensions({
+      assertMainFrameSender: () => {},
       app: { getPath: () => root },
       shell: {},
       ipcMain: { handle: (name, handler) => (handlers[name] = handler) },

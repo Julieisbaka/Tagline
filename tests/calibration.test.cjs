@@ -296,6 +296,7 @@ test('platform: main process persists limit changes, enforces script size and ex
   const exported = path.join(root, 'settings.json');
   let config = { enabledExtensions: ['limited'] };
   registerExtensions({
+    assertMainFrameSender: () => {},
     app: { getPath: () => root },
     ipcMain: {
       handle: (name, handler) => {
@@ -323,7 +324,7 @@ test('platform: main process persists limit changes, enforces script size and ex
   assert.equal(loaded.themes.length, 1);
   await handlers['customization:set'](null, { extensionSourceBytes: 1024 });
   await assert.rejects(handlers['extensions:load'](null, 'limited'), /exceeds 1024 bytes/);
-  assert.equal(handlers['customization:get']().extensionSourceBytes, 1024);
+  assert.equal((await handlers['customization:get']()).extensionSourceBytes, 1024);
   assert.equal(config.customizationLimits.extensionSourceBytes, 1024);
   await assert.rejects(handlers['customization:set'](null, { extensionMessagesPerSecond: 100000 }));
   await assert.rejects(

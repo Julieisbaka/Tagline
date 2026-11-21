@@ -40,3 +40,7 @@ startup** (safe mode and `TAGLINE_DISABLE_AUTO_UPDATE=1` also disable it), or
 request a check yourself via **Settings > Installation > Check for updates**.
 Update checks contact the public GitHub API only; they never send vault
 contents or account credentials.
+
+Extension IPC is restricted to the application window's main frame. Extension
+workers use the renderer's permission-checked `tagline` API rather than calling
+Electron IPC directly.

@@ -69,6 +69,15 @@ function registerExtensions({
   getVaultRoot,
   assertMainFrameSender,
 }) {
+  if (typeof assertMainFrameSender !== 'function') {
+    throw new TypeError('Extension IPC requires a main-frame sender guard.');
+  }
+  const handleExtension = (channel, handler) => {
+    ipcMain.handle(channel, async (event, ...args) => {
+      assertMainFrameSender(event, 'Extension IPC');
+      return handler(...args);
+    });
+  };
   const installTokens = new Map();
   const networkRequestTimes = new Map();
   const pendingAuthorizations = new Map();
@@ -76,8 +85,8 @@ function registerExtensions({
   const cancelAuthorization = (id) => pendingAuthorizations.get(id)?.cancel();
   const invalidateManifest = (root) => manifestCache.delete(path.resolve(root, 'manifest.json'));
   const limits = () => validateLimits(readConfig().customizationLimits);
-  ipcMain.handle('customization:get', () => limits());
-  ipcMain.handle('customization:set', async (_event, value) => {
+  handleExtension('customization:get', () => limits());
+  handleExtension('customization:set', async (value) => {
     const next = validateLimits(value);
     await writeConfig({ customizationLimits: next });
     manifestCache.clear();
@@ -228,8 +237,8 @@ function registerExtensions({
     return found;
   }
 
-  ipcMain.handle('extensions:list', async () => (await scan()).map(({ root, ...item }) => item));
-  ipcMain.handle('extensions:exportSettings', async (_event, id, values) => {
+  handleExtension('extensions:list', async () => (await scan()).map(({ root, ...item }) => item));
+  handleExtension('extensions:exportSettings', async (id, values) => {
     const item = (await scan()).find((extension) => extension.id === id);
     if (!item || item.error || !values || typeof values !== 'object' || Array.isArray(values)) {
       throw new Error('Invalid extension settings export.');
@@ -262,7 +271,7 @@ function registerExtensions({
   });
 
   // Returns code and declared assets only for enabled, valid extensions.
-  ipcMain.handle('extensions:load', async (_e, id) => {
+  handleExtension('extensions:load', async (id) => {
     const item = (await scan()).find((ext) => ext.id === id);
     if (!item || item.error) {
       throw new Error('Extension not found.');
@@ -378,7 +387,7 @@ function registerExtensions({
     };
   });
 
-  ipcMain.handle('extensions:completeInstall', async (_event, id, token) => {
+  handleExtension('extensions:completeInstall', async (id, token) => {
     if (typeof token !== 'string' || !installTokens.get(id)?.has(token)) {
       throw new Error('Stale extension installation.');
     }
@@ -396,7 +405,7 @@ function registerExtensions({
     return true;
   });
 
-  ipcMain.handle('extensions:setEnabled', async (_e, id, enabled, reviewToken, options = {}) => {
+  handleExtension('extensions:setEnabled', async (id, enabled, reviewToken, options = {}) => {
     if (typeof id !== 'string' || !ID.test(id) || typeof enabled !== 'boolean') {
       throw new Error('Invalid extension request.');
     }
@@ -452,7 +461,7 @@ function registerExtensions({
     return next;
   });
 
-  ipcMain.handle('extensions:setPermissions', async (_event, id, permissions, reviewToken) => {
+  handleExtension('extensions:setPermissions', async (id, permissions, reviewToken) => {
     if (
       typeof id !== 'string' ||
       !ID.test(id) ||
@@ -481,7 +490,7 @@ function registerExtensions({
     return true;
   });
 
-  ipcMain.handle('extensions:uninstall', async (_event, id) => {
+  handleExtension('extensions:uninstall', async (id) => {
     if (typeof id !== 'string' || !id || path.basename(id) !== id || id === '.' || id === '..') {
       throw new Error('Invalid extension request.');
     }
@@ -529,7 +538,7 @@ function registerExtensions({
 
   const context = {
     app,
-    ipcMain,
+    handleExtension,
     shell,
     readConfig,
     writeConfig,
@@ -571,8 +580,7 @@ function registerExtensions({
     networkRequestTimes.set(id, recent);
   }
 
-  ipcMain.handle('extensions:networkFetch', async (event, id, url, options) => {
-    assertMainFrameSender?.(event, 'Extension network access');
+  handleExtension('extensions:networkFetch', async (id, url, options) => {
     const item = await authorizeNetwork(id);
     rateLimitNetwork(id);
     return requestExtensionNetwork(
@@ -620,8 +628,7 @@ function registerExtensions({
     return { realRoot, target: path.join(parent, parts.at(-1)) };
   }
 
-  ipcMain.handle('extensions:networkFetchToFile', async (event, id, url, rel, options) => {
-    assertMainFrameSender?.(event, 'Extension network access');
+  handleExtension('extensions:networkFetchToFile', async (id, url, rel, options) => {
     const item = await authorizeNetwork(id, true);
     const root = getVaultRoot?.();
     if (!root) {
@@ -673,8 +680,7 @@ function registerExtensions({
     }
   });
 
-  ipcMain.handle('extensions:oauthAuthorize', async (event, id, address, options = {}) => {
-    assertMainFrameSender?.(event, 'Extension OAuth');
+  handleExtension('extensions:oauthAuthorize', async (id, address, options = {}) => {
     const item = await authorizeNetwork(id);
     rateLimitNetwork(id);
     if (pendingAuthorizations.has(id)) {
@@ -709,13 +715,12 @@ function registerExtensions({
       flow.cancel();
     }
   });
-  ipcMain.handle('extensions:oauthCancel', async (event, id) => {
-    assertMainFrameSender?.(event, 'Extension OAuth cancellation');
+  handleExtension('extensions:oauthCancel', async (id) => {
     cancelAuthorization(id);
     return true;
   });
 
-  ipcMain.handle('extensions:readFile', async (_event, id, relPath, encoding = 'utf8') => {
+  handleExtension('extensions:readFile', async (id, relPath, encoding = 'utf8') => {
     const item = (await scan()).find((extension) => extension.id === id && !extension.error);
     if (!item) {
       throw new Error('Extension not found.');
@@ -739,8 +744,7 @@ function registerExtensions({
     return encoding === 'base64' ? data.toString('base64') : data.toString('utf8');
   });
 
-  ipcMain.handle('extensions:chooseVaultPath', async (event, id, kind) => {
-    assertMainFrameSender?.(event, 'Extension vault path access');
+  handleExtension('extensions:chooseVaultPath', async (id, kind) => {
     const item = (await scan()).find((extension) => extension.id === id && !extension.error);
     if (!item || !item.enabled) {
       throw new Error('Extension is no longer enabled.');
