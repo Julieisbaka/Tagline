@@ -65,6 +65,9 @@ function createVaultContext({
       throw new ToolError(`Path must stay inside the vault and avoid hidden folders: ${rel}`);
     }
     let name = segments.join('/');
+    if (!name && !allowRoot) {
+      throw new ToolError('A vault-relative path is required.');
+    }
     if (note && name && !NOTE_EXTS.includes(path.posix.extname(name).toLowerCase())) {
       name += '.md';
     }
