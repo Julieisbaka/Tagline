@@ -1,7 +1,7 @@
 ﻿import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { folderPaths, normalizeFolders } from './folderPaths.js';
 import { translate } from './i18n.js';
-import { buildIndex, isCanvas, isMarkdown, resolveLink, rewriteLinks } from './vault.js';
+import { buildIndex, isCanvas, isFlow, isMarkdown, resolveLink, rewriteFlowLinks, rewriteLinks } from './vault.js';
 import { parseCanvas, serializeCanvas } from './canvas.js';
 import { flushPendingEdits } from './pendingEdits.js';
 import { playUiSound } from './uiSounds.js';
@@ -394,10 +394,11 @@ export function useVault(
         }
         to = result.path;
         const moved = paths.filter((p) => p === from || p.startsWith(from + '/'));
-        for (const p of autoRelink ? paths.filter(isMarkdown) : []) {
+        for (const p of autoRelink ? paths.filter((p) => isMarkdown(p) || isFlow(p)) : []) {
           let updated = all[p];
           for (const oldPath of moved.filter(isMarkdown)) {
-            updated = rewriteLinks(updated, oldPath, to + oldPath.slice(from.length), paths);
+            const rewrite = isFlow(p) ? rewriteFlowLinks : rewriteLinks;
+            updated = rewrite(updated, oldPath, to + oldPath.slice(from.length), paths);
           }
           const destination = moved.includes(p) ? to + p.slice(from.length) : p;
           if (updated !== all[p]) {

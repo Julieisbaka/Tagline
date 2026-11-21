@@ -37,7 +37,8 @@ const createWikilinkExtension = (resolver) => ({
     const resolved = resolver(tok.target);
     const label = escapeHtml(tok.alias || tok.target + tok.heading.replace('#', ' › '));
     const cls = resolved ? 'internal-link' : 'internal-link unresolved';
-    return `<a class="${cls}" data-href="${escapeHtml(tok.target)}" data-heading="${escapeHtml(tok.heading.slice(1))}">${label}</a>`;
+    const title = (typeof resolved === 'string' ? resolved : tok.target) + tok.heading;
+    return `<a class="${cls}" data-href="${escapeHtml(tok.target)}" data-heading="${escapeHtml(tok.heading.slice(1))}" title="${escapeHtml(title)}">${label}</a>`;
   },
 });
 

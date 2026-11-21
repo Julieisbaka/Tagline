@@ -43,6 +43,13 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
       sheets: [{ name: 'Case', columns: ['1AC', '1NC'], rows: [['', '']] }],
     })
   );
+  await fs.writeFile(
+    path.join(vault, 'Sizing.flow'),
+    JSON.stringify({
+      version: 2,
+      sheets: [{ name: 'Case', columns: ['1AC', '1NC'], rows: [['Short', '\n'.repeat(40)], ['long\n'.repeat(80), '']] }],
+    })
+  );
   await fs.writeFile(path.join(vault, 'Map.canvas'), '{"nodes":[],"edges":[]}');
   await fs.writeFile(
     path.join(vault, 'Alpha.md'),
@@ -159,6 +166,8 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
         await require('./interactions/editor-layout.cjs')(scenarioContext);
         await require('./interactions/graph-recovery.cjs')(scenarioContext);
         await require('./interactions/note-drag.cjs')(scenarioContext);
+        await require('./interactions/flow-ui.cjs')(scenarioContext);
+        await require('./interactions/flow-card-links.cjs')(scenarioContext);
         console.log(
           'PASS: flow/canvas recovery in visual and source modes, themed confirmations, JSON history, live resize, file previews and links, onboarding flag, viewport/bar/link/graph regressions.'
         );

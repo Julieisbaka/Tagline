@@ -67,12 +67,16 @@ test('flow schema matches supported structures and preserves extension fields', 
   };
   check('flow', flow);
   assert.deepEqual(parseFlow(JSON.stringify(flow)), flow);
+  assert.equal(JSON.parse(EMPTY_FLOW).version, 2);
+  const modernFlow = { ...flow, version: 2 };
+  check('flow', modernFlow);
+  assert.deepEqual(parseFlow(JSON.stringify(modernFlow)), modernFlow);
   for (const invalid of [
     {},
     [],
     { sheets: [] },
     { sheets: flow.sheets },
-    { version: 2, sheets: flow.sheets },
+    { version: 3, sheets: flow.sheets },
     { sheets: [{ name: 'Round', columns: [], rows: [] }] },
     { sheets: [{ name: 'Round', columns: ['1AC'], rows: [[true]] }] },
   ]) {

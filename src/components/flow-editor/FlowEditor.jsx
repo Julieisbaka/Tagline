@@ -1,13 +1,15 @@
 import { redo as redoEditor, undo as undoEditor } from '@codemirror/commands';
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { EMPTY_FLOW, flowColumns, parseFlow } from '../../../electron/flow.mjs';
+import { EMPTY_FLOW, FLOW_VERSION, flowColumns, parseFlow } from '../../../electron/flow.mjs';
 import { cellBounds, copyFlowCells, parseFlowCells, pasteFlowCells } from '../../lib/flowCells.js';
 import { canRemoveRow } from '../../lib/flowRows.js';
+import { canLinkCard, linkCardInCell } from '../../lib/flowCardLinks.js';
 import { useI18n } from '../../lib/i18n.js';
 import { binding, displayBinding, matchesBinding } from '../../lib/keybindings.js';
 import { flushPendingEdits } from '../../lib/pendingEdits.js';
 import { useConfirm } from '../dialogs/ConfirmProvider.jsx';
 import ContextMenu from '../dialogs/ContextMenu.jsx';
+import ModalBackdrop from '../dialogs/ModalBackdrop.jsx';
 import FlowGrid from './FlowGrid.jsx';
 import FlowSheetTabs from './FlowSheetTabs.jsx';
 import JsonEditor from '../JsonEditor.jsx';
@@ -20,6 +22,7 @@ export default function FlowEditor({
   content,
   mode,
   jump,
+  notePaths,
   resolve,
   onOpenLink,
   onChange,
@@ -34,6 +37,8 @@ export default function FlowEditor({
   const [active, setActive] = useState(0);
   const [renaming, setRenaming] = useState(null);
   const [menu, setMenu] = useState(null);
+  const [cardTarget, setCardTarget] = useState(null);
+  const [cardQuery, setCardQuery] = useState('');
   const flowRef = useRef(null);
   const menuEvent = useRef(null);
   const pendingMenu = useRef(null);
@@ -288,7 +293,8 @@ export default function FlowEditor({
   }
 
   const { data } = parsed;
-  const save = (sheets) => saveFlowContent(JSON.stringify({ ...data, sheets }, null, 2));
+  const save = (sheets) =>
+    saveFlowContent(JSON.stringify({ ...data, version: FLOW_VERSION, sheets }, null, 2));
   const updateSheet = (patch) =>
     save(data.sheets.map((s, i) => (i === idx ? { ...s, ...patch } : s)));
 
@@ -344,6 +350,26 @@ export default function FlowEditor({
     updateSheet({
       rows: sheet.rows.map((row, i) => (i === r ? row.map((v, j) => (j === c ? value : v)) : row)),
     });
+
+  const linkCard = (cardPath) => {
+    flushPendingEdits();
+    const current = parseFlow(currentContent.current);
+    const target = current.sheets[cardTarget.sheet];
+    if (!target?.rows[cardTarget.row] || cardTarget.column >= target.columns.length) {
+      setCardTarget(null);
+      return;
+    }
+    const rows = target.rows.map((row, r) =>
+      r === cardTarget.row
+        ? row.map((cell, c) => (c === cardTarget.column ? linkCardInCell(cell, cardPath) : cell))
+        : row
+    );
+    const sheets = current.sheets.map((item, i) =>
+      i === cardTarget.sheet ? { ...item, rows } : item
+    );
+    saveFlowContent(JSON.stringify({ ...current, version: FLOW_VERSION, sheets }, null, 2));
+    setCardTarget(null);
+  };
 
   const addRow = (after = sheet.rows.length - 1, column = null) => {
     setSelection(null);
@@ -487,8 +513,13 @@ export default function FlowEditor({
     })
     .filter(Boolean);
 
+  const cardResults = cardTarget
+    ? (notePaths || []).filter(
+        (item) => canLinkCard(item) && item.toLowerCase().includes(cardQuery.toLowerCase())
+      )
+    : [];
   return (
-    <div className='flow' onKeyDownCapture={handleHistoryShortcut}>
+    <div className='flow' ref={flowRef} onKeyDownCapture={handleHistoryShortcut}>
       <FlowSheetTabs
         data={data}
         idx={idx}
@@ -530,6 +561,11 @@ export default function FlowEditor({
           selectAll: liveActions.current['flow-select-all'],
           resolve,
           onOpenLink,
+          linkCardHere: (row, column) => {
+            flushPendingEdits();
+            setCardQuery('');
+            setCardTarget({ sheet: idx, row, column });
+          },
         }}
         t={t}
         context={context}
@@ -546,6 +582,37 @@ export default function FlowEditor({
             pendingMenu.current = null;
           }}
         />
+      )}
+      {cardTarget && (
+        <ModalBackdrop onMouseDown={() => setCardTarget(null)}>
+          <div
+            className='modal dialog flow-card-picker'
+            role='dialog'
+            aria-modal='true'
+            aria-labelledby='flow-card-picker-title'
+            onMouseDown={(event) => event.stopPropagation()}
+          >
+            <h3 id='flow-card-picker-title'>{t('Link card here')}</h3>
+            <input
+              autoFocus
+              aria-label={t('Find a note')}
+              placeholder={t('Find a note')}
+              value={cardQuery}
+              onChange={(event) => setCardQuery(event.target.value)}
+            />
+            <div className='flow-card-results'>
+              {cardResults.length === 0 && <div className='empty-hint'>{t('No matching notes.')}</div>}
+              {cardResults.map((item) => (
+                <button key={item} title={item} onClick={() => linkCard(item)}>
+                  {item}
+                </button>
+              ))}
+            </div>
+            <div className='dialog-buttons'>
+              <button onClick={() => setCardTarget(null)}>{t('Cancel')}</button>
+            </div>
+          </div>
+        </ModalBackdrop>
       )}
     </div>
   );

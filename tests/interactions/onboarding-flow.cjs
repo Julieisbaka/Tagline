@@ -15,7 +15,7 @@ module.exports = async function runScenario({
   win.show({ focus: false });
   // The dialog is briefly unmounted (resetting its step) while the vault initializes.
   await wait(
-    "!!document.querySelector('.onboarding-dialog') && document.querySelectorAll('.tree-item').length === 4"
+    "!!document.querySelector('.onboarding-dialog') && document.querySelectorAll('.tree-item').length === 5"
   );
   assert.equal(
     await js("document.querySelector('.onboarding-dialog').getAttribute('aria-modal')"),
@@ -40,7 +40,7 @@ module.exports = async function runScenario({
     ),
     true
   );
-  await wait("document.querySelectorAll('.tree-item').length === 4");
+  await wait("document.querySelectorAll('.tree-item').length === 5");
   await open('Round.flow');
   await wait("!!document.querySelector('.flow-add-row')");
   await js("document.querySelector('.flow-grid textarea').focus()");
@@ -65,8 +65,8 @@ module.exports = async function runScenario({
       valueExpression = "''";
     } else if (value === Array(12).fill('A long argument').join('\n')) {
       valueExpression = "Array(12).fill('A long argument').join('\\n')";
-    } else if (value === 'wrapped argument '.repeat(80)) {
-      valueExpression = "'wrapped argument '.repeat(80)";
+    } else if (value === 'wrapped argument '.repeat(25)) {
+      valueExpression = "'wrapped argument '.repeat(25)";
     } else {
       throw new Error('Unsupported test cell value');
     }
@@ -90,7 +90,7 @@ module.exports = async function runScenario({
     "[...document.querySelectorAll('.flow-grid tbody tr:first-child textarea')].every((el, index) => el.offsetHeight === window.__taglineTestShortHeights[index])"
   );
   assert.deepEqual(await rowHeights(), shortHeights, 'all cells shrink after removing long text');
-  await setFirstCell('wrapped argument '.repeat(80));
+  await setFirstCell('wrapped argument '.repeat(25));
   await wait(`document.querySelector('.flow-grid textarea').offsetHeight > ${shortHeights[0]}`);
   const wideHeight = (await rowHeights())[0];
   await js("document.querySelector('.flow-grid-wrap').style.width = '360px'");

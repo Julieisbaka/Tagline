@@ -4,7 +4,7 @@
 const card = (tag, cite, body) => `#### ${tag}\n**${cite}**\n${body}\n`;
 
 const flow = {
-  version: 1,
+  version: 2,
   sheets: [
     {
       name: 'Case',

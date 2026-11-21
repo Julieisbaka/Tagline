@@ -2,6 +2,7 @@
 import { Lexer } from 'marked';
 import { readFrontmatter, splitFrontmatter } from './frontmatter.js';
 import { flowDocument } from './flowText.js';
+import { parseFlow } from '../../electron/flow.mjs';
 
 /**
  * Test a case-insensitive flow-document extension.
@@ -287,10 +288,11 @@ export function buildIndex(contents) {
  * @param {string} oldPath - The original path that the wiki links currently resolve to.
  * @param {string} newPath - The new path to which the wiki links should be updated.
  * @param {string[]} allPaths - The list of all valid document paths for link resolution.
+ * @param {boolean} [keepExtension=false] - Keep the new path's extension for unambiguous links.
  * @returns {string} - The content with updated wiki links.
  */
-export function rewriteLinks(content, oldPath, newPath, allPaths) {
-  const newName = newPath.replace(/\.(md|flow)$/i, '');
+export function rewriteLinks(content, oldPath, newPath, allPaths, keepExtension = false) {
+  const newName = keepExtension ? newPath : newPath.replace(/\.(md|flow)$/i, '');
   return content.replace(WIKILINK_RE, (full, bang, target, heading = '', alias = '') => {
     const resolved = resolveLink(target, allPaths);
     if (resolved !== oldPath) {
@@ -298,6 +300,26 @@ export function rewriteLinks(content, oldPath, newPath, allPaths) {
     }
     return `${bang}[[${newName}${heading}${alias}]]`;
   });
+}
+
+/** Rewrite links in valid flow cells without modifying unrelated JSON fields. */
+export function rewriteFlowLinks(content, oldPath, newPath, allPaths) {
+  let flow;
+  try {
+    flow = parseFlow(content);
+  } catch {
+    return content;
+  }
+  let changed = false;
+  const sheets = flow.sheets.map((sheet) => ({
+    ...sheet,
+    rows: sheet.rows.map((row) => row.map((cell) => {
+      const next = rewriteLinks(cell, oldPath, newPath, allPaths, true);
+      changed ||= next !== cell;
+      return next;
+    })),
+  }));
+  return changed ? JSON.stringify({ ...flow, sheets }, null, 2) : content;
 }
 
 /**

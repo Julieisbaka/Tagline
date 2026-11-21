@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { binding, displayBinding, matchesBinding } from '../../lib/keybindings.js';
 import { cellBounds, copyFlowCells } from '../../lib/flowCells.js';
 import { canRemoveRow } from '../../lib/flowRows.js';
@@ -96,7 +96,6 @@ export default function FlowGrid({
       return { row: 0, column: 0 };
     });
   }, [sheet.rows.length, sheet.columns.length]);
-  const markdownCache = useRef(new Map());
   const cacheKey = [
     settings?.theme,
     settings?.themeId,
@@ -111,14 +110,16 @@ export default function FlowGrid({
       value && typeof value === 'object' ? JSON.stringify(value) : String(value ?? '')
     )
     .join('|');
-  useEffect(() => {
-    markdownCache.current.clear();
-  }, [cacheKey]);
+  const resolve = actions.resolve;
+  const { entries: markdownCache } = useMemo(
+    () => ({ entries: new Map(), cacheKey, resolve }),
+    [cacheKey, resolve]
+  );
   const previewHtml = (text) => {
     if (!text) {
       return '';
     }
-    const cache = markdownCache.current;
+    const cache = markdownCache;
     if (cache.has(text)) {
       const hit = cache.get(text);
       cache.delete(text);
@@ -161,16 +162,9 @@ export default function FlowGrid({
     paste,
     clipboardError,
     selectAll,
-    resolve,
     onOpenLink,
+    linkCardHere,
   } = actions;
-
-  // Preview HTML embeds resolved links. When the vault file set changes the
-  // resolver identity changes with it, so previously cached HTML may contain
-  // stale resolved/unresolved link markup even though the settings did not.
-  useEffect(() => {
-    markdownCache.current.clear();
-  }, [resolve]);
 
   const goToCell = (row, column, edit = true) => {
     setTabStop({ row, column });
@@ -183,6 +177,8 @@ export default function FlowGrid({
       target.scrollIntoView({ block: 'nearest', inline: 'nearest' });
     }
   };
+
+  const sizeRowsRef = useRef(() => {});
   const onCellKeyDown = (e, r, c, isEditing) => {
     if (!isEditing && (e.key === 'Enter' || e.key === 'F2')) {
       e.preventDefault();
@@ -303,6 +299,11 @@ export default function FlowGrid({
           0,
           ...cells.map((cell) => {
             const style = getComputedStyle(cell);
+            // Markdown hides whitespace-only cells. Do not let invisible blank
+            // lines make the row jump when the textarea replaces its preview.
+            if (cell instanceof HTMLTextAreaElement && !cell.value.trim()) {
+              return parseFloat(style.minHeight) || 0;
+            }
             return (
               cell.scrollHeight +
               parseFloat(style.borderTopWidth) +
@@ -317,7 +318,15 @@ export default function FlowGrid({
         });
       });
     };
+    sizeRowsRef.current = sizeRows;
     sizeRows();
+  });
+
+  useEffect(() => {
+    const table = gridRef.current?.querySelector('table');
+    if (!table) {
+      return;
+    }
     let width = table.getBoundingClientRect().width;
     let frame;
     const observer = new ResizeObserver(() => {
@@ -325,7 +334,7 @@ export default function FlowGrid({
       if (nextWidth !== width) {
         width = nextWidth;
         cancelAnimationFrame(frame);
-        frame = requestAnimationFrame(sizeRows);
+        frame = requestAnimationFrame(() => sizeRowsRef.current());
       }
     });
     observer.observe(table);
@@ -333,7 +342,7 @@ export default function FlowGrid({
       observer.disconnect();
       cancelAnimationFrame(frame);
     };
-  }, [gridRef, sheet.rows.length, sheet.columns.length, settings]);
+  }, [gridRef]);
 
   return (
     <div className='flow-grid-wrap' ref={gridRef}>
@@ -410,6 +419,7 @@ export default function FlowGrid({
                       setEditing({ row: r, column: c });
                     }
                     context(e, [
+                      { label: 'Link card here', run: () => linkCardHere(r, c) },
                       { label: 'Copy cells', run: () => copy(area) },
                       { label: 'Cut cells', run: () => copy(area, true) },
                       {

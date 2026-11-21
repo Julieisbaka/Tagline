@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { useI18n } from '../../lib/i18n.js';
-import { baseName, displayName, outline } from '../../lib/vault.js';
+import { flowsUsingCard } from '../../lib/flowCardLinks.js';
+import { baseName, displayName, isFlow, isMarkdown, outline } from '../../lib/vault.js';
 import Icon from '../Icon.jsx';
 import Timer from '../Timer.jsx';
 import ExtensionPanelList from './ExtensionPanelList.jsx';
@@ -28,6 +29,11 @@ function Backlinks({ activePath, index, contents, onOpen, settings }) {
     () => (activePath ? index.backlinks[activePath] || [] : []),
     [activePath, index.backlinks]
   );
+  const usedInRounds = useMemo(
+    () => (activePath && isMarkdown(activePath) ? flowsUsingCard(index, activePath) : []),
+    [activePath, index]
+  );
+  const otherLinked = activePath && isMarkdown(activePath) ? linked.filter((p) => !isFlow(p)) : linked;
   const unlinked = useMemo(() => {
     if (!name || name.length < 3) {
       return [];
@@ -47,11 +53,23 @@ function Backlinks({ activePath, index, contents, onOpen, settings }) {
   }
   return (
     <div>
+      {isMarkdown(activePath) && (
+        <>
+          <div className='panel-section-title'>{t('Used in this round ({count})', { count: usedInRounds.length })}</div>
+          {usedInRounds.length === 0 && <div className='empty-hint'>{t('No flows link to this note yet.')}</div>}
+          {usedInRounds.map((p) => (
+            <button type='button' key={p} className='backlink flow-backlink' title={p}
+              onClick={(e) => onOpen(p, e.ctrlKey || e.metaKey)}>
+              {displayName(p, settings.hideFlowExtension, settings.showMarkdownExtension)}
+            </button>
+          ))}
+        </>
+      )}
       <div className='panel-section-title'>
-        {t('Linked mentions ({count})', { count: linked.length })}
+        {t('Linked mentions ({count})', { count: otherLinked.length })}
       </div>
-      {linked.length === 0 && <div className='empty-hint'>{t('No notes link here yet.')}</div>}
-      {linked.map((p) => (
+      {otherLinked.length === 0 && <div className='empty-hint'>{t('No notes link here yet.')}</div>}
+      {otherLinked.map((p) => (
         <div key={p} className='backlink' onClick={(e) => onOpen(p, e.ctrlKey || e.metaKey)}>
           <div className='backlink-title'>
             {displayName(p, settings.hideFlowExtension, settings.showMarkdownExtension)}

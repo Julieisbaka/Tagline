@@ -10,6 +10,16 @@
   background: var(--bg-hover);
 }
 
+.flow-backlink {
+  display: block;
+  width: 100%;
+  border: 0;
+  background: transparent;
+  text-align: left;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
 .backlink-title {
   font-weight: 600;
 }

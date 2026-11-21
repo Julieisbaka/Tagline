@@ -68,6 +68,7 @@
         <nav class="article-toc" aria-label="On this page">
           <span>On this page</span>
           <a href="#formats">Supported formats</a>
+          <a href="#flow-v2">Flow version 2</a>
           <a href="#editor-support">Editor support</a>
           <a href="#add-schema">Add schema metadata</a>
         </nav>
@@ -129,6 +130,20 @@
             Tagline stores them as <code>.canvas</code> files inside the vault.</p>
         </section>
 
+        <section id="flow-v2">
+          <h2>Flow version 2</h2>
+          <p>New <code>.flow</code> files use <code>"version": 2</code>. A flow contains sheets with names, column labels, and rows of string cells; every row has one cell per column. Cells can contain plain text, Markdown, and ordinary wikilinks to notes. A card link is text, not a typed JSON reference:</p>
+          <pre><code class="language-json">{
+  "version": 2,
+  "sheets": [{
+    "name": "Case",
+    "columns": ["1AC", "1NC"],
+    "rows": [["Claim\n[[Evidence/Card.md|Card]]", "Answer"]]
+  }]
+}</code></pre>
+          <p>Version 1 files remain supported. Opening one does not migrate it; visual editor changes write version 2. Source editing and other APIs may preserve the original version. Unsupported versions are rejected. For the card-link workflow and backlinks, see <a href="flows-and-canvases.html#flow-v2">flows and canvases</a>.</p>
+        </section>
+
         <section id="editor-support">
           <h2>Enable validation and completion in VS Code</h2>
           <p>The Tagline repository includes VS Code settings that associate speech flows, bundled/demo themes,
@@ -155,7 +170,7 @@
             the JSON file sits beside a <code>schemas</code> folder:</p>
           <pre><code class="language-json">{
   "$schema": "./schemas/flow.schema.json",
-  "version": 1,
+  "version": 2,
   "sheets": [
     {
       "name": "Case",

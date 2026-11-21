@@ -197,6 +197,7 @@ export default function NoteView({
           mode={mode}
           content={content}
           jump={jump?.path === path ? jump : null}
+          notePaths={notePaths}
           resolve={resolve}
           onOpenLink={onOpenLink}
           onChange={onChange}

@@ -373,7 +373,7 @@ test('flow and Canvas extension document APIs validate structures and enforce va
   await assert.rejects(host.handle('canvas.write', ['Map.canvas', { nodes: [{}] }]), /Node/);
   await assert.rejects(host.handle('flow.write', ['Round.flow', { sheets: [] }]), /flow structure/);
   await assert.rejects(host.handle('helpers.flow.setCell', [flow, 1, 0, 0, 'bad']), /valid sheet/);
-  assert.equal((await host.handle('helpers.flow.create', [])).version, 1);
+  assert.equal((await host.handle('helpers.flow.create', [])).version, 2);
   assert.equal((await host.handle('helpers.canvas.createNode', ['group', 0])).type, 'group');
   assert.equal(
     (await host.handle('helpers.canvas.createArgumentEdge', ['one', 'two', 'supports'])).label,

@@ -1,4 +1,17 @@
 /* Flow */
+.flow-card-results {
+  overflow-y: auto;
+  min-height: 0;
+  margin-top: 8px;
+}
+
+.flow-card-results button {
+  display: block;
+  width: 100%;
+  text-align: left;
+  overflow-wrap: anywhere;
+}
+
 .flow {
   flex: 1;
   min-height: 0;
@@ -149,6 +162,7 @@
 .flow-grid textarea {
   width: 100%;
   min-height: 60px;
+  max-height: 320px;
   field-sizing: fixed;
   resize: none;
   border: none;
@@ -171,12 +185,11 @@
 
 .flow-grid textarea:focus {
   background: var(--accent-dim);
-  box-shadow: inset 0 0 0 1px var(--accent);
+  box-shadow: none;
 }
 
 .flow-grid textarea:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: -2px;
+  outline: none;
 }
 
 /* Rendered Markdown preview for cells not being edited. The subset is the
@@ -186,10 +199,11 @@
   position: relative;
   width: 100%;
   min-height: 60px;
+  max-height: 320px;
   padding: 6px 8px;
   font-size: 13px;
   line-height: 1.4;
-  overflow: hidden;
+  overflow: auto;
   overflow-wrap: break-word;
   user-select: text;
   outline: none;
@@ -210,12 +224,11 @@
 
 .flow-cell-preview:focus {
   background: var(--accent-dim);
-  box-shadow: inset 0 0 0 1px var(--accent);
+  box-shadow: none;
 }
 
 .flow-cell-preview:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: -2px;
+  outline: none;
 }
 
 .flow-cell-preview:is(:hover, :focus-visible)::after {
@@ -272,7 +285,8 @@
   max-height: 80px;
 }
 
-.flow-grid td.cell-selected {
+.flow-grid td.cell-selected,
+.flow-grid td:focus-within {
   box-shadow: inset 0 0 0 2px var(--accent);
 }
 
