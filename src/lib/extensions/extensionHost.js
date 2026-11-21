@@ -779,6 +779,10 @@ export class ExtensionHost {
     }
   }
 
+  /**
+   * @deprecated Migrating extension data out of plain `localStorage` (`tagline-extension:<id>`)
+   * into the encrypted storage bridge is legacy and planned for removal.
+   */
   async storage() {
     if (!this.storagePromise) {
       this.storagePromise = (async () => {

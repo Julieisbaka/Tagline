@@ -85,11 +85,31 @@
               </li>
             </ul>
 
+            <h3>Removed</h3>
+            <ul>
+              <li>
+                Pins and favorites are no longer migrated from the old browser-storage format. They
+                are now read only from <code>.tagline/pins.json</code>, so pins that were never
+                migrated by an earlier version will not appear.
+              </li>
+            </ul>
+
             <h3>Deprecated</h3>
+            <p>The following are deprecated and planned to be removed in a future version.</p>
             <ul>
               <li>
                 Extracting inline Markdown tags with <code>extractTags()</code> is deprecated. Use
                 <code>extractMetadataTags()</code> to read structured tags instead.
+              </li>
+              <li>
+                Calling <code>detectCards()</code> without a <code>depth</code> or
+                <code>weak</code> option, which returns the legacy result shape. Pass an explicit
+                option to get the full result shape.
+              </li>
+              <li>
+                Automatic migration of extension data from plain browser storage into encrypted
+                extension storage. Open each extension once on this version to migrate its data
+                before the migration is removed.
               </li>
             </ul>
           </section>

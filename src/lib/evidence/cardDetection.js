@@ -59,6 +59,8 @@ function cleanTitle(value) {
  * Default (depth 4, weak off): returns strong h4 cards with legacy fields plus offsets/confidence.
  * Line/offset indices are zero-based in the original document; end values exclusive.
  *
+ * @deprecated Calling without an explicit `depth` or `weak` option returns the legacy result
+ * shape and is planned for removal. Pass `depth` and/or `weak` to get the full result shape.
  * @param {string} content
  * @param {{depth?: number, weak?: boolean}} [options]
  * @returns {{title: string, lineIndex: number, endLineIndex: number, startOffset: number, endOffset: number, depth: number, confidence: number, weak: boolean}[]}
@@ -211,7 +213,7 @@ export function detectCards(content, options = {}) {
     !includeWeak && depth === 4
       ? cards.filter((c) => (c.depth === 4 || c.explicit) && !c.weak)
       : cards;
-  // Legacy shape for default calls: preserve exact {title,lineIndex,endLineIndex} contract.
+  // Deprecated: legacy shape for default calls, preserving the exact {title,lineIndex,endLineIndex} contract.
   if (!options || (options.depth === undefined && options.weak === undefined)) {
     return filtered.map(
       ({
