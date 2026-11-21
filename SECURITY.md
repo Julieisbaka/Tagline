@@ -25,8 +25,8 @@ any public disclosure.
 
 ## Out of scope
 
-- Issues in the user's vault files or third-party tools (Pandoc, Google Docs)
-- Social engineering or physical-access attacks
+- Issues in the user's vault files or third-party tools (Pandoc, Google Docs) [^1]
+- Social engineering or physical-access attacks [^2]
 - Issues in unsupported Electron/Node versions
 
 ## Policy
@@ -44,3 +44,8 @@ contents or account credentials.
 Extension IPC is restricted to the application window's main frame. Extension
 workers use the renderer's permission-checked `tagline` API rather than calling
 Electron IPC directly.
+
+## Notes
+
+[^1]: We will try to implement workarounds for issues in external tools when possible.
+[^2]: We do and will implement standard security features to prevent this. If this happens to you, we would be happy to help mitigate the impact and provide guidance on recovery.
