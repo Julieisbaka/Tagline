@@ -4,9 +4,9 @@ Follow these rules whenever a change affects Tagline's release notes or product 
 
 ## Version and release status
 
-- The version in `website/changelog.html` is the release version without a suffix, such as `0.1.3`.
-- While that version is in development, show it as **In development** in the changelog and set `package.json`'s `version`, `package-lock.json`'s top-level `version`, and `package-lock.json`'s `packages[""].version` to the same version with `-dev` appended, such as `0.1.3-dev`.
-- When preparing that version for release, remove `-dev` from both package files and remove the in-development status from its changelog entry. In `website/changelog.html`, change the section's article kicker to `Released`, remove the `In development` badge from its heading, and remove `· In development` from its sidebar link. Keep the version number and section anchor consistent.
+- The version in `package.json` is the source for the newest changelog entry. The Pages build renders the display version, section anchor, and release status from its `{{TAGLINE:...}}` placeholders; keep those placeholders intact in `website/changelog.html`.
+- While that version is in development, set `package.json`'s `version`, `package-lock.json`'s top-level `version`, and `package-lock.json`'s `packages[""].version` to the same version with `-dev` appended, such as `0.1.3-dev`.
+- When preparing that version for release, remove `-dev` from both package files. The Pages build will render the release label and version automatically.
 - Do not create a new development version, guess a version bump, publish a release, or create a tag unless explicitly requested. Do not modify previous released entries as part of a new release.
 - When a new development version is explicitly requested, use the requested version consistently in the package files and add its in-development section and sidebar link above older versions.
 
