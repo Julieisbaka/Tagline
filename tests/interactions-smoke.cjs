@@ -1,21 +1,9 @@
 if (!process.versions.electron) {
-  const { spawnSync } = require('node:child_process');
-  const fs = require('node:fs'),
-    path = require('node:path');
-  const root = fs.mkdtempSync(path.join(require('node:os').tmpdir(), 'tagline-interactions-'));
-  try {
-    const result = spawnSync(require('electron'), [__filename], {
-      env: { ...process.env, TAGLINE_INTERACTIONS_ROOT: root },
-      stdio: 'inherit',
-      timeout: 120000,
-    });
-    if (result.error) {
-      throw result.error;
-    }
-    process.exitCode = result.status ?? 1;
-  } finally {
-    fs.rmSync(root, { recursive: true, force: true, maxRetries: 20, retryDelay: 100 });
-  }
+  process.exitCode = require('./helpers/smoke.cjs').runSmoke({
+    script: __filename,
+    prefix: 'tagline-interactions-',
+    rootEnv: 'TAGLINE_INTERACTIONS_ROOT',
+  });
   return;
 }
 
@@ -170,19 +158,24 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
         saved,
       };
       try {
-        await require('./interactions/onboarding-flow.cjs')(scenarioContext);
-        await require('./interactions/canvas-editor.cjs')(scenarioContext);
-        await require('./interactions/editor-layout.cjs')(scenarioContext);
-        await require('./interactions/graph-recovery.cjs')(scenarioContext);
-        await require('./interactions/note-drag.cjs')(scenarioContext);
-        await require('./interactions/flow-ui.cjs')(scenarioContext);
-        await require('./interactions/flow-card-links.cjs')(scenarioContext);
+        const { scenario } = require('./helpers/smoke.cjs');
+        for (const [description, run] of [
+          ['onboarding and flow editing', require('./interactions/onboarding-flow.cjs')],
+          ['canvas editing', require('./interactions/canvas-editor.cjs')],
+          ['editor layout', require('./interactions/editor-layout.cjs')],
+          ['graph recovery', require('./interactions/graph-recovery.cjs')],
+          ['note drag and drop', require('./interactions/note-drag.cjs')],
+          ['flow cell sizing and actions', require('./interactions/flow-ui.cjs')],
+          ['flow card links', require('./interactions/flow-card-links.cjs')],
+        ]) {
+          await scenario(description, () => run(scenarioContext));
+        }
         console.log(
           'PASS: flow/canvas recovery in visual and source modes, themed confirmations, JSON history, live resize, file previews and links, onboarding flag, viewport/bar/link/graph regressions.'
         );
         app.exit(0);
       } catch (error) {
-        console.error(error);
+        console.error(require('./helpers/smoke.cjs').formatFailure(error));
         app.exit(1);
       }
     });

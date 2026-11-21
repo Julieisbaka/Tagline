@@ -2,8 +2,8 @@ const { test } = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs/promises');
 const path = require('node:path');
-const os = require('node:os');
 const { listVault, readVaultSnapshot } = require('../electron/vaultFiles.cjs');
+const { temporaryDirectory } = require('./helpers/temporary.cjs');
 
 test('outline recognizes imported setext headings before the visual editor rewrites Markdown', async () => {
   const { outline } = await import('../src/lib/vault/vault.js');
@@ -28,11 +28,7 @@ test('outline recognizes imported setext headings before the visual editor rewri
   );
 });
 
-async function fixture(t) {
-  const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'tagline-vault-files-'));
-  t.after(() => fs.rm(dir, { recursive: true, force: true }));
-  return dir;
-}
+const fixture = (t) => temporaryDirectory(t, 'tagline-vault-files-');
 
 test('platform: vault snapshots preserve document types, sorting, paths, timestamps and hidden-file rules', async (t) => {
   const dir = await fixture(t);
@@ -199,7 +195,7 @@ test('first-run language matches supported OS locales and respects saved choices
     [[], 'en'],
     [[null, 12], 'en'],
   ]) {
-    assert.equal(systemLanguage(locales), expected);
+    assert.equal(systemLanguage(locales), expected, `OS locales ${JSON.stringify(locales)}`);
   }
   assert.equal(initialLanguage('en', ['es-ES']), 'en', 'explicit English remains English');
   assert.equal(initialLanguage('fr', ['es-ES']), 'fr');

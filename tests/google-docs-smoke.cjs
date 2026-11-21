@@ -1,21 +1,10 @@
 if (!process.versions.electron) {
-  const { spawnSync } = require('node:child_process');
-  const fs = require('node:fs');
-  const path = require('node:path');
-  const root = fs.mkdtempSync(path.join(require('node:os').tmpdir(), 'tagline-google-docs-ui-'));
-  try {
-    const result = spawnSync(require('electron'), [__filename], {
-      env: { ...process.env, TAGLINE_GOOGLE_DOCS_ROOT: root },
-      stdio: 'inherit',
-      timeout: 90000,
-    });
-    if (result.error) {
-      throw result.error;
-    }
-    process.exitCode = result.status ?? 1;
-  } finally {
-    fs.rmSync(root, { recursive: true, force: true, maxRetries: 20, retryDelay: 100 });
-  }
+  process.exitCode = require('./helpers/smoke.cjs').runSmoke({
+    script: __filename,
+    prefix: 'tagline-google-docs-ui-',
+    rootEnv: 'TAGLINE_GOOGLE_DOCS_ROOT',
+    timeout: 90000,
+  });
   return;
 }
 

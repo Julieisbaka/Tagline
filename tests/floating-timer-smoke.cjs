@@ -1,21 +1,9 @@
 if (!process.versions.electron) {
-  const { spawnSync } = require('node:child_process');
-  const fs = require('node:fs');
-  const path = require('node:path');
-  const root = fs.mkdtempSync(path.join(require('node:os').tmpdir(), 'tagline-floating-timer-'));
-  try {
-    const result = spawnSync(require('electron'), [__filename], {
-      env: { ...process.env, TAGLINE_FLOATING_TIMER_ROOT: root },
-      stdio: 'inherit',
-      timeout: 120000,
-    });
-    if (result.error) {
-      throw result.error;
-    }
-    process.exitCode = result.status ?? 1;
-  } finally {
-    fs.rmSync(root, { recursive: true, force: true, maxRetries: 20, retryDelay: 100 });
-  }
+  process.exitCode = require('./helpers/smoke.cjs').runSmoke({
+    script: __filename,
+    prefix: 'tagline-floating-timer-',
+    rootEnv: 'TAGLINE_FLOATING_TIMER_ROOT',
+  });
   return;
 }
 

@@ -1,13 +1,12 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs/promises');
-const os = require('node:os');
 const path = require('node:path');
 const { spawnSync } = require('node:child_process');
+const { temporaryDirectory } = require('./helpers/temporary.cjs');
 
 async function fixture(t) {
-  const root = await fs.mkdtemp(path.join(os.tmpdir(), 'tagline-test-runner-'));
-  t.after(() => fs.rm(root, { recursive: true, force: true }));
+  const root = await temporaryDirectory(t, 'tagline-test-runner-');
   await fs.mkdir(path.join(root, 'scripts'));
   await fs.copyFile(
     path.join(__dirname, '../scripts/run-all-tests.cjs'),
@@ -30,7 +29,10 @@ async function fixture(t) {
     const finish = () => {
       event('end');
       if (name === 'test') console.log('# tests 1\\n# pass 1\\n# fail 0\\n# skipped 0\\n# cancelled 0');
-      if (name === process.env.FAIL_SUITE) process.exitCode = 1;
+      if (name === process.env.FAIL_SUITE) {
+        if (process.env.SCENARIO_FAILURE) console.error('Error: Scenario failed: flow card links\\nCaused by: AssertionError: expected a link');
+        process.exitCode = 1;
+      }
     };
     const barrier = process.env.TEST_BARRIER && (name === 'build' ? 'test' : name === 'test' ? 'test:a' : '');
     if (barrier) {
@@ -98,4 +100,17 @@ test('shards cover different suites and invalid options fail', async (t) => {
   assert.deepEqual(await f.events(), ['start:test:b', 'end:test:b']);
   assert.equal(f.run(['--shard=0/2']).status, 2);
   assert.equal(f.run(['--jobs=0']).status, 2);
+});
+
+test('failure log retains the scenario description and its assertion cause', async (t) => {
+  const f = await fixture(t);
+  const result = f.run(['--skip-unit', '--bail'], {
+    TAGLINE_TEST_DIST_READY: '1',
+    FAIL_SUITE: 'test:a',
+    SCENARIO_FAILURE: '1',
+  });
+  assert.equal(result.status, 1);
+  const log = await fs.readFile(path.join(f.root, 'test-all.log'), 'utf8');
+  assert.match(log, /Scenario failed: flow card links/);
+  assert.match(log, /AssertionError: expected a link/);
 });

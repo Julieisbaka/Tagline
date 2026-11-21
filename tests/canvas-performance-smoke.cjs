@@ -3,22 +3,12 @@ const fs = require('node:fs');
 const path = require('node:path');
 
 if (!process.versions.electron) {
-  const root = fs.mkdtempSync(
-    path.join(require('node:os').tmpdir(), 'tagline-canvas-performance-')
-  );
-  try {
-    const result = require('node:child_process').spawnSync(require('electron'), [__filename], {
-      env: { ...process.env, TAGLINE_CANVAS_PERFORMANCE_ROOT: root },
-      stdio: 'inherit',
-      timeout: 90000,
-    });
-    if (result.error) {
-      throw result.error;
-    }
-    process.exitCode = result.status ?? 1;
-  } finally {
-    fs.rmSync(root, { recursive: true, force: true, maxRetries: 20, retryDelay: 100 });
-  }
+  process.exitCode = require('./helpers/smoke.cjs').runSmoke({
+    script: __filename,
+    prefix: 'tagline-canvas-performance-',
+    rootEnv: 'TAGLINE_CANVAS_PERFORMANCE_ROOT',
+    timeout: 90000,
+  });
   return;
 }
 

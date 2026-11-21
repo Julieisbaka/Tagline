@@ -1,21 +1,9 @@
 if (!process.versions.electron) {
-  const fs = require('node:fs');
-  const path = require('node:path');
-  const { spawnSync } = require('node:child_process');
-  const root = fs.mkdtempSync(path.join(require('node:os').tmpdir(), 'tagline-canvas-ui-'));
-  try {
-    const result = spawnSync(require('electron'), [__filename], {
-      env: { ...process.env, TAGLINE_CANVAS_ROOT: root },
-      stdio: 'inherit',
-      timeout: 120000,
-    });
-    if (result.error) {
-      throw result.error;
-    }
-    process.exitCode = result.status ?? 1;
-  } finally {
-    fs.rmSync(root, { recursive: true, force: true, maxRetries: 20, retryDelay: 100 });
-  }
+  process.exitCode = require('./helpers/smoke.cjs').runSmoke({
+    script: __filename,
+    prefix: 'tagline-canvas-ui-',
+    rootEnv: 'TAGLINE_CANVAS_ROOT',
+  });
   return;
 }
 

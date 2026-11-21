@@ -47,6 +47,13 @@ Use the default one smoke worker for reliable local runs. CI runs four isolated 
 set `TAGLINE_TEST_DIST_READY=1` only when `dist/` already contains a current build for the
 target platform. The same flag lets individual smoke scripts reuse that build.
 
+Name unit tests for the behavior and expected outcome; include the input or scenario in
+assertion messages when a test covers several cases. Use `tests/helpers/temporary.cjs`
+for temporary directories tied to a Node test's cleanup, and `tests/helpers/smoke.cjs`
+for single-process Electron smoke launches. Wrap long smoke scenarios with `scenario()`
+and a descriptive name so failures retain both the scenario and the original assertion.
+Use `tests/helpers/wait.cjs` for polling with useful timeout diagnostics.
+
 ## Vault format changes
 
 Every change to persisted vault data must ship with a migration in `electron/vaultMigrations.cjs`: append the next consecutive version with a user-facing `title`, `description`, `up(stagingRoot)`, and `validate(stagingRoot)`. Never modify a released migration. Include changes to Markdown/frontmatter, flows, canvases, settings stored in the vault, attachments, and hidden metadata. App-profile settings outside the vault are separate.

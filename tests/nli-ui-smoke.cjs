@@ -2,23 +2,12 @@
 // Without TAGLINE_NLI_MODEL it verifies nothing loads automatically; with a converted
 // ONNX folder it also loads the model and analyzes a note through the UI.
 if (!process.versions.electron) {
-  const { spawnSync } = require('node:child_process');
-  const fs = require('node:fs');
-  const path = require('node:path');
-  const root = fs.mkdtempSync(path.join(require('node:os').tmpdir(), 'tagline-nli-'));
-  try {
-    const result = spawnSync(require('electron'), [__filename], {
-      env: { ...process.env, TAGLINE_NLI_ROOT: root },
-      stdio: 'inherit',
-      timeout: 300000,
-    });
-    if (result.error) {
-      throw result.error;
-    }
-    process.exitCode = result.status ?? 1;
-  } finally {
-    fs.rmSync(root, { recursive: true, force: true, maxRetries: 20, retryDelay: 100 });
-  }
+  process.exitCode = require('./helpers/smoke.cjs').runSmoke({
+    script: __filename,
+    prefix: 'tagline-nli-',
+    rootEnv: 'TAGLINE_NLI_ROOT',
+    timeout: 300000,
+  });
   return;
 }
 

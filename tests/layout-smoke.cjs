@@ -1,21 +1,11 @@
 // Layout check: status-bar statistics wrap instead of clipping, note actions stay inside the note
 // column, and both side panels resize by mouse drag and keyboard with persisted, clamped widths.
 if (!process.versions.electron) {
-  const { spawnSync } = require('node:child_process');
-  const os = require('node:os'),
-    fs = require('node:fs'),
-    path = require('node:path');
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'tagline-layout-'));
-  try {
-    const r = spawnSync(require('electron'), [__filename], {
-      env: { ...process.env, SHOT_ROOT: root },
-      stdio: 'inherit',
-      timeout: 120000,
-    });
-    process.exitCode = r.status ?? 1;
-  } finally {
-    fs.rmSync(root, { recursive: true, force: true, maxRetries: 20, retryDelay: 100 });
-  }
+  process.exitCode = require('./helpers/smoke.cjs').runSmoke({
+    script: __filename,
+    prefix: 'tagline-layout-',
+    rootEnv: 'SHOT_ROOT',
+  });
   return;
 }
 const { app, ipcMain } = require('electron');

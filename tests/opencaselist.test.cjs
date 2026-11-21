@@ -3,7 +3,7 @@ const assert = require('node:assert/strict');
 const { EventEmitter } = require('node:events');
 const fs = require('node:fs/promises');
 const path = require('node:path');
-const os = require('node:os');
+const { temporaryDirectory } = require('./helpers/temporary.cjs');
 const {
   createOpenCaselist,
   registerOpenCaselist,
@@ -91,11 +91,7 @@ function setup(options = {}) {
     restart: () => createOpenCaselist(serviceOptions),
   };
 }
-async function temporary(t) {
-  const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'tagline-opencaselist-unit-'));
-  t.after(() => fs.rm(dir, { recursive: true, force: true }));
-  return dir;
-}
+const temporary = (t) => temporaryDirectory(t, 'tagline-opencaselist-unit-');
 
 const tabroomTeam = {
   chapter: '100',

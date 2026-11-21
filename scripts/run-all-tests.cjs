@@ -222,6 +222,12 @@ function failureOutput(result) {
       start = index;
     }
   }
+  // Scenario wrappers retain the original error as a cause; keep the description
+  // as well as the later assertion/stack instead of starting at the cause.
+  const scenarioStart = lines.findIndex((line) => /Error: Scenario failed:/.test(line));
+  if (scenarioStart >= 0) {
+    start = scenarioStart;
+  }
   const excerpt = (start < 0 ? lines.slice(-80) : lines.slice(start)).filter(
     (line) => !/^(?:✔|ok \d+\b|PASS\b)/.test(line.trim())
   );

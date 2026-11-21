@@ -3,7 +3,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs/promises');
 const fssync = require('node:fs');
 const path = require('node:path');
-const os = require('node:os');
+const { temporaryDirectory } = require('./helpers/temporary.cjs');
 const { randomUUID } = require('node:crypto');
 const {
   migrations,
@@ -18,8 +18,7 @@ const { createVault } = require('../electron/main/vault.cjs');
 const { registerVaultIpc } = require('../electron/main/ipcVault.cjs');
 
 async function fixture(t) {
-  const parent = await fs.mkdtemp(path.join(os.tmpdir(), 'tagline-migrations-'));
-  t.after(() => fs.rm(parent, { recursive: true, force: true }));
+  const parent = await temporaryDirectory(t, 'tagline-migrations-');
   const root = path.join(parent, 'Vault');
   await fs.mkdir(root);
   return { root, parent };

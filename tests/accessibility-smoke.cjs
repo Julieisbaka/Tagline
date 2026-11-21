@@ -1,22 +1,9 @@
 if (!process.versions.electron) {
-  const { spawnSync } = require('node:child_process');
-  const fs = require('node:fs'),
-    path = require('node:path'),
-    os = require('node:os');
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'tagline-accessibility-'));
-  try {
-    const result = spawnSync(require('electron'), [__filename], {
-      env: { ...process.env, TAGLINE_A11Y_ROOT: root },
-      stdio: 'inherit',
-      timeout: 120000,
-    });
-    if (result.error) {
-      throw result.error;
-    }
-    process.exitCode = result.status ?? 1;
-  } finally {
-    fs.rmSync(root, { recursive: true, force: true, maxRetries: 20, retryDelay: 100 });
-  }
+  process.exitCode = require('./helpers/smoke.cjs').runSmoke({
+    script: __filename,
+    prefix: 'tagline-accessibility-',
+    rootEnv: 'TAGLINE_A11Y_ROOT',
+  });
   return;
 }
 
@@ -38,6 +25,9 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
     JSON.stringify({ version: require('../electron/vaultMigrations.cjs').migrations.length })
   );
   await fs.writeFile(path.join(vault, 'Card.md'), '#### Claim\n\nEvidence to find and replace.\n');
+  const importedNote =
+    'Imported pocket\n===============\n\nImported hat\n------------\n\nEvidence.\n';
+  await fs.writeFile(path.join(vault, 'Imported.md'), importedNote);
   await fs.writeFile(
     path.join(profile, 'config.json'),
     JSON.stringify({ lastVault: vault, modelAutoload: false })
@@ -46,7 +36,13 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
   app.on('browser-window-created', (_event, win) => {
     win.webContents.once('did-finish-load', async () => {
       const wc = win.webContents;
-      const js = (code) => wc.executeJavaScript(code);
+      const js = async (code) => {
+        try {
+          return await wc.executeJavaScript(code);
+        } catch (error) {
+          throw new Error(`Renderer script failed: ${code}`, { cause: error });
+        }
+      };
       const wait = require('./helpers/wait.cjs').rendererWait(js, {
         timeout: 5000,
         details: async () => `\nFocus: ${await js('document.activeElement.outerHTML')}`,
@@ -133,11 +129,57 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
         await delay(30);
       };
       try {
-        await wait("!!document.querySelector('.onboarding-skip')");
-        await checkAccessibleNames();
-        await checkTabLoop('.onboarding-dialog');
-        await key('Escape');
-        await wait("!document.querySelector('.onboarding-dialog')");
+        await require('./helpers/smoke.cjs').scenario(
+          'onboarding accessibility and dismissal',
+          async () => {
+            // The tour can briefly appear before the last vault starts loading.
+            // Wait for both the vault and the tour before testing its focus scope.
+            await wait(
+              "!!document.querySelector('.tree-item[title=\"Card.md\"]') && !!document.querySelector('.onboarding-skip')"
+            );
+            await checkAccessibleNames();
+            await checkTabLoop('.onboarding-dialog');
+            await key('Escape');
+            await wait("!document.querySelector('.onboarding-dialog')");
+            await wait('!!document.querySelector(\'.tree-item[title="Card.md"]\')');
+          }
+        );
+        await require('./helpers/smoke.cjs').scenario(
+          'deferred dialog failure and focus recovery',
+          () => require('./interactions/deferred-dialog.cjs')(win)
+        );
+        await require('./helpers/smoke.cjs').scenario(
+          'imported note outline in both editor modes',
+          async () => {
+            await wait('!!document.querySelector(\'.tree-item[title="Imported.md"]\')');
+            await js('document.querySelector(\'.tree-item[title="Imported.md"]\').click()');
+            await wait("!!document.querySelector('.visual-document')");
+            await js('document.querySelector(\'.right-panel button[title="Outline"]\').click()');
+            await wait("document.querySelectorAll('.outline-item').length === 2");
+            const headings = () =>
+              js("[...document.querySelectorAll('.outline-item')].map(item => item.textContent)");
+            assert.deepEqual(
+              await headings(),
+              ['Imported pocket', 'Imported hat'],
+              'visual editor outline'
+            );
+            await change('[aria-label="Editor mode"]', 'edit');
+            await wait("!!document.querySelector('.editor .cm-content')");
+            assert.deepEqual(
+              await headings(),
+              ['Imported pocket', 'Imported hat'],
+              'source editor outline'
+            );
+            assert.equal(
+              await fs.readFile(path.join(vault, 'Imported.md'), 'utf8'),
+              importedNote,
+              'outline does not rewrite the imported note'
+            );
+            await change('[aria-label="Editor mode"]', 'visual');
+            await wait("!!document.querySelector('.visual-document')");
+            await js('document.querySelector(\'.right-panel button[title="Outline"]\').click()');
+          }
+        );
         await wait('!!document.querySelector(\'.tree-item[title="Card.md"]\')');
         await js('document.querySelector(\'.tree-item[title="Card.md"]\').click()');
         await wait("!!document.querySelector('.visual-document')");
@@ -470,7 +512,7 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
         );
         app.exit(0);
       } catch (error) {
-        console.error(error.stack || error);
+        console.error(require('./helpers/smoke.cjs').formatFailure(error));
         app.exit(1);
       }
     });
