@@ -6,10 +6,16 @@ function registerFloatingTimer({
   screen,
   getWindow,
   assertMainFrameSender,
+  readConfig = () => ({}),
+  writeConfig,
 }) {
   let overlay = null;
   let latest = null;
-  let position = null;
+  const savedPosition = readConfig().floatingTimerPosition;
+  let position =
+    savedPosition && Number.isFinite(savedPosition.x) && Number.isFinite(savedPosition.y)
+      ? { x: savedPosition.x, y: savedPosition.y }
+      : null;
   const close = () => {
     latest = null;
     if (overlay && !overlay.isDestroyed()) {
@@ -61,7 +67,11 @@ function registerFloatingTimer({
       });
       const window = overlay;
       window.on('moved', () => {
-        position = window.getBounds();
+        const bounds = window.getBounds();
+        position = { x: bounds.x, y: bounds.y };
+        writeConfig?.({ floatingTimerPosition: position }).catch((error) =>
+          console.error('[floating-timer] failed to persist position', error)
+        );
       });
       window.webContents.once('did-finish-load', () => {
         if (latest && !window.isDestroyed()) {

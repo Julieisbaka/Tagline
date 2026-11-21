@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { formatDuration } from '../lib/card.js';
 import { remainingAt } from '../lib/countdown.js';
 import { useI18n } from '../lib/i18n.js';
+import { normalizeTimerState } from '../lib/timerState.js';
 import { speechLike } from '../lib/voiceActivity.js';
 import { playUiSound } from '../lib/uiSounds.js';
 import TimerPresetDialog from './dialogs/TimerPresetDialog.jsx';
@@ -150,6 +151,8 @@ export default function Timer({
   recognitionLanguage = 'en',
   interactionSounds = false,
   onArmedChange,
+  timerState,
+  onTimerStateChange,
 }) {
   const { t } = useI18n();
   const customPresets = Array.isArray(presets)
@@ -174,7 +177,8 @@ export default function Timer({
   const fmt = Object.hasOwn(FORMATS, format)
     ? FORMATS[format]
     : customPresets.find((preset) => preset.id === format);
-  const [speech, setSpeech] = useState(0);
+  const restored = normalizeTimerState(timerState, format, fmt);
+  const [speech, setSpeech] = useState(restored.speech);
   const [addingPreset, setAddingPreset] = useState(false);
   const [timerSound, setTimerSound] = useState(null);
   const playEndSound = () => {
@@ -195,9 +199,9 @@ export default function Timer({
         window.dispatchEvent(new CustomEvent('app-error', { detail: error.message }))
       );
   };
-  const main = useCountdown(fmt ? Math.round(fmt.speeches[0][1] * 60) : 0, playEndSound);
-  const aff = useCountdown(fmt ? Math.round(fmt.prep * 60) : 0, playEndSound);
-  const neg = useCountdown(fmt ? Math.round(fmt.prep * 60) : 0, playEndSound);
+  const main = useCountdown(restored.remaining, playEndSound);
+  const aff = useCountdown(restored.affRemaining, playEndSound);
+  const neg = useCountdown(restored.negRemaining, playEndSound);
   const [armed, setArmed] = useState(false);
   const [micStatus, setMicStatus] = useState('idle');
   const [threshold, setThreshold] = useState(timerAutoStartThreshold);
@@ -242,6 +246,41 @@ export default function Timer({
     setMicStatus('idle');
     setLevel(0);
   };
+  const previousFormat = useRef(format);
+  const timerRestoreRef = useRef(null);
+  timerRestoreRef.current = { disarm, main, aff, neg };
+  const onTimerStateChangeRef = useRef(onTimerStateChange);
+  onTimerStateChangeRef.current = onTimerStateChange;
+  useEffect(() => {
+    if (previousFormat.current === format) {
+      return;
+    }
+    previousFormat.current = format;
+    const next = normalizeTimerState(timerState, format, fmt);
+    const {
+      disarm: restoreDisarm,
+      main: restoreMain,
+      aff: restoreAff,
+      neg: restoreNeg,
+    } = timerRestoreRef.current;
+    restoreDisarm();
+    setSpeech(next.speech);
+    restoreMain.reset(next.remaining);
+    restoreAff.reset(next.affRemaining);
+    restoreNeg.reset(next.negRemaining);
+  }, [format, fmt, timerState]);
+  useEffect(() => {
+    if (!fmt) {
+      return;
+    }
+    onTimerStateChangeRef.current?.({
+      format,
+      speech,
+      remaining: main.remaining,
+      affRemaining: aff.remaining,
+      negRemaining: neg.remaining,
+    });
+  }, [format, fmt, speech, main.remaining, aff.remaining, neg.remaining]);
   useEffect(() => () => releaseMicrophone(), []);
   useEffect(() => {
     onArmedChange?.(armed);

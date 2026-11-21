@@ -13,6 +13,7 @@
   "timerAutoStartUseSpeechRecognition": false,
   "timerAutoStartThreshold": 4,
   "timerFloatingWindow": false,
+  "timerState": null,
   "interactionSounds": false,
   "readableWidth": true,
   "readableWidthPixels": 820,

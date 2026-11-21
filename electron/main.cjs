@@ -230,6 +230,8 @@ if (primary) {
         screen,
         getWindow: () => state.win,
         assertMainFrameSender,
+        readConfig,
+        writeConfig,
       });
       registerScholarlySearch({ ipcMain, assertMainFrameSender });
       if (!disableExtensions) {

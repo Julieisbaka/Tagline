@@ -230,6 +230,8 @@ export default function RightPanel(props) {
             timerAutoStartThreshold={props.settings.timerAutoStartThreshold}
             onThresholdChange={(value) => props.updateSettings({ timerAutoStartThreshold: value })}
             timerFloatingWindow={props.settings.timerFloatingWindow}
+            timerState={props.settings.timerState}
+            onTimerStateChange={(timerState) => props.updateSettings({ timerState })}
             recognitionLanguage={props.settings.language}
             interactionSounds={props.settings.interactionSounds}
             onArmedChange={setTimerArmed}
