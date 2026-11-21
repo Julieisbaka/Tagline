@@ -338,14 +338,16 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
         })()`);
         await click('.context-menu button', 'Add link');
         await wait("document.querySelectorAll('.canvas-node').length === 5");
-        await delay(450);
-        const link = JSON.parse(await fs.readFile(path.join(vault, 'Map.canvas'), 'utf8')).nodes.at(
-          -1
-        );
-        assert.equal(link.x, expected.x);
-        assert.equal(link.y, expected.y);
+        await wait("!!document.querySelector('.tab-save-status.unsaved, .tab-save-status.saving')");
+        await wait("!!document.querySelector('.tab-save-status.saved')");
+        const addedLink = JSON.parse(
+          await fs.readFile(path.join(vault, 'Map.canvas'), 'utf8')
+        ).nodes.find(({ type }) => type === 'link');
+        assert.ok(addedLink, 'Add link persists a link node');
+        assert.equal(addedLink.x, expected.x);
+        assert.equal(addedLink.y, expected.y);
         await js(
-          `document.querySelector('[data-node-id="${link.id}"]').dispatchEvent(new MouseEvent('contextmenu',{bubbles:true,clientX:500,clientY:300}))`
+          `document.querySelector('[data-node-id="${addedLink.id}"]').dispatchEvent(new MouseEvent('contextmenu',{bubbles:true,clientX:500,clientY:300}))`
         );
         await click('.context-menu button', 'Open JSON source');
         await wait("!!document.querySelector('.canvas-json-editor')");
