@@ -180,6 +180,9 @@ export function useVault(
   const reload = useCallback(async () => {
     const epoch = saveEpoch.current;
     try {
+      // Commit local editor drafts (e.g. canvas textareas) before reading disk,
+      // so an external vault change cannot silently revert text still being typed.
+      flushPendingEdits();
       const { tree, contents: all } = await api.readSnapshot();
       if (saveEpoch.current !== epoch) {
         return;
