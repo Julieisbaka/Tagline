@@ -772,7 +772,7 @@
   "Link card here": "Enlazar tarjeta aquí",
   "Find a note": "Buscar una nota",
   "No matching notes.": "No hay notas coincidentes.",
-  "Used in this round ({count})": "Usada en esta ronda ({count})",
+  "Used in flows ({count})": "Usada en flows ({count})",
   "No flows link to this note yet.": "Ningún flujo enlaza todavía a esta nota.",
   "Unlinked mentions ({count})": "Menciones sin enlace ({count})",
   "No notes link here yet.": "Todavía no hay enlaces a esta nota.",

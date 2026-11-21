@@ -55,7 +55,7 @@ function Backlinks({ activePath, index, contents, onOpen, settings }) {
     <div>
       {isMarkdown(activePath) && (
         <>
-          <div className='panel-section-title'>{t('Used in this round ({count})', { count: usedInRounds.length })}</div>
+          <div className='panel-section-title'>{t('Used in flows ({count})', { count: usedInRounds.length })}</div>
           {usedInRounds.length === 0 && <div className='empty-hint'>{t('No flows link to this note yet.')}</div>}
           {usedInRounds.map((p) => (
             <button type='button' key={p} className='backlink flow-backlink' title={p}

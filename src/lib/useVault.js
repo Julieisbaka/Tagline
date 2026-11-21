@@ -396,9 +396,12 @@ export function useVault(
         const moved = paths.filter((p) => p === from || p.startsWith(from + '/'));
         for (const p of autoRelink ? paths.filter((p) => isMarkdown(p) || isFlow(p)) : []) {
           let updated = all[p];
-          for (const oldPath of moved.filter(isMarkdown)) {
-            const rewrite = isFlow(p) ? rewriteFlowLinks : rewriteLinks;
-            updated = rewrite(updated, oldPath, to + oldPath.slice(from.length), paths);
+          for (const oldPath of moved.filter((m) => isMarkdown(m) || isFlow(m))) {
+            const newPath = to + oldPath.slice(from.length);
+            // Links to a flow keep their extension so they still resolve once renamed.
+            updated = isFlow(p)
+              ? rewriteFlowLinks(updated, oldPath, newPath, paths)
+              : rewriteLinks(updated, oldPath, newPath, paths, isFlow(oldPath));
           }
           const destination = moved.includes(p) ? to + p.slice(from.length) : p;
           if (updated !== all[p]) {

@@ -234,6 +234,10 @@ export default function FlowEditor({
     applyFlowContent(next.content);
   };
   const handleHistoryShortcut = (event) => {
+    // The card picker's search input keeps its own native text undo.
+    if (event.target.closest?.('.flow-card-picker')) {
+      return;
+    }
     if (matchesBinding(event, binding('flow-undo', keybindings))) {
       event.preventDefault();
       event.stopPropagation();
@@ -523,9 +527,9 @@ export default function FlowEditor({
     .filter(Boolean);
 
   const cardResults = cardTarget
-    ? (notePaths || []).filter(
-        (item) => canLinkCard(item) && item.toLowerCase().includes(cardQuery.toLowerCase())
-      )
+    ? (notePaths || [])
+        .filter((item) => canLinkCard(item) && item.toLowerCase().includes(cardQuery.toLowerCase()))
+        .slice(0, 50)
     : [];
   return (
     <div className='flow' ref={flowRef} onKeyDownCapture={handleHistoryShortcut}>
@@ -601,6 +605,12 @@ export default function FlowEditor({
             aria-modal='true'
             aria-labelledby='flow-card-picker-title'
             onMouseDown={(event) => event.stopPropagation()}
+            onKeyDown={(event) => {
+              if (event.key === 'Escape') {
+                event.stopPropagation();
+                setCardTarget(null);
+              }
+            }}
           >
             <h3 id='flow-card-picker-title'>{t('Link card here')}</h3>
             <input

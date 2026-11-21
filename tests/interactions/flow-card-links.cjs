@@ -36,7 +36,7 @@ module.exports = async function runScenario({ vault, fs, path, assert, delay, js
   await wait("document.querySelector('.tab.active')?.title === 'Nested/Beta.md'");
   await click('.right-panel [aria-label="Backlinks"]');
   await wait("!!document.querySelector('.right-panel .flow-backlink[title=\"Round.flow\"]')");
-  assert.ok(await js("document.querySelector('.right-panel').textContent.includes('Used in this round (1)')"));
+  assert.ok(await js("document.querySelector('.right-panel').textContent.includes('Used in flows (1)')"));
   await click('.right-panel .flow-backlink[title="Round.flow"]');
   await wait("document.querySelector('.tab.active')?.title === 'Round.flow'");
 };
