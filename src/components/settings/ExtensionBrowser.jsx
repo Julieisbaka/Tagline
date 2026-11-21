@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { clearExtensionData } from '../../lib/extensionSettings.js';
 import { useConfirm } from '../dialogs/ConfirmProvider.jsx';
 import { useI18n } from '../../lib/i18n.js';
 import SettingsGroup from './SettingsGroup.jsx';
@@ -47,9 +48,12 @@ export default function ExtensionBrowser({ extensions, permissionLabels }) {
     setBusy(entry.url);
     setError('');
     setNotice('');
+    extensions.stop(entry.id);
     try {
       const result = await window.api.installRegistryExtension(entry.url, entry.id);
-      await extensions.reload();
+      if (result.replaced) {
+        clearExtensionData({ id: result.id });
+      }
       setNotice(
         result.reviewRequired
           ? t('Installed {name}. Review its permissions below, then enable it.', {
@@ -63,6 +67,7 @@ export default function ExtensionBrowser({ extensions, permissionLabels }) {
     } catch (err) {
       setError(err.message);
     } finally {
+      await extensions.reload();
       setBusy('');
     }
   };

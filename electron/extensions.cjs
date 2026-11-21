@@ -550,6 +550,11 @@ function registerExtensions({
     folder,
     invalidateManifest,
     enabledIds,
+    resetExtensionState: (id) => {
+      installTokens.delete(id);
+      networkRequestTimes.delete(id);
+      cancelAuthorization(id);
+    },
   };
   registerStorageHandlers(context);
 

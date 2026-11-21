@@ -1,5 +1,6 @@
 const fs = require('node:fs/promises');
 const path = require('node:path');
+const { randomUUID } = require('node:crypto');
 const { createExtensionRegistry } = require('../extensionRegistry.cjs');
 const {
   validateManifest,
@@ -29,6 +30,11 @@ function registerInstallHandlers(context) {
     invalidateManifest,
     enabledIds,
     scan,
+    resetExtensionState,
+    secretsDir,
+    storageDir,
+    serialize,
+    serializeStorage,
   } = context;
   // Copies a dropped or chosen folder (or its manifest.json) into the extensions folder and enables
   // it when it declares no review-gated permission; otherwise the user reviews it in Settings.
@@ -51,6 +57,24 @@ function registerInstallHandlers(context) {
     }
     const installed = await scan();
     const existing = installed.find((item) => item.id === manifest.id);
+    if (existing) {
+      const options = {
+        type: 'warning',
+        title: 'Replace installed extension?',
+        message: `Replacing ${manifest.name} will disable it, revoke its permissions, and delete its saved data. You must grant permissions again before it can access them.`,
+        buttons: ['Cancel', 'Replace'],
+        defaultId: 0,
+        cancelId: 0,
+        noLink: true,
+      };
+      const window = getWindow();
+      const confirmation = window
+        ? await dialog.showMessageBox(window, options)
+        : await dialog.showMessageBox(options);
+      if (confirmation.response !== 1) {
+        throw new Error('Extension replacement was canceled.');
+      }
+    }
     const taken = new Set(installed.map((item) => item.folder));
     let name = manifest.id;
     for (let i = 2; !existing && taken.has(name); i++) {
@@ -58,16 +82,140 @@ function registerInstallHandlers(context) {
     }
     const target = existing ? existing.root : path.join(folder(), name);
     const inPlace = (await fs.realpath(root).catch(() => root)) === (await realpathOrSelf(target));
-    if (!inPlace) {
+    if (existing) {
+      const staging = path.join(app.getPath('userData'), 'extension-staging', randomUUID());
+      const targetBackup = `${staging}.previous`;
+      try {
+        await copyExtension(app, root, staging);
+        const stagedManifest = validateManifest(
+          JSON.parse(await fs.readFile(path.join(staging, 'manifest.json'), 'utf8')),
+          staging,
+          limits(),
+          { appVersion: app.getVersion?.() || '' }
+        );
+        if (stagedManifest.id !== manifest.id) {
+          throw new Error('The extension changed while it was being installed.');
+        }
+        await serialize(manifest.id, () =>
+          serializeStorage(manifest.id, async () => {
+            const config = readConfig();
+            const fields = [
+              'enabledExtensions',
+              'extensionReviews',
+              'extensionPermissions',
+              'initializedExtensions',
+              'engineCompatibilityOverrides',
+            ];
+            const previousConfig = Object.fromEntries(
+              fields.map((field) => [field, config[field]])
+            );
+            const extensionReviews = { ...config.extensionReviews };
+            const extensionPermissions = { ...config.extensionPermissions, [manifest.id]: [] };
+            delete extensionReviews[manifest.id];
+            const configUpdate = {
+              enabledExtensions: enabledIds().filter((id) => id !== manifest.id),
+              extensionReviews,
+              extensionPermissions,
+              initializedExtensions: (Array.isArray(config.initializedExtensions)
+                ? config.initializedExtensions
+                : []
+              ).filter((id) => id !== manifest.id),
+              engineCompatibilityOverrides: (Array.isArray(config.engineCompatibilityOverrides)
+                ? config.engineCompatibilityOverrides
+                : []
+              ).filter((id) => id !== manifest.id),
+            };
+            const secretFile = path.join(secretsDir(), `${manifest.id}.bin`);
+            const storageFile = path.join(storageDir(), `${manifest.id}.bin`);
+            const secretBackup = `${secretFile}.${randomUUID()}.replacement-backup`;
+            const storageBackup = `${storageFile}.${randomUUID()}.replacement-backup`;
+            let hadSecret = false;
+            let hadStorage = false;
+            let hadTarget = false;
+            let installedReplacement = false;
+            let configChanged = false;
+            try {
+              await fs.rename(secretFile, secretBackup).then(
+                () => {
+                  hadSecret = true;
+                },
+                (error) => {
+                  if (error.code !== 'ENOENT') {
+                    throw error;
+                  }
+                }
+              );
+              await fs.rename(storageFile, storageBackup).then(
+                () => {
+                  hadStorage = true;
+                },
+                (error) => {
+                  if (error.code !== 'ENOENT') {
+                    throw error;
+                  }
+                }
+              );
+              configChanged = true;
+              await writeConfig(configUpdate);
+              resetExtensionState(manifest.id);
+              await fs.rename(target, targetBackup);
+              hadTarget = true;
+              await fs.rename(staging, target);
+              installedReplacement = true;
+              invalidateManifest(target);
+            } catch (error) {
+              const rollbackErrors = [];
+              const rollback = async (task) => {
+                try {
+                  await task();
+                } catch (rollbackError) {
+                  rollbackErrors.push(rollbackError);
+                }
+              };
+              if (installedReplacement) {
+                await rollback(() => fs.rm(target, { recursive: true, force: true }));
+              }
+              if (hadTarget) {
+                await rollback(() => fs.rename(targetBackup, target));
+              }
+              if (configChanged) {
+                await rollback(() => writeConfig(previousConfig));
+              }
+              if (hadStorage) {
+                await rollback(() => fs.rename(storageBackup, storageFile));
+              }
+              if (hadSecret) {
+                await rollback(() => fs.rename(secretBackup, secretFile));
+              }
+              invalidateManifest(target);
+              if (rollbackErrors.length) {
+                throw new AggregateError(
+                  [error, ...rollbackErrors],
+                  'Extension replacement failed and could not be fully rolled back.'
+                );
+              }
+              throw error;
+            }
+            await Promise.all([
+              hadTarget ? fs.rm(targetBackup, { recursive: true, force: true }) : undefined,
+              hadSecret ? fs.rm(secretBackup, { force: true }) : undefined,
+              hadStorage ? fs.rm(storageBackup, { force: true }) : undefined,
+            ]);
+          })
+        );
+      } finally {
+        await fs.rm(staging, { recursive: true, force: true });
+      }
+    } else if (!inPlace) {
       await copyExtension(app, root, target);
     }
     invalidateManifest(target);
     const gated = manifest.permissions.some((permission) =>
       REVIEW_PERMISSIONS.includes(permission)
     );
-    const wasEnabled = enabledIds().includes(manifest.id);
+    const wasEnabled = !existing && enabledIds().includes(manifest.id);
     let enabled = wasEnabled;
-    if (!gated && !wasEnabled) {
+    if (!existing && !gated && !wasEnabled) {
       await writeConfig({
         enabledExtensions: [...enabledIds(), manifest.id],
         extensionReviews: {
@@ -76,7 +224,7 @@ function registerInstallHandlers(context) {
         },
       });
       enabled = true;
-    } else if (!gated) {
+    } else if (!existing && !gated) {
       await writeConfig({
         extensionReviews: {
           ...readConfig().extensionReviews,
@@ -84,7 +232,8 @@ function registerInstallHandlers(context) {
         },
       });
     }
-    const reviewRequired = gated && (!wasEnabled || needsReview(manifest, readConfig()));
+    const reviewRequired =
+      !!existing || (gated && (!wasEnabled || needsReview(manifest, readConfig())));
     return {
       id: manifest.id,
       name: manifest.name,
