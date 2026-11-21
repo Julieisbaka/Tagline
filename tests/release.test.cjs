@@ -54,6 +54,17 @@ test('packaging excludes tests, documentation, and source maps', () => {
   }
 });
 
+test('packaging includes flow search dependencies needed by MCP', () => {
+  const { FileMatcher } = require('app-builder-lib/out/fileMatcher');
+  const { build } = require('../package.json');
+  const root = path.resolve(__dirname, '..');
+  const accepts = new FileMatcher(root, 'app', (value) => value, build.files).createFilter();
+  const fileStat = { isDirectory: () => false };
+  for (const relative of ['src/lib/vault.js', 'src/lib/flowText.js', 'electron/flow.mjs']) {
+    assert.equal(accepts(path.join(root, relative), fileStat), true, relative);
+  }
+});
+
 test('macOS packaging explains microphone access for timer auto-start', () => {
   const { build } = require('../package.json');
   assert.match(build.mac.extendInfo.NSMicrophoneUsageDescription, /timer/i);
