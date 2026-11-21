@@ -17,6 +17,14 @@ test('Markdown link resolution stays scoped to each render', async () => {
   assert.doesNotMatch(html, /internal-link unresolved/);
 });
 
+test('Markdown sanitization forbids remote media elements', async () => {
+  const { MARKDOWN_FORBID_TAGS } = await import('../src/lib/markdown.js');
+
+  for (const tag of ['audio', 'video', 'source', 'track']) {
+    assert.ok(MARKDOWN_FORBID_TAGS.includes(tag), `${tag} must not load remote media`);
+  }
+});
+
 test('Flow cell markdown subset renders inline formatting', async () => {
   const { createMarkdownParser } = await import('../src/lib/markdown.js');
   const parser = createMarkdownParser(() => null);

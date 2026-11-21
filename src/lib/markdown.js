@@ -2,6 +2,20 @@ import DOMPurify from 'dompurify';
 import { Marked } from 'marked';
 import { splitFrontmatter } from './frontmatter.js';
 
+export const MARKDOWN_FORBID_TAGS = Object.freeze([
+  'style',
+  'form',
+  'input',
+  'button',
+  'textarea',
+  'select',
+  'img',
+  'audio',
+  'video',
+  'source',
+  'track',
+]);
+
 /**
  * Escape text for insertion into HTML markup.
  * This function replaces special characters in the input string with their corresponding HTML entities to prevent HTML injection and ensure safe rendering within HTML content.
@@ -159,7 +173,7 @@ export function renderMarkdown(src, resolve) {
   const html = parser.parse(splitFrontmatter(src || '').body);
   return DOMPurify.sanitize(html, {
     USE_PROFILES: { html: true },
-    FORBID_TAGS: ['style', 'form', 'input', 'button', 'textarea', 'select', 'img'],
+    FORBID_TAGS: MARKDOWN_FORBID_TAGS,
     FORBID_ATTR: ['style', 'srcset'],
     ADD_ATTR: ['target'],
   });
