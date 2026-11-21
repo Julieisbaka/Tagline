@@ -113,7 +113,12 @@ async function containedFileAny(root, value) {
 async function copyExtension(app, source, target) {
   await assertCopyable(source);
   const staging = path.join(app.getPath('userData'), 'extension-staging', randomUUID());
-  await fs.mkdir(path.dirname(staging), { recursive: true });
+  const stagingBase = path.dirname(staging);
+  const stagingBaseStat = await fs.stat(stagingBase).catch(() => null);
+  if (stagingBaseStat && !stagingBaseStat.isDirectory()) {
+    throw new Error('Extension staging path is not a directory.');
+  }
+  await fs.mkdir(stagingBase, { recursive: true });
   try {
     await fs.cp(source, staging, { recursive: true, filter: copyFilter });
     await fs.mkdir(path.dirname(target), { recursive: true });
