@@ -138,6 +138,61 @@ test('platform: experimental delta history detects missing, corrupt and circular
   await assert.rejects(history.read('Note.md', delta.id), /ENOENT/);
 });
 
+test('platform: revision history rejects symlinks in document directories and Canvas temporary files', async (t) => {
+  const { createRevisionHistory } = require('../electron/revisionHistory.cjs');
+  const root = await fsAsync.mkdtemp(path.join(os.tmpdir(), 'tagline-history-links-'));
+  const outside = await fsAsync.mkdtemp(path.join(os.tmpdir(), 'tagline-history-outside-'));
+  t.after(() => fsAsync.rm(root, { recursive: true, force: true }));
+  t.after(() => fsAsync.rm(outside, { recursive: true, force: true }));
+  const history = createRevisionHistory({
+    getVaultRoot: () => root,
+    resolveInVault: (rel) => path.join(root, rel),
+  });
+
+  await fsAsync.writeFile(path.join(root, 'Note.md'), 'old');
+  await fsAsync.mkdir(path.join(root, '.tagline', 'history'), { recursive: true });
+  try {
+    await fsAsync.symlink(outside, path.join(root, '.tagline', 'history', 'Note.md'), 'dir');
+  } catch (error) {
+    if (error.code === 'EPERM' || error.code === 'EACCES') {
+      t.skip('creating symlinks needs elevated Windows privileges');
+      return;
+    }
+    throw error;
+  }
+  await assert.rejects(
+    history.snapshot('Note.md', 'new'),
+    /symbolic links/
+  );
+
+  await fsAsync.unlink(path.join(root, '.tagline', 'history', 'Note.md'));
+  await fsAsync.mkdir(path.join(root, '.tagline', 'history', 'Map.canvas'), { recursive: true });
+  await fsAsync.writeFile(
+    path.join(root, '.tagline', 'history', 'Map.canvas', 'layout.json'),
+    '{}'
+  );
+  const outsideFile = path.join(outside, 'layout.json.tmp');
+  await fsAsync.writeFile(outsideFile, 'unrelated');
+  await fsAsync.symlink(
+    outsideFile,
+    path.join(root, '.tagline', 'history', 'Map.canvas', 'layout.json.tmp')
+  );
+  await fsAsync.writeFile(
+    path.join(root, 'Map.canvas'),
+    JSON.stringify({ nodes: [{ id: 'n', type: 'text', x: 0, y: 0, width: 100, height: 100, text: 'old' }], edges: [] })
+  );
+  await assert.rejects(
+    history.snapshot(
+      'Map.canvas',
+      JSON.stringify({ nodes: [{ id: 'n', type: 'text', x: 1, y: 0, width: 100, height: 100, text: 'new' }], edges: [] }),
+      50,
+      'complete'
+    ),
+    /symbolic links/
+  );
+  assert.equal(await fsAsync.readFile(outsideFile, 'utf8'), 'unrelated');
+});
+
 test('platform: revision history snapshots changed documents, enforces retention, and follows renames', async (t) => {
   const { createRevisionHistory } = require('../electron/revisionHistory.cjs');
   const root = await fsAsync.mkdtemp(path.join(os.tmpdir(), 'tagline-history-'));
