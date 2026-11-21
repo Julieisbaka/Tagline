@@ -74,8 +74,8 @@
   "fontFamily": "",
   "importedFont": false,
   "keybindings": {},
-  "modelAutoload": true,
-  "embedWebsites": true,
+  "modelAutoload": false,
+  "embedWebsites": false,
   "opencaselistRequirePasswordForWrites": false,
   "opencaselistWritePassword": null,
   "sidebarWidth": 260,
@@ -90,7 +90,13 @@
     "rightPanel"
   ],
   "hiddenRibbonItems": [],
-  "fileManagerItems": ["newNote", "newFlow", "newCanvas", "newFolder", "refresh"],
+  "fileManagerItems": [
+    "newNote",
+    "newFlow",
+    "newCanvas",
+    "newFolder",
+    "refresh"
+  ],
   "statusBarItems": [
     "section",
     "cards",
