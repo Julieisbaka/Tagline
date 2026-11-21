@@ -293,6 +293,7 @@ const EditorDiagnostics = Extension.create({
                             ? {
                                 'data-extension-id': extensionId,
                                 'data-extension-command': quickFix.command,
+                                'data-extension-quick-fix-token': quickFix.token,
                               }
                             : {}),
                         }),

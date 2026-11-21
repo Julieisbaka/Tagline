@@ -29,6 +29,11 @@ function registerInstallHandlers(context) {
     invalidateManifest,
     enabledIds,
     scan,
+    resetExtensionState,
+    secretsDir,
+    storageDir,
+    serialize,
+    serializeStorage,
   } = context;
   // Copies a dropped or chosen folder (or its manifest.json) into the extensions folder and enables
   // it when it declares no review-gated permission; otherwise the user reviews it in Settings.
@@ -51,6 +56,24 @@ function registerInstallHandlers(context) {
     }
     const installed = await scan();
     const existing = installed.find((item) => item.id === manifest.id);
+    if (existing) {
+      const options = {
+        type: 'warning',
+        title: 'Replace installed extension?',
+        message: `Replacing ${manifest.name} will disable it, revoke its permissions, and delete its saved data. You must grant permissions again before it can access them.`,
+        buttons: ['Cancel', 'Replace'],
+        defaultId: 0,
+        cancelId: 0,
+        noLink: true,
+      };
+      const window = getWindow();
+      const confirmation = window
+        ? await dialog.showMessageBox(window, options)
+        : await dialog.showMessageBox(options);
+      if (confirmation.response !== 1) {
+        throw new Error('Extension replacement was canceled.');
+      }
+    }
     const taken = new Set(installed.map((item) => item.folder));
     let name = manifest.id;
     for (let i = 2; !existing && taken.has(name); i++) {
@@ -58,6 +81,32 @@ function registerInstallHandlers(context) {
     }
     const target = existing ? existing.root : path.join(folder(), name);
     const inPlace = (await fs.realpath(root).catch(() => root)) === (await realpathOrSelf(target));
+    if (existing) {
+      const config = readConfig();
+      const extensionReviews = { ...config.extensionReviews };
+      const extensionPermissions = { ...config.extensionPermissions, [manifest.id]: [] };
+      delete extensionReviews[manifest.id];
+      await writeConfig({
+        enabledExtensions: enabledIds().filter((id) => id !== manifest.id),
+        extensionReviews,
+        extensionPermissions,
+        initializedExtensions: (Array.isArray(config.initializedExtensions)
+          ? config.initializedExtensions
+          : []
+        ).filter((id) => id !== manifest.id),
+        engineCompatibilityOverrides: (Array.isArray(config.engineCompatibilityOverrides)
+          ? config.engineCompatibilityOverrides
+          : []
+        ).filter((id) => id !== manifest.id),
+      });
+      resetExtensionState(manifest.id);
+      await serialize(manifest.id, async () => {
+        await fs.rm(path.join(secretsDir(), `${manifest.id}.bin`), { force: true });
+      });
+      await serializeStorage(manifest.id, async () => {
+        await fs.rm(path.join(storageDir(), `${manifest.id}.bin`), { force: true });
+      });
+    }
     if (!inPlace) {
       await copyExtension(app, root, target);
     }
@@ -65,9 +114,9 @@ function registerInstallHandlers(context) {
     const gated = manifest.permissions.some((permission) =>
       REVIEW_PERMISSIONS.includes(permission)
     );
-    const wasEnabled = enabledIds().includes(manifest.id);
+    const wasEnabled = !existing && enabledIds().includes(manifest.id);
     let enabled = wasEnabled;
-    if (!gated && !wasEnabled) {
+    if (!existing && !gated && !wasEnabled) {
       await writeConfig({
         enabledExtensions: [...enabledIds(), manifest.id],
         extensionReviews: {
@@ -76,7 +125,7 @@ function registerInstallHandlers(context) {
         },
       });
       enabled = true;
-    } else if (!gated) {
+    } else if (!existing && !gated) {
       await writeConfig({
         extensionReviews: {
           ...readConfig().extensionReviews,
@@ -84,7 +133,8 @@ function registerInstallHandlers(context) {
         },
       });
     }
-    const reviewRequired = gated && (!wasEnabled || needsReview(manifest, readConfig()));
+    const reviewRequired =
+      !!existing || (gated && (!wasEnabled || needsReview(manifest, readConfig())));
     return {
       id: manifest.id,
       name: manifest.name,

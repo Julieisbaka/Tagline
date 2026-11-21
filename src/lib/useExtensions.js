@@ -9,6 +9,7 @@ import {
 import { registerExtensionThemes, validateTheme } from './themes.js';
 import { registerExtensionFonts } from './extensionFonts.js';
 import { registerExtensionTranslations, translateExtension } from './i18n.js';
+import { createExtensionQuickFixRegistry } from './extensionQuickFixes.js';
 
 const readSurfaceVisibility = (key) => {
   try {
@@ -37,6 +38,10 @@ export function useExtensions({ bridgeRef, notify }) {
   const [statusBarItems, setStatusBarItems] = useState([]);
   const [templates, setTemplates] = useState([]);
   const hosts = useRef(new Map());
+  const quickFixes = useRef(null);
+  if (!quickFixes.current) {
+    quickFixes.current = createExtensionQuickFixRegistry();
+  }
   const generation = useRef(0);
   const [settingsRevision, settingsChanged] = useState(0);
   useEffect(() => {
@@ -54,7 +59,14 @@ export function useExtensions({ bridgeRef, notify }) {
       if (!target) {
         return;
       }
-      const host = hosts.current.get(target.dataset.extensionId);
+      const extensionId = target.dataset.extensionId;
+      const command = target.dataset.extensionCommand;
+      if (
+        !quickFixes.current.matches(target.dataset.extensionQuickFixToken, extensionId, command)
+      ) {
+        return;
+      }
+      const host = hosts.current.get(extensionId);
       if (!host) {
         return;
       }
@@ -62,7 +74,7 @@ export function useExtensions({ bridgeRef, notify }) {
       try {
         host.require('editor');
         const note = bridgeRef.current.getActiveNote();
-        host.run(target.dataset.extensionCommand, {
+        host.run(command, {
           path: note?.path || null,
           selection: {
             from: Number(target.dataset.diagnosticFrom) || 0,
@@ -80,6 +92,7 @@ export function useExtensions({ bridgeRef, notify }) {
 
   const reload = useCallback(async () => {
     const current = ++generation.current;
+    quickFixes.current.clear();
     hosts.current.forEach((host) => host.dispose());
     hosts.current = new Map();
     setTemplates([]);
@@ -91,8 +104,11 @@ export function useExtensions({ bridgeRef, notify }) {
       notify: (message) => notify(message),
       getActiveNote: () => bridgeRef.current.getActiveNote(),
       setEditorDiagnostics: (extensionId, diagnostics) => {
+        const trustedDiagnostics = quickFixes.current.update(extensionId, diagnostics);
         window.dispatchEvent(
-          new CustomEvent('tagline-extension-diagnostics', { detail: { extensionId, diagnostics } })
+          new CustomEvent('tagline-extension-diagnostics', {
+            detail: { extensionId, diagnostics: trustedDiagnostics },
+          })
         );
         return true;
       },

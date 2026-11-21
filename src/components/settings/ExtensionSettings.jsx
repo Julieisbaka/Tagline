@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { getRuntimeLimits } from '../../../electron/customization.mjs';
+import { clearExtensionData } from '../../lib/extensionSettings.js';
 import { useConfirm } from '../dialogs/ConfirmProvider.jsx';
 import { useI18n } from '../../lib/i18n.js';
 import ExtensionBrowser from './ExtensionBrowser.jsx';
@@ -188,6 +189,9 @@ export default function ExtensionSettings({ extensions }) {
         try {
           const result = await window.api.installExtensionFolder(source);
           if (result) {
+            if (result.replaced) {
+              clearExtensionData({ id: result.id });
+            }
             results.push(result);
           }
         } catch (err) {
