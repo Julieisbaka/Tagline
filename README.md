@@ -29,8 +29,11 @@ Older vault formats open a migration wizard before loading. Review the required 
 ## Releases and updates
 
 Builds are unsigned and not notarized, so OS security warnings are expected.
-Use **Settings > Installation > Check for updates** to compare the installed
-version with the latest stable GitHub release. Quit Tagline, then run the newer Windows
+By default, packaged builds check the latest stable GitHub release shortly after
+startup and download a compatible update in the background without installing
+it. Disable this with **Settings > Installation > Automatically check for and
+download updates on startup**, or request a check at any time via **Settings >
+Installation > Check for updates**. Quit Tagline, then run the newer Windows
 installer using the same scope/location, or replace Tagline in Applications
 on macOS. Keep the existing app ID, product name, and installation scope when
 packaging future versions: these identify the app and its persistent profile.

@@ -32,6 +32,11 @@ any public disclosure.
 ## Policy
 
 Tagline builds are unsigned and not notarized; OS security warnings are
-expected. The app checks for updates only when you request it via
-**Settings > Installation > Check for updates** and contacts the public GitHub
-API. It never sends vault contents or account credentials.
+expected. In packaged installations, Tagline checks the public GitHub Releases
+API shortly after startup and downloads a compatible update in the background
+by default; it never installs an update without your choice. Turn this off with
+**Settings > Installation > Automatically check for and download updates on
+startup** (safe mode and `TAGLINE_DISABLE_AUTO_UPDATE=1` also disable it), or
+request a check yourself via **Settings > Installation > Check for updates**.
+Update checks contact the public GitHub API only; they never send vault
+contents or account credentials.
