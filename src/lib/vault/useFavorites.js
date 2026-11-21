@@ -1,8 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { translate } from '../i18n/i18n.js';
-import { readStoredJson } from '../shared/storedJson.js';
 
-const STORAGE_KEY = 'tagline-favorites';
 // Mirrors MAX_PINS in electron/pinsFile.cjs: the writer rejects anything longer.
 const MAX_PINS = 10_000;
 
@@ -80,52 +78,13 @@ export function removeFavorites(paths, removed) {
   return paths.filter((path) => path !== removed && !path.startsWith(removed + '/'));
 }
 
-// TODO: Remove migration support
-// .tagline/pins.json is the single source of truth for pins and favorites. The legacy
-// localStorage map is kept only as the one-way migration source; purged per vault once read.
-function purgeLegacyRoot(root) {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) {
-      return;
-    }
-    const map = JSON.parse(raw);
-    if (!map || typeof map !== 'object' || !(root in map)) {
-      return;
-    }
-    delete map[root];
-    if (Object.keys(map).length === 0) {
-      localStorage.removeItem(STORAGE_KEY);
-    } else {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(map));
-    }
-  } catch {
-    // best effort; stale legacy data is harmless if it lingers
-  }
-}
-
+// .tagline/pins.json is the single source of truth for pins and favorites.
 export function useFavorites(root) {
-  const [vaults, setVaults] = useState(() =>
-    readStoredJson(
-      STORAGE_KEY,
-      {},
-      (value) =>
-        value &&
-        typeof value === 'object' &&
-        !Array.isArray(value) &&
-        Object.values(value).every(
-          (paths) => Array.isArray(paths) && paths.every((path) => typeof path === 'string')
-        )
-    )
-  );
+  const [vaults, setVaults] = useState({});
   const [tabPins, setTabPins] = useState({});
   const [loadedRoot, setLoadedRoot] = useState(null);
   const [pinStatus, setPinStatus] = useState(null);
   const lastError = useRef('');
-  const vaultsRef = useRef(vaults);
-  vaultsRef.current = vaults;
-  const tabPinsRef = useRef(tabPins);
-  tabPinsRef.current = tabPins;
 
   // Report a pin failure once per distinct message and keep it visible as a status.
   const reportPinError = useCallback((level, message) => {
@@ -161,27 +120,12 @@ export function useFavorites(root) {
           setVaults((previous) => ({ ...previous, [root]: result.favorites }));
           setTabPins((previous) => ({ ...previous, [root]: result.pinnedTabs }));
           setLoadedRoot(root);
-          purgeLegacyRoot(root);
           if (result.corrupted) {
             reportPinError('warning', translate('Pinned items could not be read and were reset'));
           }
           return;
         }
-        const favorites = sanitizePinPaths(vaultsRef.current[root] || []);
-        const pinnedTabs = sanitizePinPaths(tabPinsRef.current[root] || []);
-        const migrate =
-          favorites.length || pinnedTabs.length
-            ? window.api.writePins({ favorites, pinnedTabs })
-            : Promise.resolve();
-        migrate.then(
-          () => {
-            if (!cancelled) {
-              setLoadedRoot(root);
-              purgeLegacyRoot(root);
-            }
-          },
-          (error) => !cancelled && reportPinError('warning', pinErrorDetail('save', error))
-        );
+        setLoadedRoot(root);
       })
       .catch((error) => {
         if (!cancelled) {

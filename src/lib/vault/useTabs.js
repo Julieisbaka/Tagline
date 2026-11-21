@@ -19,8 +19,6 @@ export function restoreTabs(saved) {
   }
   const ids = new Set();
   const paths = new Set();
-  // TODO: Remove support for legacy pinned tabs in the saved snapshot
-  // Persisted `pinned` flags (legacy format) are intentionally dropped; pin state lives in .tagline/pins.json.
   let graphCount = 0;
   const tabs = saved.tabs.map((tab) => {
     if (
