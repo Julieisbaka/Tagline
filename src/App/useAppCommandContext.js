@@ -1,16 +1,25 @@
 import { useEffect, useMemo, useRef } from 'react';
 import { EditorSelection } from '@codemirror/state';
-import { buildCommands, commandScore, fillTemplate } from '../lib/commands.js';
-import { templateBody, extractCursor } from '../lib/template.js';
-import { folderPaths } from '../lib/folderPaths.js';
-import { getSectionAt } from '../lib/card.js';
-import { defaultEditorMode } from '../lib/editorModes.js';
-import { markSpeechDocument, mergeFrontmatter, splitFrontmatter } from '../lib/frontmatter.js';
-import { binding, displayBinding, KEYBINDINGS, matchesBinding } from '../lib/keybindings.js';
-import { slugify } from '../lib/markdown.js';
-import { standardizeAll } from '../lib/standardizeFormatting.js';
-import { baseName, isCanvas, isFlow, isMarkdown, outline } from '../lib/vault.js';
-import { visualSelection } from '../lib/visualHelpers.js';
+import { buildCommands, commandScore, fillTemplate } from '../lib/commands/commands.js';
+import { templateBody, extractCursor } from '../lib/markdown/template.js';
+import { folderPaths } from '../lib/vault/folderPaths.js';
+import { getSectionAt } from '../lib/evidence/card.js';
+import { defaultEditorMode } from '../lib/editor/editorModes.js';
+import {
+  markSpeechDocument,
+  mergeFrontmatter,
+  splitFrontmatter,
+} from '../lib/markdown/frontmatter.js';
+import {
+  binding,
+  displayBinding,
+  KEYBINDINGS,
+  matchesBinding,
+} from '../lib/commands/keybindings.js';
+import { slugify } from '../lib/markdown/markdown.js';
+import { standardizeAll } from '../lib/editor/standardizeFormatting.js';
+import { baseName, isCanvas, isFlow, isMarkdown, outline } from '../lib/vault/vault.js';
+import { visualSelection } from '../lib/editor/visualHelpers.js';
 
 export function useAppCommandContext({
   t,

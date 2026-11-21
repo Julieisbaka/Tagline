@@ -1,5 +1,5 @@
 import logo from '../../../build/icon.svg';
-import { useI18n } from '../../lib/i18n.js';
+import { useI18n } from '../../lib/i18n/i18n.js';
 
 export default function Welcome({ onOpen, onSample, onManage, error }) {
   const { t } = useI18n();

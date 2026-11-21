@@ -2,7 +2,7 @@ const { test } = require('node:test');
 const assert = require('node:assert/strict');
 
 test('timer presets copy and paste as JSON', async () => {
-  const { presetFromJson, presetToJson } = await import('../src/lib/timerPresets.js');
+  const { presetFromJson, presetToJson } = await import('../src/lib/speech/timerPresets.js');
   const preset = {
     label: 'Policy',
     prep: 3,

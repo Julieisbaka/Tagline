@@ -9,7 +9,7 @@ const { createRequire } = require('node:module');
 const { modelCache, withModelPathsLock } = require('../electron/modelCache.cjs');
 
 test('low-resource limits preserve smaller settings and restore original values', async () => {
-  const { resourceLimits } = await import('../src/lib/resourceLimits.js');
+  const { resourceLimits } = await import('../src/lib/settings/resourceLimits.js');
   const original = {
     visualCacheEntries: 16,
     visualCacheCharacters: 4000000,

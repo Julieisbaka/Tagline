@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import defaults from '../../lib/defaultSettings.json' with { type: 'json' };
-import { useI18n } from '../../lib/i18n.js';
+import defaults from '../../lib/settings/defaultSettings.json' with { type: 'json' };
+import { useI18n } from '../../lib/i18n/i18n.js';
 import {
   createSearchEngine,
   filterSearchDocuments,
@@ -8,9 +8,9 @@ import {
   mergeHybridResults,
   parseQuery,
   searchExcerpt,
-} from '../../lib/search.js';
-import { displayName, isFlow } from '../../lib/vault.js';
-import { flowDocument } from '../../lib/flowText.js';
+} from '../../lib/search/search.js';
+import { displayName, isFlow } from '../../lib/vault/vault.js';
+import { flowDocument } from '../../lib/flow/flowText.js';
 import ModalBackdrop from './ModalBackdrop.jsx';
 import ScholarlySearch from './ScholarlySearch.jsx';
 

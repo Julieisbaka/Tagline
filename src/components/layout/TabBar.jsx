@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react';
-import { useI18n } from '../../lib/i18n.js';
-import { displayName, isCanvas, isFlow, isMarkdown } from '../../lib/vault.js';
-import { NOTE_LINK_TYPE } from '../../lib/noteDrag.js';
+import { useI18n } from '../../lib/i18n/i18n.js';
+import { displayName, isCanvas, isFlow, isMarkdown } from '../../lib/vault/vault.js';
+import { NOTE_LINK_TYPE } from '../../lib/vault/noteDrag.js';
 import ContextMenu from '../dialogs/ContextMenu.jsx';
 import Icon from '../Icon.jsx';
 

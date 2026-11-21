@@ -2,8 +2,9 @@ const { test } = require('node:test');
 const assert = require('node:assert/strict');
 
 test('argument-map relations are JSON Canvas edges and do not affect note links', async () => {
-  const { createArgumentEdge, parseCanvas, serializeCanvas } = await import('../src/lib/canvas.js');
-  const { extractLinks } = await import('../src/lib/vault.js');
+  const { createArgumentEdge, parseCanvas, serializeCanvas } =
+    await import('../src/lib/canvas/canvas.js');
+  const { extractLinks } = await import('../src/lib/vault/vault.js');
   const nodes = [
     { id: 'claim', type: 'text', x: 0, y: 0, width: 280, height: 180, text: 'Claim [[Evidence]]' },
     { id: 'evidence', type: 'text', x: 320, y: 0, width: 280, height: 180, text: 'Evidence' },
@@ -37,7 +38,7 @@ test('argument-map relations are JSON Canvas edges and do not affect note links'
 });
 
 test('vault indexing preserves link resolution precedence with indexed path lookups', async () => {
-  const { buildIndex, resolveLink } = await import('../src/lib/vault.js');
+  const { buildIndex, resolveLink } = await import('../src/lib/vault/vault.js');
   const targets = [
     'folder/exact.md',
     'exact',
@@ -76,7 +77,7 @@ test('vault indexing preserves link resolution precedence with indexed path look
 });
 
 test('vault tags prefer note metadata and keep legacy inline tags searchable', async () => {
-  const { buildIndex } = await import('../src/lib/vault.js');
+  const { buildIndex } = await import('../src/lib/vault/vault.js');
   const index = buildIndex({
     'Metadata.md': '---\ntags: [Aff, "#NEG", aff]\n---\n#legacy #AFF',
     'Legacy.md': '#impact',
@@ -89,7 +90,7 @@ test('vault tags prefer note metadata and keep legacy inline tags searchable', a
 
 test('JSON Canvas validates spec fields and round-trips unknown properties', async () => {
   const { EMPTY_CANVAS, parseCanvas, serializeCanvas, createCanvasNode } =
-    await import('../src/lib/canvas.js');
+    await import('../src/lib/canvas/canvas.js');
   const canvas = parseCanvas(
     JSON.stringify({
       nodes: [
@@ -154,7 +155,7 @@ test('JSON Canvas validates spec fields and round-trips unknown properties', asy
 });
 
 test('canvas extension helpers share resolution, suggestion and movement behavior without file access', async () => {
-  const { ExtensionHost } = await import('../src/lib/extensions.js');
+  const { ExtensionHost } = await import('../src/lib/extensions/extensions.js');
   const host = new ExtensionHost(
     { id: 'canvas-test', permissions: [], contributes: { commands: [] } },
     '',

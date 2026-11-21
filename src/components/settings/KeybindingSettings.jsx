@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useI18n } from '../../lib/i18n.js';
+import { useI18n } from '../../lib/i18n/i18n.js';
 import SettingsGroup from './SettingsGroup.jsx';
 import {
   binding,
@@ -9,7 +9,7 @@ import {
   KEYBINDINGS,
   reservedBinding,
   validBinding,
-} from '../../lib/keybindings.js';
+} from '../../lib/commands/keybindings.js';
 
 export default function KeybindingSettings({ settings, update, extra = [] }) {
   const { t } = useI18n();

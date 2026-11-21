@@ -5,7 +5,7 @@ import { EditorView } from '@codemirror/view';
 import { tags } from '@lezer/highlight';
 import CodeMirror from '@uiw/react-codemirror';
 import { useMemo } from 'react';
-import { settingsCodeMirrorTheme } from '../lib/editorExtensions.js';
+import { settingsCodeMirrorTheme } from '../lib/editor/editorExtensions.js';
 
 const extensions = [
   json(),

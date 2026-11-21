@@ -2,7 +2,7 @@ const { test } = require('node:test');
 const assert = require('node:assert/strict');
 
 test('workspace tabs restore only valid vault-relative paths and known tab kinds', async () => {
-  const { restoreTabs } = await import('../src/lib/useTabs.js');
+  const { restoreTabs } = await import('../src/lib/vault/useTabs.js');
   const restored = restoreTabs({
     tabs: [
       { id: 'one', kind: 'file', path: 'Folder/Note.md', stale: true },
@@ -44,7 +44,7 @@ test('workspace tabs restore only valid vault-relative paths and known tab kinds
 });
 
 test('workspace tabs recover when the saved active ID no longer exists', async () => {
-  const { restoreTabs } = await import('../src/lib/useTabs.js');
+  const { restoreTabs } = await import('../src/lib/vault/useTabs.js');
   const expected = {
     tabs: [{ id: 'one', kind: 'file', path: 'Note.md' }],
     activeId: 'one',
@@ -67,7 +67,7 @@ test('workspace tabs recover when the saved active ID no longer exists', async (
 });
 
 test('workspace tabs drop persisted pinned flags (pins live in .tagline/pins.json)', async () => {
-  const { restoreTabs } = await import('../src/lib/useTabs.js');
+  const { restoreTabs } = await import('../src/lib/vault/useTabs.js');
   assert.deepEqual(
     restoreTabs({
       tabs: [
@@ -84,7 +84,7 @@ test('workspace tabs drop persisted pinned flags (pins live in .tagline/pins.jso
 });
 
 test('tabs reorder by destination index without mutating the existing order', async () => {
-  const { reorderTabs } = await import('../src/lib/useTabs.js');
+  const { reorderTabs } = await import('../src/lib/vault/useTabs.js');
   const tabs = [{ id: 'one' }, { id: 'two' }, { id: 'three' }];
   assert.deepEqual(reorderTabs(tabs, 'one', 2), [{ id: 'two' }, { id: 'three' }, { id: 'one' }]);
   assert.deepEqual(tabs, [{ id: 'one' }, { id: 'two' }, { id: 'three' }]);

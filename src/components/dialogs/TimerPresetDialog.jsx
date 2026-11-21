@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { formatDuration } from '../../lib/card.js';
-import { useI18n } from '../../lib/i18n.js';
-import { presetFromJson, presetToJson } from '../../lib/timerPresets.js';
+import { formatDuration } from '../../lib/evidence/card.js';
+import { useI18n } from '../../lib/i18n/i18n.js';
+import { presetFromJson, presetToJson } from '../../lib/speech/timerPresets.js';
 import ModalBackdrop from './ModalBackdrop.jsx';
 
 function parseDuration(value) {

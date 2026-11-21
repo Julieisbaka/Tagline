@@ -1,4 +1,4 @@
-import { useI18n } from '../../lib/i18n.js';
+import { useI18n } from '../../lib/i18n/i18n.js';
 import ExtensionSurface from '../ExtensionSurface.jsx';
 
 export default function ExtensionPanelList({ extensions, placement, activePath, mode }) {

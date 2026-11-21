@@ -1,10 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
-import { formatDuration } from '../lib/card.js';
-import { remainingAt } from '../lib/countdown.js';
-import { useI18n } from '../lib/i18n.js';
-import { normalizeTimerState } from '../lib/timerState.js';
-import { speechLike } from '../lib/voiceActivity.js';
-import { playUiSound } from '../lib/uiSounds.js';
+import { formatDuration } from '../lib/evidence/card.js';
+import { remainingAt } from '../lib/speech/countdown.js';
+import { useI18n } from '../lib/i18n/i18n.js';
+import { normalizeTimerState } from '../lib/speech/timerState.js';
+import { speechLike } from '../lib/speech/voiceActivity.js';
+import { playUiSound } from '../lib/ui/uiSounds.js';
 import TimerPresetDialog from './dialogs/TimerPresetDialog.jsx';
 
 const ARM_GRACE_MS = 400;

@@ -2,7 +2,7 @@ const fs = require('node:fs/promises');
 const path = require('node:path');
 const crypto = require('node:crypto');
 const { promisify } = require('node:util');
-const defaults = require('../src/lib/defaultSettings.json');
+const defaults = require('../src/lib/settings/defaultSettings.json');
 const { resolveCaselistTeam } = require('./tabroomCaselist.cjs');
 
 const pbkdf2 = promisify(crypto.pbkdf2);

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
-import { createCitation } from '../../lib/citation.js';
-import { useI18n } from '../../lib/i18n.js';
+import { createCitation } from '../../lib/evidence/citation.js';
+import { useI18n } from '../../lib/i18n/i18n.js';
 
 export default function ScholarlySearch({ query, onCreateCard, onClose, searchButtonRef }) {
   const { t } = useI18n();

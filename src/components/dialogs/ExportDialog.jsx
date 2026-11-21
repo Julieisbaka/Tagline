@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
-import { useI18n } from '../../lib/i18n.js';
-import { renderMarkdown } from '../../lib/markdown.js';
+import { useI18n } from '../../lib/i18n/i18n.js';
+import { renderMarkdown } from '../../lib/markdown/markdown.js';
 import ModalBackdrop from './ModalBackdrop.jsx';
 
 const FORMATS = [

@@ -27,7 +27,7 @@ test('theme groups reject duplicates, bad paths and too many', () => {
 });
 
 test('match-system resolves the half for the OS scheme', async () => {
-  const themes = await import('../src/lib/themes.js');
+  const themes = await import('../src/lib/ui/themes.js');
   let dark = true;
   global.window = {
     matchMedia: () => ({ matches: dark }),

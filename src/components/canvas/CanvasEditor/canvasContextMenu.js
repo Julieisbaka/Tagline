@@ -1,5 +1,5 @@
-import { createCanvasId, resolveCanvasLink } from '../../../lib/canvas.js';
-import { resolveLink } from '../../../lib/vault.js';
+import { createCanvasId, resolveCanvasLink } from '../../../lib/canvas/canvas.js';
+import { resolveLink } from '../../../lib/vault/vault.js';
 
 export default function openCanvasContextMenu(
   {

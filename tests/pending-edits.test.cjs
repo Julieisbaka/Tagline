@@ -8,7 +8,7 @@ const root = path.join(__dirname, '..');
 
 test('pending edit flushers commit drafts until unregistered', async () => {
   const { flushPendingEdits, registerPendingFlush } = await import(
-    pathToFileURL(path.join(root, 'src', 'lib', 'pendingEdits.js')).href
+    pathToFileURL(path.join(root, 'src', 'lib', 'vault', 'pendingEdits.js')).href
   );
   let commits = 0;
   const unregister = registerPendingFlush(() => {
@@ -23,7 +23,7 @@ test('pending edit flushers commit drafts until unregistered', async () => {
 });
 
 test('vault reload commits pending drafts before reading the disk snapshot', () => {
-  const source = fs.readFileSync(path.join(root, 'src', 'lib', 'useVault.js'), 'utf8');
+  const source = fs.readFileSync(path.join(root, 'src', 'lib', 'vault', 'useVault.js'), 'utf8');
   const start = source.indexOf('const reload = useCallback');
   const end = source.indexOf('const open = useCallback', start);
   assert.notEqual(start, -1);

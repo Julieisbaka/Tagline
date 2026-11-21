@@ -3,8 +3,8 @@ import { EditorView } from '@codemirror/view';
 import CodeMirror from '@uiw/react-codemirror';
 import { useEffect, useMemo, useState } from 'react';
 import { getRuntimeLimits } from '../../../electron/customization.mjs';
-import { settingsCodeMirrorTheme } from '../../lib/editorExtensions.js';
-import { LANGUAGES, useI18n } from '../../lib/i18n.js';
+import { settingsCodeMirrorTheme } from '../../lib/editor/editorExtensions.js';
+import { LANGUAGES, useI18n } from '../../lib/i18n/i18n.js';
 import {
   BUILTIN_THEMES,
   COLOR_TOKENS,
@@ -13,7 +13,7 @@ import {
   getTheme,
   resolveThemeSettings,
   validateTheme,
-} from '../../lib/themes.js';
+} from '../../lib/ui/themes.js';
 import SettingControl from './SettingControl.jsx';
 import SettingRow from './SettingRow.jsx';
 

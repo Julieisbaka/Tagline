@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useI18n } from '../../lib/i18n.js';
+import { useI18n } from '../../lib/i18n/i18n.js';
 import { useConfirm } from '../dialogs/ConfirmProvider.jsx';
 import GoogleDocsSettings from './GoogleDocsSettings.jsx';
 import McpSettings from './McpSettings.jsx';

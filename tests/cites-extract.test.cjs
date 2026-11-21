@@ -3,7 +3,7 @@ const assert = require('node:assert/strict');
 
 test('citesExtract and health report', async () => {
   const { scanCards, citesExtract, vaultHealthReport } =
-    await import('../src/lib/evidenceCheckup.js');
+    await import('../src/lib/evidence/evidenceCheckup.js');
   const files = {
     'a.md':
       '#### Tag one\n\nSmith 20, Jane Smith, 2020, Title, https://x.test/a\n\nFirst point. Middle. Last point.\n',
@@ -24,7 +24,7 @@ test('citesExtract and health report', async () => {
 });
 
 test('citesExtract does not reintroduce HTML comment openers while stripping comments', async () => {
-  const { scanCards, citesExtract } = await import('../src/lib/evidenceCheckup.js');
+  const { scanCards, citesExtract } = await import('../src/lib/evidence/evidenceCheckup.js');
   const files = { 'a.md': '#### Card\n<!<!-- nested -->--\n\nBody.\n' };
   const extract = citesExtract(files, scanCards(files));
   assert.doesNotMatch(extract, /<!--/);

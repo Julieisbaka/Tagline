@@ -2,7 +2,7 @@ const { test } = require('node:test');
 const assert = require('node:assert/strict');
 
 test('Markdown link resolution stays scoped to each render', async () => {
-  const { createMarkdownParser } = await import('../src/lib/markdown.js');
+  const { createMarkdownParser } = await import('../src/lib/markdown/markdown.js');
   let nestedHtml;
   const parser = createMarkdownParser((target) => {
     if (target === 'First') {
@@ -18,7 +18,7 @@ test('Markdown link resolution stays scoped to each render', async () => {
 });
 
 test('Markdown sanitization forbids remote media elements', async () => {
-  const { MARKDOWN_FORBID_TAGS } = await import('../src/lib/markdown.js');
+  const { MARKDOWN_FORBID_TAGS } = await import('../src/lib/markdown/markdown.js');
 
   for (const tag of ['audio', 'video', 'source', 'track']) {
     assert.ok(MARKDOWN_FORBID_TAGS.includes(tag), `${tag} must not load remote media`);
@@ -26,7 +26,7 @@ test('Markdown sanitization forbids remote media elements', async () => {
 });
 
 test('Flow cell markdown subset renders inline formatting', async () => {
-  const { createMarkdownParser } = await import('../src/lib/markdown.js');
+  const { createMarkdownParser } = await import('../src/lib/markdown/markdown.js');
   const parser = createMarkdownParser(() => null);
   const html = parser.parse(
     '**bold** *italic* ~~strike~~ ==highlight== ++underline++ `code` [link](https://example.com) [[Note]]'

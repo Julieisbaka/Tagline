@@ -2,7 +2,7 @@ const { test } = require('node:test');
 const assert = require('node:assert/strict');
 
 test('scanCards resolves Ibid within each document and reports original document spans', async () => {
-  const { scanCards, citedUrls } = await import('../src/lib/evidenceCheckup.js');
+  const { scanCards, citedUrls } = await import('../src/lib/evidence/evidenceCheckup.js');
   const text =
     '---\r\ntitle: Test\r\n---\r\n#### One\r\n' +
     '**Smith 2020** — "Study", [report][ref], p. 5\r\n' +
@@ -31,8 +31,8 @@ test('scanCards resolves Ibid within each document and reports original document
 });
 
 test('scanCards parses cite lines written by createCitation and ignores cards without one', async () => {
-  const { createCitation } = await import('../src/lib/citation.js');
-  const { scanCards } = await import('../src/lib/evidenceCheckup.js');
+  const { createCitation } = await import('../src/lib/evidence/citation.js');
+  const { scanCards } = await import('../src/lib/evidence/evidenceCheckup.js');
   const cite = createCitation({
     author: 'Smith',
     year: '2019',
@@ -63,8 +63,8 @@ test('scanCards parses cite lines written by createCitation and ignores cards wi
 });
 
 test('auditCards flags missing citations, incomplete fields, and stale dates per the chosen checks', async () => {
-  const { scanCards, auditCards } = await import('../src/lib/evidenceCheckup.js');
-  const { createCitation } = await import('../src/lib/citation.js');
+  const { scanCards, auditCards } = await import('../src/lib/evidence/evidenceCheckup.js');
+  const { createCitation } = await import('../src/lib/evidence/citation.js');
   const cite = createCitation({
     author: 'Smith',
     year: '2019',
@@ -110,7 +110,8 @@ test('auditCards flags missing citations, incomplete fields, and stale dates per
 });
 
 test('linkIssues reports only dead links and keeps archived copies', async () => {
-  const { scanCards, citedUrls, linkIssues } = await import('../src/lib/evidenceCheckup.js');
+  const { scanCards, citedUrls, linkIssues } =
+    await import('../src/lib/evidence/evidenceCheckup.js');
   const cards = scanCards({
     'a.md':
       '#### One\n**Smith 2020** — [https://example.com/gone](https://example.com/gone)\n\n#### Two\n**Jones 2021** — [https://example.com/slow](https://example.com/slow)\n',
@@ -139,7 +140,7 @@ test('linkIssues reports only dead links and keeps archived copies', async () =>
 });
 
 test('source comparison flags only comparable differences and reports unavailable sources', async () => {
-  const { scanCards, sourceIssues } = await import('../src/lib/evidenceCheckup.js');
+  const { scanCards, sourceIssues } = await import('../src/lib/evidence/evidenceCheckup.js');
   const cards = scanCards({
     'a.md':
       '#### One\n**Smith 2020** — "Study", Journal, [x](https://example.com/a)\n' +
@@ -166,7 +167,8 @@ test('source comparison flags only comparable differences and reports unavailabl
 });
 
 test('comments target duplicate card headings, refresh idempotently and preserve other categories', async () => {
-  const { scanCards, auditCards, annotateEvidence } = await import('../src/lib/evidenceCheckup.js');
+  const { scanCards, auditCards, annotateEvidence } =
+    await import('../src/lib/evidence/evidenceCheckup.js');
   const files = { 'a.md': '#### Same\r\n**Smith 2024**\r\nbody\r\n#### Same\r\nNo citation\r\n' };
   const cards = scanCards(files);
   const issues = auditCards(cards, { checks: { stale: false } });
@@ -228,7 +230,7 @@ test('comments target duplicate card headings, refresh idempotently and preserve
 });
 
 test('checkup never scans or annotates structured vault files', async () => {
-  const { scanCards, annotateEvidence } = await import('../src/lib/evidenceCheckup.js');
+  const { scanCards, annotateEvidence } = await import('../src/lib/evidence/evidenceCheckup.js');
   const files = {
     'notes.md': '#### Card\nNo citation',
     'grid.flow': '#### Not a Markdown card\nData',
@@ -250,8 +252,8 @@ test('checkup never scans or annotates structured vault files', async () => {
 
 test('checkup comments survive visual editing and can be refreshed afterward', async () => {
   const { Editor } = await import('@tiptap/core');
-  const { visualExtensions } = await import('../src/lib/visualExtensions.js');
-  const { scanCards, annotateEvidence } = await import('../src/lib/evidenceCheckup.js');
+  const { visualExtensions } = await import('../src/lib/editor/visualExtensions.js');
+  const { scanCards, annotateEvidence } = await import('../src/lib/evidence/evidenceCheckup.js');
   const editor = new Editor({
     element: null,
     extensions: visualExtensions(),
@@ -277,7 +279,8 @@ test('checkup comments survive visual editing and can be refreshed afterward', a
 });
 
 test('normalizeCheckup clamps numeric settings and drops unknown fields', async () => {
-  const { normalizeCheckup, DEFAULT_CHECKUP } = await import('../src/lib/evidenceCheckup.js');
+  const { normalizeCheckup, DEFAULT_CHECKUP } =
+    await import('../src/lib/evidence/evidenceCheckup.js');
   assert.equal(normalizeCheckup({ staleYears: 'abc' }).staleYears, DEFAULT_CHECKUP.staleYears);
   assert.equal(normalizeCheckup({ staleYears: 500 }).staleYears, 100);
   assert.equal(normalizeCheckup({ linkTimeoutSeconds: 0 }).linkTimeoutSeconds, 1);

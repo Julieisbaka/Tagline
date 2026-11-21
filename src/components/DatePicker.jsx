@@ -1,10 +1,10 @@
 import { useEffect, useId, useLayoutEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { dateValue, monthDays, moveMonth, parseDate } from '../lib/calendar.js';
-import { containFocus, trapTabKey } from '../lib/focusScope.js';
-import { useI18n } from '../lib/i18n.js';
+import { dateValue, monthDays, moveMonth, parseDate } from '../lib/shared/calendar.js';
+import { containFocus, trapTabKey } from '../lib/ui/focusScope.js';
+import { useI18n } from '../lib/i18n/i18n.js';
 import Icon from './Icon.jsx';
-import { useNativeUi } from '../lib/nativeUi.js';
+import { useNativeUi } from '../lib/ui/nativeUi.js';
 
 export default function DatePicker({ name, label, value, onChange }) {
   const native = useNativeUi();

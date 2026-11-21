@@ -1,7 +1,11 @@
 import { useState } from 'react';
-import { useI18n } from '../../lib/i18n.js';
-import { binding, displayBinding } from '../../lib/keybindings.js';
-import { moveRibbonItem, normalizeRibbonItems, RIBBON_ITEMS } from '../../lib/ribbonItems.js';
+import { useI18n } from '../../lib/i18n/i18n.js';
+import { binding, displayBinding } from '../../lib/commands/keybindings.js';
+import {
+  moveRibbonItem,
+  normalizeRibbonItems,
+  RIBBON_ITEMS,
+} from '../../lib/settings/ribbonItems.js';
 import Icon from '../Icon.jsx';
 import ContextMenu from '../dialogs/ContextMenu.jsx';
 

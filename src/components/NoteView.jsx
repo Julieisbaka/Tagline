@@ -1,11 +1,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { cardStats, formatDuration, getSectionAt } from '../lib/card.js';
-import { readFrontmatter } from '../lib/frontmatter.js';
-import { useI18n } from '../lib/i18n.js';
-import { binding, displayBinding } from '../lib/keybindings.js';
-import { calibrateReading, readingAssessment, readingSeconds } from '../lib/readTime.js';
-import { baseName, isFlow } from '../lib/vault.js';
-import { visualBlocker, visualSelection } from '../lib/visualHelpers.js';
+import { cardStats, formatDuration, getSectionAt } from '../lib/evidence/card.js';
+import { readFrontmatter } from '../lib/markdown/frontmatter.js';
+import { useI18n } from '../lib/i18n/i18n.js';
+import { binding, displayBinding } from '../lib/commands/keybindings.js';
+import { calibrateReading, readingAssessment, readingSeconds } from '../lib/speech/readTime.js';
+import { baseName, isFlow } from '../lib/vault/vault.js';
+import { visualBlocker, visualSelection } from '../lib/editor/visualHelpers.js';
 import { deferred } from './Deferred.jsx';
 import Icon from './Icon.jsx';
 import NoteProperties from './NoteProperties.jsx';

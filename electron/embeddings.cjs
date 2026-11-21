@@ -1,7 +1,7 @@
 const { Worker } = require('node:worker_threads');
 const path = require('node:path');
 const fs = require('node:fs/promises');
-const defaults = require('../src/lib/defaultSettings.json');
+const defaults = require('../src/lib/settings/defaultSettings.json');
 const { modelCache } = require('./modelCache.cjs');
 
 const MODEL = 'Xenova/all-MiniLM-L6-v2';

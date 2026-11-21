@@ -2,7 +2,7 @@ const { test } = require('node:test');
 const assert = require('node:assert/strict');
 
 test('detects real card headings and preserves original line positions and boundaries', async () => {
-  const { detectCards } = await import('../src/lib/cardDetection.js');
+  const { detectCards } = await import('../src/lib/evidence/cardDetection.js');
   const text = [
     '---',
     'description: |',
@@ -47,7 +47,7 @@ test('detects real card headings and preserves original line positions and bound
 });
 
 test('fences, embedded comments, and ordinary bold evidence do not supply citations', async () => {
-  const { scanCards } = await import('../src/lib/evidenceCheckup.js');
+  const { scanCards } = await import('../src/lib/evidence/evidenceCheckup.js');
   const text = [
     '#### First',
     '<!-- **False 2024** -->',
@@ -72,8 +72,9 @@ test('fences, embedded comments, and ordinary bold evidence do not supply citati
 });
 
 test('checkup and card statistics share detection while comments target exact headings', async () => {
-  const { scanCards, auditCards, annotateEvidence } = await import('../src/lib/evidenceCheckup.js');
-  const { cardStats } = await import('../src/lib/card.js');
+  const { scanCards, auditCards, annotateEvidence } =
+    await import('../src/lib/evidence/evidenceCheckup.js');
+  const { cardStats } = await import('../src/lib/evidence/card.js');
   const text =
     '---\nname: "#### fake"\n---\n```md\n#### fake\n```\n  #### Real ###\n__Smith 2024__\n';
   const files = { 'notes.md': text };
@@ -93,7 +94,7 @@ test('checkup and card statistics share detection while comments target exact he
 });
 
 test('unclosed fences and comments hide headings through the end of the document', async () => {
-  const { detectCards } = await import('../src/lib/cardDetection.js');
+  const { detectCards } = await import('../src/lib/evidence/cardDetection.js');
   assert.equal(detectCards('````js\n```\n#### hidden\n').length, 0);
   assert.equal(detectCards('<!-- hidden\n#### hidden\n').length, 0);
   assert.equal(detectCards('~~~\n#### hidden\n~~~\n#### visible').length, 1);
@@ -101,7 +102,7 @@ test('unclosed fences and comments hide headings through the end of the document
 });
 
 test('raw HTML and setext headings cannot produce or extend cards', async () => {
-  const { detectCards } = await import('../src/lib/cardDetection.js');
+  const { detectCards } = await import('../src/lib/evidence/cardDetection.js');
   const text = [
     '#### First',
     '**Smith 2024**',
@@ -131,7 +132,7 @@ test('raw HTML and setext headings cannot produce or extend cards', async () => 
 });
 
 test('bold evidence with ordinary numbers is not mistaken for a citation', async () => {
-  const { scanCards } = await import('../src/lib/evidenceCheckup.js');
+  const { scanCards } = await import('../src/lib/evidence/evidenceCheckup.js');
   const text = [
     '#### First',
     '**Important evidence** continues here.',
@@ -150,7 +151,7 @@ test('bold evidence with ordinary numbers is not mistaken for a citation', async
 });
 
 test('parser ignores headings in lists, tables, blockquotes and HTML and retains CRLF locations', async () => {
-  const { detectCards } = await import('../src/lib/cardDetection.js');
+  const { detectCards } = await import('../src/lib/evidence/cardDetection.js');
   const text = [
     '---',
     'name: test',
@@ -189,7 +190,7 @@ test('parser ignores headings in lists, tables, blockquotes and HTML and retains
 });
 
 test('cleans inline markdown in titles, handles trailing hashes and duplicate titles', async () => {
-  const { detectCards } = await import('../src/lib/cardDetection.js');
+  const { detectCards } = await import('../src/lib/evidence/cardDetection.js');
   const text = [
     '#### **Heg** — AT: Economy ####',
     'cite',
@@ -204,12 +205,12 @@ test('cleans inline markdown in titles, handles trailing hashes and duplicate ti
 });
 
 test('removes incomplete HTML tag delimiters from card titles', async () => {
-  const { detectCards } = await import('../src/lib/cardDetection.js');
+  const { detectCards } = await import('../src/lib/evidence/cardDetection.js');
   assert.equal(detectCards('#### <script').at(0)?.title, 'script');
 });
 
 test('##### subheads stay inside a card by default', async () => {
-  const { detectCards } = await import('../src/lib/cardDetection.js');
+  const { detectCards } = await import('../src/lib/evidence/cardDetection.js');
   const cards = detectCards('#### Card\ntext\n##### Sub\nmore\n#### Next\n');
   assert.deepEqual(
     cards.map((c) => [c.title, c.endLineIndex]),
@@ -221,7 +222,7 @@ test('##### subheads stay inside a card by default', async () => {
 });
 
 test('offsets are stable for selection/folding', async () => {
-  const { detectCards } = await import('../src/lib/cardDetection.js');
+  const { detectCards } = await import('../src/lib/evidence/cardDetection.js');
   const text = '#### One\nbody\n#### Two\n';
   const [a, b] = detectCards(text);
   assert.equal(text.slice(a.startOffset, a.endOffset), '#### One\nbody\n');
@@ -229,7 +230,7 @@ test('offsets are stable for selection/folding', async () => {
 });
 
 test('configurable depth and weak candidates with confidence', async () => {
-  const { detectCards } = await import('../src/lib/cardDetection.js');
+  const { detectCards } = await import('../src/lib/evidence/cardDetection.js');
   const text = '### Top\n#### Card\n##### Sub\n';
   assert.deepEqual(
     detectCards(text, { depth: 3 }).map((c) => [c.title, c.depth, c.confidence]),
@@ -241,9 +242,9 @@ test('configurable depth and weak candidates with confidence', async () => {
 });
 
 test('explicit marker pairs take priority over headings and preserve citation offsets', async () => {
-  const { detectCards } = await import('../src/lib/cardDetection.js');
-  const { scanCards } = await import('../src/lib/evidenceCheckup.js');
-  const { getSectionAt } = await import('../src/lib/card.js');
+  const { detectCards } = await import('../src/lib/evidence/cardDetection.js');
+  const { scanCards } = await import('../src/lib/evidence/evidenceCheckup.js');
+  const { getSectionAt } = await import('../src/lib/evidence/card.js');
   const text = [
     '---',
     'name: Test',
@@ -283,7 +284,7 @@ test('explicit marker pairs take priority over headings and preserve citation of
 });
 
 test('marker-like text in code and unpaired or nested comments does not create explicit cards', async () => {
-  const { detectCards } = await import('../src/lib/cardDetection.js');
+  const { detectCards } = await import('../src/lib/evidence/cardDetection.js');
   const text =
     '```\n<!-- card:start -->\n<!-- card:end -->\n```\n<!-- card:start -->\n#### Visible\n';
   assert.deepEqual(
@@ -300,8 +301,8 @@ test('marker-like text in code and unpaired or nested comments does not create e
 
 test('explicit markers survive visual Markdown round trips', async () => {
   const { Editor } = await import('@tiptap/core');
-  const { visualExtensions } = await import('../src/lib/visualExtensions.js');
-  const { visualBlocker } = await import('../src/lib/visualHelpers.js');
+  const { visualExtensions } = await import('../src/lib/editor/visualExtensions.js');
+  const { visualBlocker } = await import('../src/lib/editor/visualHelpers.js');
   const editor = new Editor({
     element: null,
     extensions: visualExtensions(),
@@ -312,7 +313,7 @@ test('explicit markers survive visual Markdown round trips', async () => {
     const result = editor.getMarkdown();
     assert.match(result, /<!-- card:start -->/);
     assert.match(result, /<!-- card:end -->/);
-    const { detectCards } = await import('../src/lib/cardDetection.js');
+    const { detectCards } = await import('../src/lib/evidence/cardDetection.js');
     assert.equal(detectCards(result)[0].title, 'Title');
     assert.equal(visualBlocker(result), null);
   } finally {

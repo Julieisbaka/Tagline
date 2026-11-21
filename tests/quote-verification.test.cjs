@@ -2,7 +2,7 @@ const { test } = require('node:test');
 const assert = require('node:assert/strict');
 
 test('quote comparison highlights normalized word matches and flags gaps or altered wording', async () => {
-  const { verifyQuote } = await import('../src/lib/quoteVerification.js');
+  const { verifyQuote } = await import('../src/lib/evidence/quoteVerification.js');
   const source = 'The climate is changing quickly, and the world must act today.';
   let result = verifyQuote('the climate is changing quickly', source);
   assert.equal(result.status, 'match');
@@ -29,7 +29,7 @@ test('quote comparison highlights normalized word matches and flags gaps or alte
 });
 
 test('card quote preparation removes headings and citation lines', async () => {
-  const { cardQuote } = await import('../src/lib/quoteVerification.js');
+  const { cardQuote } = await import('../src/lib/evidence/quoteVerification.js');
   assert.equal(
     cardQuote('#### Tag\n**Smith 2024** — Citation\n==Actual evidence=='),
     'Actual evidence'

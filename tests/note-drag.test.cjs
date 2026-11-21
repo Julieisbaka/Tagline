@@ -3,7 +3,7 @@ const assert = require('node:assert/strict');
 
 test('note drags accept only existing Markdown files and use exact vault paths', async () => {
   const { draggedNotePath, draggedNoteLink, hasNoteDrag, VAULT_PATH_TYPE, NOTE_LINK_TYPE } =
-    await import('../src/lib/noteDrag.js');
+    await import('../src/lib/vault/noteDrag.js');
   const transfer = (type, value) => ({
     types: [type],
     getData: (key) => (key === type ? value : ''),

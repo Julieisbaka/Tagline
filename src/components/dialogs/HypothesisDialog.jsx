@@ -1,11 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { useI18n } from '../../lib/i18n.js';
+import { useI18n } from '../../lib/i18n/i18n.js';
 import {
   HYPOTHESIS_TEMPLATES,
   buildHypotheses,
   entailmentLabel,
   premiseText,
-} from '../../lib/nli.js';
+} from '../../lib/evidence/nli.js';
 
 import ModalBackdrop from './ModalBackdrop.jsx';
 import { useConfirm } from './ConfirmProvider.jsx';

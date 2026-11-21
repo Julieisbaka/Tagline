@@ -42,7 +42,7 @@ test('undo and redo commit pending cell drafts first', async () => {
 });
 
 test('removing the last flow row is guarded and the controls show it', async () => {
-  const { canRemoveRow } = await import('../src/lib/flowRows.js');
+  const { canRemoveRow } = await import('../src/lib/flow/flowRows.js');
   assert.equal(canRemoveRow(0), false);
   assert.equal(canRemoveRow(1), false, 'the only argument row must be kept');
   assert.equal(canRemoveRow(2), true);

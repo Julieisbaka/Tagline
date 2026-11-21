@@ -2,8 +2,8 @@ const { test } = require('node:test');
 const assert = require('node:assert/strict');
 
 test('extracts generated citations and keeps commas in publication names', async () => {
-  const { createCitation } = await import('../src/lib/citation.js');
-  const { extractCardCitation } = await import('../src/lib/citationExtraction.js');
+  const { createCitation } = await import('../src/lib/evidence/citation.js');
+  const { extractCardCitation } = await import('../src/lib/evidence/citationExtraction.js');
   const source = createCitation({
     author: 'Smith',
     year: '2021',
@@ -25,7 +25,7 @@ test('extracts generated citations and keeps commas in publication names', async
 });
 
 test('extracts an unbolded author-year citation with a quoted title and bare URL', async () => {
-  const { extractCardCitation } = await import('../src/lib/citationExtraction.js');
+  const { extractCardCitation } = await import('../src/lib/evidence/citationExtraction.js');
   const { citation, uncertainFields } = extractCardCitation(
     'Smith (2020), "Research report", Journal, https://example.com/article, Accessed 2024-02-29'
   );
@@ -42,8 +42,9 @@ test('extracts an unbolded author-year citation with a quoted title and bare URL
 
 test('expands two-digit years to 20xx unless that year is still in the future', async () => {
   const { extractCardCitation, expandTwoDigitYear } =
-    await import('../src/lib/citationExtraction.js');
-  const { scanCards, auditCards, citedUrls } = await import('../src/lib/evidenceCheckup.js');
+    await import('../src/lib/evidence/citationExtraction.js');
+  const { scanCards, auditCards, citedUrls } =
+    await import('../src/lib/evidence/evidenceCheckup.js');
   const files = {
     'notes.md':
       '#### Card\n**Smith 24** — Journal, [site](https://example.com), Accessed 2023-02-29\n',
@@ -67,7 +68,7 @@ test('expands two-digit years to 20xx unless that year is still in the future', 
 });
 
 test('does not interpret code, quoted examples or ordinary emphasis as citations', async () => {
-  const { extractCardCitation } = await import('../src/lib/citationExtraction.js');
+  const { extractCardCitation } = await import('../src/lib/evidence/citationExtraction.js');
   for (const body of [
     '```\n**Smith 2020**\n```',
     '> **Smith 2020**',
@@ -85,7 +86,7 @@ test('does not interpret code, quoted examples or ordinary emphasis as citations
 });
 
 test('marks ambiguous quotes and unresolved reference links for review', async () => {
-  const { extractCardCitation } = await import('../src/lib/citationExtraction.js');
+  const { extractCardCitation } = await import('../src/lib/evidence/citationExtraction.js');
   const result = extractCardCitation('**Smith 2024** — "A "quoted" title", [article][source]');
   assert.equal(result.citation.title, '');
   assert.equal(result.citation.url, '');
@@ -94,7 +95,7 @@ test('marks ambiguous quotes and unresolved reference links for review', async (
 });
 
 test('extracts multiline citations, note-wide reference links and written dates', async () => {
-  const { scanCards } = await import('../src/lib/evidenceCheckup.js');
+  const { scanCards } = await import('../src/lib/evidence/evidenceCheckup.js');
   const text = [
     '#### First',
     '**Smith, March 3, 2022**',
@@ -130,7 +131,7 @@ test('extracts multiline citations, note-wide reference links and written dates'
 
 test('builds arXiv and ISBN links and keeps BCE and range years', async () => {
   const { extractCardCitation, expandTwoDigitYear } =
-    await import('../src/lib/citationExtraction.js');
+    await import('../src/lib/evidence/citationExtraction.js');
   const currentYear = new Date().getFullYear();
   const futureTwoDigit = String((currentYear + 1) % 100).padStart(2, '0');
   const arxiv = extractCardCitation('**Vaswani 2017** — "Attention", arXiv:1706.03762');
@@ -166,7 +167,8 @@ test('builds arXiv and ISBN links and keeps BCE and range years', async () => {
 });
 
 test('validates ISBN check digits before linking', async () => {
-  const { extractCardCitation, isValidIsbn } = await import('../src/lib/citationExtraction.js');
+  const { extractCardCitation, isValidIsbn } =
+    await import('../src/lib/evidence/citationExtraction.js');
   assert.equal(isValidIsbn('978-0-201-89683-1'), true);
   assert.equal(isValidIsbn('0-306-40615-2'), true);
   assert.equal(isValidIsbn('0-8044-2957-X'), true);
@@ -184,8 +186,8 @@ test('validates ISBN check digits before linking', async () => {
 });
 
 test('creates citations with BCE years that the extractor can round-trip', async () => {
-  const { createCitation, spokenCitations } = await import('../src/lib/citation.js');
-  const { extractCardCitation } = await import('../src/lib/citationExtraction.js');
+  const { createCitation, spokenCitations } = await import('../src/lib/evidence/citation.js');
+  const { extractCardCitation } = await import('../src/lib/evidence/citationExtraction.js');
   assert.equal(
     createCitation({ author: 'Plato', year: '399 BCE', title: 'Apology' }),
     '**Plato 399 BCE** — "Apology"'
@@ -209,7 +211,7 @@ test('creates citations with BCE years that the extractor can round-trip', async
 });
 
 test('marks invalid or ambiguous dates uncertain instead of inventing a year', async () => {
-  const { extractCardCitation } = await import('../src/lib/citationExtraction.js');
+  const { extractCardCitation } = await import('../src/lib/evidence/citationExtraction.js');
   const invalid = extractCardCitation('**Smith, February 30, 2024** — "Study"');
   assert.equal(invalid.citation.year, '');
   assert.ok(invalid.uncertainFields.includes('year'));
@@ -222,7 +224,7 @@ test('marks invalid or ambiguous dates uncertain instead of inventing a year', a
 });
 
 test('parses wrapped bold cites and debate separators/forms', async () => {
-  const { extractCardCitation } = await import('../src/lib/citationExtraction.js');
+  const { extractCardCitation } = await import('../src/lib/evidence/citationExtraction.js');
   const wrapped = extractCardCitation(
     '**Smith (2020) \u201cLong title\ncontinues here,\u201d Journal**'
   );
@@ -246,7 +248,7 @@ test('parses wrapped bold cites and debate separators/forms', async () => {
 });
 
 test('field spans trace original UTF-16 text through wrapping, escaping and normalization', async () => {
-  const { extractCardCitation } = await import('../src/lib/citationExtraction.js');
+  const { extractCardCitation } = await import('../src/lib/evidence/citationExtraction.js');
   const body =
     '<!-- note -->\r\n**D\u00edaz\\_Garc\u00eda, March 3,\r\n2022**\r\n' +
     'Title: A wrapped\r\nPublication: Policy Journal\r\n' +
@@ -271,7 +273,7 @@ test('field spans trace original UTF-16 text through wrapping, escaping and norm
 });
 
 test('field spans trace references, identifiers, and uncertain values to their source', async () => {
-  const { extractCardCitation } = await import('../src/lib/citationExtraction.js');
+  const { extractCardCitation } = await import('../src/lib/evidence/citationExtraction.js');
   const references = { report: { href: 'https://example.com/long/path' } };
   const text = '**Smith 24** — "Study", [Article][report], Accessed 03/04/2024';
   const result = extractCardCitation(text, references);
@@ -299,7 +301,7 @@ test('field spans trace references, identifiers, and uncertain values to their s
 });
 
 test('spans distinguish repeated text and preserve Unicode offsets and year forms', async () => {
-  const { extractCardCitation } = await import('../src/lib/citationExtraction.js');
+  const { extractCardCitation } = await import('../src/lib/evidence/citationExtraction.js');
   for (const [year, value] of [
     ['n.d.', 'n.d.'],
     ['1990-2000', '2000'],
@@ -318,7 +320,7 @@ test('spans distinguish repeated text and preserve Unicode offsets and year form
 });
 
 test('classifies personal, multiple and corporate authors without changing their text', async () => {
-  const { extractCardCitation } = await import('../src/lib/citationExtraction.js');
+  const { extractCardCitation } = await import('../src/lib/evidence/citationExtraction.js');
   for (const [author, kind] of [
     ['Smith', 'name'],
     ['Jane Smith', 'first-last'],
@@ -340,7 +342,7 @@ test('classifies personal, multiple and corporate authors without changing their
 });
 
 test('Ibid resolves only with previous context and retains explicit locators', async () => {
-  const { extractCardCitation } = await import('../src/lib/citationExtraction.js');
+  const { extractCardCitation } = await import('../src/lib/evidence/citationExtraction.js');
   const original = extractCardCitation(
     '**Jane Smith 2020** — "Study", Journal, p. 5, [a](https://example.com/a)'
   );
@@ -377,7 +379,7 @@ test('Ibid resolves only with previous context and retains explicit locators', a
 });
 
 test('publication spans expose exact segments when other fields interrupt the source', async () => {
-  const { extractCardCitation } = await import('../src/lib/citationExtraction.js');
+  const { extractCardCitation } = await import('../src/lib/evidence/citationExtraction.js');
   const text = '**Smith 2020** — "Study", Journal, vol. 2, Series B';
   const { fieldSpans } = extractCardCitation(text);
   assert.ok(fieldSpans.publication.segments.length > 1);
@@ -388,7 +390,7 @@ test('publication spans expose exact segments when other fields interrupt the so
 });
 
 test('Ibid propagates uncertain inherited fields and allows local overrides', async () => {
-  const { extractCardCitation } = await import('../src/lib/citationExtraction.js');
+  const { extractCardCitation } = await import('../src/lib/evidence/citationExtraction.js');
   const source = extractCardCitation('**Smith, February 30, 2024** — "Study", Accessed 03/04/2024');
   const next = extractCardCitation('Ibid., Accessed 2024-05-01', {}, source);
   assert.ok(next.uncertainFields.includes('year'));

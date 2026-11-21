@@ -49,7 +49,7 @@ const example = {
 };
 
 test('theme settings validate and resolve into colors/variables without changing the definition', async () => {
-  const { validateTheme, resolveThemeSettings } = await import('../src/lib/themes.js');
+  const { validateTheme, resolveThemeSettings } = await import('../src/lib/ui/themes.js');
   const theme = validateTheme(example);
   const resolved = resolveThemeSettings(theme, {
     'selection-color': '#abcdef80',
@@ -83,7 +83,7 @@ test('theme settings validate and resolve into colors/variables without changing
 });
 
 test('invalid theme settings and accessibility declarations fail explicitly', async () => {
-  const { validateTheme } = await import('../src/lib/themes.js');
+  const { validateTheme } = await import('../src/lib/ui/themes.js');
   for (const settings of [
     null,
     {},
@@ -112,7 +112,8 @@ test('invalid theme settings and accessibility declarations fail explicitly', as
 });
 
 test('theme option values are isolated by theme and unavailable theme choices retain their fallback', async () => {
-  const { validateTheme, registerExtensionThemes, getTheme } = await import('../src/lib/themes.js');
+  const { validateTheme, registerExtensionThemes, getTheme } =
+    await import('../src/lib/ui/themes.js');
   const old = global.window;
   global.window = { dispatchEvent() {} };
   try {
@@ -131,7 +132,7 @@ test('theme option values are isolated by theme and unavailable theme choices re
 });
 
 test('refresh animation rounds to complete turns with a one-turn minimum', async () => {
-  const { refreshTurns, REFRESH_TURN_MS } = await import('../src/lib/refreshAnimation.js');
+  const { refreshTurns, REFRESH_TURN_MS } = await import('../src/lib/ui/refreshAnimation.js');
   for (const [elapsed, turns] of [
     [0, 1],
     [1, 1],
@@ -147,7 +148,7 @@ test('refresh animation rounds to complete turns with a one-turn minimum', async
 
 test('workspace bars preserve hidden items, validate saved order, and reject foreign drag IDs', async () => {
   const { FILE_ACTIONS, STATUS_ITEMS, normalizeWorkspaceItems, moveWorkspaceItem } =
-    await import('../src/lib/workspaceItems.js');
+    await import('../src/lib/settings/workspaceItems.js');
   for (const catalog of [FILE_ACTIONS, STATUS_ITEMS]) {
     const defaults = catalog.map((item) => item.id);
     assert.deepEqual(normalizeWorkspaceItems(undefined, catalog), defaults);

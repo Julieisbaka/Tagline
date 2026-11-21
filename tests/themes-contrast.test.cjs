@@ -5,7 +5,7 @@ const path = require('node:path');
 const Ajv = require('ajv');
 
 const root = path.join(__dirname, '..');
-const importThemes = () => import('../src/lib/themes.js');
+const importThemes = () => import('../src/lib/ui/themes.js');
 const readTheme = (name) =>
   fs.readFile(path.join(root, 'src', 'themes', `${name}.json`), 'utf8').then(JSON.parse);
 
@@ -119,7 +119,7 @@ test('checkThemeContrast measures WCAG ratios with translucent compositing', asy
 });
 
 test('the themes helper exposes contrast checking to extensions', async () => {
-  const { extensionHelper } = await import('../src/lib/extensionCapabilities.js');
+  const { extensionHelper } = await import('../src/lib/extensions/extensionCapabilities.js');
   const dark = await readTheme('dark');
   const results = extensionHelper('helpers.themes.contrast', [dark]);
   assert.ok(results.length > 0);

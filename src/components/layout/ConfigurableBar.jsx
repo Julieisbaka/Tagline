@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { useI18n } from '../../lib/i18n.js';
-import { moveWorkspaceItem, normalizeWorkspaceItems } from '../../lib/workspaceItems.js';
+import { useI18n } from '../../lib/i18n/i18n.js';
+import { moveWorkspaceItem, normalizeWorkspaceItems } from '../../lib/settings/workspaceItems.js';
 import ContextMenu from '../dialogs/ContextMenu.jsx';
 
 export default function ConfigurableBar({

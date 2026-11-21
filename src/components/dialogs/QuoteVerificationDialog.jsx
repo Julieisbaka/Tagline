@@ -1,8 +1,8 @@
 import { useMemo, useState } from 'react';
-import { detectCards } from '../../lib/cardDetection.js';
-import { scanCards } from '../../lib/evidenceCheckup.js';
-import { useI18n } from '../../lib/i18n.js';
-import { cardQuote, verifyQuote } from '../../lib/quoteVerification.js';
+import { detectCards } from '../../lib/evidence/cardDetection.js';
+import { scanCards } from '../../lib/evidence/evidenceCheckup.js';
+import { useI18n } from '../../lib/i18n/i18n.js';
+import { cardQuote, verifyQuote } from '../../lib/evidence/quoteVerification.js';
 import ModalBackdrop from './ModalBackdrop.jsx';
 
 export default function QuoteVerificationDialog({ contents, onClose }) {

@@ -1,6 +1,6 @@
-import { useI18n } from '../../lib/i18n.js';
-import { isMarkdown } from '../../lib/vault.js';
-import { templateBody } from '../../lib/template.js';
+import { useI18n } from '../../lib/i18n/i18n.js';
+import { isMarkdown } from '../../lib/vault/vault.js';
+import { templateBody } from '../../lib/markdown/template.js';
 import SettingsGroup from './SettingsGroup.jsx';
 
 export default function TemplateSettings({ settings, update, contents = {}, extensions }) {

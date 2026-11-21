@@ -12,10 +12,10 @@ import {
   sourceIssues,
   citesExtract,
   vaultHealthReport,
-} from '../../lib/evidenceCheckup.js';
-import { useI18n } from '../../lib/i18n.js';
-import { LINK_ROT_KEY } from '../../lib/useLinkRotMonitor.js';
-import { readStoredJson } from '../../lib/storedJson.js';
+} from '../../lib/evidence/evidenceCheckup.js';
+import { useI18n } from '../../lib/i18n/i18n.js';
+import { LINK_ROT_KEY } from '../../lib/evidence/useLinkRotMonitor.js';
+import { readStoredJson } from '../../lib/shared/storedJson.js';
 
 import ModalBackdrop from './ModalBackdrop.jsx';
 

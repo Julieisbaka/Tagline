@@ -9,8 +9,8 @@ import {
   moveCanvasNodes,
   resolveCanvasLink,
   serializeCanvas,
-} from '../../lib/canvas.js';
-import { binding, KEYBINDINGS, matchesBinding } from '../../lib/keybindings.js';
+} from '../../lib/canvas/canvas.js';
+import { binding, KEYBINDINGS, matchesBinding } from '../../lib/commands/keybindings.js';
 import CanvasBoard from './CanvasEditor/CanvasBoard.jsx';
 import CanvasControls from './CanvasEditor/CanvasControls.jsx';
 import openCanvasContextMenu from './CanvasEditor/canvasContextMenu.js';

@@ -1,10 +1,10 @@
 import { useEffect, useLayoutEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { useI18n } from '../../lib/i18n.js';
-import { containFocus, trapTabKey } from '../../lib/focusScope.js';
-import { useNativeUi } from '../../lib/nativeUi.js';
-import { useShortcutLookup } from '../../lib/keybindingContext.js';
-import { displayBinding } from '../../lib/keybindings.js';
+import { useI18n } from '../../lib/i18n/i18n.js';
+import { containFocus, trapTabKey } from '../../lib/ui/focusScope.js';
+import { useNativeUi } from '../../lib/ui/nativeUi.js';
+import { useShortcutLookup } from '../../lib/commands/keybindingContext.js';
+import { displayBinding } from '../../lib/commands/keybindings.js';
 
 export default function ContextMenu({ x, y, items, onClose, forceApp = false }) {
   const native = useNativeUi();

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
-import { useI18n } from '../lib/i18n.js';
-import { REFRESH_TURN_MS, refreshTurns } from '../lib/refreshAnimation.js';
+import { useI18n } from '../lib/i18n/i18n.js';
+import { REFRESH_TURN_MS, refreshTurns } from '../lib/ui/refreshAnimation.js';
 import Icon from './Icon.jsx';
 
 export default function RefreshButton({ onRefresh }) {

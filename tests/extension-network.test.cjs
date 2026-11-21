@@ -397,7 +397,7 @@ test('network timeouts abort both buffered and streamed requests', async (t) => 
 });
 
 test('network API requires its permission and uses the host-mediated bridge', async () => {
-  const { ExtensionHost } = await import('../src/lib/extensions.js');
+  const { ExtensionHost } = await import('../src/lib/extensions/extensions.js');
   const calls = [];
   const host = new ExtensionHost(
     { ...manifest, contributes: { commands: [], panels: [], webviews: [] } },

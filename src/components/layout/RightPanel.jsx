@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
-import { useI18n } from '../../lib/i18n.js';
-import { flowsUsingCard } from '../../lib/flowCardLinks.js';
-import { baseName, displayName, isFlow, isMarkdown, outline } from '../../lib/vault.js';
+import { useI18n } from '../../lib/i18n/i18n.js';
+import { flowsUsingCard } from '../../lib/flow/flowCardLinks.js';
+import { baseName, displayName, isFlow, isMarkdown, outline } from '../../lib/vault/vault.js';
 import Icon from '../Icon.jsx';
 import Timer from '../Timer.jsx';
 import ExtensionPanelList from './ExtensionPanelList.jsx';

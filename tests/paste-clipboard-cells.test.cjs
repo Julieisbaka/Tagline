@@ -1,7 +1,7 @@
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
 
-const loadHelper = () => import('../src/lib/pasteClipboardCells.js');
+const loadHelper = () => import('../src/lib/flow/pasteClipboardCells.js');
 
 test('context-menu paste reads through Electron IPC when available', async () => {
   const { pasteClipboardCells } = await loadHelper();
@@ -71,7 +71,7 @@ test('a failed clipboard read is reported instead of rejecting', async () => {
 
 test('malformed cell data is reported through the same error path as native paste', async () => {
   const { pasteClipboardCells } = await loadHelper();
-  const { parseFlowCells } = await import('../src/lib/flowCells.js');
+  const { parseFlowCells } = await import('../src/lib/flow/flowCells.js');
   const errors = [];
   await pasteClipboardCells({
     api: { clipboardRead: async () => '"unclosed quote' },

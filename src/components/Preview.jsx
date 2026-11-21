@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef } from 'react';
-import { renderMarkdown, slugify } from '../lib/markdown.js';
+import { renderMarkdown, slugify } from '../lib/markdown/markdown.js';
 
 export default function Preview({
   content,

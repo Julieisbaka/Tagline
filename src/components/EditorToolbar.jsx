@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { useI18n } from '../lib/i18n.js';
-import { binding, displayBinding } from '../lib/keybindings.js';
+import { useI18n } from '../lib/i18n/i18n.js';
+import { binding, displayBinding } from '../lib/commands/keybindings.js';
 
 const ACTIONS = [
   ['pocket', 'Pocket'],

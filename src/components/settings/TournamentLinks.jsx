@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useI18n } from '../../lib/i18n.js';
+import { useI18n } from '../../lib/i18n/i18n.js';
 import SettingsGroup from './SettingsGroup.jsx';
 
 // These are manual browser links, not automated access to provider data.

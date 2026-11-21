@@ -1,6 +1,6 @@
 import { useEffect, useId, useMemo, useRef, useState } from 'react';
-import { useI18n } from '../../lib/i18n.js';
-import { fuzzyScore } from '../../lib/vault.js';
+import { useI18n } from '../../lib/i18n/i18n.js';
+import { fuzzyScore } from '../../lib/vault/vault.js';
 import ModalBackdrop from './ModalBackdrop.jsx';
 export { SettingsDialog } from './Dialogs/SettingsDialog.jsx';
 

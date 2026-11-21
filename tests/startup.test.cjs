@@ -6,7 +6,7 @@ const os = require('node:os');
 const { listVault, readVaultSnapshot } = require('../electron/vaultFiles.cjs');
 
 test('outline recognizes imported setext headings before the visual editor rewrites Markdown', async () => {
-  const { outline } = await import('../src/lib/vault.js');
+  const { outline } = await import('../src/lib/vault/vault.js');
   const source =
     '---\ntitle: Imported\n---\n\nPocket\n======\n\nHat\n---\n\n### Block\n\n#### Tag\n';
   assert.deepEqual(outline(source), [
@@ -173,7 +173,7 @@ test('platform: snapshot propagates filesystem errors instead of returning a par
 });
 
 test('visual fallback checks do not depend on loading the visual editor', async () => {
-  const { visualBlocker } = await import('../src/lib/visualHelpers.js');
+  const { visualBlocker } = await import('../src/lib/editor/visualHelpers.js');
   assert.equal(visualBlocker('# Markdown\n\n**Evidence**'), null);
   assert.equal(visualBlocker('---\na: b\n---'), null);
   for (const content of [
@@ -189,7 +189,7 @@ test('visual fallback checks do not depend on loading the visual editor', async 
 });
 
 test('first-run language matches supported OS locales and respects saved choices', async () => {
-  const { systemLanguage, initialLanguage } = await import('../src/lib/localization.js');
+  const { systemLanguage, initialLanguage } = await import('../src/lib/i18n/localization.js');
   for (const [locales, expected] of [
     [['fr-CA'], 'fr'],
     [['es_MX'], 'es'],
@@ -208,7 +208,7 @@ test('first-run language matches supported OS locales and respects saved choices
 });
 
 test('YAML frontmatter supports mappings, preserves exact prefixes and reports invalid metadata', async () => {
-  const { readFrontmatter, splitFrontmatter } = await import('../src/lib/frontmatter.js');
+  const { readFrontmatter, splitFrontmatter } = await import('../src/lib/markdown/frontmatter.js');
   const prefix =
     '\uFEFF---\r\n# Keep this comment\r\ntitle: Example\r\nnested:\r\n  choices: [one, two]\r\n---\r\n';
   const body = '\r\n#### Card\r\n==Evidence==\r\n';
@@ -237,7 +237,7 @@ test('YAML frontmatter supports mappings, preserves exact prefixes and reports i
 
 test('visual property edits preserve note body and support adding, updating, and removing YAML values', async () => {
   const { deleteFrontmatterProperty, readFrontmatter, setFrontmatterProperty } =
-    await import('../src/lib/frontmatter.js');
+    await import('../src/lib/markdown/frontmatter.js');
   const body = '\r\n# Note\r\nText\r\n';
   const source = '---\r\ntitle: Example\r\n---\r\n' + body;
   const updated = setFrontmatterProperty(source, 'title', 'Updated');
@@ -256,7 +256,7 @@ test('visual property edits preserve note body and support adding, updating, and
 
 test('speech markers preserve other properties and discover only boolean-marked Markdown files', async () => {
   const { markSpeechDocument, readFrontmatter, speechDocumentPaths } =
-    await import('../src/lib/frontmatter.js');
+    await import('../src/lib/markdown/frontmatter.js');
   const body = '\r\n# Speech\r\n\r\nEvidence.\r\n';
   const source =
     '---\r\n# My properties\r\ntitle: "Final"\r\nspeech: false\r\nnested:\r\n  value: 5\r\n---\r\n' +
@@ -287,7 +287,7 @@ test('speech markers preserve other properties and discover only boolean-marked 
 });
 
 test('duplicate evidence detection ignores whitespace and frontmatter', async () => {
-  const { containsEvidence } = await import('../src/lib/card.js');
+  const { containsEvidence } = await import('../src/lib/evidence/card.js');
   const doc = '---\nspeech: true\n---\n# Speech\n\n#### Tag\nSome   evidence\ntext.\n';
   assert.equal(containsEvidence(doc, '#### Tag\nSome evidence text.'), true);
   assert.equal(containsEvidence(doc, 'Other card'), false);
@@ -296,10 +296,10 @@ test('duplicate evidence detection ignores whitespace and frontmatter', async ()
 });
 
 test('metadata is excluded from note structure, evidence statistics and spoken text', async () => {
-  const { cardStats, getSectionAt, spokenEvidence } = await import('../src/lib/card.js');
-  const { outline, extractTags, extractLinks } = await import('../src/lib/vault.js');
-  const { speechStats } = await import('../src/lib/readTime.js');
-  const { visualBlocker } = await import('../src/lib/visualHelpers.js');
+  const { cardStats, getSectionAt, spokenEvidence } = await import('../src/lib/evidence/card.js');
+  const { outline, extractTags, extractLinks } = await import('../src/lib/vault/vault.js');
+  const { speechStats } = await import('../src/lib/speech/readTime.js');
+  const { visualBlocker } = await import('../src/lib/editor/visualHelpers.js');
   const prefix =
     '---\ntitle: "#### Fake #metadata [[Hidden]] ==not evidence=="\nhtml: "<div>metadata</div>"\n---\n';
   const body = '# Case\n\n#### Card\n**Author 24**\n==Real evidence== #body [[Visible]]\n';

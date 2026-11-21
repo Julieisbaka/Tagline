@@ -4,8 +4,8 @@ import {
   deleteFrontmatterProperty,
   readFrontmatter,
   setFrontmatterProperty,
-} from '../lib/frontmatter.js';
-import { useI18n } from '../lib/i18n.js';
+} from '../lib/markdown/frontmatter.js';
+import { useI18n } from '../lib/i18n/i18n.js';
 
 function YamlValue({ property, value, onSave, t }) {
   const initial = useMemo(() => stringify(value), [value]);

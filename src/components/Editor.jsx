@@ -14,8 +14,8 @@ import {
 import CodeMirror from '@uiw/react-codemirror';
 import { Editor as TiptapEditor } from '@tiptap/core';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { createCodeMirrorFindReplacePanel } from '../lib/codeMirrorFindReplace.js';
-import { detectCards } from '../lib/cardDetection.js';
+import { createCodeMirrorFindReplacePanel } from '../lib/editor/codeMirrorFindReplace.js';
+import { detectCards } from '../lib/evidence/cardDetection.js';
 import {
   clearFormatting,
   debateDecorations,
@@ -25,13 +25,13 @@ import {
   linkAt,
   setHeading,
   toggleWrap,
-} from '../lib/editorExtensions.js';
-import { applicationEvents } from '../lib/extensionCapabilities.js';
-import { useI18n } from '../lib/i18n.js';
-import { binding, editorBinding, KEYBINDINGS } from '../lib/keybindings.js';
-import { draggedNoteLink, draggedNotePath, hasNoteDrag } from '../lib/noteDrag.js';
-import { smartPasteMarkdown } from '../lib/smartPaste.js';
-import { visualExtensions } from '../lib/visualExtensions.js';
+} from '../lib/editor/editorExtensions.js';
+import { applicationEvents } from '../lib/extensions/extensionCapabilities.js';
+import { useI18n } from '../lib/i18n/i18n.js';
+import { binding, editorBinding, KEYBINDINGS } from '../lib/commands/keybindings.js';
+import { draggedNoteLink, draggedNotePath, hasNoteDrag } from '../lib/vault/noteDrag.js';
+import { smartPasteMarkdown } from '../lib/editor/smartPaste.js';
+import { visualExtensions } from '../lib/editor/visualExtensions.js';
 import EditorLinkForm from './EditorLinkForm.jsx';
 import EditorToolbar from './EditorToolbar.jsx';
 

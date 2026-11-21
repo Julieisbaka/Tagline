@@ -2,8 +2,8 @@ const { test } = require('node:test');
 const assert = require('node:assert/strict');
 
 test('card links preserve cell text and resolve to the selected duplicate filename', async () => {
-  const { linkCardInCell, flowsUsingCard } = await import('../src/lib/flowCardLinks.js');
-  const { buildIndex, rewriteFlowLinks } = await import('../src/lib/vault.js');
+  const { linkCardInCell, flowsUsingCard } = await import('../src/lib/flow/flowCardLinks.js');
+  const { buildIndex, rewriteFlowLinks } = await import('../src/lib/vault/vault.js');
   const cell = linkCardInCell('Argument', 'Evidence/Card.md');
   assert.equal(cell, 'Argument\n[[Evidence/Card.md|Card]]');
   assert.equal(linkCardInCell('Argument\n', 'Evidence/Card.md'), cell);
@@ -44,7 +44,7 @@ test('card links preserve cell text and resolve to the selected duplicate filena
 });
 
 test('wikilink titles show the resolved path and escape HTML attributes', async () => {
-  const { createMarkdownParser } = await import('../src/lib/markdown.js');
+  const { createMarkdownParser } = await import('../src/lib/markdown/markdown.js');
   const parser = createMarkdownParser(() => 'Folder/Card & "quoted".md');
   const html = parser.parse('[[Card#Evidence|Alias]]');
   assert.match(html, /title="Folder\/Card &amp; &quot;quoted&quot;\.md#Evidence"/);

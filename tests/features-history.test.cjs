@@ -23,7 +23,10 @@ test('platform: case-only revision history rename preserves revisions', async (t
 
 test('platform: experimental history deltas round-trip, checkpoint, prune safely and survive disabling', async (t) => {
   const { createRevisionHistory } = require('../electron/revisionHistory.cjs');
-  assert.equal(require('../src/lib/defaultSettings.json').experimentalHistoryDeltas, false);
+  assert.equal(
+    require('../src/lib/settings/defaultSettings.json').experimentalHistoryDeltas,
+    false
+  );
   const root = await fsAsync.mkdtemp(path.join(os.tmpdir(), 'tagline-deltas-'));
   t.after(() => fsAsync.rm(root, { recursive: true, force: true }));
   const history = createRevisionHistory({

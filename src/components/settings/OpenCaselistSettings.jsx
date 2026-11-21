@@ -1,5 +1,5 @@
 import { useEffect, useId, useState } from 'react';
-import { useI18n } from '../../lib/i18n.js';
+import { useI18n } from '../../lib/i18n/i18n.js';
 
 const api = window.api.openCaselist;
 

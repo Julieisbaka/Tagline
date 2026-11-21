@@ -5,8 +5,8 @@ const path = require('node:path');
 const os = require('node:os');
 
 test('syllable rate is direct and old settings preserve their effective timing', async () => {
-  const { readingSeconds } = await import('../src/lib/readTime.js');
-  const { speechRateFromSettings } = await import('../src/lib/speechRate.js');
+  const { readingSeconds } = await import('../src/lib/speech/readTime.js');
+  const { speechRateFromSettings } = await import('../src/lib/speech/speechRate.js');
   assert.equal(readingSeconds({ weightedSyllables: 300 }, 300), 60);
   assert.equal(speechRateFromSettings({ wpm: 250 }), 375);
   assert.equal(speechRateFromSettings({ wpm: 250, syllablesPerMinute: 600 }), 600);
@@ -18,7 +18,7 @@ test('syllable rate is direct and old settings preserve their effective timing',
 });
 
 test('speech trigger filters quiet, out-of-band and narrow tonal sounds', async () => {
-  const { speechLike } = await import('../src/lib/voiceActivity.js');
+  const { speechLike } = await import('../src/lib/speech/voiceActivity.js');
   const waveform = new Float32Array(2048).fill(0.1);
   const spectrum = new Float32Array(1024).fill(-100);
   spectrum.fill(-20, 10, 20);
@@ -33,7 +33,7 @@ test('speech trigger filters quiet, out-of-band and narrow tonal sounds', async 
 });
 
 test('speech timing includes punctuation without mistaking decimal separators for pauses', async () => {
-  const { speechStats, readingSeconds, spokenText } = await import('../src/lib/readTime.js');
+  const { speechStats, readingSeconds, spokenText } = await import('../src/lib/speech/readTime.js');
   const plain = speechStats('cat dog fish cat dog fish');
   const paused = speechStats('cat, dog; fish.\n\ncat dog fish!');
   assert.equal(plain.syllables, paused.syllables);
@@ -51,7 +51,8 @@ test('speech timing includes punctuation without mistaking decimal separators fo
 });
 
 test('fewer than three samples keep the default rate and never fit a profile', async () => {
-  const { speechStats, readingSeconds, calibrateReading } = await import('../src/lib/readTime.js');
+  const { speechStats, readingSeconds, calibrateReading } =
+    await import('../src/lib/speech/readTime.js');
   const stats = speechStats('Internationalization and constitutional complexity. Take a breath.');
   const sample = { id: 'one', name: 'One', scope: 'full', version: 1, stats, seconds: 73 };
   assert.equal(calibrateReading([sample]), null);
@@ -62,7 +63,8 @@ test('fewer than three samples keep the default rate and never fit a profile', a
 });
 
 test('multi-document robust calibration predicts held-out timing and limits an extreme outlier', async () => {
-  const { speechStats, readingSeconds, calibrateReading } = await import('../src/lib/readTime.js');
+  const { speechStats, readingSeconds, calibrateReading } =
+    await import('../src/lib/speech/readTime.js');
   const texts = [
     'The cat is on the mat. '.repeat(10),
     'International constitutional issues require consideration. '.repeat(8),
@@ -101,7 +103,8 @@ test('multi-document robust calibration predicts held-out timing and limits an e
 });
 
 test('calibration learns an intercept and per-class pause weights', async () => {
-  const { speechStats, readingSeconds, calibrateReading } = await import('../src/lib/readTime.js');
+  const { speechStats, readingSeconds, calibrateReading } =
+    await import('../src/lib/speech/readTime.js');
   // Speaker: 4 s setup, 0.17 s per weighted syllable, commas ignored, sentence
   // ends at 0.4 s, paragraph breaks at 0.6 s.
   const truth = (stats) =>
@@ -139,7 +142,7 @@ test('calibration learns an intercept and per-class pause weights', async () => 
 
 test('readability remains standard while personal effort adapts to sample complexity', async () => {
   const { speechStats, readingSeconds, readingAssessment, calibrateReading } =
-    await import('../src/lib/readTime.js');
+    await import('../src/lib/speech/readTime.js');
   const simple = speechStats('Cat dog fish.');
   const complex = speechStats('Internationalization constitutional complexity.');
   const profileFor = (stats, scale) => {
@@ -167,9 +170,9 @@ test('readability remains standard while personal effort adapts to sample comple
 });
 
 test('calibration rejects invalid samples, empty spoken evidence and duplicate identities', async () => {
-  const { speechStats, calibrateReading } = await import('../src/lib/readTime.js');
-  const { spokenEvidence, cardStats } = await import('../src/lib/card.js');
-  const { validateReadingSample } = await import('../src/lib/readTime.js');
+  const { speechStats, calibrateReading } = await import('../src/lib/speech/readTime.js');
+  const { spokenEvidence, cardStats } = await import('../src/lib/evidence/card.js');
+  const { validateReadingSample } = await import('../src/lib/speech/readTime.js');
   const content =
     '#### Tag\n**Smith 2024** — not spoken publication\n==Read this.==\nNever read this.';
   assert.deepEqual(
@@ -208,7 +211,7 @@ test('calibration rejects invalid samples, empty spoken evidence and duplicate i
 test('theme and extension limits validate ceilings and apply to manifest and theme validation', async () => {
   const { DEFAULT_LIMITS, validateLimits, setRuntimeLimits } =
     await import('../electron/customization.mjs');
-  const { validateTheme } = await import('../src/lib/themes.js');
+  const { validateTheme } = await import('../src/lib/ui/themes.js');
   const { validateManifest } = require('../electron/extensions.cjs');
   assert.deepEqual(validateLimits(), DEFAULT_LIMITS);
   assert.equal(DEFAULT_LIMITS.themeVariables, 512);
@@ -340,7 +343,7 @@ test('platform: main process persists limit changes, enforces script size and ex
 });
 
 test('configured watch and storage limits are enforced by the extension host', async (t) => {
-  const { ExtensionHost } = await import('../src/lib/extensions.js');
+  const { ExtensionHost } = await import('../src/lib/extensions/extensions.js');
   const original = global.localStorage;
   const storage = new Map();
   global.localStorage = {
@@ -392,7 +395,7 @@ test('platform: reading imports support multiple plain documents without requiri
 });
 
 test('absolute timer deadlines preserve sub-tick time and account for suspended clocks', async () => {
-  const { remainingAt } = await import('../src/lib/countdown.js');
+  const { remainingAt } = await import('../src/lib/speech/countdown.js');
   const start = 1_000_000;
   const deadline = start + 60_000;
   assert.equal(remainingAt(deadline, start + 150), 59.85);

@@ -5,7 +5,7 @@ const { DEFAULT_LIMITS } = require('../customization.mjs');
 const { validateNetworkHosts } = require('../extensionNetwork.cjs');
 
 // Extensions live in <userData>/extensions/<folder>/manifest.json. The main process only reads and
-// validates files; extension code runs in a supervised sandbox worker (see src/lib/extensions.js).
+// validates files; extension code runs in a supervised sandbox worker (see src/lib/extensions/extensions.js).
 const PERMISSIONS = [
   'editor',
   'vault:read',

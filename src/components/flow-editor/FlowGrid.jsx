@@ -1,10 +1,10 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { binding, displayBinding, matchesBinding } from '../../lib/keybindings.js';
-import { cellBounds, copyFlowCells } from '../../lib/flowCells.js';
-import { canRemoveRow } from '../../lib/flowRows.js';
-import { pasteClipboardCells } from '../../lib/pasteClipboardCells.js';
-import { registerPendingFlush } from '../../lib/pendingEdits.js';
-import { renderMarkdown } from '../../lib/markdown.js';
+import { binding, displayBinding, matchesBinding } from '../../lib/commands/keybindings.js';
+import { cellBounds, copyFlowCells } from '../../lib/flow/flowCells.js';
+import { canRemoveRow } from '../../lib/flow/flowRows.js';
+import { pasteClipboardCells } from '../../lib/flow/pasteClipboardCells.js';
+import { registerPendingFlush } from '../../lib/vault/pendingEdits.js';
+import { renderMarkdown } from '../../lib/markdown/markdown.js';
 import Icon from '../Icon.jsx';
 
 const AFF = new Set(['1AC', '2AC', '1AR', '2AR', 'AC', 'AR']);

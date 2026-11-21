@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
-import { useI18n } from '../lib/i18n.js';
-import { readStoredJson } from '../lib/storedJson.js';
+import { useI18n } from '../lib/i18n/i18n.js';
+import { readStoredJson } from '../lib/shared/storedJson.js';
 
 const SEASON_KEY = 'tagline-tabroom-caselist';
 

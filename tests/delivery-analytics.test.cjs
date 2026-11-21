@@ -2,7 +2,7 @@ const { test } = require('node:test');
 const assert = require('node:assert/strict');
 
 test('delivery analytics counts conservative filler tokens and measured pace', async () => {
-  const { analyzeDelivery } = await import('../src/lib/deliveryAnalytics.js');
+  const { analyzeDelivery } = await import('../src/lib/speech/deliveryAnalytics.js');
   assert.deepEqual(analyzeDelivery('Um, this is, uh, important. Um!', 3), {
     words: 6,
     fillers: { um: 2, uh: 1 },

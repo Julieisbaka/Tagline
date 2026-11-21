@@ -1,6 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
-import { useI18n } from '../../lib/i18n.js';
-import { useNativeUi } from '../../lib/nativeUi.js';
+import { useI18n } from '../../lib/i18n/i18n.js';
+import { useNativeUi } from '../../lib/ui/nativeUi.js';
 import ModalBackdrop from './ModalBackdrop.jsx';
 
 const Confirmation = createContext(null);

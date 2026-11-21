@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
-import { binding, displayBinding } from '../../lib/keybindings.js';
-import { resourceLimits } from '../../lib/resourceLimits.js';
+import { binding, displayBinding } from '../../lib/commands/keybindings.js';
+import { resourceLimits } from '../../lib/settings/resourceLimits.js';
 import {
   baseName,
   dirName,
@@ -9,9 +9,9 @@ import {
   isCanvas,
   isJson,
   isMarkdown,
-} from '../../lib/vault.js';
-import { useLinkRotMonitor } from '../../lib/useLinkRotMonitor.js';
-import { STATUS_ITEMS } from '../../lib/workspaceItems.js';
+} from '../../lib/vault/vault.js';
+import { useLinkRotMonitor } from '../../lib/evidence/useLinkRotMonitor.js';
+import { STATUS_ITEMS } from '../../lib/settings/workspaceItems.js';
 import { deferred } from '../Deferred.jsx';
 import ModalBackdrop from '../dialogs/ModalBackdrop.jsx';
 import Onboarding from '../dialogs/Onboarding.jsx';

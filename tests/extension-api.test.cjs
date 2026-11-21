@@ -29,7 +29,7 @@ test('api permission is review-gated and changes the review signature', () => {
 });
 
 test('extension API export, discovery, calls and JSON payload limits are enforced', async () => {
-  const { ExtensionHost } = await import('../src/lib/extensions.js');
+  const { ExtensionHost } = await import('../src/lib/extensions/extensions.js');
   const provider = new ExtensionHost(
     { id: 'api-provider', name: 'Provider', permissions: ['api'], contributes: {} },
     '',
@@ -78,7 +78,7 @@ test('extension API export, discovery, calls and JSON payload limits are enforce
 });
 
 test('provider invokes only an exported method and returns validated JSON', async () => {
-  const { ExtensionHost } = await import('../src/lib/extensions.js');
+  const { ExtensionHost } = await import('../src/lib/extensions/extensions.js');
   const provider = new ExtensionHost(
     { id: 'api-provider', name: 'Provider', permissions: ['api'], contributes: {} },
     '',

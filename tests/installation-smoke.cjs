@@ -188,7 +188,7 @@ app.on('browser-window-created', (_event, win) => {
           false,
           'Failed saves clean up temporary files'
         );
-        const defaults = require('../src/lib/defaultSettings.json');
+        const defaults = require('../src/lib/settings/defaultSettings.json');
         const settings = {
           ...defaults,
           internalFlags: { ...defaults.internalFlags, hasSeenOnboarding: true },

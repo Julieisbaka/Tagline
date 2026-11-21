@@ -5,8 +5,8 @@ import {
   setRuntimeLimits,
   validateLimits,
 } from '../../../electron/customization.mjs';
-import { useI18n } from '../../lib/i18n.js';
-import { validateTheme } from '../../lib/themes.js';
+import { useI18n } from '../../lib/i18n/i18n.js';
+import { validateTheme } from '../../lib/ui/themes.js';
 import SettingsGroup from './SettingsGroup.jsx';
 
 export default function CustomizationLimits({ settings }) {

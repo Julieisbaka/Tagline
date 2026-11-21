@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
-import { analyzeDelivery } from '../../lib/deliveryAnalytics.js';
-import { useI18n } from '../../lib/i18n.js';
+import { analyzeDelivery } from '../../lib/speech/deliveryAnalytics.js';
+import { useI18n } from '../../lib/i18n/i18n.js';
 import ModalBackdrop from './ModalBackdrop.jsx';
 
 export default function DeliveryAnalyticsDialog({ onClose, settings, updateSettings }) {

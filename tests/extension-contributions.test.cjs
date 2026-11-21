@@ -168,7 +168,7 @@ test('extension catalogs are namespaced, interpolate values, and unload', async 
   global.document = { documentElement: { lang: '' } };
   try {
     const { registerExtensionTranslations, setLanguage, translate } =
-      await import('../src/lib/i18n.js');
+      await import('../src/lib/i18n/i18n.js');
     setLanguage('en');
     registerExtensionTranslations([
       {
@@ -218,7 +218,7 @@ test('extension font faces register and are removed on reload', async () => {
   };
   try {
     const { getExtensionFonts, registerExtensionFonts } =
-      await import('../src/lib/extensionFonts.js');
+      await import('../src/lib/extensions/extensionFonts.js');
     const contribution = {
       extensionId: 'alpha-one',
       family: 'Debate Sans',
@@ -257,7 +257,8 @@ test('manifest schema covers UI and packaged asset contribution declarations', (
 });
 
 test('quick-fix tokens authorize only current extension diagnostics', async () => {
-  const { createExtensionQuickFixRegistry } = await import('../src/lib/extensionQuickFixes.js');
+  const { createExtensionQuickFixRegistry } =
+    await import('../src/lib/extensions/extensionQuickFixes.js');
   const quickFixes = createExtensionQuickFixRegistry();
   const [diagnostic] = quickFixes.update('alpha-one', [{ quickFix: { command: 'fix' } }]);
   assert.equal(quickFixes.matches(undefined, 'alpha-one', 'fix'), false);
@@ -273,7 +274,7 @@ test('quick-fix tokens authorize only current extension diagnostics', async () =
 });
 
 test('status bar updates and command contexts stay within declared UI capabilities', async () => {
-  const { ExtensionHost } = await import('../src/lib/extensions.js');
+  const { ExtensionHost } = await import('../src/lib/extensions/extensions.js');
   const updates = [];
   const sent = [];
   const manifest = validateManifest(rawManifest(), root);

@@ -2,7 +2,7 @@ const { test } = require('node:test');
 const assert = require('node:assert/strict');
 
 test('pinned note and folder paths follow file and folder renames without changing siblings', async () => {
-  const { renameFavorites, removeFavorites } = await import('../src/lib/useFavorites.js');
+  const { renameFavorites, removeFavorites } = await import('../src/lib/vault/useFavorites.js');
   const paths = ['Folder', 'Folder/Note.md', 'Folder/Nested/Other.md', 'Folder2/Note.md'];
   assert.deepEqual(renameFavorites(paths, 'Folder', 'Moved'), [
     'Moved',
@@ -26,7 +26,7 @@ test('pinned note and folder paths follow file and folder renames without changi
 });
 
 test('pins read results tell missing, saved and corrupted files apart', async () => {
-  const { parsePinsResult } = await import('../src/lib/useFavorites.js');
+  const { parsePinsResult } = await import('../src/lib/vault/useFavorites.js');
   assert.deepEqual(parsePinsResult(null), {
     favorites: null,
     pinnedTabs: null,
@@ -45,14 +45,14 @@ test('pins read results tell missing, saved and corrupted files apart', async ()
 });
 
 test('pin failures report read and write errors separately', async () => {
-  const { pinErrorDetail } = await import('../src/lib/useFavorites.js');
+  const { pinErrorDetail } = await import('../src/lib/vault/useFavorites.js');
   const error = new Error('disk gone');
   assert.equal(pinErrorDetail('load', error), 'Could not load pinned items: disk gone');
   assert.equal(pinErrorDetail('save', error), 'Could not save pinned items: disk gone');
 });
 
 test('pin writes drop entries the writer rejects and cap the list', async () => {
-  const { sanitizePinPaths } = await import('../src/lib/useFavorites.js');
+  const { sanitizePinPaths } = await import('../src/lib/vault/useFavorites.js');
   assert.deepEqual(
     sanitizePinPaths([
       'a.md',

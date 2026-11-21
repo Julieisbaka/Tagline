@@ -2,7 +2,7 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 
 test('timer state restores only valid values for the active format', async () => {
-  const { normalizeTimerState } = await import('../src/lib/timerState.js');
+  const { normalizeTimerState } = await import('../src/lib/speech/timerState.js');
   const format = {
     prep: 8,
     speeches: [

@@ -1,13 +1,13 @@
 import { useCallback } from 'react';
 import { createFlow } from '../../electron/flow.mjs';
 import { renameTarget, sanitizeName } from '../components/layout/Sidebar.jsx';
-import { EMPTY_CANVAS } from '../lib/canvas.js';
-import { defaultEditorMode } from '../lib/editorModes.js';
-import { markSpeechDocument } from '../lib/frontmatter.js';
-import { makeJump } from '../lib/jump.js';
-import { slugify } from '../lib/markdown.js';
-import { playUiSound } from '../lib/uiSounds.js';
-import { useAppExtensions } from '../lib/useAppExtensions.js';
+import { EMPTY_CANVAS } from '../lib/canvas/canvas.js';
+import { defaultEditorMode } from '../lib/editor/editorModes.js';
+import { markSpeechDocument } from '../lib/markdown/frontmatter.js';
+import { makeJump } from '../lib/search/jump.js';
+import { slugify } from '../lib/markdown/markdown.js';
+import { playUiSound } from '../lib/ui/uiSounds.js';
+import { useAppExtensions } from '../lib/extensions/useAppExtensions.js';
 import {
   baseName,
   dirName,
@@ -16,7 +16,7 @@ import {
   joinPath,
   outline,
   resolveLink,
-} from '../lib/vault.js';
+} from '../lib/vault/vault.js';
 
 export function useAppOperations({
   settings,

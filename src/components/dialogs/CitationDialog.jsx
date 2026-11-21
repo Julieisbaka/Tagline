@@ -1,7 +1,7 @@
 import { useState } from 'react';
-import { dateValue, parseDate } from '../../lib/calendar.js';
-import { createCitation } from '../../lib/citation.js';
-import { useI18n } from '../../lib/i18n.js';
+import { dateValue, parseDate } from '../../lib/shared/calendar.js';
+import { createCitation } from '../../lib/evidence/citation.js';
+import { useI18n } from '../../lib/i18n/i18n.js';
 import DatePicker from '../DatePicker.jsx';
 
 import ModalBackdrop from './ModalBackdrop.jsx';

@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { useI18n } from '../../lib/i18n.js';
-import { readStoredJson } from '../../lib/storedJson.js';
-import { displayName, isCanvas, isFlow } from '../../lib/vault.js';
+import { useI18n } from '../../lib/i18n/i18n.js';
+import { readStoredJson } from '../../lib/shared/storedJson.js';
+import { displayName, isCanvas, isFlow } from '../../lib/vault/vault.js';
 import Icon from '../Icon.jsx';
 
 function TreeNode({

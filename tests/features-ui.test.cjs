@@ -89,7 +89,7 @@ test('all themes share tokens; high contrast text meets 7:1 on major surfaces', 
 });
 
 test('theme variables expose CSS values and reject malformed or network-loading overrides', async () => {
-  const { validateTheme } = await import('../src/lib/themes.js');
+  const { validateTheme } = await import('../src/lib/ui/themes.js');
   const value = {
     version: 1,
     name: 'Custom',

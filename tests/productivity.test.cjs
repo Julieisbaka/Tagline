@@ -379,7 +379,7 @@ test('configurable shortcuts support platform modifiers, conflicts, clearing and
     eventBinding,
     reservedBinding,
     validBinding,
-  } = await import('../src/lib/keybindings.js');
+  } = await import('../src/lib/commands/keybindings.js');
   assert.equal(binding('new-note'), 'Mod+N');
   assert.equal(binding('new-note', { 'new-note': '' }), '');
   assert.equal(displayBinding('Mod+Shift+N', 'darwin'), 'Cmd+Shift+N');
@@ -428,7 +428,7 @@ test('configurable shortcuts support platform modifiers, conflicts, clearing and
 });
 
 test('intermediate empty highlight delimiters do not crash read-time statistics', async () => {
-  const { cardStats } = await import('../src/lib/card.js');
+  const { cardStats } = await import('../src/lib/evidence/card.js');
   assert.equal(cardStats('====').highlighted, 0);
 });
 
@@ -660,8 +660,9 @@ test('platform: extension manifests validate ids, permissions, commands and cont
 
 test('extension default shortcuts never shadow built-ins and .flow labels follow the setting', async () => {
   global.window = { api: { platform: 'win32' }, addEventListener() {}, dispatchEvent() {} };
-  const { usableDefaultKey, extensionCommandId } = await import('../src/lib/extensions.js');
-  const { displayName } = await import('../src/lib/vault.js');
+  const { usableDefaultKey, extensionCommandId } =
+    await import('../src/lib/extensions/extensions.js');
+  const { displayName } = await import('../src/lib/vault/vault.js');
   assert.equal(extensionCommandId('word-tools', 'count'), 'ext:word-tools.count');
   assert.equal(usableDefaultKey('Mod+Alt+K'), 'Mod+Alt+K');
   assert.equal(usableDefaultKey('Mod+N'), '');

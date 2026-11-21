@@ -1,13 +1,13 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { formatDuration, spokenEvidence } from '../../lib/card.js';
-import { useI18n } from '../../lib/i18n.js';
+import { formatDuration, spokenEvidence } from '../../lib/evidence/card.js';
+import { useI18n } from '../../lib/i18n/i18n.js';
 import {
   calibrateReading,
   readingAssessment,
   speechStats,
   validateReadingSample,
-} from '../../lib/readTime.js';
-import { displayName, isMarkdown } from '../../lib/vault.js';
+} from '../../lib/speech/readTime.js';
+import { displayName, isMarkdown } from '../../lib/vault/vault.js';
 import SettingsGroup from './SettingsGroup.jsx';
 
 export default function ReadingSettings({ settings, update, contents = {} }) {

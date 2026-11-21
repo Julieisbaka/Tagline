@@ -12,7 +12,7 @@ const base = {
 };
 
 test('command palette pins and unpins the active file tab', async () => {
-  const { buildCommands } = await import('../src/lib/commands.js');
+  const { buildCommands } = await import('../src/lib/commands/commands.js');
   const pin = buildCommands(base).find((item) => item.id === 'pin-tab');
   assert.ok(pin, 'pin-tab command is offered for a file tab');
   assert.equal(pin.label, 'Pin current tab');
@@ -21,7 +21,7 @@ test('command palette pins and unpins the active file tab', async () => {
 });
 
 test('command palette hides tab pinning without an open file', async () => {
-  const { buildCommands } = await import('../src/lib/commands.js');
+  const { buildCommands } = await import('../src/lib/commands/commands.js');
   const list = buildCommands({ ...base, hasNote: false });
   assert.equal(
     list.find((item) => item.id === 'pin-tab'),
@@ -31,7 +31,7 @@ test('command palette hides tab pinning without an open file', async () => {
 });
 
 test('command palette scores come from the keybindings, not from dead call arguments', async () => {
-  const { buildCommands } = await import('../src/lib/commands.js');
+  const { buildCommands } = await import('../src/lib/commands/commands.js');
   const list = buildCommands(base);
   assert.equal(list.find((item) => item.id === 'switcher').hotkey, 'Ctrl+O');
   assert.equal(list.find((item) => item.id === 'search').hotkey, 'Ctrl+Shift+F');
@@ -42,7 +42,7 @@ test('command palette scores come from the keybindings, not from dead call argum
 });
 
 test('a punctuation-only palette query matches nothing', async () => {
-  const { commandScore } = await import('../src/lib/commands.js');
+  const { commandScore } = await import('../src/lib/commands/commands.js');
   const item = {
     label: 'Pin current tab',
     detail: 'Pin the active file tab',

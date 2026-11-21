@@ -11,8 +11,8 @@ const MAX_CITATION_CHARACTERS = 100_000;
 function createEvidenceTools({ root, resolve }) {
   const pathProperty = (description) => ({ type: 'string', description });
   // Use the same parsers as the UI, including in packaged builds.
-  const evidence = () => import('../../src/lib/evidenceCheckup.js');
-  const citations = () => import('../../src/lib/citationExtraction.js');
+  const evidence = () => import('../../src/lib/evidence/evidenceCheckup.js');
+  const citations = () => import('../../src/lib/evidence/citationExtraction.js');
   async function readEvidenceNote(full, base, remaining) {
     const realBase = await fs.realpath(base);
     const realFile = await fs.realpath(full);

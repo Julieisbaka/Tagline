@@ -1,5 +1,9 @@
-import { useI18n } from '../../lib/i18n.js';
-import { DEFAULT_RIBBON_ITEMS, normalizeRibbonItems, RIBBON_ITEMS } from '../../lib/ribbonItems.js';
+import { useI18n } from '../../lib/i18n/i18n.js';
+import {
+  DEFAULT_RIBBON_ITEMS,
+  normalizeRibbonItems,
+  RIBBON_ITEMS,
+} from '../../lib/settings/ribbonItems.js';
 import SettingsGroup from './SettingsGroup.jsx';
 
 export default function RibbonSettings({ settings, update, contributions = [] }) {

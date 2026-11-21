@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import webhookScript from '../../../electron/google-docs-webhook.gs?raw';
-import { useI18n } from '../../lib/i18n.js';
+import { useI18n } from '../../lib/i18n/i18n.js';
 import SettingsGroup from './SettingsGroup.jsx';
 import ModalBackdrop from '../dialogs/ModalBackdrop.jsx';
 

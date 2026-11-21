@@ -4,7 +4,7 @@ const assert = require('node:assert/strict');
 const flowFile = (sheets) => JSON.stringify({ version: 1, sheets });
 
 test('flow documents expose sheet and column headings plus cell text', async () => {
-  const { flowDocument } = await import('../src/lib/flowText.js');
+  const { flowDocument } = await import('../src/lib/flow/flowText.js');
   const content = flowFile([
     {
       name: 'Case',
@@ -27,7 +27,7 @@ test('flow documents expose sheet and column headings plus cell text', async () 
 });
 
 test('keyword search finds flow cells and treats sheet and column names as headings', async () => {
-  const { searchVault, filterSearchDocuments } = await import('../src/lib/search.js');
+  const { searchVault, filterSearchDocuments } = await import('../src/lib/search/search.js');
   const contents = {
     'Round.flow': flowFile([
       {
@@ -54,7 +54,7 @@ test('keyword search finds flow cells and treats sheet and column names as headi
 });
 
 test('flow cells contribute links, backlinks and tags to the vault index', async () => {
-  const { buildIndex } = await import('../src/lib/vault.js');
+  const { buildIndex } = await import('../src/lib/vault/vault.js');
   const contents = {
     'Round.flow': flowFile([
       { name: 'Case', columns: ['1AC'], rows: [['See [[Notes]] and #neg']] },
@@ -69,7 +69,7 @@ test('flow cells contribute links, backlinks and tags to the vault index', async
 });
 
 test('flowDocument maps synthetic cell lines back to sheet, row and column', async () => {
-  const { flowDocument } = await import('../src/lib/flowText.js');
+  const { flowDocument } = await import('../src/lib/flow/flowText.js');
   const content = flowFile([
     {
       name: 'Case',
@@ -92,8 +92,8 @@ test('flowDocument maps synthetic cell lines back to sheet, row and column', asy
 });
 
 test('multiline cells map every physical line to the same cell', async () => {
-  const { flowDocument } = await import('../src/lib/flowText.js');
-  const { searchVault } = await import('../src/lib/search.js');
+  const { flowDocument } = await import('../src/lib/flow/flowText.js');
+  const { searchVault } = await import('../src/lib/search/search.js');
   const content = flowFile([
     {
       name: 'Case',

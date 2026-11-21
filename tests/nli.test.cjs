@@ -65,7 +65,8 @@ test('analysis requests are validated before reaching the model', () => {
 });
 
 test('note Markdown becomes clean premise text and hypotheses follow the model card templates', async () => {
-  const { premiseText, buildHypotheses, entailmentLabel } = await import('../src/lib/nli.js');
+  const { premiseText, buildHypotheses, entailmentLabel } =
+    await import('../src/lib/evidence/nli.js');
   const note =
     '---\ntags: [x]\n---\n# Tag\n\n**Smith 24** [[Cards|cards]]\n\n> ==Highlighted== evidence about `AI` &amp; jobs.\n- item';
   assert.equal(

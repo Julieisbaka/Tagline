@@ -2,7 +2,7 @@ const { test } = require('node:test');
 const assert = require('node:assert/strict');
 
 test('passage proximity ranks a focused warrant above scattered term mentions', async () => {
-  const { searchVault } = await import('../src/lib/search.js');
+  const { searchVault } = await import('../src/lib/search/search.js');
   const contents = {
     'A scattered.md': `Grid evidence.\n${'Unrelated text. '.repeat(60)}\nTransmission evidence.`,
     'Z focused.md': 'Grid upgrades improve transmission.',
@@ -23,7 +23,7 @@ test('passage proximity ranks a focused warrant above scattered term mentions', 
 });
 
 test('single-edit typo recovery is explicit, conservative and never relaxes constraints', async () => {
-  const { searchVault } = await import('../src/lib/search.js');
+  const { searchVault } = await import('../src/lib/search/search.js');
   const contents = {
     'Neg.md': '#neg\nTransmission infrastructure improves resilience.',
     'Aff.md': '#aff\nTransmission infrastructure improves resilience.',
@@ -52,7 +52,7 @@ test('single-edit typo recovery is explicit, conservative and never relaxes cons
 });
 
 test('prepared engines keep a content snapshot and new engines reflect edits and removals', async () => {
-  const { createSearchEngine, searchVault } = await import('../src/lib/search.js');
+  const { createSearchEngine, searchVault } = await import('../src/lib/search/search.js');
   const contents = { 'Grid.md': '# Grid\nTransmission infrastructure.' };
   const index = { tags: {} };
   const search = createSearchEngine(contents, index);
@@ -67,7 +67,7 @@ test('prepared engines keep a content snapshot and new engines reflect edits and
 });
 
 test('excerpts expose deep matches, fold accents and preserve original characters', async () => {
-  const { searchExcerpt } = await import('../src/lib/search.js');
+  const { searchExcerpt } = await import('../src/lib/search/search.js');
   const text = `${'Background context. '.repeat(40)}Électricité improves grid resilience.`;
   const excerpt = searchExcerpt(text, ['electricite', 'grid']);
   assert.deepEqual(
@@ -97,7 +97,7 @@ test('excerpts expose deep matches, fold accents and preserve original character
 });
 
 test('hybrid keywords retrieve partial terms without relaxing full-text AND matching', async () => {
-  const { searchVault } = await import('../src/lib/search.js');
+  const { searchVault } = await import('../src/lib/search/search.js');
   const contents = {
     'Grid.md': '# Grid\nTransmission infrastructure.',
     'Solar.md': 'Solar electricity improves energy supply.',
@@ -119,7 +119,7 @@ test('hybrid keywords retrieve partial terms without relaxing full-text AND matc
 });
 
 test('semantic and keyword candidates share mandatory tags and accent-folded phrase filters', async () => {
-  const { filterSearchDocuments, searchVault } = await import('../src/lib/search.js');
+  const { filterSearchDocuments, searchVault } = await import('../src/lib/search/search.js');
   const contents = {
     'Exact.md': '#neg\nPolitical capital and électricité.',
     'Split.md': '#neg\nPolitical unrelated capital and electricity.',
@@ -147,7 +147,7 @@ test('semantic and keyword candidates share mandatory tags and accent-folded phr
 });
 
 test('rank fusion promotes agreement, retrieves semantic-only matches and limits after fusion', async () => {
-  const { mergeHybridResults } = await import('../src/lib/search.js');
+  const { mergeHybridResults } = await import('../src/lib/search/search.js');
   const keywords = [
     { path: 'Exact.md', rank: 1000, matches: [{ line: 4, text: 'Exact keyword phrase' }] },
     { path: 'Both.md', rank: 50, matches: [{ line: 2, text: 'Related evidence' }] },
@@ -180,7 +180,7 @@ test('rank fusion promotes agreement, retrieves semantic-only matches and limits
 });
 
 test('fusion avoids duplicated files, sources and snippets and bounds excerpt count', async () => {
-  const { mergeHybridResults } = await import('../src/lib/search.js');
+  const { mergeHybridResults } = await import('../src/lib/search/search.js');
   const keyword = {
     path: 'Card.md',
     matches: [
@@ -200,7 +200,7 @@ test('fusion avoids duplicated files, sources and snippets and bounds excerpt co
 });
 
 test('keyword-only and semantic-only fusion preserve rankings and deterministic ties', async () => {
-  const { mergeHybridResults } = await import('../src/lib/search.js');
+  const { mergeHybridResults } = await import('../src/lib/search/search.js');
   const keywords = [
     { path: 'Z.md', matches: [] },
     { path: 'A.md', matches: [] },
@@ -222,7 +222,7 @@ test('keyword-only and semantic-only fusion preserve rankings and deterministic 
 });
 
 test('search opens produce a jump with a numeric line for markdown and a cell map for flows', async () => {
-  const { makeJump } = await import('../src/lib/jump.js');
+  const { makeJump } = await import('../src/lib/search/jump.js');
 
   // SearchModal always passes the object payload. For a note there is no
   // cellMap, so the editor only receives a plain line number to scroll to.

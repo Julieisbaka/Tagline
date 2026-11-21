@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
-import { useI18n } from '../../lib/i18n.js';
-import { getExtensionFonts } from '../../lib/extensionFonts.js';
+import { useI18n } from '../../lib/i18n/i18n.js';
+import { getExtensionFonts } from '../../lib/extensions/extensionFonts.js';
 import SettingRow from './SettingRow.jsx';
 
 /**

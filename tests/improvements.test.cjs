@@ -78,14 +78,14 @@ test('native UI is opt-in, follows light/dark mode and validates application-onl
   preferences(event, { enabled: false, mode: 'dark' });
   assert.equal(nativeTheme.themeSource, 'system');
   await assert.rejects(confirm(event, options), /disabled/);
-  const defaults = require('../src/lib/defaultSettings.json');
+  const defaults = require('../src/lib/settings/defaultSettings.json');
   assert.equal(defaults.nativeUi, false);
   assert.equal(defaults.sourceSelectionMatches, true);
 });
 
 test('cache limits trim immediately, enforce character budgets, and allow disabling', async () => {
   const { configureVisualCache, cacheDocument, cachedDocument } =
-    await import('../src/lib/visualCache.js');
+    await import('../src/lib/editor/visualCache.js');
   const json = { type: 'doc', content: [] };
   configureVisualCache(2, 1000);
   cacheDocument('a', json);
@@ -108,8 +108,8 @@ test('cache limits trim immediately, enforce character budgets, and allow disabl
 });
 
 test('JSON defaults define settings and independent file-extension labels', async () => {
-  const defaults = require('../src/lib/defaultSettings.json');
-  const { displayName } = await import('../src/lib/vault.js');
+  const defaults = require('../src/lib/settings/defaultSettings.json');
+  const { displayName } = await import('../src/lib/vault/vault.js');
   assert.equal(defaults.showMarkdownExtension, false);
   assert.equal(defaults.autoRelink, true);
   assert.equal(defaults.closeMissingTabs, true);
@@ -129,11 +129,11 @@ test('JSON defaults define settings and independent file-extension labels', asyn
   const fs = require('node:fs');
   const path = require('node:path');
   const settingsSource = fs.readFileSync(
-    path.join(__dirname, '..', 'src', 'lib', 'settings.js'),
+    path.join(__dirname, '..', 'src', 'lib', 'settings', 'settings.js'),
     'utf8'
   );
   const cacheSource = fs.readFileSync(
-    path.join(__dirname, '..', 'src', 'lib', 'visualCache.js'),
+    path.join(__dirname, '..', 'src', 'lib', 'editor', 'visualCache.js'),
     'utf8'
   );
   assert.match(settingsSource, /defaultSettings\.json/);
@@ -214,8 +214,8 @@ test('platform: credentials await async availability, encrypt/decrypt asynchrono
 });
 
 test('citation creator validates, escapes markup, and reading time counts only the spoken lead', async () => {
-  const { createCitation, spokenCitations } = await import('../src/lib/citation.js');
-  const { cardStats, formatDuration } = await import('../src/lib/card.js');
+  const { createCitation, spokenCitations } = await import('../src/lib/evidence/citation.js');
+  const { cardStats, formatDuration } = await import('../src/lib/evidence/card.js');
   const cite = createCitation({
     author: 'Smith',
     year: '2024',
@@ -238,7 +238,7 @@ test('citation creator validates, escapes markup, and reading time counts only t
 });
 
 test('read time uses syllables and articulation complexity, not word count', async () => {
-  const { speechStats, readingSeconds } = await import('../src/lib/readTime.js');
+  const { speechStats, readingSeconds } = await import('../src/lib/speech/readTime.js');
   const simple = speechStats('cat dog fish');
   const complex = speechStats('internationalization constitutional complexity');
   assert.equal(simple.syllables, 3);
@@ -257,7 +257,7 @@ test('read time uses syllables and articulation complexity, not word count', asy
 });
 
 test('speech estimates expand numbers, years and initialisms and strip nonspoken markup', async () => {
-  const { speechStats } = await import('../src/lib/readTime.js');
+  const { speechStats } = await import('../src/lib/speech/readTime.js');
   assert.equal(speechStats('2024').syllables, speechStats('twenty twenty four').syllables);
   assert.equal(speechStats('1999').syllables, speechStats('nineteen ninety nine').syllables);
   assert.equal(speechStats('2001').syllables, speechStats('two thousand one').syllables);
@@ -274,8 +274,8 @@ test('speech estimates expand numbers, years and initialisms and strip nonspoken
 });
 
 test('document and section read times include only highlights and spoken citation leads', async () => {
-  const { cardStats, getSectionAt } = await import('../src/lib/card.js');
-  const { speechStats } = await import('../src/lib/readTime.js');
+  const { cardStats, getSectionAt } = await import('../src/lib/evidence/card.js');
+  const { speechStats } = await import('../src/lib/speech/readTime.js');
   const content =
     '#### Ignore heading\n**Smith 2024** — Long publication and credentials\n==Read this==\nNever spoken words';
   const expected = speechStats('Read this Smith 2024');
@@ -288,7 +288,7 @@ test('document and section read times include only highlights and spoken citatio
 });
 
 test('full text ranking favors titles and headings before limiting, respects phrases and tags', async () => {
-  const { searchVault } = await import('../src/lib/search.js');
+  const { searchVault } = await import('../src/lib/search/search.js');
   const contents = {
     'A.md': '# Other\n' + 'grid transmission text '.repeat(100),
     'Grid.md': '# Grid\n## Transmission\nUseful evidence.',
@@ -315,7 +315,7 @@ test('full text ranking favors titles and headings before limiting, respects phr
 });
 
 test('folder normalization preserves existing paths and filenames without migrating folders', async () => {
-  const { normalizeFolders, folderPaths } = await import('../src/lib/folderPaths.js');
+  const { normalizeFolders, folderPaths } = await import('../src/lib/vault/folderPaths.js');
   assert.equal(normalizeFolders('New Folder/A note.md', false), 'New_Folder/A note.md');
   assert.equal(
     normalizeFolders('Old Folder/New Folder/A.md', false, ['Old Folder']),
@@ -336,7 +336,7 @@ test('folder normalization preserves existing paths and filenames without migrat
 });
 
 test('ranking bounds heading boosts and favors exact words over substring noise', async () => {
-  const { searchVault } = await import('../src/lib/search.js');
+  const { searchVault } = await import('../src/lib/search/search.js');
   const contents = {
     'Grid.md': '# Grid\nTransmission evidence.',
     'Spam.md': '## Grid transmission\n'.repeat(100),
@@ -786,7 +786,8 @@ test('Pandoc detection supports Apple Silicon and Intel Homebrew without relying
   }
 });
 test('calendar dates stay local, validate leap years and clamp month navigation', async () => {
-  const { dateValue, parseDate, moveMonth, monthDays } = await import('../src/lib/calendar.js');
+  const { dateValue, parseDate, moveMonth, monthDays } =
+    await import('../src/lib/shared/calendar.js');
   assert.equal(dateValue(new Date(2024, 0, 1, 23, 59)), '2024-01-01');
   for (const value of ['2024-02-29', '2000-02-29', '0001-01-01', '0099-12-31', '9999-12-31']) {
     assert.equal(dateValue(parseDate(value)), value);

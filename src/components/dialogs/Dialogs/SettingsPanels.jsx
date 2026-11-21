@@ -1,6 +1,6 @@
 import AdvancedSettings from '../../settings/AdvancedSettings.jsx';
 import AutoSetting from '../../settings/AutoSetting.jsx';
-import DEFAULTS from '../../../lib/defaultSettings.json';
+import DEFAULTS from '../../../lib/settings/defaultSettings.json';
 import { INTERNAL_FLAG_LABELS, settingDefinition } from '../../settings/settingsSchema.js';
 import CustomCssSettings from '../../settings/CustomCssSettings.jsx';
 import CustomizationLimits from '../../settings/CustomizationLimits.jsx';

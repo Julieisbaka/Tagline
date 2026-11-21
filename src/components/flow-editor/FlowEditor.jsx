@@ -1,12 +1,17 @@
 import { redo as redoEditor, undo as undoEditor } from '@codemirror/commands';
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { EMPTY_FLOW, FLOW_VERSION, flowColumns, parseFlow } from '../../../electron/flow.mjs';
-import { cellBounds, copyFlowCells, parseFlowCells, pasteFlowCells } from '../../lib/flowCells.js';
-import { canRemoveRow } from '../../lib/flowRows.js';
-import { canLinkCard, linkCardInCell } from '../../lib/flowCardLinks.js';
-import { useI18n } from '../../lib/i18n.js';
-import { binding, displayBinding, matchesBinding } from '../../lib/keybindings.js';
-import { flushPendingEdits } from '../../lib/pendingEdits.js';
+import {
+  cellBounds,
+  copyFlowCells,
+  parseFlowCells,
+  pasteFlowCells,
+} from '../../lib/flow/flowCells.js';
+import { canRemoveRow } from '../../lib/flow/flowRows.js';
+import { canLinkCard, linkCardInCell } from '../../lib/flow/flowCardLinks.js';
+import { useI18n } from '../../lib/i18n/i18n.js';
+import { binding, displayBinding, matchesBinding } from '../../lib/commands/keybindings.js';
+import { flushPendingEdits } from '../../lib/vault/pendingEdits.js';
 import { useConfirm } from '../dialogs/ConfirmProvider.jsx';
 import ContextMenu from '../dialogs/ContextMenu.jsx';
 import ModalBackdrop from '../dialogs/ModalBackdrop.jsx';

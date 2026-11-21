@@ -1,4 +1,4 @@
-import { useI18n } from '../../lib/i18n.js';
+import { useI18n } from '../../lib/i18n/i18n.js';
 import SettingRow from './SettingRow.jsx';
 import SettingsGroup from './SettingsGroup.jsx';
 

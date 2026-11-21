@@ -1,8 +1,8 @@
 import { useMemo, useState } from 'react';
-import { useI18n } from '../../lib/i18n.js';
-import { folderPaths } from '../../lib/folderPaths.js';
-import { dirName, displayName, isMarkdown, joinPath } from '../../lib/vault.js';
-import { FILE_ACTIONS } from '../../lib/workspaceItems.js';
+import { useI18n } from '../../lib/i18n/i18n.js';
+import { folderPaths } from '../../lib/vault/folderPaths.js';
+import { dirName, displayName, isMarkdown, joinPath } from '../../lib/vault/vault.js';
+import { FILE_ACTIONS } from '../../lib/settings/workspaceItems.js';
 import Menu from '../dialogs/ContextMenu.jsx';
 import Icon from '../Icon.jsx';
 import RefreshButton from '../RefreshButton.jsx';

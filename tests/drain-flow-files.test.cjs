@@ -7,7 +7,7 @@ const root = path.join(__dirname, '..');
 
 const loadDrainer = async () => {
   const { drainFlowFiles } = await import(
-    pathToFileURL(path.join(root, 'src', 'lib', 'drainFlowFiles.js')).href
+    pathToFileURL(path.join(root, 'src', 'lib', 'flow', 'drainFlowFiles.js')).href
   );
   return drainFlowFiles;
 };

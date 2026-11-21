@@ -52,21 +52,22 @@ const assert = require('node:assert/strict');
     recursive: true,
   });
   for (const file of [
-    'cardDetection.js',
-    'citationExtraction.js',
-    'evidenceCheckup.js',
-    'calendar.js',
-    'frontmatter.js',
-    'vault.js',
-    'flowText.js',
+    'evidence/cardDetection.js',
+    'evidence/citationExtraction.js',
+    'evidence/evidenceCheckup.js',
+    'shared/calendar.js',
+    'markdown/frontmatter.js',
+    'vault/vault.js',
+    'flow/flowText.js',
   ]) {
     assert.ok(config.build.files.includes(`src/lib/${file}`), `Missing packaged file: ${file}`);
+    await fs.mkdir(path.dirname(path.join(stage, 'src', 'lib', file)), { recursive: true });
     await fs.copyFile(path.join(root, 'src', 'lib', file), path.join(stage, 'src', 'lib', file));
   }
-  assert.ok(config.build.files.includes('src/lib/citationExtraction/**/*'));
+  assert.ok(config.build.files.includes('src/lib/evidence/citationExtraction/**/*'));
   await fs.cp(
-    path.join(root, 'src', 'lib', 'citationExtraction'),
-    path.join(stage, 'src', 'lib', 'citationExtraction'),
+    path.join(root, 'src', 'lib', 'evidence', 'citationExtraction'),
+    path.join(stage, 'src', 'lib', 'evidence', 'citationExtraction'),
     { recursive: true }
   );
   for (const dep of ['marked', 'yaml', 'ignore']) {

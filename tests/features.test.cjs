@@ -35,7 +35,7 @@ test('new flow block separation preserves existing files and preset constants', 
 
 test('flow rectangular clipboard data round-trips and expands without overwriting other cells', async () => {
   const { cellBounds, copyFlowCells, parseFlowCells, pasteFlowCells } =
-    await import('../src/lib/flowCells.js');
+    await import('../src/lib/flow/flowCells.js');
   const rows = [
     ['a', 'b\tc', 'd\nmore'],
     ['"quoted"', 'two', 'three'],
@@ -72,8 +72,10 @@ test('palette exposes configured workspace actions only in the matching editor',
   });
   global.window = { api: { platform: 'win32' } };
   try {
-    const { buildCommands, commandScore } = await server.ssrLoadModule('/src/lib/commands.js');
-    const { KEYBINDINGS } = await server.ssrLoadModule('/src/lib/keybindings.js');
+    const { buildCommands, commandScore } = await server.ssrLoadModule(
+      '/src/lib/commands/commands.js'
+    );
+    const { KEYBINDINGS } = await server.ssrLoadModule('/src/lib/commands/keybindings.js');
     const calls = [];
     const ctx = {
       hasNote: true,
@@ -130,7 +132,7 @@ test('palette exposes configured workspace actions only in the matching editor',
 });
 
 test('template placeholders use literal target paths, Markdown bodies and raw YAML properties', async () => {
-  const { fillTemplate } = await import('../src/lib/template.js');
+  const { fillTemplate } = await import('../src/lib/markdown/template.js');
   const prefix = '---\r\n# Keep this\r\ntitle: "Speech"\r\nspeech: true\r\n---\r\n';
   const body = '# Evidence\n\nLiteral {{title}} and $& and {{path}}.\n';
   assert.equal(
@@ -164,7 +166,7 @@ test('template placeholders use literal target paths, Markdown bodies and raw YA
 
 test('sidebar shortcut order is normalized and drag reordering is stable', async () => {
   const { DEFAULT_RIBBON_ITEMS, moveRibbonItem, normalizeRibbonItems } =
-    await import('../src/lib/ribbonItems.js');
+    await import('../src/lib/settings/ribbonItems.js');
   assert.ok(!DEFAULT_RIBBON_ITEMS.includes('evidenceCheckup'));
   assert.deepEqual(normalizeRibbonItems(['evidenceCheckup']), ['evidenceCheckup']);
   assert.deepEqual(normalizeRibbonItems(['search', 'search', 'unknown']), ['search']);

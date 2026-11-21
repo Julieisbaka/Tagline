@@ -2,7 +2,8 @@ const { test } = require('node:test');
 const assert = require('node:assert/strict');
 
 test('editor defaults migrate legacy settings and honor explicit per-type values', async () => {
-  const { migrateEditorModes, defaultEditorMode } = await import('../src/lib/editorModes.js');
+  const { migrateEditorModes, defaultEditorMode } =
+    await import('../src/lib/editor/editorModes.js');
   assert.deepEqual(migrateEditorModes({ editorMode: 'edit' }), {
     editorMode: 'edit',
     flowEditorMode: 'edit',

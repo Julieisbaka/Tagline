@@ -1,7 +1,7 @@
 import { useState } from 'react';
-import { clearExtensionData } from '../../lib/extensionSettings.js';
+import { clearExtensionData } from '../../lib/extensions/extensionSettings.js';
 import { useConfirm } from '../dialogs/ConfirmProvider.jsx';
-import { useI18n } from '../../lib/i18n.js';
+import { useI18n } from '../../lib/i18n/i18n.js';
 import SettingsGroup from './SettingsGroup.jsx';
 
 export default function ExtensionBrowser({ extensions, permissionLabels }) {

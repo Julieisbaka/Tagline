@@ -172,7 +172,7 @@ test('extension manifest metadata supports authors and HTTPS source URLs', () =>
 });
 
 test('theme schema validates bundled themes, settings, CSS variables and metadata', async () => {
-  const { COLOR_TOKENS, validateTheme } = await import('../src/lib/themes.js');
+  const { COLOR_TOKENS, validateTheme } = await import('../src/lib/ui/themes.js');
   assert.deepEqual(new Set(schemas.theme.definitions.colorToken.enum), new Set(COLOR_TOKENS));
   for (const folder of [
     path.join('src', 'themes'),

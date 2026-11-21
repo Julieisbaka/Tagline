@@ -2,7 +2,7 @@ const { test } = require('node:test');
 const assert = require('node:assert/strict');
 
 test('recut analysis reads joined highlights, not the citation, unhighlighted text, or code', async () => {
-  const { highlightedReading, checkRecut } = await import('../src/lib/recutCheck.js');
+  const { highlightedReading, checkRecut } = await import('../src/lib/evidence/recutCheck.js');
   const body =
     '**Smith 2024** — Citation\n\n' +
     '==The **plan**== ignores this ==reduces emissions.==\n\n' +
@@ -13,7 +13,7 @@ test('recut analysis reads joined highlights, not the citation, unhighlighted te
 });
 
 test('recut analysis accepts readable fragments and flags disruptive wording', async () => {
-  const { checkRecut } = await import('../src/lib/recutCheck.js');
+  const { checkRecut } = await import('../src/lib/evidence/recutCheck.js');
   assert.deepEqual(checkRecut('==The impact of climate change.=='), []);
   assert.deepEqual(checkRecut('==Reduces nuclear risk.=='), []);
   assert.deepEqual(checkRecut('==Because emissions are rising.=='), []);
@@ -29,7 +29,7 @@ test('recut analysis accepts readable fragments and flags disruptive wording', a
 });
 
 test('recut highlights survive bold formatting and separate HTML marks', async () => {
-  const { highlightedReading } = await import('../src/lib/recutCheck.js');
+  const { highlightedReading } = await import('../src/lib/evidence/recutCheck.js');
   assert.equal(highlightedReading('**==The plan works.==**'), 'The plan works.');
   assert.equal(
     highlightedReading('<mark>The plan</mark> unspoken <mark>works.</mark>'),
@@ -47,8 +47,8 @@ test('recut highlights survive bold formatting and separate HTML marks', async (
 });
 
 test('recut analysis reviews each entire card reading rather than isolated sentences or highlights', async () => {
-  const { checkRecut } = await import('../src/lib/recutCheck.js');
-  const { scanCards, recutIssues } = await import('../src/lib/evidenceCheckup.js');
+  const { checkRecut } = await import('../src/lib/evidence/recutCheck.js');
+  const { scanCards, recutIssues } = await import('../src/lib/evidence/evidenceCheckup.js');
   const connected = '==The evidence shows that.== Skipped ==the plan reduces emissions.==';
   assert.deepEqual(checkRecut(connected), []);
   const findings = checkRecut('==They is effective.== Skipped ==The plan is is affordable.==');
@@ -72,8 +72,8 @@ test('recut analysis reviews each entire card reading rather than isolated sente
 });
 
 test('very long readings are reported as unchecked instead of clean', async () => {
-  const { scanCards, recutIssues } = await import('../src/lib/evidenceCheckup.js');
-  const { checkRecut } = await import('../src/lib/recutCheck.js');
+  const { scanCards, recutIssues } = await import('../src/lib/evidence/evidenceCheckup.js');
+  const { checkRecut } = await import('../src/lib/evidence/recutCheck.js');
   assert.deepEqual(checkRecut(`==${'word '.repeat(4001).trimEnd()}==`), [
     { reason: 'too_long', excerpt: '' },
   ]);
@@ -85,7 +85,7 @@ test('very long readings are reported as unchecked instead of clean', async () =
 
 test('recut findings target the correct cards and refresh separately from citation comments', async () => {
   const { scanCards, recutIssues, annotateEvidence } =
-    await import('../src/lib/evidenceCheckup.js');
+    await import('../src/lib/evidence/evidenceCheckup.js');
   const files = {
     'a.md':
       '#### One\r\n**Smith 2024**\r\n==They is effective.==\r\n#### Two\r\n==The impact of climate change.==\r\n',

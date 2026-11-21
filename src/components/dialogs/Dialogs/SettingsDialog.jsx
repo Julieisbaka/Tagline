@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import platformCopy from '@platform-settings';
-import { useI18n } from '../../../lib/i18n.js';
+import { useI18n } from '../../../lib/i18n/i18n.js';
 import ModalBackdrop from '../ModalBackdrop.jsx';
 import SettingsPanels from './SettingsPanels.jsx';
 

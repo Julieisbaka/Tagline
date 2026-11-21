@@ -1,0 +1,247 @@
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { setRuntimeLimits } from '../../../electron/customization.mjs';
+import DEFAULTS from './defaultSettings.json' with { type: 'json' };
+import { migrateEditorModes } from '../editor/editorModes.js';
+import { setLanguage } from '../i18n/i18n.js';
+import { initialLanguage } from '../i18n/localization.js';
+import { setNativeUi } from '../ui/nativeUi.js';
+import { resourceLimits } from './resourceLimits.js';
+import { speechRateFromSettings } from '../speech/speechRate.js';
+import { applyTheme, getTheme } from '../ui/themes.js';
+import { configureVisualCache } from '../editor/visualCache.js';
+
+const KEY = 'tagline-settings';
+
+/**
+ * Load saved settings from localStorage, merging them over the default settings.
+ * If the stored JSON is invalid or missing, fall back safely to the defaults.
+ * @returns {object} - The resulting settings object with applied defaults and saved values.
+ */
+function load() {
+  try {
+    const saved = localStorage.getItem(KEY);
+    const parsed = JSON.parse(saved || '{}');
+    const current = { ...parsed };
+    delete current.wpm;
+    return {
+      ...DEFAULTS,
+      ...current,
+      syllablesPerMinute: speechRateFromSettings(parsed),
+      ...migrateEditorModes(parsed),
+      language: initialLanguage(parsed?.language, window.api.systemLanguages),
+      internalFlags: { ...DEFAULTS.internalFlags, ...parsed?.internalFlags },
+    };
+  } catch {
+    return { ...DEFAULTS, language: initialLanguage(undefined, window.api.systemLanguages) };
+  }
+}
+
+/**
+ * React hook that loads, persists, and applies application preferences.
+ * @returns {[object,function]} - An array containing the current settings object and a function to update the settings.
+ */
+export function useSettings() {
+  const [settings, setSettings] = useState(load);
+  const [themeRevision, setThemeRevision] = useState(0);
+  const lowResourceUpdated = useRef(false);
+  useEffect(() => {
+    window.api
+      .getLowResourceMode()
+      .then((lowResourceMode) => {
+        if (!lowResourceUpdated.current) {
+          setSettings((s) => ({ ...s, lowResourceMode }));
+        }
+      })
+      .catch((error) =>
+        window.dispatchEvent(new CustomEvent('app-error', { detail: error.message }))
+      );
+  }, []);
+  useEffect(() => {
+    /**
+     * Refresh theme resolution when extension themes or runtime limits change.
+     * This ensures that the application theme is recalculated and applied whenever relevant external factors are updated.
+     * @returns {void}
+     */
+    const onThemes = () => setThemeRevision((n) => n + 1);
+    window.addEventListener('extensionthemes', onThemes);
+    window.addEventListener('customizationlimits', onThemes);
+    const scheme = window.matchMedia?.('(prefers-color-scheme: dark)');
+    scheme?.addEventListener?.('change', onThemes);
+    window.api
+      .getCustomizationLimits()
+      .then((limits) => {
+        setRuntimeLimits(limits);
+        onThemes();
+      })
+      .catch((error) =>
+        window.dispatchEvent(new CustomEvent('app-error', { detail: error.message }))
+      );
+    return () => {
+      window.removeEventListener('extensionthemes', onThemes);
+      window.removeEventListener('customizationlimits', onThemes);
+      scheme?.removeEventListener?.('change', onThemes);
+    };
+  }, []);
+  useLayoutEffect(() => {
+    try {
+      applyTheme(
+        getTheme(settings.theme, settings.customTheme, settings.themeSettings),
+        settings.themeTransition && !settings.reduceMotion && !settings.disableAnimations
+      );
+    } catch (error) {
+      window.dispatchEvent(new CustomEvent('app-error', { detail: error.message }));
+    }
+    setLanguage(settings.language);
+  }, [
+    settings.theme,
+    settings.customTheme,
+    settings.themeSettings,
+    settings.themeTransition,
+    settings.reduceMotion,
+    settings.disableAnimations,
+    settings.language,
+    themeRevision,
+  ]);
+  useLayoutEffect(() => {
+    try {
+      const theme = getTheme(settings.theme, settings.customTheme, settings.themeSettings);
+      setNativeUi(settings.nativeUi);
+      window.api
+        .setNativeUi({ enabled: settings.nativeUi, mode: theme.mode })
+        .catch((error) =>
+          window.dispatchEvent(new CustomEvent('app-error', { detail: error.message }))
+        );
+    } catch (error) {
+      window.dispatchEvent(new CustomEvent('app-error', { detail: error.message }));
+    }
+  }, [
+    settings.nativeUi,
+    settings.theme,
+    settings.customTheme,
+    settings.themeSettings,
+    themeRevision,
+  ]);
+  useLayoutEffect(() => {
+    const root = document.documentElement;
+    for (const [name, enabled] of [
+      ['reduce-motion', settings.reduceMotion || settings.disableAnimations],
+      ['strong-focus', settings.strongFocusIndicators],
+      ['large-interface-text', settings.largerInterfaceText],
+      ['large-click-targets', settings.largerClickTargets],
+      ['underline-links', settings.underlineLinks],
+    ]) {
+      root.classList.toggle(name, enabled);
+    }
+    root.style.setProperty('--readable-content-width', `${settings.readableWidthPixels}px`);
+    window.dispatchEvent(new Event('accessibilitychange'));
+  }, [
+    settings.reduceMotion,
+    settings.disableAnimations,
+    settings.strongFocusIndicators,
+    settings.largerInterfaceText,
+    settings.largerClickTargets,
+    settings.underlineLinks,
+    settings.readableWidthPixels,
+  ]);
+  useLayoutEffect(() => {
+    const limits = resourceLimits({
+      visualCacheEntries: settings.visualCacheEntries,
+      visualCacheCharacters: settings.visualCacheCharacters,
+      lowResourceMode: settings.lowResourceMode,
+    });
+    configureVisualCache(limits.visualCacheEntries, limits.visualCacheCharacters);
+  }, [settings.visualCacheEntries, settings.visualCacheCharacters, settings.lowResourceMode]);
+  useLayoutEffect(() => {
+    if (!settings.customCssEnabled || !settings.customCss) {
+      return;
+    }
+    const style = document.createElement('style');
+    style.id = 'tagline-custom-css';
+    style.textContent = settings.customCss;
+    document.head.append(style);
+    return () => style.remove();
+  }, [settings.customCssEnabled, settings.customCss]);
+  useLayoutEffect(() => {
+    const root = document.documentElement;
+    let variables;
+    try {
+      variables =
+        getTheme(settings.theme, settings.customTheme, settings.themeSettings).variables || {};
+    } catch (error) {
+      window.dispatchEvent(new CustomEvent('app-error', { detail: error.message }));
+      return;
+    }
+    root.style.setProperty(
+      '--font-text',
+      variables['font-text'] ??
+        (settings.importedFont
+          ? '"Tagline Custom"'
+          : settings.fontFamily.trim()
+            ? `${JSON.stringify(settings.fontFamily.trim())}, system-ui, sans-serif`
+            : 'system-ui, sans-serif')
+    );
+    root.style.setProperty(
+      '--editor-font-size',
+      variables['editor-font-size'] ?? `${settings.fontSize}px`
+    );
+    const lineHeight = Number(settings.visualLineHeight);
+    root.style.setProperty(
+      '--visual-line-height',
+      Number.isFinite(lineHeight) && lineHeight >= 1 && lineHeight <= 2.5
+        ? String(lineHeight)
+        : '1.65'
+    );
+  }, [
+    settings.fontFamily,
+    settings.importedFont,
+    settings.fontSize,
+    settings.visualLineHeight,
+    settings.theme,
+    settings.customTheme,
+    settings.themeSettings,
+    themeRevision,
+  ]);
+  useEffect(() => {
+    if (!settings.importedFont) {
+      return;
+    }
+    let disposed = false;
+    let face;
+    window.api
+      .readFont()
+      .then(async (data) => {
+        if (!data) {
+          throw new Error('The imported font is missing. Import it again in Settings.');
+        }
+        face = new FontFace('Tagline Custom', `url("${data}")`);
+        await face.load();
+        if (!disposed) {
+          document.fonts.add(face);
+        }
+      })
+      .catch((e) => window.dispatchEvent(new CustomEvent('app-error', { detail: e.message })));
+    return () => {
+      disposed = true;
+      if (face) {
+        document.fonts.delete(face);
+      }
+    };
+  }, [settings.importedFont]);
+  useEffect(() => {
+    try {
+      localStorage.setItem(KEY, JSON.stringify(settings));
+    } catch (error) {
+      console.error('Could not save settings:', error);
+      window.dispatchEvent(
+        new CustomEvent('app-error', { detail: `Could not save settings: ${error.message}` })
+      );
+    }
+  }, [settings]);
+  const update = useCallback((patch) => {
+    if ('lowResourceMode' in patch) {
+      lowResourceUpdated.current = true;
+    }
+    setSettings((s) => ({ ...s, ...patch }));
+  }, []);
+  return [settings, update];
+}

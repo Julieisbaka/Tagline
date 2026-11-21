@@ -60,7 +60,11 @@ test('packaging includes flow search dependencies needed by MCP', () => {
   const root = path.resolve(__dirname, '..');
   const accepts = new FileMatcher(root, 'app', (value) => value, build.files).createFilter();
   const fileStat = { isDirectory: () => false };
-  for (const relative of ['src/lib/vault.js', 'src/lib/flowText.js', 'electron/flow.mjs']) {
+  for (const relative of [
+    'src/lib/vault/vault.js',
+    'src/lib/flow/flowText.js',
+    'electron/flow.mjs',
+  ]) {
     assert.equal(accepts(path.join(root, relative), fileStat), true, relative);
   }
 });

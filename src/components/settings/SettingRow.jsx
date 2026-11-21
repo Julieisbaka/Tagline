@@ -1,5 +1,5 @@
 import { cloneElement, useId, useState } from 'react';
-import { useI18n } from '../../lib/i18n.js';
+import { useI18n } from '../../lib/i18n/i18n.js';
 
 export default function SettingRow({ label, description, children }) {
   const { t } = useI18n();

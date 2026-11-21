@@ -1,5 +1,5 @@
 import { useLayoutEffect, useRef } from 'react';
-import { containFocus } from '../../lib/focusScope.js';
+import { containFocus } from '../../lib/ui/focusScope.js';
 
 export default function ModalBackdrop({ children, className = 'modal-backdrop', onMouseDown }) {
   const ref = useRef(null);

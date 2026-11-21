@@ -1,8 +1,8 @@
 import { memo, useCallback, useEffect, useId, useRef, useState } from 'react';
-import { resolveCanvasLink, suggestCanvasFiles } from '../../lib/canvas.js';
-import { useI18n } from '../../lib/i18n.js';
-import { registerPendingFlush } from '../../lib/pendingEdits.js';
-import { resolveLink } from '../../lib/vault.js';
+import { resolveCanvasLink, suggestCanvasFiles } from '../../lib/canvas/canvas.js';
+import { useI18n } from '../../lib/i18n/i18n.js';
+import { registerPendingFlush } from '../../lib/vault/pendingEdits.js';
+import { resolveLink } from '../../lib/vault/vault.js';
 import CanvasFilePreview from '../CanvasFilePreview.jsx';
 import Icon from '../Icon.jsx';
 import Preview from '../Preview.jsx';

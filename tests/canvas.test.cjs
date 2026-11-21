@@ -6,7 +6,7 @@ const os = require('node:os');
 
 test('Canvas groups move enclosed and nested nodes without moving unrelated nodes', async () => {
   const { canvasGroupMembers, moveCanvasNodes, createCanvasNode } =
-    await import('../src/lib/canvas.js');
+    await import('../src/lib/canvas/canvas.js');
   const group = { ...createCanvasNode('group', 0, 'group'), x: 0, y: 0, width: 1000, height: 800 };
   const nested = { ...createCanvasNode('group', 1, 'nested'), x: 100, y: 100 };
   const inside = { ...createCanvasNode('text', 2, 'inside'), x: 150, y: 150 };
@@ -32,7 +32,7 @@ test('Canvas groups move enclosed and nested nodes without moving unrelated node
 });
 
 test('Canvas suggestions match filenames textually, with prefix matches first and bounded results', async () => {
-  const { suggestCanvasFiles } = await import('../src/lib/canvas.js');
+  const { suggestCanvasFiles } = await import('../src/lib/canvas/canvas.js');
   const paths = [
     'Case/Climate.md',
     'Climate/Unrelated.md',
@@ -51,7 +51,7 @@ test('Canvas suggestions match filenames textually, with prefix matches first an
 });
 
 test('Canvas links open vault files, wiki headings and web URLs without allowing executable schemes', async () => {
-  const { resolveCanvasLink } = await import('../src/lib/canvas.js');
+  const { resolveCanvasLink } = await import('../src/lib/canvas/canvas.js');
   const paths = ['Folder/Note.md', 'Round.flow', 'Map.canvas'];
   assert.deepEqual(resolveCanvasLink('Folder/Note.md#Claim', paths), {
     type: 'file',
@@ -201,7 +201,7 @@ test('platform: experimental delta history preserves Canvas data mode, recovery 
 
 test('platform: Canvas Complete history preserves JSON; Data history shares latest layout and skips movement', async (t) => {
   const { createRevisionHistory } = require('../electron/revisionHistory.cjs');
-  const { createCanvasNode, serializeCanvas } = await import('../src/lib/canvas.js');
+  const { createCanvasNode, serializeCanvas } = await import('../src/lib/canvas/canvas.js');
   const root = await fs.mkdtemp(path.join(os.tmpdir(), 'tagline-canvas-history-'));
   t.after(() => fs.rm(root, { recursive: true, force: true }));
   const history = createRevisionHistory({
@@ -322,7 +322,7 @@ test('extension ribbon declarations require UI permission, valid commands and pe
       ),
     /at most 10/
   );
-  const { normalizeRibbonItems } = await import('../src/lib/ribbonItems.js');
+  const { normalizeRibbonItems } = await import('../src/lib/settings/ribbonItems.js');
   const contributions = [{ id: 'ext:canvas-tools.map-button' }];
   assert.deepEqual(normalizeRibbonItems(['graph'], contributions), ['graph', contributions[0].id]);
   assert.deepEqual(normalizeRibbonItems(['graph'], contributions, [contributions[0].id]), [
@@ -336,8 +336,8 @@ test('extension ribbon declarations require UI permission, valid commands and pe
 });
 
 test('flow and Canvas extension document APIs validate structures and enforce vault permissions', async () => {
-  const { ExtensionHost } = await import('../src/lib/extensions.js');
-  const { createCanvasNode } = await import('../src/lib/canvas.js');
+  const { ExtensionHost } = await import('../src/lib/extensions/extensions.js');
+  const { createCanvasNode } = await import('../src/lib/canvas/canvas.js');
   const { EMPTY_FLOW } = await import('../electron/flow.mjs');
   const files = new Map([
     ['Round.flow', EMPTY_FLOW],
@@ -386,7 +386,7 @@ test('flow and Canvas extension document APIs validate structures and enforce va
 });
 
 test('extension message limits use a rolling second instead of allowing boundary bursts', async () => {
-  const { ExtensionHost } = await import('../src/lib/extensions.js');
+  const { ExtensionHost } = await import('../src/lib/extensions/extensions.js');
   const host = new ExtensionHost(
     { id: 'rate-test', permissions: [] },
     '',
@@ -443,7 +443,7 @@ test('invalid semantic index documents and vectors are detected for rebuilding',
 });
 
 test('malformed expanded-folder data is reset without affecting other saved keys', async (t) => {
-  const { readStoredJson } = await import('../src/lib/storedJson.js');
+  const { readStoredJson } = await import('../src/lib/shared/storedJson.js');
   const original = { storage: global.localStorage, window: global.window };
   const data = new Map([
     ['expanded', '{broken'],

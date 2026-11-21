@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
-import { requirePayload } from '../lib/extensionCapabilities.js';
-import { themeSnapshot } from '../lib/themes.js';
+import { requirePayload } from '../lib/extensions/extensionCapabilities.js';
+import { themeSnapshot } from '../lib/ui/themes.js';
 import uiStyles from '../styles/ui.css?raw';
 
 export default function ExtensionSurface({ surface, onClose }) {

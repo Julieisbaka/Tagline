@@ -3,7 +3,7 @@ const assert = require('node:assert/strict');
 const path = require('node:path');
 
 test('extension capabilities validate selection, command, helper, event and UI contracts', async () => {
-  const { ExtensionHost } = await import('../src/lib/extensions.js');
+  const { ExtensionHost } = await import('../src/lib/extensions/extensions.js');
   const {
     applicationEvents,
     createEventBus,
@@ -11,7 +11,7 @@ test('extension capabilities validate selection, command, helper, event and UI c
     pathHelper,
     markdownToText,
     requirePayload,
-  } = await import('../src/lib/extensionCapabilities.js');
+  } = await import('../src/lib/extensions/extensionCapabilities.js');
   const cardMarkdown = '#### Climate impact\n\n**Smith 2024**\n\n==The impact is significant.==';
   assert.equal(extensionHelper('helpers.markdown.slugify', ['Climate Impact']), 'climate-impact');
   assert.equal(extensionHelper('helpers.countdown.remainingAt', [20_000, 10_000]), 10);
@@ -312,7 +312,7 @@ test('extension capabilities validate selection, command, helper, event and UI c
 });
 
 test('utility helpers expose cards, checkup, search, themes and reject unbounded input', async () => {
-  const { extensionHelper } = await import('../src/lib/extensionCapabilities.js');
+  const { extensionHelper } = await import('../src/lib/extensions/extensionCapabilities.js');
   const cardMarkdown = '#### Climate impact\n\n**Smith 2024** — "Study", https://example.com/a\n';
   const detected = extensionHelper('helpers.cards.detect', [cardMarkdown]);
   assert.equal(detected.length, 1);
@@ -473,9 +473,9 @@ test('UI contributions require permission, declarations, a script and bounded un
 test('extension settings have validated types, bounds, defaults and scoped storage', async (t) => {
   const { validateSettingDefinitions, validateSettingValue } =
     await import('../electron/extensionSettings.mjs');
-  const { ExtensionHost } = await import('../src/lib/extensions.js');
+  const { ExtensionHost } = await import('../src/lib/extensions/extensions.js');
   const { clearExtensionData, resetExtensionSettings } =
-    await import('../src/lib/extensionSettings.js');
+    await import('../src/lib/extensions/extensionSettings.js');
   const settings = [
     { id: 'enabled', title: 'Enabled', type: 'boolean', default: true },
     { id: 'limit', title: 'Limit', type: 'number', min: 1, max: 5, default: 3 },
@@ -552,7 +552,7 @@ test('extension settings have validated types, bounds, defaults and scoped stora
 });
 
 test('extension secret values use the encrypted storage bridge and legacy local storage is migrated', async (t) => {
-  const { ExtensionHost } = await import('../src/lib/extensions.js');
+  const { ExtensionHost } = await import('../src/lib/extensions/extensions.js');
   const original = global.localStorage;
   const legacyStorage = new Map([
     ['tagline-extension:secure', JSON.stringify({ existing: 'legacy' })],
@@ -606,7 +606,7 @@ test('extension secret values use the encrypted storage bridge and legacy local 
 });
 
 test('active-note events are path-only, separately permissioned, bounded and disposable', async (t) => {
-  const { ExtensionHost } = await import('../src/lib/extensions.js');
+  const { ExtensionHost } = await import('../src/lib/extensions/extensions.js');
   const manifest = { id: 'events', permissions: ['editor'], contributes: { commands: [] } };
   const callbacks = new Set();
   const bridge = {
@@ -932,7 +932,7 @@ test('platform: extensions can be uninstalled and their saved grants are cleared
 });
 
 test('extension vault mutation and watch APIs enforce permissions and clean up subscriptions', async () => {
-  const { ExtensionHost } = await import('../src/lib/extensions.js');
+  const { ExtensionHost } = await import('../src/lib/extensions/extensions.js');
   const manifest = { id: 'test', name: 'Test', permissions: [], contributes: { commands: [] } };
   let subscriptions = 0;
   const bridge = {

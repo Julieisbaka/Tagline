@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
-import { parseCanvas } from '../../lib/canvas.js';
-import { useI18n } from '../../lib/i18n.js';
-import { baseName } from '../../lib/vault.js';
+import { parseCanvas } from '../../lib/canvas/canvas.js';
+import { useI18n } from '../../lib/i18n/i18n.js';
+import { baseName } from '../../lib/vault/vault.js';
 import JsonEditor from '../JsonEditor.jsx';
 import JsonRecovery from '../JsonRecovery.jsx';
 import CanvasEditor from './CanvasEditor.jsx';

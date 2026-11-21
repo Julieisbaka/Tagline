@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { useI18n } from '../lib/i18n.js';
-import { displayName } from '../lib/vault.js';
+import { useI18n } from '../lib/i18n/i18n.js';
+import { displayName } from '../lib/vault/vault.js';
 
 function nodeColor(tags) {
   if (tags.includes('aff')) {
