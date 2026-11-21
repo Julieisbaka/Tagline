@@ -48,4 +48,5 @@ Electron IPC directly.
 ## Notes
 
 [^1]: We will try to implement workarounds for issues in external tools when possible.
+
 [^2]: We do and will implement standard security features to prevent this. If this happens to you, we would be happy to help mitigate the impact and provide guidance on recovery.
