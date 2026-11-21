@@ -436,6 +436,28 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
         await wait(
           "document.querySelector('.flow-sheet-select').textContent.trim() === 'Off-case'"
         );
+        await wait("document.activeElement.textContent.trim() === 'Off-case'");
+        assert.equal(
+          await js(
+            "document.querySelector('.flow-sheet-tab.active .flow-sheet-select').textContent.trim()"
+          ),
+          'Off-case'
+        );
+        await js("document.querySelectorAll('.flow-sheet-select')[1].focus()");
+        await key('Left', ['alt', 'shift']);
+        await wait("document.querySelector('.flow-sheet-select').textContent.trim() === 'Case'");
+        await wait("document.activeElement.textContent.trim() === 'Case'");
+        assert.equal(
+          await js(
+            "document.querySelector('.flow-sheet-tab.active .flow-sheet-select').textContent.trim()"
+          ),
+          'Off-case'
+        );
+        await key('Right', ['alt', 'shift']);
+        await wait(
+          "document.querySelector('.flow-sheet-select').textContent.trim() === 'Off-case'"
+        );
+        await wait("document.activeElement.textContent.trim() === 'Case'");
         let persistedSheets;
         for (let attempt = 0; attempt < 50; attempt++) {
           persistedSheets = JSON.parse(
