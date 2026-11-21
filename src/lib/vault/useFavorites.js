@@ -80,6 +80,7 @@ export function removeFavorites(paths, removed) {
   return paths.filter((path) => path !== removed && !path.startsWith(removed + '/'));
 }
 
+// TODO: Remove migration support
 // .tagline/pins.json is the single source of truth for pins and favorites. The legacy
 // localStorage map is kept only as the one-way migration source; purged per vault once read.
 // Remove STORAGE_KEY and this helper after one release.

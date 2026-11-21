@@ -286,6 +286,7 @@ export function useVault(
         return;
       }
       event.preventDefault();
+      // TODO: This declaration is deprecated, look into replacing it.
       event.returnValue = false;
       // A completed flush is not an error: the next close or reload attempt proceeds.
       flush().catch(report);
