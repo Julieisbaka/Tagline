@@ -1,6 +1,6 @@
 # Contributing to Tagline
 
-Thanks for your interest in contributing to Tagline, an Obsidian-style knowledge vault for policy debaters.
+Thanks for your interest in contributing to Tagline, a knowledge vault and workspace for policy debaters.
 
 ## How to contribute
 
