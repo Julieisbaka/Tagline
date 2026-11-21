@@ -1,6 +1,7 @@
 // Pure helpers for indexing a vault: names, links, tags, backlinks.
 import { Lexer } from 'marked';
 import { readFrontmatter, splitFrontmatter } from './frontmatter.js';
+import { flowDocument } from './flowText.js';
 
 /**
  * Test a case-insensitive flow-document extension.
@@ -247,10 +248,13 @@ export function buildIndex(contents) {
     }
   }
   for (const p of paths) {
-    if (!isMarkdown(p)) {
+    if (!isMarkdown(p) && !isFlow(p)) {
       continue;
     }
-    const content = contents[p] || '';
+    const raw = contents[p] || '';
+    // Flow cells hold wiki links and tags just like note paragraphs; index the
+    // cell text rather than the surrounding JSON so only real content is parsed.
+    const content = isFlow(p) ? flowDocument(raw).cells : raw;
     links[p] = [];
     const parsed = parsedFile(content);
     for (const target of parsed.targets) {

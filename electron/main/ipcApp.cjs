@@ -45,6 +45,10 @@ function registerAppIpc(
     clipboard.writeText(text);
     return true;
   });
+  ipcMain.handle('app:clipboardRead', (event) => {
+    assertMainFrameSender(event, 'Clipboard access');
+    return clipboard.readText();
+  });
   const updates = createUpdateManager({
     app,
     shell,

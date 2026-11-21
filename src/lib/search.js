@@ -1,5 +1,6 @@
 import defaults from './defaultSettings.json' with { type: 'json' };
-import { baseName, isMarkdown } from './vault.js';
+import { baseName, isFlow, isMarkdown } from './vault.js';
+import { flowDocument } from './flowText.js';
 
 /**
  * Fold accents and case for locale-independent search matching.
@@ -94,14 +95,18 @@ export function parseQuery(query) {
  * @param {string} query - The raw search query input by the user.
  * @returns {object} - An object containing only the documents that satisfy the tag and phrase constraints.
  */
+const isSearchable = (path) => isMarkdown(path) || isFlow(path);
+const searchText = (path, content) => (isFlow(path) ? flowDocument(content).text : content);
+
 export function filterSearchDocuments(contents, index, query) {
   const parsed = parseQuery(query);
   return Object.fromEntries(
-    Object.entries(contents).filter(
-      ([path, content]) =>
-        isMarkdown(path) &&
+    Object.entries(contents)
+      .filter(([path]) => isSearchable(path))
+      .map(([path, raw]) => [path, searchText(path, raw)])
+      .filter(([path, content]) =>
         matchesConstraints(path, fold(baseName(path)), fold(content), index, parsed)
-    )
+      )
   );
 }
 
@@ -126,8 +131,9 @@ function matchesConstraints(
 export function createSearchEngine(contents, index) {
   const prepared = new Map(
     Object.entries(contents)
-      .filter(([path]) => isMarkdown(path))
-      .map(([path, content]) => {
+      .filter(([path]) => isSearchable(path))
+      .map(([path, raw]) => {
+        const content = searchText(path, raw);
         const tokens = words(content);
         const counts = new Map();
         for (const token of tokens) {

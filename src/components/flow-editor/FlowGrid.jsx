@@ -1,6 +1,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { binding, displayBinding, matchesBinding } from '../../lib/keybindings.js';
 import { cellBounds, copyFlowCells } from '../../lib/flowCells.js';
+import { pasteClipboardCells } from '../../lib/pasteClipboardCells.js';
 import { renderMarkdown } from '../../lib/markdown.js';
 import Icon from '../Icon.jsx';
 
@@ -352,8 +353,15 @@ export default function FlowGrid({
                       { label: 'Cut cells', run: () => copy(area, true) },
                       {
                         label: 'Paste cells',
-                        run: async () =>
-                          paste(await navigator.clipboard.readText(), area.top, area.left),
+                        run: () =>
+                          pasteClipboardCells({
+                            api: window.api,
+                            navigator,
+                            paste,
+                            onError: clipboardError,
+                            row: area.top,
+                            column: area.left,
+                          }),
                       },
                       {
                         label: 'Clear selected cells',

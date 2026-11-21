@@ -18,6 +18,7 @@ contextBridge.exposeInMainWorld('api', {
     },
   },
   clipboardWrite: (text) => ipcRenderer.invoke('app:clipboardWrite', text),
+  clipboardRead: () => ipcRenderer.invoke('app:clipboardRead'),
   systemLanguages: (() => {
     try {
       const arg = process.argv.find((a) => a.startsWith('--tagline-languages='));

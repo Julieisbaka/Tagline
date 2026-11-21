@@ -60,6 +60,39 @@
         <section id="v0-1-6">
           <p class="article-kicker">In development</p>
           <h2>0.1.6 <span class="feature-status">In development</span></h2>
+
+          <h3>Added</h3>
+          <ul>
+            <li>
+              Flow cell text is now included in global search and the link index. Sheet and
+              column names rank as headings, and links and tags written in cells produce
+              backlinks just like notes.
+            </li>
+          </ul>
+
+          <h3>Improved</h3>
+          <ul>
+            <li>
+              The privacy policy now states explicitly that updates are downloaded in the
+              background but never installed without your choice.
+            </li>
+          </ul>
+
+          <h3>Fixed</h3>
+          <ul>
+            <li>
+              Right-click → Paste cells in the flow grid now reports clipboard and malformed
+              cell-data errors the same way Ctrl+V does, instead of leaving a console rejection.
+              Clipboard reads also use the same Electron IPC path as copies when available.
+            </li>
+            <li>
+              Opening several <code>.flow</code> files from the OS at once no longer strands the
+              remaining files in the queue when one of them fails to open.
+            </li>
+            <li>
+              An external vault change no longer discards text still being typed in a canvas node.
+            </li>
+          </ul>
         </section>
 
         <section id="v0-1-5">
