@@ -338,10 +338,14 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
         })()`);
         await click('.context-menu button', 'Add link');
         await wait("document.querySelectorAll('.canvas-node').length === 5");
-        await delay(450);
+        const linkId = await js("document.querySelector('.canvas-node.selected').dataset.nodeId");
+        await wait(
+          `window.api.read('Map.canvas').then(text => JSON.parse(text).nodes.some(node => node.id === ${escapeUnsafeJsString(linkId)}))`
+        );
         const link = JSON.parse(await fs.readFile(path.join(vault, 'Map.canvas'), 'utf8')).nodes.at(
           -1
         );
+        assert.equal(link.id, linkId);
         assert.equal(link.x, expected.x);
         assert.equal(link.y, expected.y);
         await js(

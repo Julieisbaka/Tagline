@@ -30,7 +30,39 @@ function createRevisionHistory({ getVaultRoot, resolveInVault }) {
     return path.join(resolveInVault('.tagline/history'), rel);
   };
 
+  const assertSafeHistoryPath = async (target) => {
+    const root = path.resolve(getVaultRoot());
+    const historyRoot = path.resolve(resolveInVault('.tagline/history'));
+    const resolved = path.resolve(target);
+    const relToRoot = path.relative(root, resolved);
+    if (relToRoot.startsWith('..') || path.isAbsolute(relToRoot)) {
+      throw new Error('Revision history path escapes the vault.');
+    }
+    const relToHistory = path.relative(historyRoot, resolved);
+    if (relToHistory.startsWith('..') || path.isAbsolute(relToHistory)) {
+      throw new Error('Revision history path escapes the history directory.');
+    }
+    let current = root;
+    const parts = path.relative(root, resolved).split(path.sep).filter(Boolean);
+    for (const part of parts) {
+      current = path.join(current, part);
+      let stat;
+      try {
+        stat = await fs.lstat(current);
+      } catch (error) {
+        if (error.code === 'ENOENT' || error.code === 'ENOTDIR') {
+          return;
+        }
+        throw error;
+      }
+      if (stat.isSymbolicLink()) {
+        throw new Error('Revision history paths cannot contain symbolic links.');
+      }
+    }
+  };
+
   const listFiles = async (directory) => {
+    await assertSafeHistoryPath(directory);
     try {
       return (await fs.readdir(directory, { withFileTypes: true }))
         .filter((entry) => entry.isFile() && SNAPSHOT_ID.test(entry.name))
@@ -49,7 +81,9 @@ function createRevisionHistory({ getVaultRoot, resolveInVault }) {
       throw new Error('Invalid revision history dependency chain.');
     }
     seen.add(id);
-    const stored = await fs.readFile(path.join(directory, id), 'utf8');
+    const storedPath = path.join(directory, id);
+    await assertSafeHistoryPath(storedPath);
+    const stored = await fs.readFile(storedPath, 'utf8');
     if (id.endsWith('.snapshot')) {
       return { content: stored, depth: 0 };
     }
@@ -126,10 +160,12 @@ function createRevisionHistory({ getVaultRoot, resolveInVault }) {
       return;
     }
     const directory = historyDir(relativePath);
+    await assertSafeHistoryPath(directory);
     let snapshotContent = previous;
     if (/\.canvas$/i.test(currentPath)) {
       const layoutPath = path.join(directory, 'layout.json');
       let layout = null;
+      await assertSafeHistoryPath(layoutPath);
       try {
         layout = JSON.parse(await fs.readFile(layoutPath, 'utf8'));
       } catch (error) {
@@ -157,13 +193,25 @@ function createRevisionHistory({ getVaultRoot, resolveInVault }) {
           ])
         );
         await fs.mkdir(directory, { recursive: true });
+<<<<<<< HEAD
         const temporary = `${layoutPath}.${randomUUID()}.tmp`;
         await fs.writeFile(
           temporary,
+=======
+        await assertSafeHistoryPath(directory);
+        const temporaryLayout = `${layoutPath}.tmp`;
+        await assertSafeHistoryPath(temporaryLayout);
+        await fs.writeFile(
+          temporaryLayout,
+>>>>>>> c3fef858d8a787326336cb9087218b941839bd3d
           JSON.stringify({ ...layout, ...positions }),
-          'utf8'
+          { encoding: 'utf8', flag: 'wx' }
         );
+<<<<<<< HEAD
         await fs.rename(temporary, layoutPath);
+=======
+        await fs.rename(temporaryLayout, layoutPath);
+>>>>>>> c3fef858d8a787326336cb9087218b941839bd3d
       }
       if (canvasMode === 'data' && before && after) {
         const dataOnly = (canvas) => ({
@@ -178,6 +226,7 @@ function createRevisionHistory({ getVaultRoot, resolveInVault }) {
       }
     }
     await fs.mkdir(directory, { recursive: true });
+    await assertSafeHistoryPath(directory);
     const existing = await listFiles(directory);
     const lastTimestamp = existing.length
       ? Number(existing[0].slice(0, existing[0].indexOf('-')))
@@ -220,13 +269,16 @@ function createRevisionHistory({ getVaultRoot, resolveInVault }) {
       }
     }
     const id = `${Math.max(Date.now(), lastTimestamp + 1)}-${randomUUID()}.${extension}`;
-    await fs.writeFile(path.join(directory, id), stored, { encoding: 'utf8', flag: 'wx' });
+    const snapshotPath = path.join(directory, id);
+    await assertSafeHistoryPath(snapshotPath);
+    await fs.writeFile(snapshotPath, stored, { encoding: 'utf8', flag: 'wx' });
     const snapshots = await listFiles(directory);
     const oldestKept = snapshots[retention - 1];
     if (snapshots.length > retention && oldestKept.endsWith('.delta')) {
       // Rebase the retention boundary before deleting anything it could depend on.
       const { content } = await readStored(directory, oldestKept);
       const temporary = path.join(directory, `${randomUUID()}.tmp`);
+      await assertSafeHistoryPath(temporary);
       try {
         await fs.writeFile(
           temporary,
@@ -238,8 +290,13 @@ function createRevisionHistory({ getVaultRoot, resolveInVault }) {
         await fs.rm(temporary, { force: true });
       }
     }
+    await assertSafeHistoryPath(directory);
     await Promise.all(
-      snapshots.slice(retention).map((file) => fs.unlink(path.join(directory, file)))
+      snapshots.slice(retention).map(async (file) => {
+        const snapshotPath = path.join(directory, file);
+        await assertSafeHistoryPath(snapshotPath);
+        await fs.unlink(snapshotPath);
+      })
     );
   }
 
@@ -273,7 +330,9 @@ function createRevisionHistory({ getVaultRoot, resolveInVault }) {
         return content;
       }
       if (saved?.taglineCanvasRevision === 1 && saved.mode === 'data') {
-        const layout = JSON.parse(await fs.readFile(path.join(directory, 'layout.json'), 'utf8'));
+        const layoutPath = path.join(directory, 'layout.json');
+        await assertSafeHistoryPath(layoutPath);
+        const layout = JSON.parse(await fs.readFile(layoutPath, 'utf8'));
         return serializeCanvas({
           ...saved.data,
           nodes: saved.data.nodes.map((node) => ({ ...node, ...layout[node.id] })),
@@ -286,6 +345,8 @@ function createRevisionHistory({ getVaultRoot, resolveInVault }) {
   async function rename(from, to) {
     const source = historyDir(from);
     const destination = historyDir(to);
+    await assertSafeHistoryPath(source);
+    await assertSafeHistoryPath(destination);
     try {
       await fs.access(source);
     } catch (error) {

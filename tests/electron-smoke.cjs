@@ -169,13 +169,25 @@ const delay = (ms) => new Promise((r) => setTimeout(r, ms));
           "document.querySelectorAll('.visual-find input[type=checkbox]')[0].click(); document.querySelectorAll('.visual-find input[type=checkbox]')[1].click()"
         );
         await waitFor(
-          "document.querySelector('.visual-find [role=status]').textContent === '1 of 3'"
+          "document.querySelector('.visual-find [role=status]').textContent === '2 of 3'"
         );
         await click('.visual-find button', 'Next match');
+        await waitFor(`(() => {
+          const { doc, selection } = document.querySelector('.visual-document').editor.state;
+          return doc.textBetween(selection.from, selection.to) === 'findalpha';
+        })()`);
+        await click('.visual-find button', 'Next match');
+        await waitFor(
+          "document.querySelector('.visual-find [role=status]').textContent === '3 of 3'"
+        );
+        await click('.visual-find button', 'Previous match');
         await waitFor(
           "document.querySelector('.visual-find [role=status]').textContent === '2 of 3'"
         );
         await click('.visual-find button', 'Previous match');
+        await waitFor(
+          "document.querySelector('.visual-find [role=status]').textContent === '1 of 3'"
+        );
         await inputValue('[aria-label="Replace with"]', 'Updated');
         await click('.visual-find button', 'Replace');
         await waitFor("window.api.read('Cards.md').then(text => text.includes('Updated'))");

@@ -42,7 +42,9 @@ function validateVariables(value = {}, limits = getRuntimeLimits()) {
       typeof text !== 'string' ||
       !text.trim() ||
       text.length > limits.themeValueLength ||
-      /[;{}\0]|url\s*\(|@import/i.test(text)
+      /[;{}\0\\]|url\s*\(|@import/i.test(text) ||
+      text.includes('/*') ||
+      text.includes('*/')
     ) {
       throw new Error(
         `Invalid theme variable: ${key}. Use a property name without -- and a CSS value without URLs or declarations.`

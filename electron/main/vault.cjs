@@ -161,7 +161,9 @@ function createVault({ app, path, fs, fssync, randomUUID, process, dialog }, sta
           await fs.writeFile(temporary, JSON.stringify(next, null, 2), {
             encoding: 'utf8',
             flag: 'wx',
+            mode: 0o600,
           });
+          await fs.chmod(temporary, 0o600);
           const handle = await fs.open(temporary, 'r+');
           try {
             await handle.sync();

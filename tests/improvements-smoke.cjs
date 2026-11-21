@@ -52,7 +52,8 @@ const delay = (ms) => new Promise((r) => setTimeout(r, ms));
   }
   const html =
     '# HTML\n\n<details open><summary>Extra detail</summary><p>CO<sub>2</sub> and x<sup>2</sup></p></details>\n' +
-    '<script>window.injected = true</script>\n<img src="x" onerror="window.injected = true">\n';
+    '<script>window.injected = true</script>\n<img src="x" onerror="window.injected = true">\n' +
+    '![Remote image](http://127.0.0.1/private)\n';
   await fs.writeFile(path.join(vault, 'HTML.md'), html);
   await fs.writeFile(path.join(vault, 'Card.md'), '# Cards\n\n#### Tag\n\n==Evidence words==\n');
   await fs.writeFile(
@@ -124,7 +125,7 @@ const delay = (ms) => new Promise((r) => setTimeout(r, ms));
         await wait("!!document.querySelector('.preview details summary')");
         assert.equal(await js("document.querySelector('.preview sub').textContent"), '2');
         assert.equal(
-          await js("!!document.querySelector('.preview script, .preview [onerror]')"),
+          await js("!!document.querySelector('.preview script, .preview img, .preview [onerror]')"),
           false
         );
         assert.equal(await js('!!window.injected'), false);
