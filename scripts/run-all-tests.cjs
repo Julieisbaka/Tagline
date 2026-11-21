@@ -216,12 +216,7 @@ function failureOutput(result) {
   const lines = result.output.split(/\r?\n/);
   const failureLine =
     /(?:^FAIL\b|AssertionError|Timed out:|^Error:|TypeError:|ReferenceError:|SyntaxError:|error during build|Build failed|npm error)/i;
-  let start = -1;
-  for (let index = 0; index < lines.length; index++) {
-    if (failureLine.test(lines[index])) {
-      start = index;
-    }
-  }
+  let start = lines.findIndex((line) => failureLine.test(line));
   // Scenario wrappers retain the original error as a cause; keep the description
   // as well as the later assertion/stack instead of starting at the cause.
   const scenarioStart = lines.findIndex((line) => /Error: Scenario failed:/.test(line));
