@@ -439,6 +439,16 @@ export function useExtensions({ bridgeRef, notify }) {
     },
     [reload, extensions]
   );
+  const stop = useCallback((id) => {
+    const host = hosts.current.get(id);
+    if (!host) {
+      return;
+    }
+    quickFixes.current.clear();
+    host.dispose();
+    hosts.current.delete(id);
+    setCommands((previous) => previous.filter((item) => item.extensionId !== id));
+  }, []);
   const setPermission = useCallback(
     async (id, permission, allowed) => {
       const item = extensions.find((extension) => extension.id === id);
@@ -571,6 +581,7 @@ export function useExtensions({ bridgeRef, notify }) {
     closeSurface,
     run,
     reload,
+    stop,
     setEnabled,
     setPermission,
     uninstall,

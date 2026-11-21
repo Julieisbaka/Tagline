@@ -393,6 +393,7 @@ test('platform: dropping an extension folder installs and enables it, gating rev
     await fs.writeFile(path.join(source, 'node_modules', 'skip.js'), 'x');
     let config = {};
     let confirmationResponse = 1;
+    let failReplacementConfigWrite = false;
     const confirmations = [];
     const handlers = {};
     registerExtensions({
@@ -401,7 +402,13 @@ test('platform: dropping an extension folder installs and enables it, gating rev
       shell: {},
       ipcMain: { handle: (name, handler) => (handlers[name] = handler) },
       readConfig: () => config,
-      writeConfig: (patch) => (config = { ...config, ...patch }),
+      writeConfig: (patch) => {
+        if (failReplacementConfigWrite && patch.enabledExtensions?.length === 0) {
+          failReplacementConfigWrite = false;
+          throw new Error('Config write failed.');
+        }
+        config = { ...config, ...patch };
+      },
       dialog: {
         showMessageBox: async (...args) => {
           confirmations.push(args.at(-1));
@@ -451,6 +458,47 @@ test('platform: dropping an extension folder installs and enables it, gating rev
     assert.deepEqual(config.enabledExtensions, ['dropped']);
 
     confirmationResponse = 1;
+    await fs.rm(path.join(root, 'extension-staging'), { recursive: true, force: true });
+    await fs.writeFile(path.join(root, 'extension-staging'), 'not a directory');
+    await assert.rejects(
+      handlers['extensions:installFolder']({}, path.join(source, 'manifest.json')),
+      /not a directory/
+    );
+    assert.deepEqual(config.enabledExtensions, ['dropped']);
+    assert.deepEqual(config.extensionPermissions, { dropped: ['network'] });
+    assert.equal(
+      await fs.readFile(path.join(root, 'extension-secrets', 'dropped.bin'), 'utf8'),
+      'secret'
+    );
+    assert.equal(
+      await fs.readFile(path.join(root, 'extension-storage', 'dropped.bin'), 'utf8'),
+      'storage'
+    );
+    assert.equal(
+      await fs.readFile(path.join(root, 'extensions', 'dropped', 'main.js'), 'utf8'),
+      'void 0;'
+    );
+    await fs.rm(path.join(root, 'extension-staging'));
+    await fs.mkdir(path.join(root, 'extension-staging'));
+    failReplacementConfigWrite = true;
+    await assert.rejects(
+      handlers['extensions:installFolder']({}, path.join(source, 'manifest.json')),
+      /Config write failed/
+    );
+    assert.deepEqual(config.enabledExtensions, ['dropped']);
+    assert.deepEqual(config.extensionPermissions, { dropped: ['network'] });
+    assert.equal(
+      await fs.readFile(path.join(root, 'extension-secrets', 'dropped.bin'), 'utf8'),
+      'secret'
+    );
+    assert.equal(
+      await fs.readFile(path.join(root, 'extension-storage', 'dropped.bin'), 'utf8'),
+      'storage'
+    );
+    assert.equal(
+      await fs.readFile(path.join(root, 'extensions', 'dropped', 'main.js'), 'utf8'),
+      'void 0;'
+    );
     const updated = await handlers['extensions:installFolder'](
       {},
       path.join(source, 'manifest.json')

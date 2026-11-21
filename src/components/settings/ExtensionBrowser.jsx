@@ -48,12 +48,12 @@ export default function ExtensionBrowser({ extensions, permissionLabels }) {
     setBusy(entry.url);
     setError('');
     setNotice('');
+    extensions.stop(entry.id);
     try {
       const result = await window.api.installRegistryExtension(entry.url, entry.id);
       if (result.replaced) {
         clearExtensionData({ id: result.id });
       }
-      await extensions.reload();
       setNotice(
         result.reviewRequired
           ? t('Installed {name}. Review its permissions below, then enable it.', {
@@ -67,6 +67,7 @@ export default function ExtensionBrowser({ extensions, permissionLabels }) {
     } catch (err) {
       setError(err.message);
     } finally {
+      await extensions.reload();
       setBusy('');
     }
   };

@@ -185,20 +185,25 @@ export default function ExtensionSettings({ extensions }) {
       setNotice('');
       const results = [];
       const failures = [];
-      for (const source of await task()) {
-        try {
-          const result = await window.api.installExtensionFolder(source);
-          if (result) {
-            if (result.replaced) {
-              clearExtensionData({ id: result.id });
+      const sources = await task();
+      extensions.extensions.forEach((item) => item.id && extensions.stop(item.id));
+      try {
+        for (const source of sources) {
+          try {
+            const result = await window.api.installExtensionFolder(source);
+            if (result) {
+              if (result.replaced) {
+                clearExtensionData({ id: result.id });
+              }
+              results.push(result);
             }
-            results.push(result);
+          } catch (err) {
+            failures.push(err.message);
           }
-        } catch (err) {
-          failures.push(err.message);
         }
+      } finally {
+        await extensions.reload();
       }
-      await extensions.reload();
       setNotice(
         results
           .map((item) =>
