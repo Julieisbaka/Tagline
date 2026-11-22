@@ -635,6 +635,7 @@
         notify: (message) => call('notify', message),
       });
       addEventListener('message', async (event) => {
+        if (event.origin !== self.origin) return;
         if (!event.data) return;
         const data = event.data;
         if (data.type === 'start' && !started) {
