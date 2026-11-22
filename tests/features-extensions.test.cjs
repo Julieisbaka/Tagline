@@ -4,7 +4,10 @@ const fs = require('node:fs');
 const path = require('node:path');
 
 test('extension worker accepts messages only from its own origin', () => {
-  const sandbox = fs.readFileSync(path.join(__dirname, '..', 'public', 'extension-sandbox.html'), 'utf8');
+  const sandbox = fs.readFileSync(
+    path.join(__dirname, '..', 'public', 'extension-sandbox.html'),
+    'utf8'
+  );
   assert.match(
     sandbox,
     /addEventListener\('message', async \(event\) => \{\s*if \(event\.origin !== self\.origin\) return;\s*if \(!event\.data\) return;/
