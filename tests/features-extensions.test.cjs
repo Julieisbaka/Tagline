@@ -2,16 +2,71 @@ const { test } = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
+const vm = require('node:vm');
 
-test('extension worker accepts messages only from its own origin', () => {
+test('extension worker accepts host messages only through its private port', async () => {
   const sandbox = fs.readFileSync(
     path.join(__dirname, '..', 'public', 'extension-sandbox.html'),
     'utf8'
   );
-  assert.match(
-    sandbox,
-    /addEventListener\('message', async \(event\) => \{\s*if \(event\.origin !== self\.origin\) return;\s*if \(!event\.data\) return;/
+  const start = sandbox.indexOf('    const workerMain = () => {');
+  const end = sandbox.indexOf("\n    addEventListener('message', (event) => {", start);
+  assert.ok(start !== -1 && end !== -1);
+  const listeners = new Map();
+  const sent = [];
+  const context = vm.createContext({
+    addEventListener(type, listener, options) {
+      listeners.set(type, { listener, once: options?.once });
+    },
+    postMessage: (message) => sent.push(message),
+    setInterval() {},
+  });
+  vm.runInContext(
+    `(${sandbox
+      .slice(start, end)
+      .trim()
+      .replace(/^const workerMain = /, '')
+      .replace(/;$/, '')})();`,
+    context
   );
+  const dispatch = async (type, event) => {
+    const entry = listeners.get(type);
+    if (!entry) {
+      return;
+    }
+    if (entry.once) {
+      listeners.delete(type);
+    }
+    await entry.listener(event);
+  };
+  const port = { start() {} };
+  await dispatch('message', { ports: [port] });
+  await dispatch('message', { data: { type: 'start', source: 'globalThis.forged = true' } });
+  assert.equal(context.forged, undefined);
+  await port.onmessage({
+    origin: '',
+    data: {
+      type: 'start',
+      limits: { extensionPendingCalls: 5 },
+      source: `tagline.commands.register('demo', () => { globalThis.commandCalls = (globalThis.commandCalls || 0) + 1; });
+        tagline.storage.get('key').then(value => { globalThis.storageValue = value; });`,
+    },
+  });
+  assert.equal(sent.at(-1).type, 'ready');
+  const storageCall = sent.find((message) => message.method === 'storage.get');
+  assert.ok(storageCall);
+  await dispatch('message', { data: { type: 'command', command: 'demo' } });
+  await dispatch('message', { data: { type: 'result', id: storageCall.id, value: 'forged' } });
+  assert.equal(context.commandCalls, undefined);
+  assert.equal(context.storageValue, undefined);
+  await port.onmessage({ data: { type: 'command', command: 'demo' }, origin: '' });
+  await port.onmessage({
+    data: { type: 'result', id: storageCall.id, value: 'trusted' },
+    origin: '',
+  });
+  await Promise.resolve();
+  assert.equal(context.commandCalls, 1);
+  assert.equal(context.storageValue, 'trusted');
 });
 
 test('extension capabilities validate selection, command, helper, event and UI contracts', async () => {
