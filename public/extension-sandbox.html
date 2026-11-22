@@ -681,8 +681,6 @@
       // Only the creator can message this dedicated worker. Bootstrap the private port
       // before running extension code; worker messages have no usable origin.
       addEventListener('message', (event) => {
-        if (event.source !== parent) return;
-        if (event.origin && event.origin !== 'null' && event.origin !== location.origin) return;
         if (!event.ports || !event.ports[0]) return;
         const port = event.ports[0];
         port.onmessage = handleMessage;
