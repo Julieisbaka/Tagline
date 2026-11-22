@@ -370,6 +370,7 @@ test('platform: reading imports support multiple plain documents without requiri
   const root = await fs.mkdtemp(path.join(os.tmpdir(), 'tagline-reading-'));
   t.after(() => fs.rm(root, { recursive: true, force: true }));
   const files = [path.join(root, 'one.md'), path.join(root, 'two.txt')];
+  let selectedFiles = files;
   await Promise.all(files.map((file) => fs.writeFile(file, 'Full document.')));
   const handlers = {};
   registerDocuments({
@@ -383,7 +384,7 @@ test('platform: reading imports support multiple plain documents without requiri
     dialog: {
       showOpenDialog: async (_window, options) => {
         assert.ok(options.properties.includes('multiSelections'));
-        return { canceled: false, filePaths: files };
+        return { canceled: false, filePaths: selectedFiles };
       },
     },
   });
@@ -392,6 +393,41 @@ test('platform: reading imports support multiple plain documents without requiri
   assert.ok(result.documents.every((document) => document.markdown === 'Full document.'));
   await fs.writeFile(files[0], Buffer.alloc(5 * 1024 * 1024 + 1));
   await assert.rejects(handlers['documents:readingSamples'](), /5 MB per document/);
+  const open = fs.open;
+  fs.open = async (...args) => {
+    const handle = await open(...args);
+    return {
+      stat: async () => ({ size: 1 }),
+      read: handle.read.bind(handle),
+      close: handle.close.bind(handle),
+    };
+  };
+  try {
+    await assert.rejects(handlers['documents:readingSamples'](), /5 MB per document/);
+  } finally {
+    fs.open = open;
+  }
+  const batchFiles = Array.from({ length: 5 }, (_, index) => path.join(root, `batch-${index}.md`));
+  await Promise.all(
+    batchFiles.map((file, index) =>
+      fs.writeFile(file, Buffer.alloc(index === 4 ? 1 : 5 * 1024 * 1024))
+    )
+  );
+  selectedFiles = batchFiles;
+  fs.open = async (...args) => {
+    const handle = await open(...args);
+    const stat = await handle.stat();
+    return {
+      stat: async () => ({ size: args[0] === batchFiles[4] ? 0 : stat.size }),
+      read: handle.read.bind(handle),
+      close: handle.close.bind(handle),
+    };
+  };
+  try {
+    await assert.rejects(handlers['documents:readingSamples'](), /20 MB per batch/);
+  } finally {
+    fs.open = open;
+  }
 });
 
 test('absolute timer deadlines preserve sub-tick time and account for suspended clocks', async () => {

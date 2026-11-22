@@ -5,6 +5,8 @@ const { promisify } = require('node:util');
 const { detectPandoc, highlightFilterPath } = require('./pandoc.cjs');
 
 const run = promisify(execFile);
+const MAX_READING_DOCUMENT_BYTES = 5 * 1024 * 1024;
+const MAX_READING_BATCH_BYTES = 20 * 1024 * 1024;
 const IMPORT_READERS = {
   docx: 'docx',
   odt: 'odt',
@@ -26,7 +28,7 @@ function cleanImportedMarkdown(markdown) {
   );
 }
 
-async function importDocument(executable, file, { cleanup = false } = {}) {
+async function importDocument(executable, file, { cleanup = false, input } = {}) {
   const extension = path.extname(file).slice(1).toLowerCase();
   const reader = IMPORT_READERS[extension];
   if (!reader) {
@@ -40,12 +42,16 @@ async function importDocument(executable, file, { cleanup = false } = {}) {
   if (extension === 'docx') {
     args.push('--track-changes=accept');
   }
-  args.push('--wrap=none', '--sandbox', '--', file);
-  const { stdout, stderr } = await run(executable, args, {
+  args.push('--wrap=none', '--sandbox', '--', input === undefined ? file : '-');
+  const options = {
     windowsHide: true,
     timeout: 120000,
     maxBuffer: 20 * 1024 * 1024,
-  });
+  };
+  if (input !== undefined) {
+    options.input = input;
+  }
+  const { stdout, stderr } = await run(executable, args, options);
   const warnings = [
     stderr.trim(),
     extension === 'docx'
@@ -130,33 +136,42 @@ function registerDocuments({ ipcMain, dialog, getWindow, readConfig }) {
     let pandoc;
     for (const file of result.filePaths) {
       const handle = await fs.open(file, 'r');
-      let size;
-      let markdown;
+      let contents;
       try {
-        size = (await handle.stat()).size;
-        if (size <= 5 * 1024 * 1024 && total + size <= 20 * 1024 * 1024) {
-          const extension = path.extname(file).toLowerCase();
-          if (['.md', '.txt'].includes(extension)) {
-            markdown = await handle.readFile('utf8');
-          }
+        const size = (await handle.stat()).size;
+        if (size > MAX_READING_DOCUMENT_BYTES || total + size > MAX_READING_BATCH_BYTES) {
+          throw new Error('Reading imports are limited to 5 MB per document and 20 MB per batch.');
         }
+        const maxBytes = Math.min(MAX_READING_DOCUMENT_BYTES, MAX_READING_BATCH_BYTES - total);
+        const chunks = [];
+        let bytesRead = 0;
+        while (bytesRead <= maxBytes) {
+          const chunk = Buffer.alloc(Math.min(64 * 1024, maxBytes + 1 - bytesRead));
+          const readResult = await handle.read(chunk, 0, chunk.length, null);
+          if (readResult.bytesRead === 0) {
+            break;
+          }
+          chunks.push(chunk.subarray(0, readResult.bytesRead));
+          bytesRead += readResult.bytesRead;
+        }
+        if (bytesRead > maxBytes) {
+          throw new Error('Reading imports are limited to 5 MB per document and 20 MB per batch.');
+        }
+        contents = Buffer.concat(chunks, bytesRead);
       } finally {
         await handle.close();
       }
-      total += size;
-      if (size > 5 * 1024 * 1024 || total > 20 * 1024 * 1024) {
-        throw new Error('Reading imports are limited to 5 MB per document and 20 MB per batch.');
-      }
+      total += contents.length;
       const extension = path.extname(file).toLowerCase();
       let converted;
       if (['.md', '.txt'].includes(extension)) {
-        converted = { markdown, warnings: '' };
+        converted = { markdown: contents.toString('utf8'), warnings: '' };
       } else {
         pandoc ||= await detectPandoc(readConfig().pandocPath || '');
         if (!pandoc.available) {
           throw new Error(pandoc.message);
         }
-        converted = await importDocument(pandoc.executable, file);
+        converted = await importDocument(pandoc.executable, file, { input: contents });
       }
       documents.push({ name: path.basename(file), ...converted });
     }

@@ -43,6 +43,10 @@ test('platform: Pandoc import chooses an explicit reader, accepts DOCX changes, 
     (await importDocument('pandoc', file, { cleanup: true })).markdown,
     '# Imported\n\n**Card**\n'
   );
+  const input = Buffer.from('validated document snapshot');
+  await importDocument('pandoc', file, { input });
+  assert.equal(captured.args.at(-1), '-');
+  assert.equal(captured.options.input, input);
   fail = true;
   await assert.rejects(importDocument('pandoc', file), /Bad document/);
   await assert.rejects(
