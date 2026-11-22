@@ -678,9 +678,10 @@
           catch (error) { send({ type: 'error', message: describe(error) }); }
         }
       };
-      // Dedicated worker messages have no usable origin; keep host traffic on a private port.
+      // Only the creator can message this dedicated worker. Bootstrap the private port
+      // before running extension code; worker messages have no usable origin.
       addEventListener('message', (event) => {
-        if (event.source !== window || !event.ports || !event.ports[0]) return;
+        if (!event.ports || !event.ports[0]) return;
         const port = event.ports[0];
         port.onmessage = handleMessage;
         port.start();

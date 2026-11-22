@@ -39,8 +39,13 @@ test('extension worker accepts host messages only through its private port', asy
     }
     await entry.listener(event);
   };
-  const port = { start() {} };
-  await dispatch('message', { ports: [port] });
+  const port = {
+    start() {
+      this.started = true;
+    },
+  };
+  await dispatch('message', { origin: '', source: null, ports: [port] });
+  assert.equal(port.started, true);
   await dispatch('message', { data: { type: 'start', source: 'globalThis.forged = true' } });
   assert.equal(context.forged, undefined);
   await port.onmessage({
