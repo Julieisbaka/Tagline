@@ -517,8 +517,22 @@ function createOpenCaselist({
       return { cancelled: true };
     }
     const file = result.filePaths[0];
-    const stat = await fs.stat(file);
-    if (!stat.isFile() || stat.size > MAX_FILE || path.extname(file).toLowerCase() !== '.docx') {
+    if (path.extname(file).toLowerCase() !== '.docx') {
+      throw new Error('Choose a DOCX disclosure file no larger than 50 MB.');
+    }
+    const handle = await fs.open(file, 'r');
+    let stat;
+    let bytes;
+    try {
+      stat = await handle.stat();
+      if (!stat.isFile() || stat.size > MAX_FILE) {
+        throw new Error('Choose a DOCX disclosure file no larger than 50 MB.');
+      }
+      bytes = await handle.readFile();
+    } finally {
+      await handle.close();
+    }
+    if (bytes.length > MAX_FILE) {
       throw new Error('Choose a DOCX disclosure file no larger than 50 MB.');
     }
     const filename = path.basename(file).replace(/[^\w .-]/g, '-');
@@ -530,7 +544,7 @@ function createOpenCaselist({
     ) {
       return { cancelled: true };
     }
-    body.opensource = (await fs.readFile(file)).toString('base64');
+    body.opensource = bytes.toString('base64');
     if (Buffer.byteLength(body.opensource, 'base64') > MAX_FILE) {
       throw new Error('The disclosure file grew beyond 50 MB.');
     }

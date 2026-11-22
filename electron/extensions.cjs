@@ -30,6 +30,26 @@ const FONT_MIME_TYPES = {
   '.otf': 'font/otf',
 };
 
+async function readExtensionFile(file, maxBytes, message) {
+  const handle = await fs.open(file, 'r');
+  try {
+    const stat = await handle.stat();
+    if (!stat.isFile()) {
+      throw new Error('Not a file.');
+    }
+    if (stat.size > maxBytes) {
+      throw new Error(message);
+    }
+    const data = await handle.readFile();
+    if (data.length > maxBytes) {
+      throw new Error(message);
+    }
+    return data;
+  } finally {
+    await handle.close();
+  }
+}
+
 function parseTranslationCatalog(text, locale) {
   let catalog;
   try {
@@ -98,22 +118,30 @@ function registerExtensions({
 
   async function readManifest(root, currentLimits, appVersion) {
     const manifestPath = path.resolve(root, 'manifest.json');
+    let handle;
     let stat;
     try {
-      stat = await fs.stat(manifestPath);
+      handle = await fs.open(manifestPath, 'r');
+      stat = await handle.stat();
     } catch (error) {
+      await handle?.close();
       manifestCache.delete(manifestPath);
       throw error;
     }
-    const cached = manifestCache.get(manifestPath);
-    if (cached && cached.mtimeMs === stat.mtimeMs && cached.size === stat.size) {
-      if (cached.error) {
-        throw new Error(cached.error);
+    let source;
+    try {
+      const cached = manifestCache.get(manifestPath);
+      if (cached && cached.mtimeMs === stat.mtimeMs && cached.size === stat.size) {
+        if (cached.error) {
+          throw new Error(cached.error);
+        }
+        return cached;
       }
-      return cached;
+      manifestCache.delete(manifestPath);
+      source = await handle.readFile('utf8');
+    } finally {
+      await handle.close();
     }
-    manifestCache.delete(manifestPath);
-    const source = await fs.readFile(manifestPath, 'utf8');
     let raw;
     try {
       raw = JSON.parse(source);
@@ -283,10 +311,13 @@ function registerExtensions({
     let source = null;
     if (item.main) {
       const file = await containedFile(item.root, item.main, '.js');
-      if ((await fs.stat(file)).size > currentLimits.extensionSourceBytes) {
-        throw new Error(`Extension script exceeds ${currentLimits.extensionSourceBytes} bytes.`);
-      }
-      source = await fs.readFile(file, 'utf8');
+      source = (
+        await readExtensionFile(
+          file,
+          currentLimits.extensionSourceBytes,
+          `Extension script exceeds ${currentLimits.extensionSourceBytes} bytes.`
+        )
+      ).toString('utf8');
     }
     const themes = [];
     const themeGroups = [];
@@ -298,17 +329,19 @@ function registerExtensions({
     let templateBytes = 0;
     const readTheme = async (theme) => {
       const file = await containedFile(item.root, theme, '.json');
-      const size = (await fs.stat(file)).size;
-      if (size > currentLimits.themeFileBytes) {
-        throw new Error(`Theme file exceeds ${currentLimits.themeFileBytes} bytes.`);
-      }
+      const data = await readExtensionFile(
+        file,
+        currentLimits.themeFileBytes,
+        `Theme file exceeds ${currentLimits.themeFileBytes} bytes.`
+      );
+      const size = data.length;
       themePreviewBytes += size;
       if (themePreviewBytes > currentLimits.themePreviewBytes) {
         throw new Error(
           `Extension theme previews exceed ${currentLimits.themePreviewBytes} bytes.`
         );
       }
-      return JSON.parse(await fs.readFile(file, 'utf8'));
+      return JSON.parse(data.toString('utf8'));
     };
     for (const theme of item.contributes.themes) {
       themes.push(await readTheme(theme));
@@ -323,19 +356,22 @@ function registerExtensions({
     }
     for (const [locale, relative] of Object.entries(item.contributes.translations ?? {})) {
       const file = await containedFile(item.root, relative, '.json');
-      const size = (await fs.stat(file)).size;
-      if (size > MAX_TRANSLATION_BYTES) {
-        throw new Error(`Translation catalog exceeds ${MAX_TRANSLATION_BYTES} bytes.`);
-      }
-      translations[locale] = parseTranslationCatalog(await fs.readFile(file, 'utf8'), locale);
+      const data = await readExtensionFile(
+        file,
+        MAX_TRANSLATION_BYTES,
+        `Translation catalog exceeds ${MAX_TRANSLATION_BYTES} bytes.`
+      );
+      translations[locale] = parseTranslationCatalog(data.toString('utf8'), locale);
     }
     for (const font of item.contributes.fonts ?? []) {
       const extension = path.extname(font.file).toLowerCase();
       const file = await containedFile(item.root, font.file, extension);
-      const size = (await fs.stat(file)).size;
-      if (size > MAX_FONT_BYTES) {
-        throw new Error(`Extension font exceeds ${MAX_FONT_BYTES} bytes.`);
-      }
+      const data = await readExtensionFile(
+        file,
+        MAX_FONT_BYTES,
+        `Extension font exceeds ${MAX_FONT_BYTES} bytes.`
+      );
+      const size = data.length;
       fontBytes += size;
       if (fontBytes > MAX_FONT_TOTAL_BYTES) {
         throw new Error(`Extension fonts exceed ${MAX_FONT_TOTAL_BYTES} bytes.`);
@@ -347,15 +383,17 @@ function registerExtensions({
         license: font.license,
         source: font.source,
         mimeType: FONT_MIME_TYPES[extension],
-        data: (await fs.readFile(file)).toString('base64'),
+        data: data.toString('base64'),
       });
     }
     for (const template of item.contributes.templates ?? []) {
       const file = await containedFile(item.root, template.file, '.md');
-      const size = (await fs.stat(file)).size;
-      if (size > MAX_TEMPLATE_BYTES) {
-        throw new Error(`Extension template exceeds ${MAX_TEMPLATE_BYTES} bytes.`);
-      }
+      const data = await readExtensionFile(
+        file,
+        MAX_TEMPLATE_BYTES,
+        `Extension template exceeds ${MAX_TEMPLATE_BYTES} bytes.`
+      );
+      const size = data.length;
       templateBytes += size;
       if (templateBytes > MAX_TEMPLATE_TOTAL_BYTES) {
         throw new Error(`Extension templates exceed ${MAX_TEMPLATE_TOTAL_BYTES} bytes.`);
@@ -363,7 +401,7 @@ function registerExtensions({
       templates.push({
         id: template.id,
         title: template.title,
-        content: await fs.readFile(file, 'utf8'),
+        content: data.toString('utf8'),
       });
     }
     const initialized = readConfig().initializedExtensions;
@@ -737,15 +775,8 @@ function registerExtensions({
       throw new Error('Invalid encoding.');
     }
     const file = await containedFileAny(item.root, relPath);
-    const stat = await fs.stat(file);
-    if (!stat.isFile()) {
-      throw new Error('Not a file.');
-    }
     const max = 2 * 1024 * 1024;
-    if (stat.size > max) {
-      throw new Error(`Extension file exceeds ${max} bytes.`);
-    }
-    const data = await fs.readFile(file);
+    const data = await readExtensionFile(file, max, `Extension file exceeds ${max} bytes.`);
     return encoding === 'base64' ? data.toString('base64') : data.toString('utf8');
   });
 

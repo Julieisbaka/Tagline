@@ -57,11 +57,19 @@ function registerTimerSound({ app, ipcMain, dialog, getWindow }) {
     if (!format) {
       throw new Error('Unsupported timer sound format.');
     }
-    const stat = await fs.stat(source);
-    if (stat.size > MAX_SOUND_BYTES) {
+    const handle = await fs.open(source, 'r');
+    let data;
+    try {
+      if ((await handle.stat()).size > MAX_SOUND_BYTES) {
+        throw new Error('Timer sound files must be 10 MB or smaller.');
+      }
+      data = await handle.readFile();
+    } finally {
+      await handle.close();
+    }
+    if (data.length > MAX_SOUND_BYTES) {
       throw new Error('Timer sound files must be 10 MB or smaller.');
     }
-    const data = await fs.readFile(source);
     if (!format.valid(data)) {
       throw new Error('The selected file is not a valid audio file of that format.');
     }

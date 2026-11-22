@@ -787,7 +787,7 @@ test('extension scans cache manifests by modification time and size', async () =
   const root = await fsAsync.mkdtemp(
     path.join(require('node:os').tmpdir(), 'tagline-manifest-cache-')
   );
-  const originalReadFile = fsAsync.readFile;
+  const originalOpen = fsAsync.open;
   const manifestReads = new Map();
   let configReads = 0;
   let config = {};
@@ -807,12 +807,17 @@ test('extension scans cache manifests by modification time and size', async () =
         })
       );
     }
-    fsAsync.readFile = function (file, ...args) {
+    fsAsync.open = async function (file, ...args) {
+      const handle = await originalOpen.call(this, file, ...args);
       const full = path.resolve(String(file));
       if (files.includes(full)) {
-        manifestReads.set(full, (manifestReads.get(full) || 0) + 1);
+        const readFile = handle.readFile.bind(handle);
+        handle.readFile = (...readArgs) => {
+          manifestReads.set(full, (manifestReads.get(full) || 0) + 1);
+          return readFile(...readArgs);
+        };
       }
-      return originalReadFile.call(this, file, ...args);
+      return handle;
     };
     const handlers = {};
     registerExtensions({
@@ -872,7 +877,7 @@ test('extension scans cache manifests by modification time and size', async () =
     await handlers['extensions:list']();
     assert.deepEqual([...manifestReads.values()], [4, 2], 'limit changes clear validation results');
   } finally {
-    fsAsync.readFile = originalReadFile;
+    fsAsync.open = originalOpen;
     await fsAsync.rm(root, { recursive: true, force: true });
   }
 });

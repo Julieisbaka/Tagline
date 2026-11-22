@@ -61,17 +61,22 @@ async function loadVault(dir, base, includeContents) {
     Array.from({ length: Math.min(FILE_CONCURRENCY, files.length) }, async () => {
       while (next < files.length) {
         const { full, node } = files[next++];
-        const stat = await fs.stat(full);
-        node.mtime = stat.mtimeMs;
-        if (includeContents) {
-          seen.add(node.path);
-          const cached = cachedContents.get(node.path);
-          const text =
-            cached && cached.mtimeMs === stat.mtimeMs && cached.size === stat.size
-              ? cached.text
-              : await fs.readFile(full, 'utf8');
-          cachedContents.set(node.path, { mtimeMs: stat.mtimeMs, size: stat.size, text });
-          texts.set(node.path, text);
+        const handle = await fs.open(full, 'r');
+        try {
+          const stat = await handle.stat();
+          node.mtime = stat.mtimeMs;
+          if (includeContents) {
+            seen.add(node.path);
+            const cached = cachedContents.get(node.path);
+            const text =
+              cached && cached.mtimeMs === stat.mtimeMs && cached.size === stat.size
+                ? cached.text
+                : await handle.readFile('utf8');
+            cachedContents.set(node.path, { mtimeMs: stat.mtimeMs, size: stat.size, text });
+            texts.set(node.path, text);
+          }
+        } finally {
+          await handle.close();
         }
       }
     })

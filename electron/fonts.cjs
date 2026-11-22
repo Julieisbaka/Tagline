@@ -47,11 +47,19 @@ function registerFonts({ app, ipcMain, dialog, getWindow }) {
     if (!types[path.extname(source).toLowerCase()]) {
       throw new Error('Unsupported font format.');
     }
-    const stat = await fs.stat(source);
-    if (stat.size > 20 * 1024 * 1024) {
+    const handle = await fs.open(source, 'r');
+    let data;
+    try {
+      if ((await handle.stat()).size > 20 * 1024 * 1024) {
+        throw new Error('Font files must be smaller than 20 MB.');
+      }
+      data = await handle.readFile();
+    } finally {
+      await handle.close();
+    }
+    if (data.length > 20 * 1024 * 1024) {
       throw new Error('Font files must be smaller than 20 MB.');
     }
-    const data = await fs.readFile(source);
     const signature = data.subarray(0, 4).toString('hex');
     if (!['774f4632', '774f4646', '00010000', '4f54544f', '74727565'].includes(signature)) {
       throw new Error('Invalid font file.');

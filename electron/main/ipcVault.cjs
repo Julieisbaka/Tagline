@@ -226,8 +226,12 @@ function registerVaultIpc(
     for (const [rel, content] of Object.entries(SAMPLE_VAULT)) {
       const full = resolveInVault(rel);
       await fs.mkdir(path.dirname(full), { recursive: true });
-      if (!fssync.existsSync(full)) {
-        await fs.writeFile(full, content, 'utf8');
+      try {
+        await fs.writeFile(full, content, { encoding: 'utf8', flag: 'wx' });
+      } catch (error) {
+        if (error.code !== 'EEXIST') {
+          throw error;
+        }
       }
     }
     return info;

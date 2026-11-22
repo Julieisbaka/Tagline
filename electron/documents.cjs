@@ -129,7 +129,20 @@ function registerDocuments({ ipcMain, dialog, getWindow, readConfig }) {
     let total = 0;
     let pandoc;
     for (const file of result.filePaths) {
-      const size = (await fs.stat(file)).size;
+      const handle = await fs.open(file, 'r');
+      let size;
+      let markdown;
+      try {
+        size = (await handle.stat()).size;
+        if (size <= 5 * 1024 * 1024 && total + size <= 20 * 1024 * 1024) {
+          const extension = path.extname(file).toLowerCase();
+          if (['.md', '.txt'].includes(extension)) {
+            markdown = await handle.readFile('utf8');
+          }
+        }
+      } finally {
+        await handle.close();
+      }
       total += size;
       if (size > 5 * 1024 * 1024 || total > 20 * 1024 * 1024) {
         throw new Error('Reading imports are limited to 5 MB per document and 20 MB per batch.');
@@ -137,7 +150,7 @@ function registerDocuments({ ipcMain, dialog, getWindow, readConfig }) {
       const extension = path.extname(file).toLowerCase();
       let converted;
       if (['.md', '.txt'].includes(extension)) {
-        converted = { markdown: await fs.readFile(file, 'utf8'), warnings: '' };
+        converted = { markdown, warnings: '' };
       } else {
         pandoc ||= await detectPandoc(readConfig().pandocPath || '');
         if (!pandoc.available) {

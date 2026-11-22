@@ -700,7 +700,7 @@ test('fs:create and fs:mkdir stop after ten EEXIST collisions', async () => {
   assert.equal(folderAttempts, 10);
 });
 
-test('startup and recent vaults can recover a missing root; cancelling sample creation never writes files', async (t) => {
+test('startup and recent vaults recover a missing root; sample creation never overwrites existing files', async (t) => {
   const { root, parent } = await fixture(t);
   await seed(root);
   const profile = path.join(parent, 'Profile');
@@ -752,4 +752,11 @@ test('startup and recent vaults can recover a missing root; cancelling sample cr
     code: 'ENOENT',
   });
   assert.equal(state.vaultRoot, root);
+
+  const sampleRoot = path.join(parent, 'Tagline Sample Vault');
+  await fs.mkdir(sampleRoot);
+  await fs.writeFile(path.join(sampleRoot, 'Sample.md'), 'existing sample');
+  dialog.showOpenDialog = async () => ({ canceled: false, filePaths: [parent] });
+  await handlers['vault:createSample']({});
+  assert.equal(await fs.readFile(path.join(sampleRoot, 'Sample.md'), 'utf8'), 'existing sample');
 });

@@ -81,26 +81,32 @@ test('platform: snapshot scans once, reads each file once, and bounds parallel f
     stats = 0,
     active = 0,
     peak = 0;
-  for (const name of ['readdir', 'readFile', 'stat']) {
-    const original = fs[name];
-    t.mock.method(fs, name, async (...args) => {
-      if (name === 'readdir') {
-        directories++;
-      }
-      if (name === 'readFile') {
-        reads++;
-      }
-      if (name === 'stat') {
-        stats++;
-      }
-      peak = Math.max(peak, ++active);
-      try {
-        return await original(...args);
-      } finally {
-        active--;
-      }
-    });
-  }
+  const originalReaddir = fs.readdir;
+  t.mock.method(fs, 'readdir', async (...args) => {
+    directories++;
+    return originalReaddir(...args);
+  });
+  const originalOpen = fs.open;
+  t.mock.method(fs, 'open', async (...args) => {
+    const handle = await originalOpen(...args);
+    for (const name of ['readFile', 'stat']) {
+      const original = handle[name].bind(handle);
+      handle[name] = async (...methodArgs) => {
+        if (name === 'readFile') {
+          reads++;
+        } else {
+          stats++;
+        }
+        peak = Math.max(peak, ++active);
+        try {
+          return await original(...methodArgs);
+        } finally {
+          active--;
+        }
+      };
+    }
+    return handle;
+  });
   assert.equal(Object.keys((await readVaultSnapshot(dir)).contents).length, 65);
   assert.equal(directories, 2);
   assert.equal(reads, 65);
@@ -117,13 +123,18 @@ test('snapshot content cache invalidates on mtime or size changes', async (t) =>
   const file = path.join(dir, 'Note.md');
   await fs.writeFile(file, 'initial');
   await readVaultSnapshot(dir);
-  const originalReadFile = fs.readFile;
+  const originalOpen = fs.open;
   let reads = 0;
-  t.mock.method(fs, 'readFile', async (target, ...args) => {
+  t.mock.method(fs, 'open', async (target, ...args) => {
+    const handle = await originalOpen(target, ...args);
     if (target === file) {
-      reads++;
+      const readFile = handle.readFile.bind(handle);
+      handle.readFile = (...readArgs) => {
+        reads++;
+        return readFile(...readArgs);
+      };
     }
-    return originalReadFile(target, ...args);
+    return handle;
   });
 
   await readVaultSnapshot(dir);
@@ -158,12 +169,15 @@ test('platform: snapshot propagates filesystem errors instead of returning a par
   const dir = await fixture(t);
   await assert.rejects(readVaultSnapshot(path.join(dir, 'missing')), { code: 'ENOENT' });
   await fs.writeFile(path.join(dir, 'Note.md'), 'Note');
-  const readFile = fs.readFile;
-  t.mock.method(fs, 'readFile', async (file, ...args) => {
+  const originalOpen = fs.open;
+  t.mock.method(fs, 'open', async (file, ...args) => {
+    const handle = await originalOpen(file, ...args);
     if (file === path.join(dir, 'Note.md')) {
-      throw new Error('Cannot read note');
+      handle.readFile = async () => {
+        throw new Error('Cannot read note');
+      };
     }
-    return readFile(file, ...args);
+    return handle;
   });
   await assert.rejects(readVaultSnapshot(dir), /Cannot read note/);
 });

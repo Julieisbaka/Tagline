@@ -543,18 +543,28 @@ function createGoogleDocs({ app, safeStorage, dialog, shell, getWindow, fetchImp
     const file = result.filePaths[0];
     const suffix = path.extname(file);
     const extension = suffix.toLowerCase();
-    const stat = await fs.stat(file);
-    if (
-      !stat.isFile() ||
-      stat.size > MAX_BYTES ||
-      !['.docx', '.html', '.htm'].includes(extension)
-    ) {
+    if (!['.docx', '.html', '.htm'].includes(extension)) {
+      throw new Error('Choose a DOCX or HTML file no larger than 5 MiB.');
+    }
+    const handle = await fs.open(file, 'r');
+    let stat;
+    let data;
+    try {
+      stat = await handle.stat();
+      if (!stat.isFile() || stat.size > MAX_BYTES) {
+        throw new Error('Choose a DOCX or HTML file no larger than 5 MiB.');
+      }
+      data = await handle.readFile();
+    } finally {
+      await handle.close();
+    }
+    if (data.length > MAX_BYTES) {
       throw new Error('Choose a DOCX or HTML file no larger than 5 MiB.');
     }
     return upload(
       path.basename(file, suffix),
       extension === '.docx' ? DOCX : 'text/html',
-      await fs.readFile(file),
+      data,
       connectionId
     );
   };
