@@ -583,6 +583,20 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
           assert.equal(externalUrls.pop(), url);
         }
         assert.equal(await js("!!document.querySelector('.website-view')"), false);
+        assert.equal(
+          await js("document.querySelector('[data-setting=embedWebsites]').checked"),
+          false
+        );
+        await done();
+
+        await js(`window.open(${JSON.stringify(website)})`);
+        for (let i = 0; i < 50 && !externalUrls.length; i++) {
+          await delay(20);
+        }
+        assert.equal(externalUrls.pop(), website);
+        assert.equal(await js("!!document.querySelector('.website-view')"), false);
+        await settings('integrations');
+        await toggle('embedWebsites', true);
         await done();
 
         await js(
