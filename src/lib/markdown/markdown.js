@@ -66,7 +66,7 @@ const createWikilinkExtension = (resolver) => ({
  * @returns {object} - The Marked inline extension object.
  */
 const makeWrap = (name, delim, tag, cls = '') => {
-  const d = delim.replace(/[+=]/g, '\\$&');
+  const d = delim.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   const re = new RegExp(`^${d}(?=\\S)([\\s\\S]*?\\S)${d}`);
   return {
     name,
