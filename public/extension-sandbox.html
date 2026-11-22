@@ -680,6 +680,7 @@
       };
       // Dedicated worker messages have no usable origin; keep host traffic on a private port.
       addEventListener('message', (event) => {
+        if (event.source !== window || !event.ports || !event.ports[0]) return;
         const port = event.ports[0];
         port.onmessage = handleMessage;
         port.start();
