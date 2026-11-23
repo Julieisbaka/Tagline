@@ -13,8 +13,8 @@ document import and other export formats use the optional [Pandoc](https://pando
 
 Download the [latest release](https://github.com/Julieisbaka/Tagline/releases/latest) for Windows or macOS.
 Release builds are unsigned and not notarized, so your operating system may show a security warning.
-The [getting started guide](https://tagline.julieisbaka.dev/docs/getting-started.html) covers your first vault and updates;
-see [vaults, backups and recovery](https://tagline.julieisbaka.dev/docs/vaults-and-backups.html) before upgrading or restoring a vault.
+The [getting started guide](https://tagline.julieisbaka.dev/docs/getting-started) covers your first vault and updates;
+see [vaults, backups and recovery](https://tagline.julieisbaka.dev/docs/vaults-and-backups) before upgrading or restoring a vault.
 
 ## Develop
 
@@ -33,6 +33,6 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for the development workflow and checks.
 
 ## Documentation
 
-Start with the [Getting started guide](https://tagline.julieisbaka.dev/docs/getting-started.html), browse the
-[Tagline documentation site](https://tagline.julieisbaka.dev/docs/index.html), or see the
+Start with the [Getting started guide](https://tagline.julieisbaka.dev/docs/getting-started), browse the
+[Tagline documentation site](https://tagline.julieisbaka.dev/docs), or see the
 [changelog](https://tagline.julieisbaka.dev/changelog.html).

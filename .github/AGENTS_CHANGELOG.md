@@ -19,7 +19,7 @@ Follow these rules whenever a change affects Tagline's release notes or product 
 
 ## Product and developer documentation
 
-- `docs/` is the authoritative home for Tagline's user-facing and developer documentation. `website/docs/` is a temporary GitHub Pages fallback pending the Mintlify cutover; do not edit it as the primary documentation.
+- `docs/` is the authoritative home for Tagline's user-facing and developer documentation. The `website/` directory contains the separate marketing site, changelog, and legal pages.
 - For every change, check whether it changes documented behavior, workflows, settings, installation or update steps, file formats, or APIs. Update the relevant MDX page under `docs/` when needed; create a new page when no existing page covers a substantial new topic.
 - When creating a documentation page, follow the existing MDX conventions, add the page to `docs/docs.json` and the documentation home, and link to it from related pages where useful. Preserve existing heading IDs and legacy redirects.
 - Keep documentation accurate to the implementation and explain behavior from the user's perspective. The changelog is not a substitute for documentation.

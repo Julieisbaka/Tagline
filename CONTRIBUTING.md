@@ -25,7 +25,7 @@ Thanks for your interest in contributing to Tagline, a knowledge vault and works
 - `tests/` — unit tests (`*.test.cjs`) and smoke tests (`*-smoke.cjs`).
 - `scripts/` — build and utility scripts.
 - `docs/` — Mintlify user guides and technical references.
-- `website/` — static GitHub Pages marketing site, changelog, legal pages, and temporary legacy documentation.
+- `website/` — static GitHub Pages marketing site, changelog, and legal pages.
 - `extensions/registry.json` — community extension registry shown in the in-app extension browser.
 - `build/` — app icons and branding.
 
@@ -50,10 +50,9 @@ npx mint@4.3.87 broken-links --check-anchors
 ```
 
 The GitHub Pages site is built with `npm run build:website`, which recreates `website-build/`; do not
-edit that output. The old `website/docs/` HTML is a temporary fallback until the Mintlify and Cloudflare
-cutover is verified. Edit the MDX guides, not the fallback, for future documentation changes.
+edit that output. Its documentation links point to the Mintlify site.
 
-### Publishing and cutover
+### Publishing and hosting
 
 Connect this repository and its deployment branch in Mintlify's
 [Git settings](https://app.mintlify.com/settings/project/git-settings), setting the documentation directory
@@ -62,13 +61,14 @@ to `/docs`. In [custom domain setup](https://app.mintlify.com/settings/project/c
 Deploy the documentation before routing traffic to it.
 
 Follow Mintlify's [Cloudflare subpath guide](https://www.mintlify.com/docs/deploy/cloudflare) to deploy the
-dashboard-generated Worker using the actual `*.mintlify.site` origin. Route `/docs`, `/docs/*`,
-`/_mintlify/*`, `/mintlify-assets/*`, and the required verification paths; retain GitHub Pages as the origin
-for the rest of the site. Follow the [reverse proxy requirements](https://www.mintlify.com/docs/deploy/reverse-proxy)
+Worker using the actual `*.mintlify.site` origin. Add Worker routes for `/docs*`, `/_mintlify/*`,
+`/mintlify-assets/*`, and `/.well-known/vercel/*`. The Worker must proxy `/docs`, `/docs/*`, and the
+asset and verification paths while passing other requests, including `/docs*` matches outside `/docs/`,
+to GitHub Pages. Follow the [reverse proxy requirements](https://www.mintlify.com/docs/deploy/reverse-proxy)
 for headers and caching. Do not replace the site's DNS or route all traffic to a docs-only Worker.
-Verify the landing page, docs, assets, search, a legacy `.html` link with an anchor, and the generated
-`/docs/llms.txt` before removing the fallback HTML. DNS, account authorization, project settings, and
-the Cloudflare Worker must be configured by an authorized maintainer.
+After routing changes, verify the landing page, docs, assets, search, a legacy `.html` link with an anchor,
+and the generated `/docs/llms.txt`. DNS, account authorization, project settings, and the Cloudflare Worker
+must be configured by an authorized maintainer.
 
 ## Testing
 
@@ -106,7 +106,7 @@ The engine copies the entire vault (including binary files and hidden metadata),
 
 ## Submitting an extension
 
-Community extensions appear in **Settings > Extensions > Browse extensions** when their GitHub URL is listed in [`extensions/registry.json`](extensions/registry.json). To add yours, open a pull request that appends `{ "url": "https://github.com/owner/repo" }` (or `https://github.com/owner/repo/tree/<ref>/<folder>` for a tag, branch, or subfolder). The folder must contain a `manifest.json` that validates against `schemas/extension-manifest.schema.json` and whose `sourceUrl` matches the registry URL exactly (same repository, ref, and folder); the Extension registry workflow checks every listed manifest. See [Browse and publish extensions](https://tagline.julieisbaka.dev/docs/extension-api.html#registry).
+Community extensions appear in **Settings > Extensions > Browse extensions** when their GitHub URL is listed in [`extensions/registry.json`](extensions/registry.json). To add yours, open a pull request that appends `{ "url": "https://github.com/owner/repo" }` (or `https://github.com/owner/repo/tree/<ref>/<folder>` for a tag, branch, or subfolder). The folder must contain a `manifest.json` that validates against `schemas/extension-manifest.schema.json` and whose `sourceUrl` matches the registry URL exactly (same repository, ref, and folder); the Extension registry workflow checks every listed manifest. See [Browse and publish extensions](https://tagline.julieisbaka.dev/docs/extension-api#registry).
 
 Scholarly Search is a bundled core plugin; its source is in `extensions/scholarly-search` and it uses the extension runtime and permissions. An installed customized copy needs a different manifest ID while the bundled plugin is present.
 

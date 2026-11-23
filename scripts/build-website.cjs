@@ -2,7 +2,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const { pathToFileURL } = require('node:url');
 
-// Website pages reference values derived from the code with {{TAGLINE:KIND:argument}} tokens:
+// The documentation value sync uses {{TAGLINE:KIND:argument}} tokens resolved from code:
 //   SETTING:key           default from src/lib/settings/defaultSettings.json
 //   KEY:id                default shortcut from src/lib/commands/keybindings.json (Mod = Ctrl/Cmd)
 //   KEY_WIN:id / KEY_MAC:id  the same shortcut with Mod written as Ctrl / Cmd
