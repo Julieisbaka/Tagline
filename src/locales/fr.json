@@ -413,6 +413,8 @@
   "Build type": "Type de compilation",
   "Packaged application": "Application empaquetée",
   "Development build": "Version de développement",
+  "deprecated": "obsolète",
+  "French interface translations are deprecated and will be removed in a future version. Choose English or Español to continue receiving interface updates.": "Les traductions françaises de l'interface sont obsolètes et seront supprimées dans une future version. Choisissez l'anglais ou l'espagnol pour continuer à recevoir les mises à jour de l'interface.",
   "Operating system": "Système d’exploitation",
   "Architecture": "Architecture",
   "Application executable": "Exécutable de l’application",

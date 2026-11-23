@@ -198,11 +198,18 @@ export default function ThemeSettings({ settings, update }) {
         >
           {Object.entries(LANGUAGES).map(([id, name]) => (
             <option key={id} value={id}>
-              {name}
+              {id === 'fr' ? `${name} (${t('deprecated')})` : name}
             </option>
           ))}
         </select>
       </label>
+      {settings.language === 'fr' && (
+        <p className='hint' role='status'>
+          {t(
+            'French interface translations are deprecated and will be removed in a future version. Choose English or Español to continue receiving interface updates.'
+          )}
+        </p>
+      )}
       <label className='setting-row'>
         <span>{t('Theme')}</span>
         <select
