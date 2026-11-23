@@ -4,6 +4,9 @@
   "extensions": [
     {
       "url": "https://github.com/Julieisbaka/Tagline/tree/main/demo/tagline-api-demo"
+    },
+    {
+      "url": "https://github.com/Julieisbaka/Tagline/tree/main/extensions/scholarly-search"
     }
   ]
 }

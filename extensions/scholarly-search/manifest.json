@@ -1,0 +1,15 @@
+{
+  "manifestVersion": 1,
+  "id": "scholarly-search",
+  "name": "Scholarly Search",
+  "version": "1.0.0",
+  "description": "Search Crossref and create evidence cards from reviewed source metadata.",
+  "authors": ["Tagline contributors"],
+  "sourceUrl": "https://github.com/Julieisbaka/Tagline/tree/main/extensions/scholarly-search",
+  "main": "main.js",
+  "permissions": ["ui", "network", "vault:write"],
+  "networkHosts": ["api.crossref.org"],
+  "contributes": {
+    "webviews": [{ "id": "search", "title": "Scholarly (Crossref)", "placement": "search" }]
+  }
+}

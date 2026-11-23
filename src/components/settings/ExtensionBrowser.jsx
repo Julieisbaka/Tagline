@@ -130,7 +130,8 @@ export default function ExtensionBrowser({ extensions, permissionLabels }) {
           <ul className='extension-list'>
             {entries.map((entry) => {
               const current = entry.id && installed.get(entry.id);
-              const update = !!current && current.version !== entry.version;
+              // Bundled plugins are updated with Tagline, not replaced by registry installs.
+              const update = !!current && !current.core && current.version !== entry.version;
               return (
                 <li key={entry.url} className='extension-card' data-registry-extension={entry.url}>
                   <div className='extension-head'>

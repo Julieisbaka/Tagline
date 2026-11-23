@@ -781,6 +781,87 @@ test('platform: settings and event permission changes require a fresh manifest r
   }
 });
 
+test('platform: bundled plugins use extension lifecycle, permissions and protected identities', async () => {
+  const fs = require('node:fs/promises');
+  const { registerExtensions } = require('../electron/extensions.cjs');
+  const root = await fs.mkdtemp(path.join(require('node:os').tmpdir(), 'tagline-core-'));
+  try {
+    const appPath = path.join(root, 'app');
+    const profile = path.join(root, 'profile');
+    const source = path.resolve(__dirname, '../extensions/scholarly-search');
+    const bundled = path.join(appPath, 'extensions', 'scholarly-search');
+    await fs.mkdir(path.dirname(bundled), { recursive: true });
+    await fs.cp(source, bundled, { recursive: true });
+    let config = {};
+    const handlers = {};
+    registerExtensions({
+      assertMainFrameSender: () => {},
+      app: { getPath: () => profile, getAppPath: () => appPath },
+      ipcMain: { handle: (name, fn) => (handlers[name] = fn) },
+      readConfig: () => config,
+      writeConfig: (patch) => {
+        config = { ...config, ...patch };
+      },
+    });
+    let [item] = await handlers['extensions:list']();
+    assert.equal(item.id, 'scholarly-search');
+    assert.equal(item.core, true);
+    assert.equal(item.enabled, true);
+    assert.equal(item.reviewRequired, false);
+    assert.match(
+      (await handlers['extensions:load'](null, item.id)).source,
+      /tagline\.network\.fetch/
+    );
+    await assert.rejects(
+      handlers['extensions:uninstall'](null, item.folder),
+      /cannot be uninstalled/
+    );
+    await assert.rejects(handlers['extensions:installFolder'](null, source), /bundled core plugin/);
+    await handlers['extensions:setPermissions'](
+      null,
+      item.id,
+      ['ui', 'vault:write'],
+      item.reviewToken
+    );
+    assert.deepEqual((await handlers['extensions:list']())[0].allowedPermissions, [
+      'ui',
+      'vault:write',
+    ]);
+    await assert.rejects(
+      handlers['extensions:networkFetch'](null, item.id, 'https://api.crossref.org/works'),
+      /Network permission/
+    );
+    await handlers['extensions:setEnabled'](null, item.id, false);
+    assert.equal(config.corePluginEnabled[item.id], false);
+    assert.equal((await handlers['extensions:list']())[0].enabled, false);
+    await assert.rejects(handlers['extensions:load'](null, item.id), /disabled/);
+    await handlers['extensions:setEnabled'](null, item.id, true, item.reviewToken);
+    assert.equal(config.corePluginEnabled[item.id], true);
+    assert.deepEqual(config.enabledExtensions, []);
+    const manifestFile = path.join(bundled, 'manifest.json');
+    const manifest = JSON.parse(await fs.readFile(manifestFile, 'utf8'));
+    manifest.networkHosts.push('example.com');
+    await fs.writeFile(manifestFile, JSON.stringify(manifest));
+    [item] = await handlers['extensions:list']();
+    assert.equal(item.enabled, false);
+    assert.equal(item.reviewRequired, true);
+    await assert.rejects(
+      handlers['extensions:setEnabled'](null, item.id, true),
+      /Reload and review/
+    );
+    await handlers['extensions:setEnabled'](null, item.id, true, item.reviewToken);
+    assert.equal((await handlers['extensions:list']())[0].enabled, true);
+    const duplicate = path.join(profile, 'extensions', 'copy');
+    await fs.mkdir(duplicate, { recursive: true });
+    await fs.writeFile(path.join(duplicate, 'manifest.json'), JSON.stringify(manifest));
+    const entries = await handlers['extensions:list']();
+    assert.equal(entries.filter((entry) => entry.id === 'scholarly-search').length, 1);
+    assert.match(entries.find((entry) => entry.folder === 'copy').error, /Duplicate extension id/);
+  } finally {
+    await fs.rm(root, { recursive: true, force: true });
+  }
+});
+
 test('extension scans cache manifests by modification time and size', async () => {
   const fsAsync = require('node:fs/promises');
   const { registerExtensions } = require('../electron/extensions.cjs');

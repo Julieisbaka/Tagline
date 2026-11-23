@@ -1,0 +1,101 @@
+<style>
+  .search-row { display:flex; gap:8px; align-items:center; }
+  .search-row input { flex:1; min-width:0; }
+  .result { border-bottom:1px solid var(--border); padding:10px 0; }
+  .result p { margin:4px 0; }
+  label { display:block; margin:8px 0; }
+  label span { display:block; }
+  label input, textarea { width:100%; }
+  .actions { display:flex; gap:8px; margin-top:10px; }
+</style>
+<p>Search sends your query to Crossref. Results are scholarly metadata, not a direct JSTOR search. Full text may require access.</p>
+<div class="search-row"><input id="query" aria-label="Search scholarly works" placeholder="Search scholarly works…" maxlength="300"><button id="search">Search Crossref</button></div>
+<p id="status" role="status" aria-live="polite"></p>
+<div id="results"></div>
+<section id="draft" hidden>
+  <h4>Cut evidence card</h4>
+  <p>Review the citation and paste an excerpt from the source you have permission to use.</p>
+  <label><span>Author</span><input id="author"></label>
+  <label><span>Year</span><input id="year"></label>
+  <label><span>Title</span><input id="title"></label>
+  <label><span>Publication</span><input id="publication"></label>
+  <label><span>Article URL</span><input id="url"></label>
+  <label><span>Card tag</span><input id="tag" maxlength="200"></label>
+  <label><span>Source excerpt</span><textarea id="excerpt" rows="7" maxlength="200000"></textarea></label>
+  <div class="actions"><button id="back">Back to results</button><button id="save">Save card to vault</button></div>
+</section>
+<script>
+  const el = (id) => document.getElementById(id);
+  const send = (payload) => taglineWebview.postMessage(payload);
+  const translations = {
+    es: {
+      'Search sends your query to Crossref. Results are scholarly metadata, not a direct JSTOR search. Full text may require access.': 'La búsqueda envía tu consulta a Crossref. Los resultados son metadatos académicos, no una búsqueda directa en JSTOR. El texto completo puede requerir acceso.',
+      'Search scholarly works': 'Buscar trabajos académicos', 'Search scholarly works…': 'Buscar trabajos académicos…', 'Search Crossref': 'Buscar en Crossref',
+      'Cut evidence card': 'Cortar tarjeta de evidencia', 'Review the citation and paste an excerpt from the source you have permission to use.': 'Revisa la cita y pega un extracto de la fuente que tengas permiso para usar.',
+      'Author': 'Autor', 'Year': 'Año', 'Title': 'Título', 'Publication': 'Publicación', 'Article URL': 'URL del artículo', 'Card tag': 'Etiqueta de tarjeta', 'Source excerpt': 'Extracto de la fuente',
+      'Back to results': 'Volver a los resultados', 'Save card to vault': 'Guardar tarjeta en el repositorio', 'Searching…': 'Buscando…', 'Saving…': 'Guardando…',
+      'Enter a card tag and source excerpt.': 'Introduce una etiqueta de tarjeta y un extracto de la fuente.', 'No scholarly results found.': 'No se encontraron resultados académicos.',
+      'Open source': 'Abrir fuente', 'Cut card': 'Cortar tarjeta', 'Saved card: ': 'Tarjeta guardada: ',
+      'Enter a search of at most 300 characters.': 'Introduce una búsqueda de hasta 300 caracteres.', 'Crossref returned invalid search results.': 'Crossref devolvió resultados de búsqueda no válidos.', 'Source excerpt is too long.': 'El extracto de la fuente es demasiado largo.'
+    },
+    fr: {
+      'Search sends your query to Crossref. Results are scholarly metadata, not a direct JSTOR search. Full text may require access.': 'La recherche envoie votre requête à Crossref. Les résultats sont des métadonnées scientifiques, et non une recherche directe dans JSTOR. Le texte intégral peut nécessiter un accès.',
+      'Search scholarly works': 'Rechercher des travaux scientifiques', 'Search scholarly works…': 'Rechercher des travaux scientifiques…', 'Search Crossref': 'Rechercher dans Crossref',
+      'Cut evidence card': 'Découper une fiche de preuve', 'Review the citation and paste an excerpt from the source you have permission to use.': 'Vérifiez la citation et collez un extrait de la source que vous êtes autorisé à utiliser.',
+      'Author': 'Auteur', 'Year': 'Année', 'Title': 'Titre', 'Publication': 'Publication', 'Article URL': 'URL de l’article', 'Card tag': 'Titre de la fiche', 'Source excerpt': 'Extrait de la source',
+      'Back to results': 'Retour aux résultats', 'Save card to vault': 'Enregistrer la fiche dans le coffre', 'Searching…': 'Recherche…', 'Saving…': 'Enregistrement…',
+      'Enter a card tag and source excerpt.': 'Saisissez un titre de fiche et un extrait de la source.', 'No scholarly results found.': 'Aucun résultat scientifique trouvé.',
+      'Open source': 'Ouvrir la source', 'Cut card': 'Découper la fiche', 'Saved card: ': 'Fiche enregistrée : ',
+      'Enter a search of at most 300 characters.': 'Saisissez une recherche de 300 caractères maximum.', 'Crossref returned invalid search results.': 'Crossref a renvoyé des résultats de recherche invalides.', 'Source excerpt is too long.': 'L’extrait de la source est trop long.'
+    }
+  };
+  const catalog = translations[document.documentElement.lang.split('-')[0]] || {};
+  const t = (text) => catalog[text] || text;
+  document.querySelectorAll('p, label span, button, h4').forEach((node) => { node.textContent = t(node.textContent); });
+  el('query').placeholder = t(el('query').placeholder);
+  el('query').setAttribute('aria-label', t(el('query').getAttribute('aria-label')));
+  let busy = false;
+  function searching() {
+    if (busy || !el('query').value.trim()) return;
+    busy = true; el('status').textContent = t('Searching…'); el('search').disabled = true;
+    el('draft').hidden = true; el('results').replaceChildren();
+    send({ type: 'search', query: el('query').value });
+  }
+  el('search').onclick = searching;
+  el('query').onkeydown = (event) => { if (event.key === 'Enter') searching(); };
+  el('back').onclick = () => { el('draft').hidden = true; el('results').hidden = false; };
+  el('save').onclick = async () => {
+    if (busy) return;
+    const quote = el('excerpt').value;
+    if (!el('tag').value.trim() || !quote.trim()) { el('status').textContent = t('Enter a card tag and source excerpt.'); return; }
+    busy = true; el('save').disabled = true; el('status').textContent = t('Saving…');
+    send({ type: 'excerpt-start' });
+    for (let i = 0; i < quote.length; i += 10000) {
+      send({ type: 'excerpt-chunk', text: quote.slice(i, i + 10000) });
+      await new Promise((resolve) => setTimeout(resolve, 250));
+    }
+    send({ type: 'save', tag: el('tag').value, citation: Object.fromEntries(['author', 'year', 'title', 'publication', 'url'].map((key) => [key, el(key).value])) });
+  };
+  taglineWebview.onMessage((message) => {
+    if (message.type === 'search-query') { el('query').value = String(message.query || '').slice(0, 300); el('query').focus(); return; }
+    busy = false; el('search').disabled = false; el('save').disabled = false;
+    if (message.type === 'error') { el('status').textContent = t(message.message); return; }
+    if (message.type === 'saved') { el('status').textContent = t('Saved card: ') + message.path; el('draft').hidden = true; el('results').hidden = false; return; }
+    if (message.type !== 'results') return;
+    el('status').textContent = message.results.length ? '' : t('No scholarly results found.');
+    el('results').hidden = false;
+    for (const item of message.results) {
+      const row = document.createElement('div'); row.className = 'result';
+      const title = document.createElement('strong'); title.textContent = item.title;
+      const details = document.createElement('p'); details.textContent = [item.author, item.year, item.publication].filter(Boolean).join(' — ');
+      row.append(title, details);
+      if (item.url) { const open = document.createElement('button'); open.textContent = t('Open source'); open.onclick = () => send({ type: 'open', url: item.url }); row.append(open, ' '); }
+      const cut = document.createElement('button'); cut.textContent = t('Cut card'); cut.onclick = () => {
+        for (const key of ['author', 'year', 'title', 'publication', 'url']) el(key).value = item[key];
+        el('tag').value = item.title.slice(0, 200); el('excerpt').value = '';
+        el('results').hidden = true; el('draft').hidden = false;
+      };
+      row.append(cut); el('results').append(row);
+    }
+  });
+</script>

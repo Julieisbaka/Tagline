@@ -14,7 +14,7 @@ const PERMISSION_LABELS = {
   settings: "Read and change only this extension's declared settings",
   'editor:active-note': 'Watch active-note paths without reading note content',
   events: 'Subscribe to application events and exchange custom extension events',
-  ui: 'Display panels, status items and shortcuts; add context menus and file actions',
+  ui: 'Display panels, status items and shortcuts; add context menus and file actions; open notes and request external links',
   network: 'Make host-mediated HTTPS requests to reviewed hosts',
   secrets: 'Store and read OS-encrypted secrets such as API keys',
   api: 'Share versioned JSON APIs with other approved extensions',
@@ -161,13 +161,14 @@ function ExtensionSettingsForm({ item, extensions }) {
   );
 }
 
-export default function ExtensionSettings({ extensions }) {
+export default function ExtensionSettings({ extensions, core = false }) {
   const { t } = useI18n();
   const confirm = useConfirm();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
   const [dragging, setDragging] = useState(false);
+  const items = extensions.extensions.filter((item) => !!item.core === core);
   const authors = (item) => (item.authors?.length ? item.authors.join(', ') : item.author);
   const act = async (task) => {
     setBusy(true);
@@ -228,13 +229,13 @@ export default function ExtensionSettings({ extensions }) {
       className={`extension-dropzone${dragging ? ' dragging' : ''}`}
       data-extension-dropzone
       onDragEnter={(event) => {
-        if (hasFiles(event)) {
+        if (!core && hasFiles(event)) {
           event.preventDefault();
           setDragging(true);
         }
       }}
       onDragOver={(event) => {
-        if (hasFiles(event)) {
+        if (!core && hasFiles(event)) {
           event.preventDefault();
           event.dataTransfer.dropEffect = 'copy';
         }
@@ -245,7 +246,7 @@ export default function ExtensionSettings({ extensions }) {
         }
       }}
       onDrop={(event) => {
-        if (!hasFiles(event)) {
+        if (core || !hasFiles(event)) {
           return;
         }
         event.preventDefault();
@@ -254,47 +255,57 @@ export default function ExtensionSettings({ extensions }) {
         install(async () => files.map((file) => window.api.pathForFile(file)).filter(Boolean));
       }}
     >
-      <SettingsGroup title={t('Installed extensions')} collapsible={false}>
+      <SettingsGroup title={t(core ? 'Core Plugins' : 'Installed extensions')} collapsible={false}>
         <p>
           {t(
             'Extensions run in a sandbox without direct network, Node.js, or page access. The network permission can contact only the HTTPS hosts listed on the extension card. Enable only extensions you trust.'
           )}
         </p>
-        <p className='extension-drop-hint'>
-          {t('Drag an extension folder here to install it. The folder must contain manifest.json.')}
-        </p>
-        <div className='settings-actions'>
-          <button
-            disabled={busy}
-            onClick={() =>
-              install(async () => {
-                const result = await window.api.chooseExtensionFolder();
-                return result ? [result] : [];
-              })
-            }
-          >
-            {t('Install from folder…')}
-          </button>
-          <button onClick={() => act(() => window.api.openExtensionsFolder())}>
-            {t('Open extensions folder')}
-          </button>
-          <button disabled={busy} onClick={() => act(extensions.reload)}>
-            {t('Reload extensions')}
-          </button>
-        </div>
+        {!core && (
+          <p className='extension-drop-hint'>
+            {t(
+              'Drag an extension folder here to install it. The folder must contain manifest.json.'
+            )}
+          </p>
+        )}
+        {!core && (
+          <div className='settings-actions'>
+            <button
+              disabled={busy}
+              onClick={() =>
+                install(async () => {
+                  const result = await window.api.chooseExtensionFolder();
+                  return result ? [result] : [];
+                })
+              }
+            >
+              {t('Install from folder…')}
+            </button>
+            <button onClick={() => act(() => window.api.openExtensionsFolder())}>
+              {t('Open extensions folder')}
+            </button>
+            <button disabled={busy} onClick={() => act(extensions.reload)}>
+              {t('Reload extensions')}
+            </button>
+          </div>
+        )}
         {notice && <p role='status'>{notice}</p>}
         {error && (
           <p role='alert' className='error-text'>
             {error}
           </p>
         )}
-        {!extensions.extensions.length && (
+        {!items.length && (
           <p className='settings-empty'>
-            {t('No extensions installed. Drag a folder containing manifest.json onto this page.')}
+            {t(
+              core
+                ? 'No core plugins available.'
+                : 'No extensions installed. Drag a folder containing manifest.json onto this page.'
+            )}
           </p>
         )}
         <ul className='extension-list'>
-          {extensions.extensions.map((item) => (
+          {items.map((item) => (
             <li key={item.folder || item.id} className='extension-card' data-extension={item.id}>
               <div className='extension-head'>
                 <div>
@@ -417,7 +428,7 @@ export default function ExtensionSettings({ extensions }) {
                   {item.error}
                 </p>
               )}
-              {item.folder && (
+              {item.folder && !item.core && (
                 <div className='settings-actions'>
                   <button
                     disabled={busy}
@@ -443,7 +454,7 @@ export default function ExtensionSettings({ extensions }) {
           ))}
         </ul>
       </SettingsGroup>
-      <ExtensionBrowser extensions={extensions} permissionLabels={PERMISSION_LABELS} />
+      {!core && <ExtensionBrowser extensions={extensions} permissionLabels={PERMISSION_LABELS} />}
     </div>
   );
 }

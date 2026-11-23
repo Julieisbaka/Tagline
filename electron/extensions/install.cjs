@@ -56,6 +56,9 @@ function registerInstallHandlers(context) {
       await containedFile(root, theme, '.json');
     }
     const installed = await scan();
+    if (context.corePluginIds.includes(manifest.id)) {
+      throw new Error('A bundled core plugin already uses this extension id.');
+    }
     const existing = installed.find((item) => item.id === manifest.id);
     if (existing) {
       const options = {

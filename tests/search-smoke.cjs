@@ -46,6 +46,8 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
     JSON.stringify({ lastVault: vault, modelAutoload: false })
   );
   app.setPath('userData', profile);
+  // Electron is launched with this test script, so its app path is the tests folder.
+  app.getAppPath = () => path.resolve(__dirname, '..');
   let behavior = 'success';
   let resolveHeld;
   const requests = [];
@@ -311,66 +313,89 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
           'Both.md',
           'A keyword runner-up must win fusion even with a final result limit of one'
         );
-        ipcMain.removeHandler('scholarly:search');
-        ipcMain.handle('scholarly:search', async (_event, query) => {
-          assert.equal(query, 'climate policy');
-          return [
-            {
-              author: 'Ada Smith',
-              year: '2023',
-              title: 'Climate Policy',
-              publication: 'Journal',
-              url: 'https://doi.org/10.1234/example',
+        ipcMain.removeHandler('extensions:networkFetch');
+        ipcMain.handle('extensions:networkFetch', async (_event, id, url) => {
+          assert.equal(id, 'scholarly-search');
+          assert.equal(new URL(url).searchParams.get('query.bibliographic'), 'climate policy');
+          return {
+            ok: true,
+            body: {
+              status: 'ok',
+              message: {
+                items: [
+                  {
+                    DOI: '10.1234/example',
+                    title: ['Climate Policy'],
+                    author: [{ given: 'Ada', family: 'Smith' }],
+                    published: { 'date-parts': [[2023]] },
+                    'container-title': ['Journal'],
+                  },
+                ],
+              },
             },
-          ];
+          };
         });
-        await mode('scholarly');
-        await input('climate policy');
-        await js(
-          "[...document.querySelectorAll('.search button')].find(b => b.textContent === 'Search Crossref').click()"
-        );
         await wait(
-          "document.querySelector('.search-result strong')?.textContent === 'Climate Policy'"
+          '!!document.querySelector(\'option[value="extension:scholarly-search:search"]\')'
         );
-        await js(
-          "[...document.querySelectorAll('.search-result button')].find(b => b.textContent === 'Cut card').click()"
+        await input('climate policy');
+        await mode('extension:scholarly-search:search');
+        let frame;
+        for (let i = 0; i < 100; i++) {
+          frame = wc.mainFrame.framesInSubtree.find((item) =>
+            item.url.includes('extension-webview.html')
+          );
+          if (frame && (await frame.executeJavaScript("!!document.querySelector('#query')"))) {
+            break;
+          }
+          await delay(100);
+        }
+        assert.ok(frame, 'Scholarly extension surface should load');
+        const view = (code) => frame.executeJavaScript(code);
+        const waitView = require('./helpers/wait.cjs').rendererWait(view);
+        await waitView("document.querySelector('#query').value === 'climate policy'");
+        await view("document.querySelector('#search').click()");
+        await waitView(
+          "document.querySelector('.result strong')?.textContent === 'Climate Policy'"
         );
-        assert.equal(
-          await js(
-            "[...document.querySelectorAll('.search section label')].find(l => l.textContent.includes('Author')).querySelector('input').value"
-          ),
-          'Ada Smith'
+        await view(
+          "[...document.querySelectorAll('.result button')].find(b => b.textContent === 'Cut card').click()"
         );
-        const excerptLayout = await js(`(() => {
-            const dialog = document.querySelector('.search').getBoundingClientRect();
-            const excerpt = document.querySelector('.search section textarea').getBoundingClientRect();
-            return {
-              dialogLeft: dialog.left,
-              dialogRight: dialog.right,
-              excerptLeft: excerpt.left,
-              excerptRight: excerpt.right,
-              excerptWidth: excerpt.width,
-              contentPadding: getComputedStyle(document.querySelector('.scholarly-search')).paddingLeft
-            };
-          })()`);
-        assert.ok(excerptLayout.excerptLeft >= excerptLayout.dialogLeft);
-        assert.ok(excerptLayout.excerptRight <= excerptLayout.dialogRight);
-        assert.ok(excerptLayout.excerptWidth > 300);
-        assert.equal(excerptLayout.contentPadding, '14px');
-        await js(`(() => {
-          const el = document.querySelector('.search section textarea');
-          Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, 'value').set.call(el, 'Evidence from the source.');
-          el.dispatchEvent(new Event('input', { bubbles: true }));
-        })()`);
-        await js(
-          "[...document.querySelectorAll('.search button')].find(b => b.textContent === 'Save card to vault').click()"
+        assert.equal(await view("document.querySelector('#author').value"), 'Ada Smith');
+        await view(
+          "document.querySelector('#tag').value = 'Both'; document.querySelector('#excerpt').value = 'Evidence from the source.'; document.querySelector('#save').click()"
         );
-        await wait("!document.querySelector('.search')");
-        const card = await fs.readFile(path.join(vault, 'Climate Policy.md'), 'utf8');
+        await wait("!document.querySelector('.modal.search')");
+        await wait("document.querySelector('.tab.active')?.textContent.includes('Both 1')");
+        assert.equal(await fs.readFile(path.join(vault, 'Both.md'), 'utf8'), documents['Both.md']);
+        const card = await fs.readFile(path.join(vault, 'Both 1.md'), 'utf8');
         assert.match(card, /Ada Smith/);
         assert.match(card, /2023/);
         assert.match(card, /10\.1234\/example/);
         assert.match(card, /Evidence from the source\./);
+        await js("document.documentElement.lang = 'es'");
+        await openSearch();
+        await mode('extension:scholarly-search:search');
+        let spanishFrame;
+        for (let i = 0; i < 100; i++) {
+          spanishFrame = wc.mainFrame.framesInSubtree.find((item) =>
+            item.url.includes('extension-webview.html')
+          );
+          if (
+            spanishFrame &&
+            (await spanishFrame.executeJavaScript(
+              "document.querySelector('#search')?.textContent === 'Buscar en Crossref'"
+            ))
+          ) {
+            break;
+          }
+          await delay(100);
+        }
+        assert.equal(
+          await spanishFrame.executeJavaScript("document.querySelector('#search').textContent"),
+          'Buscar en Crossref',
+          'the standalone plugin uses the host language in its sandbox'
+        );
         console.log(
           'PASS: typo recovery, deep accent-folded previews, keyboard navigation, matching-line jumps, hybrid fusion, tags/phrases, semantic recall, explicit failures, stale requests, result limit.'
         );

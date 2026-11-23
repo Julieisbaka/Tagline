@@ -325,6 +325,13 @@ export default function SettingsPanels({
         {extensions && <ExtensionSettings extensions={extensions} />}
       </section>
       <section
+        data-settings-panel='core-plugins'
+        hidden={section !== 'core-plugins'}
+        className='settings-panel'
+      >
+        {extensions && <ExtensionSettings extensions={extensions} core />}
+      </section>
+      <section
         data-settings-panel='advanced'
         hidden={section !== 'advanced'}
         className='settings-panel'

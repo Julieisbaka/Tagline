@@ -535,6 +535,18 @@ export class ExtensionHost {
       case 'helpers.flow.create':
       case 'helpers.flow.setCell':
         return extensionHelper(method, args);
+      case 'ui.openExternal': {
+        this.require('ui');
+        const address = requireText(args[0], 'URL', 2048);
+        const url = new URL(address);
+        if (url.protocol !== 'https:' || url.username || url.password) {
+          throw new Error('Only HTTPS URLs without credentials can be opened.');
+        }
+        return b.openExternal(this.manifest.name, url.href);
+      }
+      case 'ui.openNote':
+        this.require('ui');
+        return b.openNote(this.manifest.id, requireText(args[0], 'Path', 1000));
       case 'ui.setHtml':
       case 'ui.show':
       case 'ui.close':
@@ -684,6 +696,9 @@ export class ExtensionHost {
       case 'vault.write':
         this.require('vault:write');
         return b.write(requireText(args[0], 'Path', 1000), requireText(args[1], 'Content'));
+      case 'vault.create':
+        this.require('vault:write');
+        return b.create(requireText(args[0], 'Path', 1000), requireText(args[1], 'Content'));
       case 'vault.append':
         this.require('vault:read');
         this.require('vault:write');

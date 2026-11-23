@@ -69,6 +69,22 @@ test('packaging includes flow search dependencies needed by MCP', () => {
   }
 });
 
+test('packaging includes the bundled core plugin and its registry', () => {
+  const { FileMatcher } = require('app-builder-lib/out/fileMatcher');
+  const { build } = require('../package.json');
+  const root = path.resolve(__dirname, '..');
+  const accepts = new FileMatcher(root, 'app', (value) => value, build.files).createFilter();
+  const fileStat = { isDirectory: () => false };
+  for (const relative of [
+    'extensions/core-registry.json',
+    'extensions/scholarly-search/manifest.json',
+    'extensions/scholarly-search/main.js',
+    'extensions/scholarly-search/view.html',
+  ]) {
+    assert.equal(accepts(path.join(root, relative), fileStat), true, relative);
+  }
+});
+
 test('macOS packaging explains microphone access for timer auto-start', () => {
   const { build } = require('../package.json');
   assert.match(build.mac.extendInfo.NSMicrophoneUsageDescription, /timer/i);

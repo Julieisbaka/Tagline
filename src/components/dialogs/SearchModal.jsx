@@ -12,7 +12,7 @@ import {
 import { displayName, isFlow } from '../../lib/vault/vault.js';
 import { flowDocument } from '../../lib/flow/flowText.js';
 import ModalBackdrop from './ModalBackdrop.jsx';
-import ScholarlySearch from './ScholarlySearch.jsx';
+import ExtensionSurface from '../ExtensionSurface.jsx';
 
 // Keyword and local embedding search share tag and phrase constraints.
 export default function SearchModal({
@@ -22,7 +22,8 @@ export default function SearchModal({
   maxResults = defaults.searchMaxResults,
   showMarkdownExtension = false,
   onOpen,
-  onCreateCard,
+  extensionSurfaces = [],
+  closeExtensionSurface,
   onClose,
 }) {
   const { t } = useI18n();
@@ -33,9 +34,33 @@ export default function SearchModal({
   const [error, setError] = useState('');
   const requestId = useRef(0);
   const resultList = useRef(null);
-  const scholarlyButton = useRef(null);
+  const searchSurfaces = extensionSurfaces.filter(
+    (surface) =>
+      surface.kind === 'webviews' &&
+      surface.host.manifest.contributes.webviews.some(
+        (item) => item.id === surface.id && item.placement === 'search'
+      )
+  );
+  const surfaceKey = (surface) => `extension:${surface.host.manifest.id}:${surface.id}`;
+  const selectedSurface = searchSurfaces.find((surface) => surfaceKey(surface) === mode);
   const semanticTimerRef = useRef(null);
   const search = useMemo(() => createSearchEngine(contents, index), [contents, index]);
+
+  useEffect(() => {
+    if (mode.startsWith('extension:') && !selectedSurface) {
+      setMode('text');
+    }
+  }, [mode, selectedSurface]);
+
+  useEffect(() => {
+    const opened = (event) => {
+      if (selectedSurface?.host.manifest.id === event.detail?.id) {
+        onClose();
+      }
+    };
+    window.addEventListener('tagline-extension-note-opened', opened);
+    return () => window.removeEventListener('tagline-extension-note-opened', opened);
+  }, [selectedSurface, onClose]);
 
   useEffect(() => {
     ++requestId.current;
@@ -170,35 +195,28 @@ export default function SearchModal({
         aria-label={t('Search')}
         onMouseDown={(e) => e.stopPropagation()}
       >
-        <input
-          autoFocus
-          className='palette-input'
-          aria-label={t('Search')}
-          placeholder={t(
-            mode === 'scholarly'
-              ? 'Search scholarly works…'
-              : 'Search vault…  (try: tag:neg "political capital" -draft)'
-          )}
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          onKeyDown={(e) => {
-            if (mode !== 'scholarly') {
+        {!selectedSurface && (
+          <input
+            autoFocus
+            className='palette-input'
+            aria-label={t('Search')}
+            placeholder={t('Search vault…  (try: tag:neg "political capital" -draft)')}
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            onKeyDown={(e) => {
               navigate(e);
-            }
-            if (e.key === 'Escape') {
-              onClose();
-            }
-            if (e.key === 'Enter' && (mode === 'semantic' || mode === 'hybrid') && !busy) {
-              runSemantic();
-            }
-            if (e.key === 'Enter' && mode === 'text' && displayed.length) {
-              openResult(e, displayed[0].path, displayed[0].matches[0]?.line);
-            }
-            if (e.key === 'Enter' && mode === 'scholarly') {
-              scholarlyButton.current?.click();
-            }
-          }}
-        />
+              if (e.key === 'Escape') {
+                onClose();
+              }
+              if (e.key === 'Enter' && (mode === 'semantic' || mode === 'hybrid') && !busy) {
+                runSemantic();
+              }
+              if (e.key === 'Enter' && mode === 'text' && displayed.length) {
+                openResult(e, displayed[0].path, displayed[0].matches[0]?.line);
+              }
+            }}
+          />
+        )}
         <div className='search-options'>
           <select
             aria-label={t('Search mode')}
@@ -208,7 +226,14 @@ export default function SearchModal({
             <option value='text'>{t('Full text')}</option>
             <option value='hybrid'>{t('Hybrid (keywords + local meaning)')}</option>
             <option value='semantic'>{t('Semantic (local embeddings)')}</option>
-            <option value='scholarly'>{t('Scholarly (Crossref)')}</option>
+            {searchSurfaces.map((surface) => (
+              <option key={surfaceKey(surface)} value={surfaceKey(surface)}>
+                {t(
+                  surface.host.manifest.contributes.webviews.find((item) => item.id === surface.id)
+                    .title
+                )}
+              </option>
+            ))}
           </select>
           {(mode === 'semantic' || mode === 'hybrid') && (
             <button
@@ -225,12 +250,11 @@ export default function SearchModal({
             </button>
           )}
         </div>
-        {mode === 'scholarly' ? (
-          <ScholarlySearch
-            query={query}
-            onCreateCard={onCreateCard}
-            onClose={onClose}
-            searchButtonRef={scholarlyButton}
+        {selectedSurface ? (
+          <ExtensionSurface
+            surface={selectedSurface}
+            onClose={closeExtensionSurface}
+            initialMessage={{ type: 'search-query', query }}
           />
         ) : (
           <>

@@ -69,6 +69,7 @@ export function SettingsDialog({
     ['performance', 'Performance and search', 'Resource and search limits'],
     ['integrations', 'Integrations', 'Services, document tools, and local models'],
     ['extensions', 'Extensions', 'Extension commands and themes'],
+    ['core-plugins', 'Core Plugins', 'Bundled optional extensions'],
     ['advanced', 'Advanced', 'Customization limits and internal flags'],
     ['installation', 'Installation', 'Version, updates, and uninstall'],
   ];

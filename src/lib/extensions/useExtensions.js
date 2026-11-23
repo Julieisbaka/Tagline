@@ -192,6 +192,18 @@ export function useExtensions({ bridgeRef, notify }) {
       read: (path) => bridgeRef.current.read(path),
       chooseVaultPath: (id, kind) => window.api.extensionChooseVaultPath(id, kind),
       write: (path, content) => bridgeRef.current.write(path, content),
+      create: (path, content) => bridgeRef.current.create(path, content),
+      openNote: (id, path) => {
+        bridgeRef.current.openNote(path);
+        window.dispatchEvent(new CustomEvent('tagline-extension-note-opened', { detail: { id } }));
+        return true;
+      },
+      openExternal: (name, url) => {
+        if (!window.confirm(`${name} wants to open this link in your browser:\n${url}`)) {
+          return false;
+        }
+        return window.api.websiteAction('external', url);
+      },
       networkFetch: (id, url, options) => window.api.extensionNetworkFetch(id, url, options),
       networkAuthorize: (id, url, options) => window.api.extensionOAuthAuthorize(id, url, options),
       cancelAuthorization: (id) => window.api.extensionOAuthCancel(id),

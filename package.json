@@ -61,6 +61,8 @@
     "files": [
       "dist/**/*",
       "electron/**/*",
+      "extensions/core-registry.json",
+      "extensions/scholarly-search/**/*",
       "schemas/**/*",
       "src/lib/commands/keybindings.json",
       "src/lib/settings/defaultSettings.json",

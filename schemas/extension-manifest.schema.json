@@ -164,7 +164,7 @@
           "type": "array",
           "maxItems": 10,
           "items": {
-            "$ref": "#/definitions/surface"
+            "$ref": "#/definitions/webview"
           }
         },
         "ribbonItems": {
@@ -371,6 +371,10 @@
           "$ref": "#/definitions/title"
         }
       }
+    },
+    "webview": {
+      "allOf": [{ "$ref": "#/definitions/surface" }],
+      "properties": { "placement": { "const": "search" } }
     },
     "panel": {
       "allOf": [{ "$ref": "#/definitions/surface" }],

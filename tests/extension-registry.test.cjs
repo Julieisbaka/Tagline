@@ -27,6 +27,14 @@ test('committed registry is valid for the schema and the app', async () => {
   const validate = new Ajv({ allErrors: true, strict: true }).compile(schema);
   assert.equal(validate(registry), true, JSON.stringify(validate.errors));
   assert.ok(validateRegistry(registry).length > 0);
+  const manifest = JSON.parse(
+    await fs.readFile(path.join(root, 'extensions', 'scholarly-search', 'manifest.json'), 'utf8')
+  );
+  assert.ok(registry.extensions.some(({ url }) => url === manifest.sourceUrl));
+  assert.equal(
+    validateManifest(manifest, path.join(root, 'extensions', 'scholarly-search')).id,
+    'scholarly-search'
+  );
 });
 
 test('registry URLs are limited to GitHub repository folders', () => {

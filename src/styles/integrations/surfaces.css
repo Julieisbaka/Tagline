@@ -106,6 +106,12 @@
   background: var(--bg);
 }
 
+.search > .extension-surface {
+  height: min(60vh, 600px);
+  flex: 1;
+  min-height: 300px;
+}
+
 .extension-panel header,
 .extension-webview-dialog header {
   display: flex;

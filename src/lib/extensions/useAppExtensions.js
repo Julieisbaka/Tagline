@@ -190,6 +190,21 @@ export function useAppExtensions({
       }
       return content;
     },
+    openNote: (path) => {
+      requireNote(path);
+      tabs.openPath(path, false);
+    },
+    create: (path, content) =>
+      enqueueVault(async () => {
+        if (!/\.(md|flow|canvas)$/i.test(path)) {
+          throw new Error('Extensions can only write .md, .flow and .canvas files.');
+        }
+        const created = await v.createFile(path, content);
+        if (!created) {
+          throw new Error(`Could not create ${path}.`);
+        }
+        return created;
+      }),
     write: (path, content) =>
       enqueueVault(async () => {
         if (!/\.(md|flow|canvas)$/i.test(path)) {

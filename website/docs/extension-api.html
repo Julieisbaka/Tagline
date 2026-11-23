@@ -905,7 +905,8 @@ const result = await api.methods.lookup({ query: 'climate' });</code></pre>
     "contextMenus": [{ "id": "editor-research", "title": "Research selection", "context": "editor", "command": "open-research" }],
     "fileHandlers": [{ "id": "markdown-research", "title": "Research note", "extensions": [".md"], "command": "open-research", "priority": 10 }],
     "panels": [{ "id": "research-panel", "title": "Research", "placement": "sidebar-bottom", "persistVisibility": true, "when": { "extensions": [".md"], "mode": "edit" } }],
-    "webviews": [{ "id": "source-details", "title": "Source details" }]
+    "webviews": [{ "id": "source-details", "title": "Source details" },
+                 { "id": "research-search", "title": "Research search", "placement": "search" }]
   }
 }</code></pre>
             <pre><code class="language-js">await tagline.commands.register('open-research', async (context) =&gt; {
@@ -952,6 +953,20 @@ await tagline.webviews.show('source-details');</code></pre>
               <code>setHtml</code> replaces the page, <code>show</code> displays it, and
               <code>close</code> hides/unmounts it while retaining HTML for reopening. Disabling or
               reloading removes contributed surfaces.
+            </p>
+            <p>
+              A webview with <code>placement: 'search'</code> becomes a search-mode option after
+              <code>setHtml</code>; users choose it from the search dialog rather than an extension
+              calling <code>show</code>. Switching modes or closing search unmounts the page, so
+              send a ready message whenever it mounts and keep persistent state in the worker. After
+              mounting, the page receives <code>{ type: 'search-query', query: '...' }</code> via
+              <code>taglineWebview.onMessage</code> with the current search text.
+            </p>
+            <p>
+              With <code>ui</code> permission, <code>await tagline.ui.openNote(path)</code> opens
+              an existing supported vault document; if called from the selected search contribution,
+              the search dialog closes. <code>await tagline.ui.openExternal(url)</code> asks the user
+              for confirmation before opening an HTTPS URL without credentials in their browser.
             </p>
             <p>
               Right-panel contributions appear above the built-in right sidebar; other panel
@@ -1347,6 +1362,7 @@ await tagline.settings.set('limit', 10);</code></pre>
             <h2>Vault API</h2>
             <pre><code class="language-js">const paths = await tagline.vault.list();
 const content = await tagline.vault.read(path);
+const createdPath = await tagline.vault.create(path, content);
 const actualPath = await tagline.vault.write(path, content);
 await tagline.vault.append(path, text);
 const renamed = await tagline.vault.rename(path, newPath);
@@ -1367,6 +1383,11 @@ await stop();</code></pre>
                 <code>list</code> returns loaded supported note paths, not arbitrary files or
                 folders. <code>read</code> returns current loaded content and rejects for an absent
                 note; reload the vault after external edits.
+              </li>
+              <li>
+                <code>create</code> creates a new <code>.md</code>, <code>.flow</code>, or
+                <code>.canvas</code> note without overwriting an existing file. If the requested
+                path is taken, it returns the unique path chosen by the normal vault workflow.
               </li>
               <li>
                 <code>write</code> accepts <code>.md</code>, <code>.flow</code>, and

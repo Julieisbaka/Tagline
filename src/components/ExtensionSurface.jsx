@@ -3,7 +3,7 @@ import { requirePayload } from '../lib/extensions/extensionCapabilities.js';
 import { themeSnapshot } from '../lib/ui/themes.js';
 import uiStyles from '../styles/ui.css?raw';
 
-export default function ExtensionSurface({ surface, onClose }) {
+export default function ExtensionSurface({ surface, onClose, initialMessage }) {
   const frame = useRef(null);
   const rate = useRef({ start: 0, count: 0 });
   const { host, kind, id, html, title } = surface;
@@ -76,7 +76,7 @@ export default function ExtensionSurface({ surface, onClose }) {
       sandbox='allow-scripts'
       referrerPolicy='no-referrer'
       src={new URL('extension-webview.html', document.baseURI).href}
-      onLoad={() =>
+      onLoad={() => {
         frame.current?.contentWindow?.postMessage(
           {
             type: 'initialize',
@@ -86,8 +86,14 @@ export default function ExtensionSurface({ surface, onClose }) {
             language: document.documentElement.lang || 'en',
           },
           '*'
-        )
-      }
+        );
+        if (initialMessage) {
+          frame.current?.contentWindow?.postMessage(
+            { type: 'extension-ui-message', payload: initialMessage },
+            '*'
+          );
+        }
+      }}
     />
   );
 }

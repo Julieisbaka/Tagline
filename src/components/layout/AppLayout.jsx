@@ -168,7 +168,14 @@ export default function AppLayout({ app }) {
     <WebsiteView key={website} url={website} onClose={() => setWebsite(null)} />
   );
   const extensionWebviews = ext.surfaces
-    .filter((surface) => surface.kind === 'webviews' && surface.visible)
+    .filter(
+      (surface) =>
+        surface.kind === 'webviews' &&
+        surface.visible &&
+        !surface.host.manifest.contributes.webviews.some(
+          (item) => item.id === surface.id && item.placement === 'search'
+        )
+    )
     .map((surface) => (
       <ModalBackdrop
         key={`${surface.host.manifest.id}:${surface.id}`}
@@ -573,7 +580,8 @@ export default function AppLayout({ app }) {
           maxResults={resourceLimits(settings).searchMaxResults}
           showMarkdownExtension={settings.showMarkdownExtension}
           onOpen={open}
-          onCreateCard={createAndOpen}
+          extensionSurfaces={ext.surfaces}
+          closeExtensionSurface={ext.closeSurface}
           onClose={() => setModal(null)}
         />
       )}

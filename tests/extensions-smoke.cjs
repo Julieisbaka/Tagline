@@ -232,6 +232,7 @@ tagline.commands.register('save-checks', async () => {
       extensions: [
         { url: 'https://github.com/example/demo' },
         { url: 'https://github.com/example/word-count' },
+        { url: 'https://github.com/Julieisbaka/Tagline/tree/main/extensions/scholarly-search' },
       ],
     },
     'https://raw.githubusercontent.com/example/demo/HEAD/manifest.json': {
@@ -251,6 +252,14 @@ tagline.commands.register('save-checks', async () => {
       permissions: ['vault:read'],
       sourceUrl: 'https://github.com/example/word-count',
     },
+    'https://raw.githubusercontent.com/Julieisbaka/Tagline/main/extensions/scholarly-search/manifest.json':
+      {
+        manifestVersion: 1,
+        id: 'scholarly-search',
+        name: 'Scholarly Search',
+        version: '2.0.0',
+        sourceUrl: 'https://github.com/Julieisbaka/Tagline/tree/main/extensions/scholarly-search',
+      },
   };
   const originalFetch = global.fetch;
   global.fetch = async (url, options) =>
@@ -258,6 +267,8 @@ tagline.commands.register('save-checks', async () => {
       ? new Response(JSON.stringify(registryResponses[url]))
       : originalFetch(url, options);
   app.setPath('userData', profile);
+  // The smoke test is launched as an Electron script rather than the application package.
+  app.getAppPath = () => path.resolve(__dirname, '..');
   const ext = (id) => path.join(profile, 'extensions', id);
   await fs.mkdir(path.join(ext('demo'), 'themes'), { recursive: true });
   await fs.mkdir(ext('nosy'), { recursive: true });
@@ -494,7 +505,7 @@ tagline.commands.register('save-checks', async () => {
           "[...document.querySelectorAll('.settings button')].find(el => el.textContent === 'Done').click()"
         );
         await wait(
-          `document.querySelectorAll('iframe[data-extension]').length === 2`,
+          `!!document.querySelector('iframe[data-extension="demo"]') && !!document.querySelector('iframe[data-extension="nosy"]') && !!document.querySelector('iframe[data-extension="scholarly-search"]')`,
           'extension frames'
         );
         assert.equal((await extensionStorage('demo')).installRuns, 1);
@@ -856,7 +867,36 @@ tagline.commands.register('save-checks', async () => {
         await js(`(() => { const el = document.querySelector('[data-setting="theme"]');
           el.value = 'dark'; el.dispatchEvent(new Event('change', { bubbles: true })); })()`);
         await js(`document.querySelector('[data-section="extensions"]').click()`);
-        await wait(`document.querySelectorAll('.extension-card').length === 2`, 'extension cards');
+        await wait(
+          `document.querySelectorAll('[data-settings-panel="extensions"] .extension-card').length === 2`,
+          'extension cards'
+        );
+        await js(`document.querySelector('[data-section="core-plugins"]').click()`);
+        await wait(
+          `!!document.querySelector('[data-settings-panel="core-plugins"] [data-extension="scholarly-search"]')`,
+          'bundled core plugin'
+        );
+        assert.equal(
+          await js(
+            `document.querySelector('[data-settings-panel="core-plugins"] [data-extension="scholarly-search"] input[type="checkbox"]').checked`
+          ),
+          true
+        );
+        await js(
+          `document.querySelector('[data-settings-panel="core-plugins"] [data-extension="scholarly-search"] input[type="checkbox"]').click()`
+        );
+        await wait(
+          `!document.querySelector('iframe[data-extension="scholarly-search"]') && (() => { const toggle = document.querySelector('[data-settings-panel="core-plugins"] [data-extension="scholarly-search"] input[type="checkbox"]'); return toggle && !toggle.disabled && !toggle.checked; })()`,
+          'core plugin disabled'
+        );
+        await js(
+          `document.querySelector('[data-settings-panel="core-plugins"] [data-extension="scholarly-search"] input[type="checkbox"]').click()`
+        );
+        await wait(
+          `!!document.querySelector('iframe[data-extension="scholarly-search"]')`,
+          'core plugin re-enabled'
+        );
+        await js(`document.querySelector('[data-section="extensions"]').click()`);
         const demoCard = await js(`document.querySelector('[data-extension="demo"]').textContent`);
         assert.match(demoCard, /Create and change notes/);
         assert.match(demoCard, /First Author, Second Author/);
@@ -868,7 +908,7 @@ tagline.commands.register('save-checks', async () => {
           `[...document.querySelectorAll('.settings button')].find(el => el.textContent.trim() === 'Browse registry').click()`
         );
         await wait(
-          `document.querySelectorAll('[data-registry-extension]').length === 2`,
+          `document.querySelectorAll('[data-registry-extension]').length === 3`,
           'registry cards'
         );
         const registryCard = await js(
@@ -885,8 +925,15 @@ tagline.commands.register('save-checks', async () => {
           ),
           /Update to v1\.1\.0/
         );
+        const bundledRegistryCard = await js(
+          `document.querySelector('[data-registry-extension="https://github.com/Julieisbaka/Tagline/tree/main/extensions/scholarly-search"]').textContent`
+        );
+        assert.match(bundledRegistryCard, /Installed/);
+        assert.doesNotMatch(bundledRegistryCard, /Update to|Install\b(?!ed)/);
         assert.equal(
-          await js(`document.querySelectorAll('.extension-card[data-extension]').length`),
+          await js(
+            `document.querySelectorAll('[data-settings-panel="extensions"] .extension-card[data-extension]').length`
+          ),
           2,
           'registry cards do not replace installed cards'
         );
@@ -903,7 +950,7 @@ tagline.commands.register('save-checks', async () => {
           `document.querySelector('[data-extension="nosy"] input[type="checkbox"]').click()`
         );
         await wait(
-          `document.querySelectorAll('iframe[data-extension]').length === 1`,
+          `!document.querySelector('iframe[data-extension="nosy"]') && !!document.querySelector('iframe[data-extension="demo"]')`,
           'disabled extension unloaded'
         );
         const config = JSON.parse(await fs.readFile(path.join(profile, 'config.json'), 'utf8'));

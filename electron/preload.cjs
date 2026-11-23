@@ -200,7 +200,6 @@ contextBridge.exposeInMainWorld('api', {
   importTimerSound: () => ipcRenderer.invoke('timerSound:import'),
   clearTimerSound: () => ipcRenderer.invoke('timerSound:clear'),
   setFloatingTimer: (state) => ipcRenderer.send('timer:overlay', state),
-  searchScholarly: (query) => ipcRenderer.invoke('scholarly:search', query),
   setModelAutoload: (enabled) => ipcRenderer.invoke('embeddings:autoload', enabled),
   getLowResourceMode: () => ipcRenderer.invoke('embeddings:lowResource:get'),
   setLowResourceMode: (enabled) => ipcRenderer.invoke('embeddings:lowResource:set', enabled),

@@ -233,6 +233,9 @@
         panels: surfaceApi('panels'),
         webviews: surfaceApi('webviews'),
         ui: Object.freeze({
+          /** Ask to open an HTTPS URL in the system browser. Requires ui. */
+          openExternal: (url) => call('ui.openExternal', url),
+          openNote: (path) => call('ui.openNote', path),
           statusBar: Object.freeze({
             /** Update text on a declared status bar item. Requires ui. @returns {Promise<boolean>} */
             setText: (id, text) => call('ui.statusBar.setText', id, text),
@@ -586,6 +589,8 @@
           read: (path) => call('vault.read', path),
           /** Create/replace supported document text. Requires vault:write. @returns {Promise<string>} Saved path. */
           write: (path, content) => call('vault.write', path, content),
+          /** Create a new document without overwriting an existing file. Requires vault:write. */
+          create: (path, content) => call('vault.create', path, content),
           /** Atomically append text to a supported document. Requires vault:read and vault:write. @returns {Promise<string>} */
           append: (path, content) => call('vault.append', path, content),
           /** Trash a vault document; removes open tabs. Requires vault:write. @returns {Promise<boolean>} */

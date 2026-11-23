@@ -24,7 +24,6 @@ const { registerDocuments } = require('./documents.cjs');
 const { registerFonts } = require('./fonts.cjs');
 const { registerTimerSound } = require('./timerSound.cjs');
 const { registerFloatingTimer } = require('./floatingTimer.cjs');
-const { registerScholarlySearch } = require('./scholarlySearch.cjs');
 const { registerExtensions } = require('./extensions.cjs');
 const { extractCitation } = require('./citationMetadata.cjs');
 const { checkLinks } = require('./evidenceLinks.cjs');
@@ -233,7 +232,6 @@ if (primary) {
         readConfig,
         writeConfig,
       });
-      registerScholarlySearch({ ipcMain, assertMainFrameSender });
       if (!disableExtensions) {
         registerExtensions({
           app,

@@ -1,0 +1,10 @@
+{
+  "version": 1,
+  "plugins": [
+    {
+      "id": "scholarly-search",
+      "folder": "scholarly-search",
+      "reviewToken": "a8078e6507a6ac602eae60a38c27b8c2f7bcb57c1bbbbf01b1ab8450794348e9"
+    }
+  ]
+}

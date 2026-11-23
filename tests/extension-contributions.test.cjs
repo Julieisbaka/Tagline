@@ -315,3 +315,41 @@ test('status bar updates and command contexts stay within declared UI capabiliti
   );
   assert.throws(() => host.run('missing'), /not registered/);
 });
+
+test('extension vault creation and UI navigation enforce permissions and URL safety', async () => {
+  const { ExtensionHost } = await import('../src/lib/extensions/extensions.js');
+  const calls = [];
+  const host = new ExtensionHost(
+    { id: 'test-extension', name: 'Test', permissions: ['ui', 'vault:write'] },
+    '',
+    {
+      create: (path, content) => {
+        calls.push(['create', path, content]);
+        return 'Note 1.md';
+      },
+      openNote: (id, path) => {
+        calls.push(['open', id, path]);
+        return true;
+      },
+      openExternal: (name, url) => {
+        calls.push(['external', name, url]);
+        return true;
+      },
+    }
+  );
+  assert.equal(await host.handle('vault.create', ['Note.md', 'text']), 'Note 1.md');
+  await host.handle('ui.openNote', ['Note 1.md']);
+  await host.handle('ui.openExternal', ['https://example.com/']);
+  assert.deepEqual(calls, [
+    ['create', 'Note.md', 'text'],
+    ['open', 'test-extension', 'Note 1.md'],
+    ['external', 'Test', 'https://example.com/'],
+  ]);
+  await assert.rejects(host.handle('ui.openExternal', ['http://example.com']), /HTTPS/);
+  await assert.rejects(host.handle('ui.openExternal', ['https://user@example.com']), /credentials/);
+  await assert.rejects(host.handle('vault.create', ['x'.repeat(1001), 'text']), /1000/);
+  const denied = new ExtensionHost({ id: 'denied', permissions: [] }, '', {});
+  await assert.rejects(denied.handle('vault.create', ['a.md', 'text']), /Permission/);
+  await assert.rejects(denied.handle('ui.openNote', ['a.md']), /Permission/);
+  await assert.rejects(denied.handle('ui.openExternal', ['https://example.com']), /Permission/);
+});

@@ -297,7 +297,14 @@ function validateManifest(value, root, limits = DEFAULT_LIMITS, options = {}) {
       }
       ids.add(item.id);
       if (kind === 'webviews') {
-        return { id: item.id, title: item.title.trim() };
+        if (item.placement !== undefined && item.placement !== 'search') {
+          fail(`webview ${item.id} has an invalid placement.`);
+        }
+        return {
+          id: item.id,
+          title: item.title.trim(),
+          ...(item.placement ? { placement: item.placement } : {}),
+        };
       }
       const placement = item.placement ?? 'right-panel';
       const persistVisibility = item.persistVisibility ?? false;

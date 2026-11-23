@@ -17,6 +17,7 @@ const {
 const { containedFile, containedFileAny } = require('./extensions/files.cjs');
 const { registerStorageHandlers } = require('./extensions/storage.cjs');
 const { registerInstallHandlers } = require('./extensions/install.cjs');
+const coreRegistry = require('../extensions/core-registry.json');
 
 const MAX_TRANSLATION_BYTES = 262144;
 const MAX_TEMPLATE_BYTES = 1048576;
@@ -182,10 +183,20 @@ function registerExtensions({
     const found = [];
     const ids = new Set();
     const manifests = new Set();
-    for (const entry of entries
+    const bundled =
+      typeof app.getAppPath === 'function'
+        ? coreRegistry.plugins.map((plugin) => ({
+            name: plugin.folder,
+            root: path.join(app.getAppPath(), 'extensions', plugin.folder),
+            core: plugin,
+          }))
+        : [];
+    const installed = entries
       .filter((e) => e.isDirectory())
-      .sort((a, b) => a.name.localeCompare(b.name))) {
-      const root = path.join(extensionsFolder, entry.name);
+      .sort((a, b) => a.name.localeCompare(b.name))
+      .map((entry) => ({ name: entry.name, root: path.join(extensionsFolder, entry.name) }));
+    for (const entry of [...bundled, ...installed]) {
+      const root = entry.root;
       const manifestPath = path.resolve(root, 'manifest.json');
       manifests.add(manifestPath);
       try {
@@ -194,16 +205,28 @@ function registerExtensions({
           currentLimits,
           appVersion
         );
-        if (ids.has(manifest.id)) {
+        if (
+          (entry.core && entry.core.id !== manifest.id) ||
+          (!entry.core && bundled.some((plugin) => plugin.core.id === manifest.id)) ||
+          ids.has(manifest.id)
+        ) {
           throw new Error(`Duplicate extension id: ${manifest.id}`);
         }
         ids.add(manifest.id);
         const incompatibleForced = !!incompatible && forced.includes(manifest.id);
-        const reviewRequired = enabled.includes(manifest.id) && needsReview(manifest, config);
+        const requestedEnabled = entry.core
+          ? config.corePluginEnabled?.[manifest.id] !== false
+          : enabled.includes(manifest.id);
+        const bundledReview =
+          entry.core &&
+          config.extensionReviews?.[manifest.id] === undefined &&
+          entry.core.reviewToken === reviewToken;
+        const reviewRequired = requestedEnabled && !bundledReview && needsReview(manifest, config);
         found.push({
           ...manifest,
           folder: entry.name,
           root,
+          core: !!entry.core,
           allowedPermissions: Array.isArray(config.extensionPermissions?.[manifest.id])
             ? manifest.permissions.filter((permission) =>
                 config.extensionPermissions[manifest.id].includes(permission)
@@ -220,13 +243,17 @@ function registerExtensions({
             incompatible && !incompatibleForced
               ? `Requires Tagline ${incompatible.required}, but this app is ${incompatible.appVersion}.`
               : undefined,
-          enabled:
-            enabled.includes(manifest.id) &&
-            !reviewRequired &&
-            (!incompatible || incompatibleForced),
+          enabled: requestedEnabled && !reviewRequired && (!incompatible || incompatibleForced),
         });
       } catch (error) {
-        found.push({ id: null, folder: entry.name, root, error: error.message, enabled: false });
+        found.push({
+          id: null,
+          folder: entry.name,
+          root,
+          core: !!entry.core,
+          error: error.message,
+          enabled: false,
+        });
       }
     }
     for (const manifestPath of manifestCache.keys()) {
@@ -440,7 +467,7 @@ function registerExtensions({
       networkRequestTimes.delete(id);
       cancelAuthorization(id);
     }
-    if (enabled) {
+    if (enabled && !item?.core) {
       next.push(id);
     }
     const config = readConfig();
@@ -457,7 +484,12 @@ function registerExtensions({
     if (!enabled && item?.incompatible) {
       engineCompatibilityOverrides = engineCompatibilityOverrides.filter((value) => value !== id);
     }
-    await writeConfig({ enabledExtensions: next, extensionReviews, engineCompatibilityOverrides });
+    await writeConfig({
+      enabledExtensions: next,
+      extensionReviews,
+      engineCompatibilityOverrides,
+      ...(item?.core ? { corePluginEnabled: { ...config.corePluginEnabled, [id]: enabled } } : {}),
+    });
     return next;
   });
 
@@ -494,9 +526,13 @@ function registerExtensions({
     if (typeof id !== 'string' || !id || path.basename(id) !== id || id === '.' || id === '..') {
       throw new Error('Invalid extension request.');
     }
-    const item = (await scan()).find((extension) => extension.folder === id);
+    const items = (await scan()).filter((extension) => extension.folder === id);
+    const item = items.find((extension) => !extension.core) || items[0];
     if (!item) {
       throw new Error('Extension not found.');
+    }
+    if (item.core) {
+      throw new Error('Bundled core plugins cannot be uninstalled. Disable them instead.');
     }
     await fs.rm(item.root, { recursive: true });
     invalidateManifest(item.root);
@@ -555,6 +591,7 @@ function registerExtensions({
       networkRequestTimes.delete(id);
       cancelAuthorization(id);
     },
+    corePluginIds: coreRegistry.plugins.map((plugin) => plugin.id),
   };
   registerStorageHandlers(context);
 
