@@ -6,10 +6,17 @@ A local-first workspace for debate research, Markdown evidence, and `.flow`
 speech grids. Includes visual/source editing, citations, search, revision
 history, speech tools, and more.
 
-Vaults are ordinary folders. HTML export is built in; other import/export
-formats use the optional [Pandoc](https://pandoc.org/) integration.
+Vaults are ordinary folders. HTML export and Google Docs transfer are built in;
+document import and other export formats use the optional [Pandoc](https://pandoc.org/) integration.
 
-## Run
+## Get Tagline
+
+Download the [latest release](https://github.com/Julieisbaka/Tagline/releases/latest) for Windows or macOS.
+Release builds are unsigned and not notarized, so your operating system may show a security warning.
+The [getting started guide](https://julieisbaka.github.io/Tagline/docs/getting-started.html) covers your first vault and updates;
+see [vaults, backups and recovery](https://julieisbaka.github.io/Tagline/docs/vaults-and-backups.html) before upgrading or restoring a vault.
+
+## Develop
 
 ```sh
 npm install
@@ -22,22 +29,7 @@ Renderer builds target the host OS by default. For cross-platform packaging, set
 `TAGLINE_TARGET_PLATFORM` to `win32`, `darwin`, or `linux` before building the
 renderer, and package that renderer for the same target. Rebuild for each target.
 
-Open a folder as a vault or create the sample vault on first launch.
-
-Older vault formats open a migration wizard before loading. Review the required upgrades, pause cloud sync and close other editors, then choose **Back up and upgrade**. Upgrades run in order on a separate copy; the original stays beside the vault as a `.tagline-backup-<id>` folder (with a suffix if needed to avoid collisions). Cancel leaves the vault unchanged. Newer, unsupported formats are refused rather than rewritten. Keep backups until you have checked your data; to restore, close Tagline and replace the upgraded folder with its backup. Old migration backups/stages can be removed from **Manage vaults** with **Clean up migration backups**.
-
-## Releases and updates
-
-Builds are unsigned and not notarized, so OS security warnings are expected.
-By default, packaged builds check the latest stable GitHub release shortly after
-startup and download a compatible update in the background without installing
-it. Disable this with **Settings > Installation > Automatically check for and
-download updates on startup**, or request a check at any time via **Settings >
-Installation > Check for updates**. Quit Tagline, then run the newer Windows
-installer using the same scope/location, or replace Tagline in Applications
-on macOS. Keep the existing app ID, product name, and installation scope when
-packaging future versions: these identify the app and its persistent profile.
-Do not delete the profile when updating. Back up the profile and vaults first.
+See [CONTRIBUTING.md](CONTRIBUTING.md) for the development workflow and checks.
 
 ## Documentation
 

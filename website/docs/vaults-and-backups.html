@@ -32,7 +32,7 @@
           <p>Application settings and downloaded models live in the app profile, not in the vault. Find its location in <strong>Settings &gt; Installation</strong>. A vault copy alone does not preserve those profile items.</p>
         </section>
         <section id="manage"><h2>Open and manage vaults</h2>
-          <p>Open <strong>Manage vaults</strong> to see saved vault names and paths. Open a listed vault, add an existing folder, create a vault or a sample vault, or show a folder in your file explorer. If a folder is reported missing, check its path and whether the drive is connected.</p>
+          <p>On the welcome screen choose <strong>Recent vaults</strong>, or with a vault open run <strong>Open another vault</strong> from the command palette. The <strong>Manage vaults</strong> dialog shows saved vault names and paths. Open a listed vault, choose <strong>Add existing or create vault…</strong>, create a sample vault, or show a folder in your file explorer. If a folder is reported missing, check its path and whether the drive is connected.</p>
           <p><strong>Remove from list</strong> forgets the entry; it does not delete the folder. If you move a vault yourself, add it again at its new location.</p>
         </section>
         <section id="backup"><h2>Make a separate backup</h2>
@@ -42,9 +42,11 @@
         <section id="history"><h2>Restore an earlier file version</h2>
           <ol><li>Open the note, flow, or canvas and choose <strong>History</strong>, or run <strong>Open revision history</strong> from the command palette.</li><li>Select an entry under <strong>Saved versions</strong> and inspect its read-only preview.</li><li>Choose <strong>Restore this version</strong> and confirm. Tagline keeps the current document in history before restoring.</li></ol>
           <p>History retention is configurable under <strong>Settings &gt; Files and folders</strong>. Canvas history can record complete JSON and layout changes, or data changes without movement-only revisions. If the desired version is no longer available, look in your independent backups instead.</p>
+          <p>If a flow or canvas becomes invalid, Tagline may offer to restore the most recent valid save. Recovery skips broken revisions, saves the current source to history, and persists the restored document.</p>
         </section>
         <section id="migration"><h2>Upgrade or restore a vault</h2>
-          <p>When an older vault format needs an upgrade, Tagline shows a migration wizard before opening it. Pause sync, close other editors, review the steps, and choose <strong>Back up and upgrade</strong>. Tagline upgrades a separate copy and keeps the original beside the vault as <code>.tagline-backup-&lt;id&gt;</code> (with a suffix if needed). <strong>Cancel</strong> leaves the vault unchanged. A vault without a manifest can be adopted without a wizard.</p>
+          <p>Some older vaults need only metadata adoption and can open without a wizard. When a data-transforming upgrade is required, Tagline shows a migration wizard before opening the vault. Pause sync, close other editors, review the steps, and choose <strong>Back up and upgrade</strong>. Tagline upgrades a separate copy and keeps the original beside the vault as <code>.tagline-backup-&lt;id&gt;</code> (with a suffix if needed). <strong>Cancel</strong> leaves the vault unchanged.</p>
+          <p>The parent folder must be writable and have room for a full copy. Migrations refuse linked files or directories and special files. Keep an independent backup; a migration backup is not a guarantee against filesystem corruption or power loss.</p>
           <p>Check the upgraded vault before resuming sync. To restore the original, close Tagline, preserve a copy of the upgraded folder if it contains work you need, and replace the vault folder with the backup. Keep independent backups even after the upgrade works.</p>
           <p>Tagline refuses a newer unsupported vault format rather than rewriting it; open it with a compatible version. <strong>Manage vaults &gt; Clean up migration backups</strong> removes old migration backups or stages: review them and retain anything you still need first.</p>
         </section>

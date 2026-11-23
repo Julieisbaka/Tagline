@@ -11,7 +11,6 @@
   <link rel="icon" href="../favicon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="../styles/base.css">
   <link rel="stylesheet" href="../styles/docs.css">
-  <link rel="stylesheet" href="../styles/docs-home.css">
   <link rel="stylesheet" href="../styles/responsive.css">
   <script src="../scripts/highlight.js" defer></script>
 </head>
@@ -36,11 +35,10 @@
   </header>
 
   <main id="main" class="docs-page section-wrap">
-    <div class="docs-hero docs-home-hero">
+    <div class="docs-hero">
       <p class="eyebrow"><span class="eyebrow-mark" aria-hidden="true">✳</span> Tagline documentation</p>
-      <h1>A good place to start.</h1>
-      <p>Quick setup when you need it. Detailed, task-by-task guides when you’re ready to work. Find the right
-        walkthrough and get back to your prep.</p>
+      <h1>Find the guide you need.</h1>
+      <p>Start with your first vault, find a workflow, or look up a technical format.</p>
     </div>
 
     <div class="docs-shell">
@@ -67,124 +65,40 @@
         </nav>
       </aside>
 
-      <div>
-        <div class="docs-card-grid">
-          <a class="docs-card" href="getting-started.html">
-            <span class="docs-card-label">Start here</span>
-            <h2>Getting started</h2>
-            <p>Install Tagline, open a vault, and learn how releases and updates work.</p>
-          </a>
-          <a class="docs-card" href="features.html">
-            <span class="docs-card-label">Your workspace</span>
-            <h2>Notes, evidence &amp; speeches</h2>
-            <p>Learn about vaults, editing, search, citations, flows, canvases, and timers.</p>
-          </a>
-          <a class="docs-card" href="integrations.html">
-            <span class="docs-card-label">When you need them</span>
-            <h2>Integrations</h2>
-            <p>Explore Tabroom, OpenCaselist, local models, Google Docs transfer, and MCP agent access.</p>
-          </a>
-          <a class="docs-card" href="customization.html">
-            <span class="docs-card-label">Make it yours</span>
-            <h2>Themes &amp; extensions</h2>
-            <p>Choose a built-in look, customize themes, and explore extensions.</p>
-          </a>
-          <a class="docs-card" href="google-docs.html">
-            <span class="docs-card-label">Move a document</span>
-            <h2>Google Docs transfer</h2>
-            <p>Connect an account, configure a webhook, and send files safely.</p>
-          </a>
-          <a class="docs-card" href="vaults-and-backups.html">
-            <span class="docs-card-label">Protect your work</span>
-            <h2>Vaults &amp; backups</h2>
-            <p>Manage vaults, restore a file, and recover from an upgrade.</p>
-          </a>
-          <a class="docs-card" href="importing-and-exporting.html">
-            <span class="docs-card-label">Move your work</span>
-            <h2>Import &amp; export</h2>
-            <p>Convert documents, choose an export format, and review the result.</p>
-          </a>
-          <a class="docs-card" href="evidence-quality.html">
-            <span class="docs-card-label">Review your research</span>
-            <h2>Evidence quality</h2>
-            <p>Check citations and links, then compare quotations with their sources.</p>
-          </a>
-          <a class="docs-card" href="flows-and-canvases.html">
-            <span class="docs-card-label">Organize the round</span>
-            <h2>Flows &amp; canvases</h2>
-            <p>Track responses in a flow and connect arguments in a canvas.</p>
-          </a>
-          <a class="docs-card" href="keyboard-shortcuts.html">
-            <span class="docs-card-label">Work from the keyboard</span>
-            <h2>Keyboard shortcuts</h2>
-            <p>Find common defaults and customize bindings for your workflow.</p>
-          </a>
-          <a class="docs-card" href="json-formats.html">
-            <span class="docs-card-label">Technical reference</span>
-            <h2>JSON formats</h2>
-            <p>Validate flows, themes, extension manifests, and exported settings.</p>
-          </a>
-          <a class="docs-card" href="theme-api.html">
-            <span class="docs-card-label">Developer reference</span>
-            <h2>Theme format</h2>
-            <p>Build, validate, customize, and package a Tagline theme.</p>
-          </a>
-          <a class="docs-card" href="extension-api.html">
-            <span class="docs-card-label">Developer reference</span>
-            <h2>Extension API</h2>
-            <p>Build extensions with commands, settings, themes, and sandboxed UI.</p>
-          </a>
-          <a class="docs-card" href="../changelog.html">
-            <span class="docs-card-label">Release notes</span>
-            <h2>What’s new</h2>
-            <p>Read the latest release notes and see what’s in development.</p>
-          </a>
-          <a class="docs-card" href="../pricing.html">
-            <span class="docs-card-label">Simple and transparent</span>
-            <h2>Free to use</h2>
-            <p>No subscription, paid tiers, or feature paywalls.</p>
-          </a>
-        </div>
+      <article class="docs-article">
+        <h2>Start here</h2>
+        <ul>
+          <li><a href="getting-started.html">Getting started</a> — install, open your first vault, and update.</li>
+          <li><a href="features.html">Working in Tagline</a> — an overview of the workspace and its guides.</li>
+          <li><a href="vaults-and-backups.html">Vaults, backups &amp; recovery</a> — manage folders, protect files, and restore work.</li>
+        </ul>
 
-        <section class="task-guides" aria-labelledby="task-guides-heading">
-          <div class="task-guides-heading">
-            <p class="eyebrow">Step-by-step guides</p>
-            <h2 id="task-guides-heading">Find your next move.</h2>
-            <p>Focused walkthroughs for the everyday parts of a debate workflow.</p>
-          </div>
-          <div class="task-guide-list">
-            <a class="task-guide" href="notes-and-evidence.html">
-              <span class="task-guide-number">01</span>
-              <span><strong>Write notes &amp; build evidence</strong><small>Markdown modes, debate cards, links,
-                  templates, and history</small></span>
-              <span class="task-guide-arrow" aria-hidden="true">→</span>
-            </a>
-            <a class="task-guide" href="search-and-citations.html">
-              <span class="task-guide-number">02</span>
-              <span><strong>Search &amp; cite sources</strong><small>Find notes and scholarly works, cut cards, and create
-                  citations</small></span>
-              <span class="task-guide-arrow" aria-hidden="true">→</span>
-            </a>
-            <a class="task-guide" href="speech-workflows.html">
-              <span class="task-guide-number">03</span>
-              <span><strong>Prepare a speech</strong><small>Send evidence, keep time in view, and track practice
-                  trends</small></span>
-              <span class="task-guide-arrow" aria-hidden="true">→</span>
-            </a>
-          </div>
-        </section>
+        <h2>Research and prepare</h2>
+        <ul>
+          <li><a href="notes-and-evidence.html">Notes &amp; evidence</a> — write notes, format cards, and connect research.</li>
+          <li><a href="search-and-citations.html">Search &amp; citations</a> — find research and create citations.</li>
+          <li><a href="evidence-quality.html">Evidence quality</a> — review citations, links, and quotations.</li>
+          <li><a href="speech-workflows.html">Speech workflows</a> — assemble evidence and use the timer.</li>
+          <li><a href="flows-and-canvases.html">Flows &amp; canvases</a> — track responses and map arguments.</li>
+          <li><a href="keyboard-shortcuts.html">Keyboard shortcuts</a> — find and customize key bindings.</li>
+        </ul>
 
-        <div class="docs-callout">
-          <p><strong>Your vault is yours.</strong> Tagline stores notes, flows, and canvases in ordinary folders on your
-            device. Learn how to <a href="vaults-and-backups.html">manage, back up, and restore a vault</a>.</p>
-        </div>
+        <h2>Connect and customize</h2>
+        <ul>
+          <li><a href="importing-and-exporting.html">Import &amp; export</a> — move documents in and out of a vault.</li>
+          <li><a href="google-docs.html">Google Docs transfer</a> — connect an account or webhook and send a document.</li>
+          <li><a href="integrations.html">Integrations</a> — use Tabroom, OpenCaselist, local models, and agent access.</li>
+          <li><a href="customization.html">Themes &amp; extensions</a> — personalize Tagline and manage extensions.</li>
+        </ul>
 
-        <div class="docs-callout">
-          <p><strong>Official Tagline documentation.</strong> This site is the authoritative home for current user
-            guides and developer references. The <a href="https://github.com/Julieisbaka/Tagline">app repository</a>
-            contains application source code, schemas, and examples.</p>
-        </div>
-      </div>
+        <h2>Developer reference</h2>
+        <ul>
+          <li><a href="theme-api.html">Theme format</a> — create and package themes.</li>
+          <li><a href="extension-api.html">Extension API</a> — build and publish extensions.</li>
+          <li><a href="json-formats.html">JSON formats</a> — schemas and examples for supported data.</li>
+          <li><a href="https://github.com/Julieisbaka/Tagline/blob/main/CONTRIBUTING.md">Contributing</a> — development setup and checks.</li>
+        </ul>
+      </article>
     </div>
   </main>
 

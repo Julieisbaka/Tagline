@@ -176,11 +176,13 @@
           download. These tools are on demand; they do not change the source note.</p>
 
         <h2 id="document-conversion">Document conversion</h2>
-        <p>Install or locate Pandoc under <strong>Settings &gt; Integrations &gt; Document import / export</strong> to
-          import supported documents and export to formats such as DOCX and PDF. Built-in HTML export and Google Docs
-          transfer do not require Pandoc. PDF also needs a compatible LaTeX engine on PATH. Follow the
-          <a href="importing-and-exporting.html">import and export guide</a> for formats, steps, and conversion limits.
-        </p>
+        <p>See <a href="importing-and-exporting.html">Import &amp; export</a> for supported formats, Pandoc setup,
+          conversion steps, and limitations.</p>
+
+        <h2>Web links</h2>
+        <p>HTTP and HTTPS links open inside Tagline by default. Turn off <strong>Open websites inside Tagline</strong>
+          in <strong>Settings &gt; Integrations</strong> to use your default browser. Embedded sites cannot access the
+          vault or app APIs; use an external browser for downloads.</p>
 
         <h2 id="tabroom">Tabroom tournaments</h2>
         <p>Open <strong>Settings &gt; Integrations &gt; Open Tabroom</strong>, or use the “view and save tournament
@@ -201,28 +203,9 @@
         <p>Tagline offers direct Google sign-in and an optional Google Apps Script webhook. Both transfer a note or
           supported DOCX/HTML file into a <strong>new</strong> Google Doc in the selected account. Nothing is uploaded
           until you confirm the transfer. Follow the <a href="google-docs.html">complete Google Docs setup and transfer
-            guide</a>.</p>
-        <h3>Direct Google sign-in</h3>
-        <ol>
-          <li>Open <strong>Settings &gt; Integrations &gt; Google Docs / Drive</strong>.</li>
-          <li>Choose <strong>Connect Google account</strong> and complete authorization in your system browser.</li>
-          <li>Confirm the account in Tagline, then select that account as the destination when exporting.</li>
-        </ol>
-        <p>Direct sign-in requests identity and per-file Drive access, not unrestricted access to your entire Drive.
-          Credentials are protected in the local app profile, not stored in your vault or note settings.</p>
-        <h3>Apps Script webhook</h3>
-        <p>For a webhook connection, use <strong>Set up Google Docs transfer</strong> in Settings and follow the <a
-            href="google-docs.html#webhook">step-by-step Apps Script setup</a>. Review the bundled script before
-          authorizing it. Use a unique webhook secret, store it securely, and select the correct executing account and
-          destination folder.</p>
-        <div class="docs-callout docs-callout-warning">
-          <p><strong>Before connecting:</strong> review the scopes, script, and destination account. Disconnecting a
-            saved connection removes its local credentials but does not revoke Google’s authorization grant; manage that
-            grant in your Google Account.</p>
-        </div>
+            guide</a> for setup, permissions, and security considerations.</p>
 
-        <p class="docs-source">For the complete account setup and transfer flow, continue to the <a
-            href="google-docs.html">Google Docs guide</a>. App source and releases are available from the <a
+        <p class="docs-source">App source and releases are available from the <a
             href="https://github.com/Julieisbaka/Tagline">Tagline repository</a>.</p>
       </article>
     </div>

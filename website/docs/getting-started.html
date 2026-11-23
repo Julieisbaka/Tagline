@@ -72,42 +72,41 @@
 
         <div class="docs-callout docs-callout-warning">
           <p><strong>First launch:</strong> release builds are unsigned and not notarized, so Windows or macOS may show
-            an operating-system security warning. Tagline can check for, download, and install updates from Settings;
-            updates are not installed without your confirmation.</p>
+            an operating-system security warning.</p>
         </div>
 
         <h2>Open a vault</h2>
-        <p>A vault is an ordinary folder. Choose a folder you already use for research, or create the sample vault from
-          Tagline’s welcome screen. Your Markdown notes, <code>.flow</code> speech grids, and <code>.canvas</code>
-          argument maps stay in that folder.</p>
+        <p>A vault is an ordinary folder on your device. On the welcome screen, choose <strong>Open folder as
+            vault</strong> to select a folder, or <strong>Create sample vault</strong> to explore sample material.
+          Previously opened folders appear under <strong>Recent vaults</strong>.</p>
+        <p>Your Markdown notes, <code>.flow</code> speech grids, and <code>.canvas</code> argument maps stay in that
+          folder. To switch or manage vaults later, run <strong>Open another vault</strong> from the command palette.</p>
         <p>Settings and downloaded local models are kept in the application profile rather than in the vault. Keep
           backups of both your vault and important app-profile data. Find the profile folder under <strong>Settings &gt;
             Installation</strong>.</p>
 
         <h2 id="backups-and-migrations">Back up and upgrade a vault</h2>
-        <p>Keep independent copies of your vault and important profile data in a safe location. The vault’s revision
-          history is useful for recovering individual files, but it is not a substitute for a separate backup.</p>
-        <p>When an older vault format needs upgrading, Tagline opens a migration wizard before loading it:</p>
+        <p>Keep independent copies of your vault and important profile data. Revision history is not a substitute for
+          a separate backup. See <a href="vaults-and-backups.html">Vaults, backups &amp; recovery</a> for the checklist,
+          file recovery, and what to do when a vault needs an upgrade.</p>
+
+        <h2>Create your first note</h2>
         <ol>
-          <li>Review the required upgrades. Pause cloud sync and close other editors using the vault.</li>
-          <li>Choose <strong>Back up and upgrade</strong>. Tagline upgrades a separate copy and keeps the original beside
-            the vault in a <code>.tagline-backup-&lt;id&gt;</code> folder, adding a suffix if needed.</li>
-          <li>Check your data in the upgraded vault before resuming sync. Keep the backup until you are satisfied with
-            the result. Choosing <strong>Cancel</strong> leaves the vault unchanged.</li>
+          <li>With a vault open, press <kbd>{{TAGLINE:KEY:commands}}</kbd> to open the command palette.</li>
+          <li>Run <strong>Create new note</strong>. Tagline creates and opens an untitled Markdown file. To name it,
+            right-click the file in the explorer and choose <strong>Rename…</strong>.</li>
+          <li>Write in the note and keep source details with your research. Continue with
+            <a href="notes-and-evidence.html">Notes &amp; evidence</a> for editing modes and cards.</li>
         </ol>
-        <p>To restore a migration backup, close Tagline and replace the upgraded vault folder with the backup. Preserve
-          a copy of the upgraded folder first if it contains work you need. Tagline refuses to open newer unsupported
-          vault formats rather than rewriting them; use a compatible version of Tagline instead.</p>
-        <p>Once you no longer need old migration backups or stages, <strong>Manage vaults &gt; Clean up migration
-            backups</strong> can remove them. Check what you are deleting first and keep any independent backups you
-            still need.</p>
-        <p>For a backup checklist, individual file recovery, and help finding a moved vault, see
-          <a href="vaults-and-backups.html">Vaults, backups &amp; recovery</a>.</p>
+        <p>Default shortcuts use Ctrl on Windows/Linux and Cmd on macOS. You can change them in
+          <strong>Settings &gt; Keyboard shortcuts</strong>.</p>
+        <p>To replay the onboarding tour, use <strong>Settings &gt; Advanced settings &gt; Internal flags &gt; Show
+            onboarding again</strong>.</p>
 
         <h2>Keep Tagline up to date</h2>
         <ol>
           <li>Open <strong>Settings &gt; Installation</strong> and choose <strong>Check for updates</strong>.</li>
-          <li>If an update is available, choose <strong>Download update</strong>. Tagline verifies the download against
+          <li>If a compatible update is available and has not already downloaded, choose <strong>Download update</strong>. Tagline verifies the download against
             the release checksum.</li>
           <li>On Windows, choose <strong>Install update and restart</strong>; Tagline saves pending edits before
             restarting. On macOS, choose <strong>Open installer</strong>, quit Tagline, then replace the app in
@@ -121,19 +120,14 @@
           find your existing settings. Back up your profile and vaults first; do not remove the profile when updating.</p>
 
         <h2>Run from source</h2>
-        <p>For development, clone the project and use the repository’s npm scripts:</p>
-        <pre><code class="language-bash">npm install
-npm run dev      # start the development app
-npm start        # build and launch
-npm run package  # package for this operating system</code></pre>
+        <p>For development setup and checks, see the <a href="https://github.com/Julieisbaka/Tagline/blob/main/CONTRIBUTING.md">contributor guide</a>.</p>
 
         <div class="docs-callout docs-feature-links">
           <p><strong>Ready to use your vault?</strong> Continue with <a href="notes-and-evidence.html">writing notes and
               building evidence</a>, or jump to <a href="search-and-citations.html">finding and citing research</a>.</p>
         </div>
 
-        <p class="docs-source">Source: <a href="https://github.com/Julieisbaka/Tagline/blob/main/README.md">Tagline
-            README — Run and Releases</a>; <a href="../changelog.html">changelog</a>.</p>
+        <p class="docs-source">See the <a href="../changelog.html">changelog</a> for release notes.</p>
       </article>
     </div>
   </main>
