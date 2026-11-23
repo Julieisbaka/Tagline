@@ -40,10 +40,6 @@ const QuoteVerificationDialog = deferred(
   () => import('../dialogs/QuoteVerificationDialog.jsx'),
   true
 );
-const DeliveryAnalyticsDialog = deferred(
-  () => import('../dialogs/DeliveryAnalyticsDialog.jsx'),
-  true
-);
 const HypothesisDialog = deferred(() => import('../dialogs/HypothesisDialog.jsx'), true);
 const SummaryDialog = deferred(() => import('../dialogs/SummaryDialog.jsx'), true);
 const HistoryDialog = deferred(() => import('../dialogs/HistoryDialog.jsx'), true);
@@ -651,13 +647,6 @@ export default function AppLayout({ app }) {
       )}
       {modal?.type === 'quote-verification' && (
         <QuoteVerificationDialog contents={v.contents} onClose={() => setModal(null)} />
-      )}
-      {modal?.type === 'delivery-analytics' && (
-        <DeliveryAnalyticsDialog
-          settings={settings}
-          updateSettings={updateSettings}
-          onClose={() => setModal(null)}
-        />
       )}
       {toast && (
         <div className='toast' aria-hidden='true'>

@@ -7,7 +7,7 @@ Tagline is a local-first debate research workspace built with React, Vite, and E
 `src/lib/` is organized by domain; add new modules to the matching folder rather than the `src/lib/` root, and create a new domain folder only when none fits:
 
 - `evidence/` — cards, citations, evidence checkup, recut/NLI checks
-- `speech/` — timers, reading time, speech rate, delivery analytics
+- `speech/` — timers, reading time, speech rate
 - `flow/` — flow cell, row, text, and card-link helpers
 - `vault/` — vault index, tabs, favorites, pending edits, vault state hooks
 - `editor/` — CodeMirror and visual-editor helpers, paste and formatting transforms

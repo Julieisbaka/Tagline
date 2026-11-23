@@ -109,11 +109,9 @@ test('palette exposes configured workspace actions only in the matching editor',
     const triggered = [];
     const analysis = buildCommands({
       quoteVerification: () => triggered.push('quote'),
-      deliveryAnalytics: () => triggered.push('delivery'),
     });
     analysis.find((item) => item.id === 'quote-verification').run();
-    analysis.find((item) => item.id === 'delivery-analytics').run();
-    assert.deepEqual(triggered, ['quote', 'delivery']);
+    assert.deepEqual(triggered, ['quote']);
     assert.ok(commandScore('opst', { label: 'Open settings' }) > 0);
     assert.equal(commandScore('zzzz', { label: 'Open settings' }), -1);
     assert.ok(

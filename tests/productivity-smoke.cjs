@@ -160,62 +160,8 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
         );
         assert.equal(await js("!!document.querySelector('.quote-source script')"), false);
         await click('.analysis-dialog button', 'Close');
-        await key('P', [primary]);
-        await click('.palette-item span', 'Delivery analytics: analyze a transcript');
-        await wait("!!document.querySelector('.analysis-dialog textarea')");
-        await js(`(() => {
-          for (const [selector, value, prototype] of [
-            ['.analysis-dialog textarea', 'Um we uh agree', HTMLTextAreaElement.prototype],
-            ['.analysis-dialog input[type=number]', '2', HTMLInputElement.prototype]
-          ]) {
-            const el = document.querySelector(selector);
-            Object.getOwnPropertyDescriptor(prototype, 'value').set.call(el, value);
-            el.dispatchEvent(new Event('input', { bubbles: true }));
-          }
-        })()`);
-        await wait(
-          "document.querySelector('.analysis-dialog').textContent.includes('Pace: 120 words per minute.')"
-        );
-        assert.match(
-          await js("document.querySelector('.analysis-dialog').textContent"),
-          /Filler words: 2/
-        );
-        await js(`(() => {
-          const fields = document.querySelectorAll('.analysis-dialog input[maxlength="80"]');
-          for (const [el, value] of [[fields[0], '2026–27'], [fields[1], '1AC']]) {
-            Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set.call(el, value);
-            el.dispatchEvent(new Event('input', { bubbles: true }));
-          }
-        })()`);
-        await click('.analysis-dialog button', 'Save speech statistics');
-        await wait(
-          "JSON.parse(localStorage.getItem('tagline-settings')).deliveryHistory?.length === 1"
-        );
-        await js(`(() => {
-          const el = document.querySelector('.analysis-dialog textarea');
-          Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, 'value').set.call(el, 'Um we like so yeah');
-          el.dispatchEvent(new Event('input', { bubbles: true }));
-        })()`);
-        await wait(
-          "document.querySelector('.analysis-dialog').textContent.includes('Filler words: 3')"
-        );
-        await click('.analysis-dialog button', 'Save speech statistics');
-        await wait(
-          "JSON.parse(localStorage.getItem('tagline-settings')).deliveryHistory?.length === 2"
-        );
-        assert.match(
-          await js("document.querySelector('.analysis-dialog').textContent"),
-          /3 \/ 5 words \(60\.0 per 100 words\)/
-        );
-        assert.equal(
-          await js(
-            "JSON.stringify(JSON.parse(localStorage.getItem('tagline-settings')).deliveryHistory).includes('Um we')"
-          ),
-          false
-        );
-        await click('.analysis-dialog button', 'Close');
         console.log(
-          'PASS: quote comparison and transcript analytics work from the command palette.'
+          'PASS: quote comparison works from the command palette.'
         );
         await js("document.querySelector('.ribbon button:last-child').click()");
         await click('.settings-sidebar button', 'Appearance');

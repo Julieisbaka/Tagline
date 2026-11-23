@@ -59,7 +59,6 @@ export function useAppCommandContext({
     createCitation: () => setModal({ type: 'citation' }),
     evidenceCheckup: () => setModal({ type: 'evidence' }),
     quoteVerification: () => setModal({ type: 'quote-verification' }),
-    deliveryAnalytics: () => setModal({ type: 'delivery-analytics' }),
     hasNote: !!activePath && activeContent !== undefined,
     isMarkdown: !!activePath && isMarkdown(activePath),
     canCanvas: !!activePath && isCanvas(activePath) && mode !== 'edit',

@@ -1,7 +1,6 @@
 {
   "syllablesPerMinute": 375,
   "readingSamples": [],
-  "deliveryHistory": [],
   "speechDoc": "Speech Docs/Speech.md",
   "warnDuplicateSend": true,
   "templateFolder": "Templates",

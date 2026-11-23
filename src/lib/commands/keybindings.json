@@ -225,13 +225,6 @@
     "key": ""
   },
   {
-    "id": "delivery-analytics",
-    "label": "Delivery analytics: analyze a transcript",
-    "action": "deliveryAnalytics",
-    "scope": "app",
-    "key": ""
-  },
-  {
     "id": "source-mode",
     "label": "Editor: source mode (CodeMirror)",
     "action": "sourceMode",

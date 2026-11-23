@@ -115,7 +115,6 @@ export function buildCommands(ctx, overrides = {}) {
       'Quote verification: compare a card with its source',
       ctx.quoteVerification
     ),
-    c('delivery-analytics', 'Delivery analytics: analyze a transcript', ctx.deliveryAnalytics),
   ];
   if (ctx.hasNote) {
     list.push(
