@@ -1,0 +1,605 @@
+---
+title: "Extension API"
+description: "Build Tagline extensions with the manifest format, permissions, sandboxed JavaScript API, vault access, and UI contributions."
+---
+
+## Install and reload {#install}
+
+1. Open **Settings &gt; Extensions &gt; Open extensions folder**.
+2. Create a subfolder containing `manifest.json` and its referenced files.
+3. Select **Reload extensions**, review the requested permissions, and enable the extension.
+4. Find contributed commands in the command palette (<kbd>{/* TAGLINE:KEY:commands */}Mod+P{/* /TAGLINE */}</kbd>) and themes in **Settings &gt; Appearance &gt; Theme**.
+
+Extensions live in the app profile, not in a vault. Reload after changing extension files. Reloading recreates enabled script hosts; disabling removes the host and its contributions but does not explicitly delete its private stored data.
+
+Entry scripts run in a sandboxed worker with the supplied `tagline` bridge. They are async function bodies, not ES modules: top-level `await` works, but top-level `import`/`export` and CommonJS `require` do not. Bundle dependencies into a self-contained script.
+
+### First-install setup
+
+Register at most one `tagline.onInstall(handler)` synchronously while the entry script initializes. Tagline awaits it before marking the host ready. Use idempotent setup: an interrupted callback may run again on the next load. Successful setup is remembered by extension ID, so ordinary reloads, updates, and disable/re-enable do not repeat it. Extensions without an entry script do not have this hook.
+
+```js
+tagline.onInstall(async () => {
+  if (!(await tagline.storage.get('installedAt'))) {
+    await tagline.storage.set('installedAt', new Date().toISOString());
+  }
+  await tagline.webviews.setHtml(
+    'welcome',
+    '<h2>Welcome!</h2><p>Configure this extension in Settings.</p>',
+  );
+  await tagline.webviews.show('welcome');
+});
+```
+
+This example needs `ui` permission and a declared `welcome` webview. Entry evaluation and setup share the startup deadline (10 seconds by default); show onboarding and return rather than waiting for the user to finish it.
+
+## Browse and publish extensions {#registry}
+
+**Settings &gt; Extensions &gt; Browse extensions** lists community extensions from the [Tagline extension registry](https://github.com/Julieisbaka/Tagline/blob/main/extensions/registry.json). Tagline contacts GitHub only after you select **Browse registry**. Each card shows the name, version, authors, description, permissions, and network hosts read from the extension's `manifest.json`. Installed extensions show **Installed**, or **Update to vX** when the registry version differs.
+
+Installing resolves the listed ref to a commit, downloads only the files in that folder, checks every file against its Git blob hash, then uses the same validation, size limits, and permission review as installing from a folder. Registry extensions are not reviewed by Tagline; install only extensions you trust.
+
+### Submit an extension
+
+1. Publish the extension folder (with `manifest.json` at its root) in a public GitHub repository. Declare `authors`, and set `sourceUrl` to exactly the URL you will list in the registry.
+2. Open a pull request that appends its URL to `extensions/registry.json`:
+
+```json
+{
+  "version": 1,
+  "extensions": [
+    { "url": "https://github.com/you/tagline-word-count" },
+    { "url": "https://github.com/you/tools/tree/v1.2.0/word-count" }
+  ]
+}
+```
+
+Use `https://github.com/owner/repo` for the default branch root, or `https://github.com/owner/repo/tree/<ref>/<folder>` for a tag, branch, or commit and a subfolder. The ref cannot contain `/`. Pointing at a tag pins users to a reviewed release; pointing at a branch lets users update when you push. Each extension `id` may appear only once.
+
+The manifest's `sourceUrl` must point to the same repository, ref, and folder as its registry URL (owner and repository names are compared case-insensitively), so a registry entry cannot claim someone else's extension. A pull-request check validates `extensions/registry.json` against `schemas/extension-registry.schema.json`, then validates every listed manifest against `schemas/extension-manifest.schema.json` and Tagline's runtime rules. The app enforces the runtime rules and the `sourceUrl` match again when listing and installing.
+
+## Review before enabling {#review}
+
+Enabling an extension that declares any of these capabilities requires an explicit review of its manifest:
+
+- `settings`
+- `editor:active-note`
+- `events`
+- `ui`
+- `network`
+- `secrets`
+- `api`
+
+Tagline computes a review signature from the manifest’s declared permissions (sorted), network hosts, settings, ribbon items, panels, and webviews, then derives a SHA-256 token from that value. Reloading extensions recomputes the token and compares it with the stored approval. Changing any reviewed field invalidates the approval; for example, adding `network`, `secrets`, or `api`, changing `networkHosts`, or changing a declared setting requires a new review.
+
+Only **Settings &gt; Extensions** can enable or approve an extension, and enabling requires the token for its current manifest. A missing or stale token is rejected with “Extension permissions or settings changed. Reload and review before enabling.” After a successful enable, the approval signature is stored in `extensionReviews` in the app's `config.json`. On every launch and reload, Tagline scans each manifest and checks its stored approval again.
+
+If an approval no longer matches, the extension is treated as disabled: its host does not start, its commands are unavailable, and its selectable themes fall back to the default palette until you review and enable it again. Extensions that declare a gated capability but have no stored approval—including extensions installed before reviews were introduced—also need review. The native menu can open **Settings &gt; Extensions** only; it cannot enable or approve an extension.
+
+An extension declaring `network` must also declare `networkHosts`, a list of exact lowercase hostnames. Tagline includes this list in the review signature and shows it in **Settings &gt; Extensions**. Review the requested hosts before approving the extension.
+
+## A minimal command extension {#minimal}
+
+Create an extension folder with a manifest and one entry script:
+
+```text
+debate-tools/
+  manifest.json
+  main.js
+```
+
+```json
+{
+  "manifestVersion": 1,
+  "id": "debate-tools",
+  "name": "Debate Tools",
+  "version": "0.1.0",
+  "description": "Insert a reminder into the active note.",
+  "authors": ["Example Author"],
+  "sourceUrl": "https://github.com/example/debate-tools",
+  "main": "main.js",
+  "permissions": ["editor"],
+  "contributes": {
+    "commands": [
+      { "id": "insert-reminder", "title": "Insert evidence reminder", "key": "Mod+Alt+K" }
+    ]
+  }
+}
+```
+
+```js
+await tagline.commands.register('insert-reminder', async () => {
+  const note = await tagline.editor.getActiveNote();
+  if (!note || !/\.md$/i.test(note.path) || note.mode === 'read') {
+    await tagline.notify('Open a Markdown note in an editing mode first.');
+    return;
+  }
+  await tagline.editor.insertText(
+    '\n\nVerify author, date, and source before use.\n',
+  );
+});
+```
+
+The command appears as **Debate Tools: Insert evidence reminder**; its internal application ID is `ext:debate-tools.insert-reminder`. Register and await every contributed command during initialization.
+
+## Package translations, fonts, and templates {#assets}
+
+Declarative assets can be used without an entry script or permissions. Put every referenced file inside the extension folder:
+
+```text
+debate-kit/
+  manifest.json
+  locales/en.json
+  fonts/debate-sans.woff2
+  templates/case-note.md
+```
+
+```json
+{
+  "manifestVersion": 1,
+  "id": "debate-kit",
+  "name": "Debate Kit",
+  "version": "1.0.0",
+  "contributes": {
+    "translations": { "en": "locales/en.json" },
+    "fonts": [
+      {
+        "family": "Debate Sans",
+        "file": "fonts/debate-sans.woff2",
+        "license": "OFL-1.1",
+        "source": "https://example.com/debate-sans"
+      }
+    ],
+    "templates": [{ "id": "case-note", "title": "Case note", "file": "templates/case-note.md" }]
+  }
+}
+```
+
+Catalogs are flat JSON string maps, such as `{ "welcome": "Welcome, {name}" }`. Keys are isolated under `ext.debate-kit`; an entry script can call `await tagline.i18n.t('welcome', { name: 'Kim' })`. Add a `main` script to the manifest to use that API. Contributed fonts appear in the font-family setting, and templates appear in template commands and **Settings &gt; General &gt; Templates**. Assets disappear when the extension is disabled; templates are never copied into the vault.
+
+## Manifest reference {#manifest}
+
+| Field | Requirement |
+| --- | --- |
+| `manifestVersion` | Required number `1`. |
+| `id` | Required, 2 - 64 characters; starts with a lowercase letter or digit and contains only lowercase letters, digits, or hyphens. Unique across valid installed manifests. |
+| `name` | Required nonblank string, at most 80 characters. |
+| `version` | Required nonblank string, at most 80 characters; semantic-version syntax is not enforced. |
+| `description`, `author` | Optional description and legacy single-author strings, each at most 500 characters. Use `authors` for multiple authors. |
+| `authors` | Optional list of 1 - 20 unique, nonblank author names, each at most 200 characters. If omitted, the legacy `author` value is shown as the sole author. |
+| `sourceUrl` | Optional HTTPS URL (up to 2,048 characters), without embedded credentials. It appears on the extension card as a link to the source or project page. |
+| `engines.tagline` | Optional semver range declaring compatible Tagline versions. Incompatible extensions are reported in Settings and cannot run until updated or explicitly force-enabled there with a warning confirmation. |
+| `main` | Relative path to a `.js` file when commands or script contributions are used; optional for extensions with only declarative assets. |
+| `permissions` | Optional array of `editor`, `editor:active-note`, `settings`, `vault:read`, `vault:write`, `events`, `ui`, `network`, or `secrets`. Defaults to `[]`. |
+| `networkHosts` | Required when `permissions` includes `network`. List the exact lowercase hostnames the extension needs; the list is reviewed and included in the approval signature. |
+| `contributes.commands` | Up to {/* TAGLINE:LIMIT:extensionCommands */}50{/* /TAGLINE */} declarations; each has a unique ID and nonblank title (up to 80 characters). Requires `main`. |
+| `contributes.themes` | Up to 20 relative `.json` paths. |
+| `contributes.themeGroups` | Up to 10 `{id, title, light, dark}` light/dark pairs of relative `.json` paths; enables Match system. |
+| `contributes.translations` | Optional `{ "en": "locales/en.json" }` map for `en`, `es`, and `fr`. Each file is a flat JSON map of string keys to translations; keys are isolated by extension ID. Use `tagline.i18n.t(key, values)` in the extension script. |
+| `contributes.fonts` | Up to 20 `{ family, file, license, source?, weight?, style? }` entries for bundled `.woff2`, `.woff`, `.ttf`, or `.otf` files. License is required; HTTPS source URL is optional. Families appear in the font-family setting while enabled. |
+| `contributes.templates` | Up to 50 `{ id, title, file }` Markdown files, available from template commands and **Settings &gt; General &gt; Templates** without copying into a vault. |
+| `contributes.settings` | Up to {/* TAGLINE:LIMIT:extensionSettings */}32{/* /TAGLINE */} typed settings; requires `settings` permission. |
+| `contributes.panels`, `contributes.webviews` | Up to 10 `{ id, title }` declarations each; require `ui` permission and `main`. Panels may set `placement` to `right-panel` (default), `sidebar-bottom`, or `editor-side`, `persistVisibility: true`, and a simple `when` filter using `extensions` and/or `mode`. |
+| `contributes.ribbonItems` | Up to 10 `{ id, title, icon, command }` shortcuts; requires `ui` and a declared command. Unknown icon names use the file icon. |
+| `contributes.statusBarItems` | Up to 20 `{ id, title, icon, command }` read-only status items; require `ui` and a declared command. Clicking runs that command. |
+| `contributes.contextMenus` | Up to 50 `{ id, title, context, command }` actions for `editor`, `file-explorer`, `tab`, `canvas`, or `flow`; require `ui` and a declared command. |
+| `contributes.fileHandlers` | Up to 20 explicit “Open with” actions for `.md`, `.flow`, or `.canvas`. Priority (0–100) only orders matching handlers; native open behavior is unchanged. |
+
+Contribution IDs use the extension-ID character rules. Paths must remain inside the extension folder; absolute paths, traversal, and symlinks resolving outside it are rejected. Default file limits are 1 MiB for scripts and 64 KiB per contributed theme. Translation catalogs are limited to 256 KiB each; fonts to 10 MiB each and 20 MiB in total; templates to 1 MiB each and 4 MiB in total. These declarative assets need no permissions and are removed from the app when the extension is disabled. The aggregate JSON size of theme files loaded from one extension is limited to {/* TAGLINE:LIMIT:themePreviewBytes */}524,288{/* /TAGLINE */} bytes by default; this **Theme preview bytes** limit can be adjusted from {/* TAGLINE:LIMIT:themePreviewBytes.min */}1,024{/* /TAGLINE */} to {/* TAGLINE:LIMIT:themePreviewBytes.max */}4,194,304{/* /TAGLINE */} bytes. Per-file limits apply independently. Limits are adjustable within fixed bounds in **Settings &gt; Advanced settings &gt; Theme and extension limits**.
+
+Invalid manifests and load failures are shown in extension settings. A script must finish initialization within 10 seconds. See the [JSON formats guide](/json-formats) for schema validation and editor completion.
+
+## Permissions and isolation {#permissions}
+
+| Permission | Grants |
+| --- | --- |
+| `editor` | Read the active note and selection; insert text, set selection, and run approved Tiptap commands. Reading a note exposes its entire content. |
+| `editor:active-note` | Subscribe to active-note path changes only, without content or selection access. Does not imply `editor`. |
+| `settings` | Read and write only this extension's declared, validated settings. |
+| `vault:read` | List and read loaded `.md`, `.flow`, and `.canvas` documents; watch changes. |
+| `vault:write` | Create, replace, rename, trash, and flush supported notes. Append and compare-and-swap also require `vault:read`. |
+| `events` | Subscribe to application events (plus each event's data permission) and namespaced custom events; emit events only in this extension's namespace. |
+| `ui` | Display declared status items, ribbon shortcuts, panels, and webviews; add context-menu/file-handler actions and exchange surface messages. |
+| `network` | Use `tagline.network.fetch()` and `fetchToFile()` for host-mediated HTTPS `GET`/`POST` requests to hosts declared in `networkHosts`, plus `authorize()` and `cancelAuthorization()` for loopback OAuth authorization flows. |
+| `secrets` | Read, store, check, and delete OS-encrypted secret strings scoped to this extension ID. Requires review; see [Encrypted secrets](#secrets). |
+| `api` | Export and call versioned JSON APIs between extensions. Both extensions must declare and receive approval for `api`; see [Inter-extension APIs](#extension-apis). |
+| None | Register declared commands, notify the user, use private extension storage, and contribute JSON themes. |
+
+Undeclared permission checks reject API calls. For every network request, the main process rechecks that the extension is enabled and its manifest still declares the permission and requested host. Requests reject local or private DNS results, embedded URL credentials, non-HTTPS schemes, non-default ports, cookies, automatic redirects, and compressed responses. Requests are limited to 20 per second and request bodies of 5,000,000 bytes; see [Network API](#network) for response and timeout limits. The extension worker and webviews have no direct network access. Extensions also have no direct Node.js, Electron API, application DOM, profile storage, or arbitrary filesystem access. See [Review before enabling](#review) for the manifest approval required for gated capabilities.
+
+- Workers keep synchronous extension loops off the application UI thread. A supervisor stops a worker that misses heartbeats for 5 seconds; startup has a 10-second deadline.
+- More than {/* TAGLINE:LIMIT:extensionMessagesPerSecond */}200{/* /TAGLINE */} messages in a rolling second stops an extension. At most {/* TAGLINE:LIMIT:extensionPendingCalls */}32{/* /TAGLINE */} bridge calls may be pending, and each extension may register up to {/* TAGLINE:LIMIT:extensionWatches */}32{/* /TAGLINE */} vault watches and {/* TAGLINE:LIMIT:extensionWatches */}32{/* /TAGLINE */} active-note listeners.
+- Nested `Worker` and `SharedWorker` constructors are disabled. Disable, reload, or unload tears down the worker.
+
+Runtime failures appear in notifications and startup failures on the extension card. Await bridge calls and handle specific errors where you can explain recovery; unhandled command errors are surfaced to the user.
+
+## Network API {#network}
+
+`tagline.network.fetch(url, options)` supports GET, POST, PUT, PATCH, DELETE, and HEAD. GET and HEAD cannot have a body; other bodies are text up to 5,000,000 UTF-8 bytes. The response has `status`, `statusText`, `ok`, `headers`, and `body`. Response bodies are limited to 5,000,000 bytes. `responseType` can be `text` (default), `json` (parsed JSON; invalid JSON rejects), or `base64` (binary bytes encoded as a string).
+
+```js
+const response = await tagline.network.fetch('https://api.example.com/items', {
+  method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({ reviewed: true }), responseType: 'json', timeoutMs: 10000,
+});
+```
+
+`timeoutMs` is a positive integer no greater than the configurable `extensionNetworkTimeoutMs` cap ({/* TAGLINE:LIMIT:extensionNetworkTimeoutMs */}30,000{/* /TAGLINE */} ms by default). Omitting it uses {/* TAGLINE:LIMIT:extensionNetworkTimeoutMs */}30,000{/* /TAGLINE */} ms or the cap, whichever is smaller. Customize the cap in Settings. Requests are limited to 20 per second per extension.
+
+`tagline.network.fetchToFile(url, vaultPath, options)` requires both `network` and `vault:write`. It streams a successful response through a private temporary file, then saves bytes to a new vault-relative path; existing files are never overwritten and parent folders must already exist without symbolic links. Failures remove the temporary file. The result contains response metadata, `bytes`, and `path`. The same request options apply, except `responseType`. Downloads have a separate configurable `networkDownloadBytes` limit ({/* TAGLINE:LIMIT:networkDownloadBytes */}20,000,000{/* /TAGLINE */} bytes by default). The vault tree only displays non-hidden `.md`, `.flow`, `.canvas`, and `.json` files; other downloaded files remain on disk but do not appear in the tree.
+
+```js
+const saved = await tagline.network.fetchToFile(
+  'https://api.example.com/evidence.pdf', 'Evidence/evidence.pdf', { timeoutMs: 12000 }
+);
+```
+
+`tagline.network.authorize(url, options)` supports desktop OAuth authorization code flows. The HTTPS authorization host must be declared in `networkHosts`. Tagline opens it in the system browser, creates a temporary listener bound only to `127.0.0.1` on an ephemeral port, adds its loopback `redirect_uri` and a random `state` plus an S256 PKCE challenge, and checks that state before returning callback parameters and the `codeVerifier` needed for token exchange. `options.timeoutMs` ranges from 1,000 to 300,000 ms and defaults to five minutes. Call `tagline.network.cancelAuthorization()` to cancel a pending flow; disabling the extension also closes its listener. Use the returned code with `tagline.network.fetch()` for the token exchange. This does not enable arbitrary localhost requests or fixed-port callbacks; OAuth providers must support loopback redirects with a dynamic port.
+
+```js
+const result = await tagline.network.authorize(
+  'https://login.example.com/authorize?client_id=client&response_type=code&scope=profile'
+);
+const code = result.parameters.code;
+const redirectUri = result.redirectUri;
+const codeVerifier = result.codeVerifier;
+// From another command if the user cancels:
+await tagline.network.cancelAuthorization();
+```
+
+## Commands and editor {#commands-editor}
+
+Bridge methods return promises. Command handlers receive no arguments and expose no return value to the host.
+
+```js
+await tagline.commands.register(id, handler);
+await tagline.notify(message);
+
+const note = await tagline.editor.getActiveNote();
+// null or { path, content, selection, selectionRange, editorKind, mode, kind }
+await tagline.editor.insertText(markdown);
+await tagline.editor.setSelection({ from: 1, to: 12 });
+const snapshot = await tagline.editor.tiptap.getSnapshot();
+await tagline.editor.tiptap.runCommand('toggleBold');
+```
+
+Notifications accept strings up to 500 characters and include the extension name. The active-note snapshot includes vault-relative path, current content (including unsaved edits), selected text, and editor state. Modes are `visual`, `edit`, or `read`; kinds are `markdown`, `flow`, or `canvas`. Content is available only with `editor`.
+
+`insertText` requires an open Markdown note in an editing mode and a ready editor. In visual mode it parses Markdown; in source mode it inserts literal text. It replaces the selection or inserts at the cursor and schedules normal autosaving. It rejects in reading mode or on a flow, and accepts up to 5,000,000 characters.
+
+Selection offsets are source-character offsets starting at 0 in source mode and ProseMirror positions in visual mode (text usually starts at 1); the coordinate systems are not interchangeable. Invalid or out-of-document positions reject. Tiptap snapshots and commands require an active visual Markdown editor; reading mode, flows, and source fallback reject.
+
+Approved Tiptap commands include formatting (`toggleBold`, `toggleItalic`, `toggleUnderline`, `toggleHighlight`, `toggleStrike`, `toggleCode`, `toggleHeading`, `setParagraph`, `clearNodes`), blocks and lists (`toggleCodeBlock`, `setHardBreak`, `setHorizontalRule`, `toggleBulletList`, `toggleOrderedList`, `toggleBlockquote`, `toggleTaskList`), tables (`insertTable`, `addColumnBefore`, `addColumnAfter`, `deleteColumn`, `addRowBefore`, `addRowAfter`, `deleteRow`, `toggleHeaderRow`, `toggleHeaderColumn`, `toggleHeaderCell`, `mergeCells`, `splitCell`, `deleteTable`), and history (`undo`, `redo`, `unsetAllMarks`). Only `toggleHeading` accepts `{ level: 1..6 }`; `insertTable` accepts `{ rows: 1..20, cols: 1..20, withHeaderRow: boolean }`.
+
+Extensions cannot register arbitrary Tiptap, CodeMirror, or Marked JavaScript plugins: extension code stays in the worker sandbox and is never executed in the editor or app renderer. The restricted editor surface is the approved Tiptap command list, host-validated editor diagnostics (rendered in the source and visual editors), and permission-free Markdown parsing helpers. Use these APIs for editor integration without injecting executable code into Tagline's editors.
+
+Use `tagline.editor.onActiveNoteChanged(callback)` with the separate `editor:active-note` permission to subscribe to `{ path }` changes only. It does not provide an initial snapshot; call `getActiveNote()` only when full editor access is needed and approved. Unloading the extension unsubscribes automatically.
+
+## Application event bus {#events}
+
+Every subscription requires `events`. Built-in events also require the listed data permission. Subscriptions do not replay initial state and are removed on disable, reload, or worker failure.
+
+| Event | Additional permission | Payload |
+| --- | --- | --- |
+| `vault.changed` | `vault:read` | `{ open: boolean }`, when the open vault changes. |
+| `vault.fileChanged` | `vault:read` | Path-only change/reset events, like `vault.watch`. |
+| `note.changed` | `editor:active-note` | `{ path: string \| null }`. |
+| `editor.updated` | `editor` | `{ path, mode }`, on content, note, or mode changes. |
+| `editor.selectionChanged` | `editor` | `{ mode, selection: { from, to }, path? }`. |
+| `editor.ready` | `editor` | `{ mode, path? }`. |
+
+```js
+const stop = await tagline.events.on(
+  'editor.selectionChanged',
+  async (event) => {
+    await tagline.storage.set('last-selection', event.selection);
+  },
+);
+await stop();
+```
+
+Custom event names follow `ext.<extension-id>.<event-name>`. Extensions may listen to other namespaces but can emit only in their own. Names are limited to 128 characters; custom event payloads must be JSON-serializable and no larger than 131,072 UTF-8 bytes (128 KiB); webview UI-message payloads are JSON-serializable and capped at 65,536 UTF-8 bytes. Treat payloads from other extensions as untrusted.
+
+## Inter-extension APIs {#extension-apis}
+
+Both the provider and caller must declare the review-gated `api` permission and have it allowed in Settings. APIs are host-mediated; extensions never receive another extension's worker or privileges. Export one API during initialization with a positive integer version and 1 - 64 lowercase method names:
+
+```js
+await tagline.extensions.export(1, {
+  lookup: async ({ query }) => ({ matches: await searchMyIndex(query) }),
+});
+```
+
+Call an enabled provider by extension ID. `getApi` waits for an API that is still starting; pass a version to require an exact match. Each method takes one JSON payload (use `null` when unused) and returns JSON. Inputs and outputs are limited to 65,536 UTF-8 bytes; undeclared methods and mismatched versions reject.
+
+```js
+const api = await tagline.extensions.getApi('case-index', 1);
+const result = await api.methods.lookup({ query: 'climate' });
+```
+
+API methods do not inherit permissions: the provider must independently validate inputs and only expose operations it intends to share. Disable, reload, or stop either extension to end access.
+
+## Status bar, menus, panels, and webviews {#ui}
+
+Declare surfaces before using them. IDs use command-ID syntax; titles are nonblank and at most 80 characters. Each surface belongs to its extension.
+
+```json
+{
+  "permissions": ["ui"],
+  "main": "main.js",
+  "contributes": {
+    "commands": [{ "id": "open-research", "title": "Open research" }],
+    "statusBarItems": [{ "id": "research-status", "title": "Ready", "icon": "search", "command": "open-research" }],
+    "contextMenus": [{ "id": "editor-research", "title": "Research selection", "context": "editor", "command": "open-research" }],
+    "fileHandlers": [{ "id": "markdown-research", "title": "Research note", "extensions": [".md"], "command": "open-research", "priority": 10 }],
+    "panels": [{ "id": "research-panel", "title": "Research", "placement": "sidebar-bottom", "persistVisibility": true, "when": { "extensions": [".md"], "mode": "edit" } }],
+    "webviews": [{ "id": "source-details", "title": "Source details" },
+                 { "id": "research-search", "title": "Research search", "placement": "search" }]
+  }
+}
+```
+
+```js
+await tagline.commands.register('open-research', async (context) => {
+  // Context is bounded and may contain a path, selected text or range, and Tagline URI.
+  await tagline.notify(context?.path || 'No file selected');
+});
+await tagline.ui.statusBar.setText('research-status', '2 sources');
+await tagline.ui.statusBar.setTooltip('research-status', 'Open research tools');
+await tagline.ui.statusBar.setIcon('research-status', 'search');
+await tagline.ui.statusBar.setCommand('research-status', 'open-research');
+```
+
+Status-bar items display only text, icon, and tooltip—no extension HTML. Their click command must be declared. Context-menu and file-handler commands receive a bounded `{ path, selection, uri }` object; unavailable fields are `null`. Editor selections are text (clipped to 4,096 characters); canvas and flow selections contain only compact node/edge IDs or cell bounds. Context data is supplied only after an explicit user menu action.
+
+File handlers appear as “Open with …” in file and tab context menus. They never replace double-click/open behavior; priority only sorts matching extension handlers. Panels default to the right panel. `persistVisibility` stores only whether the panel is open, and `when` supports a short allowlist of document extensions and/or modes—no executable expressions.
+
+```js
+tagline.webviews.onMessage('source-details', async (message) => {
+  if (message.ready) {
+    await tagline.webviews.postMessage('source-details', {
+      title: 'Example source',
+    });
+  }
+});
+await tagline.webviews.setHtml(
+  'source-details',
+  '<h1 id="title"></h1><script>' +
+    'taglineWebview.onMessage(m => {' +
+    'document.getElementById("title").textContent = m.title;' +
+    '}); taglineWebview.postMessage({ ready: true });</script>',
+);
+await tagline.webviews.show('source-details');
+```
+
+Register message handlers before showing the surface. The page should send a ready message after registering its handler; posting to an unmounted surface rejects. `setHtml` replaces the page, `show` displays it, and `close` hides/unmounts it while retaining HTML for reopening. Disabling or reloading removes contributed surfaces.
+
+A webview with `placement: 'search'` becomes a search-mode option after `setHtml`; users choose it from the search dialog rather than an extension calling `show`. Switching modes or closing search unmounts the page, so send a ready message whenever it mounts and keep persistent state in the worker. After mounting, the page receives `{ type: 'search-query', query: '...' }` via `taglineWebview.onMessage` with the current search text.
+
+With `ui` permission, `await tagline.ui.openNote(path)` opens an existing supported vault document; if called from the selected search contribution, the search dialog closes. `await tagline.ui.openExternal(url)` asks the user for confirmation before opening an HTTPS URL without credentials in their browser.
+
+Right-panel contributions appear above the built-in right sidebar; other panel placements follow their declaration, while webviews appear as dialogs. HTML is limited to 200,000 characters and runs in an opaque-origin `sandbox="allow-scripts"` iframe without same-origin access, Node, Electron APIs, network requests, forms, nested frames/workers, popups, or arbitrary navigation. Styles must be inline; images may use data URLs. Never inject unescaped note content; use `textContent`. Webview scripts have DOM access and can still block renderer responsiveness if they do expensive synchronous work.
+
+### Extension bundle files
+
+Sandboxed extension scripts can read files shipped inside their own installed folder with `tagline.extension.readFile(path, encoding = 'utf8')`. The path is relative to the extension root, cannot escape it, and reads are limited to regular files (up to 2 MiB). Use `'utf8'` for text or `'base64'` for binary data.
+
+```js
+const template = await tagline.extension.readFile('assets/prompt.txt');
+const image = await tagline.extension.readFile('assets/icon.png', 'base64');
+```
+
+### Theme-aware UI kit
+
+Panels and webviews receive app colors, fonts, selection colors, and a shared control stylesheet. Prefer `taglineUI` factories to hardcoded colors:
+
+```js
+const ui = taglineUI;
+document.body.append(
+  ui.card({
+    title: 'Research',
+    children: [
+      ui.field({ label: 'Filename', onChange: (value) => {} }),
+      ui.select({
+        label: 'Side',
+        value: 'aff',
+        options: [{ label: 'Affirmative', value: 'aff' }],
+      }),
+      ui.toggle({ label: 'Include flows', checked: true, onChange: () => {} }),
+      ui.notice({ text: 'Ready', tone: 'info' }),
+      ui.button({ label: 'Search', variant: 'primary', onClick: () => {} }),
+    ],
+  }),
+);
+```
+
+Factories return native elements with labels, keyboard behavior, focus indicators, and reduced-motion support. Available controls include `stack`, `card`, `field`, `select`, `toggle`, `notice`, and `button`. Text and labels are inserted as text, not HTML. In webviews, `taglineWebview.getTheme()` returns the current theme and `onThemeChange(callback)` observes updates; see the [Theme API](/theme-api).
+
+## Helpers and disposable subscriptions {#helpers}
+
+Pure helpers require no permission. Path helpers normalize vault-relative paths and reject absolute paths or traversal above the vault root; they do not access files.
+
+```js
+const path = await tagline.helpers.path.join('Research', 'Energy.md');
+const text = await tagline.helpers.markdown.toText('**Evidence**');
+const outline = await tagline.helpers.markdown.outline('# Case\n\n#### Card');
+const html = await tagline.helpers.markdown.toHtml('**Safe**');
+const metadata = await tagline.helpers.markdown.frontmatter(markdown);
+const tags = await tagline.helpers.markdown.extractTags(markdown);
+const card = await tagline.helpers.cards.getAt(markdown, 0);
+const stats = await tagline.helpers.cards.stats(card.text);
+const timing = await tagline.helpers.speech.estimate(card.text, 250);
+const citation = await tagline.helpers.citations.create({ author: 'Smith', year: '2024' });
+const filled = await tagline.helpers.templates.fill('Case: {{title}} by {{author}}', 'Energy', { vars: { author: 'Kim' } });
+const templatePaths = await tagline.helpers.templates.list();
+const templateText = await tagline.helpers.templates.read(templatePaths[0]);
+```
+
+- **Markdown:** `toText`, `toHtml` (sanitized), `frontmatter`, `slugify`, `outline`, `extractLinks`, `extractTags`, and `resolveLink(target, paths)`. Frontmatter returns `{ data, body, prefix }`; invalid YAML rejects. Outline line numbers are zero-based and include frontmatter lines.
+- **Cards and speech:** `cards.getAt`, `cards.stats`, `cards.spokenEvidence`, `cards.formatDuration`, `speech.analyze`, and `speech.estimate(text, wordsPerMinute = 250)`.
+- **Other helpers:** `templates.fill`, `citations.create`, `search.fuzzyScore`, `countdown.remainingAt`, `language.system`/`initial`, `keybindings.valid`/`display`, and layout normalization/movement helpers.
+- **Structured data:** canvas and flow parse/serialize/create helpers; folder path normalization; frontmatter and speech-path helpers; calendar date/grid helpers; vault path/index/link helpers; and NLI premise, hypothesis, and label helpers.
+
+| Namespace | Pure helper methods |
+| --- | --- |
+| `path` | `join`, `normalize`, `basename`, `dirname`, `extname`. |
+| `markdown`, `vault` | Markdown text/rendering/frontmatter/outline/link/tag helpers; vault path classification, naming, indexing, flattening, link rewriting, and fuzzy scoring. These helpers parse supplied data and do not read files. |
+| `cards`, `speech` | Card lookup/statistics/spoken evidence/duration formatting; speech text, analysis, estimates, reading time, sample validation/calibration, and assessment. |
+| `templates`, `citations`, `search` | Template filling, citation Markdown creation, and fuzzy relevance scoring. |
+| `calendar` | `dateValue`, `parseDate`, `moveMonth`, `monthDays`. Date strings must be strict `YYYY-MM-DD`; month grids start on Sunday. |
+| `flowCells` | `bounds`, `copy`, `parse`, `paste`. Cell positions are zero-based, bounds inclusive, and paste returns a copy. |
+| `folders`, `frontmatter` | `folders.paths`, `folders.normalize`, `frontmatter.split`, `frontmatter.markSpeech`, `frontmatter.speechPaths`. |
+| `canvas`, `flow` | Canvas parse/serialize, node and edge creation, group membership, ID creation, link resolution, file suggestions, and movement; flow parse/serialize/create and `setCell`. They return new values. Canvas relations are `supports`, `answers`, and `contradicts`. |
+| `countdown`, `language`, `keybindings`, `layout` | Deadline countdown; supported-language selection (`en`, `es`, `fr`); shortcut validation/display; ribbon and workspace item normalization/movement. |
+| `nli` | `premise`, `hypotheses`, `label` for preparing text and mapping probabilities to Tagline entailment labels. |
+
+`templates.fill(template, title, context)` recognizes `{{date}}`, `{{time}}` (both local time, with optional formats such as `{{date:dddd, MMMM D}}` or `{{time:hh:mm A}}`), `{{title}}`, `{{path}}`, `{{content}}`, and `{{properties}}`. Pass a target vault-relative path and full Markdown content in `context`; content expands to the body without frontmatter and properties to the original YAML without delimiter lines. Pass `context.vars`, an object of string values (at most 100), to fill custom placeholders such as `{{author}}`; built-in names cannot be overridden. Values substitute literally in one pass, omitted values become empty strings, and unknown placeholders remain unchanged. `templates.list(folder?)` returns Markdown template paths from the configured template folder (or `folder`), and `templates.read(path)` returns a template's text; both require the `vault:read` permission.
+
+Additional bounds include 10,000 supplied paths for link resolution; 10,000 document paths and 1,000,000 total text characters; 1,000 entries for layout catalogs and ID arrays; 10,000 folder-tree nodes and 100 levels; and 100,000 flow cells. Speech estimates accept 50 - 1,000 words per minute, and calibration accepts up to 100 validated samples.
+
+Invalid or oversized inputs reject rather than being silently truncated. Markdown rendering, text, links/tags, card analysis, and speech timing exclude frontmatter; link and tag extraction skip fenced and inline code.
+
+### Expanded helper surface
+
+Every pure utility in `src/lib` is also available through `tagline.helpers` without a permission. In addition to the namespaces and methods above, the bridge exposes:
+
+| Namespace | Helpers |
+| --- | --- |
+| `cards` | `detect(markdown)`, `containsEvidence(document, text)`. |
+| `checkup` | `fields()`, `defaults()`, `normalize(options)`, `scan(documents)`, `citedUrls(cards)`, `audit(cards, options, now)`, `linkIssues(cards, results)`, `sourceIssues(cards, results)`. |
+| `citations` | `extract`, `isValidIsbn`, `expandTwoDigitYear`, `create`, `spoken`. |
+| `frontmatter` | `read(markdown)`. |
+| `keybindings` | `all()`, `binding(id, overrides, extra)`, `reserved(shortcut, id)`, `event(event, platform)`, `matches(event, shortcut, platform)`, `conflict(id, shortcut, overrides, extra)`, `editor(shortcut)`. |
+| `language` | `languages()`. |
+| `layout` | `ribbonItems()`, `defaultRibbonItems()`, `fileActions()`, `statusItems()`. |
+| `nli` | `templates()`. |
+| `search` | `parse`, `filter`, `vault`, `excerpt`, `mergeHybrid`, `candidateLimit`, `fuzzyScore`. |
+| `themes` | `builtin()`, `colorTokens()`, `validate(theme)`, `resolveSettings(theme, values)`, `get(id, customTheme, settings)`, `extensionThemes()`, `contrast(theme)`. |
+| `vault` | `isJson(path)`. |
+| `canvas` | `empty()`. |
+
+Existing `path`, `calendar`, `flow`, `flowCells`, `folders`, `markdown`, `templates`, `speech`, `readTime`, and other `vault`, `canvas`, and `citations` helpers are unchanged. Inputs are validated and bounded: text up to 100,000 characters, documents up to 10,000 entries, search limits from 1 to 1,000, and keybinding platforms limited to `darwin`, `win32`, and `linux`.
+
+`tagline.helpers.createDisposables()` is synchronous. Add unsubscribe functions with `add`, then call `dispose()`; it clears the group and surfaces disposal failures.
+
+## Typed extension settings {#settings}
+
+Declare `settings` permission and typed contributions. This is a manifest fragment; include the required manifest fields as well.
+
+```json
+{
+  "permissions": ["settings"],
+  "contributes": {
+    "settings": [
+      { "id": "enabled", "title": "Enable reminders", "type": "boolean", "default": true },
+      { "id": "limit", "title": "Result limit", "type": "number", "min": 1, "max": 20, "default": 5 },
+      { "id": "style", "title": "Style", "type": "string", "enum": ["brief", "full"], "default": "brief" }
+    ]
+  }
+}
+```
+
+```js
+const limit = await tagline.settings.get('limit');
+await tagline.settings.set('limit', 10);
+```
+
+Each setting has a unique ID, nonblank title (up to 80 characters), type, and valid default. Optional descriptions are limited to 500 characters. Booleans accept only booleans; numbers must be finite and may have inclusive bounds; strings default to a 1,000-character limit (configurable from 1 to 10,000) and may restrict values to 1–50 unique enum choices. Invalid definitions, undeclared IDs, and type or range mismatches reject instead of coercing values.
+
+Users can edit, save, and reset settings on the extension card under **Settings &gt; Extensions**. Settings are scoped to the extension ID and separate from private storage. They are not encrypted; do not use them for secrets. Invalid saved values surface errors and can be reset by the user.
+
+## Canvas and flow documents {#canvas-flow}
+
+`tagline.canvas.read(path)` and `tagline.flow.read(path)` parse documents and require `vault:read`. Their `write(path, document)` counterparts validate and serialize data, require `vault:write`, and return the saved path. Paths must end in `.canvas` or `.flow`. Saves use normal autosaving and revision history; call `tagline.vault.flush()` to await disk persistence.
+
+Pure helpers require no permissions: canvas parse/serialize, node and argument-edge creation, group membership, link resolution, file suggestions, and node movement; flow parse/serialize/create and cell updates. Relations are `supports`, `answers`, or `contradicts`. Helpers return new values rather than mutating inputs. Canvas link resolution only considers supplied paths and never opens or reads files.
+
+See [JSON formats and schemas](/json-formats) for flow validation and the standard JSON Canvas specification.
+
+## Vault API {#vault}
+
+```js
+const paths = await tagline.vault.list();
+const content = await tagline.vault.read(path);
+const createdPath = await tagline.vault.create(path, content);
+const actualPath = await tagline.vault.write(path, content);
+await tagline.vault.append(path, text);
+const renamed = await tagline.vault.rename(path, newPath);
+await tagline.vault.delete(path); // moves the note to the OS trash
+await tagline.vault.flush();
+const changed = await tagline.vault.compareAndSwap(path, expected, replacement);
+const stop = await tagline.vault.watch((event) => {});
+await stop();
+```
+
+`list`, `read`, and `watch` require `vault:read`. Mutations and `flush` require `vault:write`; `append` and `compareAndSwap` require both. Paths are vault-relative with `/` separators, preserve file extensions, and are limited to 1,000 characters.
+
+- `list` returns loaded supported note paths, not arbitrary files or folders. `read` returns current loaded content and rejects for an absent note; reload the vault after external edits.
+- `create` creates a new `.md`, `.flow`, or `.canvas` note without overwriting an existing file. If the requested path is taken, it returns the unique path chosen by the normal vault workflow.
+- `write` accepts `.md`, `.flow`, and `.canvas`. It replaces loaded content or creates a note through the normal workflow. Folder normalization/collision handling can change a new path; use the returned path. Writes are debounced, so resolving does not mean disk persistence is complete. Content is limited to 5,000,000 characters.
+- `append` adds literal text to an existing note and preserves unsaved edits. `compareAndSwap` compares the entire loaded text, including unsaved edits, and replaces only on an exact match; mismatch returns `false`. Concurrent extension mutations are serialized.
+- `flush` waits for queued autosaves and in-flight writes for the current vault, including user edits. It rejects on save failure; edits made after it starts may require another flush.
+- `rename` and `delete` act on existing notes (not folders), flush first, and reject on save failure. Rename uses the app's normal relinking and tab updates; delete moves the note to the OS trash and closes its tabs.
+- `watch` reports path-only create/change/delete events or `{ type: 'reset' }` when switching vaults. Events may be coalesced; renames appear as delete/create. Read a current snapshot separately when needed.
+
+## Private extension storage {#storage}
+
+```js
+const value = await tagline.storage.get('key'); // value or null
+await tagline.storage.set('key', { enabled: true });
+await tagline.storage.set('key', null); // delete the key
+```
+
+No permission is required. Keys are strings up to 200 characters; values should be JSON-compatible. Setting `null` or `undefined` removes a key. The total serialized object is limited to 131,072 UTF-8 bytes (128 KiB). Storage is scoped by extension ID in the local app profile and survives host reloads; it is not encrypted, synced, or a vault file.
+
+Do not store API keys or other credentials here. Use [`tagline.secrets`](#secrets) for encrypted secret strings.
+
+## Encrypted extension secrets {#secrets}
+
+Declare the review-gated `secrets` permission in `manifest.json` to use `tagline.secrets`:
+
+```json
+"permissions": ["secrets"]
+```
+
+```js
+await tagline.secrets.set('api-key', 'your-api-key'); // Promise<true>
+const key = await tagline.secrets.get('api-key'); // string or null
+await tagline.secrets.has('api-key'); // Promise<boolean>
+await tagline.secrets.delete('api-key'); // Promise<boolean>; same as set(key, null)
+```
+
+Keys are non-empty strings up to {/* TAGLINE:CONST:electron/extensions/storage.cjs#MAX_SECRET_KEY */}200{/* /TAGLINE */} characters. Values are strings up to {/* TAGLINE:CONST:electron/extensions/storage.cjs#MAX_SECRET_VALUE */}10,000{/* /TAGLINE */} characters, and each extension can hold up to {/* TAGLINE:CONST:electron/extensions/storage.cjs#MAX_SECRETS */}50{/* /TAGLINE */} secrets. `get` returns `null` when the key is absent; `has` returns whether it exists. Setting `null` or `undefined` deletes the key, as does `delete`.
+
+Secrets are encrypted with the operating-system credential service through Electron `safeStorage` in the main process and stored in `<userData>/extension-secrets/<extension-id>.bin`, scoped by extension ID. They are never written to the vault, settings exports, `tagline.storage`, or `localStorage`. Calls reject if OS encryption is unavailable or the extension is disabled; there is no unencrypted fallback.
+
+Users can remove an extension's secrets with **Clear stored secrets** on its card in **Settings &gt; Extensions**. Disabling an extension blocks access but does not clear its stored secrets.
+
+<Warning>
+**Keep secrets out of UI and logs.** Do not log secret values or send them to panels or webviews. Read and use them in your entry script (`main.js`) with `tagline.network.fetch()`. Network requests also require the reviewed `network` permission and the destination hostname in `networkHosts`.
+</Warning>
+
+## Shortcuts and contributed themes {#themes-shortcuts}
+
+`Mod+Alt+K` uses the portable primary modifier. Valid modifiers include `Mod`, `Ctrl`, `Meta`, `Alt`, and `Shift`; use uppercase letter keys in manifests. Users can change or clear extension shortcuts in **Settings &gt; Keyboard shortcuts &gt; Extensions**. Malformed, reserved, or already-used defaults are dropped rather than overriding another command; the command remains available in the palette.
+
+Theme-only extensions need no script or permissions:
+
+```json
+{
+  "manifestVersion": 1,
+  "id": "ocean-themes",
+  "name": "Ocean Themes",
+  "version": "0.1.0",
+  "contributes": { "themes": ["themes/ocean.json"] }
+}
+```
+
+Theme IDs are assigned as `ext:<extension-id>:<zero-based-file-index>`. Keep the theme list order stable to preserve saved selections. See the [Theme API](/theme-api) for the theme file format and the [JSON formats guide](/json-formats) for schemas.
+
+<Note>
+**Keep exploring:** Browse the [API demo extension](https://github.com/Julieisbaka/Tagline/tree/main/demo) for working examples, or open the [JSON schemas](https://github.com/Julieisbaka/Tagline/tree/main/schemas) for manifests, themes, and exported settings.
+</Note>
+
+Source: [Extension API reference](https://github.com/Julieisbaka/Tagline/blob/main/docs/extension-api.mdx).
+

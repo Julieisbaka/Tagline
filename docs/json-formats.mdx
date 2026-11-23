@@ -1,0 +1,79 @@
+---
+title: "JSON formats and schemas"
+description: "Learn which JSON formats Tagline uses and how to validate them with the project's schemas."
+---
+
+## Supported formats {#formats}
+
+Tagline includes draft-07 JSON Schemas for its user-authored and exchanged formats. The schemas are maintained with the application source and can be downloaded for offline use.
+
+| Format | Schema | Where it is used |
+| --- | --- | --- |
+| Speech flow (`.flow`) | [flow.schema.json](https://github.com/Julieisbaka/Tagline/blob/main/schemas/flow.schema.json) | Multi-sheet debate speech grids. |
+| Extension manifest | [extension-manifest.schema.json](https://github.com/Julieisbaka/Tagline/blob/main/schemas/extension-manifest.schema.json) | Extension identity, entry points, contributions, and permissions. |
+| Theme | [theme.schema.json](https://github.com/Julieisbaka/Tagline/blob/main/schemas/theme.schema.json) | Imported/exported themes and themes contributed by extensions. |
+| Exported extension settings | [extension-settings.schema.json](https://github.com/Julieisbaka/Tagline/blob/main/schemas/extension-settings.schema.json) | Settings exported for an extension. |
+| Extension registry | [extension-registry.schema.json](https://github.com/Julieisbaka/Tagline/blob/main/schemas/extension-registry.schema.json) | The community list in `extensions/registry.json`; see [Browse and publish extensions](/extension-api#registry). |
+
+Canvas files use the separate [JSON Canvas 1.0 specification](https://jsoncanvas.org/spec/1.0/). Tagline stores them as `.canvas` files inside the vault.
+
+## Flow version 2 {#flow-v2}
+
+New `.flow` files use `"version": 2`. A flow contains sheets with names, column labels, and rows of string cells; every row has one cell per column. Cells can contain plain text, Markdown, and ordinary wikilinks to notes. A card link is text, not a typed JSON reference:
+
+```json
+{
+  "version": 2,
+  "sheets": [{
+    "name": "Case",
+    "columns": ["1AC", "1NC"],
+    "rows": [["Claim\n[[Evidence/Card.md|Card]]", "Answer"]]
+  }]
+}
+```
+
+Version 1 files remain supported. Opening one does not migrate it; visual editor changes write version 2. Source editing and other APIs may preserve the original version. Unsupported versions are rejected. For the card-link workflow and backlinks, see [flows and canvases](/flows-and-canvases#flow-v2).
+
+## Enable validation and completion in VS Code {#editor-support}
+
+The Tagline repository includes VS Code settings that associate speech flows, bundled/demo themes, extension manifests, and exported settings with their schemas. When working in another workspace, copy the schemas together and define matching `json.schemas` associations.
+
+For example, this setting associates every `.flow` file in the workspace with a local copy of the flow schema:
+
+```json
+{
+  "json.schemas": [
+    {
+      "fileMatch": ["*.flow"],
+      "url": "./schemas/flow.schema.json"
+    }
+  ]
+}
+```
+
+Set `.flow` files to the JSON language mode if VS Code does not recognize them. Keep the schemas in the same relative layout when copying the folder: the theme and extension-settings schemas reference definitions in the extension-manifest schema.
+
+## Reference a schema from a file {#add-schema}
+
+Alternatively, add a `$schema` property near the top of a JSON document. This example assumes the JSON file sits beside a `schemas` folder:
+
+```json
+{
+  "$schema": "./schemas/flow.schema.json",
+  "version": 2,
+  "sheets": [
+    {
+      "name": "Case",
+      "columns": ["1AC", "1NC"],
+      "rows": [["Claim", "Answer"]]
+    }
+  ]
+}
+```
+
+References are relative to each schema's location rather than an absolute remote ID, so a copied schema folder can be used offline. Some application import/export paths normalize files; do not rely on `$schema` being retained by every exporter.
+
+<Note>
+**Related:** See [themes](/customization#themes), the [extension overview](/customization#extensions), and the [Extension API reference](/extension-api) for application setup and development.
+</Note>
+

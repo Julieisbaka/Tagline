@@ -1,0 +1,41 @@
+---
+title: "Evidence quality"
+description: "Check citations, links, and quoted evidence in Tagline, and understand the limits of automated findings."
+---
+
+## Scan cards in your vault {#scan}
+
+1. Open the command palette and choose **Evidence checkup: scan cards for citation and link problems**.
+2. Choose the checks you need, such as citation fields, a stale-source age threshold, and the recut check for highlighted English readings.
+3. Select **Scan vault**, then review the findings. Use **Open note** to inspect an affected card in context.
+
+The scan runs locally. A source flagged as old or incomplete needs review; age alone does not mean evidence is wrong.
+
+## Check links and source metadata {#links}
+
+Enable **Check cited links**, scan the vault, then select **Check links** to request cited URLs. The button requires at least one cited URL. The check marks links dead for a 404, 410, or nonexistent domain; other failures may need a manual retry. Archived copies can be checked when that option is selected.
+
+**Compare sources** sends citation URLs to their sites or Crossref and compares available, certain author, year, title, and publication fields. Treat differences as prompts to check the original, not automatic corrections. An optional weekly background link check also makes network requests.
+
+## Keep and act on findings {#findings}
+
+After scanning, use **Extract cites** if you need a citation list. After checking links, **Save health report** saves a report. Open the relevant note to fix issues, then scan again to update results.
+
+<Warning>
+**Comments change notes.** If you enable **Add comments to affected cards**, scanning, checking links, or comparing sources can write Markdown comments to notes. Existing checkup comments are refreshed; other comments are kept. If notes changed after the scan, rescan before adding comments.
+</Warning>
+
+## Compare a card with its source {#quote}
+
+1. Choose **Quote verification: compare a card with its source** in the command palette.
+2. Select a **Card**, or choose **Paste evidence instead**. Review the **Source URL** and **Evidence to compare**.
+3. Select **Fetch and compare**, then inspect the highlighted source and any review or unverified findings.
+
+Comparison ignores case and punctuation. The evidence text stays local, but fetching the source makes a normal web request to the site. Paywalls, dynamic pages, and limits on fetched content can prevent a complete comparison.
+
+## Read the original, not just the result {#limits}
+
+A matching passage does not establish that the quotation is fair, complete, or representative. Check the surrounding context, author, date, and any omitted or selectively shortened language yourself. A failed or partial match is not proof of misquotation: inspect the source and verify the citation before making a decision.
+
+For finding and formatting sources, see [Search &amp; citations](/search-and-citations); for card structure, see [Notes &amp; evidence](/notes-and-evidence).
+

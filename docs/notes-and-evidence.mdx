@@ -1,0 +1,98 @@
+---
+title: "Notes & evidence"
+description: "A practical guide to Markdown notes, debate evidence cards, wiki links, templates, and revision history in Tagline."
+---
+
+## Create a note in your vault {#create-note}
+
+1. **Open a vault** Choose a folder on the welcome screen or run **Open another vault** from the command palette. A vault is an ordinary folder on your device.
+2. **Create or open a Markdown note** Open the command palette with <kbd>{/* TAGLINE:KEY:commands */}Mod+P{/* /TAGLINE */}</kbd> and run **Create new note**. The new untitled note opens for editing; right-click it in the explorer and choose **Rename…** to name it. Notes are plain `.md` files, readable outside Tagline.
+3. **Keep source details nearby** Use headings to organize claims and include the author, publication, date, and a link or page reference with each piece of evidence.
+
+<Note>
+**Files stay portable.** Notes are stored in the vault; settings and downloaded local models live in Tagline’s application profile instead.
+</Note>
+
+## Choose an editing mode {#edit-modes}
+
+### Visual
+
+Edit formatted Markdown without looking at every syntax marker.
+
+### Source
+
+Work directly with literal Markdown and YAML frontmatter.
+
+### Read
+
+Review the rendered note without editing its text.
+
+Switch modes from the note header. In Visual mode, use the Properties section to add, edit, and remove YAML frontmatter properties and tags without editing raw YAML. In Read mode, properties are read-only; choose **Edit properties in Source** to switch to Source mode.
+
+Choose **Split view** in Visual or Source mode to see a live preview beside the editor.
+
+Spellcheck is optional and configured separately for Visual, Source, and Flow editors in **Settings &gt; Editors**. Right-click an underlined word to choose a suggestion or add it to the dictionary. Manage custom words in the **Custom dictionary** section of Editors settings.
+
+## Format a debate card {#evidence-card}
+
+In Visual mode, select text and use the formatting toolbar or keyboard shortcuts. The default debate-card shortcuts are configurable in **Settings &gt; Keyboard shortcuts**:
+
+- <kbd>{/* TAGLINE:KEY:pocket */}F4{/* /TAGLINE */}</kbd> – <kbd>{/* TAGLINE:KEY:tag */}F7{/* /TAGLINE */}</kbd> Apply debate-card headings
+- <kbd>{/* TAGLINE:KEY:cite */}F8{/* /TAGLINE */}</kbd> Format citation / bold
+- <kbd>{/* TAGLINE:KEY:underline */}F9{/* /TAGLINE */}</kbd>  ·  <kbd>{/* TAGLINE:KEY:emphasis */}F10{/* /TAGLINE */}</kbd> Underline · emphasis
+- <kbd>{/* TAGLINE:KEY:highlight */}F11{/* /TAGLINE */}</kbd>  ·  <kbd>{/* TAGLINE:KEY:clear-format */}F12{/* /TAGLINE */}</kbd> Highlight · clear formatting
+
+Mac keyboards may require <kbd>Fn</kbd> with function keys. You can change the bindings in Settings rather than relying on the defaults.
+
+In Visual or Source mode, smart paste recognizes an initial card with a tag, an author and four-digit year, and evidence on separate lines. It formats the tag and citation automatically; review the result. Text without a recognizable card lead is not automatically segmented.
+
+Paste rich text from Google Docs or another editor to preserve supported formatting, including bold, italics, underlining, links, and highlights. For copying back, select text in Visual mode or a preview rather than Source mode. Tagline uses a single highlight color, so original highlight colors are not preserved.
+
+Illustrative structure — not a real source or quotation **DESCRIPTIVE CLAIM**
+
+Excerpt and supporting context from the original source.
+
+Author, title, publication, date, and URL or page reference
+
+When a card has a DOI, arXiv ID, or ISBN but is missing its title or year, choose **Fix with metadata** next to the card to fill in the missing source details. Review the metadata before relying on it.
+
+For a complete citation workflow, see [Search &amp; citations](/search-and-citations). To send highlighted evidence to a speech document, see [Speech workflows](/speech-workflows).
+
+## Build a traceable research note {#research-workflow}
+
+1. Read the source and record enough information to find it again: author, title, publication, date, and URL or page reference. Verify details suggested by autofill against the original.
+2. Give the card a descriptive tag, keep the citation next to the excerpt, and include the surrounding warrant rather than relying on an isolated sentence.
+3. Highlight the portion you intend to read, then compare that reading with the full excerpt and source. Keep qualifiers and context visible so the argument is not changed by selective highlighting.
+4. Link related notes or add tags for retrieval. Use [evidence checkup and quote verification](/evidence-quality) to find issues to review before sending the card to a speech.
+
+For an existing document, [import it into a new note](/importing-and-exporting#import), then inspect formatting and citation details before treating the conversion as ready-to-use evidence.
+
+## Link notes and navigate your research {#link-notes}
+
+Wiki links connect notes in the same vault. Use `[[Note]]` for a note, `[[Note#Heading]]` for a section, or `[[Note|Label]]` to show custom link text.
+
+1. Type `[[` in a note to open the link picker.
+2. Use the arrow keys to choose a suggestion, then press Enter.
+3. Confirm with **Insert link**. Existing heading and label suffixes are preserved when changing the target.
+
+Use backlinks, mentions, tags, an outline, and graph view to find connected material. Press <kbd>Ctrl+F</kbd> on Windows/Linux or <kbd>Cmd+F</kbd> on macOS to find and replace text in the current note; replacements can be undone.
+
+To link to a note from outside Tagline, right-click its file in the explorer and choose **Copy Tagline link**. A link such as `tagline://note/Cases/Round%201.md#Plan%20A` opens the note and jumps to its “Plan A” heading. Links only open notes in the vault already open; they never switch vaults or create files. See the [Tagline URI format and rules](/integrations#tagline-links).
+
+## Use templates and revision history {#templates-history}
+
+Put reusable Markdown files in your template folder (<code>{/* TAGLINE:SETTING:templateFolder */}Templates{/* /TAGLINE */}/</code> by default; change it under **Settings &gt; General &gt; Templates**). Tagline can replace these placeholders:
+
+- `{{date}}` and `{{time}}` — current local date and time. Add a format such as `{{date:dddd, MMMM D}}` or `{{time:hh:mm A}}`; wrap literal text in `[brackets]`
+- `{{title}}` and `{{path}}` — target note title and vault-relative filename
+- `{{content}}` and `{{properties}}` — note body and raw YAML properties. `{{properties}}` expands only in **Create new note from template**; it is empty when inserting or applying, so bare YAML never lands in a note body
+- `{{cursor}}` — where the cursor lands after **Apply template to current note**
+
+The path includes the `.md` filename. Content excludes frontmatter; properties are raw YAML without delimiters, including comments. Placeholder values are inserted literally, not expanded recursively.
+
+**Insert template at cursor** inserts only the template body and warns if the template had YAML frontmatter. **Apply template to current note** merges template properties into the note's frontmatter (existing keys are kept) and lets you keep, append, or replace the body. **Create new note from template** keeps the full frontmatter and lets you pick the target folder.
+
+Revision history is available from the note header. See [file recovery and independent backups](/vaults-and-backups#history) for restoring a version and protecting your work.
+
+Keyboard bindings can be customized in **Settings &gt; Keyboard shortcuts**. See also [the workspace overview](/features#notes).
+

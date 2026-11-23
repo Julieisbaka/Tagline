@@ -1,0 +1,91 @@
+---
+title: "Integrations"
+description: "Set up Tagline's optional Tabroom, OpenCaselist, local-model, Google Docs, and MCP integrations."
+---
+
+## Agent access (MCP) {#agent-access}
+
+Tagline can share notes with compatible AI clients through its local Model Context Protocol (MCP) server. Open **Settings &gt; Integrations &gt; Agent access (MCP)** and enable it. Copy the configuration snippet for your client: VS Code (`.vscode/mcp.json`), Copilot CLI (`~/.copilot/mcp-config.json`), or Claude Code (use `claude mcp add`). Claude Desktop requires `npx mcp-remote`.
+
+The local endpoint is `http://127.0.0.1:38419/mcp`. Requests use an `Authorization:` `Bearer` `<token>` header; keep the token private.
+
+In **Settings &gt; Integrations &gt; Agent access (MCP)**, you can separately allow note changes and local-model use. Inference tools require the relevant models to be loaded in Tagline; agent requests do not download models.
+
+Available tools:
+
+- **Read:** `get_status`, `list_notes`, `read_note`, `get_outline`, and `search_notes`.
+- **Write:** `write_note`, `append_to_note`, `create_folder`, `rename_path`, and `delete_path`. Deleting moves the item to the operating system trash.
+- **Evidence:**
+   - `list_cards` lists evidence cards and citation candidates. Accepts an optional Markdown `path`, `offset`, and `limit`.
+   - `extract_citation` extracts a citation candidate from card Markdown. Accepts `text` up to 100,000 characters.
+   - `validate_isbn` checks an ISBN-10 or ISBN-13 checksum without looking up a book. Accepts `isbn` up to 100 characters.
+   - `audit_evidence` finds missing or uncertain citation fields and stale years. Accepts an optional Markdown `path`, `staleYears` (1–100), `offset`, and `limit`.
+- **Local models:** `local_model_status` reports availability; `embed_text`, `summarize_text`, and `analyze_hypotheses` process text supplied by the client with loaded local models. Long input may be truncated; summaries and scores are suggestions, not verified facts.
+- **UI:** `open_note`.
+
+The server also uses `tagline://note/<path>` for note resources. See the [Tagline link format](#tagline-links) below.
+
+## Open notes with Tagline links {#tagline-links}
+
+Right-click a file in the explorer and choose **Copy Tagline link** to generate an app link. The URI format is:
+
+```text
+tagline://note/<path>[#<heading>]
+```
+
+| Part | Meaning |
+| --- | --- |
+| Scheme | `tagline`, case-insensitive. |
+| Host | The action. Only `note` is supported; it opens a note. |
+| Path | A vault-relative note path, with each segment percent-encoded and `/` as the separator. |
+| Fragment | An optional percent-encoded heading to jump to, matched by slug and limited to 200 characters. |
+
+For example, `tagline://note/Cases/Round%201.md#Plan%20A` opens `Cases/Round 1.md` and jumps to the “Plan A” heading.
+
+### URI validation
+
+A URI can be at most 2,000 characters long and must not include a username, password, or port. The path is percent-decoded once, then rejected if it:
+
+- Is empty.
+- Contains a NUL character or a backslash.
+- Is absolute or starts with a drive letter such as `C:`.
+- Contains an empty segment or a segment starting with `.`, including `.`, `..`, and hidden files.
+
+Other hosts, such as `tagline://settings/x`, are ignored. A fragment with invalid percent encoding is dropped, but the note still opens.
+
+### Opening behavior
+
+Links open only in the vault that is already open. They never switch vaults, create files, or run commands. If the note is not in the open vault, Tagline shows “Link target not found in this vault”.
+
+At most 20 links can be queued at once. Links arrive through the operating system: macOS `open-url` events, or the command line on Windows and Linux.
+
+## Local search and analysis models {#local-models}
+
+Download the embedding model in **Settings &gt; Integrations** to enable semantic or hybrid search. The optional hypothesis-testing and note-summary tools use separate models that run locally after download. These tools are on demand; they do not change the source note.
+
+## Document conversion {#document-conversion}
+
+See [Import &amp; export](/importing-and-exporting) for supported formats, Pandoc setup, conversion steps, and limitations.
+
+## Web links
+
+HTTP and HTTPS links open inside Tagline by default. Turn off **Open websites inside Tagline** in **Settings &gt; Integrations** to use your default browser. Embedded sites cannot access the vault or app APIs; use an external browser for downloads.
+
+## Tabroom tournaments {#tabroom}
+
+Open **Settings &gt; Integrations &gt; Open Tabroom**, or use the “view and save tournament data” command. Enter a tournament ID or a Tabroom tournament URL containing `tourn_id`. Public tournament data can be read without signing in; signing in opens the official site in a separate, sandboxed window.
+
+Review the tournament viewer before saving a JSON backup. Backups may contain personal or restricted data, so store and share them carefully. Tagline does not guess missing competitor or team IDs.
+
+## OpenCaselist {#opencaselist}
+
+Open **Settings &gt; Integrations &gt; Open OpenCaselist**. Sign in on the official site in a separate window. You can browse caselists and disclosed materials, search a selected caselist, and add or edit rounds and citations. Downloaded files go into the current vault; existing files are not overwritten.
+
+Team matching may require identity verification when available details are incomplete or ambiguous. Tagline labels those results rather than treating a name-only match as certain.
+
+## Google Docs and Drive {#google-docs}
+
+Tagline offers direct Google sign-in and an optional Google Apps Script webhook. Both transfer a note or supported DOCX/HTML file into a **new** Google Doc in the selected account. Nothing is uploaded until you confirm the transfer. Follow the [complete Google Docs setup and transfer guide](/google-docs) for setup, permissions, and security considerations.
+
+App source and releases are available from the [Tagline repository](https://github.com/Julieisbaka/Tagline).
+

@@ -1,0 +1,132 @@
+---
+title: "Google Docs transfer"
+description: "Connect Tagline to Google Docs with direct sign-in or a carefully configured Apps Script webhook."
+---
+
+<Warning>
+**Review before connecting.** Confirm the Google account, requested access, Apps Script code, and destination folder. Tagline does not upload anything until you explicitly confirm a transfer.
+</Warning>
+
+## Connect directly to Google {#direct-sign-in}
+
+1. Open **Settings &gt; Integrations &gt; Google Docs / Drive**.
+2. Select **Connect Google account**. Tagline opens Google authorization in your system browser.
+3. Choose the account you intend to use and grant email and per-file Drive access.
+4. Return to Tagline and confirm the account shown in the native connection dialog. A pending sign-in can be canceled; an unfinished sign-in times out after three minutes.
+5. Select the connection before uploading, or choose it under **Destination Google account** in the note export dialog.
+
+This method needs no webhook URL, API key, or shared secret. Tagline uploads directly to Google's Drive API and creates a new document in My Drive.
+
+The desktop OAuth client requests `openid`, `userinfo.email`, and `drive.file`. Drive access is limited to files created by or explicitly authorized for Tagline; it is not unrestricted access to the entire Drive.
+
+Refresh tokens are protected by operating-system credential encryption in the app profile. They are not stored in the vault or note settings, and are not exposed to the renderer. Access tokens stay in the main process while an operation runs.
+
+Tagline uses PKCE, a random state value, and a temporary callback listener bound to `127.0.0.1`. The listener closes after sign-in, cancellation, or timeout.
+
+**Disconnecting:** Disconnect Google Docs removes the selected local connection and encrypted credentials, but does not revoke Google's authorization grant. To revoke it, remove Tagline from your [Google Account connections](https://myaccount.google.com/connections). If authorization expires or is revoked, Tagline displays a reconnect error. Uploads are not retried automatically because a network failure may leave document creation uncertain.
+
+## Set up an Apps Script webhook {#webhook}
+
+Use the webhook when you need to run transfers through a Google account and folder you control. A direct connection and webhook connections can coexist.
+
+1. In Tagline, open **Settings &gt; Integrations &gt; Set up Google Docs transfer**. Save or copy the bundled [Google Apps Script](https://github.com/Julieisbaka/Tagline/blob/main/electron/google-docs-webhook.gs).
+2. Open [Google Apps Script](https://script.google.com/home/start), create a project, and replace `Code.gs` with the script. Review the code before authorizing it.
+3. Next to **Services**, select **+** and add **Drive API**, version **v3**. For a standard Google Cloud project, enable the Google Drive API in that project's Cloud console too.
+4. In **Project Settings &gt; Script properties**, add `WEBHOOK_SECRET`. Use a random 32–256 character non-space ASCII value. Generate and copy a secret in Tagline, or use a password manager, then enter the same value in Tagline.
+5. Optionally add `TARGET_FOLDER_ID` with the destination folder's ID (not its URL). The script's account must be allowed to create files there. Without this property, documents go to the script owner's My Drive.
+6. In the script editor, select `authorizeGoogleDocs`, choose **Run**, and grant your own script Drive access.
+7. Select **Deploy &gt; New deployment &gt; Web app**. Set **Execute as** to **Me** and **Who has access** to **Anyone**, then deploy. The script checks the shared secret itself. If your Workspace administrator blocks anonymous web apps, the webhook method will not work.
+8. In Tagline, choose **Add a connection / choose an account**. Enter the deployment URL ending in `/exec` and the same secret, then select **Save Google Docs connection**.
+
+Tagline performs a read-only account lookup and asks you to confirm the executing account's email before saving. It does not upload a document during verification. Do not use the `/dev` test URL. After changing the script, deploy a new version through **Deploy &gt; Manage deployments**.
+
+Secrets are encrypted with the operating-system credential service in the app profile, not stored in the vault or note settings. If encryption is unavailable, Tagline will not save the connection. Disconnecting removes only the selected local connection; it does not delete scripts, deployments, or documents.
+
+## Use multiple Google accounts {#accounts}
+
+For direct sign-in, connect again and choose another account. Reconnecting the same Google identity updates its existing direct connection. A direct connection and a script connection to the same account remain separate choices and are labeled by method.
+
+For the webhook method, create a separate Apps Script deployment and secret for each account. Use a separate browser profile, or a private window signed in only to the intended account, while creating and authorizing each deployment. The account selected later in the browser does not change the destination: **Execute as: Me** runs as the account that deployed the script.
+
+Tagline shows the verified email for each saved connection. Select a connection before upload. If multiple verified connections exist, the export dialog does not silently choose one. The confirmation names the destination account and deployment. Before sending document content, Tagline checks the account again; webhooks include an `expectedAccount` value which the script verifies before creating a document.
+
+**Open Google Doc** uses the account from the completed upload, even if you later switch connections. Google may still ask you to sign in or choose an account; a dedicated browser profile can avoid opening the wrong session.
+
+## Send documents {#send-documents}
+
+- From a note, choose **Export &gt; Google Docs &gt; Send to Google Docs**. Tagline sends the entire note, including unsaved edits, as HTML. Pandoc is not required. As with HTML export, wiki links become labels and images are omitted.
+- For an existing file, open **Settings &gt; Integrations &gt; Google Docs / Drive** and choose **Upload DOCX or HTML...**. Supported extensions are `.docx`, `.html`, and `.htm`; the unencoded file-size limit is 5 MiB.
+- Review the document name and destination in the native confirmation dialog. A successful creation returns code `201` and offers an **Open Google Doc** button.
+
+Both connection methods create a new Google Doc. They do not overwrite existing documents or change their sharing permissions. With a webhook destination folder, its existing permissions may be inherited.
+
+## Webhook response codes {#response-codes}
+
+The webhook accepts a JSON `POST` request. Upload requests include the shared secret, the expected Google account, a title, MIME type, and base64-encoded file bytes. The separate `account` action verifies which account will execute a transfer without creating a document.
+
+Supported MIME types are UTF-8 HTML (`text/html`) and DOCX (`application/vnd.openxmlformats-officedocument.wordprocessingml.document`). Titles must contain 1–200 characters and no control characters. Content must be nonempty, standard padded base64 and decode to no more than 5 MiB. This endpoint accepts uploaded file content, not Google Doc URLs, `.gdoc` shortcuts, or arbitrary remote download URLs.
+
+Verify the executing account with a read-only request first:
+
+```json
+{
+  "secret": "<your WEBHOOK_SECRET>",
+  "action": "account"
+}
+```
+
+An upload request includes the account email that Tagline confirmed:
+
+```json
+{
+  "secret": "<your WEBHOOK_SECRET>",
+  "action": "upload",
+  "expectedAccount": "you@example.com",
+  "title": "Evidence",
+  "mimeType": "text/html",
+  "contentBase64": "<standard base64-encoded file bytes>"
+}
+```
+
+Successful account verification returns code `200`, `document: null`, and the executing account. A successful upload returns code `201` and the created document:
+
+```json
+{
+  "ok": true,
+  "code": 201,
+  "message": "Google Doc created.",
+  "account": {
+    "email": "you@example.com",
+    "displayName": "Your name"
+  },
+  "document": {
+    "id": "<new Google Doc ID>",
+    "title": "Evidence",
+    "url": "https://docs.google.com/document/d/<new Google Doc ID>/edit"
+  }
+}
+```
+
+Every script-generated error uses `ok: false`, a numeric `code`, a descriptive `message`, `document: null`, and `account: null`. The account is obtained from Drive's authenticated account lookup, not from the active browser user or a manually entered label. An incorrect secret cannot retrieve account information.
+
+| Code | Meaning |
+| --- | --- |
+| `200` | Executing account verified; no document was created. |
+| `201` | A new Google Doc was created. |
+| `400` | Missing or malformed JSON body, or invalid title. |
+| `401` | Missing or incorrect shared secret. |
+| `405` | GET is unsupported; use POST. |
+| `409` | Expected Google account is missing or does not match. No document was created. |
+| `413` | Request or decoded file exceeds the size limit. |
+| `415` | Unsupported request content type or document MIME type. |
+| `422` | Missing, empty, or malformed base64 content. |
+| `500` | Unexpected script or configuration error. |
+| `502` | Drive lookup or document creation failed. Check authorization, folder access, storage, and quotas. |
+| `503` | Script properties or the advanced Drive service are missing/invalid, or the executing account could not be identified. |
+
+Google Apps Script ContentService redirects the response to `script.googleusercontent.com`. Tagline follows the expected redirect as a bodyless GET and rejects unrelated redirect hosts. The shared secret is sent only in the initial POST body and must not be forwarded to the redirected request.
+
+<Note>
+**Still need help?** Review the [integrations overview](/integrations#google-docs). App releases and source code are available in the [Tagline repository](https://github.com/Julieisbaka/Tagline).
+</Note>
+

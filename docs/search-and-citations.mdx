@@ -1,0 +1,67 @@
+---
+title: "Search & citations"
+description: "Search your vault and scholarly metadata, cut evidence cards, and create source-aware Markdown citations."
+---
+
+## Search your vault {#vault-search}
+
+1. **Open vault search** Press <kbd>Ctrl+Shift+F</kbd> on Windows/Linux or <kbd>Cmd+Shift+F</kbd> on macOS.
+2. **Search across your notes** Use a phrase, claim, source name, or tag to locate relevant files.
+3. **Open a result and check its context** Review the surrounding argument and source details before reusing evidence.
+
+For exact terms and known wording, start with regular vault search. Semantic search is optional and requires a one-time local model download.
+
+For example, start with a distinctive phrase from a card or an author's name. If that misses material expressed in different words, try semantic or hybrid search after installing the model. Open promising results to check the full card and citation, not only the search excerpt.
+
+## Add semantic or hybrid search {#semantic-search}
+
+1. Open **Settings &gt; Integrations**.
+2. Download the local embedding model.
+3. Return to vault search and use semantic or hybrid search for concepts that may be phrased differently in your notes.
+
+<Note>
+**Local model, local files.** The embedding model runs on your device after download. Tagline stores your research as files in the vault.
+</Note>
+
+Semantic search complements keyword search; verify a result in its note before treating it as evidence.
+
+## Search scholarly works and cut a card {#scholarly-search}
+
+Scholarly Search is a bundled core plugin, enabled by default. Manage it under **Settings &gt; Core Plugins**; disabling extensions in safe mode also disables it.
+
+1. **Open search** Press <kbd>Ctrl+Shift+F</kbd> on Windows/Linux or <kbd>Cmd+Shift+F</kbd> on macOS, then choose **Scholarly (Crossref)** as the search mode.
+2. **Find a source** Enter a query and press <kbd>Enter</kbd> or choose **Search Crossref**. Open a result's source to review it.
+3. **Cut a card** Choose **Cut card**, review and complete the prefilled citation, and enter a card tag. Paste an excerpt from the source that you have permission to use.
+4. **Save to the vault** Choose **Save card to vault** to create and open a Markdown note containing the tag, citation, and excerpt.
+
+<Note>
+**Crossref, not JSTOR.** Search sends your query to Crossref and returns scholarly metadata; it does not search JSTOR directly or provide access to paywalled full text. Some results may be missing citation details, so check the source and fill them in before saving.
+</Note>
+
+## Create a citation {#create-citation}
+
+Start from a note, the command palette, or the File menu. The command palette includes a citation preview before you choose a citation action:
+
+1. **Choose Create citation** The citation form opens without replacing the current note.
+2. **Enter source details** Fill in the available author, title, publication, date, and locator fields.
+3. **Paste a citation in one step** Choose **Paste citation** to extract citation details from the clipboard and fill the citation editor.
+4. **Autofill when you have a public identifier** Paste a public URL or DOI, then choose **Autofill from URL**. Review the returned details for accuracy.
+5. **Copy or insert** Copy the Markdown citation, or insert it into the current note.
+
+Keep the citation with the claim it supports. For keyboard formatting and evidence-card structure, see [Format a debate card](/notes-and-evidence#evidence-card).
+
+If autofill is incomplete or conflicts with the original, edit the fields yourself. Before reusing a card, run [evidence checkup or quote verification](/evidence-quality) and review any findings in context. Neither tool guarantees that a source is accurate or represented fairly.
+
+## Test a claim or summarize a note {#local-tools}
+
+Tagline includes optional, on-demand local analysis tools:
+
+- **Test a hypothesis** compares selected text, a card, or a note with one or more hypotheses. Download the Political DEBATE model from **Settings &gt; Integrations** before using it.
+- **Summarize** opens a summary dialog for a Markdown note. Download the summary model from **Settings &gt; Integrations**.
+
+<Warning>
+**Review, don’t replace.** These tools are on demand, run locally after their models are downloaded, and do not change the source note. Check any generated summary or analysis against the underlying evidence.
+</Warning>
+
+See [the workspace feature overview](/features#research) for a compact summary of search and citations.
+

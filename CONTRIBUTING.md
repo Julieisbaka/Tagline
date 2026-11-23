@@ -24,16 +24,51 @@ Thanks for your interest in contributing to Tagline, a knowledge vault and works
 - `electron/` — main/preload Electron processes.
 - `tests/` — unit tests (`*.test.cjs`) and smoke tests (`*-smoke.cjs`).
 - `scripts/` — build and utility scripts.
-- `website/` — static GitHub Pages site and user documentation (`website/docs/`).
+- `docs/` — Mintlify user guides and technical references.
+- `website/` — static GitHub Pages marketing site, changelog, legal pages, and temporary legacy documentation.
 - `extensions/registry.json` — community extension registry shown in the in-app extension browser.
 - `build/` — app icons and branding.
 
 ## Documentation
 
-User guides and technical references live in `website/docs/`. Update the relevant guide when behavior changes,
-and link to it rather than duplicating workflow instructions in the README or other guides. Build the site with
-`npm run build:website`; it recreates `website-build/` from the source files, so do not edit the generated output.
-The [documentation home](website/docs/index.html) lists the available guides.
+User guides and technical references live in `docs/`. Update the relevant MDX page when behavior changes,
+and link to it rather than duplicating workflow instructions in the README or other guides. Add new pages
+to `docs/docs.json`. Preserve existing heading IDs and legacy `.html` redirects when changing URLs.
+The [documentation home](docs/index.mdx) lists the available guides.
+
+Values marked with `{/* TAGLINE:... */}` and `{/* /TAGLINE */}` are derived from application sources.
+Keep both markers and run `npm run sync:docs` when changing the referenced defaults or limits. Unit tests
+reject stale values. Do not use these markers in the historical changelog.
+
+To preview and validate the documentation with Node.js 20.17 or newer (not Node 25):
+
+```sh
+cd docs
+npx mint@4.3.87 dev --no-open
+npx mint@4.3.87 validate
+npx mint@4.3.87 broken-links --check-anchors
+```
+
+The GitHub Pages site is built with `npm run build:website`, which recreates `website-build/`; do not
+edit that output. The old `website/docs/` HTML is a temporary fallback until the Mintlify and Cloudflare
+cutover is verified. Edit the MDX guides, not the fallback, for future documentation changes.
+
+### Publishing and cutover
+
+Connect this repository and its deployment branch in Mintlify's
+[Git settings](https://app.mintlify.com/settings/project/git-settings), setting the documentation directory
+to `/docs`. In [custom domain setup](https://app.mintlify.com/settings/project/custom-domain), configure
+`tagline.julieisbaka.dev/docs` as the base path. The directory setting and public base path are separate.
+Deploy the documentation before routing traffic to it.
+
+Follow Mintlify's [Cloudflare subpath guide](https://www.mintlify.com/docs/deploy/cloudflare) to deploy the
+dashboard-generated Worker using the actual `*.mintlify.site` origin. Route `/docs`, `/docs/*`,
+`/_mintlify/*`, `/mintlify-assets/*`, and the required verification paths; retain GitHub Pages as the origin
+for the rest of the site. Follow the [reverse proxy requirements](https://www.mintlify.com/docs/deploy/reverse-proxy)
+for headers and caching. Do not replace the site's DNS or route all traffic to a docs-only Worker.
+Verify the landing page, docs, assets, search, a legacy `.html` link with an anchor, and the generated
+`/docs/llms.txt` before removing the fallback HTML. DNS, account authorization, project settings, and
+the Cloudflare Worker must be configured by an authorized maintainer.
 
 ## Testing
 
@@ -71,7 +106,7 @@ The engine copies the entire vault (including binary files and hidden metadata),
 
 ## Submitting an extension
 
-Community extensions appear in **Settings > Extensions > Browse extensions** when their GitHub URL is listed in [`extensions/registry.json`](extensions/registry.json). To add yours, open a pull request that appends `{ "url": "https://github.com/owner/repo" }` (or `https://github.com/owner/repo/tree/<ref>/<folder>` for a tag, branch, or subfolder). The folder must contain a `manifest.json` that validates against `schemas/extension-manifest.schema.json` and whose `sourceUrl` matches the registry URL exactly (same repository, ref, and folder); the Extension registry workflow checks every listed manifest. See [Browse and publish extensions](https://julieisbaka.github.io/Tagline/docs/extension-api.html#registry).
+Community extensions appear in **Settings > Extensions > Browse extensions** when their GitHub URL is listed in [`extensions/registry.json`](extensions/registry.json). To add yours, open a pull request that appends `{ "url": "https://github.com/owner/repo" }` (or `https://github.com/owner/repo/tree/<ref>/<folder>` for a tag, branch, or subfolder). The folder must contain a `manifest.json` that validates against `schemas/extension-manifest.schema.json` and whose `sourceUrl` matches the registry URL exactly (same repository, ref, and folder); the Extension registry workflow checks every listed manifest. See [Browse and publish extensions](https://tagline.julieisbaka.dev/docs/extension-api.html#registry).
 
 Scholarly Search is a bundled core plugin; its source is in `extensions/scholarly-search` and it uses the extension runtime and permissions. An installed customized copy needs a different manifest ID while the bundled plugin is present.
 
@@ -79,7 +114,7 @@ Scholarly Search is a bundled core plugin; its source is in `extensions/scholarl
 
 - Keep PRs focused on a single change.
 - Update or add tests for new behavior.
-- Update docs (`website/docs/`) and README when user-facing behavior changes.
+- Update docs (`docs/`) and README when user-facing behavior changes.
 - All required CI checks (lint and tests) must pass; run `format:check` locally.
 
 ## Code of conduct

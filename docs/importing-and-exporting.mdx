@@ -1,0 +1,35 @@
+---
+title: "Import and export"
+description: "Import documents into Tagline and export notes to HTML, Google Docs, and Pandoc formats."
+---
+
+## Choose a format {#requirements}
+
+Tagline imports DOCX, ODT, RTF, HTML, and EPUB documents as Markdown using Pandoc. For export, built-in HTML and [Google Docs transfer](/google-docs) do not require Pandoc. DOCX, ODT, RTF, EPUB, and PDF export do; PDF also requires a compatible LaTeX engine on your system PATH.
+
+Import creates a new note rather than editing the source document. Export creates a separate output; it is not a live synchronization between the note and the exported document.
+
+## Set up Pandoc {#pandoc}
+
+Open **Settings &gt; Integrations &gt; Document import / export**. If Pandoc is unavailable, use **Install Pandoc** or **Locate Pandoc** to select an existing installation. Use **Check again** after installing. For PDF, also install a compatible LaTeX engine and ensure it is available on PATH.
+
+## Import a document {#import}
+
+1. Open the command palette and choose **Import document with Pandoc**.
+2. Choose a supported file. Read the Markdown preview and any conversion warnings.
+3. Choose a note name and select **Add to vault**. Open the resulting note and check its contents against the source.
+
+Complex formatting and images may not survive conversion. DOCX tracked changes are imported in their accepted/final state. Imported HTML may need inspection in source mode. Optional experimental cleanup can help, but review its changes rather than assuming an exact conversion.
+
+## Export the current note {#export}
+
+1. Open a Markdown note and choose **Export note** from the command palette.
+2. Select a format. Pandoc formats can offer author, date, and table-of-contents options; DOCX and ODT also accept an optional reference document for styling.
+3. Save the export and open it in the target application. Google Docs transfer creates a new document and requires the connection described in the [Google Docs guide](/google-docs).
+
+Export uses the entire current note, including unsaved edits. If you only need part of a note, prepare a separate note first.
+
+## Review before sharing {#review}
+
+Conversion is not a lossless round trip. Wiki links become labels in exported documents, images are omitted, and formatting support varies by format. Compare citations, headings, highlights, and other important content in the output with the original. Keep your original vault and [independent backups](/vaults-and-backups).
+

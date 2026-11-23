@@ -3,7 +3,9 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
+const { parseDocument } = require('htmlparser2');
 const { buildWebsite, loadSources, renderHtml } = require('../scripts/build-website.cjs');
+const { syncDocs, syncValues } = require('../scripts/sync-doc-values.cjs');
 
 const rootDir = path.join(__dirname, '..');
 
@@ -46,7 +48,10 @@ test('website build evaluates simple numeric constant products', async () => {
   const constantRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'tagline-website-const-'));
 
   try {
-    fs.writeFileSync(path.join(constantRoot, 'limits.cjs'), 'const MAX_BYTES = 5 * 1_024 * 1_024;\n');
+    fs.writeFileSync(
+      path.join(constantRoot, 'limits.cjs'),
+      'const MAX_BYTES = 5 * 1_024 * 1_024;\n'
+    );
     assert.equal(
       renderHtml('{{TAGLINE:CONST:limits.cjs#MAX_BYTES}}', { ...sources, rootDir: constantRoot }),
       '5,242,880'
@@ -63,7 +68,9 @@ test('website pages build without unresolved Tagline tokens', async () => {
   try {
     buildWebsite(path.join(rootDir, 'website'), outputDir, sources);
 
-    const pages = fs.readdirSync(path.join(outputDir, 'docs')).filter((name) => name.endsWith('.html'));
+    const pages = fs
+      .readdirSync(path.join(outputDir, 'docs'))
+      .filter((name) => name.endsWith('.html'));
     assert.ok(pages.length > 0);
     for (const page of pages) {
       const html = fs.readFileSync(path.join(outputDir, 'docs', page), 'utf8');
@@ -75,5 +82,53 @@ test('website pages build without unresolved Tagline tokens', async () => {
     );
   } finally {
     fs.rmSync(outputDir, { recursive: true, force: true });
+  }
+});
+
+test('Mintlify documentation values stay synchronized with application defaults', async () => {
+  const sources = await loadSources(rootDir);
+  const input = '<kbd>{/* TAGLINE:KEY:commands */}old{/* /TAGLINE */}</kbd>';
+  assert.equal(
+    syncValues(input, sources),
+    '<kbd>{/* TAGLINE:KEY:commands */}Mod+P{/* /TAGLINE */}</kbd>'
+  );
+  assert.throws(() => syncValues('{/* TAGLINE:KEY:commands */}old', sources), /Malformed/);
+  assert.throws(
+    () => syncValues('{/* TAGLINE:KEY:missing */}x{/* /TAGLINE */}', sources),
+    /Unknown shortcut/
+  );
+  assert.deepEqual(await syncDocs(rootDir, true), []);
+});
+
+test('Mintlify provides a page and legacy redirect for every existing guide', () => {
+  const config = JSON.parse(fs.readFileSync(path.join(rootDir, 'docs', 'docs.json'), 'utf8'));
+  const pages = config.navigation.groups.flatMap((group) => group.pages);
+  for (const file of fs
+    .readdirSync(path.join(rootDir, 'website', 'docs'))
+    .filter((name) => name.endsWith('.html'))) {
+    const slug = file.slice(0, -5);
+    assert.ok(pages.includes(slug), `${file}: missing navigation`);
+    const mdx = fs.readFileSync(path.join(rootDir, 'docs', `${slug}.mdx`), 'utf8');
+    assert.ok(
+      config.redirects.some(
+        (entry) => entry.source === `/${file}` && entry.destination === `/${slug}`
+      ),
+      `${file}: missing redirect`
+    );
+    const html = parseDocument(
+      fs.readFileSync(path.join(rootDir, 'website', 'docs', file), 'utf8')
+    );
+    const visit = (node) => {
+      if ((node.name === 'section' || /^h[2-6]$/.test(node.name || '')) && node.attribs?.id) {
+        assert.ok(
+          mdx.includes(`{#${node.attribs.id}}`),
+          `${file}: missing anchor ${node.attribs.id}`
+        );
+      }
+      for (const child of node.children || []) {
+        visit(child);
+      }
+    };
+    visit(html);
   }
 });

@@ -1,0 +1,57 @@
+{
+  "$schema": "https://mintlify.com/docs.json",
+  "theme": "mint",
+  "name": "Tagline",
+  "colors": {
+    "primary": "#5b3fc4",
+    "light": "#8b6cff",
+    "dark": "#4a36a8"
+  },
+  "favicon": "/favicon.svg",
+  "navigation": {
+    "groups": [
+      {
+        "group": "Start here",
+        "pages": ["index", "getting-started", "features", "vaults-and-backups"]
+      },
+      {
+        "group": "Research and prepare",
+        "pages": ["notes-and-evidence", "search-and-citations", "evidence-quality", "speech-workflows", "flows-and-canvases", "keyboard-shortcuts"]
+      },
+      {
+        "group": "Connect and customize",
+        "pages": ["importing-and-exporting", "google-docs", "integrations", "customization"]
+      },
+      {
+        "group": "Developer reference",
+        "pages": ["theme-api", "extension-api", "json-formats"]
+      }
+    ]
+  },
+  "navbar": {
+    "links": [
+      { "label": "Website", "href": "https://tagline.julieisbaka.dev/" },
+      { "label": "Changelog", "href": "https://tagline.julieisbaka.dev/changelog.html" }
+    ],
+    "primary": { "type": "button", "label": "Get Tagline", "href": "https://github.com/Julieisbaka/Tagline/releases/latest" }
+  },
+  "redirects": [
+    { "source": "/index.html", "destination": "/index" },
+    { "source": "/getting-started.html", "destination": "/getting-started" },
+    { "source": "/features.html", "destination": "/features" },
+    { "source": "/vaults-and-backups.html", "destination": "/vaults-and-backups" },
+    { "source": "/notes-and-evidence.html", "destination": "/notes-and-evidence" },
+    { "source": "/search-and-citations.html", "destination": "/search-and-citations" },
+    { "source": "/evidence-quality.html", "destination": "/evidence-quality" },
+    { "source": "/speech-workflows.html", "destination": "/speech-workflows" },
+    { "source": "/flows-and-canvases.html", "destination": "/flows-and-canvases" },
+    { "source": "/keyboard-shortcuts.html", "destination": "/keyboard-shortcuts" },
+    { "source": "/importing-and-exporting.html", "destination": "/importing-and-exporting" },
+    { "source": "/google-docs.html", "destination": "/google-docs" },
+    { "source": "/integrations.html", "destination": "/integrations" },
+    { "source": "/customization.html", "destination": "/customization" },
+    { "source": "/theme-api.html", "destination": "/theme-api" },
+    { "source": "/extension-api.html", "destination": "/extension-api" },
+    { "source": "/json-formats.html", "destination": "/json-formats" }
+  ]
+}

@@ -1,0 +1,49 @@
+---
+title: "Vaults and backups"
+description: "Manage Tagline vaults, make backups, restore file history, and recover from a vault upgrade."
+---
+
+## Know where your work lives {#where}
+
+A vault is a folder on your computer. Notes are Markdown files; flows and canvases are `.flow` and `.canvas` files. The vault also contains a hidden `.tagline` folder with information such as revision history. Include hidden files when copying it.
+
+Application settings and downloaded models live in the app profile, not in the vault. Find its location in **Settings &gt; Installation**. A vault copy alone does not preserve those profile items.
+
+## Open and manage vaults {#manage}
+
+On the welcome screen choose **Recent vaults**, or with a vault open run **Open another vault** from the command palette. The **Manage vaults** dialog shows saved vault names and paths. Open a listed vault, choose **Add existing or create vault…**, create a sample vault, or show a folder in your file explorer. If a folder is reported missing, check its path and whether the drive is connected.
+
+**Remove from list** forgets the entry; it does not delete the folder. If you move a vault yourself, add it again at its new location.
+
+## Make a separate backup {#backup}
+
+1. Save your work and close Tagline before copying the vault. If using a sync service, pause it while making or restoring the copy.
+2. Copy the entire vault folder, including hidden files, to a separate safe location. Keep more than one dated copy when the work matters.
+3. Back up important profile data separately. Check that you can locate and read your copies before relying on them.
+
+<Warning>
+**History is not a backup.** Revision history lives inside the vault and may be subject to retention limits. A lost or damaged vault can take its history with it.
+</Warning>
+
+## Restore an earlier file version {#history}
+
+1. Open the note, flow, or canvas and choose **History**, or run **Open revision history** from the command palette.
+2. Select an entry under **Saved versions** and inspect its read-only preview.
+3. Choose **Restore this version** and confirm. Tagline keeps the current document in history before restoring.
+
+History retention is configurable under **Settings &gt; Files and folders**. Canvas history can record complete JSON and layout changes, or data changes without movement-only revisions. If the desired version is no longer available, look in your independent backups instead.
+
+If a flow or canvas becomes invalid, Tagline may offer to restore the most recent valid save. Recovery skips broken revisions, saves the current source to history, and persists the restored document.
+
+## Upgrade or restore a vault {#migration}
+
+Some older vaults need only metadata adoption and can open without a wizard. When a data-transforming upgrade is required, Tagline shows a migration wizard before opening the vault. Pause sync, close other editors, review the steps, and choose **Back up and upgrade**. Tagline upgrades a separate copy and keeps the original beside the vault as `.tagline-backup-<id>` (with a suffix if needed). **Cancel** leaves the vault unchanged.
+
+The parent folder must be writable and have room for a full copy. Migrations refuse linked files or directories and special files. Keep an independent backup; a migration backup is not a guarantee against filesystem corruption or power loss.
+
+Check the upgraded vault before resuming sync. To restore the original, close Tagline, preserve a copy of the upgraded folder if it contains work you need, and replace the vault folder with the backup. Keep independent backups even after the upgrade works.
+
+Tagline refuses a newer unsupported vault format rather than rewriting it; open it with a compatible version. **Manage vaults &gt; Clean up migration backups** removes old migration backups or stages: review them and retain anything you still need first.
+
+Next: [move documents in and out of a vault](/importing-and-exporting) or return to [getting started](/getting-started).
+

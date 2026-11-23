@@ -1,0 +1,69 @@
+---
+title: "Speech workflows"
+description: "Prepare a Tagline speech with evidence, practice analytics, a floating timer, flows, and argument maps."
+---
+
+## Choose a speech document {#choose-document}
+
+Tagline sends evidence to a Markdown file designated as a speech document. To mark an existing note:
+
+1. **Right-click the Markdown file** in the file explorer.
+2. Choose **Set as speech doc**. Tagline adds `speech: true` to its YAML frontmatter without discarding other metadata.
+3. Choose the active destination under **Settings &gt; Speech and reading &gt; Active speech document**.
+
+```yaml
+---
+speech: true
+---
+```
+
+New speech documents include this marker automatically. You can mark multiple files, but only the selected destination receives cards. The configured path is a local preference; if it is unavailable, Tagline uses the first marked file in path order.
+
+## Send selected evidence {#send-evidence}
+
+1. Open a research note and select the text or evidence card you want to use.
+2. Press <kbd>Ctrl+Shift+S</kbd> on Windows/Linux or <kbd>Cmd+Shift+S</kbd> on macOS.
+3. Review the active speech document and organize the inserted material into your argument.
+
+The same workflow can send highlighted evidence. Keep source details in the original card so the speech document can be traced back to the research.
+
+If evidence appears in an unexpected file, check the active speech document in Settings. If the configured path is unavailable, Tagline falls back to the first marked file in path order. Review the destination after sending and rearrange cards for the speech you intend to give.
+
+Need to create the source citation first? Follow [Create a citation](/search-and-citations#create-citation).
+
+## Estimate and calibrate a speech {#timing}
+
+Tagline estimates speaking time from highlighted evidence and citations in a speech document. Personal speech calibration can tune the estimate to your own pace:
+
+1. Open **Settings &gt; Speech and reading**.
+2. Open personal speech calibration.
+3. Use your timed speech samples to adjust the estimate, then compare it with a real practice run.
+
+Use the estimate as a planning aid, then time a full read-through to confirm it works for your delivery.
+
+## Use the speech and prep timer {#prep-timer}
+
+The timer includes speech and affirmative/negative preparation clocks for two policy-debate presets:
+
+HIGH SCHOOL**8 · 3 · 5**Policy debate preset
+
+COLLEGE**9 · 3 · 6**Policy debate preset
+
+Choose the preset that matches your round, then use the timer while practicing speeches and prep. These formats are policy debate presets; check tournament rules if your round uses different times.
+
+## Show the timer above other windows {#floating-timer}
+
+1. Open **Settings &gt; Speech and reading**.
+2. Under **Floating timer**, enable **Show timer above other windows**. This is {/* TAGLINE:SETTING:timerFloatingWindow */}off{/* /TAGLINE */} by default.
+3. Open the **Timer** tab in the right sidebar. Start a speech or prep timer, or choose **Arm automatic start**. Drag the floating timer where it is easy to see while reading in your browser.
+
+The floating timer remains visible when Tagline is in the background or minimized. It hides when no timer is running or armed, or when the setting is disabled. Some fullscreen apps may cover it.
+
+## Build a speech flow {#flows}
+
+A `.flow` file is a multi-sheet speech grid. Use a separate sheet for each part of the round and keep responses on the same row as the argument they answer. The [flow guide](/flows-and-canvases#flow) covers creation, navigation, and recovery.
+
+## Connect an argument map {#argument-map}
+
+A canvas connects arguments visually. See [Build an argument map](/flows-and-canvases#canvas) for node types, connections, and navigation.
+

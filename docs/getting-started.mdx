@@ -1,0 +1,55 @@
+---
+title: "Getting started"
+description: "Install Tagline, open a vault, and keep your debate research safe when updating."
+---
+
+## Install the app
+
+Download the latest release for your computer from GitHub. Tagline currently publishes desktop builds for Windows and macOS; choose the installer that matches your platform.
+
+[View the latest release ↗](https://github.com/Julieisbaka/Tagline/releases/latest)
+
+<Warning>
+**First launch:** release builds are unsigned and not notarized, so Windows or macOS may show an operating-system security warning.
+</Warning>
+
+## Open a vault
+
+A vault is an ordinary folder on your device. On the welcome screen, choose **Open folder as vault** to select a folder, or **Create sample vault** to explore sample material. Previously opened folders appear under **Recent vaults**.
+
+Your Markdown notes, `.flow` speech grids, and `.canvas` argument maps stay in that folder. To switch or manage vaults later, run **Open another vault** from the command palette.
+
+Settings and downloaded local models are kept in the application profile rather than in the vault. Keep backups of both your vault and important app-profile data. Find the profile folder under **Settings &gt; Installation**.
+
+## Back up and upgrade a vault {#backups-and-migrations}
+
+Keep independent copies of your vault and important profile data. Revision history is not a substitute for a separate backup. See [Vaults, backups &amp; recovery](/vaults-and-backups) for the checklist, file recovery, and what to do when a vault needs an upgrade.
+
+## Create your first note
+
+1. With a vault open, press <kbd>{/* TAGLINE:KEY:commands */}Mod+P{/* /TAGLINE */}</kbd> to open the command palette.
+2. Run **Create new note**. Tagline creates and opens an untitled Markdown file. To name it, right-click the file in the explorer and choose **Rename…**.
+3. Write in the note and keep source details with your research. Continue with [Notes &amp; evidence](/notes-and-evidence) for editing modes and cards.
+
+Default shortcuts use Ctrl on Windows/Linux and Cmd on macOS. You can change them in **Settings &gt; Keyboard shortcuts**.
+
+To replay the onboarding tour, use **Settings &gt; Advanced settings &gt; Internal flags &gt; Show onboarding again**.
+
+## Keep Tagline up to date
+
+1. Open **Settings &gt; Installation** and choose **Check for updates**.
+2. If a compatible update is available and has not already downloaded, choose **Download update**. Tagline verifies the download against the release checksum.
+3. On Windows, choose **Install update and restart**; Tagline saves pending edits before restarting. On macOS, choose **Open installer**, quit Tagline, then replace the app in Applications with the one from the opened disk image.
+
+Packaged builds check for and download updates automatically shortly after startup by default (turn this off in **Settings &gt; Installation &gt; Automatically check for and download updates on startup**); installation is always user-initiated, and in-app downloads are available in packaged installations when a compatible release is published. If no compatible download is offered, install the release manually. Keep the existing app ID, product name, install scope, and profile so the updated app can find your existing settings. Back up your profile and vaults first; do not remove the profile when updating.
+
+## Run from source
+
+For development setup and checks, see the [contributor guide](https://github.com/Julieisbaka/Tagline/blob/main/CONTRIBUTING.md).
+
+<Note>
+**Ready to use your vault?** Continue with [writing notes and building evidence](/notes-and-evidence), or jump to [finding and citing research](/search-and-citations).
+</Note>
+
+See the [changelog](https://tagline.julieisbaka.dev/changelog.html) for release notes.
+

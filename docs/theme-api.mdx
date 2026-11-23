@@ -1,0 +1,189 @@
+---
+title: "Theme format"
+description: "Create, validate, import, and package Tagline themes using the JSON theme format."
+---
+
+## Create, import, and export a theme {#create}
+
+1. Open **Settings &gt; Appearance** and select a theme close to the result you want.
+2. Choose **Customize current theme** to edit its color tokens and CSS-variable overrides.
+3. Choose **Export current theme** to save the complete palette as JSON, then edit that file if needed.
+4. Choose **Import JSON theme** and select the edited file.
+
+Import immediately selects the custom theme and saves it on this device. There is one standalone custom-theme slot; importing another theme replaces that slot. Use an extension to distribute multiple selectable themes.
+
+A minimal theme can override only a few colors; unspecified values come from the built-in light or dark base selected by `mode`.
+
+```json
+{
+  "version": 1,
+  "name": "Ocean",
+  "mode": "dark",
+  "colors": {
+    "bg": "#101827",
+    "accent": "#9ac7ff",
+    "accent-text": "#101827",
+    "accent-dim": "#9ac7ff33",
+    "selection": "#9ac7ff55"
+  }
+}
+```
+
+Fallback values come from the normal light or dark base, not from the currently selected or a high-contrast theme. When deriving from a high-contrast palette, include all overrides you need.
+
+## JSON contract {#contract}
+
+| Field | Requirement |
+| --- | --- |
+| `version` | Required number `1`. |
+| `name` | Required nonblank string; at most 80 characters before trimming. |
+| `mode` | Required `"dark"` or `"light"`. Also controls the native browser color scheme. |
+| `colors` | Required object containing zero or more supported color tokens. |
+| `variables` | Optional CSS custom-property overrides. |
+| `settings` | Optional declarative controls shown in Appearance while the theme is active. |
+| `pairings` | Optional contrast pairs checked for WCAG contrast in Appearance; see [Contrast pairings](#contrast). |
+| `metadata` | Optional author, description, license, tags, and accessibility information. |
+| `id` | Optional input field, but not author-controlled identity. Standalone imports normalize it to `"custom"`; extensions receive an assigned ID. |
+
+Color values must be strings in `#RRGGBB` or `#RRGGBBAA` format. The last pair in the eight-digit form is alpha. Shorthand hex, named colors, `rgb()`, `var()`, gradients, and arbitrary CSS values are rejected. Unknown color tokens are rejected; an empty `colors` object is valid. Import errors are shown instead of partially applying a theme.
+
+The Appearance picker and extension loader enforce a configurable **Theme file bytes** limit on each theme file: {/* TAGLINE:LIMIT:themeFileBytes */}65,536{/* /TAGLINE */} bytes by default, adjustable from {/* TAGLINE:LIMIT:themeFileBytes.min */}1,024{/* /TAGLINE */} to {/* TAGLINE:LIMIT:themeFileBytes.max */}1,048,576{/* /TAGLINE */}. The extension loader also enforces a configurable **Theme preview bytes** limit on the aggregate JSON size of all contributed theme files loaded from one extension: {/* TAGLINE:LIMIT:themePreviewBytes */}524,288{/* /TAGLINE */} bytes by default, adjustable from {/* TAGLINE:LIMIT:themePreviewBytes.min */}1,024{/* /TAGLINE */} to {/* TAGLINE:LIMIT:themePreviewBytes.max */}4,194,304{/* /TAGLINE */}. Both limits are in **Settings &gt; Advanced settings &gt; Theme and extension limits**, and the per-file limit applies independently of the aggregate limit. For portability, keep shared theme files within both limits.
+
+Use the [theme JSON schema](https://github.com/Julieisbaka/Tagline/blob/main/schemas/theme.schema.json) for validation and editor completion.
+
+## Color tokens {#colors}
+
+All tokens resolve to CSS custom properties named `--<token>`. Pair foreground and background changes, and evaluate translucent colors after compositing them over their actual surfaces.
+
+| Token | Purpose |
+| --- | --- |
+| `bg` | Main workspace background. |
+| `bg-secondary` | Sidebar and secondary surfaces. |
+| `bg-elevated` | Raised surfaces and controls. |
+| `bg-hover` | Hovered rows and controls. |
+| `border` | Separators, outlines, and control borders. |
+| `text`, `text-strong` | Normal and emphasized foreground text. |
+| `text-muted`, `text-faint` | Secondary descriptions, metadata, and hints. |
+| `accent`, `accent-text` | Links, active controls, focus indicators, and text on accent controls. |
+| `accent-dim`, `selection`, `selection-text` | Translucent accent surfaces, selected content, and selected-text foreground. |
+| `highlight-bg`, `highlight-text` | Debate highlights and search matches, with their foreground text. |
+| `code` | Code foreground. |
+| `h1`, `h2`, `h3`, `h4` | Pocket, hat, block, and tag heading colors. |
+| `aff`, `neg` | Affirmative and negative side foregrounds and graph/flow accents. |
+| `aff-bg`, `neg-bg` | Tinted affirmative and negative backgrounds. |
+| `danger`, `warning` | Destructive-action/error and warning/caution accents. |
+| `shadow`, `backdrop` | Shadows and modal-overlay tint, usually with alpha. |
+| `button-bg`, `button-text`, `button-border`, `button-primary-bg`, `button-primary-text` | Standard and primary button surfaces, foregrounds, and borders. |
+| `input-bg`, `input-text`, `input-border`, `input-placeholder` | Text input and select surfaces, foregrounds, border, and placeholder text. |
+| `sidebar-bg`, `sidebar-text` | Sidebar surface and its foreground text. |
+| `tab-bg`, `tab-active-bg`, `tab-active-text`, `tab-hover-bg` | Tab strip surfaces, the active tab, and hovered tabs. |
+| `focus-ring` | Focus indicator outlines. |
+| `disabled-text`, `disabled-bg` | Disabled controls and their surfaces. |
+| `success` | Success and confirmation accents. |
+| `link`, `link-hover` | Link foreground and hover state. |
+
+The built-in themes are **Dark**, **Light**, **High contrast dark**, and **High contrast light**. Their complete palettes are available in the [application source](https://github.com/Julieisbaka/Tagline/tree/main/src/themes).
+
+## CSS-variable overrides {#variables}
+
+The optional `variables` object can set existing application variables and new custom properties used by custom CSS. Names omit the leading `--`; values are CSS values, not declarations.
+
+```json
+{
+  "version": 1,
+  "name": "Large serif",
+  "mode": "dark",
+  "colors": {},
+  "variables": {
+    "font-text": "Georgia, serif",
+    "font-ui": "system-ui, sans-serif",
+    "font-mono": "Menlo, Consolas, monospace",
+    "editor-font-size": "19px",
+    "accent": "var(--h1)",
+    "my-spacing": "calc(8px + 0.2vw)"
+  }
+}
+```
+
+The app defines `font-text`, `font-ui`, `font-mono`, and `editor-font-size`. Other names are accepted but only affect the interface if a stylesheet uses them.
+
+By default, a theme can include up to {/* TAGLINE:LIMIT:themeVariables */}512{/* /TAGLINE */} overrides; each name is at most 100 characters and each value at most {/* TAGLINE:LIMIT:themeValueLength */}2,048{/* /TAGLINE */} characters. Names must begin with a lowercase letter and contain only lowercase letters, digits, or hyphens. Values cannot contain semicolons, braces, null bytes, `url(...)`, or `@import`. Limits can be adjusted in **Settings &gt; Advanced settings &gt; Theme and extension limits**.
+
+Variable overrides take precedence over colors and over the Appearance preferences for `font-text` and `editor-font-size`. Preferences are retained and resume when switching to a theme without those overrides. Switching themes clears prior variable overrides instead of carrying them forward.
+
+## Theme settings and metadata {#metadata}
+
+A theme contributed by an extension can expose controls in Appearance without an extension script or permissions. Controls can set a color token or a property declared in `variables`.
+
+```json
+{
+  "settings": [
+    {
+      "id": "selection-color",
+      "title": "Selection background",
+      "type": "string",
+      "default": "#334466",
+      "variable": "selection"
+    },
+    {
+      "id": "reading-size",
+      "title": "Reading size",
+      "type": "number",
+      "default": 20,
+      "min": 12,
+      "max": 30,
+      "variable": "editor-font-size",
+      "unit": "px"
+    }
+  ],
+  "metadata": {
+    "author": "Example",
+    "description": "A reading theme",
+    "license": "MIT",
+    "tags": ["reading"],
+    "accessibility": {
+      "contrast": "high",
+      "colorVision": ["deuteranopia"],
+      "reducedMotion": true,
+      "notes": "Describe testing and limitations."
+    }
+  }
+}
+```
+
+Theme settings use unique IDs and targets and follow the extension setting schema. Color controls require hex strings; string settings can use an enum. Numeric units may be `px`, `em`, `rem`, `%`, or empty. The extension-setting count limit also applies. Apply or reset values in Appearance; they persist separately for each theme ID. Export and Customize capture resolved values without live controls.
+
+Metadata text fields allow up to 500 characters. Tags allow 20 nonempty strings of up to 40 characters each. Accessibility metadata is optional: contrast is `standard` or `high`; color-vision values are `protanopia`, `deuteranopia`, `tritanopia`, or `achromatopsia`; reduced motion is boolean; notes allow up to 1,000 characters.
+
+## Contrast pairings {#contrast}
+
+A theme can declare foreground/background token pairs to document and check its readability. Results are advisory: they appear in Appearance and through `tagline.helpers.themes.contrast(theme)`, and never change how the theme renders.
+
+```json
+"pairings": [
+  { "id": "body", "fg": "text", "bg": "bg", "minRatio": 4.5 },
+  { "id": "accent-control", "fg": "accent-text", "bg": "accent", "minRatio": 3 }
+]
+```
+
+Each pair needs a unique `id`, an `fg` and `bg` color token, and an optional `minRatio` from 1 to 21 (default 4.5, the WCAG AA normal-text level; 3 suits large text and UI controls). Tagline measures the resolved colors, compositing translucent tokens over `bg`, and reports the ratio plus pass/fail per pair. Up to 64 pairs; the limit is adjustable in **Settings &gt; Advanced settings &gt; Theme and extension limits**. The built-in themes ship canonical pairs under ids such as `body`, `muted`, `selection`, and `link`.
+
+## Package themes in an extension {#extension-themes}
+
+A theme-only extension needs no script. Put its manifest and theme JSON together:
+
+```bash
+ocean-themes/
+  manifest.json
+  themes/
+    ocean.json
+```
+
+The theme uses the same JSON format described above. After enabling the extension, it appears in **Appearance &gt; Theme** with the extension name. Runtime IDs look like `ext:ocean-themes:0`; changing contribution order changes those IDs.
+
+**Light/dark groups.** Declare `contributes.themeGroups` as `[{"id":"ocean","title":"Ocean","light":"themes/ocean-light.json","dark":"themes/ocean-dark.json"}]`. Each half gets a stable ID, `ext:ocean-themes:ocean:light` and `ext:ocean-themes:ocean:dark`, independent of order. The picker also offers **Match system** (`ext:ocean-themes:ocean:auto`), which follows the OS light/dark setting live and falls back to the built-in light or dark theme if a half is unavailable.
+
+If a saved extension theme is still loading or unavailable, the app retains the saved selection but temporarily renders the dark palette. A disabled or removed theme appears as **Unavailable extension theme**.
+
+See the [extension overview](/customization#extensions), the [Extension API reference](/extension-api), and [JSON formats and schemas](/json-formats).
+

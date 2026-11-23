@@ -1,0 +1,43 @@
+---
+title: "Themes and extensions"
+description: "Customize Tagline with built-in themes, custom CSS, or sandboxed extensions."
+---
+
+## Appearance settings {#appearance}
+
+Choose the language, built-in light or dark themes, fonts, and editor preferences in **Settings &gt; Appearance**. Tagline includes high-contrast themes and respects reduced-motion preferences. Optional custom CSS is available from appearance settings.
+
+Sidebar shortcuts and file-explorer toolbar and status items can be reordered or hidden. Drag to reorder, or use the available up/down controls for keyboard-accessible shortcut ordering. You can restore defaults even if all toolbar items are hidden.
+
+## Create a theme {#themes}
+
+Themes are JSON color palettes with optional CSS custom-property overrides. Start with a built-in theme, choose **Customize current theme**, and adjust the palette. Export the result as JSON to keep or share it; import a JSON theme to apply it.
+
+Tagline validates imported themes and displays import errors instead of partially applying invalid files. See the [theme format reference](/theme-api) for supported colors, variables, metadata, limits, and schema usage.
+
+## Install an extension {#extensions}
+
+To install a community extension, open **Settings &gt; Extensions &gt; Browse extensions**, select **Browse registry**, review the listed permissions, and choose **Install**. Registry extensions are listed through pull requests to the [extension registry](https://github.com/Julieisbaka/Tagline/blob/main/extensions/registry.json); see [Browse and publish extensions](/extension-api#registry). To install from a local folder:
+
+1. Open **Settings &gt; Extensions &gt; Open extensions folder**.
+2. Add an extension folder with a `manifest.json` and its referenced files.
+3. Choose **Reload extensions**, review the requested permissions, then enable the extension.
+
+Extensions can contribute commands, ribbon shortcuts, settings, themes, sidebar panels, and dialogs. Entry scripts run in a sandboxed worker through the supplied Tagline API; they do not have access to the app's DOM or Node.js. Review permissions and extension code before enabling an extension.
+
+Extensions that declare review-gated capabilities require approval of the current manifest before they can be enabled. If a reviewed manifest changes, its approval is invalidated and the extension remains disabled until reviewed again. See [Review before enabling](/extension-api#review) for details.
+
+See the [Extension API reference](/extension-api) for the manifest, permission model, JavaScript bridge, vault access, and UI contributions.
+
+Extensions can store encrypted credentials with the review-gated [`secrets` permission](/extension-api#secrets). To remove an extension's saved secrets, select **Clear stored secrets** on its card in **Settings &gt; Extensions**. Disabling the extension blocks access but does not delete its secrets.
+
+## Schemas and examples {#formats}
+
+The repository includes JSON Schemas for speech flows, themes, extension manifests, the extension registry, and exported extension settings. Canvases follow the standard JSON Canvas format. Use the schemas to validate your files or enable editor completion, and see the demo extension for a working example.
+
+- [JSON formats and schemas](/json-formats)
+- [Demo extension](https://github.com/Julieisbaka/Tagline/tree/main/demo)
+- [Schema files](https://github.com/Julieisbaka/Tagline/tree/main/schemas)
+
+Read the [theme reference](/theme-api), [Extension API](/extension-api), and [JSON format guide](/json-formats) for the complete developer documentation.
+

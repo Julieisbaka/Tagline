@@ -1,0 +1,53 @@
+---
+title: "Flows and canvases"
+description: "Create and edit speech flows and argument maps in Tagline."
+---
+
+## Create a flow {#flow}
+
+1. Open the command palette and choose **Create new flow**. The flow is saved as a `.flow` file in the vault.
+2. Use **+ Sheet** and choose a preset to add a sheet for another part of the round.
+3. Double-click a sheet name to rename it; right-click a sheet for rename or delete. Drag sheet tabs to reorder them, or focus a tab and use <kbd>Alt+Shift+Left</kbd> / <kbd>Alt+Shift+Right</kbd>.
+
+A flow keeps at least one sheet. Edit column headings for the speeches you want to track and use the add-column control when you need another. Removing a column also removes its contents; check the confirmation before proceeding.
+
+## Work in the grid {#cells}
+
+Focus a cell and press <kbd>Enter</kbd> or <kbd>F2</kbd> to edit it. <kbd>{/* TAGLINE:KEY:flow-next-cell */}Tab{/* /TAGLINE */}</kbd> and <kbd>{/* TAGLINE:KEY:flow-previous-cell */}Shift+Tab{/* /TAGLINE */}</kbd> move between cells, with normal focus able to leave at the grid boundary. Use <kbd>{/* TAGLINE:KEY:flow-cell-up */}Alt+Up{/* /TAGLINE */}</kbd> / <kbd>{/* TAGLINE:KEY:flow-cell-down */}Alt+Down{/* /TAGLINE */}</kbd> to move between rows and <kbd>Shift</kbd> with arrow keys to extend a selection.
+
+Press <kbd>{/* TAGLINE:KEY_WIN:flow-row */}Ctrl+Enter{/* /TAGLINE */}</kbd> on Windows/Linux or <kbd>{/* TAGLINE:KEY_MAC:flow-row */}Cmd+Enter{/* /TAGLINE */}</kbd> on macOS to insert a row below; add <kbd>Shift</kbd> to insert above. Right-click cells for row and selection actions, including copy, cut, paste, and clear. For the full set of defaults and customization, see [keyboard shortcuts](/keyboard-shortcuts#flow).
+
+Example: put the initial claim in the first speech column, then use the same row for the response and later answers. Add a row for each distinct argument so the progression remains easy to follow.
+
+## Flow version 2 &amp; card links {#flow-v2}
+
+Right-click a cell and choose **Link card here**, then search for and select a Markdown note. The link is appended without replacing the cell's existing text. Click the rendered link to open the note; hover over it to see its vault path.
+
+Cards are ordinary notes and the reference is an ordinary wikilink, such as `[[Evidence/Card.md|Card]]`. You can also type or edit wikilinks directly. The full path distinguishes notes with the same name; links are not embedded copies or a separate typed-reference format. Automatic link updating on rename, when enabled, also updates flow cells.
+
+Open the linked note and select **Backlinks** in the right panel. **Used in flows** lists the flow files in the vault that link to it; select a flow to open it. This list uses the vault's existing backlink index and is not limited to a separately selected round.
+
+New flows use version 2. Version 1 flows remain readable and are not rewritten just by opening them; edits in the visual flow editor save them as version 2. See the [flow format reference](/json-formats#flow-v2) for the JSON structure and compatibility details.
+
+## Build an argument map {#canvas}
+
+1. Choose **Create new canvas** from the command palette.
+2. Use the canvas controls to add text, file, link, or group nodes. File nodes refer to paths relative to your vault; group nodes help organize items placed over them.
+3. Move and arrange nodes, then use zoom and **Fit canvas** to navigate. For a larger map, enable **Show canvas minimap** under **Settings &gt; Editors**.
+
+Use <kbd>Tab</kbd> / <kbd>Shift+Tab</kbd> to focus nodes or connections and <kbd>Enter</kbd> or <kbd>Space</kbd> to select one. Arrow keys nudge a selected node; hold <kbd>Shift</kbd> for larger moves.
+
+## Connect arguments {#connections}
+
+1. Choose a relation: connection, supports, answers, or contradicts.
+2. Select **Connect nodes**, then select the starting node followed by the target node.
+3. Select a connection to inspect and adjust its label, color, or endpoint style.
+
+For example, connect a response to the claim it answers, then connect a supporting source to that response. Use labels when the relationship needs more explanation.
+
+## Inspect and recover files {#files}
+
+Flows store JSON in `.flow` files; canvases use JSON Canvas 1.0 in `.canvas` files. Both offer JSON source views and revision history. If source editing leaves invalid data, preserve a copy before making changes and try restoring a saved version rather than resetting immediately. See [file history](/vaults-and-backups#history) and the [JSON format reference](/json-formats).
+
+Continue with [speech preparation and timing](/speech-workflows).
+

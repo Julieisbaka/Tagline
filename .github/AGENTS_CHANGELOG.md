@@ -19,12 +19,12 @@ Follow these rules whenever a change affects Tagline's release notes or product 
 
 ## Product and developer documentation
 
-- The `website/` is the authoritative home for Tagline's user-facing and developer documentation. Do not create duplicate product guides or API documentation elsewhere in the repository.
-- For every change, check whether it changes documented behavior, workflows, settings, installation or update steps, file formats, or APIs. Update the relevant existing page under `website/` when needed; create a new `website/docs/*.html` page when no existing page covers a substantial new topic.
-- When creating a documentation page, follow the structure, shared styles, navigation, and accessibility patterns of the existing pages in `website/docs/`. Add the page to the documentation navigation in `website/docs/index.html` and link to it from related pages where useful.
+- `docs/` is the authoritative home for Tagline's user-facing and developer documentation. `website/docs/` is a temporary GitHub Pages fallback pending the Mintlify cutover; do not edit it as the primary documentation.
+- For every change, check whether it changes documented behavior, workflows, settings, installation or update steps, file formats, or APIs. Update the relevant MDX page under `docs/` when needed; create a new page when no existing page covers a substantial new topic.
+- When creating a documentation page, follow the existing MDX conventions, add the page to `docs/docs.json` and the documentation home, and link to it from related pages where useful. Preserve existing heading IDs and legacy redirects.
 - Keep documentation accurate to the implementation and explain behavior from the user's perspective. The changelog is not a substitute for documentation.
 - A change that does not affect documented user-facing behavior does not need a documentation edit.
-- Do not hard-code values that the code defines. Use the `{{TAGLINE:...}}` tokens that `scripts/build-website.cjs` renders for the Pages site: `SETTING:key` (defaults in `defaultSettings.json`), `KEY:id`, `KEY_WIN:id`, and `KEY_MAC:id` (default shortcuts in `keybindings.json`), `LIMIT:key[.min|.max]` (`electron/customization.mjs`), and `CONST:path#NAME` (numeric constants in source files). The build fails on an unknown token. Do not use tokens in `website/changelog.html`, which records history rather than current values.
+- Do not hard-code values that the code defines. In MDX, wrap each rendered value in `{/* TAGLINE:KIND:argument */}` and `{/* /TAGLINE */}` markers, then run `npm run sync:docs`. Supported kinds are `SETTING:key` (defaults in `defaultSettings.json`), `KEY:id`, `KEY_WIN:id`, `KEY_MAC:id` (default shortcuts), `LIMIT:key[.min|.max]` (`electron/customization.mjs`), and `CONST:path#NAME` (numeric constants in source files). Unit tests reject stale or unknown values. Do not use these markers in `website/changelog.html`, which records history rather than current values.
 
 ## Completion check
 

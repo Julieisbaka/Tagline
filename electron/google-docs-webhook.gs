@@ -1,4 +1,4 @@
-// Deploy as a web app, executing as you. See docs/google-docs.md.
+// Deploy as a web app, executing as you. See docs/google-docs.mdx.
 var TAGLINE_MAX_BYTES = 5 * 1024 * 1024;
 var TAGLINE_MAX_BASE64 = 4 * Math.ceil(TAGLINE_MAX_BYTES / 3);
 

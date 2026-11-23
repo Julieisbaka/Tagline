@@ -12,6 +12,7 @@
     "dev": "concurrently -k \"vite\" \"wait-on tcp:5173 && electron . --dev\"",
     "build": "vite build",
     "build:website": "node scripts/build-website.cjs",
+    "sync:docs": "node scripts/sync-doc-values.cjs",
     "package": "vite build && electron-builder",
     "start": "vite build && electron .",
     "test": "node --test --test-reporter=tap tests/*.test.cjs",
