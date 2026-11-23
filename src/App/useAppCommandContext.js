@@ -363,9 +363,10 @@ export function useAppCommandContext({
         return notify(t('Pinned items are unavailable, so pin changes will not be saved'));
       }
       const name = baseName(activePath);
+      const wasPinned = favorites.pinnedTabs.includes(activePath);
       favorites.toggleTabPin(activePath);
       notify(
-        t(favorites.pinnedTabs.includes(activePath) ? 'Unpinned {name}' : 'Pinned {name}', {
+        t(wasPinned ? 'Unpinned {name}' : 'Pinned {name}', {
           name,
         })
       );
