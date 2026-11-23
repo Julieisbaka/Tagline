@@ -27,8 +27,7 @@ export default function App() {
     settings.underscoreFolders,
     settings.autoRelink,
     settings.historyRetention,
-    settings.canvasHistoryMode,
-    settings.experimentalHistoryDeltas
+    settings.canvasHistoryMode
   );
   const favorites = useFavorites(v.vault?.root);
   const tabs = useTabs(v.vault?.root, settings.persistWorkspaceTabs, favorites.unpinTab);

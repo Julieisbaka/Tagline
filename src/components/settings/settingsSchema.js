@@ -169,14 +169,6 @@ export const SETTING_GROUPS = [
         max: 5000,
       },
       {
-        key: 'experimentalHistoryDeltas',
-        type: 'checkbox',
-        label: 'Delta revision history (experimental)',
-        notes: [
-          'Off by default. Saves smaller changes as deltas with periodic full snapshots. Existing revisions remain readable when disabled. Damaged dependencies can affect several revisions.',
-        ],
-      },
-      {
         key: 'canvasHistoryMode',
         type: 'select',
         label: 'Canvas history mode',

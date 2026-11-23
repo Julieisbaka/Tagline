@@ -59,7 +59,6 @@
   "undoHistoryLimit": 100,
   "searchMaxResults": 200,
   "historyRetention": 50,
-  "experimentalHistoryDeltas": false,
   "canvasHistoryMode": "complete",
   "underscoreFolders": true,
   "hideFlowExtension": true,

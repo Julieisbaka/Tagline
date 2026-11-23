@@ -954,18 +954,12 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
         await wait('!document.querySelector(\'.tab[title="Alpha.md"]\')');
         await settings('history');
         assert.equal(
-          await js("document.querySelector('[data-setting=experimentalHistoryDeltas]').checked"),
-          false
+          await js("!!document.querySelector('[data-setting=experimentalHistoryDeltas]')"),
+          false,
+          'the experimental revision delta setting is gone'
         );
-        await toggle('experimentalHistoryDeltas', true);
         await done();
         await reload();
-        await settings('history');
-        assert.equal(
-          await js("document.querySelector('[data-setting=experimentalHistoryDeltas]').checked"),
-          true
-        );
-        await done();
         await js(`window.api.create('History.md', ${JSON.stringify('Evidence '.repeat(1000))})`);
         await click('.sidebar-header button[title="Refresh"]');
         await wait('!!document.querySelector(\'.tree-item[title="History.md"]\')');
@@ -990,22 +984,14 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
         await appendHistory(' first-revision');
         const previousHistoryContent = await js("window.api.read('History.md')");
         await appendHistory(' second-revision');
-        const deltaRevisions = await js("window.api.listHistory('History.md')");
-        assert.ok(deltaRevisions[0].id.endsWith('.delta'), 'editor saves honor the opt-in setting');
+        const revisions = await js("window.api.listHistory('History.md')");
+        assert.ok(revisions[0].id.endsWith('.snapshot'), 'editor saves full snapshots');
         assert.equal(
-          await js(`window.api.readHistory('History.md', ${JSON.stringify(deltaRevisions[0].id)})`),
+          await js(`window.api.readHistory('History.md', ${JSON.stringify(revisions[0].id)})`),
           previousHistoryContent
         );
-        await settings('history');
-        await toggle('experimentalHistoryDeltas', false);
-        await done();
         await appendHistory(' third-revision');
         assert.ok((await js("window.api.listHistory('History.md')"))[0].id.endsWith('.snapshot'));
-        assert.equal(
-          await js(`window.api.readHistory('History.md', ${JSON.stringify(deltaRevisions[0].id)})`),
-          previousHistoryContent,
-          'previous deltas stay readable when disabled'
-        );
         await settings('editors');
         assert.deepEqual(
           await js(`Array.from(document.querySelectorAll('.editor-settings > details > summary'),
@@ -1428,7 +1414,7 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
         );
         server.close();
         console.log(
-          'PASS: editor settings, accessibility settings, revision deltas, notices, integrations, relinking, workspaces and custom CSS.'
+          'PASS: editor settings, accessibility settings, revision history, notices, integrations, relinking, workspaces and custom CSS.'
         );
         app.exit(0);
       } catch (error) {

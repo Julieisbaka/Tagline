@@ -3,6 +3,45 @@ const assert = require('node:assert/strict');
 const path = require('node:path');
 const fsAsync = require('node:fs/promises');
 const os = require('node:os');
+const { createHash, randomUUID } = require('node:crypto');
+
+const hash = (content) => createHash('sha256').update(content, 'utf8').digest('hex');
+
+// Legacy .delta fixtures: new saves are full snapshots, but revisions written by older
+// versions must stay readable.
+async function writeLegacyRevision(directory, id, content, base = null) {
+  let stored;
+  if (!base) {
+    stored = { version: 1, base: null, content, hash: hash(content) };
+  } else {
+    let start = 0;
+    while (
+      start < base.content.length &&
+      start < content.length &&
+      base.content[start] === content[start]
+    ) {
+      start++;
+    }
+    let end = 0;
+    while (
+      end < base.content.length - start &&
+      end < content.length - start &&
+      base.content[base.content.length - end - 1] === content[content.length - end - 1]
+    ) {
+      end++;
+    }
+    stored = {
+      version: 1,
+      base: base.id,
+      baseHash: hash(base.content),
+      hash: hash(content),
+      start,
+      deleteCount: base.content.length - start - end,
+      insert: content.slice(start, content.length - end),
+    };
+  }
+  await fsAsync.writeFile(path.join(directory, id), JSON.stringify(stored), { flag: 'wx' });
+}
 
 test('platform: case-only revision history rename preserves revisions', async (t) => {
   const { createRevisionHistory } = require('../electron/revisionHistory.cjs');
@@ -21,13 +60,9 @@ test('platform: case-only revision history rename preserves revisions', async (t
   assert.equal(await history.read('note.md', revisions[1].id), 'one');
 });
 
-test('platform: experimental history deltas round-trip, checkpoint, prune safely and survive disabling', async (t) => {
+test('platform: legacy delta revisions stay readable while new saves are full snapshots', async (t) => {
   const { createRevisionHistory } = require('../electron/revisionHistory.cjs');
-  assert.equal(
-    require('../src/lib/settings/defaultSettings.json').experimentalHistoryDeltas,
-    false
-  );
-  const root = await fsAsync.mkdtemp(path.join(os.tmpdir(), 'tagline-deltas-'));
+  const root = await fsAsync.mkdtemp(path.join(os.tmpdir(), 'tagline-legacy-deltas-'));
   t.after(() => fsAsync.rm(root, { recursive: true, force: true }));
   const history = createRevisionHistory({
     getVaultRoot: () => root,
@@ -36,71 +71,51 @@ test('platform: experimental history deltas round-trip, checkpoint, prune safely
   const file = 'Evidence.md';
   const directory = path.join(root, '.tagline', 'history', file);
   const versions = Array.from(
-    { length: 26 },
-    (_, i) => '# Evidence\r\n' + 'a'.repeat(4000) + ` ${i} 😀 ` + 'z'.repeat(4000)
+    { length: 5 },
+    (_, i) => '# Evidence\r\n' + 'a'.repeat(200) + ` ${i} 😀 ` + 'z'.repeat(200)
   );
-  await fsAsync.writeFile(path.join(root, file), versions[0]);
-  for (let i = 1; i <= 21; i++) {
-    await history.snapshot(file, versions[i], 50, 'complete', true);
-    await fsAsync.writeFile(path.join(root, file), versions[i]);
-  }
-  const revisions = await history.list(file);
-  assert.deepEqual(
-    await Promise.all(revisions.map(({ id }) => history.read(file, id))),
-    versions.slice(0, 21).reverse()
+  const stamp = Date.now();
+  const ids = versions.map(
+    (_, i) => `${stamp + i}-${randomUUID()}.${i === 0 ? 'snapshot' : 'delta'}`
   );
-  const chronological = revisions.toReversed();
-  assert.ok(chronological[0].id.endsWith('.snapshot'));
-  assert.ok(chronological[1].id.endsWith('.delta'));
-  assert.ok(chronological[10].id.endsWith('.snapshot'), 'checkpoint after at most nine deltas');
-  assert.ok(chronological[20].id.endsWith('.snapshot'));
-  const deltaSize = (await fsAsync.stat(path.join(directory, chronological[1].id))).size;
-  assert.ok(
-    deltaSize < Buffer.byteLength(versions[1]) / 4,
-    'small edits measurably reduce storage'
-  );
-  for (let i = 22; i <= 24; i++) {
-    await history.snapshot(file, versions[i], 3, 'complete', true);
-    await fsAsync.writeFile(path.join(root, file), versions[i]);
-    const kept = await history.list(file);
-    assert.equal(kept.length, 3);
-    assert.deepEqual(
-      await Promise.all(kept.map(({ id }) => history.read(file, id))),
-      versions.slice(i - 3, i).reverse()
+  await fsAsync.mkdir(directory, { recursive: true });
+  await fsAsync.writeFile(path.join(directory, ids[0]), versions[0]);
+  for (let i = 1; i < versions.length; i++) {
+    await writeLegacyRevision(
+      directory,
+      ids[i],
+      versions[i],
+      i === 1 ? null : { id: ids[i - 1], content: versions[i - 1] }
     );
   }
-  await history.snapshot(file, versions[25], 3, 'complete', false);
-  let kept = await history.list(file);
-  assert.ok(kept[0].id.endsWith('.snapshot'), 'disabling writes full snapshots');
+  await fsAsync.writeFile(path.join(root, file), versions.at(-1));
+
+  const revisions = await history.list(file);
+  assert.deepEqual(revisions.map(({ id }) => id), ids.toReversed());
   assert.deepEqual(
-    await Promise.all(kept.map(({ id }) => history.read(file, id))),
-    versions.slice(22, 25).reverse()
+    await Promise.all(revisions.map(({ id }) => history.read(file, id))),
+    versions.toReversed()
   );
   await history.rename(file, 'Renamed.md');
   assert.equal(
-    await history.read('Renamed.md', kept[1].id),
-    versions[23],
-    'delta bases follow rename'
+    await history.read('Renamed.md', ids[2]),
+    versions[2],
+    'legacy delta bases follow rename'
   );
   await history.rename('Renamed.md', file);
-  await fsAsync.writeFile(path.join(root, file), versions[25]);
-  await history.snapshot(file, 'short', 1, 'complete', true);
-  kept = await history.list(file);
-  assert.equal(kept.length, 1);
-  assert.equal(await history.read(file, kept[0].id), versions[25]);
-  await fsAsync.writeFile(path.join(root, file), 'short');
-  await history.snapshot(file, '', 50, 'complete', true);
-  assert.ok(
-    (await history.list(file))[0].id.endsWith('.snapshot'),
-    'deltas larger than full content are not stored'
-  );
-  await assert.rejects(
-    history.snapshot(file, 'next', 50, 'complete', 'true'),
-    /enabled or disabled/
-  );
+
+  // A surviving delta at the retention boundary is rebased instead of stranded.
+  await history.snapshot(file, '# Latest', 2);
+  const kept = await history.list(file);
+  assert.equal(kept.length, 2);
+  assert.ok(kept[0].id.endsWith('.snapshot'), 'new saves are full snapshots');
+  assert.ok(kept[1].id.endsWith('.delta'));
+  // snapshot() stores the previous document contents, so both revisions hold the last legacy version.
+  assert.equal(await history.read(file, kept[0].id), versions.at(-1));
+  assert.equal(await history.read(file, kept[1].id), versions.at(-1));
 });
 
-test('platform: experimental delta history detects missing, corrupt and circular dependencies', async (t) => {
+test('platform: legacy delta read path detects missing, corrupt and circular dependencies', async (t) => {
   const { createRevisionHistory } = require('../electron/revisionHistory.cjs');
   const root = await fsAsync.mkdtemp(path.join(os.tmpdir(), 'tagline-delta-errors-'));
   t.after(() => fsAsync.rm(root, { recursive: true, force: true }));
@@ -110,35 +125,29 @@ test('platform: experimental delta history detects missing, corrupt and circular
   });
   const directory = path.join(root, '.tagline', 'history', 'Note.md');
   const first = 'a'.repeat(5000);
-  await fsAsync.writeFile(path.join(root, 'Note.md'), first);
-  await history.snapshot('Note.md', first + '1', 50, 'complete', true);
+  const base = `${Date.now()}-${randomUUID()}.snapshot`;
+  const delta = `${Date.now() + 1}-${randomUUID()}.delta`;
+  await fsAsync.mkdir(directory, { recursive: true });
+  await fsAsync.writeFile(path.join(directory, base), first);
+  await writeLegacyRevision(directory, delta, first + '1', { id: base, content: first });
   await fsAsync.writeFile(path.join(root, 'Note.md'), first + '1');
-  await history.snapshot('Note.md', first + '2', 50, 'complete', true);
-  const [delta, base] = await history.list('Note.md');
-  assert.ok(delta.id.endsWith('.delta'));
-  const raw = await fsAsync.readFile(path.join(directory, delta.id), 'utf8');
+  const raw = await fsAsync.readFile(path.join(directory, delta), 'utf8');
   const parsed = JSON.parse(raw);
-  await fsAsync.writeFile(path.join(directory, base.id), 'damaged');
-  await assert.rejects(history.read('Note.md', delta.id), /base is damaged/);
-  await fsAsync.writeFile(path.join(directory, base.id), first);
+  await fsAsync.writeFile(path.join(directory, base), 'damaged');
+  await assert.rejects(history.read('Note.md', delta), /base is damaged/);
+  await fsAsync.writeFile(path.join(directory, base), first);
+  await fsAsync.writeFile(path.join(directory, delta), JSON.stringify({ ...parsed, insert: 'wrong' }));
+  await assert.rejects(history.read('Note.md', delta), /checksum/);
+  await fsAsync.writeFile(path.join(directory, delta), JSON.stringify({ ...parsed, base: delta }));
+  await assert.rejects(history.read('Note.md', delta), /dependency chain/);
   await fsAsync.writeFile(
-    path.join(directory, delta.id),
-    JSON.stringify({ ...parsed, insert: 'wrong' })
-  );
-  await assert.rejects(history.read('Note.md', delta.id), /checksum/);
-  await fsAsync.writeFile(
-    path.join(directory, delta.id),
-    JSON.stringify({ ...parsed, base: delta.id })
-  );
-  await assert.rejects(history.read('Note.md', delta.id), /dependency chain/);
-  await fsAsync.writeFile(
-    path.join(directory, delta.id),
+    path.join(directory, delta),
     JSON.stringify({ ...parsed, base: '../outside.snapshot' })
   );
-  await assert.rejects(history.read('Note.md', delta.id), /Invalid revision/);
-  await fsAsync.writeFile(path.join(directory, delta.id), raw);
-  await fsAsync.unlink(path.join(directory, base.id));
-  await assert.rejects(history.read('Note.md', delta.id), /ENOENT/);
+  await assert.rejects(history.read('Note.md', delta), /Invalid revision/);
+  await fsAsync.writeFile(path.join(directory, delta), raw);
+  await fsAsync.unlink(path.join(directory, base));
+  await assert.rejects(history.read('Note.md', delta), /ENOENT/);
 });
 
 test('platform: revision history rejects symlinks in document directories and Canvas temporary files', async (t) => {

@@ -255,11 +255,10 @@ function registerVaultIpc(
     rel,
     content,
     retention = DEFAULT_RETENTION,
-    canvasMode = 'complete',
-    experimentalHistoryDeltas = false
+    canvasMode = 'complete'
   ) {
     const full = resolveInVault(rel);
-    await history.snapshot(rel, content, retention, canvasMode, experimentalHistoryDeltas);
+    await history.snapshot(rel, content, retention, canvasMode);
     await fs.mkdir(path.dirname(full), { recursive: true });
     let mode;
     try {
@@ -298,16 +297,13 @@ function registerVaultIpc(
     }
     return true;
   }
-  ipcMain.handle(
-    'fs:write',
-    (event, rel, content, retention, canvasMode, experimentalHistoryDeltas) => {
-      assertMainFrameSender(event, 'Vault file access');
-      if (typeof content !== 'string') {
-        throw new Error('Invalid file content.');
-      }
-      return writeVaultFile(rel, content, retention, canvasMode, experimentalHistoryDeltas);
+  ipcMain.handle('fs:write', (event, rel, content, retention, canvasMode) => {
+    assertMainFrameSender(event, 'Vault file access');
+    if (typeof content !== 'string') {
+      throw new Error('Invalid file content.');
     }
-  );
+    return writeVaultFile(rel, content, retention, canvasMode);
+  });
 
   ipcMain.handle('fs:create', async (event, rel, content = '') => {
     assertMainFrameSender(event, 'Vault file access');

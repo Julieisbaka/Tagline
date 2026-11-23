@@ -24,15 +24,13 @@ const SAVED_STATUS_MS = 1400;
  * @param {boolean} [autoRelink] - Enables automatic relinking of references within the vault.
  * @param {number} [historyRetention] - The number of historical versions to retain for each file.
  * @param {string} [canvasHistoryMode] - The mode for handling canvas history, e.g., 'complete'.
- * @param {boolean} [experimentalHistoryDeltas] - Enables experimental handling of history deltas.
  * @returns {object} - An object containing the vault state, tree structure, contents, error state, readiness, initialization status, save statuses, and various vault operations.
  */
 export function useVault(
   underscoreFolders = true,
   autoRelink = true,
   historyRetention = 50,
-  canvasHistoryMode = 'complete',
-  experimentalHistoryDeltas = false
+  canvasHistoryMode = 'complete'
 ) {
   const [vault, setVault] = useState(null);
   const [tree, setTree] = useState([]);
@@ -55,8 +53,6 @@ export function useVault(
   historyRetentionRef.current = historyRetention;
   const canvasHistoryModeRef = useRef(canvasHistoryMode);
   canvasHistoryModeRef.current = canvasHistoryMode;
-  const experimentalHistoryDeltasRef = useRef(experimentalHistoryDeltas);
-  experimentalHistoryDeltasRef.current = experimentalHistoryDeltas;
   const directories = useMemo(() => folderPaths(tree), [tree]);
 
   /**
@@ -120,13 +116,7 @@ export function useVault(
           if (saveEpoch.current !== epoch) {
             return;
           }
-          return api.write(
-            path,
-            text,
-            historyRetentionRef.current,
-            canvasHistoryModeRef.current,
-            experimentalHistoryDeltasRef.current
-          );
+          return api.write(path, text, historyRetentionRef.current, canvasHistoryModeRef.current);
         });
       writes.current.set(path, { task, text });
       /**
@@ -418,8 +408,7 @@ export function useVault(
               destination,
               updated,
               historyRetentionRef.current,
-              canvasHistoryModeRef.current,
-              experimentalHistoryDeltasRef.current
+              canvasHistoryModeRef.current
             );
           }
         }
@@ -448,8 +437,7 @@ export function useVault(
               moved.includes(p) ? to + p.slice(from.length) : p,
               serializeCanvas({ ...canvas, nodes }),
               historyRetentionRef.current,
-              canvasHistoryModeRef.current,
-              experimentalHistoryDeltasRef.current
+              canvasHistoryModeRef.current
             );
           }
         }

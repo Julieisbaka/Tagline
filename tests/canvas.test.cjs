@@ -3,6 +3,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs/promises');
 const path = require('node:path');
 const os = require('node:os');
+const { createHash, randomUUID } = require('node:crypto');
 
 test('Canvas groups move enclosed and nested nodes without moving unrelated nodes', async () => {
   const { canvasGroupMembers, moveCanvasNodes, createCanvasNode } =
@@ -164,7 +165,7 @@ test('platform: working-save recovery accepts all Markdown content and falls bac
   assert.deepEqual(await history.latestWorking(file), { ...revision, content: previous });
 });
 
-test('platform: experimental delta history preserves Canvas data mode, recovery and layout', async (t) => {
+test('platform: legacy Canvas delta revisions remain readable', async (t) => {
   const { createRevisionHistory } = require('../electron/revisionHistory.cjs');
   const root = await fs.mkdtemp(path.join(os.tmpdir(), 'tagline-canvas-delta-'));
   t.after(() => fs.rm(root, { recursive: true, force: true }));
@@ -176,27 +177,32 @@ test('platform: experimental delta history preserves Canvas data mode, recovery 
     nodes: [{ id: 'n', type: 'text', x: 0, y: 0, width: 300, height: 200, text: 'a'.repeat(5000) }],
     edges: [],
   };
-  const file = path.join(root, 'Map.canvas');
-  await fs.writeFile(file, JSON.stringify(canvas));
-  for (const suffix of ['1', '2', '3']) {
-    canvas.nodes[0].text += suffix;
-    const content = JSON.stringify(canvas);
-    await history.snapshot('Map.canvas', content, 2, 'data', true);
-    await fs.writeFile(file, content);
-  }
-  const [latest] = await history.list('Map.canvas');
-  assert.ok(latest.id.endsWith('.delta'));
-  canvas.nodes[0].x = 900;
-  await history.snapshot('Map.canvas', JSON.stringify(canvas), 2, 'data', true);
-  assert.equal((await history.list('Map.canvas')).length, 2);
-  const restored = JSON.parse(await history.read('Map.canvas', latest.id));
-  assert.equal(restored.nodes[0].x, 900);
-  assert.equal(restored.nodes[0].text, 'a'.repeat(5000) + '12');
-  await fs.writeFile(file, '{broken');
-  assert.equal(
-    JSON.parse((await history.latestWorking('Map.canvas')).content).nodes[0].text,
-    restored.nodes[0].text
+  const content = JSON.stringify(canvas);
+  const directory = path.join(root, '.tagline', 'history', 'Map.canvas');
+  await fs.mkdir(directory, { recursive: true });
+  const id = `${Date.now()}-${randomUUID()}.delta`;
+  await fs.writeFile(
+    path.join(directory, id),
+    JSON.stringify({
+      version: 1,
+      base: null,
+      content,
+      hash: createHash('sha256').update(content, 'utf8').digest('hex'),
+    })
   );
+  const file = path.join(root, 'Map.canvas');
+  await fs.writeFile(file, content);
+  const [revision] = await history.list('Map.canvas');
+  assert.ok(revision.id.endsWith('.delta'));
+  assert.deepEqual(JSON.parse(await history.read('Map.canvas', revision.id)), canvas);
+  await fs.writeFile(file, '{broken');
+  assert.deepEqual(JSON.parse((await history.latestWorking('Map.canvas')).content), canvas);
+  canvas.nodes[0].x = 900;
+  await history.snapshot('Map.canvas', JSON.stringify(canvas), 2);
+  const revisions = await history.list('Map.canvas');
+  assert.equal(revisions.length, 2);
+  assert.ok(revisions[0].id.endsWith('.snapshot'), 'new saves are full snapshots');
+  assert.deepEqual(JSON.parse(await history.read('Map.canvas', revision.id)), JSON.parse(content));
 });
 
 test('platform: Canvas Complete history preserves JSON; Data history shares latest layout and skips movement', async (t) => {

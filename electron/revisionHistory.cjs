@@ -130,13 +130,9 @@ function createRevisionHistory({ getVaultRoot, resolveInVault }) {
     relativePath,
     nextContent,
     retention = DEFAULT_RETENTION,
-    canvasMode = 'complete',
-    experimentalHistoryDeltas = false
+    canvasMode = 'complete'
   ) {
     validateRetention(retention);
-    if (typeof experimentalHistoryDeltas !== 'boolean') {
-      throw new Error('Experimental history deltas must be enabled or disabled.');
-    }
     if (!['complete', 'data'].includes(canvasMode)) {
       throw new Error('Canvas history mode must be complete or data.');
     }
@@ -220,47 +216,10 @@ function createRevisionHistory({ getVaultRoot, resolveInVault }) {
     const lastTimestamp = existing.length
       ? Number(existing[0].slice(0, existing[0].indexOf('-')))
       : 0;
-    let stored = snapshotContent;
-    let extension = 'snapshot';
-    if (experimentalHistoryDeltas && existing.length && retention > 1) {
-      const base = await readStored(directory, existing[0]);
-      if (base.depth < MAX_DELTA_DEPTH) {
-        let start = 0;
-        while (
-          start < base.content.length &&
-          start < snapshotContent.length &&
-          base.content[start] === snapshotContent[start]
-        ) {
-          start++;
-        }
-        let end = 0;
-        while (
-          end < base.content.length - start &&
-          end < snapshotContent.length - start &&
-          base.content[base.content.length - end - 1] ===
-            snapshotContent[snapshotContent.length - end - 1]
-        ) {
-          end++;
-        }
-        const delta = JSON.stringify({
-          version: 1,
-          base: existing[0],
-          baseHash: hash(base.content),
-          hash: hash(snapshotContent),
-          start,
-          deleteCount: base.content.length - start - end,
-          insert: snapshotContent.slice(start, snapshotContent.length - end),
-        });
-        if (Buffer.byteLength(delta) < Buffer.byteLength(snapshotContent)) {
-          stored = delta;
-          extension = 'delta';
-        }
-      }
-    }
-    const id = `${Math.max(Date.now(), lastTimestamp + 1)}-${randomUUID()}.${extension}`;
+    const id = `${Math.max(Date.now(), lastTimestamp + 1)}-${randomUUID()}.snapshot`;
     const snapshotPath = path.join(directory, id);
     await assertSafeHistoryPath(snapshotPath);
-    await fs.writeFile(snapshotPath, stored, { encoding: 'utf8', flag: 'wx' });
+    await fs.writeFile(snapshotPath, snapshotContent, { encoding: 'utf8', flag: 'wx' });
     const snapshots = await listFiles(directory);
     const oldestKept = snapshots[retention - 1];
     if (snapshots.length > retention && oldestKept.endsWith('.delta')) {
