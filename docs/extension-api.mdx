@@ -413,7 +413,7 @@ document.body.append(
 );
 ```
 
-Factories return native elements with labels, keyboard behavior, focus indicators, and reduced-motion support. Available controls include `stack`, `card`, `field`, `select`, `toggle`, `notice`, and `button`. Text and labels are inserted as text, not HTML. In webviews, `taglineWebview.getTheme()` returns the current theme and `onThemeChange(callback)` observes updates; see the [Theme API](/theme-api).
+Factories return native elements with labels, keyboard behavior, focus indicators, and reduced-motion support. Available controls include `stack`, `card`, `field`, `select`, `toggle`, `notice`, and `button`. Text and labels are inserted as text, not HTML. In webviews, `taglineWebview.getTheme()` returns the current theme and `onThemeChange(callback)` observes updates. The theme's `reducedMotion` is true when the operating system requests reduced motion or Tagline's reduced-motion or disable-animations setting is enabled; changes to the effective value are delivered without remounting the view. See the [Theme API](/theme-api).
 
 ## Helpers and disposable subscriptions {#helpers}
 

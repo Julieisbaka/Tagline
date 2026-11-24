@@ -24,10 +24,12 @@ export default function ExtensionSurface({ surface, onClose, initialMessage }) {
     const motion = window.matchMedia('(prefers-reduced-motion: reduce)');
     motion.addEventListener('change', sendTheme);
     window.addEventListener('themechange', sendTheme);
+    window.addEventListener('accessibilitychange', sendTheme);
     return () => {
       observer.disconnect();
       motion.removeEventListener('change', sendTheme);
       window.removeEventListener('themechange', sendTheme);
+      window.removeEventListener('accessibilitychange', sendTheme);
     };
   }, []);
 

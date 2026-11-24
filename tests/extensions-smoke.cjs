@@ -803,8 +803,21 @@ tagline.commands.register('save-checks', async () => {
         });
         assert.equal(await js("matchMedia('(prefers-reduced-motion: reduce)').matches"), true);
         await wait(extensionStorageWait('demo', 'data.uiReport?.theme.reducedMotion === true'));
-        await wc.debugger.sendCommand('Emulation.setEmulatedMedia', { features: [] });
+        await wc.debugger.sendCommand('Emulation.setEmulatedMedia', {
+          features: [{ name: 'prefers-reduced-motion', value: 'no-preference' }],
+        });
         await wait(extensionStorageWait('demo', 'data.uiReport?.theme.reducedMotion === false'));
+        await js("document.documentElement.classList.add('reduce-motion'); window.dispatchEvent(new Event('accessibilitychange'))");
+        await wait(
+          extensionStorageWait('demo', 'data.uiReport?.theme.reducedMotion === true'),
+          'panel receives app reduced-motion changes without a theme change'
+        );
+        await js("document.documentElement.classList.remove('reduce-motion'); window.dispatchEvent(new Event('accessibilitychange'))");
+        await wait(
+          extensionStorageWait('demo', 'data.uiReport?.theme.reducedMotion === false'),
+          'panel receives app reduced-motion changes when disabled'
+        );
+        await wc.debugger.sendCommand('Emulation.setEmulatedMedia', { features: [] });
         wc.debugger.detach();
         assert.match(
           await js("document.querySelector('.theme-metadata').textContent"),
