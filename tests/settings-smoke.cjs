@@ -207,6 +207,7 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
             'performance',
             'integrations',
             'extensions',
+            'core-plugins',
             'advanced',
             'installation',
           ]
