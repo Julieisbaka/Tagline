@@ -639,7 +639,7 @@
         /** Display a themed in-app notification prefixed with the extension name (max 500 characters). @returns {Promise<boolean>} */
         notify: (message) => call('notify', message),
       });
-      addEventListener('message', async (event) => {
+      const handleMessage = async (event) => {
         if (!event.data) return;
         const data = event.data;
         if (data.type === 'start' && !started) {
@@ -682,7 +682,15 @@
           try { await handlers.get(data.command)?.(data.context); }
           catch (error) { send({ type: 'error', message: describe(error) }); }
         }
-      });
+      };
+      // Only the creator can message this dedicated worker. Bootstrap the private port
+      // before running extension code; worker messages have no usable origin.
+      addEventListener('message', (event) => {
+        if (!event.ports || !event.ports[0]) return;
+        const port = event.ports[0];
+        port.onmessage = handleMessage;
+        port.start();
+      }, { once: true });
     };
     addEventListener('message', (event) => {
       if (event.source !== parent || !event.data || !event.ports[0]) return;
@@ -695,6 +703,8 @@
         try { worker = new Worker(url); }
         catch (error) { fail(String(error.message)); return; }
         finally { URL.revokeObjectURL(url); }
+        const workerChannel = new MessageChannel();
+        worker.postMessage(null, [workerChannel.port2]);
         lastHeartbeat = performance.now();
         worker.onmessage = ({ data: message }) => {
           const now = performance.now();
@@ -706,7 +716,7 @@
         };
         hostPort.onmessage = ({ data: message }) => {
           if (worker && ['result', 'command', 'vault-event', 'active-note-event', 'application-event', 'surface-event', 'api-call'].includes(message.type)) {
-            worker.postMessage(message);
+            workerChannel.port1.postMessage(message);
           }
         };
         hostPort.start();
@@ -714,7 +724,7 @@
         watchdog = setInterval(() => {
           if (performance.now() - lastHeartbeat > limits.extensionHeartbeatMs) fail(`Extension stopped responding for ${limits.extensionHeartbeatMs / 1000} seconds and was stopped.`);
         }, 500);
-        worker.postMessage(data);
+        workerChannel.port1.postMessage(data);
       }
     });
   })();
