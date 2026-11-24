@@ -88,7 +88,12 @@ function resolveConstant(argument, sources, token) {
   const [file, name] = argument.split('#');
   const filePath = path.resolve(sources.rootDir, file || '');
   const relative = path.relative(sources.rootDir, filePath);
-  if (!file || !/^[A-Z][A-Z0-9_]*$/.test(name || '') || relative.startsWith('..') || path.isAbsolute(relative)) {
+  if (
+    !file ||
+    !/^[A-Z][A-Z0-9_]*$/.test(name || '') ||
+    relative.startsWith('..') ||
+    path.isAbsolute(relative)
+  ) {
     throw new Error(`Invalid constant in website template: ${token}`);
   }
   if (!fs.existsSync(filePath)) {

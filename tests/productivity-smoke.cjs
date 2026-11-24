@@ -160,9 +160,7 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
         );
         assert.equal(await js("!!document.querySelector('.quote-source script')"), false);
         await click('.analysis-dialog button', 'Close');
-        console.log(
-          'PASS: quote comparison works from the command palette.'
-        );
+        console.log('PASS: quote comparison works from the command palette.');
         await js("document.querySelector('.ribbon button:last-child').click()");
         await click('.settings-sidebar button', 'Appearance');
         const layout =

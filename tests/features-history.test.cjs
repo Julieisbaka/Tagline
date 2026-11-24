@@ -91,7 +91,10 @@ test('platform: legacy delta revisions stay readable while new saves are full sn
   await fsAsync.writeFile(path.join(root, file), versions.at(-1));
 
   const revisions = await history.list(file);
-  assert.deepEqual(revisions.map(({ id }) => id), ids.toReversed());
+  assert.deepEqual(
+    revisions.map(({ id }) => id),
+    ids.toReversed()
+  );
   assert.deepEqual(
     await Promise.all(revisions.map(({ id }) => history.read(file, id))),
     versions.toReversed()
@@ -136,7 +139,10 @@ test('platform: legacy delta read path detects missing, corrupt and circular dep
   await fsAsync.writeFile(path.join(directory, base), 'damaged');
   await assert.rejects(history.read('Note.md', delta), /base is damaged/);
   await fsAsync.writeFile(path.join(directory, base), first);
-  await fsAsync.writeFile(path.join(directory, delta), JSON.stringify({ ...parsed, insert: 'wrong' }));
+  await fsAsync.writeFile(
+    path.join(directory, delta),
+    JSON.stringify({ ...parsed, insert: 'wrong' })
+  );
   await assert.rejects(history.read('Note.md', delta), /checksum/);
   await fsAsync.writeFile(path.join(directory, delta), JSON.stringify({ ...parsed, base: delta }));
   await assert.rejects(history.read('Note.md', delta), /dependency chain/);
