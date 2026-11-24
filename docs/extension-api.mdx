@@ -504,9 +504,18 @@ const limit = await tagline.settings.get('limit');
 await tagline.settings.set('limit', 10);
 ```
 
-Each setting has a unique ID, nonblank title (up to 80 characters), type, and valid default. Optional descriptions are limited to 500 characters. Booleans accept only booleans; numbers must be finite and may have inclusive bounds; strings default to a 1,000-character limit (configurable from 1 to 10,000) and may restrict values to 1–50 unique enum choices. Invalid definitions, undeclared IDs, and type or range mismatches reject instead of coercing values.
+Each setting has a unique ID, a nonblank title (up to 80 characters), and a type: `boolean`, `number`, `string`, `array`, `object`, `secret`, or `path`. Optional descriptions are limited to 500 characters. The `boolean`, `number`, `string`, `array`, and `object` types require a valid `default`. For `secret` and `path`, `default` is optional and defaults to an empty string.
 
-Users can edit, save, and reset settings on the extension card under **Settings &gt; Extensions**. Settings are scoped to the extension ID and separate from private storage. They are not encrypted; do not use them for secrets. Invalid saved values surface errors and can be reset by the user.
+- **`boolean`** accepts only booleans.
+- **`number`** must be finite and may set inclusive `min` and `max` bounds.
+- **`string`** defaults to a 1,000-character limit (set `maxLength` from 1 to 10,000) and may restrict values to 1–50 unique `enum` choices.
+- **`array`** and **`object`** require a `schema` whose `type` matches the setting type, up to 4,096 characters. Values must match the schema and are limited to 10,000 characters of JSON by default (set `maxLength` from 1 to 10,000).
+- **`secret`** requires the `secrets` permission. Values are strings up to 10,000 characters. Tagline encrypts them separately from other settings and never includes them in settings export. `tagline.settings.get()` returns an empty string for a secret setting and `tagline.settings.set()` ignores it. Read the value with `tagline.secrets.get()` using the setting ID as the key.
+- **`path`** requires the `vault:read` permission. Values are vault-relative paths up to 1,000 characters that cannot start with `/` or contain `\` or `..`. Set `pathKind` to `file` (the default) or `folder` to choose what the picker on the extension card selects.
+
+Invalid definitions, unsupported properties, undeclared IDs, and type or range mismatches reject instead of coercing values.
+
+Users can edit, save, and reset settings on the extension card under **Settings &gt; Extensions**. Settings are scoped to the extension ID and separate from private storage. Settings other than `secret` are not encrypted; use a `secret` setting or the [secrets API](#secrets) for credentials. Invalid saved values surface errors and can be reset by the user.
 
 ## Canvas and flow documents {#canvas-flow}
 
