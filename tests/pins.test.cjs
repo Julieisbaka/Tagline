@@ -104,3 +104,59 @@ test('pins writes retry EBUSY rename without deleting the temp file', async (t) 
   assert.equal(tempSurvived, true, 'temp file must remain for the retry rename');
   assert.deepEqual(parsePins(await fs.readFile(full, 'utf8')), value);
 });
+
+test('pins operations keep their vault path and reads wait for queued writes', async (t) => {
+  const parent = await fs.mkdtemp(path.join(os.tmpdir(), 'tagline-pins-race-'));
+  t.after(() => fs.rm(parent, { recursive: true, force: true }));
+  const firstRoot = path.join(parent, 'first');
+  const secondRoot = path.join(parent, 'second');
+  let currentRoot = firstRoot;
+  const handlers = {};
+  let firstWriteStarted;
+  const started = new Promise((resolve) => {
+    firstWriteStarted = resolve;
+  });
+  let releaseWrite;
+  const release = new Promise((resolve) => {
+    releaseWrite = resolve;
+  });
+  let writes = 0;
+  registerVaultIpc(
+    {
+      ipcMain: { handle: (name, handler) => (handlers[name] = handler) },
+      path,
+      fs: {
+        ...fs,
+        writeFile: async (...args) => {
+          writes++;
+          if (writes === 1) {
+            firstWriteStarted();
+            await release;
+          }
+          return fs.writeFile(...args);
+        },
+      },
+      randomUUID,
+      resolveInVault: (relative) => path.join(currentRoot, relative),
+      registerMcp: () => ({}),
+      assertMainFrameSender() {},
+    },
+    {},
+    {}
+  );
+
+  const value = { favorites: ['First.md'], pinnedTabs: [] };
+  const writing = handlers['vault:writePins']({}, value);
+  await started;
+  const reading = handlers['vault:readPins']({});
+  currentRoot = secondRoot;
+  releaseWrite();
+
+  await writing;
+  assert.deepEqual(await reading, value);
+  assert.deepEqual(
+    parsePins(await fs.readFile(path.join(firstRoot, '.tagline', 'pins.json'), 'utf8')),
+    value
+  );
+  await assert.rejects(fs.stat(path.join(secondRoot, '.tagline', 'pins.json')), { code: 'ENOENT' });
+});
