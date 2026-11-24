@@ -48,10 +48,24 @@ async function importDocument(executable, file, { cleanup = false, input } = {})
     timeout: 120000,
     maxBuffer: 20 * 1024 * 1024,
   };
-  if (input !== undefined) {
-    options.input = input;
-  }
-  const { stdout, stderr } = await run(executable, args, options);
+  const { stdout, stderr } =
+    input === undefined
+      ? await run(executable, args, options)
+      : await new Promise((resolve, reject) => {
+          const child = execFile(
+            executable,
+            args,
+            options,
+            (error, stdout, stderr) => {
+              if (error) {
+                reject(error);
+              } else {
+                resolve({ stdout, stderr });
+              }
+            }
+          );
+          child.stdin.end(input);
+        });
   const warnings = [
     stderr.trim(),
     extension === 'docx'

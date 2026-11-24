@@ -30,12 +30,25 @@ const FONT_MIME_TYPES = {
   '.otf': 'font/otf',
 };
 
-async function readExtensionFile(file, maxBytes, message) {
-  const handle = await fs.open(file, 'r');
+async function readExtensionFile(file, maxBytes, message, root) {
+  const handle = await fs.open(file, fsConstants.O_RDONLY | (fsConstants.O_NOFOLLOW || 0));
   try {
     const stat = await handle.stat();
     if (!stat.isFile()) {
       throw new Error('Not a file.');
+    }
+    const resolvedRoot = await fs.realpath(root);
+    const resolved = await fs.realpath(file);
+    const relative = path.relative(resolvedRoot, resolved);
+    if (relative.startsWith('..') || path.isAbsolute(relative)) {
+      throw new Error('File escapes the extension folder.');
+    }
+    const [openedStat, resolvedStat] = await Promise.all([
+      handle.stat({ bigint: true }),
+      fs.stat(resolved, { bigint: true }),
+    ]);
+    if (openedStat.dev !== resolvedStat.dev || openedStat.ino !== resolvedStat.ino) {
+      throw new Error('Extension file changed while opening.');
     }
     if (stat.size > maxBytes) {
       throw new Error(message);
@@ -315,7 +328,8 @@ function registerExtensions({
         await readExtensionFile(
           file,
           currentLimits.extensionSourceBytes,
-          `Extension script exceeds ${currentLimits.extensionSourceBytes} bytes.`
+          `Extension script exceeds ${currentLimits.extensionSourceBytes} bytes.`,
+          item.root
         )
       ).toString('utf8');
     }
@@ -332,7 +346,8 @@ function registerExtensions({
       const data = await readExtensionFile(
         file,
         currentLimits.themeFileBytes,
-        `Theme file exceeds ${currentLimits.themeFileBytes} bytes.`
+        `Theme file exceeds ${currentLimits.themeFileBytes} bytes.`,
+        item.root
       );
       const size = data.length;
       themePreviewBytes += size;
@@ -359,7 +374,8 @@ function registerExtensions({
       const data = await readExtensionFile(
         file,
         MAX_TRANSLATION_BYTES,
-        `Translation catalog exceeds ${MAX_TRANSLATION_BYTES} bytes.`
+        `Translation catalog exceeds ${MAX_TRANSLATION_BYTES} bytes.`,
+        item.root
       );
       translations[locale] = parseTranslationCatalog(data.toString('utf8'), locale);
     }
@@ -369,7 +385,8 @@ function registerExtensions({
       const data = await readExtensionFile(
         file,
         MAX_FONT_BYTES,
-        `Extension font exceeds ${MAX_FONT_BYTES} bytes.`
+        `Extension font exceeds ${MAX_FONT_BYTES} bytes.`,
+        item.root
       );
       const size = data.length;
       fontBytes += size;
@@ -391,7 +408,8 @@ function registerExtensions({
       const data = await readExtensionFile(
         file,
         MAX_TEMPLATE_BYTES,
-        `Extension template exceeds ${MAX_TEMPLATE_BYTES} bytes.`
+        `Extension template exceeds ${MAX_TEMPLATE_BYTES} bytes.`,
+        item.root
       );
       const size = data.length;
       templateBytes += size;
@@ -776,7 +794,12 @@ function registerExtensions({
     }
     const file = await containedFileAny(item.root, relPath);
     const max = 2 * 1024 * 1024;
-    const data = await readExtensionFile(file, max, `Extension file exceeds ${max} bytes.`);
+    const data = await readExtensionFile(
+      file,
+      max,
+      `Extension file exceeds ${max} bytes.`,
+      item.root
+    );
     return encoding === 'base64' ? data.toString('base64') : data.toString('utf8');
   });
 

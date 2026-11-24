@@ -882,6 +882,56 @@ test('extension scans cache manifests by modification time and size', async () =
   }
 });
 
+test('platform: extension file reads reject a symlink substituted after containment validation', async () => {
+  const fsAsync = require('node:fs/promises');
+  const { registerExtensions } = require('../electron/extensions.cjs');
+  const root = await fsAsync.mkdtemp(
+    path.join(require('node:os').tmpdir(), 'tagline-extension-read-race-')
+  );
+  const extensionRoot = path.join(root, 'extensions', 'read-race');
+  const file = path.join(extensionRoot, 'data.txt');
+  const outside = path.join(root, 'outside.txt');
+  const originalOpen = fsAsync.open;
+  let swapped = false;
+  try {
+    await fsAsync.mkdir(extensionRoot, { recursive: true });
+    await fsAsync.writeFile(
+      path.join(extensionRoot, 'manifest.json'),
+      JSON.stringify({
+        manifestVersion: 1,
+        id: 'read-race',
+        name: 'Read Race',
+        version: '1',
+      })
+    );
+    await fsAsync.writeFile(file, 'inside');
+    await fsAsync.writeFile(outside, 'outside');
+    fsAsync.open = async function (target, ...args) {
+      if (path.resolve(String(target)) === file && !swapped) {
+        swapped = true;
+        await fsAsync.unlink(file);
+        await fsAsync.symlink(outside, file);
+      }
+      return originalOpen.call(this, target, ...args);
+    };
+    const handlers = {};
+    registerExtensions({
+      assertMainFrameSender: () => {},
+      app: { getPath: () => root },
+      shell: {},
+      ipcMain: { handle: (name, handler) => (handlers[name] = handler) },
+      readConfig: () => ({ enabledExtensions: ['read-race'] }),
+      writeConfig: () => {},
+    });
+
+    await assert.rejects(handlers['extensions:readFile'](null, 'read-race', 'data.txt'));
+    assert.equal(swapped, true);
+  } finally {
+    fsAsync.open = originalOpen;
+    await fsAsync.rm(root, { recursive: true, force: true });
+  }
+});
+
 test('platform: extensions can be uninstalled and their saved grants are cleared', async () => {
   const fsAsync = require('node:fs/promises');
   const { registerExtensions } = require('../electron/extensions.cjs');

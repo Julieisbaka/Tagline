@@ -7,7 +7,24 @@ test('platform: Pandoc import chooses an explicit reader, accepts DOCX changes, 
   let captured;
   let fail = false;
   const original = childProcess.execFile;
-  const mock = () => {
+  const mock = (...args) => {
+    const callback = args.at(-1);
+    if (typeof callback === 'function') {
+      const [exe, commandArgs, options] = args;
+      captured = { exe, args: commandArgs, options };
+      return {
+        stdin: {
+          end(input) {
+            captured.stdin = input;
+            callback(
+              fail ? new Error('Bad document') : null,
+              '# Imported\n\n**Card**',
+              'Conversion warning'
+            );
+          },
+        },
+      };
+    }
     throw new Error('Expected promisified execFile');
   };
   mock[promisify.custom] = async (exe, args, options) => {
@@ -46,7 +63,8 @@ test('platform: Pandoc import chooses an explicit reader, accepts DOCX changes, 
   const input = Buffer.from('validated document snapshot');
   await importDocument('pandoc', file, { input });
   assert.equal(captured.args.at(-1), '-');
-  assert.equal(captured.options.input, input);
+  assert.equal(captured.options.input, undefined);
+  assert.equal(captured.stdin, input);
   fail = true;
   await assert.rejects(importDocument('pandoc', file), /Bad document/);
   await assert.rejects(
