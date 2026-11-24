@@ -343,22 +343,17 @@ app.on('browser-window-created', (_event, win) => {
       wikiMode = 'verified';
       await click('Raw JSON', '.tabroom-views');
       await wait("!!document.querySelector('.tabroom-json')");
-      const originalSize = win.getSize();
-      await js(
-        "window.__testResizeCount = 0; window.addEventListener('resize', () => window.__testResizeCount++)"
-      );
       for (const [width, height] of [
         [1100, 850],
         [700, 600],
         [420, 650],
       ]) {
-        win.setMinimumSize(320, 400);
-        const previousSize = win.getSize();
-        const previousResize = await js('window.__testResizeCount');
-        win.setSize(width, height);
-        if (previousSize[0] !== width || previousSize[1] !== height) {
-          await wait(`window.__testResizeCount > ${previousResize}`);
-        }
+        win.webContents.enableDeviceEmulation({
+          screenPosition: 'desktop',
+          viewSize: { width, height },
+          deviceScaleFactor: 1,
+        });
+        await wait(`window.innerWidth === ${width} && window.innerHeight === ${height}`);
         for (const view of ['Overview', 'Teams', 'Raw JSON']) {
           await click(view, '.tabroom-views');
           if (view === 'Teams') {
@@ -414,7 +409,7 @@ app.on('browser-window-created', (_event, win) => {
           }
         }
       }
-      win.setSize(...originalSize);
+      win.webContents.disableDeviceEmulation();
       await click('Next');
       await wait(
         `document.querySelector('.tabroom-dialog').textContent.includes('Page 2 of ${rawPages}')`
