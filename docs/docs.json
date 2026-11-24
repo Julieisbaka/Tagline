@@ -53,5 +53,50 @@
     { "source": "/theme-api.html", "destination": "/theme-api" },
     { "source": "/extension-api.html", "destination": "/extension-api" },
     { "source": "/json-formats.html", "destination": "/json-formats" }
-  ]
+  ],
+  "errors": {
+    "404": {
+      "redirect": false,
+      "title": "Page not found",
+      "description": "The page you are looking for does not exist!"
+    }
+  },
+  "integrations": {
+    "telemetry": {
+      "enabled": true
+    }
+  },
+  "seo": {
+    "organization": {
+      "url": "https://julieisbaka.dev",
+      "sameAs": [
+        "https://github.com/Julieisbaka"
+      ]
+    }
+  },
+  "api": {
+    "examples": {
+      "defaults": "all",
+      "prefill": true
+    }
+  },
+  "search": {
+    "prompt": "Search or ask..."
+  },
+  "contextual": {
+    "options": [
+      "view",
+      "copy",
+      "download-pdf"
+    ],
+    "display": "header"
+  },
+  "styling": {
+    "eyebrows": "section",
+    "codeblocks": "system",
+    "latex": true
+  },
+  "metadata": {
+    "timestamp": true
+  }
 }
