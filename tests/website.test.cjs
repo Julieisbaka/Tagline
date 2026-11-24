@@ -5,16 +5,10 @@ const path = require('node:path');
 const { parseDocument } = require('htmlparser2');
 
 const root = path.join(__dirname, '..', 'website');
-const pages = [
-  ...fs
-    .readdirSync(root)
-    .filter((file) => file.endsWith('.html'))
-    .map((file) => path.join(root, file)),
-  ...fs
-    .readdirSync(path.join(root, 'docs'))
-    .filter((file) => file.endsWith('.html'))
-    .map((file) => path.join(root, 'docs', file)),
-];
+const pages = fs
+  .readdirSync(root)
+  .filter((file) => file.endsWith('.html'))
+  .map((file) => path.join(root, file));
 
 function elements(node) {
   return (node.children || []).flatMap((child) => [child, ...elements(child)]);
@@ -81,24 +75,13 @@ test('website local links, assets, and fragments resolve', () => {
 });
 
 test('every documentation guide is linked from the documentation navigation', () => {
-  const guides = pages.filter((file) => path.dirname(file) === path.join(root, 'docs'));
-  const expected = guides.map((file) => path.basename(file)).sort();
-  for (const file of guides) {
-    const nav = documents
-      .get(file)
-      .find((node) => node.name === 'nav' && node.attribs?.['aria-label'] === 'Documentation');
-    assert.ok(nav, `${file}: missing documentation navigation`);
-    const links = elements(nav).filter((node) => node.name === 'a');
-    assert.deepEqual(
-      links.map((node) => node.attribs.href).sort(),
-      expected,
-      `${file}: inconsistent guide navigation`
-    );
-    assert.equal(
-      links.filter((node) => node.attribs['aria-current'] === 'page')[0]?.attribs.href,
-      path.basename(file),
-      `${file}: incorrect current guide`
-    );
-    assert.equal(links.filter((node) => node.attribs['aria-current'] === 'page').length, 1, file);
-  }
+  const docs = path.join(__dirname, '..', 'docs');
+  const config = JSON.parse(fs.readFileSync(path.join(docs, 'docs.json'), 'utf8'));
+  const navigation = config.navigation.groups.flatMap((group) => group.pages);
+  const guides = fs
+    .readdirSync(docs)
+    .filter((file) => file.endsWith('.mdx'))
+    .map((file) => path.basename(file, '.mdx'));
+  assert.ok(guides.length > 0, 'no documentation guides found');
+  assert.deepEqual(navigation.sort(), guides.sort());
 });
