@@ -52,9 +52,9 @@ function registerAppIpc(
   const updates = createUpdateManager({
     app,
     shell,
-    notify: (state) => {
+    notify: (updateState) => {
       if (state.win && !state.win.isDestroyed()) {
-        state.win.webContents.send('app:updateState', state);
+        state.win.webContents.send('app:updateState', updateState);
       }
     },
   });

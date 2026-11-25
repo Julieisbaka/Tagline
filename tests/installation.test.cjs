@@ -9,6 +9,58 @@ const path = require('node:path');
 const os = require('node:os');
 const { createHash } = require('node:crypto');
 
+test('update IPC forwards live states to the current application window only', () => {
+  const { registerAppIpc } = require('../electron/main/ipcApp.cjs');
+  const messages = [];
+  const win = {
+    isDestroyed: () => false,
+    webContents: { send: (...args) => messages.push(args) },
+  };
+  const state = { win };
+  let notify;
+  registerAppIpc(
+    {
+      app: {},
+      ipcMain: { handle: () => {} },
+      registerNativeUi: () => {},
+      registerSpellcheck: () => {},
+      createRevisionHistory: () => ({}),
+      createUpdateManager: (options) => {
+        notify = options.notify;
+        return {};
+      },
+    },
+    state
+  );
+  const updates = [
+    { status: 'checking' },
+    { status: 'idle', release: { updateAvailable: true } },
+    { status: 'downloading', received: 0, total: 100 },
+    { status: 'downloading', received: 50, total: 100 },
+    { status: 'ready', received: 100, total: 100 },
+    { status: 'installing' },
+    { status: 'error', error: 'Update failed' },
+  ];
+  for (const update of updates) {
+    notify(update);
+    assert.deepEqual(messages.at(-1), ['app:updateState', update]);
+    assert.equal(messages.at(-1)[1], update);
+  }
+  state.win = null;
+  assert.doesNotThrow(() => notify(updates[0]));
+  state.win = { isDestroyed: () => true };
+  assert.doesNotThrow(() => notify(updates[0]));
+  assert.equal(messages.length, updates.length);
+  const replacementMessages = [];
+  state.win = {
+    isDestroyed: () => false,
+    webContents: { send: (...args) => replacementMessages.push(args) },
+  };
+  notify(updates[0]);
+  assert.deepEqual(replacementMessages, [['app:updateState', updates[0]]]);
+  assert.equal(messages.length, updates.length);
+});
+
 test('release comparison handles numeric versions, prereleases, prefixes and build metadata', () => {
   for (const [left, right, order] of [
     ['v1.10.0', '1.9.9', 1],
