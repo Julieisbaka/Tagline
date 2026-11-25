@@ -38,6 +38,14 @@ test('website deployment waits for artifact metadata and retries transient failu
   assert.equal(retries.length, 2);
   assert.ok(retries.every((step) => step.uses === 'actions/deploy-pages@v4'));
   assert.ok(retries.every((step) => step['continue-on-error'] === true));
+  assert.equal(
+    retries.find((step) => step.id === 'deployment_retry_1')?.if,
+    "steps.deployment.outcome == 'failure'"
+  );
+  assert.equal(
+    retries.find((step) => step.id === 'deployment_retry_2')?.if,
+    "steps.deployment_retry_1.outcome == 'failure'"
+  );
 
   const failureGate = steps.find(
     (step) => step.name === 'Fail if Pages deployment could not start'
