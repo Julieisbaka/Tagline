@@ -91,6 +91,72 @@ test('queued vault writes reject instead of targeting a newly opened vault', asy
   await assert.rejects(fs.stat(path.join(secondRoot, 'Note.md')), { code: 'ENOENT' });
 });
 
+test('MCP deletes serialize behind writes and reject after a vault switch', async (t) => {
+  const parent = await fs.mkdtemp(path.join(os.tmpdir(), 'tagline-mcp-delete-race-'));
+  t.after(() => fs.rm(parent, { recursive: true, force: true }));
+  const firstRoot = path.join(parent, 'first');
+  const secondRoot = path.join(parent, 'second');
+  await Promise.all([fs.mkdir(firstRoot), fs.mkdir(secondRoot)]);
+  const note = path.join(firstRoot, 'Note.md');
+  await fs.writeFile(note, 'initial');
+  const handlers = {};
+  const state = { vaultRoot: firstRoot };
+  let mcpTrashItem;
+  let firstRenameStarted;
+  const started = new Promise((resolve) => {
+    firstRenameStarted = resolve;
+  });
+  let releaseRename;
+  const release = new Promise((resolve) => {
+    releaseRename = resolve;
+  });
+  let trashed = false;
+  registerVaultIpc(
+    {
+      app: {},
+      ipcMain: { handle: (name, handler) => (handlers[name] = handler) },
+      path,
+      fs: {
+        ...fs,
+        rename: async (source, destination) => {
+          if ((await fs.readFile(source, 'utf8')) === 'saved') {
+            firstRenameStarted();
+            await release;
+          }
+          return fs.rename(source, destination);
+        },
+      },
+      randomUUID,
+      resolveInVault: (relative, root = state.vaultRoot) => path.join(root, relative),
+      registerMcp: ({ trashItem }) => {
+        mcpTrashItem = trashItem;
+        return {};
+      },
+      assertMainFrameSender() {},
+      shell: {
+        trashItem: async (full) => {
+          trashed = true;
+          await fs.rm(full);
+        },
+      },
+    },
+    state,
+    { snapshot: async () => {} }
+  );
+
+  const writing = handlers['fs:write']({}, 'Note.md', 'saved');
+  await started;
+  const deleting = mcpTrashItem(note, firstRoot);
+  await new Promise((resolve) => setImmediate(resolve));
+  assert.equal(trashed, false, 'MCP delete must wait for the in-flight write');
+  state.vaultRoot = secondRoot;
+  releaseRename();
+  await writing;
+  await assert.rejects(deleting, /vault changed/i);
+  assert.equal(trashed, false);
+  assert.equal(await fs.readFile(note, 'utf8'), 'saved');
+});
+
 test('a vault switch during a save keeps the document and its revision together', async (t) => {
   const parent = await fs.mkdtemp(path.join(os.tmpdir(), 'tagline-history-vault-'));
   t.after(() => fs.rm(parent, { recursive: true, force: true }));

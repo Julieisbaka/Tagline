@@ -34,6 +34,16 @@ test('vault reload commits pending drafts before reading the disk snapshot', () 
   assert.notEqual(flushAt, -1, 'reload must commit local drafts');
   assert.notEqual(snapshotAt, -1);
   assert.ok(flushAt < snapshotAt, 'reload must commit drafts before reading the snapshot');
+  assert.match(
+    source,
+    /snapshotEpoch\.current\s*\+=\s*1;[\s\S]*?api\.write\(/,
+    'starting a save must invalidate snapshots already in flight'
+  );
+  assert.match(
+    reloadSource,
+    /while \(writes\.current\.size\)[\s\S]*?snapshotEpoch\.current !== snapshot/,
+    'reload must drain active writes and reject snapshots invalidated by newer saves'
+  );
 
   const canvas = fs.readFileSync(
     path.join(root, 'src', 'components', 'canvas', 'CanvasNode.jsx'),

@@ -46,6 +46,7 @@ export function useVault(
   const writes = useRef(new Map());
   const saveEpoch = useRef(0);
   const reloadEpoch = useRef(0);
+  const snapshotEpoch = useRef(0);
   const watchers = useRef(new Set());
   const observed = useRef({ root: null, contents: {} });
   const contentsRef = useRef(contents);
@@ -110,6 +111,7 @@ export function useVault(
   const writeDisk = useCallback(
     (path, text) => {
       const epoch = saveEpoch.current;
+      snapshotEpoch.current += 1;
       const previous = writes.current.get(path)?.task || Promise.resolve();
       const task = previous
         .catch(() => {})
@@ -179,12 +181,21 @@ export function useVault(
   const reload = useCallback(async () => {
     const epoch = saveEpoch.current;
     const reload = ++reloadEpoch.current;
+    let snapshot = snapshotEpoch.current;
     try {
       // Commit local editor drafts (e.g. canvas textareas) before reading disk,
       // so an external vault change cannot silently revert text still being typed.
       flushPendingEdits();
+      while (writes.current.size) {
+        await Promise.allSettled([...writes.current.values()].map((entry) => entry.task));
+      }
+      snapshot = snapshotEpoch.current;
       const { tree, contents: all } = await api.readSnapshot();
-      if (saveEpoch.current !== epoch || reloadEpoch.current !== reload) {
+      if (
+        saveEpoch.current !== epoch ||
+        reloadEpoch.current !== reload ||
+        snapshotEpoch.current !== snapshot
+      ) {
         return;
       }
       setTree(tree);
@@ -197,7 +208,11 @@ export function useVault(
       setContents(next);
       setReady(true);
     } catch (e) {
-      if (saveEpoch.current === epoch && reloadEpoch.current === reload) {
+      if (
+        saveEpoch.current === epoch &&
+        reloadEpoch.current === reload &&
+        snapshotEpoch.current === snapshot
+      ) {
         report(e);
       }
     }

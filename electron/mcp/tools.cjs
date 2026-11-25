@@ -343,7 +343,7 @@ function createTools(
         if (!(await exists(target.full))) {
           throw new ToolError(`Not found: ${target.rel}`);
         }
-        await trashItem(target.full);
+        await trashItem(target.full, target.root);
         notifyChanged();
         return { path: target.rel, trashed: true };
       },

@@ -75,7 +75,7 @@ function createVaultContext({
     let full;
     if (typeof resolveInVault === 'function') {
       try {
-        full = resolveInVault(name);
+        full = resolveInVault(name, base);
       } catch (error) {
         throw new ToolError(error.message || `Path escapes the vault: ${rel}`);
       }
@@ -86,7 +86,7 @@ function createVaultContext({
         throw new ToolError(`Path escapes the vault: ${rel}`);
       }
     }
-    return { rel: name, full };
+    return { rel: name, full, root: base };
   }
 
   const requireWrites = () => {

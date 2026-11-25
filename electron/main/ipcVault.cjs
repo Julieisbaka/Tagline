@@ -506,7 +506,13 @@ function registerVaultIpc(
     writeConfig,
     writeNote: (rel, content) => writeVaultFile(rel, content),
     renamePath: renameVaultPath,
-    trashItem: (full) => shell.trashItem(full),
+    trashItem: (full, vaultRoot) =>
+      serializeVaultMutation(async () => {
+        if (state.vaultRoot !== vaultRoot) {
+          throw new Error('The vault changed before the item could be deleted.');
+        }
+        await shell.trashItem(full);
+      }),
   });
 
   ipcMain.handle('fs:delete', async (event, rel) => {
