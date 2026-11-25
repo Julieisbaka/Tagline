@@ -264,19 +264,14 @@ function registerVaultIpc(
     return fs.readFile(resolveInVault(rel), 'utf8');
   });
 
-  function writeVaultFile(
-    rel,
-    content,
-    retention = DEFAULT_RETENTION,
-    canvasMode = 'complete'
-  ) {
+  function writeVaultFile(rel, content, retention = DEFAULT_RETENTION, canvasMode = 'complete') {
     const full = resolveInVault(rel);
     const vaultRoot = state.vaultRoot;
     return serializeVaultMutation(async () => {
       if (state.vaultRoot !== vaultRoot) {
         throw new Error('The vault changed before the file could be saved.');
       }
-      await history.snapshot(rel, content, retention, canvasMode);
+      await history.snapshot(rel, content, retention, canvasMode, vaultRoot);
       await fs.mkdir(path.dirname(full), { recursive: true });
       let mode;
       try {
@@ -334,11 +329,14 @@ function registerVaultIpc(
       if (state.vaultRoot !== vaultRoot) {
         throw new Error('The vault changed before the file could be created.');
       }
-      await fs.mkdir(path.dirname(resolveInVault(rel)), { recursive: true });
+      await fs.mkdir(path.dirname(resolveInVault(rel, vaultRoot)), { recursive: true });
       for (let attempt = 0; attempt < 10; attempt++) {
-        const finalRel = uniquePath(rel);
+        const finalRel = uniquePath(rel, false, false, vaultRoot);
         try {
-          await fs.writeFile(resolveInVault(finalRel), content, { encoding: 'utf8', flag: 'wx' });
+          await fs.writeFile(resolveInVault(finalRel, vaultRoot), content, {
+            encoding: 'utf8',
+            flag: 'wx',
+          });
           return toPosix(finalRel);
         } catch (error) {
           if (error.code !== 'EEXIST') {
@@ -363,18 +361,20 @@ function registerVaultIpc(
       if (state.vaultRoot !== vaultRoot) {
         throw new Error('The vault changed before the folder could be created.');
       }
-      await fs.mkdir(path.dirname(resolveInVault(rel)), { recursive: true });
+      await fs.mkdir(path.dirname(resolveInVault(rel, vaultRoot)), { recursive: true });
       for (let attempt = 0; attempt < 10; attempt++) {
-        const finalRel = uniquePath(rel, true, underscoreFolders);
+        const finalRel = uniquePath(rel, true, underscoreFolders, vaultRoot);
         try {
-          await fs.mkdir(resolveInVault(finalRel));
+          await fs.mkdir(resolveInVault(finalRel, vaultRoot));
           return toPosix(finalRel);
         } catch (error) {
           if (error.code !== 'EEXIST') {
             throw error;
           }
           if (attempt === 9) {
-            throw new Error('Could not create a unique folder after 10 attempts.', { cause: error });
+            throw new Error('Could not create a unique folder after 10 attempts.', {
+              cause: error,
+            });
           }
         }
       }
@@ -382,9 +382,9 @@ function registerVaultIpc(
     });
   });
 
-  async function renameVaultPathUnchecked(from, to) {
-    const dest = resolveInVault(to);
-    const source = resolveInVault(from);
+  async function renameVaultPathUnchecked(from, to, vaultRoot) {
+    const dest = resolveInVault(to, vaultRoot);
+    const source = resolveInVault(from, vaultRoot);
     // Same path, different case: collides on case-insensitive filesystems,
     // so rename through a temporary name instead.
     const caseOnly = from !== to && from.toLowerCase() === to.toLowerCase();
@@ -450,13 +450,13 @@ function registerVaultIpc(
     const migrated = [];
     const rollbackHistory = async () => {
       for (const [oldPath, newPath] of [...migrated].reverse()) {
-        await history.rename(newPath, oldPath);
+        await history.rename(newPath, oldPath, vaultRoot);
       }
     };
     try {
       for (const oldPath of documents) {
         const newPath = `${to}${oldPath.slice(from.length)}`;
-        await history.rename(oldPath, newPath);
+        await history.rename(oldPath, newPath, vaultRoot);
         migrated.push([oldPath, newPath]);
       }
       if (caseOnly) {
@@ -487,7 +487,7 @@ function registerVaultIpc(
       if (state.vaultRoot !== vaultRoot) {
         throw new Error('The vault changed before the item could be renamed.');
       }
-      return renameVaultPathUnchecked(from, to);
+      return renameVaultPathUnchecked(from, to, vaultRoot);
     });
   }
   ipcMain.handle('fs:rename', (event, from, to) => {

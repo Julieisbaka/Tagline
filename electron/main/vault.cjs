@@ -264,14 +264,14 @@ function createVault({ app, path, fs, fssync, randomUUID, process, dialog }, sta
 
   // Resolve a vault-relative path and refuse anything that escapes the vault,
   // including through symlinks or junctions inside it.
-  function resolveInVault(rel = '') {
+  function resolveInVault(rel = '', vaultRoot = state.vaultRoot) {
     if (typeof rel !== 'string') {
       throw new Error('Invalid file path.');
     }
-    if (!state.vaultRoot) {
+    if (!vaultRoot) {
       throw new Error('No vault open');
     }
-    const root = path.resolve(state.vaultRoot);
+    const root = path.resolve(vaultRoot);
     const full = path.resolve(root, rel);
     const relCheck = path.relative(root, full);
     if (relCheck.startsWith('..') || path.isAbsolute(relCheck)) {
@@ -286,12 +286,12 @@ function createVault({ app, path, fs, fssync, randomUUID, process, dialog }, sta
 
   const toPosix = (p) => p.split(path.sep).join('/');
 
-  function uniquePath(rel, folder = false, underscoreFolders = false) {
+  function uniquePath(rel, folder = false, underscoreFolders = false, vaultRoot = state.vaultRoot) {
     const ext = folder ? '' : path.extname(rel);
     const stem = rel.slice(0, rel.length - ext.length);
     for (let i = 0; i < 10; i++) {
       const candidate = i === 0 ? rel : `${stem}${underscoreFolders ? '_' : ' '}${i}${ext}`;
-      if (!fssync.existsSync(resolveInVault(candidate))) {
+      if (!fssync.existsSync(resolveInVault(candidate, vaultRoot))) {
         return candidate;
       }
     }
