@@ -78,10 +78,10 @@ test('platform: snapshot scans once, reads each file once, and bounds parallel f
   }
   let directories = 0,
     reads = 0,
-    stats = 0,
+    opens = 0,
     active = 0,
     peak = 0;
-  for (const name of ['readdir', 'readFile', 'stat']) {
+  for (const name of ['readdir', 'readFile', 'open']) {
     const original = fs[name];
     t.mock.method(fs, name, async (...args) => {
       if (name === 'readdir') {
@@ -90,8 +90,8 @@ test('platform: snapshot scans once, reads each file once, and bounds parallel f
       if (name === 'readFile') {
         reads++;
       }
-      if (name === 'stat') {
-        stats++;
+      if (name === 'open') {
+        opens++;
       }
       peak = Math.max(peak, ++active);
       try {
@@ -104,7 +104,7 @@ test('platform: snapshot scans once, reads each file once, and bounds parallel f
   assert.equal(Object.keys((await readVaultSnapshot(dir)).contents).length, 65);
   assert.equal(directories, 2);
   assert.equal(reads, 65);
-  assert.equal(stats, 65);
+  assert.equal(opens, 65);
   assert.ok(peak > 1 && peak <= 16, `Expected 2–16 concurrent operations, got ${peak}`);
   await readVaultSnapshot(dir);
   assert.equal(reads, 65, 'Unchanged note contents are reused from the snapshot cache');
@@ -120,9 +120,7 @@ test('snapshot content cache invalidates on mtime or size changes', async (t) =>
   const originalReadFile = fs.readFile;
   let reads = 0;
   t.mock.method(fs, 'readFile', async (target, ...args) => {
-    if (target === file) {
-      reads++;
-    }
+    reads++;
     return originalReadFile(target, ...args);
   });
 
@@ -154,16 +152,98 @@ test('vault lists JSON files and includes their contents in snapshots', async (t
   assert.equal(snapshot.contents['Tournament.JSON'], content);
 });
 
+test('platform: vault snapshots exclude symlinks and do not reuse cached contents for them', async (t) => {
+  const dir = await fixture(t);
+  const outside = await fixture(t);
+  const secret = path.join(outside, 'secret.md');
+  await fs.writeFile(secret, 'outside secret content');
+  await fs.writeFile(path.join(dir, 'safe.md'), 'inside content');
+  await fs.writeFile(path.join(dir, 'replaced.md'), 'old content');
+  await readVaultSnapshot(dir);
+  await fs.unlink(path.join(dir, 'replaced.md'));
+  try {
+    await fs.symlink(secret, path.join(dir, 'replaced.md'));
+  } catch (error) {
+    if (error.code === 'EPERM' || error.code === 'EACCES') {
+      t.skip('creating symlinks needs elevated Windows privileges');
+      return;
+    }
+    throw error;
+  }
+  for (const ext of ['md', 'flow', 'canvas', 'json']) {
+    await fs.symlink(secret, path.join(dir, `link.${ext}`));
+  }
+  await fs.symlink(path.join(outside, 'missing.md'), path.join(dir, 'broken.md'));
+  await fs.symlink(outside, path.join(dir, 'linked-folder'), 'dir');
+
+  const snapshot = await readVaultSnapshot(dir);
+  assert.deepEqual(snapshot.contents, { 'safe.md': 'inside content' });
+  assert.deepEqual(
+    snapshot.tree.map((node) => node.path),
+    ['safe.md']
+  );
+  assert.deepEqual(await listVault(dir), snapshot.tree);
+  const rootLink = path.join(outside, 'vault-link');
+  await fs.symlink(dir, rootLink, 'dir');
+  assert.deepEqual(await readVaultSnapshot(rootLink), snapshot);
+});
+
+test('platform: vault snapshots skip non-regular files with document extensions', async (t) => {
+  if (process.platform === 'win32') {
+    t.skip('named pipes are not filesystem entries on Windows');
+    return;
+  }
+  const dir = await fixture(t);
+  require('node:child_process').execFileSync('mkfifo', [path.join(dir, 'pipe.md')]);
+  await fs.writeFile(path.join(dir, 'safe.md'), 'inside');
+  const snapshot = await readVaultSnapshot(dir);
+  assert.deepEqual(snapshot.contents, { 'safe.md': 'inside' });
+  assert.deepEqual(
+    snapshot.tree.map((node) => node.path),
+    ['safe.md']
+  );
+});
+
+test('platform: snapshots reject a directory replaced by an outside symlink while opening a file', async (t) => {
+  const dir = await fixture(t);
+  const outside = await fixture(t);
+  const folder = path.join(dir, 'Folder');
+  await fs.mkdir(folder);
+  await fs.writeFile(path.join(folder, 'Note.md'), 'inside');
+  await fs.writeFile(path.join(outside, 'Note.md'), 'outside secret content');
+  const open = fs.open;
+  const readFile = fs.readFile;
+  let reads = 0;
+  t.mock.method(fs, 'readFile', async (...args) => {
+    reads++;
+    return readFile(...args);
+  });
+  t.mock.method(fs, 'open', async (...args) => {
+    await fs.rename(folder, path.join(dir, 'moved'));
+    try {
+      await fs.symlink(outside, folder, 'dir');
+    } catch (error) {
+      if (error.code === 'EPERM' || error.code === 'EACCES') {
+        t.skip('creating symlinks needs elevated Windows privileges');
+      }
+      throw error;
+    }
+    return open(...args);
+  });
+  await assert.rejects(readVaultSnapshot(dir));
+  assert.equal(reads, 0);
+});
+
 test('platform: snapshot propagates filesystem errors instead of returning a partial vault', async (t) => {
   const dir = await fixture(t);
   await assert.rejects(readVaultSnapshot(path.join(dir, 'missing')), { code: 'ENOENT' });
   await fs.writeFile(path.join(dir, 'Note.md'), 'Note');
   const readFile = fs.readFile;
-  t.mock.method(fs, 'readFile', async (file, ...args) => {
-    if (file === path.join(dir, 'Note.md')) {
+  t.mock.method(fs, 'readFile', async (...args) => {
+    if (typeof args[0] !== 'string') {
       throw new Error('Cannot read note');
     }
-    return readFile(file, ...args);
+    return readFile(...args);
   });
   await assert.rejects(readVaultSnapshot(dir), /Cannot read note/);
 });

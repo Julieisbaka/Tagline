@@ -163,6 +163,30 @@ test('MCP tools read, search, write, rename and delete inside the vault', async 
   });
 });
 
+test('platform: MCP search excludes symlinked documents outside the vault', async (t) => {
+  const outside = await fs.mkdtemp(path.join(os.tmpdir(), 'tagline-mcp-outside-'));
+  t.after(() => fs.rm(outside, { recursive: true, force: true }));
+  const secret = path.join(outside, 'secret.md');
+  await fs.writeFile(secret, 'uniquely sensitive outside content');
+  await withMcp(async ({ vault, call }) => {
+    try {
+      await fs.symlink(secret, path.join(vault, 'private.md'));
+    } catch (error) {
+      if (error.code === 'EPERM' || error.code === 'EACCES') {
+        t.skip('creating symlinks needs elevated Windows privileges');
+        return;
+      }
+      throw error;
+    }
+    for (const query of ['uniquely sensitive', 'private.md']) {
+      const result = JSON.parse((await call('search_notes', { query })).content[0].text);
+      assert.deepEqual(result.matches, []);
+    }
+    const result = JSON.parse((await call('search_notes', { query: 'nuclear' })).content[0].text);
+    assert.equal(result.matches[0].path, 'Case/Plan.md');
+  });
+});
+
 test('MCP tools refuse paths outside the vault and writes in read-only mode', async () => {
   await withMcp(async ({ call }) => {
     for (const bad of [
@@ -275,7 +299,8 @@ test('MCP evidence scans reject oversized notes, excessive headings and links ou
           return;
         }
         assert.equal((await call('list_cards', { path: 'Outside.md' })).isError, true);
-        assert.equal((await call('audit_evidence', {})).isError, true);
+        const audit = JSON.parse((await call('audit_evidence', {})).content[0].text);
+        assert.equal(audit.cardsScanned, 0);
       } finally {
         await fs.unlink(outside);
       }

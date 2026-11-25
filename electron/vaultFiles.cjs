@@ -17,7 +17,13 @@ const FILE_CONCURRENCY = 16;
 
 async function loadVault(dir, base, includeContents) {
   const tree = [];
-  const root = path.resolve(dir);
+  const root = await fs.realpath(dir);
+  const assertInsideRoot = (resolved) => {
+    const relative = path.relative(root, resolved);
+    if (relative === '..' || relative.startsWith(`..${path.sep}`) || path.isAbsolute(relative)) {
+      throw new Error('Vault entry resolves outside the vault.');
+    }
+  };
   let cachedContents;
   if (includeContents) {
     cachedContents = contentsCache.get(root);
@@ -26,11 +32,16 @@ async function loadVault(dir, base, includeContents) {
       contentsCache.set(root, cachedContents);
     }
   }
-  const directories = [{ dir, base, nodes: tree }];
+  const directories = [{ dir: root, base, nodes: tree }];
   const files = [];
   const seen = includeContents ? new Set() : null;
-  const ignorer = loadIgnoreRules(dir);
+  const ignorer = loadIgnoreRules(root);
   for (const directory of directories) {
+    const directoryStat = await fs.lstat(directory.dir);
+    if (!directoryStat.isDirectory() || directoryStat.isSymbolicLink()) {
+      throw new Error('Vault directories must not be symbolic links.');
+    }
+    assertInsideRoot(await fs.realpath(directory.dir));
     const entries = await fs.readdir(directory.dir, { withFileTypes: true });
     for (const entry of entries) {
       if (entry.name.startsWith('.')) {
@@ -45,7 +56,7 @@ async function loadVault(dir, base, includeContents) {
         const children = [];
         directory.nodes.push({ type: 'folder', path: rel, name: entry.name, children });
         directories.push({ dir: full, base: rel, nodes: children });
-      } else if (NOTE_EXTS.includes(path.extname(entry.name).toLowerCase())) {
+      } else if (entry.isFile() && NOTE_EXTS.includes(path.extname(entry.name).toLowerCase())) {
         const node = { type: 'file', path: rel, name: entry.name };
         directory.nodes.push(node);
         files.push({ full, node });
@@ -61,17 +72,58 @@ async function loadVault(dir, base, includeContents) {
     Array.from({ length: Math.min(FILE_CONCURRENCY, files.length) }, async () => {
       while (next < files.length) {
         const { full, node } = files[next++];
-        const stat = await fs.stat(full);
-        node.mtime = stat.mtimeMs;
-        if (includeContents) {
+        const before = await fs.lstat(full);
+        if (!before.isFile() || before.isSymbolicLink()) {
+          throw new Error('Vault documents must be regular files, not symbolic links.');
+        }
+        assertInsideRoot(await fs.realpath(full));
+        if (!includeContents) {
+          node.mtime = before.mtimeMs;
+          continue;
+        }
+        const flags =
+          fssync.constants.O_RDONLY |
+          (fssync.constants.O_NOFOLLOW || 0) |
+          (fssync.constants.O_NONBLOCK || 0);
+        const file = await fs.open(full, flags);
+        try {
+          const stat = await file.stat();
+          const after = await fs.lstat(full);
+          assertInsideRoot(await fs.realpath(full));
+          if (
+            !stat.isFile() ||
+            !after.isFile() ||
+            after.isSymbolicLink() ||
+            before.dev !== stat.dev ||
+            before.ino !== stat.ino ||
+            after.dev !== stat.dev ||
+            after.ino !== stat.ino
+          ) {
+            throw new Error('Vault document changed while being opened.');
+          }
+          node.mtime = stat.mtimeMs;
           seen.add(node.path);
           const cached = cachedContents.get(node.path);
           const text =
-            cached && cached.mtimeMs === stat.mtimeMs && cached.size === stat.size
+            cached &&
+            cached.mtimeMs === stat.mtimeMs &&
+            cached.size === stat.size &&
+            cached.ino === stat.ino &&
+            cached.dev === stat.dev &&
+            cached.ctimeMs === stat.ctimeMs
               ? cached.text
-              : await fs.readFile(full, 'utf8');
-          cachedContents.set(node.path, { mtimeMs: stat.mtimeMs, size: stat.size, text });
+              : await fs.readFile(file, 'utf8');
+          cachedContents.set(node.path, {
+            mtimeMs: stat.mtimeMs,
+            size: stat.size,
+            ino: stat.ino,
+            dev: stat.dev,
+            ctimeMs: stat.ctimeMs,
+            text,
+          });
           texts.set(node.path, text);
+        } finally {
+          await file.close();
         }
       }
     })
