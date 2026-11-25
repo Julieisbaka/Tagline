@@ -24,7 +24,13 @@ async function withMcp(run, { allowWrites = true, getAllowModels, getLocalModels
     getAllowWrites: () => allowWrites,
     getAllowModels,
     getLocalModels,
-    writeNote: (rel, content) => fs.writeFile(path.join(vault, rel), content),
+    writeNote: async (rel, prepare) => {
+      const full = path.join(vault, rel);
+      const { content, result } = await prepare(full);
+      await fs.mkdir(path.dirname(full), { recursive: true });
+      await fs.writeFile(full, content);
+      return result;
+    },
     renamePath: async (from, to) => {
       await fs.rename(path.join(vault, from), path.join(vault, to));
       return { ok: true, path: to };

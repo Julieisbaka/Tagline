@@ -48,7 +48,7 @@ function createVaultContext({
   };
 
   // Vault-relative, forward-slash path that stays inside the vault and out of hidden folders.
-  function resolve(rel, { note = false, allowRoot = false } = {}) {
+  function resolve(rel, { note = false, allowRoot = false, vaultRoot } = {}) {
     if (typeof rel !== 'string' || (!rel.trim() && !allowRoot)) {
       throw new ToolError('A vault-relative path is required.');
     }
@@ -71,11 +71,11 @@ function createVaultContext({
     if (note && name && !NOTE_EXTS.includes(path.posix.extname(name).toLowerCase())) {
       name += '.md';
     }
-    const base = root();
+    const base = vaultRoot ?? root();
     let full;
     if (typeof resolveInVault === 'function') {
       try {
-        full = resolveInVault(name);
+        full = resolveInVault(name, base);
       } catch (error) {
         throw new ToolError(error.message || `Path escapes the vault: ${rel}`);
       }
@@ -86,7 +86,7 @@ function createVaultContext({
         throw new ToolError(`Path escapes the vault: ${rel}`);
       }
     }
-    return { rel: name, full };
+    return { rel: name, full, root: base };
   }
 
   const requireWrites = () => {

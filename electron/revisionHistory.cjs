@@ -21,6 +21,21 @@ function validateRetention(value) {
 }
 
 function createRevisionHistory({ getVaultRoot, resolveInVault }) {
+  const history = createHistory({ getVaultRoot, resolveInVault });
+  const forVault = (root) =>
+    createHistory({
+      getVaultRoot: () => root,
+      resolveInVault: (rel) => resolveInVault(rel, root),
+    });
+  return {
+    ...history,
+    snapshot: (rel, content, retention, canvasMode, root = getVaultRoot()) =>
+      forVault(root).snapshot(rel, content, retention, canvasMode),
+    rename: (from, to, root = getVaultRoot()) => forVault(root).rename(from, to),
+  };
+}
+
+function createHistory({ getVaultRoot, resolveInVault }) {
   const historyDir = (relativePath) => {
     const full = resolveInVault(relativePath);
     const rel = path.relative(getVaultRoot(), full);

@@ -245,14 +245,21 @@ function createTools(
         requireWrites();
         checkContent(content);
         const target = resolve(rel, { note: true });
-        const existed = await exists(target.full);
-        if (existed && overwrite !== true) {
-          throw new ToolError(`${target.rel} already exists. Pass overwrite: true to replace it.`);
-        }
-        await fs.mkdir(path.dirname(target.full), { recursive: true });
-        await writeNote(target.rel, content);
+        const created = await writeNote(
+          target.rel,
+          async (full) => {
+            const existed = await exists(full);
+            if (existed && overwrite !== true) {
+              throw new ToolError(
+                `${target.rel} already exists. Pass overwrite: true to replace it.`
+              );
+            }
+            return { content, result: !existed };
+          },
+          target.root
+        );
         notifyChanged();
-        return { path: target.rel, created: !existed };
+        return { path: target.rel, created };
       },
     },
     {
@@ -272,14 +279,19 @@ function createTools(
         requireWrites();
         checkContent(content);
         const target = resolve(rel, { note: true });
-        const current = (await exists(target.full)) ? await fs.readFile(target.full, 'utf8') : '';
-        const separator = current && !current.endsWith('\n') ? '\n' : '';
-        const next = `${current}${separator}${content}`;
-        checkContent(next);
-        await fs.mkdir(path.dirname(target.full), { recursive: true });
-        await writeNote(target.rel, next);
+        const characters = await writeNote(
+          target.rel,
+          async (full) => {
+            const current = (await exists(full)) ? await fs.readFile(full, 'utf8') : '';
+            const separator = current && !current.endsWith('\n') ? '\n' : '';
+            const next = `${current}${separator}${content}`;
+            checkContent(next);
+            return { content: next, result: next.length };
+          },
+          target.root
+        );
         notifyChanged();
-        return { path: target.rel, characters: next.length };
+        return { path: target.rel, characters };
       },
     },
     {
@@ -318,8 +330,8 @@ function createTools(
         if (!stat) {
           throw new ToolError(`Not found: ${source.rel}`);
         }
-        const destination = resolve(to, { note: stat.isFile() });
-        const result = await renamePath(source.rel, destination.rel);
+        const destination = resolve(to, { note: stat.isFile(), vaultRoot: source.root });
+        const result = await renamePath(source.rel, destination.rel, source.root);
         if (!result.ok) {
           throw new ToolError(`${destination.rel} already exists.`);
         }
@@ -343,7 +355,7 @@ function createTools(
         if (!(await exists(target.full))) {
           throw new ToolError(`Not found: ${target.rel}`);
         }
-        await trashItem(target.full);
+        await trashItem(target.full, target.root);
         notifyChanged();
         return { path: target.rel, trashed: true };
       },

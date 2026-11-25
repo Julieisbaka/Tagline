@@ -52,9 +52,8 @@ function registerVaultIpc(
     return consumeConfigRecovery();
   });
 
-  let pinsWriteQueue = Promise.resolve();
-  async function readPins() {
-    const full = resolveInVault(PINS_PATH);
+  let pinsQueue = Promise.resolve();
+  async function readPinsFile(full) {
     let raw;
     try {
       raw = await fs.readFile(full, 'utf8');
@@ -84,12 +83,19 @@ function registerVaultIpc(
     return { favorites: [], pinnedTabs: [], corrupted: true };
   }
 
+  function readPins() {
+    const full = resolveInVault(PINS_PATH);
+    const task = pinsQueue.catch(() => {}).then(() => readPinsFile(full));
+    pinsQueue = task;
+    return task;
+  }
+
   function writePinsAtomic(value) {
     const serialized = serializePins(value);
-    const task = pinsWriteQueue
+    const full = resolveInVault(PINS_PATH);
+    const task = pinsQueue
       .catch(() => {})
       .then(async () => {
-        const full = resolveInVault(PINS_PATH);
         const directory = path.dirname(full);
         const temporary = path.join(directory, `.tagline-pins-${randomUUID()}.tmp`);
         const retryable = (error) => error && (error.code === 'EBUSY' || error.code === 'EPERM');
@@ -130,7 +136,7 @@ function registerVaultIpc(
         } catch {}
         return true;
       });
-    pinsWriteQueue = task;
+    pinsQueue = task;
     return task;
   }
 
@@ -198,6 +204,14 @@ function registerVaultIpc(
     return cleanupMigrationArtifacts(resolvedRoot);
   });
 
+  // TODO: Coordinate with external programs editing vault files to prevent races and lost updates.
+  let vaultMutationQueue = Promise.resolve();
+  function serializeVaultMutation(task) {
+    const run = vaultMutationQueue.catch(() => {}).then(task);
+    vaultMutationQueue = run;
+    return run;
+  }
+
   ipcMain.handle('vault:choose', async (event) => {
     assertMainFrameSender(event, 'Vault access');
     const res = await dialog.showOpenDialog(state.win, {
@@ -219,18 +233,27 @@ function registerVaultIpc(
     if (res.canceled || !res.filePaths[0]) {
       return null;
     }
-    const info = await openVault(path.join(res.filePaths[0], 'Tagline Sample Vault'));
-    if (!info) {
-      return null;
-    }
-    for (const [rel, content] of Object.entries(SAMPLE_VAULT)) {
-      const full = resolveInVault(rel);
-      await fs.mkdir(path.dirname(full), { recursive: true });
-      if (!fssync.existsSync(full)) {
-        await fs.writeFile(full, content, 'utf8');
+    return serializeVaultMutation(async () => {
+      const info = await openVault(path.join(res.filePaths[0], 'Tagline Sample Vault'));
+      if (!info) {
+        return null;
       }
-    }
-    return info;
+      if (state.vaultRoot !== info.root) {
+        throw new Error('The vault changed before the sample could be created.');
+      }
+      for (const [rel, content] of Object.entries(SAMPLE_VAULT)) {
+        const full = resolveInVault(rel, info.root);
+        await fs.mkdir(path.dirname(full), { recursive: true });
+        try {
+          await fs.writeFile(full, content, { encoding: 'utf8', flag: 'wx' });
+        } catch (error) {
+          if (error.code !== 'EEXIST') {
+            throw error;
+          }
+        }
+      }
+      return info;
+    });
   });
 
   ipcMain.handle('fs:list', async (event) => {
@@ -251,51 +274,66 @@ function registerVaultIpc(
     return fs.readFile(resolveInVault(rel), 'utf8');
   });
 
-  async function writeVaultFile(
+  function writeVaultFile(
     rel,
     content,
     retention = DEFAULT_RETENTION,
-    canvasMode = 'complete'
+    canvasMode = 'complete',
+    vaultRoot = state.vaultRoot
   ) {
-    const full = resolveInVault(rel);
-    await history.snapshot(rel, content, retention, canvasMode);
-    await fs.mkdir(path.dirname(full), { recursive: true });
-    let mode;
-    try {
-      mode = (await fs.stat(full)).mode;
-    } catch (error) {
-      if (error.code !== 'ENOENT') {
-        throw error;
+    const full = resolveInVault(rel, vaultRoot);
+    return serializeVaultMutation(async () => {
+      if (state.vaultRoot !== vaultRoot) {
+        throw new Error('The vault changed before the file could be saved.');
       }
-    }
-    const temporary = path.join(path.dirname(full), `.tagline-save-${randomUUID()}.tmp`);
-    const retryable = (error) => error && (error.code === 'EBUSY' || error.code === 'EPERM');
-    for (let attempt = 0; attempt < 5; attempt++) {
+      let result = true;
+      if (typeof content === 'function') {
+        const prepared = await content(full);
+        if (state.vaultRoot !== vaultRoot) {
+          throw new Error('The vault changed before the file could be saved.');
+        }
+        content = prepared.content;
+        result = prepared.result;
+      }
+      await history.snapshot(rel, content, retention, canvasMode, vaultRoot);
+      await fs.mkdir(path.dirname(full), { recursive: true });
+      let mode;
       try {
-        await fs.writeFile(temporary, content, { encoding: 'utf8', flag: 'wx', mode });
-        let handle;
-        try {
-          handle = await fs.open(temporary, 'r+');
-          await handle.sync();
-        } finally {
-          if (handle) {
-            await handle.close();
-          }
-        }
-        await fs.rename(temporary, full);
-        break;
+        mode = (await fs.stat(full)).mode;
       } catch (error) {
-        if (error.code !== 'EEXIST') {
-          await fs.rm(temporary, { force: true }).catch(() => {});
+        if (error.code !== 'ENOENT') {
+          throw error;
         }
-        if (retryable(error) && attempt < 4) {
-          await new Promise((resolve) => setTimeout(resolve, 25 * (attempt + 1)));
-          continue;
-        }
-        throw error;
       }
-    }
-    return true;
+      const temporary = path.join(path.dirname(full), `.tagline-save-${randomUUID()}.tmp`);
+      const retryable = (error) => error && (error.code === 'EBUSY' || error.code === 'EPERM');
+      for (let attempt = 0; attempt < 5; attempt++) {
+        try {
+          await fs.writeFile(temporary, content, { encoding: 'utf8', flag: 'wx', mode });
+          let handle;
+          try {
+            handle = await fs.open(temporary, 'r+');
+            await handle.sync();
+          } finally {
+            if (handle) {
+              await handle.close();
+            }
+          }
+          await fs.rename(temporary, full);
+          break;
+        } catch (error) {
+          if (error.code !== 'EEXIST') {
+            await fs.rm(temporary, { force: true }).catch(() => {});
+          }
+          if (retryable(error) && attempt < 4) {
+            await new Promise((resolve) => setTimeout(resolve, 25 * (attempt + 1)));
+            continue;
+          }
+          throw error;
+        }
+      }
+      return result;
+    });
   }
   ipcMain.handle('fs:write', (event, rel, content, retention, canvasMode) => {
     assertMainFrameSender(event, 'Vault file access');
@@ -310,22 +348,31 @@ function registerVaultIpc(
     if (typeof content !== 'string') {
       throw new Error('Invalid file content.');
     }
-    await fs.mkdir(path.dirname(resolveInVault(rel)), { recursive: true });
-    for (let attempt = 0; attempt < 10; attempt++) {
-      const finalRel = uniquePath(rel);
-      try {
-        await fs.writeFile(resolveInVault(finalRel), content, { encoding: 'utf8', flag: 'wx' });
-        return toPosix(finalRel);
-      } catch (error) {
-        if (error.code !== 'EEXIST') {
-          throw error;
-        }
-        if (attempt === 9) {
-          throw new Error('Could not create a unique file after 10 attempts.', { cause: error });
+    const vaultRoot = state.vaultRoot;
+    return serializeVaultMutation(async () => {
+      if (state.vaultRoot !== vaultRoot) {
+        throw new Error('The vault changed before the file could be created.');
+      }
+      await fs.mkdir(path.dirname(resolveInVault(rel, vaultRoot)), { recursive: true });
+      for (let attempt = 0; attempt < 10; attempt++) {
+        const finalRel = uniquePath(rel, false, false, vaultRoot);
+        try {
+          await fs.writeFile(resolveInVault(finalRel, vaultRoot), content, {
+            encoding: 'utf8',
+            flag: 'wx',
+          });
+          return toPosix(finalRel);
+        } catch (error) {
+          if (error.code !== 'EEXIST') {
+            throw error;
+          }
+          if (attempt === 9) {
+            throw new Error('Could not create a unique file after 10 attempts.', { cause: error });
+          }
         }
       }
-    }
-    throw new Error('Could not create a unique file after 10 attempts.');
+      throw new Error('Could not create a unique file after 10 attempts.');
+    });
   });
 
   ipcMain.handle('fs:mkdir', async (event, rel, underscoreFolders) => {
@@ -333,27 +380,35 @@ function registerVaultIpc(
     if (typeof underscoreFolders !== 'boolean') {
       throw new Error('Invalid folder path preference.');
     }
-    await fs.mkdir(path.dirname(resolveInVault(rel)), { recursive: true });
-    for (let attempt = 0; attempt < 10; attempt++) {
-      const finalRel = uniquePath(rel, true, underscoreFolders);
-      try {
-        await fs.mkdir(resolveInVault(finalRel));
-        return toPosix(finalRel);
-      } catch (error) {
-        if (error.code !== 'EEXIST') {
-          throw error;
-        }
-        if (attempt === 9) {
-          throw new Error('Could not create a unique folder after 10 attempts.', { cause: error });
+    const vaultRoot = state.vaultRoot;
+    return serializeVaultMutation(async () => {
+      if (state.vaultRoot !== vaultRoot) {
+        throw new Error('The vault changed before the folder could be created.');
+      }
+      await fs.mkdir(path.dirname(resolveInVault(rel, vaultRoot)), { recursive: true });
+      for (let attempt = 0; attempt < 10; attempt++) {
+        const finalRel = uniquePath(rel, true, underscoreFolders, vaultRoot);
+        try {
+          await fs.mkdir(resolveInVault(finalRel, vaultRoot));
+          return toPosix(finalRel);
+        } catch (error) {
+          if (error.code !== 'EEXIST') {
+            throw error;
+          }
+          if (attempt === 9) {
+            throw new Error('Could not create a unique folder after 10 attempts.', {
+              cause: error,
+            });
+          }
         }
       }
-    }
-    throw new Error('Could not create a unique folder after 10 attempts.');
+      throw new Error('Could not create a unique folder after 10 attempts.');
+    });
   });
 
-  async function renameVaultPath(from, to) {
-    const dest = resolveInVault(to);
-    const source = resolveInVault(from);
+  async function renameVaultPathUnchecked(from, to, vaultRoot) {
+    const dest = resolveInVault(to, vaultRoot);
+    const source = resolveInVault(from, vaultRoot);
     // Same path, different case: collides on case-insensitive filesystems,
     // so rename through a temporary name instead.
     const caseOnly = from !== to && from.toLowerCase() === to.toLowerCase();
@@ -419,13 +474,13 @@ function registerVaultIpc(
     const migrated = [];
     const rollbackHistory = async () => {
       for (const [oldPath, newPath] of [...migrated].reverse()) {
-        await history.rename(newPath, oldPath);
+        await history.rename(newPath, oldPath, vaultRoot);
       }
     };
     try {
       for (const oldPath of documents) {
         const newPath = `${to}${oldPath.slice(from.length)}`;
-        await history.rename(oldPath, newPath);
+        await history.rename(oldPath, newPath, vaultRoot);
         migrated.push([oldPath, newPath]);
       }
       if (caseOnly) {
@@ -448,6 +503,16 @@ function registerVaultIpc(
     }
     return { ok: true, path: toPosix(to) };
   }
+  function renameVaultPath(from, to, vaultRoot = state.vaultRoot) {
+    resolveInVault(from, vaultRoot);
+    resolveInVault(to, vaultRoot);
+    return serializeVaultMutation(() => {
+      if (state.vaultRoot !== vaultRoot) {
+        throw new Error('The vault changed before the item could be renamed.');
+      }
+      return renameVaultPathUnchecked(from, to, vaultRoot);
+    });
+  }
   ipcMain.handle('fs:rename', (event, from, to) => {
     assertMainFrameSender(event, 'Vault file access');
     return renameVaultPath(from, to);
@@ -462,28 +527,41 @@ function registerVaultIpc(
     getLocalModels: () => state.localModels,
     readConfig,
     writeConfig,
-    writeNote: (rel, content) => writeVaultFile(rel, content),
+    writeNote: (rel, content, vaultRoot) =>
+      writeVaultFile(rel, content, DEFAULT_RETENTION, 'complete', vaultRoot),
     renamePath: renameVaultPath,
-    trashItem: (full) => shell.trashItem(full),
+    trashItem: (full, vaultRoot) =>
+      serializeVaultMutation(async () => {
+        if (state.vaultRoot !== vaultRoot) {
+          throw new Error('The vault changed before the item could be deleted.');
+        }
+        await shell.trashItem(full);
+      }),
   });
 
   ipcMain.handle('fs:delete', async (event, rel) => {
     assertMainFrameSender(event, 'Vault file access');
     const full = resolveInVault(rel);
+    const vaultRoot = state.vaultRoot;
     if (full === state.vaultRoot) {
       throw new Error('Refusing to delete vault root');
     }
-    try {
-      await shell.trashItem(full);
-    } catch (error) {
-      if (error.code === 'ENOENT' || /ENOENT|not found/i.test(error.message || '')) {
-        throw new Error(
-          `Can't move "${rel}" to the trash because it no longer exists. Refresh the vault and try again.`
-        );
+    return serializeVaultMutation(async () => {
+      if (state.vaultRoot !== vaultRoot) {
+        throw new Error('The vault changed before the item could be deleted.');
       }
-      throw error;
-    }
-    return true;
+      try {
+        await shell.trashItem(full);
+      } catch (error) {
+        if (error.code === 'ENOENT' || /ENOENT|not found/i.test(error.message || '')) {
+          throw new Error(
+            `Can't move "${rel}" to the trash because it no longer exists. Refresh the vault and try again.`
+          );
+        }
+        throw error;
+      }
+      return true;
+    });
   });
 
   ipcMain.handle('shell:reveal', async (event, rel) => {
