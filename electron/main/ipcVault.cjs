@@ -232,18 +232,23 @@ function registerVaultIpc(
     if (res.canceled || !res.filePaths[0]) {
       return null;
     }
-    const info = await openVault(path.join(res.filePaths[0], 'Tagline Sample Vault'));
-    if (!info) {
-      return null;
-    }
-    for (const [rel, content] of Object.entries(SAMPLE_VAULT)) {
-      const full = resolveInVault(rel);
-      await fs.mkdir(path.dirname(full), { recursive: true });
-      if (!fssync.existsSync(full)) {
-        await fs.writeFile(full, content, 'utf8');
+    return serializeVaultMutation(async () => {
+      const info = await openVault(path.join(res.filePaths[0], 'Tagline Sample Vault'));
+      if (!info) {
+        return null;
       }
-    }
-    return info;
+      if (state.vaultRoot !== info.root) {
+        throw new Error('The vault changed before the sample could be created.');
+      }
+      for (const [rel, content] of Object.entries(SAMPLE_VAULT)) {
+        const full = resolveInVault(rel, info.root);
+        await fs.mkdir(path.dirname(full), { recursive: true });
+        if (!fssync.existsSync(full)) {
+          await fs.writeFile(full, content, 'utf8');
+        }
+      }
+      return info;
+    });
   });
 
   ipcMain.handle('fs:list', async (event) => {
@@ -264,9 +269,14 @@ function registerVaultIpc(
     return fs.readFile(resolveInVault(rel), 'utf8');
   });
 
-  function writeVaultFile(rel, content, retention = DEFAULT_RETENTION, canvasMode = 'complete') {
-    const full = resolveInVault(rel);
-    const vaultRoot = state.vaultRoot;
+  function writeVaultFile(
+    rel,
+    content,
+    retention = DEFAULT_RETENTION,
+    canvasMode = 'complete',
+    vaultRoot = state.vaultRoot
+  ) {
+    const full = resolveInVault(rel, vaultRoot);
     return serializeVaultMutation(async () => {
       if (state.vaultRoot !== vaultRoot) {
         throw new Error('The vault changed before the file could be saved.');
@@ -479,10 +489,9 @@ function registerVaultIpc(
     }
     return { ok: true, path: toPosix(to) };
   }
-  function renameVaultPath(from, to) {
-    resolveInVault(from);
-    resolveInVault(to);
-    const vaultRoot = state.vaultRoot;
+  function renameVaultPath(from, to, vaultRoot = state.vaultRoot) {
+    resolveInVault(from, vaultRoot);
+    resolveInVault(to, vaultRoot);
     return serializeVaultMutation(() => {
       if (state.vaultRoot !== vaultRoot) {
         throw new Error('The vault changed before the item could be renamed.');
@@ -504,7 +513,8 @@ function registerVaultIpc(
     getLocalModels: () => state.localModels,
     readConfig,
     writeConfig,
-    writeNote: (rel, content) => writeVaultFile(rel, content),
+    writeNote: (rel, content, vaultRoot) =>
+      writeVaultFile(rel, content, DEFAULT_RETENTION, 'complete', vaultRoot),
     renamePath: renameVaultPath,
     trashItem: (full, vaultRoot) =>
       serializeVaultMutation(async () => {

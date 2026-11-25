@@ -604,6 +604,45 @@ test('a vault that only needs an adoption opens without any dialog', async (t) =
   assert.equal((await readManifest(root)).version, migrations.length);
 });
 
+test('opening a vault returns its own root if the active vault changes during config persistence', async (t) => {
+  const { root, parent } = await fixture(t);
+  await seed(root);
+  const profile = path.join(parent, 'Profile');
+  await fs.mkdir(profile);
+  const state = { vaultRoot: 'previous' };
+  let release;
+  const blocked = new Promise((resolve) => (release = resolve));
+  let started;
+  const waiting = new Promise((resolve) => (started = resolve));
+  const vault = createVault(
+    {
+      app: { getPath: () => profile },
+      path,
+      fs: {
+        ...fs,
+        rename: async (from, to) => {
+          if (to === path.join(profile, 'config.json')) {
+            started();
+            await blocked;
+          }
+          return fs.rename(from, to);
+        },
+      },
+      fssync,
+      randomUUID,
+      process,
+    },
+    state
+  );
+  const opening = vault.openVault(root);
+  await waiting;
+  state.vaultRoot = path.join(parent, 'other');
+  release();
+  const info = await opening;
+  assert.equal(info.root, root);
+  assert.equal(info.name, path.basename(root));
+});
+
 test('active vault changes only after the migration wizard completes', async (t) => {
   const { root, parent } = await fixture(t);
   await seed(root);

@@ -249,8 +249,7 @@ function createTools(
         if (existed && overwrite !== true) {
           throw new ToolError(`${target.rel} already exists. Pass overwrite: true to replace it.`);
         }
-        await fs.mkdir(path.dirname(target.full), { recursive: true });
-        await writeNote(target.rel, content);
+        await writeNote(target.rel, content, target.root);
         notifyChanged();
         return { path: target.rel, created: !existed };
       },
@@ -276,8 +275,7 @@ function createTools(
         const separator = current && !current.endsWith('\n') ? '\n' : '';
         const next = `${current}${separator}${content}`;
         checkContent(next);
-        await fs.mkdir(path.dirname(target.full), { recursive: true });
-        await writeNote(target.rel, next);
+        await writeNote(target.rel, next, target.root);
         notifyChanged();
         return { path: target.rel, characters: next.length };
       },
@@ -318,8 +316,8 @@ function createTools(
         if (!stat) {
           throw new ToolError(`Not found: ${source.rel}`);
         }
-        const destination = resolve(to, { note: stat.isFile() });
-        const result = await renamePath(source.rel, destination.rel);
+        const destination = resolve(to, { note: stat.isFile(), vaultRoot: source.root });
+        const result = await renamePath(source.rel, destination.rel, source.root);
         if (!result.ok) {
           throw new ToolError(`${destination.rel} already exists.`);
         }

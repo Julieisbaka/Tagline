@@ -8,6 +8,7 @@ const { randomUUID } = require('node:crypto');
 const { registerVaultIpc } = require('../electron/main/ipcVault.cjs');
 const { createVault } = require('../electron/main/vault.cjs');
 const { createRevisionHistory } = require('../electron/revisionHistory.cjs');
+const { createMcpService } = require('../electron/mcp.cjs');
 
 test('vault file writes serialize so later content always wins', async (t) => {
   const root = await fs.mkdtemp(path.join(os.tmpdir(), 'tagline-write-race-'));
@@ -254,6 +255,7 @@ for (const operation of ['fs:create', 'fs:mkdir', 'fs:rename']) {
             if (operation !== 'fs:rename' && args[0] === first) {
               await pause();
             }
+
             return fs.mkdir(...args);
           },
           stat: async (...args) => {
@@ -302,3 +304,228 @@ for (const operation of ['fs:create', 'fs:mkdir', 'fs:rename']) {
     }
   });
 }
+
+for (const name of ['write_note', 'append_to_note', 'rename_path']) {
+  test(`MCP ${name} rejects a vault switch during path inspection`, async (t) => {
+    const parent = await fs.mkdtemp(path.join(os.tmpdir(), 'tagline-mcp-switch-'));
+    t.after(() => fs.rm(parent, { recursive: true, force: true }));
+    const first = path.join(parent, 'first');
+    const second = path.join(parent, 'second');
+    await Promise.all([fs.mkdir(first), fs.mkdir(second)]);
+    await Promise.all([
+      fs.writeFile(path.join(first, 'Note.md'), 'first'),
+      fs.writeFile(path.join(second, 'Note.md'), 'second'),
+    ]);
+    const state = { vaultRoot: first };
+    const { resolveInVault, toPosix } = createVault(
+      { path, fs, fssync, randomUUID, process },
+      state
+    );
+    let service;
+    registerVaultIpc(
+      {
+        app: {},
+        ipcMain: { handle() {} },
+        path,
+        fs,
+        fssync,
+        randomUUID,
+        resolveInVault,
+        toPosix,
+        NOTE_EXTS: ['.md'],
+        registerMcp: (options) => {
+          service = createMcpService(options);
+          return {};
+        },
+        assertMainFrameSender() {},
+      },
+      state,
+      { snapshot: async () => {}, rename: async () => {} }
+    );
+    let release;
+    const blocked = new Promise((resolve) => (release = resolve));
+    let started;
+    const waiting = new Promise((resolve) => (started = resolve));
+    const originalStat = fs.stat;
+    t.mock.method(fs, 'stat', async (...args) => {
+      const result = await originalStat(...args);
+      if (args[0] === path.join(first, 'Note.md')) {
+        started();
+        await blocked;
+      }
+      return result;
+    });
+    const args =
+      name === 'rename_path'
+        ? { from: 'Note.md', to: 'Renamed.md' }
+        : { path: 'Note.md', content: 'changed', overwrite: true };
+    const operation = service.handle({
+      jsonrpc: '2.0',
+      id: 1,
+      method: 'tools/call',
+      params: { name, arguments: args },
+    });
+    await waiting;
+    state.vaultRoot = second;
+    release();
+    const { result } = await operation;
+    assert.equal(result.isError, true);
+    assert.match(result.content[0].text, /vault changed/i);
+    assert.equal(await fs.readFile(path.join(first, 'Note.md'), 'utf8'), 'first');
+    assert.equal(await fs.readFile(path.join(second, 'Note.md'), 'utf8'), 'second');
+    await assert.rejects(fs.stat(path.join(second, 'Renamed.md')), { code: 'ENOENT' });
+  });
+}
+
+test('sample initialization holds the mutation queue and stays in its original vault', async (t) => {
+  const parent = await fs.mkdtemp(path.join(os.tmpdir(), 'tagline-sample-race-'));
+  t.after(() => fs.rm(parent, { recursive: true, force: true }));
+  const first = path.join(parent, 'Tagline Sample Vault');
+  const second = path.join(parent, 'second');
+  await Promise.all([fs.mkdir(first), fs.mkdir(second)]);
+  const state = { vaultRoot: second };
+  const handlers = {};
+  let releaseOpen;
+  const openBlocked = new Promise((resolve) => (releaseOpen = resolve));
+  let opened;
+  const openStarted = new Promise((resolve) => (opened = resolve));
+  let releaseSample;
+  const sampleBlocked = new Promise((resolve) => (releaseSample = resolve));
+  let sampling;
+  const sampleStarted = new Promise((resolve) => (sampling = resolve));
+  registerVaultIpc(
+    {
+      app: {},
+      ipcMain: { handle: (name, handler) => (handlers[name] = handler) },
+      dialog: { showOpenDialog: async () => ({ filePaths: [parent] }) },
+      path,
+      fs: {
+        ...fs,
+        writeFile: async (file, ...args) => {
+          if (file === path.join(first, 'Sample.md')) {
+            sampling();
+            await sampleBlocked;
+          }
+          return fs.writeFile(file, ...args);
+        },
+      },
+      fssync,
+      randomUUID,
+      SAMPLE_VAULT: { 'Sample.md': 'sample', 'Other.md': 'other' },
+      resolveInVault: (rel, root = state.vaultRoot) => path.join(root, rel),
+      openVault: async (root) => {
+        state.vaultRoot = root;
+        opened();
+        await openBlocked;
+        return { root };
+      },
+      registerMcp: () => ({}),
+      assertMainFrameSender() {},
+    },
+    state,
+    { snapshot: async () => {} }
+  );
+  const sample = handlers['vault:createSample']({});
+  await openStarted;
+  const writing = handlers['fs:write']({}, 'Sample.md', 'saved');
+  releaseOpen();
+  await sampleStarted;
+  assert.equal(fssync.existsSync(path.join(first, 'Sample.md')), false);
+  releaseSample();
+  await Promise.all([sample, writing]);
+  assert.equal(await fs.readFile(path.join(first, 'Sample.md'), 'utf8'), 'saved');
+  assert.equal(await fs.readFile(path.join(first, 'Other.md'), 'utf8'), 'other');
+});
+
+test('sample initialization rejects a vault switch while opening', async (t) => {
+  const parent = await fs.mkdtemp(path.join(os.tmpdir(), 'tagline-sample-switch-'));
+  t.after(() => fs.rm(parent, { recursive: true, force: true }));
+  const first = path.join(parent, 'Tagline Sample Vault');
+  const second = path.join(parent, 'second');
+  await Promise.all([fs.mkdir(first), fs.mkdir(second)]);
+  const state = { vaultRoot: second };
+  const handlers = {};
+  let release;
+  const blocked = new Promise((resolve) => (release = resolve));
+  let opened;
+  const waiting = new Promise((resolve) => (opened = resolve));
+  registerVaultIpc(
+    {
+      app: {},
+      ipcMain: { handle: (name, handler) => (handlers[name] = handler) },
+      dialog: { showOpenDialog: async () => ({ filePaths: [parent] }) },
+      path,
+      fs,
+      fssync,
+      SAMPLE_VAULT: { 'Sample.md': 'sample' },
+      resolveInVault: (rel, root = state.vaultRoot) => path.join(root, rel),
+      openVault: async (root) => {
+        state.vaultRoot = root;
+        opened();
+        await blocked;
+        return { root };
+      },
+      registerMcp: () => ({}),
+      assertMainFrameSender() {},
+    },
+    state,
+    {}
+  );
+  const sample = handlers['vault:createSample']({});
+  await waiting;
+  state.vaultRoot = second;
+  release();
+  await assert.rejects(sample, /vault changed/i);
+  await assert.rejects(fs.stat(path.join(second, 'Sample.md')), { code: 'ENOENT' });
+  await assert.rejects(fs.stat(path.join(first, 'Sample.md')), { code: 'ENOENT' });
+});
+
+test('sample initialization remains in its original vault after population starts', async (t) => {
+  const parent = await fs.mkdtemp(path.join(os.tmpdir(), 'tagline-sample-populate-'));
+  t.after(() => fs.rm(parent, { recursive: true, force: true }));
+  const first = path.join(parent, 'Tagline Sample Vault');
+  const second = path.join(parent, 'second');
+  await Promise.all([fs.mkdir(first), fs.mkdir(second)]);
+  const state = { vaultRoot: second };
+  const handlers = {};
+  let release;
+  const blocked = new Promise((resolve) => (release = resolve));
+  let started;
+  const waiting = new Promise((resolve) => (started = resolve));
+  registerVaultIpc(
+    {
+      app: {},
+      ipcMain: { handle: (name, handler) => (handlers[name] = handler) },
+      dialog: { showOpenDialog: async () => ({ filePaths: [parent] }) },
+      path,
+      fs: {
+        ...fs,
+        writeFile: async (file, ...args) => {
+          if (file === path.join(first, 'Sample.md')) {
+            started();
+            await blocked;
+          }
+          return fs.writeFile(file, ...args);
+        },
+      },
+      fssync,
+      SAMPLE_VAULT: { 'Sample.md': 'sample', 'Other.md': 'other' },
+      resolveInVault: (rel, root = state.vaultRoot) => path.join(root, rel),
+      openVault: async (root) => {
+        state.vaultRoot = root;
+        return { root };
+      },
+      registerMcp: () => ({}),
+      assertMainFrameSender() {},
+    },
+    state,
+    {}
+  );
+  const sample = handlers['vault:createSample']({});
+  await waiting;
+  state.vaultRoot = second;
+  release();
+  await sample;
+  assert.equal(await fs.readFile(path.join(first, 'Other.md'), 'utf8'), 'other');
+  await assert.rejects(fs.stat(path.join(second, 'Other.md')), { code: 'ENOENT' });
+});

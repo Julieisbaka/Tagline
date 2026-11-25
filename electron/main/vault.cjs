@@ -309,19 +309,20 @@ function createVault({ app, path, fs, fssync, randomUUID, process, dialog }, sta
     if (!accepted) {
       return null;
     }
-    state.vaultRoot = path.resolve(dir);
+    const vaultRoot = path.resolve(dir);
+    state.vaultRoot = vaultRoot;
     const saved = readConfig().recentVaults;
     const key = (value) => (process.platform === 'win32' ? value.toLowerCase() : value);
     const recentVaults = [
-      state.vaultRoot,
+      vaultRoot,
       ...(Array.isArray(saved)
         ? saved.filter(
-            (item) => typeof item === 'string' && key(path.resolve(item)) !== key(state.vaultRoot)
+            (item) => typeof item === 'string' && key(path.resolve(item)) !== key(vaultRoot)
           )
         : []),
     ].slice(0, 20);
-    await writeConfig({ lastVault: state.vaultRoot, recentVaults });
-    return { root: state.vaultRoot, name: path.basename(state.vaultRoot) };
+    await writeConfig({ lastVault: vaultRoot, recentVaults });
+    return { root: vaultRoot, name: path.basename(vaultRoot) };
   }
 
   async function validateRecentVault(root) {
