@@ -15,9 +15,9 @@ const workflow = yaml.load(fs.readFileSync(workflowPath, 'utf8'));
 
 test('website deployment waits for artifact metadata and retries transient failures', () => {
   assert.equal(workflow.permissions.actions, 'read');
-  assert.match(
+  assert.equal(
     workflow.jobs.deploy.environment.url,
-    /steps\.deployment_retry_1\.outputs\.page_url/
+    '${{ steps.deployment_retry_2.outputs.page_url || steps.deployment_retry_1.outputs.page_url || steps.deployment.outputs.page_url }}'
   );
 
   const steps = workflow.jobs.deploy.steps;
