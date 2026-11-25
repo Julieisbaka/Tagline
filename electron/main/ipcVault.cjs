@@ -204,6 +204,7 @@ function registerVaultIpc(
     return cleanupMigrationArtifacts(resolvedRoot);
   });
 
+  // TODO: Coordinate with external programs editing vault files to prevent races and lost updates.
   let vaultMutationQueue = Promise.resolve();
   function serializeVaultMutation(task) {
     const run = vaultMutationQueue.catch(() => {}).then(task);
