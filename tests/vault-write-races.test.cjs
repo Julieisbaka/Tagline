@@ -158,6 +158,78 @@ test('MCP deletes serialize behind writes and reject after a vault switch', asyn
   assert.equal(await fs.readFile(note, 'utf8'), 'saved');
 });
 
+for (const scenario of ['create', 'append', 'renderer save']) {
+  test(`MCP note ${scenario} observes preceding queued writes`, async (t) => {
+    const root = await fs.mkdtemp(path.join(os.tmpdir(), 'tagline-mcp-note-race-'));
+    t.after(() => fs.rm(root, { recursive: true, force: true }));
+    const note = path.join(root, 'Note.md');
+    if (scenario !== 'create') {
+      await fs.writeFile(note, 'initial');
+    }
+    const state = { vaultRoot: root };
+    const handlers = {};
+    let service;
+    let release;
+    const blocked = new Promise((resolve) => (release = resolve));
+    let started;
+    const waiting = new Promise((resolve) => (started = resolve));
+    let snapshots = 0;
+    registerVaultIpc(
+      {
+        app: {},
+        ipcMain: { handle: (name, handler) => (handlers[name] = handler) },
+        path,
+        fs,
+        randomUUID,
+        resolveInVault: (rel, vaultRoot = state.vaultRoot) => path.join(vaultRoot, rel),
+        registerMcp: (options) => {
+          service = createMcpService(options);
+          return {};
+        },
+        assertMainFrameSender() {},
+      },
+      state,
+      {
+        snapshot: async () => {
+          if (++snapshots === 1) {
+            started();
+            await blocked;
+          }
+        },
+      }
+    );
+    const call = (name, content) =>
+      service.handle({
+        jsonrpc: '2.0',
+        id: 1,
+        method: 'tools/call',
+        params: { name, arguments: { path: 'Note.md', content } },
+      });
+    const first =
+      scenario === 'renderer save'
+        ? handlers['fs:write']({}, 'Note.md', 'saved')
+        : call(scenario === 'create' ? 'write_note' : 'append_to_note', 'first');
+    await waiting;
+    const second = call(scenario === 'create' ? 'write_note' : 'append_to_note', 'second');
+    await new Promise((resolve) => setImmediate(resolve));
+    release();
+    const [firstResult, secondResponse] = await Promise.all([first, second]);
+    const secondResult = secondResponse.result;
+    if (scenario === 'create') {
+      assert.equal(firstResult.result.isError, undefined);
+      assert.equal(JSON.parse(firstResult.result.content[0].text).created, true);
+      assert.equal(secondResult.isError, true);
+      assert.match(secondResult.content[0].text, /already exists/i);
+      assert.equal(await fs.readFile(note, 'utf8'), 'first');
+    } else {
+      assert.equal(secondResult.isError, undefined);
+      const expected = scenario === 'append' ? 'initial\nfirst\nsecond' : 'saved\nsecond';
+      assert.equal(await fs.readFile(note, 'utf8'), expected);
+      assert.equal(JSON.parse(secondResult.content[0].text).characters, expected.length);
+    }
+  });
+}
+
 test('a vault switch during a save keeps the document and its revision together', async (t) => {
   const parent = await fs.mkdtemp(path.join(os.tmpdir(), 'tagline-history-vault-'));
   t.after(() => fs.rm(parent, { recursive: true, force: true }));

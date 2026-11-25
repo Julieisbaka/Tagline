@@ -285,6 +285,15 @@ function registerVaultIpc(
       if (state.vaultRoot !== vaultRoot) {
         throw new Error('The vault changed before the file could be saved.');
       }
+      let result = true;
+      if (typeof content === 'function') {
+        const prepared = await content(full);
+        if (state.vaultRoot !== vaultRoot) {
+          throw new Error('The vault changed before the file could be saved.');
+        }
+        content = prepared.content;
+        result = prepared.result;
+      }
       await history.snapshot(rel, content, retention, canvasMode, vaultRoot);
       await fs.mkdir(path.dirname(full), { recursive: true });
       let mode;
@@ -322,7 +331,7 @@ function registerVaultIpc(
           throw error;
         }
       }
-      return true;
+      return result;
     });
   }
   ipcMain.handle('fs:write', (event, rel, content, retention, canvasMode) => {
