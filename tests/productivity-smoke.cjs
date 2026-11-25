@@ -3,6 +3,7 @@ if (!process.versions.electron) {
     script: __filename,
     prefix: 'tagline-productivity-',
     rootEnv: 'TAGLINE_PRODUCTIVITY_ROOT',
+    timeout: 300000,
   });
   return;
 }
