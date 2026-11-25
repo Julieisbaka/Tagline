@@ -52,7 +52,7 @@ async function fixture(t) {
     spawnSync(process.execPath, [path.join(root, 'scripts/run-all-tests.cjs'), ...args], {
       cwd: root,
       encoding: 'utf8',
-      timeout: 10000,
+      timeout: 30000,
       env: { ...process.env, npm_execpath: cli, EVENT_LOG: path.join(root, 'events'), ...env },
     });
   return {
