@@ -225,6 +225,7 @@ test('platform: snapshots reject a directory replaced by an outside symlink whil
     } catch (error) {
       if (error.code === 'EPERM' || error.code === 'EACCES') {
         t.skip('creating symlinks needs elevated Windows privileges');
+        return;
       }
       throw error;
     }
