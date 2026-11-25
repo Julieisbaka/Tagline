@@ -374,7 +374,7 @@ test('network timeouts abort both buffered and streamed requests', async (t) => 
     return outgoing;
   };
   await assert.rejects(
-    requestExtensionNetwork(['api.example.com'], 'https://api.example.com/', { timeoutMs: 20 }),
+    requestExtensionNetwork(['api.example.com'], 'https://api.example.com/', { timeoutMs: 100 }),
     /timed out/
   );
   streaming = true;
@@ -384,7 +384,7 @@ test('network timeouts abort both buffered and streamed requests', async (t) => 
       downloadExtensionNetwork(
         ['api.example.com'],
         'https://api.example.com/',
-        { timeoutMs: 20 },
+        { timeoutMs: 100 },
         15000,
         1000,
         file

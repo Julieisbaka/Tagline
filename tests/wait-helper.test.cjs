@@ -27,8 +27,8 @@ test('waitFor retains the last error and diagnostics on timeout', async () => {
         throw cause;
       },
       {
-        timeout: 5,
-        interval: 1,
+        timeout: 100,
+        interval: 5,
         message: 'not ready',
         details: () => '\ncontext',
       }
@@ -38,6 +38,6 @@ test('waitFor retains the last error and diagnostics on timeout', async () => {
 });
 
 test('rendererWait reports the requested label', async () => {
-  const wait = rendererWait(() => false, { timeout: 1 });
+  const wait = rendererWait(() => false, { timeout: 100 });
   await assert.rejects(wait('expression', 'element'), /Timed out: element/);
 });
