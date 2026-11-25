@@ -148,7 +148,7 @@
     "@codemirror/view": "^6.43.15",
     "@huggingface/transformers": "^4.3.2",
     "@lezer/highlight": "^1.2.5",
-    "@tiptap/core": "3.34.0",
+    "@tiptap/core": "3.35.0",
     "@tiptap/extension-blockquote": "3.34.0",
     "@tiptap/extension-bold": "3.34.0",
     "@tiptap/extension-code": "3.34.0",
