@@ -8,7 +8,21 @@ import TaskItem from '@tiptap/extension-task-item';
 import TaskList from '@tiptap/extension-task-list';
 import { Underline as BaseUnderline } from '@tiptap/extension-underline';
 import { Markdown } from '@tiptap/markdown';
-import StarterKit from '@tiptap/starter-kit';
+import { Blockquote } from '@tiptap/extension-blockquote';
+import { Bold } from '@tiptap/extension-bold';
+import { Code } from '@tiptap/extension-code';
+import { CodeBlock } from '@tiptap/extension-code-block';
+import { Document } from '@tiptap/extension-document';
+import { HardBreak } from '@tiptap/extension-hard-break';
+import { Heading } from '@tiptap/extension-heading';
+import { HorizontalRule } from '@tiptap/extension-horizontal-rule';
+import { Italic } from '@tiptap/extension-italic';
+import { Link } from '@tiptap/extension-link';
+import { BulletList, ListItem, ListKeymap, OrderedList } from '@tiptap/extension-list';
+import { Paragraph } from '@tiptap/extension-paragraph';
+import { Strike } from '@tiptap/extension-strike';
+import { Text } from '@tiptap/extension-text';
+import { Dropcursor, Gapcursor, UndoRedo } from '@tiptap/extensions';
 
 /**
  * Tiptap inline atom node representing a parsed internal wiki link.
@@ -255,7 +269,26 @@ export const CardMarker = Node.create({
 export function visualExtensions() {
   return [
     EditorDiagnostics,
-    StarterKit.configure({ link: { openOnClick: false }, trailingNode: false, underline: false }),
+    Blockquote,
+    Bold,
+    BulletList,
+    Code,
+    CodeBlock,
+    Document,
+    Dropcursor,
+    Gapcursor,
+    HardBreak,
+    Heading,
+    UndoRedo,
+    HorizontalRule,
+    Italic,
+    Link.configure({ openOnClick: false }),
+    ListItem,
+    ListKeymap,
+    OrderedList,
+    Paragraph,
+    Strike,
+    Text,
     Underline,
     ClipboardHighlight,
     TableKit,
