@@ -437,6 +437,54 @@ test('sample initialization holds the mutation queue and stays in its original v
   assert.equal(await fs.readFile(path.join(first, 'Other.md'), 'utf8'), 'other');
 });
 
+test('sample initialization preserves files created concurrently and propagates other errors', async (t) => {
+  const parent = await fs.mkdtemp(path.join(os.tmpdir(), 'tagline-sample-exclusive-'));
+  t.after(() => fs.rm(parent, { recursive: true, force: true }));
+  const root = path.join(parent, 'Tagline Sample Vault');
+  await fs.mkdir(root);
+  await fs.writeFile(path.join(root, 'Existing.md'), 'existing');
+  const state = {};
+  const handlers = {};
+  let fail = false;
+  registerVaultIpc(
+    {
+      app: {},
+      ipcMain: { handle: (name, handler) => (handlers[name] = handler) },
+      dialog: { showOpenDialog: async () => ({ filePaths: [parent] }) },
+      path,
+      fs: {
+        ...fs,
+        writeFile: async (file, ...args) => {
+          if (file === path.join(root, 'Raced.md')) {
+            if (fail) {
+              throw Object.assign(new Error('write failed'), { code: 'EIO' });
+            }
+            await fs.writeFile(file, 'concurrent', { flag: 'wx' });
+          }
+          return fs.writeFile(file, ...args);
+        },
+      },
+      fssync,
+      SAMPLE_VAULT: { 'Existing.md': 'sample', 'Raced.md': 'sample', 'New.md': 'new' },
+      resolveInVault: (rel, vaultRoot = state.vaultRoot) => path.join(vaultRoot, rel),
+      openVault: async (vaultRoot) => {
+        state.vaultRoot = vaultRoot;
+        return { root: vaultRoot };
+      },
+      registerMcp: () => ({}),
+      assertMainFrameSender() {},
+    },
+    state,
+    {}
+  );
+  await handlers['vault:createSample']({});
+  assert.equal(await fs.readFile(path.join(root, 'Existing.md'), 'utf8'), 'existing');
+  assert.equal(await fs.readFile(path.join(root, 'Raced.md'), 'utf8'), 'concurrent');
+  assert.equal(await fs.readFile(path.join(root, 'New.md'), 'utf8'), 'new');
+  fail = true;
+  await assert.rejects(handlers['vault:createSample']({}), { code: 'EIO' });
+});
+
 test('sample initialization rejects a vault switch while opening', async (t) => {
   const parent = await fs.mkdtemp(path.join(os.tmpdir(), 'tagline-sample-switch-'));
   t.after(() => fs.rm(parent, { recursive: true, force: true }));
