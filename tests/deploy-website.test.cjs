@@ -25,10 +25,10 @@ test('website deployment waits for artifact metadata and retries transient failu
     (step) => step.name === 'Wait for Pages artifact metadata'
   );
   assert.ok(waitForArtifact);
-  assert.match(waitForArtifact.run, /github-pages/);
-  assert.match(waitForArtifact.run, /\{1\.\.12\}/);
+  assert.equal(waitForArtifact.uses, 'actions/github-script@v7');
 
   const deploy = steps.find((step) => step.name === 'Deploy to GitHub Pages');
+  assert.ok(steps.indexOf(waitForArtifact) < steps.indexOf(deploy));
   assert.equal(deploy['continue-on-error'], true);
   assert.equal(deploy.uses, 'actions/deploy-pages@v4');
 
@@ -44,4 +44,52 @@ test('website deployment waits for artifact metadata and retries transient failu
   );
   assert.ok(failureGate);
   assert.match(failureGate.run, /failed after the readiness check and retry attempts/);
+});
+
+test('artifact readiness polls the Actions Results service before deployment', async () => {
+  const step = workflow.jobs.deploy.steps.find(
+    (item) => item.name === 'Wait for Pages artifact metadata'
+  );
+  const run = new (Object.getPrototypeOf(async function () {}).constructor)(
+    'process', 'fetch', 'setTimeout', 'console', step.with.script
+  );
+  const token = `header.${Buffer.from(JSON.stringify({
+    scp: 'Actions.Other Actions.Results:run-id:job-id'
+  })).toString('base64url')}.signature`;
+  const env = { ACTIONS_RUNTIME_TOKEN: token, ACTIONS_RESULTS_URL: 'https://results.example/' };
+  const requests = [];
+  const fetch = async (url, options) => {
+    requests.push({ url: url.href, ...options });
+    const artifacts = [
+      [{ name: 'other' }],
+      [{ name: 'github-pages' }, { name: 'github-pages' }],
+      [{ name: 'github-pages' }]
+    ];
+    return {
+      ok: true,
+      json: async () => ({ artifacts: artifacts[requests.length - 1] })
+    };
+  };
+  await run({ env }, fetch, (callback) => callback(), { log() {} });
+  assert.equal(requests.length, 3);
+  assert.equal(requests[0].url, 'https://results.example/twirp/github.actions.results.api.v1.ArtifactService/ListArtifacts');
+  assert.equal(requests[0].headers.authorization, 'Bearer' + ' ' + token);
+  assert.deepEqual(JSON.parse(requests[0].body), {
+    workflowRunBackendId: 'run-id',
+    workflowJobRunBackendId: 'job-id'
+  });
+
+  let attempts = 0;
+  await assert.rejects(
+    run({ env }, async () => {
+      attempts++;
+      return { ok: true, json: async () => ({ artifacts: [] }) };
+    }, (callback) => callback(), { log() {} }),
+    /after 12 attempts/
+  );
+  assert.equal(attempts, 12);
+  await assert.rejects(
+    run({ env }, async () => ({ ok: false, status: 403 }), (callback) => callback(), { log() {} }),
+    /Artifact service returned HTTP 403/
+  );
 });

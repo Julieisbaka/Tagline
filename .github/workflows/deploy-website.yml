@@ -50,24 +50,34 @@ jobs:
           path: website-build
 
       - name: Wait for Pages artifact metadata
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          set -euo pipefail
-          for attempt in {1..12}; do
-            artifact_count="$(
-              gh api "repos/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID/artifacts" \
-                --jq '[.artifacts[] | select(.name == "github-pages" and .expired == false)] | length'
-            )"
-            if [ "$artifact_count" -gt 0 ]; then
-              echo "Pages artifact metadata is available."
-              exit 0
-            fi
-            echo "Pages artifact metadata not available yet (attempt $attempt/12)."
-            sleep 5
-          done
-          echo "Pages artifact metadata did not become available after 60 seconds." >&2
-          exit 1
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const token = process.env.ACTIONS_RUNTIME_TOKEN;
+            const resultsUrl = process.env.ACTIONS_RESULTS_URL;
+            if (!token || !resultsUrl) throw new Error('Actions artifact service is unavailable.');
+            const claims = JSON.parse(Buffer.from(token.split('.')[1], 'base64url').toString());
+            const scope = claims.scp?.split(' ').find(part => part.startsWith('Actions.Results:'))?.split(':');
+            if (scope?.length !== 3 || !scope[1] || !scope[2]) throw new Error('Actions artifact service scope is missing.');
+            const url = new URL('/twirp/github.actions.results.api.v1.ArtifactService/ListArtifacts', resultsUrl);
+            for (let attempt = 1; attempt <= 12; attempt++) {
+              const response = await fetch(url, {
+                method: 'POST',
+                headers: { authorization: 'Bearer' + ' ' + token, 'content-type': 'application/json' },
+                body: JSON.stringify({ workflowRunBackendId: scope[1], workflowJobRunBackendId: scope[2] }),
+                redirect: 'error',
+                signal: AbortSignal.timeout(10000)
+              });
+              if (!response.ok) throw new Error(`Artifact service returned HTTP ${response.status}.`);
+              const { artifacts = [] } = await response.json();
+              if (artifacts.filter(artifact => artifact.name === 'github-pages').length === 1) {
+                console.log('Pages artifact metadata is available.');
+                return;
+              }
+              console.log(`Pages artifact metadata not available yet (attempt ${attempt}/12).`);
+              if (attempt < 12) await new Promise(resolve => setTimeout(resolve, 5000));
+            }
+            throw new Error('Pages artifact metadata did not become available after 12 attempts.');
 
       - name: Deploy to GitHub Pages
         id: deployment
