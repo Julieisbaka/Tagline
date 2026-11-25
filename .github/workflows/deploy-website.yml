@@ -12,6 +12,7 @@ on:
   workflow_dispatch:
 
 permissions:
+  actions: read
   contents: read
   pages: write
   id-token: write
@@ -24,7 +25,7 @@ jobs:
   deploy:
     environment:
       name: GitHub Pages
-      url: ${{ steps.deployment.outputs.page_url }}
+      url: ${{ steps.deployment_retry_2.outputs.page_url || steps.deployment_retry_1.outputs.page_url || steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -48,6 +49,53 @@ jobs:
         with:
           path: website-build
 
+      - name: Wait for Pages artifact metadata
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          for attempt in {1..12}; do
+            artifact_count="$(
+              gh api "repos/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID/artifacts" \
+                --jq '[.artifacts[] | select(.name == "github-pages" and .expired == false)] | length'
+            )"
+            if [ "$artifact_count" -gt 0 ]; then
+              echo "Pages artifact metadata is available."
+              exit 0
+            fi
+            echo "Pages artifact metadata not available yet (attempt $attempt/12)."
+            sleep 5
+          done
+          echo "Pages artifact metadata did not become available after 60 seconds." >&2
+          exit 1
+
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
+        continue-on-error: true
+
+      - name: Wait before retrying Pages deployment
+        if: steps.deployment.outcome == 'failure'
+        run: sleep 10
+
+      - name: Retry GitHub Pages deployment
+        id: deployment_retry_1
+        if: steps.deployment.outcome == 'failure'
+        uses: actions/deploy-pages@v4
+        continue-on-error: true
+
+      - name: Wait before retrying Pages deployment again
+        if: steps.deployment_retry_1.outcome == 'failure'
+        run: sleep 20
+
+      - name: Retry GitHub Pages deployment again
+        id: deployment_retry_2
+        if: steps.deployment_retry_1.outcome == 'failure'
+        uses: actions/deploy-pages@v4
+        continue-on-error: true
+
+      - name: Fail if Pages deployment could not start
+        if: ${{ always() && steps.deployment.outcome == 'failure' && steps.deployment_retry_1.outcome != 'success' && steps.deployment_retry_2.outcome != 'success' }}
+        run: |
+          echo "GitHub Pages deployment failed after the readiness check and retry attempts." >&2
+          exit 1
