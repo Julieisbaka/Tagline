@@ -8,6 +8,7 @@ import { makeJump } from '../lib/search/jump.js';
 import { slugify } from '../lib/markdown/markdown.js';
 import { playUiSound } from '../lib/ui/uiSounds.js';
 import { useAppExtensions } from '../lib/extensions/useAppExtensions.js';
+import { flushPendingEdits } from '../lib/vault/pendingEdits.js';
 import {
   baseName,
   dirName,
@@ -40,10 +41,17 @@ export function useAppOperations({
   confirm,
   t,
 }) {
-  const setMode = (m) => activePath && setModes((s) => ({ ...s, [activePath]: m }));
+  const setMode = (m) => {
+    if (activePath && (m === mode || flushPendingEdits())) {
+      setModes((s) => ({ ...s, [activePath]: m }));
+    }
+  };
 
   const open = useCallback(
     (path, newTab = false, line = null) => {
+      if (line != null && path === activePath && !flushPendingEdits()) {
+        return;
+      }
       setWebsite(null);
       tabs.openPath(path, newTab);
       playUiSound('open');
@@ -54,7 +62,7 @@ export function useAppOperations({
         setJump(makeJump(path, line));
       }
     },
-    [tabs, setWebsite, setModes, setJump]
+    [tabs, setWebsite, setModes, setJump, activePath]
   );
 
   const openLink = useCallback(

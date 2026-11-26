@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { parseDocument, stringify } from 'yaml';
 import {
   deleteFrontmatterProperty,
@@ -6,41 +6,71 @@ import {
   setFrontmatterProperty,
 } from '../lib/markdown/frontmatter.js';
 import { useI18n } from '../lib/i18n/i18n.js';
+import { useDraft } from '../lib/vault/useDraft.js';
+import { flushPendingEdits } from '../lib/vault/pendingEdits.js';
+
+function TextValue({ property, value, onSave, t }) {
+  const [draft, setDraft, commit] = useDraft(value ?? '', onSave);
+  return (
+    <div className='note-property-complex'>
+      <input
+        aria-label={t('Value for {property}', { property })}
+        value={draft}
+        data-draft-dirty={draft !== (value ?? '')}
+        onChange={(event) => setDraft(event.target.value)}
+      />
+      <button type='button' onClick={commit}>
+        {t('Apply')}
+      </button>
+      <button type='button' onClick={() => setDraft(value ?? '')}>
+        {t('Cancel')}
+      </button>
+    </div>
+  );
+}
 
 function YamlValue({ property, value, onSave, t }) {
   const initial = useMemo(() => stringify(value), [value]);
-  const [draft, setDraft] = useState(initial);
   const [error, setError] = useState('');
-  useEffect(() => {
-    setDraft(initial);
-    setError('');
-  }, [initial]);
-
-  const save = () => {
+  const [draft, setDraft, save] = useDraft(initial, (draft) => {
     const document = parseDocument(draft);
     const problem = document.errors[0] || document.warnings[0];
     if (problem) {
       setError(problem.message);
-      return;
+      return false;
     }
     try {
-      onSave(document.toJS({ maxAliasCount: 50 }));
+      if (onSave(document.toJS({ maxAliasCount: 50 })) === false) {
+        return false;
+      }
       setError('');
     } catch (failure) {
       setError(failure.message);
+      return false;
     }
-  };
+  });
+  useEffect(() => setError(''), [initial]);
 
   return (
     <div className='note-property-complex'>
       <textarea
         aria-label={t('YAML value for {property}', { property })}
         value={draft}
+        data-draft-dirty={draft !== initial}
         onChange={(event) => setDraft(event.target.value)}
         rows={Math.min(6, Math.max(2, draft.split('\n').length))}
       />
       <button type='button' onClick={save}>
         {t('Apply')}
+      </button>
+      <button
+        type='button'
+        onClick={() => {
+          setDraft(initial);
+          setError('');
+        }}
+      >
+        {t('Cancel')}
       </button>
       {error && (
         <span className='error-text' role='alert'>
@@ -52,29 +82,30 @@ function YamlValue({ property, value, onSave, t }) {
 }
 
 function StringList({ property, value, onSave, t }) {
-  const [draft, setDraft] = useState(value.join('\n'));
-  useEffect(() => setDraft(value.join('\n')), [value]);
+  const initial = value.join('\n');
+  const [draft, setDraft, save] = useDraft(initial, (text) =>
+    onSave(
+      text
+        .split(/\r?\n/)
+        .map((item) => item.trim())
+        .filter(Boolean)
+    )
+  );
   return (
     <div className='note-property-complex'>
       <textarea
         aria-label={t('Values for {property}', { property })}
         placeholder={t('One value per line')}
         value={draft}
+        data-draft-dirty={draft !== initial}
         onChange={(event) => setDraft(event.target.value)}
         rows={Math.min(6, Math.max(2, draft.split('\n').length))}
       />
-      <button
-        type='button'
-        onClick={() =>
-          onSave(
-            draft
-              .split(/\r?\n/)
-              .map((item) => item.trim())
-              .filter(Boolean)
-          )
-        }
-      >
+      <button type='button' onClick={save}>
         {t('Apply')}
+      </button>
+      <button type='button' onClick={() => setDraft(initial)}>
+        {t('Cancel')}
       </button>
     </div>
   );
@@ -143,13 +174,7 @@ function PropertyValue({ property, value, onSave, t }) {
     return <TagList value={value} onSave={onSave} t={t} />;
   }
   if (typeof value === 'string' || value === null) {
-    return (
-      <input
-        aria-label={t('Value for {property}', { property })}
-        value={value ?? ''}
-        onChange={(event) => onSave(event.target.value)}
-      />
-    );
+    return <TextValue property={property} value={value} onSave={onSave} t={t} />;
   }
   if (typeof value === 'boolean') {
     return (
@@ -174,12 +199,16 @@ function PropertyValue({ property, value, onSave, t }) {
 }
 
 function NumberValue({ property, value, onSave, t }) {
-  const [draft, setDraft] = useState(String(value));
   const [error, setError] = useState('');
-  useEffect(() => {
-    setDraft(String(value));
+  const [draft, setDraft, save] = useDraft(String(value), (text) => {
+    if (!text.trim() || !Number.isFinite(Number(text))) {
+      setError(t('Enter a valid number'));
+      return false;
+    }
     setError('');
-  }, [value]);
+    return onSave(Number(text));
+  });
+  useEffect(() => setError(''), [value]);
 
   return (
     <label className='note-property-number'>
@@ -187,20 +216,20 @@ function NumberValue({ property, value, onSave, t }) {
         type='number'
         aria-label={t('Value for {property}', { property })}
         value={draft}
+        data-draft-dirty={draft !== String(value)}
         onChange={(event) => setDraft(event.target.value)}
       />
+      <button type='button' onClick={save}>
+        {t('Apply')}
+      </button>
       <button
         type='button'
         onClick={() => {
-          if (!draft.trim() || !Number.isFinite(Number(draft))) {
-            setError(t('Enter a valid number'));
-            return;
-          }
+          setDraft(String(value));
           setError('');
-          onSave(Number(draft));
         }}
       >
-        {t('Apply')}
+        {t('Cancel')}
       </button>
       {error && (
         <span className='error-text' role='alert'>
@@ -211,9 +240,19 @@ function NumberValue({ property, value, onSave, t }) {
   );
 }
 
-export default function NoteProperties({ content, onChange, editable, notify, onEditSource }) {
+export default function NoteProperties({
+  content,
+  onChange,
+  editable,
+  notify,
+  onEditSource,
+  visualRef,
+  getContent,
+}) {
   const { t } = useI18n();
   const metadata = useMemo(() => readFrontmatter(content), [content]);
+  const contentRef = useRef(content);
+  contentRef.current = content;
   const [newKey, setNewKey] = useState('');
   const [newType, setNewType] = useState('text');
   const properties = Object.entries(metadata.data).filter(([key]) => key !== 'tags');
@@ -221,14 +260,23 @@ export default function NoteProperties({ content, onChange, editable, notify, on
 
   const save = (key, value) => {
     try {
-      onChange(setFrontmatterProperty(content, key, value));
+      const next = setFrontmatterProperty(getContent?.() ?? contentRef.current, key, value);
+      contentRef.current = next;
+      onChange(next);
     } catch (error) {
       notify(t('Could not update property: {error}', { error: error.message }));
+      return false;
     }
+    return true;
   };
   const remove = (key) => {
     try {
-      onChange(deleteFrontmatterProperty(content, key));
+      if (!flushPendingEdits()) {
+        return;
+      }
+      const next = deleteFrontmatterProperty(getContent?.() ?? contentRef.current, key);
+      contentRef.current = next;
+      onChange(next);
     } catch (error) {
       notify(t('Could not update property: {error}', { error: error.message }));
     }
@@ -247,6 +295,23 @@ export default function NoteProperties({ content, onChange, editable, notify, on
     <details
       className='note-properties'
       open={properties.length > 0 || !!metadata.prefix || undefined}
+      onKeyDown={(event) => {
+        if (
+          !(event.metaKey || event.ctrlKey) ||
+          event.altKey ||
+          (event.target.matches('input, textarea') && event.target.dataset.draftDirty !== 'false')
+        ) {
+          return;
+        }
+        const key = event.key.toLowerCase();
+        if (key === 'z' || (key === 'y' && !event.metaKey)) {
+          const redo = key === 'y' || event.shiftKey;
+          if (visualRef?.current?.commands[redo ? 'redo' : 'undo']()) {
+            event.preventDefault();
+            event.stopPropagation();
+          }
+        }
+      }}
     >
       <summary>{t('Properties')}</summary>
       {!editable ? (
@@ -291,7 +356,14 @@ export default function NoteProperties({ content, onChange, editable, notify, on
                 <PropertyValue
                   property={key}
                   value={value}
-                  onSave={(next) => save(key, next)}
+                  onSave={(next) => {
+                    if (
+                      Object.hasOwn(readFrontmatter(getContent?.() ?? contentRef.current).data, key)
+                    ) {
+                      return save(key, next);
+                    }
+                    return true;
+                  }}
                   t={t}
                 />
                 <button

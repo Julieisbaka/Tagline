@@ -15,7 +15,7 @@ module.exports = async function runScenario({
   win.show({ focus: false });
   // The dialog is briefly unmounted (resetting its step) while the vault initializes.
   await wait(
-    "!!document.querySelector('.onboarding-dialog') && document.querySelectorAll('.tree-item').length === 5"
+    "!!document.querySelector('.onboarding-dialog') && document.querySelectorAll('.tree-item').length === 8"
   );
   assert.equal(
     await js("document.querySelector('.onboarding-dialog').getAttribute('aria-modal')"),
@@ -40,7 +40,7 @@ module.exports = async function runScenario({
     ),
     true
   );
-  await wait("document.querySelectorAll('.tree-item').length === 5");
+  await wait("document.querySelectorAll('.tree-item').length === 8");
   await open('Round.flow');
   await wait("!!document.querySelector('.flow-add-row')");
   await js("document.querySelector('.flow-grid textarea').focus()");

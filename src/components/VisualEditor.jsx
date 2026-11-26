@@ -31,6 +31,7 @@ export default function VisualEditor({
   toolbarVisible = true,
   spellcheck = true,
   onReady,
+  onFrontmatterTransaction,
 }) {
   const metadata = useMemo(() => splitFrontmatter(value), [value]);
   const live = useRef({});
@@ -47,6 +48,7 @@ export default function VisualEditor({
     keybindings,
     notePaths,
     notify,
+    onFrontmatterTransaction,
   };
   return (
     <MemoizedDocument
@@ -106,6 +108,9 @@ function VisualDocument({
       cacheDocument(text, ed.getJSON());
       live.current.onChange(text);
       live.current.onSection(visualSelection(ed, true));
+    },
+    onTransaction({ transaction }) {
+      live.current.onFrontmatterTransaction?.(transaction);
     },
     editorProps: {
       attributes: {

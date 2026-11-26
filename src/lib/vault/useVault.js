@@ -185,7 +185,9 @@ export function useVault(
     try {
       // Commit local editor drafts (e.g. canvas textareas) before reading disk,
       // so an external vault change cannot silently revert text still being typed.
-      flushPendingEdits();
+      if (!flushPendingEdits()) {
+        return;
+      }
       while (writes.current.size) {
         await Promise.allSettled([...writes.current.values()].map((entry) => entry.task));
       }
@@ -253,7 +255,9 @@ export function useVault(
   const flush = useCallback(async () => {
     // Commit in-editor drafts before capturing pending writes, so saving,
     // history and close all persist the same content the user sees.
-    flushPendingEdits();
+    if (!flushPendingEdits()) {
+      return false;
+    }
     const inflight = Promise.allSettled([...writes.current.values()].map((entry) => entry.task));
     const entries = Object.entries(pending.current);
     pending.current = {};
@@ -292,14 +296,17 @@ export function useVault(
      * @returns {void}
      */
     const onUnload = (event) => {
-      if (!Object.keys(pending.current).length && !writes.current.size) {
+      const valid = flushPendingEdits();
+      if (valid && !Object.keys(pending.current).length && !writes.current.size) {
         return;
       }
       event.preventDefault();
       // TODO: This declaration is deprecated, look into replacing it.
       event.returnValue = false;
       // A completed flush is not an error: the next close or reload attempt proceeds.
-      flush().catch(report);
+      if (valid) {
+        flush().catch(report);
+      }
     };
     const unsubscribe = api.onPrepareClose(async () => {
       setClosePending(true);

@@ -11,9 +11,11 @@ test('flow cells commit on blur as one edit instead of per keystroke', async () 
     'utf8'
   );
   assert.match(source, /function FlowCellEditor\(/);
-  assert.match(source, /registerPendingFlush\(\(\) => commitRef\.current\(\)\)/);
+  assert.match(source, /useDraft\(value, onCommit\)/);
   assert.match(source, /onCommit=\{\(text\) => setCell\(r, c, text\)\}/);
   assert.doesNotMatch(source, /setCell\(r, c, e\.target\.value\)/);
+  assert.match(source, /onCommit=\{\(name\) => renameColumn\(c, name\)\}/);
+  assert.doesNotMatch(source, /renameColumn\(c, e\.target\.value\)/);
 });
 
 test('blank column names do not take the negative side color', async () => {
@@ -37,8 +39,14 @@ test('undo and redo commit pending cell drafts first', async () => {
     path.join(root, 'src', 'components', 'flow-editor', 'FlowEditor.jsx'),
     'utf8'
   );
-  assert.match(source, /const undoFlow = \(\) => \{\s*flushPendingEdits\(\);/);
-  assert.match(source, /const redoFlow = \(\) => \{\s*flushPendingEdits\(\);/);
+  assert.match(
+    source,
+    /const undoFlow = \(\) => \{\s*if \(!flushSync\(\(\) => flushPendingEdits\(\)\)\)/
+  );
+  assert.match(
+    source,
+    /const redoFlow = \(\) => \{\s*if \(!flushSync\(\(\) => flushPendingEdits\(\)\)\)/
+  );
 });
 
 test('removing the last flow row is guarded and the controls show it', async () => {

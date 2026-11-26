@@ -1,5 +1,6 @@
 ﻿import { useCallback, useEffect, useRef, useState } from 'react';
 import { playUiSound } from '../ui/uiSounds.js';
+import { flushPendingEdits } from './pendingEdits.js';
 
 let nextId = 1;
 /** Generate a unique tab identifier for the current renderer session. @returns {string} */
@@ -159,6 +160,13 @@ export function useTabs(vaultRoot, persist = true, onCloseFile = null) {
   const openPath = useCallback(
     (path, newTab = false, activate = true) => {
       const existing = tabs.find((t) => t.path === path);
+      if (
+        (activate || (!existing && !newTab)) &&
+        existing?.id !== activeId &&
+        !flushPendingEdits()
+      ) {
+        return undefined;
+      }
       if (existing) {
         if (activate) {
           setActiveId(existing.id);
@@ -182,6 +190,9 @@ export function useTabs(vaultRoot, persist = true, onCloseFile = null) {
 
   const openGraph = useCallback(() => {
     const existing = tabs.find((t) => t.kind === 'graph');
+    if (existing?.id !== activeId && !flushPendingEdits()) {
+      return undefined;
+    }
     if (existing) {
       return setActiveId(existing.id);
     }
@@ -189,10 +200,13 @@ export function useTabs(vaultRoot, persist = true, onCloseFile = null) {
     setTabs((prev) => [...prev, tab]);
     setActiveId(tab.id);
     return undefined;
-  }, [tabs]);
+  }, [tabs, activeId]);
 
   const close = useCallback(
     (id) => {
+      if (id === activeId && !flushPendingEdits()) {
+        return;
+      }
       const i = tabs.findIndex((t) => t.id === id);
       const closing = tabs[i];
       if (closing?.kind === 'file') {
@@ -238,6 +252,9 @@ export function useTabs(vaultRoot, persist = true, onCloseFile = null) {
    * @returns {void}
    */
   const closeOthers = (id) => {
+    if (id !== activeId && !flushPendingEdits()) {
+      return;
+    }
     for (const tab of tabs) {
       if (tab.id !== id && tab.kind === 'file') {
         onCloseFile?.(tab.path);
@@ -256,6 +273,9 @@ export function useTabs(vaultRoot, persist = true, onCloseFile = null) {
     (ids) => {
       const closing = new Set(ids);
       if (!closing.size) {
+        return;
+      }
+      if (closing.has(activeId) && !flushPendingEdits()) {
         return;
       }
       for (const tab of tabs) {
@@ -280,7 +300,11 @@ export function useTabs(vaultRoot, persist = true, onCloseFile = null) {
     tabs,
     activeTab,
     activeId,
-    setActiveId,
+    setActiveId: (id) => {
+      if (id === activeId || flushPendingEdits()) {
+        setActiveId(id);
+      }
+    },
     openPath,
     openGraph,
     close,

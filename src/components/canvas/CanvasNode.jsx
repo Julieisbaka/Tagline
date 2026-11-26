@@ -1,7 +1,7 @@
-import { memo, useCallback, useEffect, useId, useRef, useState } from 'react';
+import { memo, useCallback, useId, useState } from 'react';
 import { resolveCanvasLink, suggestCanvasFiles } from '../../lib/canvas/canvas.js';
 import { useI18n } from '../../lib/i18n/i18n.js';
-import { registerPendingFlush } from '../../lib/vault/pendingEdits.js';
+import { useDraft } from '../../lib/vault/useDraft.js';
 import { resolveLink } from '../../lib/vault/vault.js';
 import CanvasFilePreview from '../CanvasFilePreview.jsx';
 import Icon from '../Icon.jsx';
@@ -14,36 +14,39 @@ import { nodeColor } from './canvasUtils.js';
  * persisting the draft when the editor is closed or the app is quitting.
  */
 function DraftTextarea({ value, onCommit, ...props }) {
-  const [draft, setDraft] = useState(value);
-  const draftRef = useRef(draft);
-  const valueRef = useRef(value);
-  draftRef.current = draft;
-  valueRef.current = value;
-  const dirty = draft !== value;
-  const commit = useCallback(() => {
-    if (draftRef.current !== valueRef.current) {
-      onCommit(draftRef.current);
-    }
-  }, [onCommit]);
-  const commitRef = useRef(commit);
-  commitRef.current = commit;
-  useEffect(() => {
-    setDraft(value);
-  }, [value]);
-  useEffect(() => () => commitRef.current(), []);
-  useEffect(() => {
-    if (!dirty) {
-      return undefined;
-    }
-    return registerPendingFlush(() => commitRef.current());
-  }, [dirty]);
+  const [draft, setDraft, commit] = useDraft(value, onCommit);
   return (
     <textarea
       {...props}
+      data-canvas-draft
       value={draft}
       onChange={(event) => setDraft(event.target.value)}
       onBlur={commit}
     />
+  );
+}
+
+function DraftInput({ value, onCommit, suggestions, listId, children, ...props }) {
+  const [draft, setDraft, commit] = useDraft(value, onCommit);
+  return (
+    <>
+      <input
+        {...props}
+        data-canvas-draft
+        value={draft}
+        list={listId}
+        onChange={(event) => setDraft(event.target.value)}
+        onBlur={commit}
+      />
+      {suggestions && (
+        <datalist id={listId}>
+          {suggestions(draft).map((path) => (
+            <option key={path} value={path} />
+          ))}
+        </datalist>
+      )}
+      {children?.(draft)}
+    </>
   );
 }
 
@@ -71,9 +74,6 @@ const CanvasNode = memo(function CanvasNode({
   const [editingText, setEditingText] = useState(node.type === 'text' && !node.text);
   const resolve = useCallback((target) => resolveLink(target, paths), [paths]);
   const link = node.type === 'link' ? resolveCanvasLink(node.url, paths, path) : null;
-  const rawUrl = node.url || '';
-  const wikiTarget = rawUrl.trim().match(/^\[\[([^\]]+)\]\]$/);
-  const linkQuery = (wikiTarget ? wikiTarget[1].split('|')[0] : rawUrl.trim()).split('#')[0];
   const linkIssue =
     node.type === 'link' && node.url && !link
       ? /^https?:\/\//i.test(node.url.trim())
@@ -82,7 +82,7 @@ const CanvasNode = memo(function CanvasNode({
       : node.type === 'file' && node.file && !resolveLink(node.file, paths)
         ? t('Vault file not found.')
         : null;
-  const openLinkNode = () => {
+  const openLinkNode = (link) => {
     if (link?.type === 'file') {
       onOpenFile(link.path, link.heading ? `#${link.heading}` : undefined);
     } else if (link?.type === 'web') {
@@ -182,39 +182,42 @@ const CanvasNode = memo(function CanvasNode({
           ))}
         {node.type === 'file' && (
           <>
-            <input
+            <DraftInput
               aria-label={t('File path')}
               placeholder={t('Vault-relative file path')}
               value={node.file}
-              list={fileListId}
-              onChange={(event) => onUpdate(node.id, { file: event.target.value })}
-            />
-            <datalist id={fileListId}>
-              {suggestCanvasFiles(paths, node.file).map((path) => (
-                <option key={path} value={path} />
-              ))}
-            </datalist>
-            {node.subpath !== undefined && (
-              <input
-                aria-label={t('File subpath')}
-                value={node.subpath}
-                onChange={(event) =>
-                  onUpdate(node.id, { subpath: event.target.value || undefined })
-                }
-              />
-            )}
-            <button
-              className='link-btn canvas-open-file'
-              disabled={!resolveLink(node.file, paths)}
-              onClick={() => {
-                const path = resolveLink(node.file, paths);
-                if (path) {
-                  onOpenFile(path, node.subpath);
-                }
-              }}
+              listId={fileListId}
+              suggestions={(draft) => suggestCanvasFiles(paths, draft)}
+              onCommit={(file) => onUpdate(node.id, { file })}
             >
-              {node.file || t('Open file')}
-            </button>
+              {(file) => {
+                const openFile = (subpath) => (
+                  <button
+                    className='link-btn canvas-open-file'
+                    disabled={!resolveLink(file, paths)}
+                    onClick={() => {
+                      const path = resolveLink(file, paths);
+                      if (path) {
+                        onOpenFile(path, subpath);
+                      }
+                    }}
+                  >
+                    {file || t('Open file')}
+                  </button>
+                );
+                return node.subpath !== undefined ? (
+                  <DraftInput
+                    aria-label={t('File subpath')}
+                    value={node.subpath}
+                    onCommit={(subpath) => onUpdate(node.id, { subpath: subpath || undefined })}
+                  >
+                    {(subpath) => openFile(subpath || undefined)}
+                  </DraftInput>
+                ) : (
+                  openFile(undefined)
+                );
+              }}
+            </DraftInput>
             <CanvasFilePreview
               path={resolveLink(node.file, paths)}
               subpath={node.subpath}
@@ -226,30 +229,41 @@ const CanvasNode = memo(function CanvasNode({
         )}
         {node.type === 'link' && (
           <>
-            <input
+            <DraftInput
               aria-label={t('URL')}
               placeholder={t('Web URL or vault file path')}
               value={node.url}
-              list={linkListId}
-              onChange={(event) => onUpdate(node.id, { url: event.target.value })}
-            />
-            <datalist id={linkListId}>
-              {suggestCanvasFiles(paths, linkQuery).map((path) => (
-                <option key={path} value={path} />
-              ))}
-            </datalist>
-            <button className='link-btn canvas-open-file' disabled={!link} onClick={openLinkNode}>
-              {link?.label || node.url || t('Open link')}
-            </button>
+              listId={linkListId}
+              suggestions={(draft) => {
+                const rawUrl = draft.trim();
+                const wikiTarget = rawUrl.match(/^\[\[([^\]]+)\]\]$/);
+                const query = (wikiTarget ? wikiTarget[1].split('|')[0] : rawUrl).split('#')[0];
+                return suggestCanvasFiles(paths, query);
+              }}
+              onCommit={(url) => onUpdate(node.id, { url })}
+            >
+              {(url) => {
+                const draftLink = resolveCanvasLink(url, paths, path);
+                return (
+                  <button
+                    className='link-btn canvas-open-file'
+                    disabled={!draftLink}
+                    onClick={() => openLinkNode(draftLink)}
+                  >
+                    {draftLink?.label || url || t('Open link')}
+                  </button>
+                );
+              }}
+            </DraftInput>
           </>
         )}
         {node.type === 'group' && (
           <>
-            <input
+            <DraftInput
               aria-label={t('Group label')}
               placeholder={t('Group label')}
               value={node.label || ''}
-              onChange={(event) => onUpdate(node.id, { label: event.target.value })}
+              onCommit={(label) => onUpdate(node.id, { label })}
             />
             <span className='canvas-group-hint'>
               {t('Place other nodes over this group to organize them.')}
