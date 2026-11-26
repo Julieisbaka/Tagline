@@ -1,0 +1,16 @@
+[package]
+name = "tagline-rust-vault-probe"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+ignore = "0.4.35"
+napi = "3"
+napi-derive = "3"
+
+[build-dependencies]
+napi-build = "2"
