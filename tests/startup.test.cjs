@@ -235,6 +235,49 @@ test('platform: snapshots reject a directory replaced by an outside symlink whil
   assert.equal(reads, 0);
 });
 
+test('platform: vault scans reject a directory replaced during enumeration', async (t) => {
+  const dir = await fs.realpath(await fixture(t));
+  const folder = path.join(dir, 'Folder');
+  const replacement = path.join(dir, '.replacement');
+  await fs.mkdir(folder);
+  await fs.mkdir(replacement);
+  await fs.writeFile(path.join(replacement, 'Note.md'), 'replacement');
+  const readdir = fs.readdir;
+  t.mock.method(fs, 'readdir', async (target, ...args) => {
+    if (target === folder) {
+      await fs.rename(folder, path.join(dir, '.original'));
+      await fs.rename(replacement, folder);
+    }
+    return readdir(target, ...args);
+  });
+  await assert.rejects(listVault(dir), /Vault directory changed during snapshot/);
+});
+
+test('platform: snapshots reject a replaced ancestor even when the file identity is unchanged', async (t) => {
+  const dir = await fs.realpath(await fixture(t));
+  const folder = path.join(dir, 'Folder');
+  const replacement = path.join(dir, '.replacement');
+  await fs.mkdir(path.join(folder, 'Inner'), { recursive: true });
+  await fs.mkdir(replacement);
+  const note = path.join(folder, 'Inner', 'Note.md');
+  await fs.writeFile(note, 'inside');
+  const open = fs.open;
+  const readFile = fs.readFile;
+  let reads = 0;
+  t.mock.method(fs, 'readFile', async (...args) => {
+    reads++;
+    return readFile(...args);
+  });
+  t.mock.method(fs, 'open', async (...args) => {
+    await fs.rename(folder, path.join(dir, '.original'));
+    await fs.rename(path.join(dir, '.original', 'Inner'), path.join(replacement, 'Inner'));
+    await fs.rename(replacement, folder);
+    return open(...args);
+  });
+  await assert.rejects(readVaultSnapshot(dir), /Vault directory changed during snapshot/);
+  assert.equal(reads, 0);
+});
+
 test('platform: snapshot propagates filesystem errors instead of returning a partial vault', async (t) => {
   const dir = await fixture(t);
   await assert.rejects(readVaultSnapshot(path.join(dir, 'missing')), { code: 'ENOENT' });

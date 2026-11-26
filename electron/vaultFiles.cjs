@@ -36,13 +36,32 @@ async function loadVault(dir, base, includeContents) {
   const files = [];
   const seen = includeContents ? new Set() : null;
   const ignorer = loadIgnoreRules(root);
+  // TODO: Use handle-relative traversal and opens to prevent swaps between pathname checks.
+  const assertDirectoryUnchanged = async (directory) => {
+    for (let current = directory; current; current = current.parent) {
+      const stat = await fs.lstat(current.dir);
+      if (
+        !stat.isDirectory() ||
+        stat.isSymbolicLink() ||
+        stat.dev !== current.stat.dev ||
+        stat.ino !== current.stat.ino
+      ) {
+        throw new Error('Vault directory changed during snapshot.');
+      }
+    }
+  };
   for (const directory of directories) {
+    if (directory.parent) {
+      await assertDirectoryUnchanged(directory.parent);
+    }
     const directoryStat = await fs.lstat(directory.dir);
     if (!directoryStat.isDirectory() || directoryStat.isSymbolicLink()) {
       throw new Error('Vault directories must not be symbolic links.');
     }
+    directory.stat = directoryStat;
     assertInsideRoot(await fs.realpath(directory.dir));
     const entries = await fs.readdir(directory.dir, { withFileTypes: true });
+    await assertDirectoryUnchanged(directory);
     for (const entry of entries) {
       if (entry.name.startsWith('.')) {
         continue;
@@ -55,11 +74,11 @@ async function loadVault(dir, base, includeContents) {
       if (entry.isDirectory()) {
         const children = [];
         directory.nodes.push({ type: 'folder', path: rel, name: entry.name, children });
-        directories.push({ dir: full, base: rel, nodes: children });
+        directories.push({ dir: full, base: rel, nodes: children, parent: directory });
       } else if (entry.isFile() && NOTE_EXTS.includes(path.extname(entry.name).toLowerCase())) {
         const node = { type: 'file', path: rel, name: entry.name };
         directory.nodes.push(node);
-        files.push({ full, node });
+        files.push({ full, node, directory });
       }
     }
     directory.nodes.sort((a, b) =>
@@ -71,13 +90,15 @@ async function loadVault(dir, base, includeContents) {
   const workers = await Promise.allSettled(
     Array.from({ length: Math.min(FILE_CONCURRENCY, files.length) }, async () => {
       while (next < files.length) {
-        const { full, node } = files[next++];
+        const { full, node, directory } = files[next++];
+        await assertDirectoryUnchanged(directory);
         const before = await fs.lstat(full);
         if (!before.isFile() || before.isSymbolicLink()) {
           throw new Error('Vault documents must be regular files, not symbolic links.');
         }
         assertInsideRoot(await fs.realpath(full));
         if (!includeContents) {
+          await assertDirectoryUnchanged(directory);
           node.mtime = before.mtimeMs;
           continue;
         }
@@ -90,6 +111,7 @@ async function loadVault(dir, base, includeContents) {
           const stat = await file.stat();
           const after = await fs.lstat(full);
           assertInsideRoot(await fs.realpath(full));
+          await assertDirectoryUnchanged(directory);
           if (
             !stat.isFile() ||
             !after.isFile() ||
