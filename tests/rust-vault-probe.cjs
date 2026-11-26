@@ -22,12 +22,34 @@ async function main() {
     await Promise.all([
       fs.mkdir(path.join(root, 'Nested'), { recursive: true }),
       fs.mkdir(path.join(root, '.hidden')),
+    ]);
+    await Promise.all([
       fs.writeFile(path.join(root, 'argument.md'), 'one'),
       fs.writeFile(path.join(root, 'ignored.txt'), 'two'),
       fs.writeFile(path.join(root, 'Nested', 'flow.json'), '{}'),
+      fs.writeFile(path.join(root, 'Nested', 'Mixed.CaNvAs'), '{}'),
       fs.writeFile(path.join(root, '.hidden', 'secret.md'), 'three'),
     ]);
+    let hasSymlink = true;
+    try {
+      await fs.symlink('argument.md', path.join(root, 'linked.MD'), 'file');
+    } catch (error) {
+      if (process.platform !== 'win32' || !['EPERM', 'EACCES', 'ENOTSUP'].includes(error.code)) {
+        throw error;
+      }
+      hasSymlink = false;
+      console.log('Symlink fixture skipped: symlink creation is not permitted.');
+    }
     const expected = flatten(await listVault(root));
+    assert.deepEqual(
+      expected,
+      [
+        'Nested/Mixed.CaNvAs',
+        'Nested/flow.json',
+        'argument.md',
+        ...(hasSymlink ? ['linked.MD'] : []),
+      ].sort()
+    );
     assert.deepEqual(listNotePaths(root), expected);
     console.log(`Rust probe matched JavaScript for ${expected.length} vault files.`);
   } finally {

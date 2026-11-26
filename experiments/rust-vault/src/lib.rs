@@ -10,9 +10,6 @@ fn collect(directory: &Path, root: &Path, paths: &mut Vec<String>) -> napi::Resu
         let file_type = entry
             .file_type()
             .map_err(|error| napi::Error::from_reason(error.to_string()))?;
-        if file_type.is_symlink() {
-            continue;
-        }
         let name = entry.file_name();
         if name.to_string_lossy().starts_with('.') {
             continue;
@@ -21,12 +18,13 @@ fn collect(directory: &Path, root: &Path, paths: &mut Vec<String>) -> napi::Resu
         let path = entry.path();
         if file_type.is_dir() {
             collect(&path, root, paths)?;
-        } else if file_type.is_file()
-            && matches!(
-                path.extension().and_then(OsStr::to_str),
-                Some("md" | "flow" | "canvas" | "json")
+        } else if path.extension().and_then(OsStr::to_str).is_some_and(|ext| {
+            matches!(
+                ext.to_lowercase().as_str(),
+                "md" | "flow" | "canvas" | "json"
             )
-        {
+        }) {
+            fs::metadata(&path).map_err(|error| napi::Error::from_reason(error.to_string()))?;
             let relative = path
                 .strip_prefix(root)
                 .map_err(|error| napi::Error::from_reason(error.to_string()))?;
