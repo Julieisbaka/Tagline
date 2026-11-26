@@ -73,7 +73,7 @@ pub fn list_note_paths(root: String) -> napi::Result<Vec<String>> {
             let mut builder = GitignoreBuilder::new("");
             builder.case_insensitive(true).ok()?;
             for line in contents.split('\n') {
-                let _ = builder.add_line(None, line.trim_end_matches('\r'));
+                builder.add_line(None, line.trim_end_matches('\r')).ok()?;
             }
             builder.build().ok()
         });

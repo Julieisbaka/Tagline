@@ -55,13 +55,21 @@ async function checkIgnoreRules(root) {
         (file) => !['#literal.md', '!literal.md', 'space name.md', 'trailing .md'].includes(file)
       ),
     ],
-    ['[z-a].md\nOther/*.json\n', files.filter((file) => file !== 'Other/note.json')],
   ];
   for (const [rules, expected] of cases) {
     await fs.writeFile(path.join(root, '.taglineignore'), rules);
     const sorted = [...expected].sort();
     assert.deepEqual(flatten(await listVault(root)), sorted, `JavaScript rules: ${rules}`);
     assert.deepEqual(listNotePaths(root), sorted, `Rust rules: ${rules}`);
+  }
+  for (const rules of ['[z-a].md\nOther/*.json\n', 'Other/*.json\n[z-a].md\n']) {
+    await fs.writeFile(path.join(root, '.taglineignore'), rules);
+    assert.deepEqual(
+      flatten(await listVault(root)),
+      files.filter((file) => file !== 'Other/note.json').sort(),
+      `JavaScript rules: ${rules}`
+    );
+    assert.deepEqual(listNotePaths(root), [...files].sort(), `Rust rules: ${rules}`);
   }
   await fs.rm(path.join(root, '.taglineignore'));
   assert.deepEqual(listNotePaths(root), files.sort());
