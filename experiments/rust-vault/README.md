@@ -1,8 +1,9 @@
 # Rust vault filesystem probe
 
 This is an opt-in experiment for a narrow Electron-to-Rust filesystem boundary.
-It is not included in the renderer, Electron build, release packaging, or the
-normal test suite. The existing JavaScript implementation in
+It is not included in the renderer, Electron build, or release packaging. The
+native build and comparison are opt-in; the adapter tests run in the normal
+test suite without building the addon. The existing JavaScript implementation in
 `electron/vaultFiles.cjs` remains the application's source of truth.
 
 Run the probe with:
@@ -14,6 +15,9 @@ npm run experiment:rust-vault
 The command builds a platform-specific N-API addon and compares its read-only
 `listNotePaths(root)` result with the JavaScript `listVault(root)` result for a
 small temporary vault.
+
+If the output directory contains addons from multiple targets, remove the stale
+`.node` files from `experiments/rust-vault/dist` and run the command again.
 
 ```text
 probe script

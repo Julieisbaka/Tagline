@@ -17,11 +17,14 @@ function loadNativeModule() {
     }
     files = [];
   }
-  const binary = files.find((file) => file.endsWith('.node'));
-  if (!binary) {
+  const binaries = files.filter((file) => file.endsWith('.node'));
+  if (binaries.length === 0) {
     throw new Error(`Rust vault probe is not built. Run "npm run experiment:rust-vault".`);
   }
-  nativeModule = require(path.join(directory, binary));
+  if (binaries.length > 1) {
+    throw new Error(`Multiple Rust vault probe addons found. Remove stale .node files from ${directory} and rebuild.`);
+  }
+  nativeModule = require(path.join(directory, binaries[0]));
   return nativeModule;
 }
 

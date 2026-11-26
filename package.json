@@ -45,7 +45,7 @@
     "test:layout": "node scripts/run-smoke.cjs node tests/layout-smoke.cjs",
     "test:interactions": "node scripts/run-smoke.cjs node tests/interactions-smoke.cjs",
     "test:a11y": "node scripts/run-smoke.cjs node tests/accessibility-smoke.cjs",
-    "experiment:rust-vault": "npm exec --yes --package @napi-rs/cli -- napi build --manifest-path experiments/rust-vault/Cargo.toml --platform --release --output-dir experiments/rust-vault/dist && node tests/rust-vault-probe.cjs",
+    "experiment:rust-vault": "napi build --manifest-path experiments/rust-vault/Cargo.toml --platform --release --output-dir experiments/rust-vault/dist && node tests/rust-vault-probe.cjs",
     "lint": "eslint \"src/**/*.{js,jsx}\" \"tests/**/*.cjs\" \"scripts/**/*.cjs\" \"electron/**/*.cjs\" \"eslint.config.js\"",
     "lint:fix": "eslint \"src/**/*.{js,jsx}\" \"tests/**/*.cjs\" \"scripts/**/*.cjs\" \"electron/**/*.cjs\" \"eslint.config.js\" --fix",
     "format": "prettier --write \"src/**/*.{js,jsx,css,json}\" \"tests/**/*.cjs\" \"scripts/**/*.cjs\" \"electron/**/*.cjs\" \"*.{json,md,yml}\"",
@@ -188,6 +188,7 @@
   },
   "devDependencies": {
     "@electron/asar": "^4.3.3",
+    "@napi-rs/cli": "3.11.1",
     "@vitejs/plugin-react": "^6.3.0",
     "ajv": "^8.20.0",
     "app-builder-lib": "26.18.1",

@@ -29,3 +29,8 @@ test('rust vault probe preserves other dist directory errors', (t) => {
   const { listNotePaths } = loadWithDirectoryResult(t, error);
   assert.throws(() => listNotePaths('.'), (actual) => actual === error);
 });
+
+test('rust vault probe rejects multiple native addons', (t) => {
+  const { listNotePaths } = loadWithDirectoryResult(t, ['probe.linux-x64-gnu.node', 'probe.win32-x64-msvc.node']);
+  assert.throws(() => listNotePaths('.'), /Multiple Rust vault probe addons found/);
+});
