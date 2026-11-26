@@ -193,11 +193,17 @@ export function headingText(text, content) {
     if (content !== cachedHeadingDocument) {
       cachedHeadingDocument = content;
       const parser = new Parser(headingParser.defaults);
-      cachedHeadingTexts = new Map(
-        headingParser
-          .lexer(splitFrontmatter(content || '').body)
-          .filter((token) => token.type === 'heading')
-          .map((token) => [token.text.trim(), textFromHtml(parser.parseInline(token.tokens))])
+      cachedHeadingTexts = new Map();
+      headingParser.walkTokens(
+        headingParser.lexer(splitFrontmatter(content || '').body),
+        (token) => {
+          if (token.type === 'heading') {
+            cachedHeadingTexts.set(
+              token.text.trim(),
+              textFromHtml(parser.parseInline(token.tokens))
+            );
+          }
+        }
       );
     }
     if (cachedHeadingTexts.has(text)) {

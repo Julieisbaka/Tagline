@@ -433,7 +433,7 @@ export function useAppCommandContext({
           }
           openNote(link.path);
           if (link.heading) {
-            const h = outline(contents[link.path] || '').find(
+            const h = outline(contents[link.path] || '', { includeNested: true }).find(
               (x) =>
                 slugify(x.text, contents[link.path]) === slugify(link.heading, contents[link.path])
             );

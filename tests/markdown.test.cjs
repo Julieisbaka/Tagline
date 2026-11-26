@@ -82,6 +82,53 @@ test('heading normalization resolves document reference links', async () => {
   assert.equal(headingText(raw), '[Clean][ref] energy');
 });
 
+test('nested heading links resolve in source order with document references', async () => {
+  const { headingText, slugify } = await import('../src/lib/markdown/markdown.js');
+  const { outline } = await import('../src/lib/vault/vault.js');
+  const content =
+    '---\ntitle: Note\n---\n\n> ## [Clean][ref] energy\n\n# Clean energy\n\n- item\n\n  > ## More\n\n- ## Last\n\n[ref]: https://example.com\n';
+  const headings = outline(content, { includeNested: true });
+  assert.deepEqual(
+    headings.map(({ text, line }) => [text, line]),
+    [
+      ['[Clean][ref] energy', 4],
+      ['Clean energy', 6],
+      ['More', 10],
+      ['Last', 12],
+    ]
+  );
+  assert.deepEqual(
+    outline(content).map((heading) => heading.line),
+    [6]
+  );
+  assert.equal(headingText(headings[0].text, content), 'Clean energy');
+  assert.equal(
+    headings.find((heading) => slugify(heading.text, content) === slugify('Clean energy', content))
+      .line,
+    4
+  );
+  const topFirst = '# Same\n\n> ## Same\n\n```\n# Same\n```\n';
+  assert.deepEqual(
+    outline(topFirst, { includeNested: true }).map((heading) => heading.line),
+    [0, 2]
+  );
+  assert.deepEqual(
+    outline('> - x\nlazy\n> ## H\n', { includeNested: true }).map((heading) => heading.line),
+    [2]
+  );
+  assert.deepEqual(
+    outline('- [ ] foo\n\n  ## B\n', { includeNested: true }).map((heading) => heading.line),
+    [2]
+  );
+  const listFirst = '- ## Converted\n\n# Preserved\n';
+  assert.deepEqual(
+    outline(listFirst, { includeNested: true, skipListItemHeadings: true }).map(
+      (heading) => heading.text
+    ),
+    ['Preserved']
+  );
+});
+
 test('heading link lookups resolve source, display, and slug fragments with document references', async () => {
   const { slugify } = await import('../src/lib/markdown/markdown.js');
   const { outline } = await import('../src/lib/vault/vault.js');

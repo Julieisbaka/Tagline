@@ -329,14 +329,19 @@ function VisualDocument({
     if (!heading) {
       return;
     }
-    const headings = outline(live.current.value);
-    const target = headings.findIndex((item) => item.line === jump.line);
-    const fallback = headings.findIndex(
+    const headings = outline(live.current.value, { includeNested: true });
+    const visualHeadings = outline(live.current.value, {
+      includeNested: true,
+      skipListItemHeadings: true,
+    });
+    const target = visualHeadings.findIndex((item) => item.line === jump.line);
+    const fallback = visualHeadings.findIndex(
       (item) => slugify(item.text, live.current.value) === slugify(heading, live.current.value)
     );
-    const targetIndex = target >= 0 ? target : fallback;
+    const targetIndex =
+      target >= 0 ? target : headings.some((item) => item.line === jump.line) ? -1 : fallback;
     let index = 0;
-    editor.state.doc.forEach((node, pos) => {
+    editor.state.doc.descendants((node, pos) => {
       if (node.type.name === 'heading' && index++ === targetIndex) {
         editor
           .chain()
@@ -346,7 +351,7 @@ function VisualDocument({
           .run();
       }
     });
-    if (targetIndex < 0) {
+    if (targetIndex < 0 && !headings.some((item) => item.line === jump.line)) {
       let found = false;
       editor.state.doc.descendants((node, pos) => {
         if (found) {
