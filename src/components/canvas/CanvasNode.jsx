@@ -26,7 +26,7 @@ function DraftTextarea({ value, onCommit, ...props }) {
   );
 }
 
-function DraftInput({ value, onCommit, suggestions, listId, ...props }) {
+function DraftInput({ value, onCommit, suggestions, listId, children, ...props }) {
   const [draft, setDraft, commit] = useDraft(value, onCommit);
   return (
     <>
@@ -45,6 +45,7 @@ function DraftInput({ value, onCommit, suggestions, listId, ...props }) {
           ))}
         </datalist>
       )}
+      {children?.(draft)}
     </>
   );
 }
@@ -81,7 +82,7 @@ const CanvasNode = memo(function CanvasNode({
       : node.type === 'file' && node.file && !resolveLink(node.file, paths)
         ? t('Vault file not found.')
         : null;
-  const openLinkNode = () => {
+  const openLinkNode = (link) => {
     if (link?.type === 'file') {
       onOpenFile(link.path, link.heading ? `#${link.heading}` : undefined);
     } else if (link?.type === 'web') {
@@ -188,26 +189,31 @@ const CanvasNode = memo(function CanvasNode({
               listId={fileListId}
               suggestions={(draft) => suggestCanvasFiles(paths, draft)}
               onCommit={(file) => onUpdate(node.id, { file })}
-            />
-            {node.subpath !== undefined && (
-              <DraftInput
-                aria-label={t('File subpath')}
-                value={node.subpath}
-                onCommit={(subpath) => onUpdate(node.id, { subpath: subpath || undefined })}
-              />
-            )}
-            <button
-              className='link-btn canvas-open-file'
-              disabled={!resolveLink(node.file, paths)}
-              onClick={() => {
-                const path = resolveLink(node.file, paths);
-                if (path) {
-                  onOpenFile(path, node.subpath);
-                }
-              }}
             >
-              {node.file || t('Open file')}
-            </button>
+              {(file) => (
+                <>
+                  {node.subpath !== undefined && (
+                    <DraftInput
+                      aria-label={t('File subpath')}
+                      value={node.subpath}
+                      onCommit={(subpath) => onUpdate(node.id, { subpath: subpath || undefined })}
+                    />
+                  )}
+                  <button
+                    className='link-btn canvas-open-file'
+                    disabled={!resolveLink(file, paths)}
+                    onClick={() => {
+                      const path = resolveLink(file, paths);
+                      if (path) {
+                        onOpenFile(path, node.subpath);
+                      }
+                    }}
+                  >
+                    {file || t('Open file')}
+                  </button>
+                </>
+              )}
+            </DraftInput>
             <CanvasFilePreview
               path={resolveLink(node.file, paths)}
               subpath={node.subpath}
@@ -231,10 +237,20 @@ const CanvasNode = memo(function CanvasNode({
                 return suggestCanvasFiles(paths, query);
               }}
               onCommit={(url) => onUpdate(node.id, { url })}
-            />
-            <button className='link-btn canvas-open-file' disabled={!link} onClick={openLinkNode}>
-              {link?.label || node.url || t('Open link')}
-            </button>
+            >
+              {(url) => {
+                const draftLink = resolveCanvasLink(url, paths, path);
+                return (
+                  <button
+                    className='link-btn canvas-open-file'
+                    disabled={!draftLink}
+                    onClick={() => openLinkNode(draftLink)}
+                  >
+                    {draftLink?.label || url || t('Open link')}
+                  </button>
+                );
+              }}
+            </DraftInput>
           </>
         )}
         {node.type === 'group' && (

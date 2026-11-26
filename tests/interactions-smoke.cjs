@@ -54,6 +54,7 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
       nodes: [
         { id: 'group', type: 'group', x: 0, y: 0, width: 250, height: 200, label: 'Original' },
         { id: 'file', type: 'file', x: 300, y: 0, width: 250, height: 200, file: '' },
+        { id: 'link', type: 'link', x: 600, y: 0, width: 250, height: 200, url: 'missing.md' },
       ],
       edges: [],
     })

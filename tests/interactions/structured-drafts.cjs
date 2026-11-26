@@ -25,6 +25,54 @@ module.exports = async function runScenario({
     new KeyboardEvent('keydown', { key: 'z', ctrlKey: true, shiftKey: true, bubbles: true }))`);
   await wait("document.querySelector('.flow-grid th input').value === 'Edited column'");
 
+  await js(`(() => {
+    const cell = document.querySelector('.flow-grid textarea');
+    cell.focus();
+    Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, 'value').set.call(cell, 'First draft');
+    cell.dispatchEvent(new Event('input', { bubbles: true }));
+    cell.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', ctrlKey: true, bubbles: true }));
+  })()`);
+  await wait("document.querySelectorAll('.flow-grid tbody tr').length === 2");
+  assert.ok(
+    await js(
+      "document.querySelector('.flow-grid tbody tr:first-child').textContent.includes('First draft')"
+    )
+  );
+  await js(`(() => {
+    const input = document.querySelector('.flow-grid th input');
+    input.focus();
+    Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set.call(input, 'Column draft');
+    input.dispatchEvent(new Event('input', { bubbles: true }));
+    const button = document.querySelector('.flow-grid th[ class="flow-actions"] button');
+    button.focus(); button.click();
+  })()`);
+  await wait("document.querySelectorAll('.flow-grid th input').length === 2");
+  assert.equal(await js("document.querySelector('.flow-grid th input').value"), 'Column draft');
+  await click('.flow-grid tbody tr:nth-child(2) [data-column="0"]');
+  await wait("!!document.querySelector('.flow-grid tbody tr:nth-child(2) textarea')");
+  await js(`(() => {
+    const cell = document.querySelector('.flow-grid tbody tr:nth-child(2) textarea');
+    cell.focus();
+    Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, 'value').set.call(cell, 'Kept row');
+    cell.dispatchEvent(new Event('input', { bubbles: true }));
+    const button = document.querySelector('.flow-grid tbody tr:first-child [title="Remove row"]');
+    button.focus(); button.click();
+  })()`);
+  await wait("document.querySelectorAll('.flow-grid tbody tr').length === 1");
+  assert.equal(await js("document.querySelector('.flow-grid textarea').value"), 'Kept row');
+  await js(`(() => {
+    const input = document.querySelectorAll('.flow-grid th input')[1];
+    input.focus();
+    Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set.call(input, 'Kept column');
+    input.dispatchEvent(new Event('input', { bubbles: true }));
+    const button = document.querySelector('.flow-grid th [title="Remove column"]');
+    button.focus(); button.click();
+  })()`);
+  await wait("!!document.querySelector('.confirm-dialog')");
+  await button('.confirm-dialog button', 'Confirm');
+  await wait("document.querySelectorAll('.flow-grid th input').length === 1");
+  assert.equal(await js("document.querySelector('.flow-grid th input').value"), 'Kept column');
+
   await open('Drafts.canvas');
   await wait('!!document.querySelector(\'[data-node-id="group"] [aria-label="Group label"]\')');
   await js(`(() => {
@@ -39,6 +87,63 @@ module.exports = async function runScenario({
   await js(`document.querySelector('[data-node-id="group"] input').dispatchEvent(
     new KeyboardEvent('keydown', { key: 'z', ctrlKey: true, shiftKey: true, bubbles: true }))`);
   await wait("document.querySelector('[data-node-id=\"group\"] input').value === 'Edited group'");
+
+  await js(`(() => {
+    const input = document.querySelector('[data-node-id="file"] input');
+    input.focus();
+    Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set.call(input, 'Alpha.md');
+    input.dispatchEvent(new Event('input', { bubbles: true }));
+  })()`);
+  await wait('!document.querySelector(\'[data-node-id="file"] .canvas-open-file\').disabled');
+  await js(`(() => {
+    const button = document.querySelector('[data-node-id="file"] .canvas-open-file');
+    button.focus(); button.click();
+  })()`);
+  await wait("document.querySelector('.tab.active').title === 'Alpha.md'");
+  await open('Drafts.canvas');
+  await js(`(() => {
+    const input = document.querySelector('[data-node-id="file"] input');
+    input.focus();
+    Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set.call(input, 'Beta.md');
+    input.dispatchEvent(new Event('input', { bubbles: true }));
+  })()`);
+  await wait(
+    "document.querySelector('[data-node-id=\"file\"] .canvas-open-file').textContent === 'Beta.md'"
+  );
+  await js(`(() => {
+    const button = document.querySelector('[data-node-id="file"] .canvas-open-file');
+    button.focus(); button.click();
+  })()`);
+  await wait("document.querySelector('.tab.active').title === 'Beta.md'");
+  await open('Drafts.canvas');
+  await js(`(() => {
+    const input = document.querySelector('[data-node-id="link"] input');
+    input.focus();
+    Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set.call(input, '[[Alpha#Claim|Current]]');
+    input.dispatchEvent(new Event('input', { bubbles: true }));
+  })()`);
+  await wait(
+    "document.querySelector('[data-node-id=\"link\"] .canvas-open-file').textContent === 'Current'"
+  );
+  await js(`(() => {
+    const button = document.querySelector('[data-node-id="link"] .canvas-open-file');
+    button.focus(); button.click();
+  })()`);
+  await wait("document.querySelector('.tab.active').title === 'Alpha.md'");
+  await open('Drafts.canvas');
+  await js(`(() => {
+    const input = document.querySelector('[data-node-id="link"] input');
+    input.focus();
+    Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set.call(input, 'https://example.com/new');
+    input.dispatchEvent(new Event('input', { bubbles: true }));
+  })()`);
+  await wait(
+    "document.querySelector('[data-node-id=\"link\"] .canvas-open-file').textContent === 'https://example.com/new'"
+  );
+  assert.equal(
+    await js('document.querySelector(\'[data-node-id="link"] .canvas-open-file\').disabled'),
+    false
+  );
 
   await open('Drafts.md');
   await wait('!!document.querySelector(\'[aria-label="Value for title"]\')');

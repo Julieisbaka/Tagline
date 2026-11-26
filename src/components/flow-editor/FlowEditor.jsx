@@ -322,6 +322,10 @@ export default function FlowEditor({
     save(data.sheets.map((s, i) => (i === idx ? { ...s, ...patch } : s)));
 
   const reorderSheet = (from, to) => {
+    if (!flushPendingEdits()) {
+      return;
+    }
+    const data = parseFlow(currentContent.current);
     if (
       from === to ||
       from < 0 ||
@@ -334,7 +338,7 @@ export default function FlowEditor({
     const sheets = [...data.sheets];
     const [moved] = sheets.splice(from, 1);
     sheets.splice(to, 0, moved);
-    save(sheets);
+    saveFlowContent(JSON.stringify({ ...data, version: FLOW_VERSION, sheets }, null, 2));
     setActive(
       idx === from
         ? to
@@ -348,24 +352,35 @@ export default function FlowEditor({
   };
 
   const addSheet = (preset) => {
+    if (!flushPendingEdits()) {
+      return;
+    }
+    const data = parseFlow(currentContent.current);
     const columns = flowColumns(
       preset,
       data.sheets.some((item) => item.columns.includes('2NC') && item.columns.includes('1NR'))
     );
     const name = preset.startsWith('Off') ? 'Off-case' : preset.startsWith('CX') ? 'CX' : 'Case';
-    save([...data.sheets, { name, columns, rows: [Array(columns.length).fill('')] }]);
+    const sheets = [...data.sheets, { name, columns, rows: [Array(columns.length).fill('')] }];
+    saveFlowContent(JSON.stringify({ ...data, version: FLOW_VERSION, sheets }, null, 2));
     setActive(data.sheets.length);
     setSelection(null);
   };
 
   const removeSheet = async (i) => {
+    if (!flushPendingEdits()) {
+      return;
+    }
+    const data = parseFlow(currentContent.current);
     if (data.sheets.length === 1) {
       return;
     }
     if (!(await confirm(t('Delete sheet "{name}"?', { name: data.sheets[i].name })))) {
       return;
     }
-    save(data.sheets.filter((_, j) => j !== i));
+    const current = parseFlow(currentContent.current);
+    const sheets = current.sheets.filter((_, j) => j !== i);
+    saveFlowContent(JSON.stringify({ ...current, version: FLOW_VERSION, sheets }, null, 2));
     setActive(Math.max(0, i - 1));
   };
 
@@ -400,23 +415,32 @@ export default function FlowEditor({
     setCardTarget(null);
   };
 
-  const addRow = (after = sheet.rows.length - 1, column = null) => {
+  const addRow = (after, column = null) => {
+    if (!flushPendingEdits()) {
+      return;
+    }
+    const sheet = parseFlow(currentContent.current).sheets[idx];
+    after ??= sheet.rows.length - 1;
     setSelection(null);
     const rows = [...sheet.rows];
     rows.splice(after + 1, 0, Array(sheet.columns.length).fill(''));
     if (column !== null && focusNewFlowRow) {
       focusTarget.current = { row: after + 1, column };
     }
-    updateSheet({ rows });
+    updateDraftSheet((item) => ({ ...item, rows }));
   };
   const insertRowAbove = (row, column) => addRow(row - 1, column);
 
   const removeRow = (r) => {
+    if (!flushPendingEdits()) {
+      return;
+    }
+    const sheet = parseFlow(currentContent.current).sheets[idx];
     if (!canRemoveRow(sheet.rows.length)) {
       return;
     }
     setSelection(null);
-    updateSheet({ rows: sheet.rows.filter((_, i) => i !== r) });
+    updateDraftSheet((item) => ({ ...item, rows: item.rows.filter((_, i) => i !== r) }));
   };
 
   const renameColumn = (c, name) =>
@@ -425,13 +449,22 @@ export default function FlowEditor({
       columns: item.columns.map((v, i) => (i === c ? name : v)),
     }));
 
-  const addColumn = () =>
-    updateSheet({
-      columns: [...sheet.columns, 'New'],
-      rows: sheet.rows.map((row) => [...row, '']),
-    });
+  const addColumn = () => {
+    if (!flushPendingEdits()) {
+      return;
+    }
+    updateDraftSheet((item) => ({
+      ...item,
+      columns: [...item.columns, 'New'],
+      rows: item.rows.map((row) => [...row, '']),
+    }));
+  };
 
   const removeColumn = async (c) => {
+    if (!flushPendingEdits()) {
+      return;
+    }
+    const sheet = parseFlow(currentContent.current).sheets[idx];
     if (sheet.columns.length === 1) {
       return;
     }
@@ -441,10 +474,11 @@ export default function FlowEditor({
       return;
     }
     setSelection(null);
-    updateSheet({
-      columns: sheet.columns.filter((_, i) => i !== c),
-      rows: sheet.rows.map((row) => row.filter((_, i) => i !== c)),
-    });
+    updateDraftSheet((item) => ({
+      ...item,
+      columns: item.columns.filter((_, i) => i !== c),
+      rows: item.rows.map((row) => row.filter((_, i) => i !== c)),
+    }));
   };
   const selected =
     selection?.sheet === idx &&
