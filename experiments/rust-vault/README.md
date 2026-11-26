@@ -27,6 +27,7 @@ The Rust `ignore` crate and Node's `ignore` package are independent matchers;
 the fixtures exercise common patterns but do not establish complete parity.
 Rules the Rust parser cannot compile are skipped individually so other valid
 rules remain effective; such rules may still be interpreted differently by Node.
+For example, `?.md` excludes `é.md` in Node but not in the Rust matcher.
 
 If the output directory contains addons from multiple targets, remove the stale
 `.node` files from `experiments/rust-vault/dist` and run the command again.

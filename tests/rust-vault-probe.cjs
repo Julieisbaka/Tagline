@@ -91,6 +91,16 @@ async function checkIgnoreRules(root) {
   }
   await fs.rm(path.join(root, '.taglineignore'));
   assert.deepEqual(listNotePaths(root), files.sort());
+
+  await fs.writeFile(path.join(root, 'é.md'), '');
+  await fs.writeFile(path.join(root, '.taglineignore'), '?.md\n');
+  if ((await fs.readdir(root)).includes('é.md')) {
+    assert.ok(!flatten(await listVault(root)).includes('é.md'));
+    assert.ok(listNotePaths(root).includes('é.md'));
+    assert.ok(flatten(await listRustVault(root)).includes('é.md'));
+  } else {
+    console.log('Unicode ignore fixture skipped: filesystem normalized the filename.');
+  }
 }
 
 async function checkVaultContract(root) {
@@ -157,13 +167,25 @@ async function checkVaultContract(root) {
   await fs.utimes(path.join(root, 'B.md'), new Date('2021-01-02T03:04:05Z'), new Date('2021-01-02T03:04:05Z'));
   assert.equal((await compareSnapshots()).contents['B.md'], 'again!');
 
+  for (let i = 0; i < 10; i += 1) {
+    const text = `concurrent-${i}`;
+    await Promise.all([
+      readRustSnapshot(root),
+      fs.writeFile(path.join(root, 'B.md'), text),
+      readRustSnapshot(root),
+    ]);
+    await fs.utimes(path.join(root, 'B.md'), new Date(`2022-01-${String(i + 1).padStart(2, '0')}T00:00:00Z`),
+      new Date(`2022-01-${String(i + 1).padStart(2, '0')}T00:00:00Z`));
+    assert.equal((await compareSnapshots()).contents['B.md'], text);
+  }
+
   const otherRoot = await fs.mkdtemp(path.join(os.tmpdir(), 'tagline-rust-cache-'));
   try {
     await fs.writeFile(path.join(otherRoot, 'B.md'), 'other!');
     await fs.utimes(path.join(otherRoot, 'B.md'), new Date('2021-01-02T03:04:05Z'), new Date('2021-01-02T03:04:05Z'));
     assert.deepEqual(await readRustSnapshot(otherRoot), await readVaultSnapshot(otherRoot));
     assert.equal((await readRustSnapshot(otherRoot)).contents['B.md'], 'other!');
-    assert.equal((await compareSnapshots()).contents['B.md'], 'again!');
+    assert.equal((await compareSnapshots()).contents['B.md'], 'concurrent-9');
   } finally {
     await fs.rm(otherRoot, { recursive: true, force: true });
   }
@@ -174,6 +196,25 @@ async function checkVaultContract(root) {
     assert.throws(() => listNotePaths(dir), { code: expectedError.code });
     await assert.rejects(listRustVault(dir), { code: expectedError.code });
     await assert.rejects(readRustSnapshot(dir), { code: expectedError.code });
+  }
+  if (process.platform !== 'win32') {
+    const denied = path.join(root, 'denied');
+    await fs.mkdir(denied);
+    await fs.chmod(denied, 0);
+    try {
+      const expectedError = await listVault(denied).then(() => null, (error) => error);
+      if (expectedError) {
+        assert.equal(expectedError.code, 'EACCES');
+        assert.throws(() => listNotePaths(denied), { code: expectedError.code });
+        await assert.rejects(listRustVault(denied), { code: expectedError.code });
+        await assert.rejects(readRustSnapshot(denied), { code: expectedError.code });
+      } else {
+        console.log('Permission fixture skipped: process can read mode-000 directories.');
+      }
+    } finally {
+      await fs.chmod(denied, 0o700);
+      await fs.rmdir(denied);
+    }
   }
   let hasSymlink = true;
   try {
@@ -190,6 +231,13 @@ async function checkVaultContract(root) {
     await assert.rejects(listRustVault(root), { code: 'ENOENT' });
     await assert.rejects(readRustSnapshot(root), { code: 'ENOENT' });
     await fs.unlink(path.join(root, 'dangling.md'));
+    await fs.symlink('a.md', path.join(root, 'linked.md'), 'file');
+    assert.deepEqual(await listRustVault(root), await listVault(root));
+    assert.deepEqual(await readRustSnapshot(root), await readVaultSnapshot(root));
+    await fs.writeFile(path.join(root, 'a.md'), 'updated target');
+    const linkedSnapshot = await compareSnapshots();
+    assert.equal(linkedSnapshot.contents['linked.md'], 'updated target');
+    await fs.unlink(path.join(root, 'linked.md'));
     if (process.platform !== 'win32') {
       await fs.symlink('z folder', path.join(root, 'folder.md'));
       assert.deepEqual(await listRustVault(root), await listVault(root));

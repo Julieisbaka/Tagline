@@ -96,6 +96,8 @@ jobs:
         run: npm ci
         env:
           ONNXRUNTIME_NODE_INSTALL: skip
+      - name: Run Rust unit tests
+        run: cargo test --locked --manifest-path experiments/rust-vault/Cargo.toml
       - name: Build and compare Rust vault probe
         run: npm run experiment:rust-vault
 
