@@ -434,7 +434,7 @@ export function useAppCommandContext({
           openNote(link.path);
           if (link.heading) {
             const h = outline(contents[link.path] || '').find(
-              (x) => slugify(x.text) === slugify(link.heading)
+              (x) => slugify(x.text, contents[link.path]) === slugify(link.heading)
             );
             setJump({
               path: link.path,

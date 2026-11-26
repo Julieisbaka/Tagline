@@ -28,6 +28,9 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
   const importedNote =
     'Imported pocket\n===============\n\nImported hat\n------------\n\nEvidence.\n';
   await fs.writeFile(path.join(vault, 'Imported.md'), importedNote);
+  const headingNote =
+    '# **Grid** [[Target|energy]]\n\nFirst.\n\n# **Grid** [[Target|energy]]\n\nSecond.\n\n> ## **Nested** [[Target|alias]]\n\n[[Headings#Nested alias|Jump nested]]\n';
+  await fs.writeFile(path.join(vault, 'Headings.md'), headingNote);
   await fs.writeFile(
     path.join(profile, 'config.json'),
     JSON.stringify({ lastVault: vault, modelAutoload: false })
@@ -180,6 +183,68 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
             await js('document.querySelector(\'.right-panel button[title="Outline"]\').click()');
           }
         );
+        await require('./helpers/smoke.cjs').scenario('formatted heading jumps', async () => {
+          await js('document.querySelector(\'.tree-item[title="Headings.md"]\').click()');
+          await wait("!!document.querySelector('.visual-document')");
+          await js('document.querySelector(\'.right-panel button[title="Outline"]\').click()');
+          await wait("document.querySelectorAll('.outline-item').length === 2");
+          assert.deepEqual(
+            await js("[...document.querySelectorAll('.outline-item')].map(el => el.textContent)"),
+            ['Grid energy', 'Grid energy']
+          );
+          await js("document.querySelectorAll('.outline-item')[1].click()");
+          await wait(
+            "document.querySelectorAll('.visual-document h1')[1].contains(window.getSelection()?.anchorNode)"
+          );
+          const point = await js(`(() => {
+            const rect = document.querySelector('.visual-document [data-target="Headings"]').getBoundingClientRect();
+            return { x: Math.round(rect.left + rect.width / 2), y: Math.round(rect.top + rect.height / 2) };
+          })()`);
+          wc.sendInputEvent({
+            type: 'mouseDown',
+            ...point,
+            button: 'left',
+            clickCount: 1,
+            modifiers: [primary],
+          });
+          wc.sendInputEvent({
+            type: 'mouseUp',
+            ...point,
+            button: 'left',
+            clickCount: 1,
+            modifiers: [primary],
+          });
+          await wait(
+            "document.querySelector('.visual-document blockquote h2').contains(window.getSelection()?.anchorNode)"
+          );
+          await change('[aria-label="Editor mode"]', 'edit');
+          await wait("!!document.querySelector('.editor .cm-content')");
+          await js("document.querySelectorAll('.outline-item')[1].click()");
+          await wait(
+            "window.getSelection()?.anchorNode?.parentElement?.closest('.cm-line') === document.querySelectorAll('.cm-line')[4]"
+          );
+          await change('[aria-label="Editor mode"]', 'read');
+          await wait("document.querySelectorAll('.preview h1').length === 2");
+          await js(`(() => {
+            const original = Element.prototype.scrollIntoView;
+            Element.prototype.scrollIntoView = function (...args) {
+              window.headingScrolledTo = this;
+              return original.apply(this, args);
+            };
+          })()`);
+          await js("document.querySelectorAll('.outline-item')[1].click()");
+          await wait("window.headingScrolledTo === document.querySelectorAll('.preview h1')[1]");
+          assert.deepEqual(
+            await js("[...document.querySelectorAll('.preview h1')].map(el => el.id)"),
+            ['grid-energy', 'grid-energy']
+          );
+          await js('document.querySelector(\'.preview [data-href="Headings"]\').click()');
+          await wait(
+            "window.headingScrolledTo === document.querySelector('.preview blockquote h2')"
+          );
+          assert.equal(await fs.readFile(path.join(vault, 'Headings.md'), 'utf8'), headingNote);
+          await js('document.querySelector(\'.right-panel button[title="Outline"]\').click()');
+        });
         await wait('!!document.querySelector(\'.tree-item[title="Card.md"]\')');
         await js('document.querySelector(\'.tree-item[title="Card.md"]\').click()');
         await wait("!!document.querySelector('.visual-document')");

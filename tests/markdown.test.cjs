@@ -40,3 +40,41 @@ test('Flow cell markdown subset renders inline formatting', async () => {
   assert.match(html, /href="https:\/\/example.com"/);
   assert.match(html, /internal-link/);
 });
+
+test('heading titles and anchors agree with rendered inline Markdown', async () => {
+  const { createMarkdownParser, headingText, slugify } =
+    await import('../src/lib/markdown/markdown.js');
+  const { outline } = await import('../src/lib/vault/vault.js');
+  const cases = [
+    ['**Bold** [[Note#Section|Alias]] &amp; <em>More</em>', 'Bold Alias & More'],
+    [
+      '[[Note#Section]] and ++underlined++ ==highlight==',
+      'Note › Section and underlined highlight',
+    ],
+    ['[Link](https://example.com) `code` ~~old~~', 'Link code old'],
+    ['C++ &lt;literal&gt; &#x1F680;', 'C++ <literal> 🚀'],
+    ['日本語', '日本語'],
+    ['!!!', '!!!'],
+    ['<script>hidden</script>Visible', 'Visible'],
+  ];
+  const parser = createMarkdownParser(() => null);
+  for (const [source, expected] of cases) {
+    const heading = outline(`# ${source}\n`)[0];
+    assert.equal(heading.text, source, 'outline preserves editable source');
+    assert.equal(headingText(heading.text), expected);
+    const html = parser.parse(`# ${source}\n`);
+    assert.ok(html.includes(`id="${slugify(source)}"`), html);
+  }
+});
+
+test('heading normalization resolves document reference links', async () => {
+  const { createMarkdownParser, headingText, slugify } =
+    await import('../src/lib/markdown/markdown.js');
+  const { outline } = await import('../src/lib/vault/vault.js');
+  const content = '# [Clean][ref] **energy**\n\n[ref]: https://example.com\n';
+  const raw = outline(content)[0].text;
+  assert.equal(headingText(raw, content), 'Clean energy');
+  assert.equal(slugify(raw, content), 'clean-energy');
+  assert.match(createMarkdownParser(() => null).parse(content), /id="clean-energy"/);
+  assert.equal(headingText(raw), '[Clean][ref] energy');
+});

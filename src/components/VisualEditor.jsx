@@ -6,6 +6,7 @@ import { splitFrontmatter } from '../lib/markdown/frontmatter.js';
 import { useI18n } from '../lib/i18n/i18n.js';
 import { binding, KEYBINDINGS, matchesBinding } from '../lib/commands/keybindings.js';
 import { slugify } from '../lib/markdown/markdown.js';
+import { outline } from '../lib/vault/vault.js';
 import { draggedNoteLink, draggedNotePath, hasNoteDrag } from '../lib/vault/noteDrag.js';
 import { isCardLead } from '../lib/editor/smartPaste.js';
 import { cachedDocument, cacheDocument } from '../lib/editor/visualCache.js';
@@ -35,6 +36,7 @@ export default function VisualEditor({
   const metadata = useMemo(() => splitFrontmatter(value), [value]);
   const live = useRef({});
   live.current = {
+    value,
     onChange: (body) =>
       onChange(
         metadata.prefix +
@@ -327,18 +329,46 @@ function VisualDocument({
     if (!heading) {
       return;
     }
-    editor.state.doc.descendants((node, pos) => {
-      if (node.type.name === 'heading' && slugify(node.textContent) === slugify(heading)) {
+    const headings = outline(live.current.value);
+    const target = headings.findIndex((item) => item.line === jump.line);
+    const fallback = headings.findIndex(
+      (item) => slugify(item.text, live.current.value) === slugify(heading, live.current.value)
+    );
+    const targetIndex = target >= 0 ? target : fallback;
+    let index = 0;
+    editor.state.doc.forEach((node, pos) => {
+      if (node.type.name === 'heading' && index++ === targetIndex) {
         editor
           .chain()
           .setTextSelection(pos + 1)
+          .focus()
           .scrollIntoView()
           .run();
-        return false;
       }
-      return undefined;
     });
-  }, [jump, editor]);
+    if (targetIndex < 0) {
+      let found = false;
+      editor.state.doc.descendants((node, pos) => {
+        if (found) {
+          return false;
+        }
+        if (node.type.name === 'heading') {
+          const markdown = editor.markdown.serialize({ type: 'doc', content: [node.toJSON()] });
+          const title = outline(markdown)[0]?.text;
+          if (title && slugify(title) === slugify(heading)) {
+            found = true;
+            editor
+              .chain()
+              .setTextSelection(pos + 1)
+              .focus()
+              .scrollIntoView()
+              .run();
+          }
+        }
+        return undefined;
+      });
+    }
+  }, [jump, editor, live]);
 
   if (!editor) {
     return null;

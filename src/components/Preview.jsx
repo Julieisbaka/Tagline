@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef } from 'react';
 import { renderMarkdown, slugify } from '../lib/markdown/markdown.js';
+import { outline } from '../lib/vault/vault.js';
 
 export default function Preview({
   content,
@@ -17,9 +18,18 @@ export default function Preview({
     if (!scrollTo?.heading || !ref.current) {
       return;
     }
-    const el = ref.current.querySelector(`#${CSS.escape(slugify(scrollTo.heading))}`);
+    const slug = slugify(scrollTo.heading, content);
+    const headings = outline(content);
+    const index = headings.findIndex((heading) => heading.line === scrollTo.line);
+    const occurrence =
+      index < 0
+        ? 0
+        : headings.slice(0, index).filter((heading) => slugify(heading.text, content) === slug)
+            .length;
+    const selector = `${index < 0 ? '' : ':scope > '}#${CSS.escape(slug)}`;
+    const el = ref.current.querySelectorAll(selector)[occurrence];
     el?.scrollIntoView({ block: 'start' });
-  }, [scrollTo, html]);
+  }, [scrollTo, html, content]);
 
   const onClick = (e) => {
     const link = e.target.closest('a');
