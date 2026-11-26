@@ -24,7 +24,6 @@ fn collect(directory: &Path, root: &Path, paths: &mut Vec<String>) -> napi::Resu
                 "md" | "flow" | "canvas" | "json"
             )
         }) {
-            fs::metadata(&path).map_err(|error| napi::Error::from_reason(error.to_string()))?;
             let relative = path
                 .strip_prefix(root)
                 .map_err(|error| napi::Error::from_reason(error.to_string()))?;
@@ -47,6 +46,6 @@ pub fn list_note_paths(root: String) -> napi::Result<Vec<String>> {
         fs::canonicalize(root).map_err(|error| napi::Error::from_reason(error.to_string()))?;
     let mut paths = Vec::new();
     collect(&root, &root, &mut paths)?;
-    paths.sort();
+    paths.sort_by(|a, b| a.encode_utf16().cmp(b.encode_utf16()));
     Ok(paths)
 }

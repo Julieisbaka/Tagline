@@ -8,7 +8,16 @@ function loadNativeModule() {
     return nativeModule;
   }
   const directory = path.join(__dirname, '..', 'experiments', 'rust-vault', 'dist');
-  const binary = readdirSync(directory).find((file) => file.endsWith('.node'));
+  let files;
+  try {
+    files = readdirSync(directory);
+  } catch (error) {
+    if (error.code !== 'ENOENT') {
+      throw error;
+    }
+    files = [];
+  }
+  const binary = files.find((file) => file.endsWith('.node'));
   if (!binary) {
     throw new Error(`Rust vault probe is not built. Run "npm run experiment:rust-vault".`);
   }

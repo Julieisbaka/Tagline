@@ -28,6 +28,8 @@ async function main() {
       fs.writeFile(path.join(root, 'ignored.txt'), 'two'),
       fs.writeFile(path.join(root, 'Nested', 'flow.json'), '{}'),
       fs.writeFile(path.join(root, 'Nested', 'Mixed.CaNvAs'), '{}'),
+      fs.writeFile(path.join(root, '😀.md'), ''),
+      fs.writeFile(path.join(root, '\uE000.md'), ''),
       fs.writeFile(path.join(root, '.hidden', 'secret.md'), 'three'),
     ]);
     let hasSymlink = true;
@@ -48,9 +50,16 @@ async function main() {
         'Nested/flow.json',
         'argument.md',
         ...(hasSymlink ? ['linked.MD'] : []),
-      ].sort()
+        '😀.md',
+        '\uE000.md',
+      ]
     );
     assert.deepEqual(listNotePaths(root), expected);
+    if (hasSymlink) {
+      await fs.symlink('missing-target.md', path.join(root, 'missing.md'), 'file');
+      assert.deepEqual(listNotePaths(root), [...expected, 'missing.md'].sort());
+      await assert.rejects(listVault(root), { code: 'ENOENT' });
+    }
     console.log(`Rust probe matched JavaScript for ${expected.length} vault files.`);
   } finally {
     await fs.rm(root, { recursive: true, force: true });
