@@ -27,13 +27,11 @@ fn collect(directory: &Path, root: &Path, paths: &mut Vec<String>) -> napi::Resu
             let relative = path
                 .strip_prefix(root)
                 .map_err(|error| napi::Error::from_reason(error.to_string()))?;
-            let value = relative
-                .to_str()
-                .ok_or_else(|| napi::Error::from_reason("Vault path is not valid UTF-8."))?;
+            let value = relative.to_string_lossy();
             paths.push(if cfg!(windows) {
                 value.replace('\\', "/")
             } else {
-                value.to_owned()
+                value.into_owned()
             });
         }
     }

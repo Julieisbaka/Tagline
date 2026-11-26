@@ -55,6 +55,21 @@ async function main() {
       ]
     );
     assert.deepEqual(listNotePaths(root), expected);
+    if (process.platform !== 'win32') {
+      const invalidPath = Buffer.concat([
+        Buffer.from(`${root}${path.sep}bad`), Buffer.from([0xff]), Buffer.from('.md'),
+      ]);
+      await fs.writeFile(invalidPath, '');
+      const decodedPath = 'bad\uFFFD.md';
+      assert.deepEqual(listNotePaths(root), [...expected, decodedPath].sort());
+      await assert.rejects(listVault(root), { code: 'ENOENT' });
+      await fs.writeFile(path.join(root, decodedPath), '');
+      const withInvalidName = [...expected, decodedPath, decodedPath].sort();
+      assert.deepEqual(flatten(await listVault(root)), withInvalidName);
+      assert.deepEqual(listNotePaths(root), withInvalidName);
+      await fs.unlink(invalidPath);
+      await fs.unlink(path.join(root, decodedPath));
+    }
     if (hasSymlink) {
       await fs.symlink('missing-target.md', path.join(root, 'missing.md'), 'file');
       assert.deepEqual(listNotePaths(root), [...expected, 'missing.md'].sort());
