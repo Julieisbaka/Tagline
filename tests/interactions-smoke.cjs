@@ -49,6 +49,24 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
   );
   await fs.writeFile(path.join(vault, 'Map.canvas'), '{"nodes":[],"edges":[]}');
   await fs.writeFile(
+    path.join(vault, 'Drafts.canvas'),
+    JSON.stringify({
+      nodes: [
+        { id: 'group', type: 'group', x: 0, y: 0, width: 250, height: 200, label: 'Original' },
+        { id: 'file', type: 'file', x: 300, y: 0, width: 250, height: 200, file: '' },
+      ],
+      edges: [],
+    })
+  );
+  await fs.writeFile(
+    path.join(vault, 'Drafts.flow'),
+    JSON.stringify({ version: 2, sheets: [{ name: 'Case', columns: ['1AC'], rows: [['']] }] })
+  );
+  await fs.writeFile(
+    path.join(vault, 'Drafts.md'),
+    '---\ntitle: Before\ncount: 2\n---\n\n# Body\n'
+  );
+  await fs.writeFile(
     path.join(vault, 'Alpha.md'),
     '# Alpha\n\n#### Claim\n\n==Evidence text.== [[Beta]]'
   );
@@ -161,6 +179,7 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
         const { scenario } = require('./helpers/smoke.cjs');
         for (const [description, run] of [
           ['onboarding and flow editing', require('./interactions/onboarding-flow.cjs')],
+          ['structured editor drafts', require('./interactions/structured-drafts.cjs')],
           ['canvas editing', require('./interactions/canvas-editor.cjs')],
           ['editor layout', require('./interactions/editor-layout.cjs')],
           ['graph recovery', require('./interactions/graph-recovery.cjs')],

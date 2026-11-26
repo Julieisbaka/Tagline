@@ -1,4 +1,5 @@
 import { redo as redoEditor, undo as undoEditor } from '@codemirror/commands';
+import { flushSync } from 'react-dom';
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { EMPTY_FLOW, FLOW_VERSION, flowColumns, parseFlow } from '../../../electron/flow.mjs';
 import {
@@ -210,7 +211,9 @@ export default function FlowEditor({
     };
   };
   const undoFlow = () => {
-    flushPendingEdits();
+    if (!flushSync(() => flushPendingEdits())) {
+      return;
+    }
     const history = flowHistory.current;
     const previous = history.undo.pop();
     if (previous === undefined) {
@@ -223,7 +226,9 @@ export default function FlowEditor({
     applyFlowContent(previous.content);
   };
   const redoFlow = () => {
-    flushPendingEdits();
+    if (!flushSync(() => flushPendingEdits())) {
+      return;
+    }
     const history = flowHistory.current;
     const next = history.redo.pop();
     if (next === undefined) {
@@ -364,10 +369,16 @@ export default function FlowEditor({
     setActive(Math.max(0, i - 1));
   };
 
+  const updateDraftSheet = (patch) => {
+    const current = parseFlow(currentContent.current);
+    const sheets = current.sheets.map((item, i) => (i === idx ? patch(item) : item));
+    saveFlowContent(JSON.stringify({ ...current, version: FLOW_VERSION, sheets }, null, 2));
+  };
   const setCell = (r, c, value) =>
-    updateSheet({
-      rows: sheet.rows.map((row, i) => (i === r ? row.map((v, j) => (j === c ? value : v)) : row)),
-    });
+    updateDraftSheet((item) => ({
+      ...item,
+      rows: item.rows.map((row, i) => (i === r ? row.map((v, j) => (j === c ? value : v)) : row)),
+    }));
 
   const linkCard = (cardPath) => {
     flushPendingEdits();
@@ -409,7 +420,10 @@ export default function FlowEditor({
   };
 
   const renameColumn = (c, name) =>
-    updateSheet({ columns: sheet.columns.map((v, i) => (i === c ? name : v)) });
+    updateDraftSheet((item) => ({
+      ...item,
+      columns: item.columns.map((v, i) => (i === c ? name : v)),
+    }));
 
   const addColumn = () =>
     updateSheet({

@@ -6,13 +6,13 @@
  * when the app is asked to close, so drafts are persisted just like committed
  * edits.
  *
- * @type {Set<() => void>}
+ * @type {Set<() => (boolean|void)>}
  */
 const flushers = new Set();
 
 /**
  * Register a flush callback.
- * @param {() => void} callback - Commits any local draft.
+ * @param {() => (boolean|void)} callback - Commits any local draft, or returns false if invalid.
  * @returns {() => void} Unregister function.
  */
 export function registerPendingFlush(callback) {
@@ -23,8 +23,14 @@ export function registerPendingFlush(callback) {
 /**
  * Commit all registered drafts. Safe to call repeatedly; each callback is
  * responsible for doing nothing when there is no pending draft.
- * @returns {void}
+ * @returns {boolean} False if any draft could not be committed.
  */
 export function flushPendingEdits() {
-  flushers.forEach((callback) => callback());
+  let valid = true;
+  flushers.forEach((callback) => {
+    if (callback() === false) {
+      valid = false;
+    }
+  });
+  return valid;
 }

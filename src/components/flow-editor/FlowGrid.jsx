@@ -3,7 +3,7 @@ import { binding, displayBinding, matchesBinding } from '../../lib/commands/keyb
 import { cellBounds, copyFlowCells } from '../../lib/flow/flowCells.js';
 import { canRemoveRow } from '../../lib/flow/flowRows.js';
 import { pasteClipboardCells } from '../../lib/flow/pasteClipboardCells.js';
-import { registerPendingFlush } from '../../lib/vault/pendingEdits.js';
+import { useDraft } from '../../lib/vault/useDraft.js';
 import { renderMarkdown } from '../../lib/markdown/markdown.js';
 import Icon from '../Icon.jsx';
 
@@ -19,33 +19,10 @@ const sideOf = (col) => {
  * Cell textarea that keeps a local draft and commits on blur/unmount, so one
  * typed passage becomes one save and one undo step instead of one per keystroke.
  */
-function FlowCellEditor({ value, onCommit, onChange, onBlur, ...props }) {
-  const [draft, setDraft] = useState(value);
-  const draftRef = useRef(draft);
-  const valueRef = useRef(value);
-  draftRef.current = draft;
-  valueRef.current = value;
-  const dirty = draft !== value;
-  const commit = () => {
-    if (draftRef.current !== valueRef.current) {
-      valueRef.current = draftRef.current;
-      onCommit(draftRef.current);
-    }
-  };
-  const commitRef = useRef(commit);
-  commitRef.current = commit;
-  useEffect(() => {
-    setDraft(value);
-  }, [value]);
-  useEffect(() => () => commitRef.current(), []);
-  useEffect(() => {
-    if (!dirty) {
-      return undefined;
-    }
-    return registerPendingFlush(() => commitRef.current());
-  }, [dirty]);
+function FlowCellEditor({ value, onCommit, onChange, onBlur, as: Element = 'textarea', ...props }) {
+  const [draft, setDraft, commit] = useDraft(value, onCommit);
   return (
-    <textarea
+    <Element
       {...props}
       value={draft}
       onChange={(event) => {
@@ -369,10 +346,11 @@ export default function FlowGrid({
                   ])
                 }
               >
-                <input
+                <FlowCellEditor
+                  as='input'
                   spellCheck={settings.flowSpellcheck !== false}
                   value={col}
-                  onChange={(e) => renameColumn(c, e.target.value)}
+                  onCommit={(name) => renameColumn(c, name)}
                 />
                 <button className='mini' title={t('Remove column')} onClick={() => removeColumn(c)}>
                   <Icon name='x' size={10} />

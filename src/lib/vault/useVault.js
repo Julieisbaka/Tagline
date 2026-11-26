@@ -185,7 +185,9 @@ export function useVault(
     try {
       // Commit local editor drafts (e.g. canvas textareas) before reading disk,
       // so an external vault change cannot silently revert text still being typed.
-      flushPendingEdits();
+      if (!flushPendingEdits()) {
+        return;
+      }
       while (writes.current.size) {
         await Promise.allSettled([...writes.current.values()].map((entry) => entry.task));
       }
@@ -253,7 +255,9 @@ export function useVault(
   const flush = useCallback(async () => {
     // Commit in-editor drafts before capturing pending writes, so saving,
     // history and close all persist the same content the user sees.
-    flushPendingEdits();
+    if (!flushPendingEdits()) {
+      return false;
+    }
     const inflight = Promise.allSettled([...writes.current.values()].map((entry) => entry.task));
     const entries = Object.entries(pending.current);
     pending.current = {};

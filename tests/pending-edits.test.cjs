@@ -22,6 +22,22 @@ test('pending edit flushers commit drafts until unregistered', async () => {
   assert.equal(commits, 2);
 });
 
+test('invalid drafts block a flush without skipping other drafts', async () => {
+  const { flushPendingEdits, registerPendingFlush } = await import(
+    pathToFileURL(path.join(root, 'src', 'lib', 'vault', 'pendingEdits.js')).href
+  );
+  let commits = 0;
+  const unregisterInvalid = registerPendingFlush(() => false);
+  const unregisterValid = registerPendingFlush(() => {
+    commits += 1;
+  });
+  assert.equal(flushPendingEdits(), false);
+  assert.equal(commits, 1);
+  unregisterInvalid();
+  unregisterValid();
+  assert.equal(flushPendingEdits(), true);
+});
+
 test('vault reload commits pending drafts before reading the disk snapshot', () => {
   const source = fs.readFileSync(path.join(root, 'src', 'lib', 'vault', 'useVault.js'), 'utf8');
   const start = source.indexOf('const reload = useCallback');
@@ -45,13 +61,10 @@ test('vault reload commits pending drafts before reading the disk snapshot', () 
     'reload must drain active writes and reject snapshots invalidated by newer saves'
   );
 
-  const canvas = fs.readFileSync(
-    path.join(root, 'src', 'components', 'canvas', 'CanvasNode.jsx'),
-    'utf8'
-  );
+  const draft = fs.readFileSync(path.join(root, 'src', 'lib', 'vault', 'useDraft.js'), 'utf8');
   assert.match(
-    canvas,
+    draft,
     /registerPendingFlush\(\(\) => commitRef\.current\(\)\)/,
-    'canvas textarea drafts must be registered as pending edits'
+    'shared drafts must be registered as pending edits'
   );
 });

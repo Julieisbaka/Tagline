@@ -188,8 +188,9 @@ module.exports = async function runScenario({
     ['Map.canvas', '.canvas-file-map'],
   ]) {
     await js(`(() => { const el = document.querySelector('[data-node-id=embedded] [aria-label="File path"]');
+      el.focus();
       Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set.call(el, ${JSON.stringify(file)});
-      el.dispatchEvent(new Event('input', { bubbles: true })); })()`);
+      el.dispatchEvent(new Event('input', { bubbles: true })); el.blur(); })()`);
     await wait(`!!document.querySelector('[data-node-id=embedded] ${selector}')`);
   }
   await click('[data-node-id=linked] .canvas-open-file');

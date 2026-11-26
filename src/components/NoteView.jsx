@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { cardStats, formatDuration, getSectionAt } from '../lib/evidence/card.js';
-import { readFrontmatter } from '../lib/markdown/frontmatter.js';
+import { readFrontmatter, splitFrontmatter } from '../lib/markdown/frontmatter.js';
+import { FrontmatterStep, recordFrontmatter } from '../lib/editor/frontmatterHistory.js';
+import { flushPendingEdits } from '../lib/vault/pendingEdits.js';
 import { useI18n } from '../lib/i18n/i18n.js';
 import { binding, displayBinding } from '../lib/commands/keybindings.js';
 import { calibrateReading, readingAssessment, readingSeconds } from '../lib/speech/readTime.js';
@@ -19,7 +21,7 @@ export default function NoteView({
   path,
   content,
   mode,
-  setMode,
+  setMode: setEditorMode,
   highlightOnly,
   setHighlightOnly,
   jump,
@@ -48,6 +50,11 @@ export default function NoteView({
   extensions,
 }) {
   const { t } = useI18n();
+  const setMode = (next) => {
+    if (flushPendingEdits()) {
+      setEditorMode(next);
+    }
+  };
   const previousMode = useRef({ path, mode });
   const [modeAnnouncement, setModeAnnouncement] = useState('');
   const [split, setSplit] = useState(false);
@@ -75,6 +82,26 @@ export default function NoteView({
     </span>
   );
   const metadata = useMemo(() => (isFlow(path) ? null : readFrontmatter(content)), [path, content]);
+  const contentRef = useRef(content);
+  contentRef.current = content;
+  const changeProperties = (next) => {
+    const before = splitFrontmatter(contentRef.current).prefix;
+    const after = splitFrontmatter(next).prefix;
+    if (visualRef.current && before !== after) {
+      recordFrontmatter(visualRef.current, before, after);
+    } else {
+      contentRef.current = next;
+      onChange(next);
+    }
+  };
+  const applyFrontmatterTransaction = (transaction) => {
+    const step = transaction.steps.findLast((item) => item instanceof FrontmatterStep);
+    if (step) {
+      const next = step.after + splitFrontmatter(contentRef.current).body;
+      contentRef.current = next;
+      onChange(next);
+    }
+  };
   const localRef = useRef(null);
   const viewRef = editorRef || localRef;
   const blocker = mode === 'visual' ? visualBlocker(content) : null;
@@ -312,10 +339,12 @@ export default function NoteView({
       {!sourceMode && (mode === 'visual' || metadata?.prefix) && (
         <NoteProperties
           content={content}
-          onChange={onChange}
+          onChange={changeProperties}
           editable={mode === 'visual'}
           notify={notify}
           onEditSource={() => setMode('edit')}
+          visualRef={visualRef}
+          getContent={() => contentRef.current}
         />
       )}
       <div
@@ -341,7 +370,10 @@ export default function NoteView({
           ) : mode === 'visual' ? (
             <VisualEditor
               value={content}
-              onChange={onChange}
+              onChange={(next) => {
+                contentRef.current = next;
+                onChange(next);
+              }}
               onOpenLink={onOpenLink}
               spellcheck={settings.visualSpellcheck}
               onReady={onVisualEditorReady}
@@ -352,6 +384,7 @@ export default function NoteView({
               notePaths={notePaths}
               notify={notify}
               visualRef={visualRef}
+              onFrontmatterTransaction={applyFrontmatterTransaction}
               jump={jump?.path === path ? jump : null}
               toolbarVisible={settings.visualToolbar}
             />

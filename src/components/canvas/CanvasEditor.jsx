@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { flushSync } from 'react-dom';
 import {
   canvasGroupMembers,
   canvasInvalidLinks,
@@ -11,6 +12,7 @@ import {
   serializeCanvas,
 } from '../../lib/canvas/canvas.js';
 import { binding, KEYBINDINGS, matchesBinding } from '../../lib/commands/keybindings.js';
+import { flushPendingEdits } from '../../lib/vault/pendingEdits.js';
 import CanvasBoard from './CanvasEditor/CanvasBoard.jsx';
 import CanvasControls from './CanvasEditor/CanvasControls.jsx';
 import openCanvasContextMenu from './CanvasEditor/canvasContextMenu.js';
@@ -82,9 +84,22 @@ export default function CanvasEditor({
         event.defaultPrevented ||
         event.isComposing ||
         !event.target.closest('.canvas-editor') ||
-        document.querySelector('[role="dialog"], .context-menu') ||
-        event.target.closest('input, textarea, select, [contenteditable="true"]')
+        document.querySelector('[role="dialog"], .context-menu')
       ) {
+        return;
+      }
+      if (event.target.closest('input, textarea, select, [contenteditable="true"]')) {
+        if (event.target.matches('[data-canvas-draft]')) {
+          const command = KEYBINDINGS.find(
+            (item) =>
+              ['canvas-undo', 'canvas-redo'].includes(item.id) &&
+              matchesBinding(event, binding(item.id, keybindings))
+          );
+          if (command) {
+            event.preventDefault();
+            liveActions.current[command.id]?.();
+          }
+        }
         return;
       }
       if (event.key === 'Escape') {
@@ -293,6 +308,9 @@ export default function CanvasEditor({
     onChangeRef.current(snapshot);
   };
   const undoCanvas = () => {
+    if (!flushSync(() => flushPendingEdits())) {
+      return;
+    }
     const history = canvasHistory.current;
     const previous = history.undo.pop();
     if (previous === undefined) {
@@ -302,6 +320,9 @@ export default function CanvasEditor({
     restoreCanvas(previous);
   };
   const redoCanvas = () => {
+    if (!flushSync(() => flushPendingEdits())) {
+      return;
+    }
     const history = canvasHistory.current;
     const next = history.redo.pop();
     if (next === undefined) {
@@ -315,7 +336,7 @@ export default function CanvasEditor({
   };
   const updateNode = useCallback(
     (id, changes) => {
-      const current = canvasRef.current;
+      const current = JSON.parse(currentSnapshotRef.current);
       update({
         ...current,
         nodes: current.nodes.map((item) => (item.id === id ? { ...item, ...changes } : item)),
