@@ -3,8 +3,9 @@
 This is an opt-in experiment for a narrow Electron-to-Rust filesystem boundary.
 It is not used by the renderer or production vault handlers. The Electron
 adapter is included by the release file glob, but the native addon is not
-packaged. The native build and comparison are opt-in; the adapter tests run in the normal
-test suite without building the addon. The existing JavaScript implementation in
+packaged. The native build and comparison are opt-in locally and run in CI on
+Linux, Windows, and macOS; the adapter tests run in the normal test suite
+without building the addon. The existing JavaScript implementation in
 `electron/vaultFiles.cjs` remains the application's source of truth.
 
 Run the probe with:
@@ -20,9 +21,12 @@ small temporary vault. The experiment also exposes `listVault(root, base)` and
 contents, cache invalidation, errors, and root `.taglineignore` rules with the
 JavaScript implementation. Tree ordering uses JavaScript `localeCompare` in
 the adapter; filesystem traversal, metadata, reads, and snapshot caching run
-in Rust. The native functions are synchronous and can block the main thread.
+in a native worker for the asynchronous vault APIs. `listNotePaths` remains
+synchronous and can block the main thread.
 The Rust `ignore` crate and Node's `ignore` package are independent matchers;
 the fixtures exercise common patterns but do not establish complete parity.
+Rules the Rust parser cannot compile are skipped individually so other valid
+rules remain effective.
 
 If the output directory contains addons from multiple targets, remove the stale
 `.node` files from `experiments/rust-vault/dist` and run the command again.

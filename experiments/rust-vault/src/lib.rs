@@ -1,4 +1,5 @@
 use ignore::gitignore::{Gitignore, GitignoreBuilder};
+use napi::{bindgen_prelude::AsyncTask, Env, Task};
 use napi_derive::napi;
 use std::{
     collections::{HashMap, HashSet, VecDeque},
@@ -77,7 +78,7 @@ fn load_ignore_rules(root: &Path) -> Option<Gitignore> {
             let mut builder = GitignoreBuilder::new("");
             builder.case_insensitive(true).ok()?;
             for line in contents.split('\n') {
-                builder.add_line(None, line.trim_end_matches('\r')).ok()?;
+                let _ = builder.add_line(None, line.trim_end_matches('\r'));
             }
             builder.build().ok()
         })
@@ -136,8 +137,7 @@ fn mtime_ms(time: std::time::SystemTime) -> f64 {
     }
 }
 
-#[napi]
-pub fn load_vault(
+fn load_vault_entries(
     root: String,
     base: String,
     include_contents: bool,
@@ -197,16 +197,7 @@ pub fn load_vault(
             }
         }
     }
-    let mut cache = CONTENTS
-        .get_or_init(|| Mutex::new(HashMap::new()))
-        .lock()
-        .map_err(|error| napi::Error::from_reason(error.to_string()))?;
-    let mut unused_cache = HashMap::new();
-    let cached = if include_contents {
-        cache.entry(root).or_default()
-    } else {
-        &mut unused_cache
-    };
+    let cache = CONTENTS.get_or_init(|| Mutex::new(HashMap::new()));
     let mut seen = HashSet::new();
     for (full, index) in files {
         let metadata = fs::metadata(&full).map_err(fs_error)?;
@@ -215,25 +206,69 @@ pub fn load_vault(
         entry.mtime = Some(mtime);
         if include_contents {
             seen.insert(entry.path.clone());
-            let text = match cached.get(&entry.path) {
-                Some(value) if value.mtime == mtime && value.size == metadata.len() => {
-                    value.text.clone()
-                }
-                _ => String::from_utf8_lossy(&fs::read(&full).map_err(fs_error)?).into_owned(),
+            let cached_text = cache
+                .lock()
+                .map_err(|error| napi::Error::from_reason(error.to_string()))?
+                .get(&root)
+                .and_then(|cached| cached.get(&entry.path))
+                .filter(|value| value.mtime == mtime && value.size == metadata.len())
+                .map(|value| value.text.clone());
+            let text = match cached_text {
+                Some(text) => text,
+                None => String::from_utf8_lossy(&fs::read(&full).map_err(fs_error)?).into_owned(),
             };
-            cached.insert(
-                entry.path.clone(),
-                CachedText {
-                    mtime,
-                    size: metadata.len(),
-                    text: text.clone(),
-                },
-            );
+            cache
+                .lock()
+                .map_err(|error| napi::Error::from_reason(error.to_string()))?
+                .entry(root.clone())
+                .or_default()
+                .insert(
+                    entry.path.clone(),
+                    CachedText {
+                        mtime,
+                        size: metadata.len(),
+                        text: text.clone(),
+                    },
+                );
             entry.text = Some(text);
         }
     }
     if include_contents {
-        cached.retain(|path, _| seen.contains(path));
+        if let Some(cached) = cache
+            .lock()
+            .map_err(|error| napi::Error::from_reason(error.to_string()))?
+            .get_mut(&root)
+        {
+            cached.retain(|path, _| seen.contains(path));
+        }
     }
     Ok(entries)
+}
+
+pub struct LoadVaultTask {
+    root: String,
+    base: String,
+    include_contents: bool,
+}
+
+impl Task for LoadVaultTask {
+    type Output = Vec<VaultEntry>;
+    type JsValue = Vec<VaultEntry>;
+
+    fn compute(&mut self) -> napi::Result<Self::Output> {
+        load_vault_entries(self.root.clone(), self.base.clone(), self.include_contents)
+    }
+
+    fn resolve(&mut self, _env: Env, output: Self::Output) -> napi::Result<Self::JsValue> {
+        Ok(output)
+    }
+}
+
+#[napi]
+pub fn load_vault(root: String, base: String, include_contents: bool) -> AsyncTask<LoadVaultTask> {
+    AsyncTask::new(LoadVaultTask {
+        root,
+        base,
+        include_contents,
+    })
 }

@@ -80,6 +80,25 @@ jobs:
       - name: Run unit tests
         run: npm test
 
+  rust-vault-probe:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-15-intel, macos-15]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - name: Install dependencies
+        run: npm ci
+        env:
+          ONNXRUNTIME_NODE_INSTALL: skip
+      - name: Build and compare Rust vault probe
+        run: npm run experiment:rust-vault
+
   smoke:
     needs: prepare
     runs-on: ubuntu-latest

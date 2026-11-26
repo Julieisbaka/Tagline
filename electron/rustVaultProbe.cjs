@@ -33,10 +33,10 @@ function listNotePaths(root) {
   return loadNativeModule().listNotePaths(root);
 }
 
-function loadVault(root, base, includeContents) {
+async function loadVault(root, base, includeContents) {
   let entries;
   try {
-    entries = loadNativeModule().loadVault(path.resolve(root), base, includeContents);
+    entries = await loadNativeModule().loadVault(path.resolve(root), base, includeContents);
   } catch (error) {
     const match = /^TAGLINE_VAULT_ERROR:([A-Z]+):(\d+): /.exec(error.message);
     if (match) {
@@ -86,7 +86,7 @@ function loadVault(root, base, includeContents) {
 }
 
 async function listVault(root, base = '') {
-  return loadVault(root, base, false).tree;
+  return (await loadVault(root, base, false)).tree;
 }
 
 async function readVaultSnapshot(root) {

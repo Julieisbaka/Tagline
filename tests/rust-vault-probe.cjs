@@ -47,6 +47,11 @@ async function checkIgnoreRules(root) {
       ['Folder/deep/note.flow', 'Folder/keep.md', 'Other/note.json', 'keep.md'],
     ],
     ['/drop.md\n/Root.md\n', files.filter((file) => file !== 'Root.md')],
+    ['Root.md\n!Root.md\n', files],
+    ['!Root.md\nRoot.md\n', files.filter((file) => file !== 'Root.md')],
+    ['?eep.md\n', files.filter((file) => !file.endsWith('keep.md'))],
+    ['[RU]*.md\n', files.filter((file) => !['Root.md', 'UPPER.MD'].includes(file))],
+    ['/Folder/*.md\n', files.filter((file) => !['Folder/drop.md', 'Folder/keep.md'].includes(file))],
     ['folder/\n!Folder/keep.md\n', files.filter((file) => !file.startsWith('Folder/'))],
     [
       'Folder/**\n!Folder/keep.md\n',
@@ -75,7 +80,10 @@ async function checkIgnoreRules(root) {
       files.filter((file) => file !== 'Other/note.json').sort(),
       `JavaScript rules: ${rules}`
     );
-    assert.deepEqual(listNotePaths(root), [...files].sort(), `Rust rules: ${rules}`);
+    const expected = files.filter((file) => file !== 'Other/note.json').sort();
+    assert.deepEqual(listNotePaths(root), expected, `Rust rules: ${rules}`);
+    assert.deepEqual(await listRustVault(root), await listVault(root), `Tree rules: ${rules}`);
+    assert.deepEqual(await readRustSnapshot(root), await readVaultSnapshot(root), `Snapshot rules: ${rules}`);
   }
   await fs.rm(path.join(root, '.taglineignore'));
   assert.deepEqual(listNotePaths(root), files.sort());
@@ -110,6 +118,12 @@ async function checkVaultContract(root) {
     return actual;
   }
   let snapshot = await compareSnapshots();
+  const concurrentSnapshots = await Promise.all([
+    readRustSnapshot(root),
+    listRustVault(root),
+    readRustSnapshot(root),
+  ]);
+  assert.deepEqual(concurrentSnapshots, [snapshot, snapshot.tree, snapshot]);
   assert.deepEqual(snapshot.contents, {
     'z folder/nested.flow': 'flow',
     'a.md': 'a\uFFFD',
@@ -222,7 +236,7 @@ async function main() {
       '\uE000.md',
     ]);
     assert.deepEqual(listNotePaths(root), expected);
-    if (process.platform !== 'win32') {
+    if (process.platform !== 'win32' && process.platform !== 'darwin') {
       const invalidPath = Buffer.concat([
         Buffer.from(`${root}${path.sep}bad`),
         Buffer.from([0xff]),
