@@ -112,7 +112,7 @@ static CONTENTS: OnceLock<Mutex<HashMap<String, HashMap<String, CachedText>>>> =
 fn fs_error(error: io::Error) -> napi::Error {
     let code = match (cfg!(windows), error.raw_os_error(), error.kind()) {
         (true, Some(1921), _) => "ELOOP",
-        (true, Some(5), _) => "EPERM",
+        (true, Some(5), _) => "EACCES",
         (true, Some(1920), _) => "EACCES",
         (true, Some(32 | 33), _) => "EBUSY",
         (_, _, io::ErrorKind::NotFound) => "ENOENT",
@@ -125,6 +125,17 @@ fn fs_error(error: io::Error) -> napi::Error {
         "TAGLINE_VAULT_ERROR:{code}:{}: {error}",
         error.raw_os_error().unwrap_or(0)
     ))
+}
+
+#[cfg(all(test, windows))]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn windows_access_denied_is_eacces() {
+        let error = fs_error(io::Error::from_raw_os_error(5));
+        assert!(error.reason.starts_with("TAGLINE_VAULT_ERROR:EACCES:5:"));
+    }
 }
 
 fn mtime_ms(time: std::time::SystemTime) -> f64 {
