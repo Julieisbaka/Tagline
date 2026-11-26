@@ -8,6 +8,7 @@ publish = false
 crate-type = ["cdylib"]
 
 [dependencies]
+ignore = "0.4.35"
 napi = "3"
 napi-derive = "3"
 

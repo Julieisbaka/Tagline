@@ -16,6 +16,57 @@ function flatten(nodes, paths = []) {
   return paths.sort();
 }
 
+async function checkIgnoreRules(root) {
+  const files = [
+    'Root.md',
+    'keep.md',
+    'UPPER.MD',
+    '#literal.md',
+    '!literal.md',
+    'space name.md',
+    'trailing .md',
+    'Folder/drop.md',
+    'Folder/keep.md',
+    'Folder/deep/note.flow',
+    'Other/drop.md',
+    'Other/note.json',
+  ];
+  for (const file of files) {
+    await fs.mkdir(path.dirname(path.join(root, file)), { recursive: true });
+    await fs.writeFile(path.join(root, file), '');
+  }
+  await fs.writeFile(path.join(root, 'Folder', '.taglineignore'), '*.flow\n');
+  const cases = [
+    ['', files],
+    [
+      '# comment\r\n*.MD\r\n!keep.md\r\n',
+      ['Folder/deep/note.flow', 'Folder/keep.md', 'Other/note.json', 'keep.md'],
+    ],
+    ['/drop.md\n/Root.md\n', files.filter((file) => file !== 'Root.md')],
+    ['folder/\n!Folder/keep.md\n', files.filter((file) => !file.startsWith('Folder/'))],
+    [
+      'Folder/**\n!Folder/keep.md\n',
+      files.filter((file) => !file.startsWith('Folder/') || file === 'Folder/keep.md'),
+    ],
+    ['**/drop.md\n', files.filter((file) => !file.endsWith('/drop.md'))],
+    [
+      '\\#literal.md\n\\!literal.md\nspace\\ name.md\ntrailing\\ .md\n',
+      files.filter(
+        (file) => !['#literal.md', '!literal.md', 'space name.md', 'trailing .md'].includes(file)
+      ),
+    ],
+    ['[z-a].md\nOther/*.json\n', files.filter((file) => file !== 'Other/note.json')],
+  ];
+  for (const [rules, expected] of cases) {
+    await fs.writeFile(path.join(root, '.taglineignore'), rules);
+    const sorted = [...expected].sort();
+    assert.deepEqual(flatten(await listVault(root)), sorted, `JavaScript rules: ${rules}`);
+    assert.deepEqual(listNotePaths(root), sorted, `Rust rules: ${rules}`);
+  }
+  await fs.rm(path.join(root, '.taglineignore'));
+  assert.deepEqual(listNotePaths(root), files.sort());
+}
+
 async function main() {
   const root = await fs.mkdtemp(path.join(os.tmpdir(), 'tagline-rust-vault-'));
   try {
@@ -43,21 +94,20 @@ async function main() {
       console.log('Symlink fixture skipped: symlink creation is not permitted.');
     }
     const expected = flatten(await listVault(root));
-    assert.deepEqual(
-      expected,
-      [
-        'Nested/Mixed.CaNvAs',
-        'Nested/flow.json',
-        'argument.md',
-        ...(hasSymlink ? ['linked.MD'] : []),
-        '😀.md',
-        '\uE000.md',
-      ]
-    );
+    assert.deepEqual(expected, [
+      'Nested/Mixed.CaNvAs',
+      'Nested/flow.json',
+      'argument.md',
+      ...(hasSymlink ? ['linked.MD'] : []),
+      '😀.md',
+      '\uE000.md',
+    ]);
     assert.deepEqual(listNotePaths(root), expected);
     if (process.platform !== 'win32') {
       const invalidPath = Buffer.concat([
-        Buffer.from(`${root}${path.sep}bad`), Buffer.from([0xff]), Buffer.from('.md'),
+        Buffer.from(`${root}${path.sep}bad`),
+        Buffer.from([0xff]),
+        Buffer.from('.md'),
       ]);
       await fs.writeFile(invalidPath, '');
       const decodedPath = 'bad\uFFFD.md';
@@ -74,6 +124,12 @@ async function main() {
       await fs.symlink('missing-target.md', path.join(root, 'missing.md'), 'file');
       assert.deepEqual(listNotePaths(root), [...expected, 'missing.md'].sort());
       await assert.rejects(listVault(root), { code: 'ENOENT' });
+    }
+    const ignoreRoot = await fs.mkdtemp(path.join(os.tmpdir(), 'tagline-rust-ignore-'));
+    try {
+      await checkIgnoreRules(ignoreRoot);
+    } finally {
+      await fs.rm(ignoreRoot, { recursive: true, force: true });
     }
     console.log(`Rust probe matched JavaScript for ${expected.length} vault files.`);
   } finally {

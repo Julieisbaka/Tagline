@@ -15,6 +15,9 @@ npm run experiment:rust-vault
 The command builds a platform-specific N-API addon and compares its read-only
 `listNotePaths(root)` result with the JavaScript `listVault(root)` result for a
 small temporary vault.
+It also compares root `.taglineignore` rules against the JavaScript listing.
+The Rust `ignore` crate and Node's `ignore` package are independent matchers;
+the fixtures exercise common patterns but do not establish complete parity.
 
 If the output directory contains addons from multiple targets, remove the stale
 `.node` files from `experiments/rust-vault/dist` and run the command again.
@@ -30,6 +33,6 @@ The intended production boundary is unchanged IPC: Electron would continue to
 validate the vault and IPC sender, while a Rust addon could replace a private
 filesystem primitive behind that handler.
 
-This probe intentionally omits ignore-rule parsing, content caching, native file
-watching, packaging, and IPC registration. Those belong in later experiments
-after the build and error-handling tradeoffs are understood.
+This probe intentionally omits content caching, native file watching, packaging,
+and IPC registration. Those belong in later experiments after the build and
+error-handling tradeoffs are understood.
