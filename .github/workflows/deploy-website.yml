@@ -12,6 +12,7 @@ on:
   workflow_dispatch:
 
 permissions:
+  actions: read
   contents: read
   pages: write
   id-token: write
@@ -24,7 +25,7 @@ jobs:
   deploy:
     environment:
       name: GitHub Pages
-      url: ${{ steps.deployment.outputs.page_url }}
+      url: ${{ steps.deployment_retry_2.outputs.page_url || steps.deployment_retry_1.outputs.page_url || steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -48,6 +49,63 @@ jobs:
         with:
           path: website-build
 
+      - name: Wait for Pages artifact metadata
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const token = process.env.ACTIONS_RUNTIME_TOKEN;
+            const resultsUrl = process.env.ACTIONS_RESULTS_URL;
+            if (!token || !resultsUrl) throw new Error('Actions artifact service is unavailable.');
+            const claims = JSON.parse(Buffer.from(token.split('.')[1], 'base64url').toString());
+            const scope = claims.scp?.split(' ').find(part => part.startsWith('Actions.Results:'))?.split(':');
+            if (scope?.length !== 3 || !scope[1] || !scope[2]) throw new Error('Actions artifact service scope is missing.');
+            const url = new URL('/twirp/github.actions.results.api.v1.ArtifactService/ListArtifacts', resultsUrl);
+            for (let attempt = 1; attempt <= 12; attempt++) {
+              const response = await fetch(url, {
+                method: 'POST',
+                headers: { authorization: 'Bearer' + ' ' + token, 'content-type': 'application/json' },
+                body: JSON.stringify({ workflowRunBackendId: scope[1], workflowJobRunBackendId: scope[2] }),
+                redirect: 'error',
+                signal: AbortSignal.timeout(10000)
+              });
+              if (!response.ok) throw new Error(`Artifact service returned HTTP ${response.status}.`);
+              const { artifacts = [] } = await response.json();
+              if (artifacts.filter(artifact => artifact.name === 'github-pages').length === 1) {
+                console.log('Pages artifact metadata is available.');
+                return;
+              }
+              console.log(`Pages artifact metadata not available yet (attempt ${attempt}/12).`);
+              if (attempt < 12) await new Promise(resolve => setTimeout(resolve, 5000));
+            }
+            throw new Error('Pages artifact metadata did not become available after 12 attempts.');
+
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
+        continue-on-error: true
+
+      - name: Wait before retrying Pages deployment
+        if: steps.deployment.outcome == 'failure'
+        run: sleep 10
+
+      - name: Retry GitHub Pages deployment
+        id: deployment_retry_1
+        if: steps.deployment.outcome == 'failure'
+        uses: actions/deploy-pages@v4
+        continue-on-error: true
+
+      - name: Wait before retrying Pages deployment again
+        if: steps.deployment_retry_1.outcome == 'failure'
+        run: sleep 20
+
+      - name: Retry GitHub Pages deployment again
+        id: deployment_retry_2
+        if: steps.deployment_retry_1.outcome == 'failure'
+        uses: actions/deploy-pages@v4
+        continue-on-error: true
+
+      - name: Fail if Pages deployment could not start
+        if: ${{ always() && steps.deployment.outcome == 'failure' && steps.deployment_retry_1.outcome != 'success' && steps.deployment_retry_2.outcome != 'success' }}
+        run: |
+          echo "GitHub Pages deployment failed after the readiness check and retry attempts." >&2
+          exit 1
