@@ -34,3 +34,9 @@ test('rust vault probe rejects multiple native addons', (t) => {
   const { listNotePaths } = loadWithDirectoryResult(t, ['probe.linux-x64-gnu.node', 'probe.win32-x64-msvc.node']);
   assert.throws(() => listNotePaths('.'), /Multiple Rust vault probe addons found/);
 });
+
+test('vault contract adapter rejects when the native addon is unavailable', async (t) => {
+  const { listVault, readVaultSnapshot } = loadWithDirectoryResult(t, []);
+  await assert.rejects(listVault('.'), /Rust vault probe is not built/);
+  await assert.rejects(readVaultSnapshot('.'), /Rust vault probe is not built/);
+});

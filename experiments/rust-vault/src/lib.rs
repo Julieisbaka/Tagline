@@ -1,6 +1,13 @@
 use ignore::gitignore::{Gitignore, GitignoreBuilder};
 use napi_derive::napi;
-use std::{ffi::OsStr, fs, path::Path};
+use std::{
+    collections::{HashMap, HashSet, VecDeque},
+    ffi::OsStr,
+    fs, io,
+    path::{Path, PathBuf},
+    sync::{Mutex, OnceLock},
+    time::UNIX_EPOCH,
+};
 
 fn ignored(matcher: &Gitignore, relative: &str) -> bool {
     let path = Path::new(relative);
@@ -62,11 +69,8 @@ fn collect(
     Ok(())
 }
 
-#[napi]
-pub fn list_note_paths(root: String) -> napi::Result<Vec<String>> {
-    let root =
-        fs::canonicalize(root).map_err(|error| napi::Error::from_reason(error.to_string()))?;
-    let matcher = fs::read(root.join(".taglineignore"))
+fn load_ignore_rules(root: &Path) -> Option<Gitignore> {
+    fs::read(root.join(".taglineignore"))
         .ok()
         .and_then(|contents| {
             let contents = String::from_utf8_lossy(&contents);
@@ -76,9 +80,160 @@ pub fn list_note_paths(root: String) -> napi::Result<Vec<String>> {
                 builder.add_line(None, line.trim_end_matches('\r')).ok()?;
             }
             builder.build().ok()
-        });
+        })
+}
+
+#[napi]
+pub fn list_note_paths(root: String) -> napi::Result<Vec<String>> {
+    let root =
+        fs::canonicalize(root).map_err(|error| napi::Error::from_reason(error.to_string()))?;
+    let matcher = load_ignore_rules(&root);
     let mut paths = Vec::new();
     collect(&root, &root, matcher.as_ref(), &mut paths)?;
     paths.sort_by(|a, b| a.encode_utf16().cmp(b.encode_utf16()));
     Ok(paths)
+}
+
+#[napi(object)]
+pub struct VaultEntry {
+    pub parent: i32,
+    pub name: String,
+    pub path: String,
+    pub is_folder: bool,
+    pub mtime: Option<f64>,
+    pub text: Option<String>,
+}
+
+struct CachedText {
+    mtime: f64,
+    size: u64,
+    text: String,
+}
+
+static CONTENTS: OnceLock<Mutex<HashMap<String, HashMap<String, CachedText>>>> = OnceLock::new();
+
+fn fs_error(error: io::Error) -> napi::Error {
+    let code = match error.kind() {
+        io::ErrorKind::NotFound => "ENOENT",
+        io::ErrorKind::PermissionDenied => "EACCES",
+        io::ErrorKind::NotADirectory => "ENOTDIR",
+        io::ErrorKind::IsADirectory => "EISDIR",
+        _ => "UNKNOWN",
+    };
+    napi::Error::from_reason(format!(
+        "TAGLINE_VAULT_ERROR:{code}:{}: {error}",
+        error.raw_os_error().unwrap_or(0)
+    ))
+}
+
+fn mtime_ms(time: std::time::SystemTime) -> f64 {
+    match time.duration_since(UNIX_EPOCH) {
+        Ok(duration) => duration.as_secs() as f64 * 1000.0 + duration.subsec_nanos() as f64 / 1e6,
+        Err(error) => {
+            let duration = error.duration();
+            -(duration.as_secs() as f64 * 1000.0 + duration.subsec_nanos() as f64 / 1e6)
+        }
+    }
+}
+
+#[napi]
+pub fn load_vault(
+    root: String,
+    base: String,
+    include_contents: bool,
+) -> napi::Result<Vec<VaultEntry>> {
+    let root_path = Path::new(&root);
+    let matcher = load_ignore_rules(root_path);
+    let mut entries: Vec<VaultEntry> = Vec::new();
+    let mut directories = VecDeque::from([(root_path.to_path_buf(), base, -1)]);
+    let mut files: Vec<(PathBuf, usize)> = Vec::new();
+    while let Some((directory, prefix, parent)) = directories.pop_front() {
+        for entry in fs::read_dir(&directory).map_err(fs_error)? {
+            let entry = entry.map_err(fs_error)?;
+            let name = entry.file_name().to_string_lossy().into_owned();
+            if name.starts_with('.') {
+                continue;
+            }
+            let relative = if prefix.is_empty() {
+                name.clone()
+            } else {
+                format!("{prefix}/{name}")
+            };
+            if matcher
+                .as_ref()
+                .is_some_and(|matcher| ignored(matcher, &relative))
+            {
+                continue;
+            }
+            let folder = entry.file_type().map_err(fs_error)?.is_dir();
+            if !folder
+                && !Path::new(&name)
+                    .extension()
+                    .and_then(OsStr::to_str)
+                    .is_some_and(|ext| {
+                        matches!(
+                            ext.to_lowercase().as_str(),
+                            "md" | "flow" | "canvas" | "json"
+                        )
+                    })
+            {
+                continue;
+            }
+            // Node reconstructs paths from decoded directory entry names.
+            let full = directory.join(&name);
+            let index = entries.len();
+            entries.push(VaultEntry {
+                parent,
+                name,
+                path: relative.clone(),
+                is_folder: folder,
+                mtime: None,
+                text: None,
+            });
+            if folder {
+                directories.push_back((full, relative, index as i32));
+            } else {
+                files.push((full, index));
+            }
+        }
+    }
+    let mut cache = CONTENTS
+        .get_or_init(|| Mutex::new(HashMap::new()))
+        .lock()
+        .map_err(|error| napi::Error::from_reason(error.to_string()))?;
+    let mut unused_cache = HashMap::new();
+    let cached = if include_contents {
+        cache.entry(root).or_default()
+    } else {
+        &mut unused_cache
+    };
+    let mut seen = HashSet::new();
+    for (full, index) in files {
+        let metadata = fs::metadata(&full).map_err(fs_error)?;
+        let mtime = mtime_ms(metadata.modified().map_err(fs_error)?);
+        let entry = &mut entries[index];
+        entry.mtime = Some(mtime);
+        if include_contents {
+            seen.insert(entry.path.clone());
+            let text = match cached.get(&entry.path) {
+                Some(value) if value.mtime == mtime && value.size == metadata.len() => {
+                    value.text.clone()
+                }
+                _ => String::from_utf8_lossy(&fs::read(&full).map_err(fs_error)?).into_owned(),
+            };
+            cached.insert(
+                entry.path.clone(),
+                CachedText {
+                    mtime,
+                    size: metadata.len(),
+                    text: text.clone(),
+                },
+            );
+            entry.text = Some(text);
+        }
+    }
+    if include_contents {
+        cached.retain(|path, _| seen.contains(path));
+    }
+    Ok(entries)
 }

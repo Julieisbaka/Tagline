@@ -1,5 +1,6 @@
 const { readdirSync } = require('node:fs');
 const path = require('node:path');
+const { getSystemErrorName } = require('node:util');
 
 let nativeModule;
 
@@ -32,4 +33,64 @@ function listNotePaths(root) {
   return loadNativeModule().listNotePaths(root);
 }
 
-module.exports = { listNotePaths };
+function loadVault(root, base, includeContents) {
+  let entries;
+  try {
+    entries = loadNativeModule().loadVault(path.resolve(root), base, includeContents);
+  } catch (error) {
+    const match = /^TAGLINE_VAULT_ERROR:([A-Z]+):(\d+): /.exec(error.message);
+    if (match) {
+      error.code = match[1];
+      if (process.platform !== 'win32' && Number(match[2]) > 0) {
+        error.code = getSystemErrorName(-Number(match[2]));
+      }
+      error.message = error.message.slice(match[0].length);
+    }
+    throw error;
+  }
+  const tree = [];
+  const children = [];
+  for (const entry of entries) {
+    const node = entry.isFolder
+      ? { type: 'folder', path: entry.path, name: entry.name, children: [] }
+      : { type: 'file', path: entry.path, name: entry.name, mtime: entry.mtime };
+    (entry.parent === -1 ? tree : children[entry.parent]).push(node);
+    children.push(node.children);
+  }
+  const contents = {};
+  function collect(nodes) {
+    nodes.sort((a, b) =>
+      a.type === b.type ? a.name.localeCompare(b.name) : a.type === 'folder' ? -1 : 1
+    );
+    for (const node of nodes) {
+      if (node.type === 'folder') {
+        collect(node.children);
+      }
+    }
+  }
+  collect(tree);
+  if (includeContents) {
+    const texts = new Map(entries.filter((entry) => !entry.isFolder).map((entry) => [entry.path, entry.text]));
+    function collectContents(nodes) {
+      for (const node of nodes) {
+        if (node.type === 'folder') {
+          collectContents(node.children);
+        } else {
+          contents[node.path] = texts.get(node.path);
+        }
+      }
+    }
+    collectContents(tree);
+  }
+  return { tree, contents };
+}
+
+async function listVault(root, base = '') {
+  return loadVault(root, base, false).tree;
+}
+
+async function readVaultSnapshot(root) {
+  return loadVault(root, '', true);
+}
+
+module.exports = { listNotePaths, listVault, readVaultSnapshot };
