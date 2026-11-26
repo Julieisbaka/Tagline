@@ -1,5 +1,8 @@
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const path = require('node:path');
+const vm = require('node:vm');
 
 test('Markdown link resolution stays scoped to each render', async () => {
   const { createMarkdownParser } = await import('../src/lib/markdown/markdown.js');
@@ -77,4 +80,40 @@ test('heading normalization resolves document reference links', async () => {
   assert.equal(slugify(raw, content), 'clean-energy');
   assert.match(createMarkdownParser(() => null).parse(content), /id="clean-energy"/);
   assert.equal(headingText(raw), '[Clean][ref] energy');
+});
+
+test('heading link lookups resolve source, display, and slug fragments with document references', async () => {
+  const { slugify } = await import('../src/lib/markdown/markdown.js');
+  const { outline } = await import('../src/lib/vault/vault.js');
+  const content =
+    '# Other\n\n# [Clean][ref] **energy**\n\nSection body\n\n# Next\n\n[ref]: https://example.com\n';
+  const headings = outline(content);
+  for (const file of [
+    'src/App/useAppOperations.js',
+    'src/App/useAppCommandContext.js',
+    'src/components/CanvasFilePreview.jsx',
+  ]) {
+    const source = fs.readFileSync(path.join(__dirname, '..', file), 'utf8');
+    const predicate = source.match(
+      /\((?:x|heading)\)\s*=>\s*slugify\([^\n]+?\)\s*===\s*slugify\([^\n]+?\)(?=\s*\n)/
+    );
+    assert.ok(predicate, `heading lookup exists in ${file}`);
+    for (const fragment of ['[Clean][ref] **energy**', 'Clean energy', 'clean-energy', 'Missing']) {
+      const matches = vm.runInNewContext(predicate[0], {
+        slugify,
+        content,
+        heading: fragment,
+        subpath: `#${fragment}`,
+        path: 'Note.md',
+        v: { contents: { 'Note.md': content } },
+        contents: { 'Note.md': content },
+        link: { path: 'Note.md', heading: fragment },
+      });
+      assert.equal(
+        headings.findIndex(matches),
+        fragment === 'Missing' ? -1 : 1,
+        `${file}: ${fragment}`
+      );
+    }
+  }
 });

@@ -73,7 +73,7 @@ export function useAppOperations({
       tabs.openPath(path, newTab);
       if (heading) {
         const h = outline(v.contents[path] || '').find(
-          (x) => slugify(x.text, v.contents[path]) === slugify(heading)
+          (x) => slugify(x.text, v.contents[path]) === slugify(heading, v.contents[path])
         );
         setJump({ path, heading, line: h?.line ?? null, n: Date.now() });
       }
