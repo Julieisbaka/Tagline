@@ -52,6 +52,10 @@ async function checkIgnoreRules(root) {
     ['?eep.md\n', files.filter((file) => !file.endsWith('keep.md'))],
     ['[RU]*.md\n', files.filter((file) => !['Root.md', 'UPPER.MD'].includes(file))],
     ['/Folder/*.md\n', files.filter((file) => !['Folder/drop.md', 'Folder/keep.md'].includes(file))],
+    ['*.json\n!Other/note.json\n', files],
+    ['Folder/**/note.flow\n', files.filter((file) => file !== 'Folder/deep/note.flow')],
+    ['*.md   \n', files.filter((file) => !file.toLowerCase().endsWith('.md'))],
+    ['Folder\n!Folder\n', files],
     ['folder/\n!Folder/keep.md\n', files.filter((file) => !file.startsWith('Folder/'))],
     [
       'Folder/**\n!Folder/keep.md\n',
@@ -167,6 +171,7 @@ async function checkVaultContract(root) {
   for (const dir of [path.join(root, 'missing'), path.join(root, 'a.md')]) {
     const expectedError = await listVault(dir).then(() => null, (error) => error);
     assert.ok(expectedError);
+    assert.throws(() => listNotePaths(dir), { code: expectedError.code });
     await assert.rejects(listRustVault(dir), { code: expectedError.code });
     await assert.rejects(readRustSnapshot(dir), { code: expectedError.code });
   }
@@ -197,6 +202,10 @@ async function checkVaultContract(root) {
     const expectedError = await readVaultSnapshot(root).then(() => null, (error) => error);
     assert.ok(expectedError);
     await assert.rejects(readRustSnapshot(root), { code: expectedError.code });
+    const loop = path.join(root, 'loop.md');
+    const expectedLoopError = await listVault(loop).then(() => null, (error) => error);
+    assert.ok(expectedLoopError);
+    assert.throws(() => listNotePaths(loop), { code: expectedLoopError.code });
   }
 }
 

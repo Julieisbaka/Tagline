@@ -30,14 +30,11 @@ fn collect(
     matcher: Option<&Gitignore>,
     paths: &mut Vec<String>,
 ) -> napi::Result<()> {
-    let entries =
-        fs::read_dir(directory).map_err(|error| napi::Error::from_reason(error.to_string()))?;
+    let entries = fs::read_dir(directory).map_err(fs_error)?;
 
     for entry in entries {
-        let entry = entry.map_err(|error| napi::Error::from_reason(error.to_string()))?;
-        let file_type = entry
-            .file_type()
-            .map_err(|error| napi::Error::from_reason(error.to_string()))?;
+        let entry = entry.map_err(fs_error)?;
+        let file_type = entry.file_type().map_err(fs_error)?;
         let name = entry.file_name();
         if name.to_string_lossy().starts_with('.') {
             continue;
@@ -86,8 +83,7 @@ fn load_ignore_rules(root: &Path) -> Option<Gitignore> {
 
 #[napi]
 pub fn list_note_paths(root: String) -> napi::Result<Vec<String>> {
-    let root =
-        fs::canonicalize(root).map_err(|error| napi::Error::from_reason(error.to_string()))?;
+    let root = fs::canonicalize(root).map_err(fs_error)?;
     let matcher = load_ignore_rules(&root);
     let mut paths = Vec::new();
     collect(&root, &root, matcher.as_ref(), &mut paths)?;
@@ -114,11 +110,15 @@ struct CachedText {
 static CONTENTS: OnceLock<Mutex<HashMap<String, HashMap<String, CachedText>>>> = OnceLock::new();
 
 fn fs_error(error: io::Error) -> napi::Error {
-    let code = match error.kind() {
-        io::ErrorKind::NotFound => "ENOENT",
-        io::ErrorKind::PermissionDenied => "EACCES",
-        io::ErrorKind::NotADirectory => "ENOTDIR",
-        io::ErrorKind::IsADirectory => "EISDIR",
+    let code = match (cfg!(windows), error.raw_os_error(), error.kind()) {
+        (true, Some(1921), _) => "ELOOP",
+        (true, Some(5), _) => "EPERM",
+        (true, Some(1920), _) => "EACCES",
+        (true, Some(32 | 33), _) => "EBUSY",
+        (_, _, io::ErrorKind::NotFound) => "ENOENT",
+        (_, _, io::ErrorKind::PermissionDenied) => "EACCES",
+        (_, _, io::ErrorKind::NotADirectory) => "ENOTDIR",
+        (_, _, io::ErrorKind::IsADirectory) => "EISDIR",
         _ => "UNKNOWN",
     };
     napi::Error::from_reason(format!(

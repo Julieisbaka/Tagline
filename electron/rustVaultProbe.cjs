@@ -30,7 +30,30 @@ function loadNativeModule() {
 }
 
 function listNotePaths(root) {
-  return loadNativeModule().listNotePaths(root);
+  try {
+    return loadNativeModule().listNotePaths(root);
+  } catch (error) {
+    throw normalizeError(error);
+  }
+}
+
+function normalizeError(error) {
+  const match = /^TAGLINE_VAULT_ERROR:([A-Z]+):(\d+): /.exec(error.message);
+  if (match) {
+    error.code = match[1];
+    if (process.platform !== 'win32' && Number(match[2]) > 0) {
+      try {
+        const code = getSystemErrorName(-Number(match[2]));
+        if (!code.startsWith('Unknown system error')) {
+          error.code = code;
+        }
+      } catch {
+        // Keep the native fallback for unrecognized system error numbers.
+      }
+    }
+    error.message = error.message.slice(match[0].length);
+  }
+  return error;
 }
 
 async function loadVault(root, base, includeContents) {
@@ -38,15 +61,7 @@ async function loadVault(root, base, includeContents) {
   try {
     entries = await loadNativeModule().loadVault(path.resolve(root), base, includeContents);
   } catch (error) {
-    const match = /^TAGLINE_VAULT_ERROR:([A-Z]+):(\d+): /.exec(error.message);
-    if (match) {
-      error.code = match[1];
-      if (process.platform !== 'win32' && Number(match[2]) > 0) {
-        error.code = getSystemErrorName(-Number(match[2]));
-      }
-      error.message = error.message.slice(match[0].length);
-    }
-    throw error;
+    throw normalizeError(error);
   }
   const tree = [];
   const children = [];

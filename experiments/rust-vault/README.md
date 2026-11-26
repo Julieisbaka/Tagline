@@ -26,7 +26,7 @@ synchronous and can block the main thread.
 The Rust `ignore` crate and Node's `ignore` package are independent matchers;
 the fixtures exercise common patterns but do not establish complete parity.
 Rules the Rust parser cannot compile are skipped individually so other valid
-rules remain effective.
+rules remain effective; such rules may still be interpreted differently by Node.
 
 If the output directory contains addons from multiple targets, remove the stale
 `.node` files from `experiments/rust-vault/dist` and run the command again.
@@ -46,5 +46,10 @@ This probe intentionally omits native file watching, native addon packaging,
 and IPC registration. Snapshot caching, like the JavaScript implementation,
 uses file mtime and size and prunes entries missing from a successful snapshot.
 Native filesystem errors expose common Node error codes through the adapter,
-but their messages and other error properties are not identical to Node's.
-Parity is not established for all ignore rules, platforms, or filesystem races.
+including for `listNotePaths`, but their messages and other error properties are
+not identical to Node's. Windows mappings cover only selected error codes.
+File symlinks are followed when collecting metadata and contents, as in the
+JavaScript implementation; neither probe establishes vault-boundary safety.
+Symlink tests may be skipped on Windows when creating links is not permitted.
+Parity is not established for all ignore rules, platforms, concurrent cache
+updates, or filesystem races.
