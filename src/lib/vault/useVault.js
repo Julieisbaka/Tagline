@@ -296,14 +296,17 @@ export function useVault(
      * @returns {void}
      */
     const onUnload = (event) => {
-      if (!Object.keys(pending.current).length && !writes.current.size) {
+      const valid = flushPendingEdits();
+      if (valid && !Object.keys(pending.current).length && !writes.current.size) {
         return;
       }
       event.preventDefault();
       // TODO: This declaration is deprecated, look into replacing it.
       event.returnValue = false;
       // A completed flush is not an error: the next close or reload attempt proceeds.
-      flush().catch(report);
+      if (valid) {
+        flush().catch(report);
+      }
     };
     const unsubscribe = api.onPrepareClose(async () => {
       setClosePending(true);

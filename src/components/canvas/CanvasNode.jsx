@@ -190,29 +190,33 @@ const CanvasNode = memo(function CanvasNode({
               suggestions={(draft) => suggestCanvasFiles(paths, draft)}
               onCommit={(file) => onUpdate(node.id, { file })}
             >
-              {(file) => (
-                <>
-                  {node.subpath !== undefined && (
-                    <DraftInput
-                      aria-label={t('File subpath')}
-                      value={node.subpath}
-                      onCommit={(subpath) => onUpdate(node.id, { subpath: subpath || undefined })}
-                    />
-                  )}
+              {(file) => {
+                const openFile = (subpath) => (
                   <button
                     className='link-btn canvas-open-file'
                     disabled={!resolveLink(file, paths)}
                     onClick={() => {
                       const path = resolveLink(file, paths);
                       if (path) {
-                        onOpenFile(path, node.subpath);
+                        onOpenFile(path, subpath);
                       }
                     }}
                   >
                     {file || t('Open file')}
                   </button>
-                </>
-              )}
+                );
+                return node.subpath !== undefined ? (
+                  <DraftInput
+                    aria-label={t('File subpath')}
+                    value={node.subpath}
+                    onCommit={(subpath) => onUpdate(node.id, { subpath: subpath || undefined })}
+                  >
+                    {(subpath) => openFile(subpath || undefined)}
+                  </DraftInput>
+                ) : (
+                  openFile(undefined)
+                );
+              }}
             </DraftInput>
             <CanvasFilePreview
               path={resolveLink(node.file, paths)}

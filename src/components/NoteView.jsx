@@ -2,7 +2,6 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { cardStats, formatDuration, getSectionAt } from '../lib/evidence/card.js';
 import { readFrontmatter, splitFrontmatter } from '../lib/markdown/frontmatter.js';
 import { FrontmatterStep, recordFrontmatter } from '../lib/editor/frontmatterHistory.js';
-import { flushPendingEdits } from '../lib/vault/pendingEdits.js';
 import { useI18n } from '../lib/i18n/i18n.js';
 import { binding, displayBinding } from '../lib/commands/keybindings.js';
 import { calibrateReading, readingAssessment, readingSeconds } from '../lib/speech/readTime.js';
@@ -21,7 +20,7 @@ export default function NoteView({
   path,
   content,
   mode,
-  setMode: setEditorMode,
+  setMode,
   highlightOnly,
   setHighlightOnly,
   jump,
@@ -50,11 +49,6 @@ export default function NoteView({
   extensions,
 }) {
   const { t } = useI18n();
-  const setMode = (next) => {
-    if (flushPendingEdits()) {
-      setEditorMode(next);
-    }
-  };
   const previousMode = useRef({ path, mode });
   const [modeAnnouncement, setModeAnnouncement] = useState('');
   const [split, setSplit] = useState(false);

@@ -102,6 +102,21 @@ module.exports = async function runScenario({
   await wait("document.querySelector('.tab.active').title === 'Alpha.md'");
   await open('Drafts.canvas');
   await js(`(() => {
+    const input = document.querySelector('[data-node-id="file"] [aria-label="File subpath"]');
+    input.focus();
+    Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set.call(input, '#Claim');
+    input.dispatchEvent(new Event('input', { bubbles: true }));
+  })()`);
+  await js(`(() => {
+    const button = document.querySelector('[data-node-id="file"] .canvas-open-file');
+    button.focus(); button.click();
+  })()`);
+  await wait("document.querySelector('.tab.active').title === 'Alpha.md'");
+  await wait(
+    "document.querySelector('.visual-document')?.editor?.state.selection.$from.parent.textContent === 'Claim'"
+  );
+  await open('Drafts.canvas');
+  await js(`(() => {
     const input = document.querySelector('[data-node-id="file"] input');
     input.focus();
     Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set.call(input, 'Beta.md');
@@ -177,11 +192,31 @@ module.exports = async function runScenario({
   await open('Drafts.flow');
   await open('Drafts.md');
   await wait("document.querySelector('[aria-label=\"Value for title\"]')?.value === 'Pending'");
+  await delay(800);
+  await js(`(() => {
+    const input = document.querySelector('[aria-label="Value for title"]');
+    Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set.call(input, 'Unload draft');
+    input.dispatchEvent(new Event('input', { bubbles: true }));
+  })()`);
+  assert.equal(
+    await js("!window.dispatchEvent(new Event('beforeunload', { cancelable: true }))"),
+    true
+  );
+  await delay(800);
+  assert.match(await fs.readFile(path.join(vault, 'Drafts.md'), 'utf8'), /title: Unload draft/);
   await js(`(() => {
     const input = document.querySelector('[aria-label="Value for count"]');
     Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set.call(input, '');
     input.dispatchEvent(new Event('input', { bubbles: true }));
   })()`);
+  assert.equal(
+    await js("!window.dispatchEvent(new Event('beforeunload', { cancelable: true }))"),
+    true
+  );
+  await js(`document.querySelector('[aria-label="Value for count"]').dispatchEvent(
+    new KeyboardEvent('keydown', { key: 'e', ctrlKey: true, bubbles: true }))`);
+  assert.equal(await js('document.querySelector(\'[aria-label="Editor mode"]\').value'), 'visual');
+  await wait('!!document.querySelector(\'.note-property-number [role="alert"]\')');
   await click('.tree-item[title="Drafts.flow"]');
   await delay(100);
   assert.equal(await js("document.querySelector('.tab.active').title"), 'Drafts.md');
