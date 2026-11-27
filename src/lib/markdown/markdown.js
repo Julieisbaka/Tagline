@@ -1,5 +1,6 @@
 import DOMPurify from 'dompurify';
-import { Marked } from 'marked';
+import { parseDocument } from 'htmlparser2';
+import { Marked, Parser } from 'marked';
 import { splitFrontmatter } from './frontmatter.js';
 
 export const MARKDOWN_FORBID_TAGS = Object.freeze([
@@ -121,7 +122,7 @@ export const createMarkdownParser = (resolver) => {
     renderer: {
       heading({ tokens, depth }) {
         const text = this.parser.parseInline(tokens);
-        const id = slugify(DOMPurify.sanitize(text, { ALLOWED_TAGS: [], ALLOWED_ATTR: [] }));
+        const id = slugFromText(textFromHtml(text));
         return `<h${depth} id="${id}" class="debate-h${depth}">${text}</h${depth}>\n`;
       },
     },
@@ -151,7 +152,7 @@ const hashSlug = (text) => {
  * @param {string} text - The heading text to convert into a slug.
  * @returns {string} - The generated slug suitable for use as an HTML ID.
  */
-export function slugify(text) {
+function slugFromText(text) {
   const slug = text
     .toLowerCase()
     .replace(/&[a-z]+;/g, '')
@@ -159,6 +160,62 @@ export function slugify(text) {
     .trim()
     .replace(/\s+/g, '-');
   return slug || hashSlug(text);
+}
+
+function textFromHtml(html) {
+  const walk = (nodes) =>
+    nodes
+      .map((node) => {
+        if (node.type === 'text') {
+          return node.data;
+        }
+        if (
+          node.type === 'comment' ||
+          MARKDOWN_FORBID_TAGS.includes(node.name) ||
+          node.name === 'script'
+        ) {
+          return '';
+        }
+        return node.children ? walk(node.children) : '';
+      })
+      .join('');
+  return walk(parseDocument(html).children).replace(/\s+/g, ' ').trim();
+}
+
+let headingParser;
+let cachedHeadingDocument;
+let cachedHeadingTexts;
+
+/** Return the visible text of an inline Markdown heading. */
+export function headingText(text, content) {
+  headingParser ||= createMarkdownParser(() => null);
+  if (content !== undefined) {
+    if (content !== cachedHeadingDocument) {
+      cachedHeadingDocument = content;
+      const parser = new Parser(headingParser.defaults);
+      cachedHeadingTexts = new Map();
+      headingParser.walkTokens(
+        headingParser.lexer(splitFrontmatter(content || '').body),
+        (token) => {
+          if (token.type === 'heading') {
+            cachedHeadingTexts.set(
+              token.text.trim(),
+              textFromHtml(parser.parseInline(token.tokens))
+            );
+          }
+        }
+      );
+    }
+    if (cachedHeadingTexts.has(text)) {
+      return cachedHeadingTexts.get(text);
+    }
+  }
+  return textFromHtml(headingParser.parseInline(text || ''));
+}
+
+/** Generate the same anchor used by rendered Markdown headings. */
+export function slugify(text, content) {
+  return slugFromText(headingText(text, content));
 }
 
 /**

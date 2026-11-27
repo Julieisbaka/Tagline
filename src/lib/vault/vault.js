@@ -328,22 +328,48 @@ export function rewriteFlowLinks(content, oldPath, newPath, allPaths) {
 /**
  * Extract {level,text,line} headings outside fenced code; line is zero-based.
  * @param {string} content - The content of the document to scan for headings.
+ * @param {object} [options] - Control inclusion of nested and converted list-item headings.
  * @returns {object[]} - An array of heading objects, each containing:
  *   - level: The heading level (1-6).
  *   - text: The trimmed heading text.
  *   - line: The zero-based line number where the heading appears.
  */
-export function outline(content) {
+export function outline(content, { includeNested = false, skipListItemHeadings = false } = {}) {
   const metadata = splitFrontmatter(content);
   content = (metadata.prefix.replace(/[^\n]/g, '') + metadata.body).replace(/\r\n?/g, '\n');
   const out = [];
-  let line = 0;
-  for (const token of Lexer.lex(content)) {
-    if (token.type === 'heading') {
-      out.push({ level: token.depth, text: token.text.trim(), line });
+  const walk = (tokens, text, start, skipFirstHeading = false) => {
+    let offset = 0;
+    let line = start;
+    for (const token of tokens) {
+      const raw = token.raw.replace(/\n+$/, '');
+      const found = text.indexOf(raw, offset);
+      const position = found < 0 ? offset : found;
+      line += (text.slice(offset, position).match(/\n/g) || []).length;
+      if (token.type === 'heading' && !skipFirstHeading) {
+        out.push({ level: token.depth, text: token.text.trim(), line });
+      } else if (includeNested && token.type === 'blockquote') {
+        walk(token.tokens, token.text, line);
+      } else if (includeNested && token.type === 'list') {
+        let itemOffset = 0;
+        let itemLine = line;
+        for (const item of token.items) {
+          const itemRaw = item.raw.replace(/\n+$/, '');
+          const foundItem = token.raw.indexOf(itemRaw, itemOffset);
+          const itemPosition = foundItem < 0 ? itemOffset : foundItem;
+          itemLine += (token.raw.slice(itemOffset, itemPosition).match(/\n/g) || []).length;
+          const checkbox = item.task ? /^\[[ xX]\][ \t]+/.exec(item.tokens[0]?.raw)?.[0] || '' : '';
+          walk(item.tokens, checkbox + item.text, itemLine, skipListItemHeadings);
+          itemLine += (itemRaw.match(/\n/g) || []).length;
+          itemOffset = itemPosition + itemRaw.length;
+        }
+      }
+      skipFirstHeading = false;
+      line += (raw.match(/\n/g) || []).length;
+      offset = position + raw.length;
     }
-    line += (token.raw.match(/\n/g) || []).length;
-  }
+  };
+  walk(Lexer.lex(content), content, 0);
   return out;
 }
 

@@ -1,5 +1,8 @@
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const path = require('node:path');
+const vm = require('node:vm');
 
 test('Markdown link resolution stays scoped to each render', async () => {
   const { createMarkdownParser } = await import('../src/lib/markdown/markdown.js');
@@ -39,4 +42,125 @@ test('Flow cell markdown subset renders inline formatting', async () => {
   assert.match(html, /<code>code<\/code>/);
   assert.match(html, /href="https:\/\/example.com"/);
   assert.match(html, /internal-link/);
+});
+
+test('heading titles and anchors agree with rendered inline Markdown', async () => {
+  const { createMarkdownParser, headingText, slugify } =
+    await import('../src/lib/markdown/markdown.js');
+  const { outline } = await import('../src/lib/vault/vault.js');
+  const cases = [
+    ['**Bold** [[Note#Section|Alias]] &amp; <em>More</em>', 'Bold Alias & More'],
+    [
+      '[[Note#Section]] and ++underlined++ ==highlight==',
+      'Note › Section and underlined highlight',
+    ],
+    ['[Link](https://example.com) `code` ~~old~~', 'Link code old'],
+    ['C++ &lt;literal&gt; &#x1F680;', 'C++ <literal> 🚀'],
+    ['日本語', '日本語'],
+    ['!!!', '!!!'],
+    ['<script>hidden</script>Visible', 'Visible'],
+  ];
+  const parser = createMarkdownParser(() => null);
+  for (const [source, expected] of cases) {
+    const heading = outline(`# ${source}\n`)[0];
+    assert.equal(heading.text, source, 'outline preserves editable source');
+    assert.equal(headingText(heading.text), expected);
+    const html = parser.parse(`# ${source}\n`);
+    assert.ok(html.includes(`id="${slugify(source)}"`), html);
+  }
+});
+
+test('heading normalization resolves document reference links', async () => {
+  const { createMarkdownParser, headingText, slugify } =
+    await import('../src/lib/markdown/markdown.js');
+  const { outline } = await import('../src/lib/vault/vault.js');
+  const content = '# [Clean][ref] **energy**\n\n[ref]: https://example.com\n';
+  const raw = outline(content)[0].text;
+  assert.equal(headingText(raw, content), 'Clean energy');
+  assert.equal(slugify(raw, content), 'clean-energy');
+  assert.match(createMarkdownParser(() => null).parse(content), /id="clean-energy"/);
+  assert.equal(headingText(raw), '[Clean][ref] energy');
+});
+
+test('nested heading links resolve in source order with document references', async () => {
+  const { headingText, slugify } = await import('../src/lib/markdown/markdown.js');
+  const { outline } = await import('../src/lib/vault/vault.js');
+  const content =
+    '---\ntitle: Note\n---\n\n> ## [Clean][ref] energy\n\n# Clean energy\n\n- item\n\n  > ## More\n\n- ## Last\n\n[ref]: https://example.com\n';
+  const headings = outline(content, { includeNested: true });
+  assert.deepEqual(
+    headings.map(({ text, line }) => [text, line]),
+    [
+      ['[Clean][ref] energy', 4],
+      ['Clean energy', 6],
+      ['More', 10],
+      ['Last', 12],
+    ]
+  );
+  assert.deepEqual(
+    outline(content).map((heading) => heading.line),
+    [6]
+  );
+  assert.equal(headingText(headings[0].text, content), 'Clean energy');
+  assert.equal(
+    headings.find((heading) => slugify(heading.text, content) === slugify('Clean energy', content))
+      .line,
+    4
+  );
+  const topFirst = '# Same\n\n> ## Same\n\n```\n# Same\n```\n';
+  assert.deepEqual(
+    outline(topFirst, { includeNested: true }).map((heading) => heading.line),
+    [0, 2]
+  );
+  assert.deepEqual(
+    outline('> - x\nlazy\n> ## H\n', { includeNested: true }).map((heading) => heading.line),
+    [2]
+  );
+  assert.deepEqual(
+    outline('- [ ] foo\n\n  ## B\n', { includeNested: true }).map((heading) => heading.line),
+    [2]
+  );
+  const listFirst = '- ## Converted\n\n# Preserved\n';
+  assert.deepEqual(
+    outline(listFirst, { includeNested: true, skipListItemHeadings: true }).map(
+      (heading) => heading.text
+    ),
+    ['Preserved']
+  );
+});
+
+test('heading link lookups resolve source, display, and slug fragments with document references', async () => {
+  const { slugify } = await import('../src/lib/markdown/markdown.js');
+  const { outline } = await import('../src/lib/vault/vault.js');
+  const content =
+    '# Other\n\n# [Clean][ref] **energy**\n\nSection body\n\n# Next\n\n[ref]: https://example.com\n';
+  const headings = outline(content);
+  for (const file of [
+    'src/App/useAppOperations.js',
+    'src/App/useAppCommandContext.js',
+    'src/components/CanvasFilePreview.jsx',
+  ]) {
+    const source = fs.readFileSync(path.join(__dirname, '..', file), 'utf8');
+    const predicate = source.match(
+      /\((?:x|heading)\)\s*=>\s*slugify\([^\n]+?\)\s*===\s*slugify\([^\n]+?\)(?=\s*\n)/
+    );
+    assert.ok(predicate, `heading lookup exists in ${file}`);
+    for (const fragment of ['[Clean][ref] **energy**', 'Clean energy', 'clean-energy', 'Missing']) {
+      const matches = vm.runInNewContext(predicate[0], {
+        slugify,
+        content,
+        heading: fragment,
+        subpath: `#${fragment}`,
+        path: 'Note.md',
+        v: { contents: { 'Note.md': content } },
+        contents: { 'Note.md': content },
+        link: { path: 'Note.md', heading: fragment },
+      });
+      assert.equal(
+        headings.findIndex(matches),
+        fragment === 'Missing' ? -1 : 1,
+        `${file}: ${fragment}`
+      );
+    }
+  }
 });

@@ -23,9 +23,9 @@ export default memo(function CanvasFilePreview({ path, subpath, contents, paths,
       }
       let text = content;
       if (subpath?.startsWith('#')) {
-        const headings = outline(content);
+        const headings = outline(content, { includeNested: true });
         const start = headings.findIndex(
-          (heading) => slugify(heading.text) === slugify(subpath.slice(1))
+          (heading) => slugify(heading.text, content) === slugify(subpath.slice(1), content)
         );
         if (start >= 0) {
           const end = headings

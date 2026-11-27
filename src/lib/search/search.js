@@ -1,6 +1,7 @@
 import defaults from '../settings/defaultSettings.json' with { type: 'json' };
-import { baseName, isFlow, isMarkdown } from '../vault/vault.js';
+import { baseName, isFlow, isMarkdown, outline } from '../vault/vault.js';
 import { flowDocument } from '../flow/flowText.js';
+import { headingText } from '../markdown/markdown.js';
 
 /**
  * Fold accents and case for locale-independent search matching.
@@ -97,6 +98,12 @@ export function parseQuery(query) {
  */
 const isSearchable = (path) => isMarkdown(path) || isFlow(path);
 const searchText = (path, content) => (isFlow(path) ? flowDocument(content).text : content);
+const headingLabels = (path, content) =>
+  isMarkdown(path)
+    ? new Map(
+        outline(content, { includeNested: true }).map((h) => [h.line, headingText(h.text, content)])
+      )
+    : new Map();
 
 export function filterSearchDocuments(contents, index, query) {
   const parsed = parseQuery(query);
@@ -105,7 +112,13 @@ export function filterSearchDocuments(contents, index, query) {
       .filter(([path]) => isSearchable(path))
       .map(([path, raw]) => [path, searchText(path, raw)])
       .filter(([path, content]) =>
-        matchesConstraints(path, fold(baseName(path)), fold(content), index, parsed)
+        matchesConstraints(
+          path,
+          fold(baseName(path)),
+          fold(`${content}\n${[...headingLabels(path, content).values()].join('\n')}`),
+          index,
+          parsed
+        )
       )
   );
 }
@@ -134,16 +147,24 @@ export function createSearchEngine(contents, index) {
       .filter(([path]) => isSearchable(path))
       .map(([path, raw]) => {
         const content = searchText(path, raw);
-        const tokens = words(content);
+        const labels = headingLabels(path, content);
+        const searchable = `${content}\n${[...labels.values()].join('\n')}`;
+        const tokens = words(searchable);
         const counts = new Map();
         for (const token of tokens) {
           counts.set(token, (counts.get(token) || 0) + 1);
         }
         const title = fold(baseName(path));
-        const lines = content
-          .split('\n')
-          .map((text, line) => ({ text, line, normalized: fold(text) }));
-        return [path, { path, title, body: fold(content), counts, length: tokens.length, lines }];
+        const lines = content.split('\n').map((text, line) => ({
+          text: labels.get(line) ?? text,
+          line,
+          heading: labels.has(line) || /^#{1,6}\s/.test(text),
+          normalized: fold(`${text} ${labels.get(line) ?? ''}`),
+        }));
+        return [
+          path,
+          { path, title, body: fold(searchable), counts, length: tokens.length, lines },
+        ];
       })
   );
 
@@ -260,10 +281,9 @@ function rankDocuments(documents, alternatives, maxResults, matchAll) {
       }
       const headingTerms = new Set();
       const passages = lines
-        .map(({ text, line, normalized }) => {
+        .map(({ text, line, normalized, heading }) => {
           const found = matchedTerms.filter((term) => normalized.includes(term));
           const count = found.length;
-          const heading = /^#{1,6}\s/.test(text);
           if (heading) {
             found.forEach((term) => headingTerms.add(term));
           }

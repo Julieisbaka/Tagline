@@ -1,6 +1,23 @@
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
 
+test('search finds and displays normalized heading titles without changing source documents', async () => {
+  const { searchVault, filterSearchDocuments } = await import('../src/lib/search/search.js');
+  const source = '# **Clean** [[Target|energy]] &amp; <em>grid</em>\n\nEvidence.';
+  const contents = { 'Case.md': source };
+  const index = { tags: {} };
+  const results = searchVault(contents, index, '"clean energy"');
+  assert.equal(results[0].matches[0].text, 'Clean energy & grid');
+  assert.equal(results[0].matches[0].line, 0);
+  assert.deepEqual(filterSearchDocuments(contents, index, '"clean energy"'), contents);
+  assert.equal(searchVault(contents, index, 'target')[0].path, 'Case.md');
+  const reference = { 'Reference.md': '# [Clean][ref] **energy**\n\n[ref]: https://example.com' };
+  assert.equal(searchVault(reference, index, '"clean energy"')[0].matches[0].text, 'Clean energy');
+  const nested = { 'Nested.md': '> ## **Nested** [[Target|energy]]\n> Evidence.' };
+  assert.equal(searchVault(nested, index, '"nested energy"')[0].matches[0].text, 'Nested energy');
+  assert.equal(searchVault(nested, index, '"nested energy"')[0].matches[0].line, 0);
+});
+
 test('passage proximity ranks a focused warrant above scattered term mentions', async () => {
   const { searchVault } = await import('../src/lib/search/search.js');
   const contents = {

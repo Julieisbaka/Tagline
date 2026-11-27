@@ -29,7 +29,7 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
   );
   const documents = {
     'Grid.md':
-      '# Grid transmission\n#neg\nExact keyword evidence.\n' +
+      '# **Grid** [[Network|transmission]]\n#neg\nExact keyword evidence.\n' +
       'Background context. '.repeat(60) +
       'Électricité supports resilience.',
     'Both.md': '# Evidence\n#neg\nGrid transmission upgrades.',
@@ -161,6 +161,21 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
         await wait("!!document.querySelector('.cm-editor')");
         await wait(
           "window.getSelection()?.anchorNode?.parentElement?.closest('.cm-line')?.textContent.includes('Électricité')"
+        );
+        await js("document.querySelector('.tab.active .tab-close').click()");
+        await wait("!document.querySelector('.tab.active')");
+        await openSearch();
+        await input('"grid transmission"');
+        await wait("document.querySelectorAll('.search-result').length === 3");
+        assert.ok(
+          await js(
+            "document.querySelector('.search-line').textContent.includes('Grid transmission')"
+          )
+        );
+        await js("document.querySelector('.search-line').click()");
+        await wait("document.querySelector('.tab.active')?.getAttribute('title') === 'Grid.md'");
+        await wait(
+          "window.getSelection()?.anchorNode?.parentElement?.closest('.cm-line')?.textContent.includes('[[Network|transmission]]')"
         );
         await js("document.querySelector('.tab.active .tab-close').click()");
         await wait("!document.querySelector('.tab.active')");
