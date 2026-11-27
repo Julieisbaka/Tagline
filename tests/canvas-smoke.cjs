@@ -46,7 +46,48 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
     edges: [{ id: 'edge', fromNode: 'claim', toNode: 'file' }],
   };
   await fs.writeFile(path.join(vault, 'Map.canvas'), JSON.stringify(original));
-  await fs.writeFile(path.join(vault, 'Climate.md'), '# Climate');
+  await fs.writeFile(
+    path.join(vault, 'Sections.canvas'),
+    JSON.stringify({
+      nodes: [
+        {
+          id: 'quote',
+          type: 'file',
+          x: 0,
+          y: 0,
+          width: 200,
+          height: 160,
+          file: 'Climate.md',
+          subpath: '#Quote',
+        },
+        {
+          id: 'list',
+          type: 'file',
+          x: 220,
+          y: 0,
+          width: 200,
+          height: 160,
+          file: 'Climate.md',
+          subpath: '#List',
+        },
+        {
+          id: 'missing',
+          type: 'file',
+          x: 440,
+          y: 0,
+          width: 200,
+          height: 160,
+          file: 'Climate.md',
+          subpath: '#Missing',
+        },
+      ],
+      edges: [],
+    })
+  );
+  await fs.writeFile(
+    path.join(vault, 'Climate.md'),
+    '# Before\n\n> ## Quote\n> Quote body\n\n- ## List\n  List body\n\n- ## End\n  End body\n\n# Quote\nLater duplicate\n'
+  );
   await fs.writeFile(
     path.join(profile, 'config.json'),
     JSON.stringify({ lastVault: vault, modelAutoload: false })
@@ -130,7 +171,19 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
         win.show({ focus: false });
         await wait("!!document.querySelector('.onboarding-skip')");
         await js("document.querySelector('.onboarding-skip').click()");
-        await wait("document.querySelectorAll('.tree-item').length === 2");
+        await wait("document.querySelectorAll('.tree-item').length === 3");
+        await click('.tree-item', 'Sections');
+        await wait(
+          "document.querySelector('[data-node-id=\"list\"] .canvas-node-preview')?.textContent.includes('List body')"
+        );
+        const previews = await js(`['quote', 'list', 'missing'].map(id =>
+          document.querySelector('[data-node-id="' + id + '"] .canvas-node-preview').textContent)`);
+        assert.match(previews[0], /Quote body/);
+        assert.doesNotMatch(previews[0], /Before|List body|Later duplicate/);
+        assert.match(previews[1], /List body/);
+        assert.doesNotMatch(previews[1], /Quote body|End body|Later duplicate/);
+        assert.match(previews[2], /Before/);
+        assert.match(previews[2], /Later duplicate/);
         const refresh = async (duration) => {
           reloadDelay = duration;
           const calls = refreshCalls;
