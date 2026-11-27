@@ -100,7 +100,9 @@ const isSearchable = (path) => isMarkdown(path) || isFlow(path);
 const searchText = (path, content) => (isFlow(path) ? flowDocument(content).text : content);
 const headingLabels = (path, content) =>
   isMarkdown(path)
-    ? new Map(outline(content).map((h) => [h.line, headingText(h.text, content)]))
+    ? new Map(
+        outline(content, { includeNested: true }).map((h) => [h.line, headingText(h.text, content)])
+      )
     : new Map();
 
 export function filterSearchDocuments(contents, index, query) {
